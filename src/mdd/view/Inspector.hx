@@ -7,13 +7,16 @@ import mdd.ui.Widget;
 @:unreflective
 final class Inspector extends Widget {
 	public static inline final CHANNEL = 0;
-	public static inline final SCOPE = 1;
+	public static inline final BANK = 1;
+	public static inline final SCOPE = 2;
 
 	public final session:Session;
 
 	public final tabs:Tabs;
 	public final fm:FmEditor;
 	public final psg:PsgEditor;
+	public final samples:Samples;
+	public final presets:Presets;
 	public final scope:Scope;
 
 	public var showing(default, null):Int = CHANNEL;
@@ -22,17 +25,23 @@ final class Inspector extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["Channel", "Scope"]);
+		tabs = new Tabs(["Channel", "Bank", "Scope"]);
 		fm = new FmEditor(session);
 		psg = new PsgEditor(session);
+		samples = new Samples(session);
+		presets = new Presets(session);
 		scope = new Scope(session);
 
 		add(tabs);
 		add(fm);
 		add(psg);
+		add(samples);
+		add(presets);
 		add(scope);
 
 		psg.visible = false;
+		samples.visible = false;
+		presets.visible = false;
 		scope.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
@@ -44,16 +53,27 @@ final class Inspector extends Widget {
 	}
 
 	public function follow():Void {
-		final square = session.part.square() || session.part.noise();
+		final part = session.part;
+		final square = part.square() || part.noise();
+		final sampled = part.sampled();
 
-		final wantFm = showing == CHANNEL && !square;
+		final wantFm = showing == CHANNEL && !square && !sampled;
 		final wantPsg = showing == CHANNEL && square;
+		final wantSamples = showing == CHANNEL && sampled;
+		final wantPresets = showing == BANK;
 		final wantScope = showing == SCOPE;
 
-		if (fm.visible == wantFm && psg.visible == wantPsg && scope.visible == wantScope) return;
+		if (wantPresets) presets.fit();
+
+		if (fm.visible == wantFm && psg.visible == wantPsg && samples.visible == wantSamples
+				&& presets.visible == wantPresets && scope.visible == wantScope) {
+			return;
+		}
 
 		fm.visible = wantFm;
 		psg.visible = wantPsg;
+		samples.visible = wantSamples;
+		presets.visible = wantPresets;
 		scope.visible = wantScope;
 
 		relayout();
@@ -70,6 +90,8 @@ final class Inspector extends Widget {
 		tabs.arrange(x, y, width, tall);
 		fm.arrange(x, y + tall, width, height - tall);
 		psg.arrange(x, y + tall, width, height - tall);
+		samples.arrange(x, y + tall, width, height - tall);
+		presets.arrange(x, y + tall, width, height - tall);
 		scope.arrange(x, y + tall, width, height - tall);
 	}
 
@@ -78,6 +100,8 @@ final class Inspector extends Widget {
 
 		if (fm.visible) fm.paint(paint);
 		if (psg.visible) psg.paint(paint);
+		if (samples.visible) samples.paint(paint);
+		if (presets.visible) presets.paint(paint);
 		if (scope.visible) scope.paint(paint);
 	}
 }

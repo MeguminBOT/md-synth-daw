@@ -3,6 +3,7 @@ package mdd.format;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
 import mdd.song.Automation;
+import mdd.song.Bank;
 import mdd.song.Clip;
 import mdd.song.Envelope;
 import mdd.song.Instrument;
@@ -81,6 +82,22 @@ class Project {
 		out.key("instruments");
 		out.list();
 		for (instrument in song.instruments) wroteInstrument(out, instrument);
+		out.ends();
+
+		out.key("banks");
+		out.list();
+
+		for (bank in song.banks) {
+			out.open();
+			out.key("name");
+			out.text(bank.name);
+			out.key("kept");
+			out.flag(bank.kept);
+			out.key("instruments");
+			out.wholes(bank.instruments);
+			out.close();
+		}
+
 		out.ends();
 
 		out.key("samples");
@@ -322,6 +339,21 @@ class Project {
 
 		final instruments = node.get("instruments");
 		for (i in 0...instruments.length()) song.instrument(readInstrument(instruments.at(i)));
+
+		final banks = node.get("banks");
+
+		if (banks.length() > 0) {
+			song.banks.resize(0);
+
+			for (i in 0...banks.length()) {
+				final held = banks.at(i);
+				final bank = song.banked(held.get("name").saying(""),
+					held.get("kept").truth(true));
+
+				final named = held.get("instruments");
+				for (at in 0...named.length()) bank.add(named.at(at).whole(0));
+			}
+		}
 
 		final samples = node.get("samples");
 		for (i in 0...samples.length()) {

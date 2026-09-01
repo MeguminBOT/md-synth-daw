@@ -35,6 +35,8 @@ final class Session {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
+			if (part.sampled()) continue;
+
 			final instrument = song.instrument(new mdd.song.Instrument(part.name().toLowerCase(),
 				part));
 
@@ -62,6 +64,26 @@ final class Session {
 
 			song.rack[index] = index;
 		}
+
+		final kit = song.instrument(new mdd.song.Instrument("kick", Part.Dac));
+		final sample = song.sample(new mdd.song.Sample("kick", 8000, 60));
+
+		final bytes = new haxe.ds.Vector<Int>(1200);
+		var seed = 0x2C1D;
+
+		for (i in 0...bytes.length) {
+			seed = (seed * 1103515245 + 12345) & 0x3FFFFFFF;
+
+			final fade = 1.0 - i / bytes.length;
+			final value = Math.round(Math.sin(i * 0.09) * 110 * fade
+				+ ((seed >> 9) % 30 - 15) * fade) + 128;
+
+			bytes[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
+		}
+
+		sample.hold(bytes);
+		kit.sample = 0;
+		song.rack[Part.Dac.index()] = song.instruments.length - 1;
 
 		song.add(new Pattern("pattern 1", 384));
 

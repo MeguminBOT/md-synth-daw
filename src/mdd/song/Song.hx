@@ -12,6 +12,7 @@ final class Song {
 	public final patterns:Array<Pattern> = [];
 	public final tracks:Array<Track> = [];
 	public final instruments:Array<Instrument> = [];
+	public final banks:Array<Bank> = [];
 	public final samples:Array<Sample> = [];
 
 	public final rack:Vector<Int> = new Vector<Int>(Part.COUNT);
@@ -41,7 +42,30 @@ final class Song {
 
 	public function instrument(instrument:Instrument):Instrument {
 		instruments.push(instrument);
+		bank(0).add(instruments.length - 1);
 		return instrument;
+	}
+
+	public function bank(index:Int):Bank {
+		while (banks.length <= index) {
+			banks.push(new Bank(banks.length == 0 ? "Default" : "bank " + banks.length));
+		}
+
+		return banks[index];
+	}
+
+	public function banked(name:String, kept:Bool = true):Bank {
+		for (held in banks) if (held.name == name) return held;
+
+		final made = new Bank(name, kept);
+		banks.push(made);
+
+		return made;
+	}
+
+	public function bankOf(index:Int):Int {
+		for (at in 0...banks.length) if (banks[at].holds(index)) return at;
+		return 0;
 	}
 
 	public function sample(sample:Sample):Sample {
@@ -87,6 +111,13 @@ final class Song {
 
 		for (instrument in instruments) out.instrument(instrument.copy());
 		for (sample in samples) out.sample(sample.copy());
+
+		out.banks.resize(0);
+
+		for (held in banks) {
+			final made = out.banked(held.name, held.kept);
+			for (index in held.instruments) made.add(index);
+		}
 
 		for (i in 0...Part.COUNT) {
 			out.rack[i] = rack[i];

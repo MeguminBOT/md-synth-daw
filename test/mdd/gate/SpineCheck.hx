@@ -236,6 +236,49 @@ class SpineCheck {
 			editor.scope.painted + " lanes traced, worst frame " + round(scopeWorst * 1000, 3)
 			+ " ms with the scope in the inspector");
 
+		editor.show(Inspector.BANK);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final fmListed = editor.presets.listed;
+		final fmBanks = editor.presets.banks;
+
+		session.choose(Part.Dac);
+		editor.presets.fit();
+
+		final dacListed = editor.presets.listed;
+
+		session.choose(Part.Psg1);
+		editor.presets.fit();
+
+		final psgListed = editor.presets.listed;
+
+		says("the bank follows the part", fmListed == 6 && dacListed == 1 && psgListed == 3,
+			"an FM channel sees " + fmListed + " patches in " + fmBanks + " bank, the converter "
+			+ dacListed + " and a square " + psgListed + ", filtered by what the part is");
+
+		session.choose(Part.Dac);
+		editor.show(Inspector.CHANNEL);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final columns = editor.samples.painted;
+		final was = session.song.samples[0].length();
+
+		editor.samples.start = 100;
+		editor.samples.ends = 400;
+		editor.samples.trim();
+
+		says("a sample is drawn and trimmed", columns > 100
+			&& session.song.samples[0].length() == 300,
+			columns + " columns of waveform, and trimming " + was + " bytes to the markers left "
+			+ session.song.samples[0].length());
+
+		session.choose(Part.Fm1);
 		editor.show(Inspector.CHANNEL);
 
 		pattern.lane(Part.Fm1).add(new Note(0, 384, 60, 100));

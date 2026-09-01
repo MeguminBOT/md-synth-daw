@@ -110,6 +110,7 @@ final class Transcription {
 		}
 
 		close(last);
+		session();
 		for (index in 0...Part.COUNT) song.rack[index] = -1;
 		settle();
 	}
@@ -381,6 +382,15 @@ final class Transcription {
 
 		sampler = song.instruments.length - 1;
 		return sampler;
+	}
+
+	function session():Void {
+		if (song.instruments.length == 0) return;
+
+		final bank = song.banked("from the import", false);
+		for (index in 0...song.instruments.length) bank.add(index);
+
+		song.banks[0].instruments.resize(0);
 	}
 
 	function settle():Void {
