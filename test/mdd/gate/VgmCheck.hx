@@ -45,7 +45,18 @@ class VgmCheck {
 		sound(where, files);
 
 		final into = args.indexOf("--wav");
-		if (into >= 0 && into + 1 < args.length) written(where, files, args[into + 1]);
+
+		if (into >= 0 && into + 1 < args.length) {
+			final capped = args.indexOf("--seconds");
+			var seconds = 0;
+
+			if (capped >= 0 && capped + 1 < args.length) {
+				final want = Std.parseInt(args[capped + 1]);
+				if (want != null) seconds = want;
+			}
+
+			written(where, files, args[into + 1], seconds);
+		}
 		transported(where, files);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -230,26 +241,73 @@ class VgmCheck {
 			+ round(peaks[0], 3) + " and " + round(peaks[1], 3));
 	}
 
-	static function written(where:String, files:Array<String>, into:String):Void {
-		var name = "";
+	static function written(where:String, files:Array<String>, into:String,
+			seconds:Int):Void {
+		final one = StringTools.endsWith(into.toLowerCase(), ".wav");
 
-		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
-		if (name == "" && files.length > 0) name = files[0];
-		if (name == "") return;
+		if (!one && !sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
 
-		final stream = new mdd.play.Stream(1 << 22);
-		mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		var wrote = 0;
+		var held = 0.0;
 
-		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
-		final seconds = 12;
-		final frames = 44100 * seconds;
+		for (name in files) {
+			if (one && name.indexOf("Green Hill") < 0 && files.indexOf(name) != 0) continue;
+
+			final where2 = one ? into
+				: into + "/" + name.substr(0, name.length - 4) + ".wav";
+
+			final much = rendered(where + "/" + name, where2, seconds);
+			if (much <= 0) continue;
+
+			wrote++;
+			held += much;
+
+			Sys.println("    " + StringTools.rpad(name, " ", 34)
+				+ shown(much, 1) + " s");
+
+			if (one) break;
+		}
+
+		Sys.println("    wrote " + wrote + " files, " + shown(held, 1) + " s in all, to "
+			+ into);
+	}
+
+	static function shown(value:Float, places:Int):Float {
+		final scale = Math.pow(10, places);
+		return Math.round(value * scale) / scale;
+	}
+
+	static function rendered(from:String, into:String, seconds:Int):Float {
+		final rate = 44100;
+		final stream = new mdd.play.Stream(1 << 23);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(from), stream);
+
+		var ticks = vgm.samples;
+
+		if (ticks <= 0 && stream.count > 0) ticks = stream.tickAt(stream.count - 1);
+		if (ticks <= 0) return 0;
+
+		ticks += rate;
+		if (seconds > 0 && ticks > seconds * rate) ticks = seconds * rate;
+
+		final frames = Std.int(ticks * (rate / mdd.song.Tempo.TICKS));
 		final sound = new haxe.ds.Vector<cpp.Float32>(frames * 2);
+
+		final song = mdd.format.Transcription.of(stream, vgm.rate, from).song;
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
+
+		render.transport = transport;
+		transport.source = stream;
+		transport.play();
 
 		var done = 0;
 
 		while (done < frames) {
-			final from = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
-			final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
+			final at = transport.advance(mdd.play.Render.BLOCK, rate);
+			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+				transport.entering);
+
 			if (many <= 0) break;
 
 			for (i in 0...many) {
@@ -261,8 +319,8 @@ class VgmCheck {
 			done += many;
 		}
 
-		sys.io.File.saveBytes(into, mdd.format.Wav.write(sound, frames, 2, 44100));
-		Sys.println("    wrote " + seconds + " s of " + name + " to " + into);
+		sys.io.File.saveBytes(into, mdd.format.Wav.write(sound, frames, 2, rate));
+		return frames / rate;
 	}
 
 	static function sound(where:String, files:Array<String>):Void {
