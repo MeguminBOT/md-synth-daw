@@ -450,7 +450,7 @@ class TierCheck {
 			frames + " frames at " + wav.rate + " Hz, worst sample off by "
 			+ shown(worst, 6));
 
-		final held = wav.bytes(8000, 60);
+		final held = wav.bytes(8000);
 		var lowest = 255;
 		var highest = 0;
 
@@ -459,8 +459,11 @@ class TierCheck {
 			if (held[i] > highest) highest = held[i];
 		}
 
-		says("and becomes converter bytes", lowest < 60 && highest > 195,
+		final wanted = Math.round(frames * 8000.0 / RATE);
+
+		says("and becomes converter bytes", lowest < 60 && highest > 195
+			&& Math.abs(held.length - wanted) <= 1,
 			held.length + " unsigned bytes between " + lowest + " and " + highest
-			+ ", centred on 128 the way the converter reads them");
+			+ ", centred on 128, resampled from " + RATE + " Hz to 8000");
 	}
 }

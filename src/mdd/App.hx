@@ -225,6 +225,8 @@ class App {
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
 		rail.hardware.budget = budget;
+		centre.samples.budget = budget;
+		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -255,6 +257,7 @@ class App {
 			switch (suffix) {
 				case "vgm", "vgz": files.readVgm(where);
 				case "mid", "midi": files.readMidi(where);
+				case "wav": files.readWav(where);
 				case _: files.load(where);
 			}
 		} catch (e:Dynamic) {
@@ -424,6 +427,8 @@ class App {
 			files.ask(window, Files.READ_VGM));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_MIDI))), function():Void
 			files.ask(window, Files.READ_MIDI));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_WAV))), function():Void
+			files.ask(window, Files.READ_WAV));
 
 		return held;
 	}
@@ -821,6 +826,8 @@ class App {
 
 		centre.roll.budget = budget;
 		rail.hardware.budget = budget;
+		centre.samples.budget = budget;
+		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
 
 		commands();

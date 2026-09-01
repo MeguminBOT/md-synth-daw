@@ -58,6 +58,12 @@ final class Samples extends Widget {
 		return y + head() + session.song.samples.length * slots();
 	}
 
+	public var budget:Null<mdd.check.Budget> = null;
+
+	static function kb(bytes:Int):Float {
+		return Math.round(bytes / 1024 * 10) / 10;
+	}
+
 	public function held():Int {
 		var total = 0;
 		for (sample in session.song.samples) total += sample.length();
@@ -201,8 +207,13 @@ final class Samples extends Widget {
 		paint.reface(small);
 		paint.text(translate(Locale.PANEL_SAMPLES), x + metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
 			theme.dim, 0.8);
-		paint.textRight(held() + " " + translate(Locale.PANEL_BYTES), x + width - metrics.inset,
-			y + head() * 0.5 + small.ascent * 0.5, theme.dim, 0.8);
+		final total = held();
+		final ceiling = budget == null ? 65536 : budget.profile.sampleBytes;
+		final over = total > ceiling;
+
+		paint.textRight(kb(total) + " / " + kb(ceiling) + " kb",
+			x + width - metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
+			over ? theme.over : theme.dim, 0.8);
 
 		final tall = slots();
 

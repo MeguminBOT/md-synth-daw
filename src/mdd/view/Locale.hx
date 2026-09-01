@@ -61,6 +61,7 @@ class Locale {
 	public static inline final FILE_MIDI = "file.midi";
 	public static inline final FILE_READ_VGM = "file.readVgm";
 	public static inline final FILE_READ_MIDI = "file.readMidi";
+	public static inline final FILE_READ_WAV = "file.readWav";
 	public static inline final FILE_UPDATE = "file.update";
 	public static inline final FILE_PREFERENCES = "file.preferences";
 	public static inline final FILE_QUIT = "file.quit";
@@ -207,7 +208,6 @@ class Locale {
 	public static inline final PANEL_NO_WARNINGS = "panel.noWarnings";
 	public static inline final PANEL_WARNING = "panel.warning";
 	public static inline final PANEL_WARNINGS = "panel.warnings";
-	public static inline final PANEL_BYTES = "panel.bytes";
 
 	public static inline final SAID_SAVED = "said.saved";
 	public static inline final SAID_OPENED = "said.opened";
@@ -237,7 +237,7 @@ class Locale {
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
 		REGISTERS_LEVEL, REGISTERS_TONE,
-		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI,
+		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI, FILE_READ_WAV,
 		FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
@@ -270,7 +270,7 @@ class Locale {
 		TRANSPORT_BARS,
 		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_BANK, PANEL_SCOPE, PANEL_PATCHES,
 		PANEL_NO_PATCHES, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
-		PANEL_WARNING, PANEL_WARNINGS, PANEL_BYTES,
+		PANEL_WARNING, PANEL_WARNINGS,
 		SAID_SAVED, SAID_OPENED, SAID_EXPORTED, SAID_RENDERED, SAID_KEPT, SAID_RECOVERED,
 		SAID_NOTHING_CHOSEN, SAID_UNDONE, SAID_REDONE, SAID_NOTHING_UNDO, SAID_NOTHING_REDO,
 		SAID_FAILED, SAID_LOADED, SAID_OCTAVE

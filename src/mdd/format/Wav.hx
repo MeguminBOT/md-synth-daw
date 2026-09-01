@@ -99,12 +99,17 @@ final class Wav {
 		return out;
 	}
 
-	public function bytes(rate:Int, root:Int):Vector<Int> {
+	public function bytes(into:Int):Vector<Int> {
 		final held = mono();
-		final out = new Vector<Int>(held.length);
+		final step = into <= 0 || rate <= 0 ? 1.0 : rate / into;
+		final many = step <= 0 ? held.length : Std.int(held.length / step);
+		final out = new Vector<Int>(many < 1 ? 1 : many);
 
-		for (i in 0...held.length) {
-			final value = Math.round(held[i] * 127) + 128;
+		for (i in 0...out.length) {
+			final at = Std.int(i * step);
+			final sample = at < held.length ? held[at] : 0.0;
+			final value = Math.round(sample * 127) + 128;
+
 			out[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
 		}
 

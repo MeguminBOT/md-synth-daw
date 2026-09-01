@@ -26,8 +26,10 @@ final class Files {
 	public static inline final MIDI = 5;
 	public static inline final READ_VGM = 6;
 	public static inline final READ_MIDI = 7;
+	public static inline final READ_WAV = 8;
 
 	public static inline final RATE = 44100;
+	public static inline final DAC_RATE = 8000;
 
 	public var path(default, null):String = "";
 	public var asking(default, null):Int = NOTHING;
@@ -103,6 +105,7 @@ final class Files {
 			case MIDI: Dialog.save(window, "midi", "mid", where);
 			case READ_VGM: Dialog.open(window, "vgm", "vgm", where);
 			case READ_MIDI: Dialog.open(window, "midi", "mid", where);
+			case READ_WAV: Dialog.open(window, "wav", "wav", where);
 			case _: null;
 		}
 
@@ -143,6 +146,7 @@ final class Files {
 				case MIDI: exportMidi(where);
 				case READ_VGM: readVgm(where);
 				case READ_MIDI: readMidi(where);
+				case READ_WAV: readWav(where);
 				case _:
 			}
 		} catch (e:Dynamic) {
@@ -174,6 +178,20 @@ final class Files {
 
 		session.say("read " + name(where) + ", " + made.notes + " notes on "
 			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
+	}
+
+	public function readWav(where:String):mdd.song.Sample {
+		final wav = Wav.read(sys.io.File.getBytes(where));
+		final made = new mdd.song.Sample(name(where), DAC_RATE);
+
+		made.hold(wav.bytes(DAC_RATE));
+		session.song.samples.push(made);
+
+		session.say("read " + name(where) + ", " + made.length() + " bytes at "
+			+ DAC_RATE + " Hz");
+		session.changed();
+
+		return made;
 	}
 
 	public function readMidi(where:String):Void {
