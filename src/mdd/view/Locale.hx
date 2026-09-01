@@ -102,7 +102,6 @@ class Locale {
 
 	public static inline final VIEW_ROLL = "view.roll";
 	public static inline final VIEW_SCOPE = "view.scope";
-	public static inline final VIEW_SAMPLES = "view.samples";
 	public static inline final VIEW_TRACKER = "view.tracker";
 	public static inline final VIEW_PLAYLIST = "view.playlist";
 	public static inline final VIEW_REGISTERS = "view.registers";
@@ -272,7 +271,7 @@ class Locale {
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
 		PATTERN, PATTERN_BAR, PATTERN_BARS,
 		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,
-		VIEW_ROLL, VIEW_SCOPE, VIEW_SAMPLES, VIEW_TRACKER, VIEW_PLAYLIST,
+		VIEW_ROLL, VIEW_SCOPE, VIEW_TRACKER, VIEW_PLAYLIST,
 		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
 		TYPEFACE_GO, TYPEFACE_PLEX, TYPEFACE_INTER, TYPEFACE_BARLOW, PREFERENCE_MOTION,

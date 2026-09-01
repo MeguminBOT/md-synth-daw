@@ -163,7 +163,7 @@ final class Preferences extends Widget {
 
 			case DENSITY:
 				density = which;
-				if (onScale != null) onScale(0.9 + which * 0.1);
+				if (onScale != null) onScale(1.0 + which * 0.15);
 
 			case KEEPING:
 				keeping = which;

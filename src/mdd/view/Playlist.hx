@@ -29,6 +29,7 @@ final class Playlist extends Widget {
 
 	var chosenTrack:Int = -1;
 	var dragging:Null<Clip> = null;
+	var sizing:Bool = false;
 	var grabTick:Int = 0;
 	var hoverTrack:Int = -1;
 
@@ -61,6 +62,28 @@ final class Playlist extends Widget {
 	public function trackAt(py:Float):Int {
 		final at = Std.int((py - y - ruler()) / trackTall);
 		return at < 0 || at >= session.song.tracks.length ? -1 : at;
+	}
+
+	public function edge():Float {
+		final root = root();
+		return root == null ? 6 : root.metrics.whole(6);
+	}
+
+	public function onEdge(clip:Clip, px:Float):Bool {
+		final right = atTick(clip.ends());
+		final reach = edge();
+
+		return px >= right - reach && px <= right + reach;
+	}
+
+	public function resized(clip:Clip, to:Int):Void {
+		final least = session.snap < 1 ? 1 : session.snap;
+		var want = session.snapped(to) - clip.at;
+
+		if (want < least) want = least;
+		if (want == clip.length) return;
+
+		clip.length = want;
 	}
 
 	public function clipAt(px:Float, py:Float):Null<Clip> {
@@ -117,7 +140,8 @@ final class Playlist extends Widget {
 					chosen = under;
 					chosenTrack = which;
 					dragging = under;
-					grabTick = tickAt(event.x) - under.at;
+					sizing = onEdge(under, event.x);
+					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 					invalidate();
 					return true;
 				}
@@ -133,6 +157,7 @@ final class Playlist extends Widget {
 				chosen = clip;
 				chosenTrack = which;
 				dragging = clip;
+				sizing = true;
 				grabTick = 0;
 
 				invalidate();
@@ -148,6 +173,12 @@ final class Playlist extends Widget {
 
 				if (dragging == null) return false;
 
+				if (sizing) {
+					resized(dragging, tickAt(event.x));
+					invalidate();
+					return true;
+				}
+
 				final at = session.snapped(tickAt(event.x) - grabTick);
 				dragging.at = at < 0 ? 0 : at;
 
@@ -161,6 +192,7 @@ final class Playlist extends Widget {
 				final was = grabTick;
 
 				dragging = null;
+				sizing = false;
 				session.changed();
 				return true;
 

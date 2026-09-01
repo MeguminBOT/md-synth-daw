@@ -34,12 +34,14 @@ final class Transport {
 	var poured:Int = 0;
 	var hushing:Bool = false;
 	var latched:Int = -1;
+	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
 	var carried:Int = 0;
 
 	public function new(song:Song, capacity:Int = 8192) {
 		this.song = song;
 		sequencer = new Sequencer(song);
+		for (index in 0...Part.COUNT) sounded[index] = true;
 		stream = new Stream(capacity);
 	}
 
@@ -75,6 +77,8 @@ final class Transport {
 	public function advance(frames:Int, rate:Int):Int {
 		stream.clear();
 		entering = carried;
+
+		watched();
 
 		if (hushing) {
 			hushing = false;
@@ -167,6 +171,20 @@ final class Transport {
 
 		stream.silence(at, part);
 		heardPart = -1;
+	}
+
+	function watched():Void {
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final now = song.audible(part);
+
+			if (now == sounded[index]) continue;
+
+			sounded[index] = now;
+			if (now) continue;
+
+			stream.silence(position, part);
+		}
 	}
 
 	function replayed(from:Int, until:Int):Void {

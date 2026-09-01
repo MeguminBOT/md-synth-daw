@@ -845,6 +845,14 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	static final NAMES:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G",
+		"G#", "A", "A#", "B"];
+
+	public static function named(pitch:Int):String {
+		final held = pitch < 0 ? 0 : pitch;
+		return NAMES[held % 12] + (Std.int(held / 12) - 1);
+	}
+
 	function keys(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
 		final wide = gutter();
 
@@ -869,9 +877,12 @@ final class PianoRoll extends Widget {
 						black ? 1 : 0.85);
 				}
 
-				if (pitch % 12 == 0 && rowTall >= font.height) {
-					paint.text("C" + (Std.int(pitch / 12) - 1), x + metrics.unit,
-						row + (rowTall - font.height) * 0.5 + font.ascent, theme.dim);
+				if (rowTall >= font.height) {
+					final root2 = pitch % 12 == 0;
+
+					paint.textRight(named(pitch), x + wide - metrics.unit * 2,
+						row + (rowTall - font.height) * 0.5 + font.ascent,
+						black ? theme.dim : theme.sink, root2 ? 1 : 0.75);
 				}
 			}
 

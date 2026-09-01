@@ -89,7 +89,7 @@ final class Tabs extends Widget {
 		final metrics = root.metrics;
 		final font = metrics.body;
 
-		paint.rect(x, y, width, height, theme.bar);
+		paint.rect(x, y, width, height, theme.sink);
 		paint.reface(font);
 
 		var pen = x;
@@ -106,18 +106,32 @@ final class Tabs extends Widget {
 			}
 
 			final on = i == chosen;
+			final gap = metrics.unit;
+			final top = y + metrics.whole(3);
+			final tall = height - metrics.whole(3);
+			final left = pen + gap * 0.5;
+			final room = wide - gap;
+			final bar = metrics.whole(3);
+
 			if (on) {
-				paint.roundedRect(pen, y + metrics.whole(3), wide, height, metrics.radiusRow,
-					theme.ground);
-				paint.rect(pen + metrics.unit * 2, y + metrics.whole(3),
-					wide - metrics.unit * 4, metrics.whole(2), theme.accent);
-			} else if (i == hoverAt) {
-				paint.roundedRect(pen, y + metrics.whole(3), wide, height, metrics.radiusRow,
-					theme.accent, Theme.HOVER);
+				paint.roundedRect(left, top, room, tall + metrics.radiusRow,
+					metrics.radiusRow, theme.panel);
+				paint.rect(left, y + height - bar, room, bar, theme.accent);
+			} else {
+				paint.roundedRect(left, top + gap, room, tall - gap, metrics.radiusRow,
+					theme.raise1);
+				paint.outline(left, top + gap, room, tall - gap, theme.frame,
+					metrics.whole(1));
+
+				if (i == hoverAt) {
+					paint.roundedRect(left, top + gap, room, tall - gap, metrics.radiusRow,
+						theme.accent, Theme.HOVER);
+				}
 			}
 
 			paint.textCentred(labels[i], pen + wide * 0.5,
-				y + (height - font.height) * 0.5 + font.ascent, on ? theme.ink : theme.dim);
+				y + (height - font.height) * 0.5 + font.ascent + (on ? 0 : metrics.unit * 0.5),
+				on ? theme.ink : theme.dim);
 			pen += wide;
 		}
 

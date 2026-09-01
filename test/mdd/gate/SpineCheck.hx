@@ -233,6 +233,8 @@ class SpineCheck {
 		var first = 0.0;
 		var worstAt = 0;
 		final times = new haxe.ds.Vector<Float>(rolls);
+
+		centre.show(Centre.ROLL);
 		var over = 0;
 		var drawnNotes = 0;
 		var calls = 0;

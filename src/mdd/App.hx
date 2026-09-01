@@ -264,8 +264,6 @@ class App {
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
-		centre.samples.budget = budget;
-		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
@@ -498,8 +496,6 @@ class App {
 			centre.show(Centre.ROLL));
 		fired(held.offer(new Choice(root.translate(Locale.VIEW_SCOPE))), function():Void
 			centre.show(Centre.SCOPE));
-		fired(held.offer(new Choice(root.translate(Locale.VIEW_SAMPLES))), function():Void
-			centre.show(Centre.SAMPLES));
 		fired(held.offer(new Choice(root.translate(Locale.VIEW_TRACKER))), function():Void
 			centre.show(Centre.TRACKER));
 		fired(held.offer(new Choice(root.translate(Locale.VIEW_PLAYLIST))), function():Void
@@ -863,8 +859,6 @@ class App {
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
-		centre.samples.budget = budget;
-		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
@@ -920,10 +914,10 @@ class App {
 		final sans = where + "/" + pairing[0];
 		final fixed = where + "/" + pairing[1];
 
-		body = Font.bake(renderer, sans, 13 * scale);
-		small = Font.bake(renderer, sans, 11 * scale);
-		mono = Font.bake(renderer, fixed, 12 * scale);
-		large = Font.bake(renderer, fixed, 19 * scale);
+		body = Font.bake(renderer, sans, 15 * scale);
+		small = Font.bake(renderer, sans, 13 * scale);
+		mono = Font.bake(renderer, fixed, 14 * scale);
+		large = Font.bake(renderer, fixed, 21 * scale);
 
 		if (body == null || small == null || mono == null || large == null) {
 			Sys.println("mdd: the fonts would not bake");
