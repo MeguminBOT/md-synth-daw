@@ -1,6 +1,8 @@
 package mdd;
 
+import mdd.host.Audio;
 import mdd.host.Canvas;
+import mdd.host.Device;
 import mdd.host.Event;
 import mdd.host.Native;
 import mdd.host.Paths;
@@ -13,6 +15,13 @@ import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
+import mdd.play.Render;
+import mdd.song.Part;
+import mdd.view.ChannelRack;
+import mdd.view.FmEditor;
+import mdd.view.PianoRoll;
+import mdd.view.Session;
+import mdd.view.TransportBar;
 
 @:unreflective
 class App {
@@ -27,6 +36,15 @@ class App {
 	var small:Null<Font> = null;
 	var mono:Null<Font> = null;
 	var large:Null<Font> = null;
+
+	var session:Null<Session> = null;
+	var rack:Null<ChannelRack> = null;
+	var roll:Null<PianoRoll> = null;
+	var editor:Null<FmEditor> = null;
+	var bar:Null<TransportBar> = null;
+
+	var speaker:cpp.Star<Device> = null;
+	var render:Null<Render> = null;
 
 	var windowID:Int = 0;
 	var scale:Float = 1;
@@ -82,17 +100,42 @@ class App {
 		root = new Root(shell, metrics, new Theme());
 		root.flow = Sdl.reduceMotion() != 0 ? Flow.Reduced : Flow.Full;
 
-		if (!dress(metrics)) return false;
+		if (!faces(metrics)) return false;
 
 		paint = Paint.on(renderer, body);
+		dress();
 		measured();
+		sound();
 
 		Sdl.showWindow(window);
 		return true;
 	}
 
-	function dress(metrics:Metrics):Bool {
-		final where = faces();
+	function dress():Void {
+		session = Session.started();
+
+		bar = new TransportBar(session);
+		rack = new ChannelRack(session);
+		roll = new PianoRoll(session);
+		editor = new FmEditor(session);
+
+		shell.zone(Shell.TRANSPORT).add(bar);
+		shell.zone(Shell.RAIL).add(rack);
+		shell.zone(Shell.CENTRE).add(roll);
+		shell.zone(Shell.INSPECTOR).add(editor);
+	}
+
+	function sound():Void {
+		speaker = Audio.open(0, Render.BLOCK);
+		if (speaker == null) return;
+
+		render = new Render(Audio.rate(speaker), Render.BLOCK);
+		render.transport = session.transport;
+		render.start(speaker);
+	}
+
+	function faces(metrics:Metrics):Bool {
+		final where = fonts();
 
 		if (where == "") {
 			Sys.println("mdd: no fonts found. Run: mdd setup");
@@ -128,7 +171,7 @@ class App {
 		large = null;
 	}
 
-	function faces():String {
+	function fonts():String {
 		for (where in [Paths.beside() + "/fonts", Sys.getCwd() + "/vendor/fonts",
 				Paths.beside() + "/../../vendor/fonts"]) {
 			if (sys.FileSystem.exists(where + "/Go-Regular.ttf")) {
@@ -157,6 +200,8 @@ class App {
 		Sys.println("  motion        " + (root.flow == Flow.Reduced ? "reduced, as the desktop asks"
 			: "full"));
 		Sys.println("  settings      " + Paths.settings());
+		Sys.println("  audio         " + (speaker == null ? "no device"
+			: Audio.name(speaker) + ", " + Audio.rate(speaker) + " Hz"));
 	}
 
 	function loop():Void {
@@ -173,6 +218,7 @@ class App {
 			if (since > 0.100) since = 0.100;
 
 			root.advance(since);
+			watch();
 			draw();
 		}
 	}
@@ -226,8 +272,43 @@ class App {
 
 		scale = next;
 		root.rescale(scale);
-		dress(root.metrics);
+		faces(root.metrics);
 		measured();
+	}
+
+	function watch():Void {
+		if (session == null || roll == null || rack == null) return;
+
+		final tick = session.transport.tick();
+
+		if (roll.playhead != tick) {
+			roll.playhead = tick;
+			if (session.transport.playing) roll.invalidate();
+		}
+
+		if (render == null) return;
+
+		var moved = false;
+
+		for (index in 0...Part.COUNT) {
+			final was = rack.levels[index];
+			final now = loudness(index);
+			final held = now > was ? now : was * 0.86;
+
+			if (Math.abs(held - was) > 0.01) moved = true;
+			rack.levels[index] = held;
+		}
+
+		if (moved) rack.invalidate();
+	}
+
+	function loudness(index:Int):Float {
+		if (index >= 6) return 0;
+
+		final value = render.ym.channels[index].delivered;
+		final size = value < 0 ? -value : value;
+
+		return size / 3000.0;
 	}
 
 	function draw():Void {
@@ -243,6 +324,9 @@ class App {
 	}
 
 	function shut():Void {
+		if (render != null) render.stop();
+		if (speaker != null) Audio.close(speaker);
+
 		shed();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);

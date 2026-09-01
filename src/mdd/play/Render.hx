@@ -6,6 +6,7 @@ import mdd.chip.Ym2612;
 import mdd.host.Audio;
 import mdd.host.Device;
 import mdd.host.Sdl;
+import mdd.song.Tempo;
 
 @:unreflective
 final class Render {
@@ -41,6 +42,8 @@ final class Render {
 	var wentRight:Float = 0;
 	var heldLeft:Float = 0;
 	var heldRight:Float = 0;
+
+	public var transport:Null<Transport> = null;
 
 	var device:cpp.Star<Device> = null;
 	var alive:Bool = false;
@@ -97,9 +100,24 @@ final class Render {
 	}
 
 	public function fill(count:Int):Int {
+		return serve(null, 0, count);
+	}
+
+	public function serve(stream:Null<Stream>, from:Int, count:Int, carry:Int = 0):Int {
 		final many = count > frames ? frames : count;
 
+		var next = 0;
+		var tick = from;
+		var held = carry;
+
 		for (frame in 0...many) {
+			if (stream != null) {
+				while (next < stream.count && stream.tickAt(next) <= tick) {
+					pour(stream, next);
+					next++;
+				}
+			}
+
 			fmAt += fmStep;
 
 			while (fmAt >= 1) {
@@ -128,10 +146,30 @@ final class Render {
 
 			block[frame * 2] = clamped(heldLeft * SCALE);
 			block[frame * 2 + 1] = clamped(heldRight * SCALE);
+
+			held += Tempo.TICKS;
+			while (held >= rate) {
+				held -= rate;
+				tick++;
+			}
+		}
+
+		if (stream != null) {
+			while (next < stream.count) {
+				pour(stream, next);
+				next++;
+			}
 		}
 
 		made += many;
 		return many;
+	}
+
+	inline function pour(stream:Stream, index:Int):Void {
+		if (stream.kindAt(index) == Stream.PSG) psg.write(stream.valueAt(index));
+		else ym.write(stream.portAt(index), stream.valueAt(index));
+
+		writes++;
 	}
 
 	static inline function clamped(value:Float):cpp.Float32 {
@@ -154,11 +192,7 @@ final class Render {
 		final cushion = Std.int(rate * PRIMED);
 		final aim = cushion > least ? cushion : least;
 
-		while (Audio.held(device) < aim) {
-			fill(frames);
-			Audio.write(device, pointer(), frames);
-			blocks++;
-		}
+		while (Audio.held(device) < aim) deliver();
 
 		if (Audio.start(device) == 0) {
 			this.device = null;
@@ -180,12 +214,24 @@ final class Render {
 		device = null;
 	}
 
+	function deliver():Void {
+		if (transport == null) {
+			drain();
+			fill(frames);
+		} else {
+			final from = transport.advance(frames, rate);
+			drain();
+			serve(transport.stream, from, frames, transport.entering);
+		}
+
+		Audio.write(device, pointer(), frames);
+		blocks++;
+	}
+
 	function feed():Void {
 		final aim = Audio.period(device);
 
 		while (alive) {
-			drain();
-
 			final held = Audio.held(device);
 			if (held > worstHeld) worstHeld = held;
 
@@ -194,9 +240,7 @@ final class Render {
 				continue;
 			}
 
-			fill(frames);
-			Audio.write(device, pointer(), frames);
-			blocks++;
+			deliver();
 		}
 
 		running = false;

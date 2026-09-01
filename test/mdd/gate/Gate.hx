@@ -1,7 +1,7 @@
 package mdd.gate;
 
 class Gate {
-	static final PROGRAMS:Array<String> = ["window", "paint", "ui", "psg", "chip", "audio", "stream"];
+	static final PROGRAMS:Array<String> = ["window", "paint", "ui", "psg", "chip", "audio", "stream", "spine"];
 
 	public static var root(default, null):String = ".";
 
@@ -52,6 +52,7 @@ class Gate {
 			case "chip": ChipCheck.run(args);
 			case "audio": AudioCheck.run(args);
 			case "stream": StreamCheck.run(args);
+			case "spine": SpineCheck.run(args);
 			case _:
 				Sys.println("mdd gate: no program called '" + name + "'");
 				Sys.println("  known: " + PROGRAMS.join(", "));
