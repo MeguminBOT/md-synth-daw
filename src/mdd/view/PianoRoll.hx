@@ -110,6 +110,18 @@ final class PianoRoll extends Widget {
 		return found;
 	}
 
+	public function reveal(tick:Int, pitch:Int):Void {
+		final wide = width - gutter();
+		final tall = height - ruler();
+
+		scrollTo(tick * perTick - wide * 0.3, (HIGHEST - pitch) * rowTall - tall * 0.5);
+	}
+
+	public function choose(note:Null<Note>):Void {
+		chosen = note;
+		invalidate();
+	}
+
 	public function scrollTo(px:Float, py:Float):Void {
 		final mostX = contentWidth() - (width - gutter());
 		final mostY = contentHeight() - (height - ruler());

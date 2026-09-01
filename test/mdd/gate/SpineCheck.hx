@@ -20,6 +20,7 @@ import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
 import mdd.view.ChannelRack;
+import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.PianoRoll;
 import mdd.view.Session;
@@ -63,6 +64,12 @@ class SpineCheck {
 	static function round(value:Float, places:Int):Float {
 		final scale = Math.pow(10, places);
 		return Math.round(value * scale) / scale;
+	}
+
+	static function pressAt(px:Float, py:Float):mdd.ui.Input {
+		final event = new mdd.ui.Input();
+		event.pointer(mdd.ui.Kind.PointerDown, px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		return event;
 	}
 
 	static function drawn(root:String):Void {
@@ -118,6 +125,19 @@ class SpineCheck {
 		shell.zone(Shell.RAIL).add(rack);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(editor);
+
+		final dock = new Dock(session);
+		final budget = new mdd.check.Budget(mdd.check.Profile.megaDrive());
+
+		dock.warnings.budget = budget;
+		shell.zone(Shell.DOCK).add(dock);
+
+		session.onReveal = function(found:mdd.check.Diagnostic):Void {
+			if (found.note == null) return;
+			centre.show(Centre.ROLL);
+			centre.roll.reveal(found.note.at, found.note.pitch);
+			centre.roll.choose(found.note);
+		};
 
 		final pattern = session.current();
 		pattern.length = 96 * 4 * 64;
@@ -217,6 +237,29 @@ class SpineCheck {
 			+ " ms with the scope in the inspector");
 
 		editor.show(Inspector.CHANNEL);
+
+		pattern.lane(Part.Fm1).add(new Note(0, 384, 60, 100));
+		pattern.lane(Part.Fm1).add(new Note(96, 192, 64, 100));
+		pattern.lane(Part.Psg1).add(new Note(0, 96, 20, 100));
+
+		budget.overSong(session.song);
+		dock.warnings.fit();
+		dock.show(Dock.WARNINGS);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final warned = budget.warnings();
+		final linked = warned > 0 && budget.found[0].linked();
+
+		dock.warnings.took(pressAt(dock.warnings.x + 10, dock.warnings.y + 10));
+
+		says("a warning is a link", warned > 0 && linked
+			&& session.part == budget.found[0].part
+			&& roll.chosen == budget.found[0].note,
+			warned + " warnings in the dock, and clicking the first one selected "
+			+ session.part.name() + " and the note it names");
 
 		says("it holds sixty a second", mean < 16.67 && worst * 1000 < 16.67,
 			"mean " + round(mean, 3) + " ms a frame while scrolling, worst "

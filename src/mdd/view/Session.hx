@@ -1,5 +1,6 @@
 package mdd.view;
 
+import mdd.check.Diagnostic;
 import mdd.play.Polyphony;
 import mdd.play.Transport;
 import mdd.song.Command;
@@ -20,6 +21,9 @@ final class Session {
 	public var ghosts:Bool = true;
 
 	public var onChange:Null<Session -> Void> = null;
+	public var onReveal:Null<Diagnostic -> Void> = null;
+
+	public var said(default, null):String = "";
 
 	public function new(song:Song) {
 		this.song = song;
@@ -82,6 +86,20 @@ final class Session {
 		final done = history.redo(song);
 		if (done) changed();
 		return done;
+	}
+
+	public function reveal(found:Diagnostic):Void {
+		part = found.part;
+		if (found.pattern >= 0) pattern = found.pattern;
+
+		say(found.line());
+
+		if (onReveal != null) onReveal(found);
+		changed();
+	}
+
+	public function say(said:String):Void {
+		this.said = said;
 	}
 
 	public function changed():Void {

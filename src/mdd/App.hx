@@ -21,6 +21,7 @@ import mdd.play.Render;
 import mdd.song.Part;
 import mdd.view.Centre;
 import mdd.view.ChannelRack;
+import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.Session;
 import mdd.view.TransportBar;
@@ -43,6 +44,7 @@ class App {
 	var rack:Null<ChannelRack> = null;
 	var centre:Null<Centre> = null;
 	var inspector:Null<Inspector> = null;
+	var dock:Null<Dock> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -121,14 +123,20 @@ class App {
 		rack = new ChannelRack(session);
 		centre = new Centre(session);
 		inspector = new Inspector(session);
+		dock = new Dock(session);
 
 		shell.zone(Shell.TRANSPORT).add(bar);
 		shell.zone(Shell.RAIL).add(rack);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(inspector);
+		shell.zone(Shell.DOCK).add(dock);
 
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
+		dock.warnings.budget = budget;
+
+		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
+		session.say("ready");
 
 		session.onChange = function(session:Session):Void changed();
 		changed();
@@ -141,6 +149,20 @@ class App {
 
 		if (centre != null) centre.roll.invalidate();
 		if (inspector != null) inspector.follow();
+
+		if (dock != null) {
+			dock.warnings.fit();
+			dock.said = session.said;
+			dock.invalidate();
+		}
+	}
+
+	function revealed(found:mdd.check.Diagnostic):Void {
+		if (centre == null || found.note == null) return;
+
+		centre.show(Centre.ROLL);
+		centre.roll.reveal(found.note.at, found.note.pitch);
+		centre.roll.choose(found.note);
 	}
 
 	function sound():Void {
@@ -315,6 +337,11 @@ class App {
 		}
 
 		if (moved) rack.invalidate();
+
+		if (dock != null && dock.mixer.visible) {
+			for (index in 0...Part.COUNT) dock.mixer.levels[index] = rack.levels[index];
+			if (moved) dock.mixer.invalidate();
+		}
 
 		if (inspector == null || !inspector.scope.visible) return;
 
