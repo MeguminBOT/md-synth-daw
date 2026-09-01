@@ -255,6 +255,29 @@ class SpineCheck {
 			centre.scope.painted + " lanes traced, worst frame " + round(scopeWorst * 1000, 3)
 			+ " ms with the scope in the centre");
 
+		centre.scope.shows(mdd.view.Scope.SPECTRUM);
+
+		var bandWorst = 0.0;
+
+		for (frame in 0...120) {
+			centre.scope.invalidate();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			final began = Sdl.ticks();
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+			final took = Sdl.ticks() - began;
+
+			if (took > bandWorst) bandWorst = took;
+		}
+
+		says("and its spectrum", centre.scope.painted == 6 && bandWorst * 1000 < 16.67,
+			centre.scope.painted + " lanes transformed, worst frame " + round(bandWorst * 1000, 3)
+			+ " ms over " + mdd.view.Scope.BARS + " bands of " + mdd.view.Scope.SPAN
+			+ " samples");
+
+		centre.scope.shows(mdd.view.Scope.WAVEFORM);
+
 		editor.show(Inspector.BANK);
 
 		Sdl.renderClear(renderer, 0, 0, 0, 1);

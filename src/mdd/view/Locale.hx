@@ -29,6 +29,9 @@ class Locale {
 
 	public static inline final FILE_NO_UPDATE = "file.noUpdate";
 
+	public static inline final SCOPE_WAVEFORM = "scope.waveform";
+	public static inline final SCOPE_SPECTRUM = "scope.spectrum";
+
 	public static inline final TOOL_SELECT = "tool.select";
 	public static inline final TOOL_DRAW = "tool.draw";
 	public static inline final TOOL_ERASE = "tool.erase";
@@ -228,6 +231,7 @@ class Locale {
 		PATTERN_ADD, PATTERN_DUPLICATE, PATTERN_RENAME, PATTERN_CLEAR,
 		CHANNELS_UNMUTE, CHANNELS_UNSOLO, CHANNELS_MUTE_REST, CHANNELS_CLEAR,
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
+		SCOPE_WAVEFORM, SCOPE_SPECTRUM,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
 		PANEL_FROM_IMPORT,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,

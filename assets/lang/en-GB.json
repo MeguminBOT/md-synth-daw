@@ -141,6 +141,8 @@
   "scale.minorPentatonic": "Minor pentatonic",
   "scale.mixolydian": "Mixolydian",
   "scale.pentatonic": "Pentatonic",
+  "scope.spectrum": "Spectrum",
+  "scope.waveform": "Waveform",
   "theme.midnight": "Midnight",
   "theme.rack": "Rack",
   "theme.slate": "Slate",

@@ -16,6 +16,10 @@ final class Scope extends Widget {
 	public static inline final ROWS = 6;
 	public static inline final COLUMNS = 2;
 	public static inline final SPAN = 512;
+	public static inline final BARS = 24;
+
+	public static inline final WAVEFORM = 0;
+	public static inline final SPECTRUM = 1;
 
 	static final ORDER:Vector<Int> = Vector.fromArrayCopy([
 		0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 5
@@ -28,8 +32,11 @@ final class Scope extends Widget {
 	public final notes:Vector<Int> = new Vector<Int>(Part.COUNT);
 
 	public var painted(default, null):Int = 0;
+	public var showing(default, null):Int = WAVEFORM;
 
 	final line:Vector<Float> = new Vector<Float>(SPAN * 2);
+	final bins:Vector<Float> = new Vector<Float>(BARS);
+	final turns:Vector<Float> = new Vector<Float>(BARS * 2);
 
 	public function new(session:Session) {
 		super();
@@ -38,6 +45,13 @@ final class Scope extends Widget {
 		opaque = true;
 
 		for (i in 0...traces.length) traces[i] = 0;
+		for (i in 0...BARS) {
+			bins[i] = 0;
+			final cycles = Math.round(2 * Math.pow(80, i / (BARS - 1.0)));
+			turns[i * 2] = Math.cos(Math.PI * 2 * cycles / SPAN);
+			turns[i * 2 + 1] = Math.sin(Math.PI * 2 * cycles / SPAN);
+		}
+
 		for (i in 0...Part.COUNT) {
 			written[i] = 0;
 			notes[i] = -1;
@@ -72,6 +86,78 @@ final class Scope extends Widget {
 		return from;
 	}
 
+	public function shows(which:Int):Void {
+		if (which == showing) return;
+
+		showing = which;
+		invalidate();
+	}
+
+	public function head():Float {
+		final root = root();
+		return root == null ? 26 : root.metrics.whole(26);
+	}
+
+	public function switchAt(px:Float, py:Float):Int {
+		final root = root();
+		if (root == null || py < y || py >= y + head()) return -1;
+
+		final metrics = root.metrics;
+		final wide = metrics.whole(76);
+		final left = x + width - metrics.inset - wide * 2;
+
+		if (px < left || px >= left + wide * 2) return -1;
+		return px < left + wide ? WAVEFORM : SPECTRUM;
+	}
+
+	override function took(event:Input):Bool {
+		switch (event.kind) {
+			case Kind.PointerDown:
+				final which = switchAt(event.x, event.y);
+				if (which < 0) return false;
+
+				shows(which);
+				return true;
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function bands(part:Int):Float {
+		final base = part * SPAN;
+		final from = written[part];
+		var most = 0.0;
+
+		for (bin in 0...BARS) {
+			final cosStep = turns[bin * 2];
+			final sinStep = turns[bin * 2 + 1];
+
+			var cosNow = 1.0;
+			var sinNow = 0.0;
+			var real = 0.0;
+			var imaginary = 0.0;
+
+			for (step in 0...SPAN) {
+				final value = traces[base + (from + step) % SPAN];
+
+				real += value * cosNow;
+				imaginary += value * sinNow;
+
+				final held = cosNow * cosStep - sinNow * sinStep;
+				sinNow = cosNow * sinStep + sinNow * cosStep;
+				cosNow = held;
+			}
+
+			final power = Math.sqrt(real * real + imaginary * imaginary) / SPAN;
+			bins[bin] = power;
+			if (power > most) most = power;
+		}
+
+		return most;
+	}
+
 	function loudest(part:Int):Float {
 		final base = part * SPAN;
 		var most = 0.0;
@@ -94,8 +180,9 @@ final class Scope extends Widget {
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;
 
+		final top = head();
 		final wide = width / COLUMNS;
-		final tall = height / ROWS;
+		final tall = (height - top) / ROWS;
 		final font = metrics.small == null ? metrics.body : metrics.small;
 
 		for (cell in 0...ROWS * COLUMNS) {
@@ -105,8 +192,30 @@ final class Scope extends Widget {
 			final column = cell % COLUMNS;
 			final row = Std.int(cell / COLUMNS);
 
-			lane(paint, theme, metrics, font, part, x + column * wide, y + row * tall, wide, tall);
+			lane(paint, theme, metrics, font, part, x + column * wide, y + top + row * tall,
+				wide, tall);
 		}
+
+		switcher(paint, theme, metrics, font, top);
+	}
+
+	function switcher(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			top:Float):Void {
+		final wide = metrics.whole(76);
+		final tall = metrics.whole(20);
+		final left = x + width - metrics.inset - wide * 2;
+		final at = y + (top - tall) * 0.5;
+		final line = at + (tall - font.height) * 0.5 + font.ascent;
+
+		paint.reface(font);
+		paint.roundedRect(left, at, wide * 2, tall, metrics.radiusRow, theme.raise1);
+		paint.roundedRect(left + wide * showing, at, wide, tall, metrics.radiusRow,
+			theme.accent, 0.85);
+
+		paint.textCentred(translate(Locale.SCOPE_WAVEFORM), left + wide * 0.5, line,
+			showing == WAVEFORM ? theme.ink : theme.dim, 0.75);
+		paint.textCentred(translate(Locale.SCOPE_SPECTRUM), left + wide * 1.5, line,
+			showing == SPECTRUM ? theme.ink : theme.dim, 0.75);
 	}
 
 	function lane(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font, part:Int,
@@ -132,7 +241,29 @@ final class Scope extends Widget {
 
 		if (peak <= 0.0005) return;
 
-		final gain = (tall * 0.5 - inset * 2) / peak;
+		final reach = tall * 0.5 - inset * 2;
+
+		if (showing == SPECTRUM) {
+			final most = bands(part);
+			if (most <= 0) return;
+
+			final step = across / BARS;
+			final stalk = step * 0.62;
+			final floor = middle + reach;
+
+			for (bin in 0...BARS) {
+				final part2 = bins[bin] / most;
+				final high = reach * 2 * part2;
+				if (high < 1) continue;
+
+				paint.rect(from + bin * step, floor - high, stalk, high, theme.part(part), 0.9);
+			}
+
+			painted++;
+			return;
+		}
+
+		final gain = reach / peak;
 		final base = part * SPAN;
 		final at = trigger(part);
 		final steps = Std.int(across);
