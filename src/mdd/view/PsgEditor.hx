@@ -125,12 +125,12 @@ final class PsgEditor extends Widget {
 		paint.reface(small);
 
 		if (envelope == null) {
-			paint.text(session.part.name() + " is not a square or the noise",
+			paint.text(session.part.name() + " " + translate(Locale.PANEL_NOT_SQUARE),
 				x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
 			return;
 		}
 
-		paint.text(session.part.name() + "   attenuation over time, loudest at the top",
+		paint.text(session.part.name() + "   " + translate(Locale.PANEL_ENVELOPE),
 			x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
 
 		if (session.part.noise()) {

@@ -17,7 +17,8 @@ final class Notice extends Widget {
 	public static inline final NEVER = 2;
 	public static inline final BUTTONS = 3;
 
-	static final LABELS:Array<String> = ["update.take", "update.later", "update.never"];
+	static final LABELS:Array<String> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,
+		Locale.UPDATE_NEVER];
 
 	public final session:Session;
 	public var update:Null<Update> = null;
@@ -154,15 +155,15 @@ final class Notice extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.reface(font);
-		paint.text(root.saying("update.found"), x + metrics.inset,
+		paint.text(translate(Locale.UPDATE_FOUND), x + metrics.inset,
 			y + metrics.inset + font.ascent, theme.ink, alpha);
 
 		paint.reface(small);
 
 		var line = y + metrics.inset + font.height + metrics.gap + small.ascent;
 
-		paint.text(root.saying("update.running") + " " + update.running + "     "
-			+ root.saying("update.offered") + " " + update.offered,
+		paint.text(translate(Locale.UPDATE_RUNNING) + " " + update.running + "     "
+			+ translate(Locale.UPDATE_OFFERED) + " " + update.offered,
 			x + metrics.inset, line, theme.dim, alpha * 0.9);
 
 		if (update.notes != "") {
@@ -171,7 +172,7 @@ final class Notice extends Widget {
 		}
 
 		line += small.height + metrics.gap;
-		paint.text(root.saying("update.consent"), x + metrics.inset, line, theme.dim,
+		paint.text(translate(Locale.UPDATE_CONSENT), x + metrics.inset, line, theme.dim,
 			alpha * 0.75);
 
 		final tall = buttonTall();
@@ -189,7 +190,7 @@ final class Notice extends Widget {
 					Theme.HOVER);
 			}
 
-			paint.textCentred(root.saying(LABELS[which]), left + wide * 0.5,
+			paint.textCentred(translate(LABELS[which]), left + wide * 0.5,
 				top + (tall - small.height) * 0.5 + small.ascent,
 				which == TAKE ? theme.ink : theme.dim, alpha);
 		}

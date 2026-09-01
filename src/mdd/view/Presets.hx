@@ -121,14 +121,15 @@ final class Presets extends Widget {
 		paint.rect(x, y, width, height, theme.panel);
 		paint.reface(font);
 
-		paint.text(session.part.name() + " patches", x + metrics.inset,
+		paint.text(session.part.name() + " " + translate(Locale.PANEL_PATCHES),
+			x + metrics.inset,
 			y + top * 0.5 + font.ascent * 0.5, theme.dim, 0.8);
 
-		paint.textRight(listed + " in " + banks + (banks == 1 ? " bank" : " banks"),
+		paint.textRight(listed + " / " + banks,
 			x + width - metrics.inset, y + top * 0.5 + font.ascent * 0.5, theme.dim, 0.7);
 
 		if (listed == 0) {
-			paint.text("no patches for this part", x + metrics.inset,
+			paint.text(translate(Locale.PANEL_NO_PATCHES), x + metrics.inset,
 				y + top + metrics.gap + font.ascent, theme.dim, 0.6);
 			return;
 		}

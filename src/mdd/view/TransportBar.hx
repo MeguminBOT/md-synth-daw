@@ -28,7 +28,8 @@ final class TransportBar extends Widget {
 		opaque = true;
 	}
 
-	static final TIPS:Array<String> = ["Play", "Stop and rewind", "Loop the pattern"];
+	static final TIPS:Array<String> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
+		Locale.TRANSPORT_LOOP];
 	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "Ctrl+L"];
 
 	function described(which:Int):Void {
@@ -39,7 +40,11 @@ final class TransportBar extends Widget {
 			return;
 		}
 
-		tip = which == PLAY && session.transport.playing ? "Pause" : TIPS[which];
+		final root = root();
+		final key = which == PLAY && session.transport.playing
+			? Locale.TRANSPORT_PAUSE : TIPS[which];
+
+		tip = root == null ? key : translate(key);
 		chord = CHORDS[which];
 		detail = "";
 	}

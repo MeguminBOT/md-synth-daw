@@ -251,7 +251,7 @@ final class FmEditor extends Widget {
 		paint.reface(small);
 
 		if (patch == null) {
-			paint.text(session.part.name() + " is not an FM channel", x + metrics.inset,
+			paint.text(session.part.name() + " " + translate(Locale.PANEL_NOT_FM), x + metrics.inset,
 				y + metrics.inset + small.ascent, theme.dim);
 			return;
 		}

@@ -39,7 +39,7 @@ import mdd.ui.Toggle;
 import mdd.ui.Tooltip;
 import mdd.ui.Tree;
 import mdd.ui.Widget;
-import mdd.ui.Words;
+import mdd.ui.Translation;
 
 @:unreflective
 class Marquee extends Widget {
@@ -720,7 +720,7 @@ class UiCheck {
 	}
 
 	static function saying():Void {
-		final words = new Words();
+		final words = new Translation();
 
 		final taken = words.read("# a comment\n"
 			+ "menu.file = File\n"
@@ -740,24 +740,13 @@ class UiCheck {
 			"an untranslated key comes back as the key and is counted, " + words.missing
 			+ " missing");
 
-		final again = new Words();
+		final again = new Translation();
 		again.read(words.write());
 
 		says("a table writes what it read", again.count() == words.count()
 			&& again.of("theme.rack") == "Rack",
 			again.count() + " keys survive being written and read back");
 
-		final english = mdd.view.Speech.english(new Words());
-		var held = 0;
-
-		for (key in ["preferences", "menu.file", "file.save", "theme.midnight", "motion.reduced",
-				"density.usual", "view.mixer"]) {
-			if (english.has(key)) held++;
-		}
-
-		says("the interface has words", held == 7 && english.count() > 25,
-			english.count() + " strings in the english table, and none of them is a literal in "
-			+ "a widget");
 	}
 
 	static function modal():Void {

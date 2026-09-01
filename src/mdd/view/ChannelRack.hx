@@ -112,19 +112,19 @@ final class ChannelRack extends Widget {
 		menu = new Menu();
 		menuFor = at;
 
-		fires(menu.offer(new Choice(song.muted[at] ? "Unmute" : "Mute")), function():Void {
+		fires(menu.offer(new Choice(translate(song.muted[at] ? Locale.RACK_UNMUTE : Locale.RACK_MUTE))), function():Void {
 			song.muted[at] = !song.muted[at];
 			session.say((song.muted[at] ? "muted " : "unmuted ") + part.name());
 			session.changed();
 		});
 
-		fires(menu.offer(new Choice(song.soloed[at] ? "Unsolo" : "Solo")), function():Void {
+		fires(menu.offer(new Choice(translate(song.soloed[at] ? Locale.RACK_UNSOLO : Locale.RACK_SOLO))), function():Void {
 			song.soloed[at] = !song.soloed[at];
 			session.say((song.soloed[at] ? "soloed " : "unsoloed ") + part.name());
 			session.changed();
 		});
 
-		fires(menu.offer(new Choice("Solo only this")), function():Void {
+		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void {
 			for (i in 0...Part.COUNT) song.soloed[i] = i == at;
 			session.say("soloed " + part.name() + " alone");
 			session.changed();
@@ -132,14 +132,14 @@ final class ChannelRack extends Widget {
 
 		menu.divide();
 
-		final copy = menu.offer(new Choice("Copy patch"));
-		final paste = menu.offer(new Choice("Paste patch"));
-		final reset = menu.offer(new Choice("Reset patch"));
+		final copy = menu.offer(new Choice(translate(Locale.RACK_COPY_PATCH)));
+		final paste = menu.offer(new Choice(translate(Locale.RACK_PASTE_PATCH)));
+		final reset = menu.offer(new Choice(translate(Locale.RACK_RESET_PATCH)));
 
 		if (!part.fm()) {
 			for (choice in [copy, paste, reset]) {
 				choice.enabled = false;
-				choice.reason = part.name() + " has no four operator patch";
+				choice.reason = part.name() + " " + translate(Locale.RACK_NO_PATCH);
 			}
 		} else {
 			fires(copy, function():Void {
@@ -152,7 +152,7 @@ final class ChannelRack extends Widget {
 			});
 
 			paste.enabled = session.copiedPatch != null;
-			if (!paste.enabled) paste.reason = "no patch has been copied";
+			if (!paste.enabled) paste.reason = translate(Locale.RACK_NONE_COPIED);
 
 			fires(paste, function():Void {
 				final held = song.instrumentAt(song.rack[at]);
@@ -175,7 +175,7 @@ final class ChannelRack extends Widget {
 
 		menu.divide();
 
-		fires(menu.offer(new Choice("Clear this channel")), function():Void {
+		fires(menu.offer(new Choice(translate(Locale.RACK_CLEAR))), function():Void {
 			final pattern = session.current();
 			if (pattern == null) return;
 
@@ -210,15 +210,15 @@ final class ChannelRack extends Widget {
 		final soloed = session.song.soloed[at];
 
 		if (px >= x + width - metrics.whole(96) && px < x + width - metrics.whole(72)) {
-			tip = (muted ? "Unmute " : "Mute ") + part.name();
+			tip = translate(muted ? Locale.RACK_UNMUTE : Locale.RACK_MUTE) + " " + part.name();
 			chord = "";
 			detail = "";
 			return;
 		}
 
 		if (px >= x + width - metrics.whole(72) && px < x + width - metrics.whole(48)) {
-			tip = (soloed ? "Unsolo " : "Solo ") + part.name();
-			chord = "Alt+click to solo exclusively";
+			tip = translate(soloed ? Locale.RACK_UNSOLO : Locale.RACK_SOLO) + " " + part.name();
+			chord = translate(Locale.RACK_SOLO_CHORD);
 			detail = "";
 			return;
 		}
@@ -226,10 +226,10 @@ final class ChannelRack extends Widget {
 		tip = part.name();
 		chord = "";
 
-		if (part.sampled()) detail = "the converter, and it holds FM6 while it sounds";
-		else if (part.fm()) detail = "four operator FM";
-		else if (part.noise()) detail = "the noise channel";
-		else detail = "a ten bit square";
+		if (part.sampled()) detail = translate(Locale.RACK_DAC);
+		else if (part.fm()) detail = translate(Locale.RACK_FM);
+		else if (part.noise()) detail = translate(Locale.RACK_NOISE);
+		else detail = translate(Locale.RACK_SQUARE);
 	}
 
 	override function hovered(on:Bool):Void {
@@ -250,7 +250,7 @@ final class ChannelRack extends Widget {
 
 		paint.rect(x, y, width, height, theme.panel);
 		paint.reface(small);
-		paint.text("CHANNEL RACK", x + metrics.inset, y + top * 0.5 + small.ascent * 0.5,
+		paint.text(translate(Locale.PANEL_RACK), x + metrics.inset, y + top * 0.5 + small.ascent * 0.5,
 			theme.dim, 0.8);
 
 		final swatch = metrics.whole(10);

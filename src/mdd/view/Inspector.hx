@@ -25,7 +25,7 @@ final class Inspector extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["Channel", "Bank", "Scope"]);
+		tabs = new Tabs(["", "", ""]);
 		fm = new FmEditor(session);
 		psg = new PsgEditor(session);
 		samples = new Samples(session);
@@ -95,7 +95,18 @@ final class Inspector extends Widget {
 		scope.arrange(x, y + tall, width, height - tall);
 	}
 
+	function named():Void {
+		final root = root();
+		if (root == null) return;
+
+			tabs.labels[0] = translate(Locale.PANEL_CHANNEL);
+			tabs.labels[1] = translate(Locale.PANEL_BANK);
+			tabs.labels[2] = translate(Locale.PANEL_SCOPE);
+	}
+
 	override function paint(paint:Paint):Void {
+		named();
+
 		tabs.paint(paint);
 
 		if (fm.visible) fm.paint(paint);

@@ -28,7 +28,7 @@ final class Root {
 
 	public final popups:Array<Menu> = [];
 	public final tooltip:Tooltip = new Tooltip();
-	public final words:Words = new Words();
+	public final translation:Translation = new Translation();
 
 	public var sheet(default, null):Null<Widget> = null;
 
@@ -219,8 +219,8 @@ final class Root {
 		tooltip.arrange(px, py, wide, tall);
 	}
 
-	public inline function saying(key:String):String {
-		return words.of(key);
+	public inline function translate(key:String):String {
+		return translation.of(key);
 	}
 
 	public function raise(widget:Widget):Void {

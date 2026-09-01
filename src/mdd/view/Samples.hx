@@ -199,9 +199,9 @@ final class Samples extends Widget {
 		painted = 0;
 
 		paint.reface(small);
-		paint.text("SAMPLES", x + metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
+		paint.text(translate(Locale.PANEL_SAMPLES), x + metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
 			theme.dim, 0.8);
-		paint.textRight(held() + " bytes", x + width - metrics.inset,
+		paint.textRight(held() + " " + translate(Locale.PANEL_BYTES), x + width - metrics.inset,
 			y + head() * 0.5 + small.ascent * 0.5, theme.dim, 0.8);
 
 		final tall = slots();

@@ -20,6 +20,7 @@
 
 	<source path="src" />
 	<generated path="export/haxe" />
+	<languages path="assets/lang" />
 	<output path="export" />
 
 	<target id="mdd" main="mdd.App" />

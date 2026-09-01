@@ -19,20 +19,24 @@ final class Preferences extends Widget {
 	public static inline final KEEPING = 4;
 	public static inline final ROWS = 5;
 
-	static final NAMES:Array<String> = ["preference.theme", "preference.motion",
-		"preference.language", "preference.density", "preference.keeping"];
+	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_MOTION,
+		Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY, Locale.PREFERENCE_KEEPING];
 
-	static final KEEPINGS:Array<String> = ["keeping.never", "keeping.one", "keeping.five",
-		"keeping.ten"];
+	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
+		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
 
 	public static final MINUTES:Array<Float> = [0, 60, 300, 600];
 
-	static final THEMES:Array<String> = ["theme.midnight", "theme.rack", "theme.slate"];
-	static final MOTIONS:Array<String> = ["motion.full", "motion.reduced", "motion.none"];
-	static final DENSITIES:Array<String> = ["density.close", "density.usual", "density.roomy"];
+	static final THEMES:Array<String> = [Locale.THEME_MIDNIGHT, Locale.THEME_RACK,
+		Locale.THEME_SLATE];
+	static final MOTIONS:Array<String> = [Locale.MOTION_FULL, Locale.MOTION_REDUCED,
+		Locale.MOTION_NONE];
+	static final DENSITIES:Array<String> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
+		Locale.DENSITY_ROOMY];
 
 	public final session:Session;
-	public final languages:Array<String> = ["en"];
+	public final languages:Array<String> = [];
+	public final spoken:Array<String> = [];
 
 	public var chosen(default, null):Int = 0;
 	public var density(default, null):Int = 1;
@@ -58,6 +62,23 @@ final class Preferences extends Widget {
 
 		rise = new Motion(this, 0, true);
 		fade = new Motion(this, 0, false);
+	}
+
+	public var onSpeak:Null<String -> Void> = null;
+
+	public function speaks(codes:Array<String>, code:String):Void {
+		languages.resize(0);
+		spoken.resize(0);
+
+		for (held in codes) {
+			languages.push(Languages.named(held));
+			spoken.push(held);
+		}
+
+		final at = spoken.indexOf(code);
+		language = at < 0 ? 0 : at;
+
+		invalidate();
 	}
 
 	public function arrive():Void {
@@ -141,7 +162,9 @@ final class Preferences extends Widget {
 
 			case _:
 				language = which;
-				session.say("language " + languages[which]);
+
+				if (which < spoken.length && onSpeak != null) onSpeak(spoken[which]);
+				session.say(which < languages.length ? languages[which] : "");
 		}
 
 		if (root != null) root.reshape();
@@ -221,11 +244,11 @@ final class Preferences extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.reface(font);
-		paint.text(root.saying("preferences"), x + metrics.inset,
+		paint.text(translate(Locale.PREFERENCES), x + metrics.inset,
 			y + metrics.inset + font.ascent, theme.ink, alpha);
 
 		paint.reface(small);
-		paint.textRight(root.saying("preferences.close"), x + width - metrics.inset,
+		paint.textRight(translate(Locale.PREFERENCES_CLOSE), x + width - metrics.inset,
 			y + metrics.inset + small.ascent, theme.dim, alpha * 0.8);
 
 		final tall = rowTall();
@@ -234,7 +257,7 @@ final class Preferences extends Widget {
 			final top = y + head() + row * tall;
 
 			paint.reface(small);
-			paint.text(root.saying(NAMES[row]), x + metrics.inset, top + small.ascent,
+			paint.text(translate(NAMES[row]), x + metrics.inset, top + small.ascent,
 				theme.dim, alpha * 0.9);
 
 			final held = choices(row);
@@ -256,7 +279,9 @@ final class Preferences extends Widget {
 						metrics.radiusSmall, theme.accent, Theme.HOVER);
 				}
 
-				paint.textCentred(root.saying(held[which]), left + wide * 0.5,
+				final label = row == LANGUAGE ? held[which] : translate(held[which]);
+
+				paint.textCentred(label, left + wide * 0.5,
 					at + (button - metrics.unit - small.height) * 0.5 + small.ascent,
 					which == on ? theme.ink : theme.dim, alpha);
 			}

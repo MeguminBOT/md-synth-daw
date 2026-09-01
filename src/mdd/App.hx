@@ -35,8 +35,10 @@ import mdd.view.Inspector;
 import mdd.view.Notice;
 import mdd.view.Preferences;
 import mdd.view.Session;
-import mdd.view.Speech;
+import mdd.view.Locale;
+import mdd.view.Languages;
 import mdd.view.TransportBar;
+import mdd.view.Welcome;
 
 @:unreflective
 class App {
@@ -65,6 +67,8 @@ class App {
 	var settings:Null<Settings> = null;
 	var update:Null<Update> = null;
 	var notice:Null<Notice> = null;
+	var welcome:Null<Welcome> = null;
+	var firstRun:Bool = false;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -157,12 +161,19 @@ class App {
 		menus = new MenuBar();
 		shell.zone(Shell.MENU).add(menus);
 
-		Speech.english(root.words);
 
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
 		preferences.onKeep = function():Void keeps();
 		preferences.onKeeping = function(every:Float):Void files.every = every;
+
+		preferences.onSpeak = function(code:String):Void {
+			Languages.speak(root.translation, code);
+			settings.put("language", code);
+
+			relabel();
+			root.reshape();
+		};
 
 		update = new Update(Config.CHECK_AT, Config.DOWNLOAD_AT, Config.VERSION);
 
@@ -176,6 +187,9 @@ class App {
 
 		settings = new Settings();
 		settings.load();
+
+		firstRun = settings.of("language", "") == "";
+		spoken();
 		remembered();
 
 
@@ -188,9 +202,10 @@ class App {
 		dock.warnings.budget = budget;
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
-		session.say("ready");
+		session.say(root.translate(Locale.READY));
 
 		keeps();
+		greeting();
 
 		session.onChange = function(session:Session):Void changed();
 		changed();
@@ -222,20 +237,20 @@ class App {
 	function commands():Void {
 		final file = new Menu();
 
-		fired(file.offer(new Choice(root.saying("file.open"), "Ctrl+O")), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_OPEN), "Ctrl+O")), function():Void
 			files.ask(window, Files.OPEN));
-		fired(file.offer(new Choice(root.saying("file.save"), "Ctrl+S")), function():Void keeping());
-		fired(file.offer(new Choice(root.saying("file.saveAs"))), function():Void files.ask(window, Files.SAVE));
+		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE), "Ctrl+S")), function():Void keeping());
+		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE_AS))), function():Void files.ask(window, Files.SAVE));
 		file.divide();
-		fired(file.offer(new Choice(root.saying("file.vgm"), "Ctrl+E")), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
-		fired(file.offer(new Choice(root.saying("file.wav"))), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_WAV))), function():Void
 			files.ask(window, Files.WAV));
-		fired(file.offer(new Choice(root.saying("file.midi"))), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_MIDI))), function():Void
 			files.ask(window, Files.MIDI));
 		file.divide();
 		file.divide();
-		final looking = file.offer(new Choice(root.saying("file.update")));
+		final looking = file.offer(new Choice(root.translate(Locale.FILE_UPDATE)));
 
 		if (update.possible()) fired(looking, function():Void looks());
 		else {
@@ -244,36 +259,36 @@ class App {
 		}
 
 		file.divide();
-		fired(file.offer(new Choice(root.saying("file.preferences"), "Ctrl+,")), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_PREFERENCES), "Ctrl+,")), function():Void
 			opened());
 		file.divide();
-		fired(file.offer(new Choice(root.saying("file.quit"), "Alt+F4")), function():Void
+		fired(file.offer(new Choice(root.translate(Locale.FILE_QUIT), "Alt+F4")), function():Void
 			running = false);
 
 		final edit = new Menu();
 
-		fired(edit.offer(new Choice(root.saying("edit.undo"), "Ctrl+Z")), function():Void undone());
-		fired(edit.offer(new Choice(root.saying("edit.redo"), "Ctrl+Y")), function():Void redone());
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_UNDO), "Ctrl+Z")), function():Void undone());
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_REDO), "Ctrl+Y")), function():Void redone());
 		edit.divide();
-		fired(edit.offer(new Choice(root.saying("edit.play"), "Space")), function():Void
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_PLAY), "Space")), function():Void
 			bar.press(TransportBar.PLAY));
-		fired(edit.offer(new Choice(root.saying("edit.stop"), "Ctrl+Space")), function():Void
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_STOP), "Ctrl+Space")), function():Void
 			bar.press(TransportBar.STOP));
 
 		final view = new Menu();
 
-		fired(view.offer(new Choice(root.saying("view.roll"))), function():Void centre.show(Centre.ROLL));
-		fired(view.offer(new Choice(root.saying("view.tracker"))), function():Void
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_ROLL))), function():Void centre.show(Centre.ROLL));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_TRACKER))), function():Void
 			centre.show(Centre.TRACKER));
-		fired(view.offer(new Choice(root.saying("view.arrangement"))), function():Void
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_ARRANGEMENT))), function():Void
 			centre.show(Centre.PLAYLIST));
 		view.divide();
-		fired(view.offer(new Choice(root.saying("view.mixer"))), function():Void dock.show(Dock.MIXER));
-		fired(view.offer(new Choice(root.saying("view.warnings"))), function():Void dock.show(Dock.WARNINGS));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_MIXER))), function():Void dock.show(Dock.MIXER));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_WARNINGS))), function():Void dock.show(Dock.WARNINGS));
 
-		menus.offer(root.saying("menu.file"), file);
-		menus.offer(root.saying("menu.edit"), edit);
-		menus.offer(root.saying("menu.view"), view);
+		menus.offer(root.translate(Locale.MENU_FILE), file);
+		menus.offer(root.translate(Locale.MENU_EDIT), edit);
+		menus.offer(root.translate(Locale.MENU_VIEW), view);
 	}
 
 	function looks():Void {
@@ -284,7 +299,7 @@ class App {
 			return;
 		}
 
-		session.say("looking for an update");
+		session.say(root.translate(Locale.UPDATE_LOOKING));
 		session.changed();
 	}
 
@@ -310,8 +325,8 @@ class App {
 				return true;
 
 			case Update.CURRENT:
-				if (session.said == "looking for an update") {
-					session.say("this is the newest version");
+				if (session.said == root.translate(Locale.UPDATE_LOOKING)) {
+					session.say(root.translate(Locale.UPDATE_CURRENT));
 					session.changed();
 					return true;
 				}
@@ -319,19 +334,62 @@ class App {
 
 			case Update.UNREACHABLE:
 				update.forget();
-				session.say("the update address would not answer");
+				session.say(root.translate(Locale.UPDATE_UNREACHABLE));
 				session.changed();
 				return true;
 
 			case Update.FETCHED:
 				update.forget();
-				session.say("downloaded to " + update.into + ", close this and run it");
+				session.say(root.translate(Locale.UPDATE_FETCHED) + " " + update.into);
 				session.changed();
 				return true;
 
 			case _:
 				return false;
 		}
+	}
+
+	function spoken():Void {
+		final held = settings.of("language", "");
+		final code = held != "" && Languages.known(held) ? held : Languages.guessed();
+
+		Languages.speak(root.translation, code);
+		preferences.speaks(Languages.shipped(), code);
+	}
+
+	function greeting():Void {
+		if (!firstRun) return;
+
+		welcome = new Welcome(session);
+
+		welcome.onChoose = function(code:String):Void {
+			Languages.speak(root.translation, code);
+			preferences.speaks(Languages.shipped(), code);
+
+			relabel();
+			root.reshape();
+		};
+
+		welcome.onStart = function(code:String):Void {
+			settings.put("language", code);
+			settings.save();
+
+			root.lower();
+			session.changed();
+		};
+
+		welcome.arrive(root.translation.language);
+		root.raise(welcome);
+	}
+
+	function relabel():Void {
+		final zone = shell.zone(Shell.MENU);
+		while (zone.children.length > 0) zone.remove(zone.children[0]);
+
+		menus = new MenuBar();
+		zone.add(menus);
+
+		commands();
 	}
 
 	function remembered():Void {
@@ -362,6 +420,7 @@ class App {
 		settings.whole("width", Sdl.windowWidth(window));
 		settings.whole("height", Sdl.windowHeight(window));
 		settings.put("song", files == null ? "" : files.path);
+		settings.put("language", root.translation.language);
 
 		settings.save();
 	}
@@ -433,7 +492,7 @@ class App {
 		try {
 			files.save(files.path);
 		} catch (e:Dynamic) {
-			session.say("that would not save: " + e);
+			session.say(root.translate(Locale.SAID_FAILED) + ": " + e);
 		}
 
 		session.changed();
@@ -444,15 +503,15 @@ class App {
 	}
 
 	function undone():Void {
-		if (session.undo()) session.say("undone");
-		else session.say("nothing to undo");
+		if (session.undo()) session.say(root.translate(Locale.SAID_UNDONE));
+		else session.say(root.translate(Locale.SAID_NOTHING_UNDO));
 
 		session.changed();
 	}
 
 	function redone():Void {
-		if (session.redo()) session.say("redone");
-		else session.say("nothing to redo");
+		if (session.redo()) session.say(root.translate(Locale.SAID_REDONE));
+		else session.say(root.translate(Locale.SAID_NOTHING_REDO));
 
 		session.changed();
 	}
@@ -583,6 +642,8 @@ class App {
 			: "on its own every " + Std.int(files.every / 60) + " minutes"));
 		Sys.println("  updates       " + (update.possible()
 			? "looking at " + update.checkAt : "no address configured, never looks"));
+		Sys.println("  language      " + root.translation.language + ", " + root.translation.count()
+			+ " strings of " + Languages.shipped().length + " shipped languages");
 	}
 
 	function loop():Void {

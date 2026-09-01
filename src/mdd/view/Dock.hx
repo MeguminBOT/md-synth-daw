@@ -24,7 +24,7 @@ final class Dock extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["Mixer", "Warnings"]);
+		tabs = new Tabs(["", ""]);
 		mixer = new Mixer(session);
 		warnings = new Warnings(session);
 
@@ -67,7 +67,17 @@ final class Dock extends Widget {
 		warnings.arrange(x, y + top, width, tall);
 	}
 
+	function named():Void {
+		final root = root();
+		if (root == null) return;
+
+			tabs.labels[0] = translate(Locale.VIEW_MIXER);
+			tabs.labels[1] = translate(Locale.VIEW_WARNINGS);
+	}
+
 	override function paint(paint:Paint):Void {
+		named();
+
 		final root = root();
 		if (root == null || root.metrics.body == null) return;
 
@@ -93,7 +103,8 @@ final class Dock extends Widget {
 		final count = warnings.found();
 
 		if (count > 0) {
-			paint.textRight(count + (count == 1 ? " warning" : " warnings"),
+			paint.textRight(count + " " + translate(count == 1
+				? Locale.PANEL_WARNING : Locale.PANEL_WARNINGS),
 				x + width - metrics.inset, top + (bottom - font.height) * 0.5 + font.ascent,
 				theme.warn, 0.9);
 		}

@@ -23,7 +23,7 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["Piano roll", "Tracker", "Arrangement"]);
+		tabs = new Tabs(["", "", ""]);
 		roll = new PianoRoll(session);
 		tracker = new Tracker(session);
 		playlist = new Playlist(session);
@@ -85,7 +85,18 @@ final class Centre extends Widget {
 		tracker.follow(row);
 	}
 
+	function named():Void {
+		final root = root();
+		if (root == null) return;
+
+			tabs.labels[0] = translate(Locale.VIEW_ROLL);
+			tabs.labels[1] = translate(Locale.VIEW_TRACKER);
+			tabs.labels[2] = translate(Locale.VIEW_ARRANGEMENT);
+	}
+
 	override function paint(paint:Paint):Void {
+		named();
+
 		tabs.paint(paint);
 
 		if (roll.visible) roll.paint(paint);

@@ -257,40 +257,40 @@ final class PianoRoll extends Widget {
 		menu = new Menu();
 
 		if (under != null) {
-			fires(menu.offer(new Choice("Copy", "Ctrl+C")), function():Void copy(under));
-			fires(menu.offer(new Choice("Cut", "Ctrl+X")), function():Void {
+			fires(menu.offer(new Choice(translate(Locale.ROLL_COPY), "Ctrl+C")), function():Void copy(under));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_CUT), "Ctrl+X")), function():Void {
 				copy(under);
 				session.does(new RemoveNote(session.pattern, session.part, under));
 				chosen = null;
 			});
-			fires(menu.offer(new Choice("Delete", "Del")), function():Void {
+			fires(menu.offer(new Choice(translate(Locale.ROLL_DELETE), "Del")), function():Void {
 				session.does(new RemoveNote(session.pattern, session.part, under));
 				chosen = null;
 			});
 
 			menu.divide();
 
-			fires(menu.offer(new Choice("Louder")), function():Void {
+			fires(menu.offer(new Choice(translate(Locale.ROLL_LOUDER))), function():Void {
 				under.velocity = under.velocity > 111 ? 127 : under.velocity + 16;
 				session.say("velocity " + under.velocity);
 				session.changed();
 			});
-			fires(menu.offer(new Choice("Quieter")), function():Void {
+			fires(menu.offer(new Choice(translate(Locale.ROLL_QUIETER))), function():Void {
 				under.velocity = under.velocity < 16 ? 0 : under.velocity - 16;
 				session.say("velocity " + under.velocity);
 				session.changed();
 			});
-			fires(menu.offer(new Choice("An octave up")), function():Void shifted(under, 12));
-			fires(menu.offer(new Choice("An octave down")), function():Void shifted(under, -12));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_UP))), function():Void shifted(under, 12));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_DOWN))), function():Void shifted(under, -12));
 
 			menu.divide();
 
-			final why = menu.offer(new Choice("Explain the warning"));
+			final why = menu.offer(new Choice(translate(Locale.ROLL_EXPLAIN)));
 			final found = budget == null ? null : reasonFor(under);
 
 			if (found == null) {
 				why.enabled = false;
-				why.reason = "this note sounds as it is written";
+				why.reason = translate(Locale.ROLL_SOUNDS);
 			} else {
 				fires(why, function():Void {
 					session.say(found.saying + " because " + found.reason + ", so " + found.remedy);
@@ -298,9 +298,9 @@ final class PianoRoll extends Widget {
 				});
 			}
 		} else {
-			final paste = menu.offer(new Choice("Paste", "Ctrl+V"));
+			final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE), "Ctrl+V"));
 			paste.enabled = session.copiedNotes.length > 0;
-			if (!paste.enabled) paste.reason = "nothing has been copied";
+			if (!paste.enabled) paste.reason = translate(Locale.ROLL_NOTHING_COPIED);
 
 			final at = session.snapped(tickAt(px));
 			fires(paste, function():Void pasted(at));
@@ -310,7 +310,7 @@ final class PianoRoll extends Widget {
 			final scales = new Menu();
 
 			for (kind in 0...mdd.song.Scale.KINDS) {
-				final choice = scales.offer(new Choice(root.saying(
+				final choice = scales.offer(new Choice(translate(
 					mdd.song.Scale.nameOf(kind))));
 
 				fires(choice, function():Void scaled(kind, session.scale.root));
@@ -323,15 +323,15 @@ final class PianoRoll extends Widget {
 				fires(choice, function():Void scaled(session.scale.kind, note));
 			}
 
-			menu.offer(new Choice("Scale")).submenu = scales;
-			menu.offer(new Choice("Key")).submenu = keys;
+			menu.offer(new Choice(translate(Locale.ROLL_SCALE))).submenu = scales;
+			menu.offer(new Choice(translate(Locale.ROLL_KEY))).submenu = keys;
 
 			menu.divide();
 
-			fires(menu.offer(new Choice("Zoom to fit")), function():Void fitted());
-			fires(menu.offer(new Choice("Snap to a beat")), function():Void snapped(24));
-			fires(menu.offer(new Choice("Snap to a bar")), function():Void snapped(96));
-			fires(menu.offer(new Choice("No snap")), function():Void snapped(1));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_FIT))), function():Void fitted());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BEAT))), function():Void snapped(24));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BAR))), function():Void snapped(96));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_NONE))), function():Void snapped(1));
 		}
 
 		root.pop(menu, px, py, this);
@@ -383,7 +383,7 @@ final class PianoRoll extends Widget {
 
 		final held = root();
 		final named = held == null ? mdd.song.Scale.nameOf(kind)
-			: held.saying(mdd.song.Scale.nameOf(kind));
+			: translate(mdd.song.Scale.nameOf(kind));
 
 		session.say(kind == mdd.song.Scale.CHROMATIC ? "every note lit"
 			: mdd.song.Scale.rootOf(key) + " " + named + ", "

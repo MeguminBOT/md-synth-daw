@@ -98,7 +98,7 @@ final class Warnings extends Scroll {
 
 		if (budget == null || budget.found.length == 0) {
 			paint.reface(small);
-			paint.text("nothing is over budget", x + metrics.inset,
+			paint.text(translate(Locale.PANEL_NO_WARNINGS), x + metrics.inset,
 				y + metrics.gap + small.ascent, theme.dim, 0.7);
 			return;
 		}

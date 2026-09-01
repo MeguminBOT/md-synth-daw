@@ -235,13 +235,13 @@ final class Tracker extends Widget {
 
 			case Key.PageUp:
 				if (octave < 8) octave++;
-				session.say("octave " + octave);
+				session.say(said(Locale.SAID_OCTAVE) + " " + octave);
 				invalidate();
 				return true;
 
 			case Key.PageDown:
 				if (octave > 0) octave--;
-				session.say("octave " + octave);
+				session.say(said(Locale.SAID_OCTAVE) + " " + octave);
 				invalidate();
 				return true;
 
@@ -255,6 +255,11 @@ final class Tracker extends Widget {
 
 		place(pitch);
 		return true;
+	}
+
+	function said(key:String):String {
+		final root = root();
+		return root == null ? key : translate(key);
 	}
 
 	public static function spelt(pitch:Int):String {

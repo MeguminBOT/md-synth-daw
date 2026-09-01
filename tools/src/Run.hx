@@ -183,7 +183,7 @@ class Run {
 		ship(root, project, target);
 	}
 
-	static function configure(root:String, project:Project):Void {
+	static function configure(root:String, project:Project, spoken:Array<String>):Void {
 		final into = root + "/" + project.generated + "/mdd";
 		tree(into);
 
@@ -203,9 +203,71 @@ class Run {
 		out.add("\tpublic static inline final VSYNC = " + project.vsync + ";\n");
 		out.add("\tpublic static inline final RESIZABLE = " + project.resizable + ";\n");
 		out.add("\tpublic static inline final HIGH_DPI = " + project.highDpi + ";\n");
+		out.add("\tpublic static inline final SPOKEN = \"" + spoken.join(",") + "\";\n");
 		out.add("}\n");
 
 		File.saveContent(into + "/Config.hx", out.toString());
+	}
+
+	static function languages(root:String, project:Project):Array<String> {
+		final from = root + "/" + project.languages;
+		final into = root + "/" + project.output + "/lang";
+
+		final found:Array<String> = [];
+		if (!FileSystem.exists(from)) return found;
+
+		tree(into);
+
+		for (entry in FileSystem.readDirectory(from)) {
+			if (!StringTools.endsWith(entry, ".json")) continue;
+
+			final code = entry.substr(0, entry.length - 5);
+			final packed = into + "/" + code + ".mdl";
+
+			if (!packing(from + "/" + entry, packed, code)) continue;
+			found.push(code);
+		}
+
+		found.sort(byName);
+		return found;
+	}
+
+	static function byName(a:String, b:String):Int {
+		return a < b ? -1 : (a > b ? 1 : 0);
+	}
+
+	static function packing(from:String, into:String, code:String):Bool {
+		var table:Dynamic = null;
+
+		try {
+			table = haxe.Json.parse(File.getContent(from));
+		} catch (e:Dynamic) {
+			Sys.println("  " + pad(code) + "would not read: " + e);
+			return false;
+		}
+
+		final keys = Reflect.fields(table);
+		keys.sort(byName);
+
+		final out = new haxe.io.BytesOutput();
+
+		out.writeString("MDL1");
+		out.writeInt32(keys.length);
+
+		for (key in keys) {
+			final said = Std.string(Reflect.field(table, key));
+
+			final left = haxe.io.Bytes.ofString(key);
+			final right = haxe.io.Bytes.ofString(said);
+
+			out.writeUInt16(left.length);
+			out.write(left);
+			out.writeUInt16(right.length);
+			out.write(right);
+		}
+
+		File.saveBytes(into, out.getBytes());
+		return true;
 	}
 
 	static function nativeXml(root:String, project:Project):String {
@@ -258,7 +320,9 @@ class Run {
 			Sys.exit(1);
 		}
 
-		configure(root, project);
+		final spoken = languages(root, project);
+
+		configure(root, project, spoken);
 		final xml = nativeXml(root, project);
 		final one = project.targetOf(target);
 
@@ -284,6 +348,11 @@ class Run {
 
 		args.push("-D");
 		args.push("MDDBUILD=" + xml);
+
+		for (code in spoken) {
+			args.push("-resource");
+			args.push(root + "/" + project.output + "/lang/" + code + ".mdl@lang." + code);
+		}
 
 		if (debug) args.push("-debug");
 

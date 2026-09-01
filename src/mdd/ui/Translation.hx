@@ -1,7 +1,7 @@
 package mdd.ui;
 
 @:unreflective
-final class Words {
+final class Translation {
 	public var language(default, null):String = "en";
 	public var missing(default, null):Int = 0;
 
@@ -48,6 +48,33 @@ final class Words {
 
 	public function speak(language:String):Void {
 		this.language = language;
+	}
+
+	public function take(bytes:haxe.io.Bytes):Int {
+		if (bytes == null || bytes.length < 8 || bytes.getString(0, 4) != "MDL1") return 0;
+
+		final input = new haxe.io.BytesInput(bytes);
+		input.position = 4;
+
+		final many = input.readInt32();
+		var taken = 0;
+
+		for (i in 0...many) {
+			if (input.position + 2 > bytes.length) break;
+
+			final keyLength = input.readUInt16();
+			if (input.position + keyLength + 2 > bytes.length) break;
+
+			final key = input.readString(keyLength);
+			final saidLength = input.readUInt16();
+
+			if (input.position + saidLength > bytes.length) break;
+
+			put(key, input.readString(saidLength));
+			taken++;
+		}
+
+		return taken;
 	}
 
 	public function read(text:String):Int {
