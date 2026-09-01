@@ -7,12 +7,14 @@ import mdd.ui.Widget;
 @:unreflective
 final class Centre extends Widget {
 	public static inline final ROLL = 0;
-	public static inline final PLAYLIST = 1;
+	public static inline final TRACKER = 1;
+	public static inline final PLAYLIST = 2;
 
 	public final session:Session;
 
 	public final tabs:Tabs;
 	public final roll:PianoRoll;
+	public final tracker:Tracker;
 	public final playlist:Playlist;
 
 	public var showing(default, null):Int = ROLL;
@@ -21,14 +23,17 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["Piano roll", "Arrangement"]);
+		tabs = new Tabs(["Piano roll", "Tracker", "Arrangement"]);
 		roll = new PianoRoll(session);
+		tracker = new Tracker(session);
 		playlist = new Playlist(session);
 
 		add(tabs);
 		add(roll);
+		add(tracker);
 		add(playlist);
 
+		tracker.visible = false;
 		playlist.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
@@ -39,6 +44,7 @@ final class Centre extends Widget {
 
 		showing = which;
 		roll.visible = which == ROLL;
+		tracker.visible = which == TRACKER;
 		playlist.visible = which == PLAYLIST;
 
 		relayout();
@@ -54,6 +60,7 @@ final class Centre extends Widget {
 
 		tabs.arrange(x, y, width, tall);
 		roll.arrange(x, y + tall, width, height - tall);
+		tracker.arrange(x, y + tall, width, height - tall);
 		playlist.arrange(x, y + tall, width, height - tall);
 	}
 
@@ -63,15 +70,26 @@ final class Centre extends Widget {
 		roll.playhead = tick;
 		playlist.playhead = tick;
 
-		if (session.transport.playing) {
-			if (roll.visible) roll.invalidate();
-			if (playlist.visible) playlist.invalidate();
-		}
+		if (!session.transport.playing) return;
+
+		if (roll.visible) roll.invalidate();
+		if (playlist.visible) playlist.invalidate();
+
+		if (!tracker.visible) return;
+
+		final step = tracker.step();
+		final row = Std.int(tick / (step < 1 ? 1 : step));
+
+		if (row == tracker.row) return;
+
+		tracker.follow(row);
 	}
 
 	override function paint(paint:Paint):Void {
 		tabs.paint(paint);
+
 		if (roll.visible) roll.paint(paint);
+		if (tracker.visible) tracker.paint(paint);
 		if (playlist.visible) playlist.paint(paint);
 	}
 }

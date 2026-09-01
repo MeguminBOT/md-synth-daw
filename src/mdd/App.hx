@@ -236,6 +236,8 @@ class App {
 		final view = new Menu();
 
 		fired(view.offer(new Choice(root.saying("view.roll"))), function():Void centre.show(Centre.ROLL));
+		fired(view.offer(new Choice(root.saying("view.tracker"))), function():Void
+			centre.show(Centre.TRACKER));
 		fired(view.offer(new Choice(root.saying("view.arrangement"))), function():Void
 			centre.show(Centre.PLAYLIST));
 		view.divide();

@@ -24,6 +24,7 @@ import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.PianoRoll;
 import mdd.view.Session;
+import mdd.view.Tracker;
 import mdd.view.TransportBar;
 
 @:unreflective
@@ -336,6 +337,63 @@ class SpineCheck {
 		says("and the menu does something", session.song.muted[session.part.index()] != before
 			&& tree.popups.length == 0,
 			"the first command said \"" + fired + "\" and closed the menu");
+
+		centre.show(Centre.TRACKER);
+		session.snap = 24;
+
+		final tracker = centre.tracker;
+		tracker.octave = 4;
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final grid = tracker.rows();
+		final shown = tracker.painted;
+
+		says("the tracker is a grid", grid == pattern.length / 24 && shown > 8,
+			grid + " rows of " + Part.COUNT + " voices at a snap of 24 ticks, " + shown
+			+ " of them on screen");
+
+		final third = pattern.lane(Part.Fm3);
+		third.notes.resize(0);
+
+		tree.focusOn(tracker);
+		tracker.at(4, Part.Fm3.index());
+
+		tree.key(true, mdd.ui.Key.Z, mdd.ui.Mod.None);
+		tree.key(true, mdd.ui.Key.S, mdd.ui.Mod.None);
+
+		final written = tracker.noteAt(4, Part.Fm3.index());
+		final next = tracker.noteAt(5, Part.Fm3.index());
+
+		says("and a key writes a note", third.notes.length == 2 && written != null
+			&& next != null && written.pitch == 60 && next.pitch == 61,
+			"Z and S at octave 4 wrote " + Tracker.spelt(written.pitch) + " and "
+			+ Tracker.spelt(next.pitch) + ", each on its own row");
+
+		tracker.at(4, Part.Fm3.index());
+		tree.key(true, mdd.ui.Key.X, mdd.ui.Mod.None);
+
+		final over = tracker.noteAt(4, Part.Fm3.index());
+
+		says("and a cell holds one note", third.notes.length == 2 && over != null
+			&& over.pitch == 62,
+			"typing into a row that already sounds replaced it with "
+			+ Tracker.spelt(over.pitch) + " rather than stacking on it");
+
+		tracker.at(4, Part.Fm3.index());
+		tree.key(true, mdd.ui.Key.Delete, mdd.ui.Mod.None);
+
+		says("and delete takes it away", tracker.noteAt(4, Part.Fm3.index()) == null
+			&& third.notes.length == 1,
+			"the note under the cursor is gone and the one after it is not");
+
+		says("and it is the roll's data", centre.roll.session == tracker.session,
+			"the tracker and the roll read the same pattern, not a copy of it");
+
+		centre.show(Centre.ROLL);
+		session.snap = 24;
 
 		final rollMenus = popUnder(tree, roll, roll.x + 200, roll.y + 120);
 

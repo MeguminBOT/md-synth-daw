@@ -29,6 +29,13 @@ enum abstract Key(Int) from Int to Int {
 	var Z = 29;
 
 	var One = 30;
+	var Two = 31;
+	var Three = 32;
+	var Four = 33;
+	var Five = 34;
+	var Six = 35;
+	var Seven = 36;
+	var Eight = 37;
 	var Nine = 38;
 	var Zero = 39;
 

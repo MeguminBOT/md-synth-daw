@@ -46,6 +46,7 @@ class Speech {
 		words.put("edit.stop", "Stop");
 
 		words.put("view.roll", "Piano roll");
+		words.put("view.tracker", "Tracker");
 		words.put("view.arrangement", "Arrangement");
 		words.put("view.mixer", "Mixer");
 		words.put("view.warnings", "Warnings");
