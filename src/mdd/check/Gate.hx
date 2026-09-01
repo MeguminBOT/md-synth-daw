@@ -1,7 +1,7 @@
 package mdd.check;
 
 class Gate {
-	static final PROGRAMS:Array<String> = ["window", "paint"];
+	static final PROGRAMS:Array<String> = ["window", "paint", "ui"];
 
 	public static var root(default, null):String = ".";
 
@@ -47,6 +47,7 @@ class Gate {
 		return switch (name) {
 			case "window": WindowCheck.run(args);
 			case "paint": PaintCheck.run(args);
+			case "ui": UiCheck.run(args);
 			case _:
 				Sys.println("mdd gate: no program called '" + name + "'");
 				Sys.println("  known: " + PROGRAMS.join(", "));
