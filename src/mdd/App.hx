@@ -4,6 +4,7 @@ import mdd.host.Audio;
 import mdd.host.Canvas;
 import mdd.host.Device;
 import mdd.host.Event;
+import mdd.host.Instance;
 import mdd.host.Native;
 import mdd.host.Paths;
 import mdd.host.Settings;
@@ -43,6 +44,7 @@ import mdd.view.Welcome;
 @:unreflective
 class App {
 	static inline final IDLE = 0.002;
+	static inline final LOCK = "-running";
 
 	var window:cpp.Star<Window>;
 	var renderer:cpp.Star<Canvas>;
@@ -90,9 +92,16 @@ class App {
 			Sys.exit(1);
 		}
 
+		if (Instance.claim(Config.SHORT + LOCK) == 0) {
+			Sdl.message(Config.TITLE, Config.TITLE + " is already running.");
+			Sdl.quit();
+			Sys.exit(0);
+		}
+
 		final app = new App();
 
 		if (!app.open()) {
+			Instance.release();
 			Sdl.quit();
 			Sys.exit(1);
 		}
@@ -100,6 +109,7 @@ class App {
 		app.report();
 		app.loop();
 		app.shut();
+		Instance.release();
 		Sdl.quit();
 	}
 
@@ -175,7 +185,7 @@ class App {
 			root.reshape();
 		};
 
-		update = new Update(Config.CHECK_AT, Config.DOWNLOAD_AT, Config.VERSION);
+		update = new Update(Config.GITHUB, Config.VERSION);
 
 		notice = new Notice(session);
 		notice.update = update;
@@ -304,7 +314,7 @@ class App {
 	}
 
 	function fetching():Void {
-		final into = Paths.documents() + "/" + Config.SHORT + "-" + update.offered
+		final into = Paths.within("updates") + "/" + Config.SHORT + "-" + update.offered
 			+ Paths.suffix();
 
 		if (update.take(into)) session.say("downloading to " + into);
@@ -631,7 +641,8 @@ class App {
 		Sys.println("  display scale " + scale);
 		Sys.println("  motion        " + (root.flow == Flow.Reduced ? "reduced, as the desktop asks"
 			: "full"));
-		Sys.println("  settings      " + settings.path);
+		Sys.println("  userdata      " + Paths.userdata()
+			+ (settings.portable ? ", portable" : ""));
 		Sys.println("  audio         " + (speaker == null ? "no device"
 			: Audio.name(speaker) + ", " + Audio.rate(speaker) + " Hz"));
 		Sys.println("  profile       " + budget.profile.name + ", "
@@ -641,7 +652,7 @@ class App {
 		Sys.println("  saving        " + (files.every <= 0 ? "only when asked"
 			: "on its own every " + Std.int(files.every / 60) + " minutes"));
 		Sys.println("  updates       " + (update.possible()
-			? "looking at " + update.checkAt : "no address configured, never looks"));
+			? "github " + update.repository : "no repository configured, never looks"));
 		Sys.println("  language      " + root.translation.language + ", " + root.translation.count()
 			+ " strings of " + Languages.shipped().length + " shipped languages");
 	}

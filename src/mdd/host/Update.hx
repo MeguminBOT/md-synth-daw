@@ -1,6 +1,8 @@
 package mdd.host;
 
 import haxe.atomic.AtomicInt;
+import mdd.format.Json;
+import mdd.format.Node;
 
 @:unreflective
 final class Update {
@@ -12,21 +14,25 @@ final class Update {
 	public static inline final FETCHING = 5;
 	public static inline final FETCHED = 6;
 
-	public var checkAt(default, null):String;
-	public var downloadAt(default, null):String;
+	public static inline final API = "https://api.github.com/repos/";
+	public static inline final LATEST = "/releases/latest";
+
+	public var repository(default, null):String;
 	public var running(default, null):String;
+	public var platform(default, null):String;
 
 	public var offered(default, null):String = "";
 	public var saidAt(default, null):String = "";
 	public var notes(default, null):String = "";
 	public var into(default, null):String = "";
+	public var assets(default, null):Int = 0;
 
 	final held:AtomicInt = new AtomicInt(IDLE);
 
-	public function new(checkAt:String, downloadAt:String, running:String) {
-		this.checkAt = checkAt;
-		this.downloadAt = downloadAt;
+	public function new(repository:String, running:String, platform:String = "") {
+		this.repository = repository;
 		this.running = running;
+		this.platform = platform == "" ? Paths.platform() : platform;
 	}
 
 	public inline function state():Int {
@@ -34,7 +40,11 @@ final class Update {
 	}
 
 	public inline function possible():Bool {
-		return checkAt != "";
+		return repository != "";
+	}
+
+	public inline function checkAt():String {
+		return possible() ? API + repository + LATEST : "";
 	}
 
 	public function look():Bool {
@@ -50,7 +60,7 @@ final class Update {
 		var said = "";
 
 		try {
-			said = fetched(checkAt);
+			said = fetched(checkAt());
 		} catch (e:Dynamic) {
 			said = "";
 		}
@@ -60,7 +70,12 @@ final class Update {
 			return;
 		}
 
-		read(said);
+		try {
+			read(said);
+		} catch (e:Dynamic) {
+			held.store(UNREACHABLE);
+			return;
+		}
 
 		if (offered == "" || !newer(offered, running)) {
 			held.store(CURRENT);
@@ -70,30 +85,70 @@ final class Update {
 		held.store(WAITING);
 	}
 
-	function read(said:String):Void {
+	public function read(said:String):Void {
 		offered = "";
 		saidAt = "";
 		notes = "";
+		assets = 0;
 
-		for (line in said.split("\n")) {
-			final trimmed = StringTools.trim(line);
-			final at = trimmed.indexOf("=");
-			if (at <= 0) continue;
+		final node = Json.parse(said);
 
-			final key = StringTools.trim(trimmed.substr(0, at));
-			final value = StringTools.trim(trimmed.substr(at + 1));
+		offered = trimmed(node.get("tag_name").saying(""));
+		notes = firstLine(node.get("body").saying(""));
 
-			switch (key) {
-				case "version": offered = value;
-				case "url": saidAt = value;
-				case "notes": notes = value;
-				case _:
-			}
+		final held = node.get("assets");
+		assets = held.length();
+
+		var fallback = "";
+		var best = 0;
+
+		for (i in 0...held.length()) {
+			final asset = held.at(i);
+			final name = asset.get("name").saying("").toLowerCase();
+			final url = asset.get("browser_download_url").saying("");
+
+			if (url == "") continue;
+			if (fallback == "") fallback = url;
+
+			final score = suits(name);
+			if (score <= best) continue;
+
+			best = score;
+			saidAt = url;
 		}
 
-		if (saidAt == "" && downloadAt != "") {
-			saidAt = StringTools.replace(downloadAt, "{version}", offered);
-		}
+		if (saidAt == "") saidAt = fallback;
+		if (saidAt == "") saidAt = node.get("html_url").saying("");
+	}
+
+	public function suits(name:String):Int {
+		final installer = platform == "windows" ? "setup"
+			: (platform == "mac" ? ".dmg" : "install");
+
+		final ending = platform == "windows" ? ".exe"
+			: (platform == "mac" ? ".dmg" : ".tar.gz");
+
+		var score = 0;
+
+		if (name.indexOf(platform) >= 0) score += 2;
+		if (StringTools.endsWith(name, ending)) score += 2;
+		if (name.indexOf(installer) >= 0) score += 3;
+		if (name.indexOf("portable") >= 0) score += 1;
+
+		if (platform != "windows" && StringTools.endsWith(name, ".exe")) return 0;
+		if (platform != "mac" && StringTools.endsWith(name, ".dmg")) return 0;
+
+		return score;
+	}
+
+	static function trimmed(said:String):String {
+		final held = StringTools.trim(said);
+		return StringTools.startsWith(held, "v") ? held.substr(1) : held;
+	}
+
+	static function firstLine(said:String):String {
+		final held = StringTools.trim(said.split("\n")[0]);
+		return held.length > 96 ? held.substr(0, 93) + "..." : held;
 	}
 
 	public function take(where:String):Bool {
@@ -120,7 +175,13 @@ final class Update {
 	}
 
 	public static function fetched(url:String):String {
-		final run = new sys.io.Process("curl", ["-sL", "--fail", "--max-time", "8", url]);
+		final run = new sys.io.Process("curl", [
+			"-sL", "--fail", "--max-time", "10",
+			"-H", "Accept: application/vnd.github+json",
+			"-H", "User-Agent: " + mdd.Config.SHORT + "/" + mdd.Config.VERSION,
+			url
+		]);
+
 		final said = run.stdout.readAll().toString();
 		final code = run.exitCode();
 

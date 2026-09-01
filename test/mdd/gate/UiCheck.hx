@@ -712,11 +712,38 @@ class UiCheck {
 			"0.1.10 is newer than 0.1.9 and 0.9.9 is not newer than 1.0.0, which string order "
 			+ "gets wrong both ways");
 
-		final quiet = new mdd.host.Update("", "", "0.1.0");
+		final quiet = new mdd.host.Update("", "0.1.0", "windows");
 
-		says("no address means no looking", !quiet.possible() && !quiet.look()
+		says("no repository means no looking", !quiet.possible() && !quiet.look()
 			&& quiet.state() == mdd.host.Update.IDLE,
-			"an updater with no address configured never reaches the network");
+			"an updater with no repository configured never reaches the network");
+
+		final held = new mdd.host.Update("MeguminBOT/md-synth-daw", "0.1.0", "windows");
+
+		says("it reads github releases", held.checkAt()
+			== "https://api.github.com/repos/MeguminBOT/md-synth-daw/releases/latest",
+			held.checkAt());
+
+		held.read('{"tag_name":"v0.3.1","html_url":"https://example/rel",'
+			+ '"body":"Faster import\nand other things","assets":['
+			+ '{"name":"mdd-0.3.1-linux.tar.gz","browser_download_url":"https://example/linux"},'
+			+ '{"name":"mdd-0.3.1-windows-portable.zip","browser_download_url":"https://example/zip"},'
+			+ '{"name":"mdd-0.3.1-setup.exe","browser_download_url":"https://example/setup"}]}');
+
+		says("and picks its own platform", held.offered == "0.3.1" && held.assets == 3
+			&& held.saidAt == "https://example/setup",
+			"tag v0.3.1 reads as " + held.offered + ", and of " + held.assets
+			+ " assets it took the windows installer");
+
+		says("and takes the first line of the notes", held.notes == "Faster import",
+			"the release body's first line is what the notice shows: " + held.notes);
+
+		final bare = new mdd.host.Update("owner/name", "0.1.0", "mac");
+		bare.read('{"tag_name":"0.2.0","html_url":"https://example/page","assets":[]}');
+
+		says("and falls back to the release page", bare.offered == "0.2.0"
+			&& bare.saidAt == "https://example/page" && bare.assets == 0,
+			"a release with no assets sends the reader to the page instead");
 	}
 
 	static function saying():Void {

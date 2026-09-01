@@ -194,3 +194,7 @@ extern "C" void mdd_sleep(double seconds) {
 extern "C" double mdd_ticks(void) {
 	return static_cast<double>(SDL_GetTicksNS()) / 1000000000.0;
 }
+
+extern "C" void mdd_message(const char *title, const char *said) {
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title, said, NULL);
+}

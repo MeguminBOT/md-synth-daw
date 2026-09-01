@@ -193,8 +193,8 @@ class Run {
 		out.add("\tpublic static inline final TITLE = \"" + project.title + "\";\n");
 		out.add("\tpublic static inline final SHORT = \"" + project.short + "\";\n");
 		out.add("\tpublic static inline final COMPANY = \"" + project.company + "\";\n");
-		out.add("\tpublic static inline final CHECK_AT = \"" + project.checkAt + "\";\n");
-		out.add("\tpublic static inline final DOWNLOAD_AT = \"" + project.downloadAt + "\";\n");
+		out.add("\tpublic static inline final GITHUB = \"" + project.github + "\";\n");
+		
 		out.add("\tpublic static inline final VERSION = \"" + project.version + "\";\n");
 		out.add("\tpublic static inline final WIDTH = " + project.windowWidth + ";\n");
 		out.add("\tpublic static inline final HEIGHT = " + project.windowHeight + ";\n");
@@ -542,11 +542,21 @@ class Run {
 		final here = Sys.getCwd();
 		Sys.setCwd(where);
 
-		final made = Sys.command("tar",
-			windows() ? ["-a", "-c", "-f", into, what] : ["-czf", into, what]);
+		final made = windows()
+			? Sys.command("powershell", ["-NoProfile", "-Command",
+				"Compress-Archive -Path '" + what + "' -DestinationPath '" + into
+				+ "' -CompressionLevel Optimal -Force"])
+			: Sys.command("tar", ["-czf", into, what]);
 
 		Sys.setCwd(here);
 		return made;
+	}
+
+	static function toolAt(name:String, where:Array<String>):String {
+		if (tool(name, ["/?"])) return name;
+		for (path in where) if (FileSystem.exists(path)) return path;
+
+		return "";
 	}
 
 	static function portable(root:String, project:Project):Void {
@@ -556,8 +566,14 @@ class Run {
 		staged(root, project, into);
 
 		File.saveContent(into + "/portable.txt",
-			"This file keeps " + project.title + " portable: settings live beside the program\n"
-			+ "rather than in the account's own directory. Delete it to use the usual place.\n");
+			"This file keeps " + project.title + " portable: settings, projects and presets go\n"
+			+ "into userdata/ beside the program rather than into the account's documents.\n"
+			+ "Delete it and userdata/ to use the usual place.\n");
+
+		for (what in ["settings", "projects", "presets", "updates"]) {
+			tree(into + "/userdata/" + what);
+			File.saveContent(into + "/userdata/" + what + "/.keep", "");
+		}
 
 		final archive = root + "/" + project.output + "/package/" + name
 			+ (windows() ? ".zip" : ".tar.gz");
@@ -599,17 +615,32 @@ class Run {
 		final out = new StringBuf();
 
 		out.add("[Setup]\n");
+		out.add("AppId={{" + identity(project) + "}\n");
 		out.add("AppName=" + project.title + "\n");
 		out.add("AppVersion=" + project.version + "\n");
 		out.add("AppPublisher=" + project.company + "\n");
+		out.add("AppSupportURL=https://github.com/" + project.github + "\n");
 		out.add("DefaultDirName={autopf}\\" + project.title + "\n");
 		out.add("DefaultGroupName=" + project.title + "\n");
+		out.add("UninstallDisplayName=" + project.title + " " + project.version + "\n");
+		out.add("UninstallDisplayIcon={app}\\" + project.short + ".exe\n");
 		out.add("OutputDir=" + StringTools.replace(root + "/" + project.output + "/package",
 			"/", "\\") + "\n");
-		out.add("OutputBaseFilename=" + project.short + "-" + project.version + "-setup\n");
-		out.add("Compression=lzma2\n");
+		out.add("OutputBaseFilename=" + project.short + "-" + project.version
+			+ "-windows-setup\n");
+		out.add("Compression=lzma2/max\n");
 		out.add("SolidCompression=yes\n");
-		out.add("ArchitecturesInstallIn64BitMode=x64compatible\n\n");
+		out.add("ArchitecturesInstallIn64BitMode=x64compatible\n");
+		out.add("ArchitecturesAllowed=x64compatible\n");
+		out.add("PrivilegesRequiredOverridesAllowed=dialog\n");
+		out.add("AppMutex=" + project.short + "-running,Global\\" + project.short
+			+ "-running\n");
+		out.add("SetupMutex=" + project.short + "-setup,Global\\" + project.short
+			+ "-setup\n");
+		out.add("CloseApplications=yes\n");
+		out.add("RestartApplications=no\n");
+		out.add("WizardStyle=modern\n");
+		out.add("DisableProgramGroupPage=yes\n\n");
 
 		out.add("[Files]\n");
 		out.add("Source: \"" + StringTools.replace(into, "/", "\\")
@@ -618,26 +649,97 @@ class Run {
 		out.add("[Icons]\n");
 		out.add("Name: \"{group}\\" + project.title + "\"; Filename: \"{app}\\"
 			+ project.short + ".exe\"\n");
+		out.add("Name: \"{group}\\Uninstall " + project.title
+			+ "\"; Filename: \"{uninstallexe}\"\n");
 		out.add("Name: \"{autodesktop}\\" + project.title + "\"; Filename: \"{app}\\"
 			+ project.short + ".exe\"; Tasks: desktopicon\n\n");
 
 		out.add("[Tasks]\n");
 		out.add("Name: \"desktopicon\"; Description: \"Create a desktop shortcut\"\n\n");
 
+		out.add("[Registry]\n");
+		out.add("Root: HKA; Subkey: \"Software\\Classes\\.mdd\"; ValueType: string; "
+			+ "ValueData: \"" + project.short + ".project\"; Flags: uninsdeletevalue uninsdeletekeyifempty\n");
+		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
+			+ ".project\"; ValueType: string; ValueData: \"" + project.title
+			+ " project\"; Flags: uninsdeletekey\n");
+		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
+			+ ".project\\DefaultIcon\"; ValueType: string; ValueData: \"{app}\\"
+			+ project.short + ".exe,0\"\n");
+		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
+			+ ".project\\shell\\open\\command\"; ValueType: string; "
+			+ "ValueData: \"\"\"{app}\\" + project.short + ".exe\"\" \"\"%1\"\"\"\n\n");
+
 		out.add("[Run]\n");
 		out.add("Filename: \"{app}\\" + project.short
 			+ ".exe\"; Description: \"Start " + project.title
-			+ "\"; Flags: nowait postinstall skipifsilent\n");
+			+ "\"; Flags: nowait postinstall skipifsilent\n\n");
+
+		out.add("[UninstallDelete]\n");
+		out.add("Type: filesandordirs; Name: \"{app}\"\n\n");
+
+		out.add("[Code]\n");
+		out.add("var Keep: Boolean;\n\n");
+		out.add("function Alone(): Boolean;\n");
+		out.add("begin\n");
+		out.add("  Result := True;\n");
+		out.add("  while CheckForMutexes('" + project.short + "-running,Global\\" + project.short + "-running') do\n");
+		out.add("  begin\n");
+		out.add("    if MsgBox(\n");
+		out.add("      '" + project.title + " is still running.' + #13#10 + #13#10 +\n");
+		out.add("      'Close every window it has open, then click Retry.',\n");
+		out.add("      mbError, MB_RETRYCANCEL) = IDCANCEL then\n");
+		out.add("    begin\n");
+		out.add("      Result := False;\n");
+		out.add("      Exit;\n");
+		out.add("    end;\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+		out.add("function InitializeSetup(): Boolean;\n");
+		out.add("begin\n");
+		out.add("  Result := Alone();\n");
+		out.add("end;\n\n");
+		out.add("function InitializeUninstall(): Boolean;\n");
+		out.add("begin\n");
+		out.add("  if not Alone() then\n");
+		out.add("  begin\n");
+		out.add("    Result := False;\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  Keep := MsgBox(\n");
+		out.add("    'Keep your projects, presets and settings?' + #13#10 + #13#10 +\n");
+		out.add("    'Yes  keeps everything in Documents\\" + project.title
+			+ "' + #13#10 +\n");
+		out.add("    'No   removes them along with the program.',\n");
+		out.add("    mbConfirmation, MB_YESNO) = IDYES;\n");
+		out.add("  Result := True;\n");
+		out.add("end;\n\n");
+		out.add("procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);\n");
+		out.add("var Held, Where: String;\n");
+		out.add("begin\n");
+		out.add("  if CurUninstallStep <> usPostUninstall then Exit;\n\n");
+		out.add("  Where := ExpandConstant('{app}');\n");
+		out.add("  if DirExists(Where) then DelTree(Where, True, True, True);\n\n");
+		out.add("  if Keep then Exit;\n\n");
+		out.add("  Held := ExpandConstant('{userdocs}\\" + project.title + "');\n");
+		out.add("  if DirExists(Held) then DelTree(Held, True, True, True);\n");
+		out.add("end;\n");
 
 		File.saveContent(script, out.toString());
 
-		if (!tool("iscc", ["/?"])) {
+		final iscc = toolAt("iscc", [
+			"C:/Program Files (x86)/Inno Setup 6/ISCC.exe",
+			"C:/Program Files/Inno Setup 6/ISCC.exe",
+			"C:/Program Files (x86)/Inno Setup 5/ISCC.exe"
+		]);
+
+		if (iscc == "") {
 			Sys.println("  " + pad("installer") + script.substr(root.length + 1)
 				+ " is written; install Inno Setup and run iscc on it");
 			return;
 		}
 
-		final made = Sys.command("iscc", ["/Q", script]);
+		final made = Sys.command(iscc, ["/Q", script]);
 
 		if (made != 0) {
 			Sys.println("  " + pad("installer") + "iscc would not build " + script);
@@ -645,7 +747,27 @@ class Run {
 		}
 
 		Sys.println("  " + pad("installer") + project.output + "/package/" + project.short + "-"
-			+ project.version + "-setup.exe");
+			+ project.version + "-windows-setup.exe");
+	}
+
+	static function identity(project:Project):String {
+		final said = project.company + "." + project.short + ".mdd";
+		var held = 0x811C9DC5;
+
+		for (i in 0...said.length) {
+			held = held ^ said.charCodeAt(i);
+			held = (held * 16777619) & 0x7FFFFFFF;
+		}
+
+		var mixed = held;
+		mixed = (mixed ^ (mixed >> 13)) & 0x7FFFFFFF;
+		mixed = (mixed * 1103515245 + 12345) & 0x7FFFFFFF;
+
+		final left = StringTools.hex(held, 8);
+		final right = StringTools.hex(mixed, 8);
+
+		return left + "-" + right.substr(0, 4) + "-4" + right.substr(4, 3) + "-A"
+			+ left.substr(0, 3) + "-" + left.substr(3, 5) + right.substr(0, 7);
 	}
 
 	static function bundle(root:String, project:Project):Void {
@@ -724,6 +846,23 @@ class Run {
 		out2.add("echo \"installed to $PREFIX\"\n");
 
 		File.saveContent(into + "/install.sh", out2.toString());
+
+		final out3 = new StringBuf();
+		out3.add("#!/usr/bin/env sh\n");
+		out3.add("set -e\n");
+		out3.add("PREFIX=\"${PREFIX:-$HOME/.local}\"\n");
+		out3.add("printf 'Keep projects, presets and settings? [Y/n] '\n");
+		out3.add("read KEEP\n");
+		out3.add("rm -rf \"$PREFIX/lib/" + project.short + "\"\n");
+		out3.add("rm -f \"$PREFIX/bin/" + project.short + "\"\n");
+		out3.add("rm -f \"$PREFIX/share/applications/" + project.short + ".desktop\"\n");
+		out3.add("case \"$KEEP\" in\n");
+		out3.add("  [Nn]*) rm -rf \"$HOME/Documents/" + project.title + "\" ;;\n");
+		out3.add("  *) echo \"kept $HOME/Documents/" + project.title + "\" ;;\n");
+		out3.add("esac\n");
+		out3.add("echo \"removed from $PREFIX\"\n");
+
+		File.saveContent(into + "/uninstall.sh", out3.toString());
 
 		final archive = into + ".tar.gz";
 		if (FileSystem.exists(archive)) FileSystem.deleteFile(archive);

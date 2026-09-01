@@ -22,12 +22,11 @@ final class Settings {
 		}
 
 		portable = carried();
-		this.path = (portable ? Paths.beside() : Paths.settings()) + "/" + NAME;
+		this.path = Paths.within("settings") + "/" + NAME;
 	}
 
 	public static function carried():Bool {
-		final beside = Paths.beside();
-		return FileSystem.exists(beside + "/" + MARK) || FileSystem.exists(beside + "/" + NAME);
+		return Paths.portable();
 	}
 
 	public function put(key:String, value:String):Void {

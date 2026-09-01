@@ -77,10 +77,7 @@ final class Files {
 	}
 
 	public function recovery():String {
-		final held = mdd.host.Settings.carried()
-			? Paths.beside() : Paths.settings();
-
-		return held + "/recovered.mdd";
+		return Paths.within("projects") + "/recovered.mdd";
 	}
 
 	public function forget():Void {
@@ -91,7 +88,7 @@ final class Files {
 	public function ask(window:cpp.Star<Window>, what:Int):Void {
 		if (asking != NOTHING) return;
 
-		final where = path != "" ? haxe.io.Path.directory(path) : Paths.documents();
+		final where = path != "" ? haxe.io.Path.directory(path) : Paths.within("projects");
 
 		asking = what;
 

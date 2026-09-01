@@ -8,9 +8,9 @@
 		company="md-synth-daw"
 		description="A hardware-aware DAW for the Sega Mega Drive" />
 
-	<!-- Where the updater looks for the current version. Empty means it never looks. -->
+	<!-- The repository the updater reads releases from. Empty means it never looks. -->
 
-	<update check="" download="" />
+	<update github="MeguminBOT/md-synth-daw" />
 
 	<window width="1440" height="900" least-width="960" least-height="600"
 		vsync="true" resizable="true" high-dpi="true" />
@@ -71,6 +71,7 @@
 		<file name="text.cpp" />
 		<file name="audio.cpp" />
 		<file name="dialog.cpp" />
+		<file name="instance.cpp" />
 	</native>
 
 	<include value="${SDL3PATH}/include" />

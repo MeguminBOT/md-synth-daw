@@ -22,8 +22,7 @@ class Project {
 	public var title(default, null):String = "mdd";
 	public var short(default, null):String = "mdd";
 	public var company(default, null):String = "";
-	public var checkAt(default, null):String = "";
-	public var downloadAt(default, null):String = "";
+	public var github(default, null):String = "";
 	public var version(default, null):String = "0.0.0";
 	public var description(default, null):String = "";
 
@@ -83,8 +82,7 @@ class Project {
 				description = has(node, "description") ? node.get("description") : description;
 
 			case "update":
-				checkAt = has(node, "check") ? node.get("check") : checkAt;
-				downloadAt = has(node, "download") ? node.get("download") : downloadAt;
+				github = has(node, "github") ? node.get("github") : github;
 
 			case "window":
 				windowWidth = number(node, "width", windowWidth);

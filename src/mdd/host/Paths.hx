@@ -27,12 +27,53 @@ class Paths {
 
 	public static function documents():String {
 		#if windows
-		return beneath(home() + "/Documents", mdd.Config.SHORT);
+		return home() + "/Documents";
 		#elseif mac
-		return beneath(home() + "/Documents", mdd.Config.SHORT);
+		return home() + "/Documents";
 		#else
-		return beneath(home(), mdd.Config.SHORT);
+		final given = env("XDG_DOCUMENTS_DIR");
+		return given != "" ? given : home() + "/Documents";
 		#end
+	}
+
+	public static inline final USERDATA = "userdata";
+
+	public static function platform():String {
+		#if windows
+		return "windows";
+		#elseif mac
+		return "mac";
+		#else
+		return "linux";
+		#end
+	}
+
+
+	public static function portable():Bool {
+		return sys.FileSystem.exists(beside() + "/portable.txt")
+			|| sys.FileSystem.exists(beside() + "/" + USERDATA);
+	}
+
+	public static function userdata():String {
+		if (portable()) return beside() + "/" + USERDATA;
+		return documents() + "/" + mdd.Config.TITLE;
+	}
+
+	public static function within(what:String):String {
+		final where = userdata() + "/" + what;
+		make(where);
+		return where;
+	}
+
+	public static function make(where:String):Void {
+		if (where == "" || sys.FileSystem.exists(where)) return;
+
+		final parent = haxe.io.Path.directory(where);
+		if (parent != "" && parent != where) make(parent);
+
+		try {
+			sys.FileSystem.createDirectory(where);
+		} catch (e:Dynamic) {}
 	}
 
 	public static function beside():String {

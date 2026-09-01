@@ -130,6 +130,9 @@ extern class Sdl {
 	@:native("mdd_sleep")
 	public static function sleep(seconds:Float):Void;
 
+	@:native("mdd_message")
+	public static function message(title:cpp.ConstCharStar, said:cpp.ConstCharStar):Void;
+
 	@:native("mdd_ticks")
 	public static function ticks():Float;
 

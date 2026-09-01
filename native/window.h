@@ -45,6 +45,8 @@ void mdd_clear_clip(SDL_Renderer *renderer);
 
 int mdd_reduce_motion(void);
 
+void mdd_message(const char *title, const char *said);
+
 void mdd_sleep(double seconds);
 double mdd_ticks(void);
 
