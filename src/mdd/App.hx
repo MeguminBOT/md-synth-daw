@@ -21,8 +21,7 @@ import mdd.play.Render;
 import mdd.song.Part;
 import mdd.view.Centre;
 import mdd.view.ChannelRack;
-import mdd.view.FmEditor;
-import mdd.view.PianoRoll;
+import mdd.view.Inspector;
 import mdd.view.Session;
 import mdd.view.TransportBar;
 
@@ -43,7 +42,7 @@ class App {
 	var session:Null<Session> = null;
 	var rack:Null<ChannelRack> = null;
 	var centre:Null<Centre> = null;
-	var editor:Null<FmEditor> = null;
+	var inspector:Null<Inspector> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -121,25 +120,27 @@ class App {
 		bar = new TransportBar(session);
 		rack = new ChannelRack(session);
 		centre = new Centre(session);
-		editor = new FmEditor(session);
+		inspector = new Inspector(session);
 
 		shell.zone(Shell.TRANSPORT).add(bar);
 		shell.zone(Shell.RAIL).add(rack);
 		shell.zone(Shell.CENTRE).add(centre);
-		shell.zone(Shell.INSPECTOR).add(editor);
+		shell.zone(Shell.INSPECTOR).add(inspector);
 
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
 
-		session.onChange = function(session:Session):Void weighed();
-		weighed();
+		session.onChange = function(session:Session):Void changed();
+		changed();
 	}
 
-	function weighed():Void {
+	function changed():Void {
 		if (budget == null || session == null) return;
 
 		budget.overSong(session.song);
+
 		if (centre != null) centre.roll.invalidate();
+		if (inspector != null) inspector.follow();
 	}
 
 	function sound():Void {
@@ -314,6 +315,15 @@ class App {
 		}
 
 		if (moved) rack.invalidate();
+
+		if (inspector == null || !inspector.scope.visible) return;
+
+		for (index in 0...6) inspector.scope.feed(index, traced(index));
+		inspector.scope.invalidate();
+	}
+
+	function traced(index:Int):Float {
+		return render.ym.channels[index].delivered / 3000.0;
 	}
 
 	function loudness(index:Int):Float {
