@@ -56,6 +56,36 @@ class SpineCheck {
 		return 0;
 	}
 
+	static function sized(roll:mdd.view.PianoRoll, session:mdd.view.Session):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		while (lane.notes.length > 0) lane.notes.pop();
+
+		final note = new mdd.song.Note(0, session.snap, 60, 100);
+		lane.add(note);
+
+		final was = note.length;
+		roll.resized(note, session.snap * 6);
+
+		says("a note takes the length it is dragged to", note.length == session.snap * 6
+			&& note.length != was,
+			"a note of " + was + " ticks became " + note.length + " when its end was pulled");
+
+		roll.resized(note, -500);
+
+		says("and never shorter than the grid", note.length == session.snap,
+			"pulling the end back past the start left " + note.length + " ticks, one snap");
+
+		note.length = session.snap * 4;
+		final right = roll.atTick(note.at + note.length);
+
+		says("and its end is what the pointer grabs", roll.onEdge(note, right)
+			&& !roll.onEdge(note, right - roll.edge() * 4),
+			"the last few pixels of a note resize it and the middle of it does not");
+	}
+
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
@@ -207,8 +237,9 @@ class SpineCheck {
 			Sdl.renderPresent(renderer);
 			final spent = Sdl.ticks() - began;
 
-			calls = Draw.calls();
-			drawnNotes = roll.painted;
+			final took = Draw.calls();
+			if (took > calls) calls = took;
+			if (roll.painted > drawnNotes) drawnNotes = roll.painted;
 
 			if (frame == 0) first = spent;
 			else {
@@ -360,6 +391,8 @@ class SpineCheck {
 		says("and the menu does something", session.song.muted[session.part.index()] != before
 			&& tree.popups.length == 0,
 			"the first command said \"" + fired + "\" and closed the menu");
+
+		sized(roll, session);
 
 		centre.show(Centre.TRACKER);
 		session.snap = 24;

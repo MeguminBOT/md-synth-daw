@@ -57,6 +57,8 @@ final class PianoRoll extends Widget {
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
 	var grabPitch:Int = 0;
+	var sizing:Bool = false;
+	var drawn:Int = 0;
 	var panning:Bool = false;
 	var menu:Null<Menu> = null;
 	var panX:Float = 0;
@@ -247,8 +249,9 @@ final class PianoRoll extends Widget {
 
 					chosen = under;
 					dragging = under;
-					grabTick = tickAt(event.x) - under.at;
-					grabPitch = pitchAt(event.y) - under.pitch;
+					sizing = onEdge(under, event.x);
+					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
+					grabPitch = sizing ? 0 : pitchAt(event.y) - under.pitch;
 					invalidate();
 					return true;
 				}
@@ -263,11 +266,13 @@ final class PianoRoll extends Widget {
 				final pitch = pitchAt(event.y);
 				if (pitch < LOWEST || pitch > HIGHEST) return true;
 
-				final note = new Note(at < 0 ? 0 : at, session.snap, pitch, 100);
+				final length = drawn < 1 ? (session.snap < 1 ? 24 : session.snap) : drawn;
+				final note = new Note(at < 0 ? 0 : at, length, pitch, 100);
 				session.does(new AddNote(session.pattern, session.part, note));
 
 				chosen = note;
 				dragging = note;
+				sizing = true;
 				grabTick = 0;
 				grabPitch = 0;
 
@@ -288,6 +293,12 @@ final class PianoRoll extends Widget {
 				}
 
 				if (dragging == null) return false;
+
+				if (sizing) {
+					resized(dragging, tickAt(event.x));
+					invalidate();
+					return true;
+				}
 
 				final at = session.snapped(tickAt(event.x) - grabTick);
 				final pitch = pitchAt(event.y) - grabPitch;
@@ -313,6 +324,7 @@ final class PianoRoll extends Widget {
 
 				pattern.lane(session.part).sort();
 				dragging = null;
+				sizing = false;
 				session.changed();
 				return true;
 
@@ -610,6 +622,29 @@ final class PianoRoll extends Widget {
 			case AUTOMATION: Locale.LANE_AUTOMATION;
 			case _: Locale.LANE_VELOCITY;
 		}
+	}
+
+	public function edge():Float {
+		final root = root();
+		return root == null ? 6 : root.metrics.whole(6);
+	}
+
+	public function onEdge(note:Note, px:Float):Bool {
+		final right = atTick(note.at + note.length);
+		final reach = edge();
+
+		return px >= right - reach && px <= right + reach;
+	}
+
+	public function resized(note:Note, to:Int):Void {
+		final least = session.snap < 1 ? 1 : session.snap;
+		var want = session.snapped(to) - note.at;
+
+		if (want < least) want = least;
+		if (want == note.length) return;
+
+		note.length = want;
+		drawn = want;
 	}
 
 	function sliced(note:Note, at:Int):Void {
