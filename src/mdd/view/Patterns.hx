@@ -2,7 +2,6 @@ package mdd.view;
 
 import mdd.song.Pattern;
 import mdd.song.Part;
-import mdd.song.Tempo;
 import mdd.song.edit.AddPattern;
 import mdd.ui.Input;
 import mdd.ui.Key;
@@ -41,7 +40,7 @@ final class Patterns extends Scroll {
 
 	public function added():Void {
 		final held = session.current();
-		final length = held == null ? Tempo.TICKS * 4 : held.length;
+		final length = held == null ? session.song.tempo.ppqn * 4 : held.length;
 
 		session.does(new AddPattern(new Pattern(named(), length)));
 		session.chooses(session.song.patterns.length - 1);
@@ -142,8 +141,8 @@ final class Patterns extends Scroll {
 	}
 
 	function bars(held:Pattern):String {
-		final beats = held.length / Tempo.TICKS;
-		final whole = Math.round(beats / 4 * 100) / 100;
+		final bar = session.song.tempo.ppqn * 4;
+		final whole = bar <= 0 ? 0 : Math.round(held.length / bar * 100) / 100;
 
 		return whole + " " + translate(whole == 1 ? Locale.PATTERN_BAR : Locale.PATTERN_BARS);
 	}

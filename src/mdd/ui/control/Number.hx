@@ -162,11 +162,26 @@ final class Number extends Widget implements Range {
 		paint.outline(x, y, width, height,
 			root.focus == this || dragging ? theme.accent : theme.frame, metrics.whole(1));
 
+		final stacked = height >= small.height + mono.height + metrics.unit * 3;
+		final said = typing ? entry + "_"
+			: (derived != null && !stacked ? derived(value) : Std.string(value));
+
+		if (!stacked) {
+			paint.reface(small);
+			paint.text(label, x + metrics.unit * 2,
+				y + (height - small.height) * 0.5 + small.ascent, theme.dim, 0.7);
+
+			paint.reface(mono);
+			paint.textRight(said, x + width - metrics.unit * 2,
+				y + (height - mono.height) * 0.5 + mono.ascent,
+				typing ? theme.accent : theme.ink, 0.85);
+			return;
+		}
+
 		paint.reface(small);
 		paint.text(label, x + metrics.unit * 2, y + metrics.unit + small.ascent, theme.dim);
 
 		paint.reface(mono);
-		final said = typing ? entry + "_" : Std.string(value);
 		paint.textRight(said, x + width - metrics.unit * 2,
 			y + height - metrics.unit - mono.descent, typing ? theme.accent : theme.ink);
 

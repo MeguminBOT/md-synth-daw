@@ -62,6 +62,7 @@ final class Presets extends Widget {
 		final song = session.song;
 		final part = session.part;
 		final chosen = song.rack[part.index()];
+		final from = translate(Locale.PANEL_FROM_IMPORT);
 
 		for (at in 0...song.banks.length) {
 			final bank = song.banks[at];
@@ -76,7 +77,8 @@ final class Presets extends Widget {
 
 			if (holds.length == 0) continue;
 
-			final head = new Item(bank.name + (bank.kept ? "" : "   from the import"));
+			final badge = bank.kept || bank.name.indexOf(from) >= 0 ? "" : "   " + from;
+			final head = new Item(bank.name + badge);
 
 			for (index in holds) {
 				final child = head.add(new Item(song.instruments[index].name,

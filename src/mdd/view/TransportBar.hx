@@ -65,6 +65,11 @@ final class TransportBar extends Widget {
 		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
 		snap.derived = function(value:Int):String return SNAP_NAMES[value];
 
+		tempo.label = "BPM";
+		resolution.label = "PPQN";
+		video.label = "";
+		snap.label = "";
+
 		for (field in held) add(field);
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
@@ -98,6 +103,8 @@ final class TransportBar extends Widget {
 	public function settles():Void {
 		if (settling) return;
 		settling = true;
+
+		length.label = translate(Locale.TRANSPORT_BARS);
 
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
 		resolution.set(session.song.tempo.ppqn);
@@ -353,16 +360,29 @@ final class TransportBar extends Widget {
 		final metrics = root.metrics;
 		final button = size();
 		final top = y + (height - button) * 0.5;
-		final wide = metrics.whole(58);
+		final wide = metrics.whole(70);
+		final run = wide * held.length + metrics.unit * (held.length - 1);
 
-		var pen = x + width - metrics.inset - wide;
-		var index = held.length - 1;
+		final after = clockRight() + metrics.inset * 2;
+		final right = x + width - metrics.inset - run;
 
-		while (index >= 0) {
-			held[index].arrange(pen, top, wide, button);
-			pen -= wide + metrics.unit;
-			index--;
+		var pen = after > right ? after : right;
+
+		for (field in held) {
+			field.arrange(pen, top, wide, button);
+			pen += wide + metrics.unit;
 		}
+	}
+
+	function clockRight():Float {
+		final root = root();
+		if (root == null) return x;
+
+		final metrics = root.metrics;
+		final font = metrics.mono == null ? metrics.body : metrics.mono;
+
+		return pickerLeft() + pickerWide() + metrics.inset + font.measure("00:00.000")
+			+ metrics.inset + font.measure("bar 000.0");
 	}
 
 	override function paint(paint:Paint):Void {
@@ -463,11 +483,16 @@ final class TransportBar extends Widget {
 		paint.rect(left + metrics.gap, top + (button - swatch) * 0.5, swatch, swatch,
 			Theme.PARTS[session.pattern % Theme.PARTS.length]);
 
-		paint.reface(font);
-		paint.text((session.pattern + 1) + "  " + (pattern == null ? "" : pattern.name),
-			left + metrics.gap * 2 + swatch, line, theme.ink, 0.85);
-
 		final arrow = metrics.whole(4);
+		final textAt = left + metrics.gap * 2 + swatch;
+		final room = wide - (textAt - left) - arrow * 2 - metrics.gap * 2;
+
+		paint.reface(font);
+		paint.pushClip(textAt, top, room, button);
+		paint.text((session.pattern + 1) + "  " + (pattern == null ? "" : pattern.name),
+			textAt, line, theme.ink, 0.85);
+		paint.popClip();
+
 		final middle = left + wide - metrics.gap - arrow;
 		final centre = top + button * 0.5;
 		final points = new haxe.ds.Vector<Float>(6);

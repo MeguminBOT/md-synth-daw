@@ -21,13 +21,16 @@ final class Hardware extends Widget {
 		opaque = true;
 	}
 
+	public function step():Float {
+		final root = root();
+		return root == null ? 24 : root.metrics.whole(24);
+	}
+
 	public function tall():Float {
 		final root = root();
-		final metrics = root == null ? null : root.metrics;
-		final step = metrics == null ? 18.0 : metrics.whole(18);
-		final inset = metrics == null ? 8.0 : metrics.inset;
+		final inset = root == null ? 8.0 : root.metrics.inset;
 
-		return step * (ROWS + 1) + inset * 2;
+		return step() * (1 + Math.ceil(ROWS / 2)) + inset * 2;
 	}
 
 	function used(row:Int):Int {
@@ -86,7 +89,7 @@ final class Hardware extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final font = metrics.small == null ? metrics.body : metrics.small;
-		final step = metrics.whole(18);
+		final row = step();
 
 		paint.rect(x, y, width, height, theme.panel);
 		paint.reface(font);
@@ -95,22 +98,25 @@ final class Hardware extends Widget {
 			y + metrics.inset + font.ascent, theme.dim, 0.7);
 
 		final wide = (width - metrics.inset * 3) * 0.5;
-		final barTall = metrics.whole(3);
+		final barTall = metrics.whole(4);
 
-		for (row in 0...ROWS) {
-			final left = x + metrics.inset + (row % 2 == 0 ? 0 : wide + metrics.inset);
-			final top = y + metrics.inset + step * (1 + Math.floor(row / 2));
+		for (at in 0...ROWS) {
+			final left = x + metrics.inset + (at % 2 == 0 ? 0 : wide + metrics.inset);
+			final top = y + metrics.inset + row * (1 + Math.floor(at / 2));
 
-			paint.text(named(row), left, top + font.ascent, theme.dim, 0.65);
-			paint.textRight(shown(row), left + wide, top + font.ascent, theme.ink, 0.65);
+			paint.text(named(at), left, top + font.ascent, theme.dim, 0.65);
+			paint.textRight(shown(at), left + wide, top + font.ascent, theme.ink, 0.65);
 
-			final ceiling = most(row);
-			final part = ceiling <= 0 ? 0.0 : used(row) / ceiling;
+			final ceiling = most(at);
+			final part = ceiling <= 0 ? 0.0 : used(at) / ceiling;
 			final full = part > 1 ? 1.0 : part;
-			final line = top + font.ascent + metrics.whole(3);
+			final line = top + font.height + metrics.whole(2);
 
-			paint.rect(left, line, wide, barTall, theme.bar);
-			paint.rect(left, line, wide * full, barTall, full >= 1 ? theme.over : theme.accent);
+			paint.roundedRect(left, line, wide, barTall, barTall * 0.5, theme.sink);
+			if (full > 0) {
+				paint.roundedRect(left, line, wide * full, barTall, barTall * 0.5,
+					full >= 1 ? theme.over : theme.accent);
+			}
 		}
 	}
 }

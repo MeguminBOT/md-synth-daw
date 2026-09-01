@@ -4,6 +4,7 @@ import mdd.check.Budget;
 import mdd.song.edit.AddNote;
 import mdd.song.Lane;
 import mdd.song.Note;
+import mdd.song.Pattern;
 import mdd.song.Part;
 import mdd.song.edit.RemoveNote;
 import mdd.ui.control.Choice;
@@ -21,6 +22,11 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class PianoRoll extends Widget {
+	public static inline final VELOCITY = 0;
+	public static inline final PAN = 1;
+	public static inline final AUTOMATION = 2;
+	public static inline final LANES = 3;
+
 	public static inline final LOWEST = 12;
 	public static inline final HIGHEST = 108;
 
@@ -42,6 +48,9 @@ final class PianoRoll extends Widget {
 	public var chosen(default, null):Null<Note> = null;
 
 	public var onAudition:Null<(Part, Int) -> Void> = null;
+	public var showLanes:Bool = true;
+	var stalking:Null<Note> = null;
+	public var lane(default, null):Int = VELOCITY;
 
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
@@ -80,6 +89,17 @@ final class PianoRoll extends Widget {
 	public function ruler():Float {
 		final root = root();
 		return root == null ? 22 : root.metrics.whole(22);
+	}
+
+	public function lanes():Float {
+		if (!showLanes) return 0;
+
+		final root = root();
+		return root == null ? 80 : root.metrics.whole(80);
+	}
+
+	public inline function grid():Float {
+		return height - ruler() - lanes();
 	}
 
 	public inline function tickAt(px:Float):Int {
@@ -128,7 +148,7 @@ final class PianoRoll extends Widget {
 
 	public function reveal(tick:Int, pitch:Int):Void {
 		final wide = width - gutter();
-		final tall = height - ruler();
+		final tall = grid();
 
 		scrollTo(tick * perTick - wide * 0.3, (HIGHEST - pitch) * rowTall - tall * 0.5);
 	}
@@ -140,7 +160,7 @@ final class PianoRoll extends Widget {
 
 	public function scrollTo(px:Float, py:Float):Void {
 		final mostX = contentWidth() - (width - gutter());
-		final mostY = contentHeight() - (height - ruler());
+		final mostY = contentHeight() - grid();
 
 		offsetX = px < 0 ? 0 : (px > mostX ? (mostX < 0 ? 0 : mostX) : px);
 		offsetY = py < 0 ? 0 : (py > mostY ? (mostY < 0 ? 0 : mostY) : py);
@@ -176,6 +196,17 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				if (onStrip(event.y)) {
+					if (event.x < x + gutter()) {
+						showsLane((lane + 1) % LANES);
+						return true;
+					}
+
+					stalking = stalkAt(event.x);
+					if (stalking != null) leaned(event.y);
+					return true;
+				}
+
 				if (event.x < x + gutter()) {
 					final pitch = pitchAt(event.y);
 					if (onAudition != null) onAudition(session.part, pitch);
@@ -231,6 +262,11 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
+				if (stalking != null) {
+					leaned(event.y);
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				final at = session.snapped(tickAt(event.x) - grabTick);
@@ -245,6 +281,11 @@ final class PianoRoll extends Widget {
 			case Kind.PointerUp:
 				if (panning) {
 					panning = false;
+					return true;
+				}
+
+				if (stalking != null) {
+					stalking = null;
 					return true;
 				}
 
@@ -476,7 +517,7 @@ final class PianoRoll extends Widget {
 		final left = x + gutter();
 		final top = y + ruler();
 
-		paint.pushClip(left, top, width - gutter(), height - ruler());
+		paint.pushClip(left, top, width - gutter(), grid());
 		rows(paint, theme, left, top);
 		bars(paint, theme, metrics, left, top, pattern.length);
 
@@ -486,7 +527,7 @@ final class PianoRoll extends Widget {
 		if (playhead >= 0) {
 			final at = atTick(playhead);
 			if (at >= left && at < x + width) {
-				paint.rect(at, top, metrics.whole(2), height - ruler(), theme.warn, 0.9);
+				paint.rect(at, top, metrics.whole(2), grid(), theme.warn, 0.9);
 			}
 		}
 
@@ -494,6 +535,119 @@ final class PianoRoll extends Widget {
 
 		keys(paint, theme, metrics, top);
 		heading(paint, theme, metrics, pattern.length);
+		strip(paint, theme, metrics, pattern);
+	}
+
+	function strip(paint:Paint, theme:Theme, metrics:Metrics, pattern:Pattern):Void {
+		final tall = lanes();
+		if (tall <= 0) return;
+
+		final top = y + height - tall;
+		final left = x + gutter();
+		final font = metrics.small == null ? metrics.body : metrics.small;
+
+		paint.rect(x, top, width, tall, theme.panel);
+		paint.rect(x, top, width, metrics.whole(1), theme.frame);
+
+		paint.reface(font);
+		paint.text(translate(laneName()), x + metrics.gap, top + metrics.gap + font.ascent,
+			theme.dim, 0.7);
+
+		paint.pushClip(left, top, width - gutter(), tall);
+
+		final floor = y + height - metrics.gap;
+		final room = tall - metrics.gap * 2 - font.height;
+		final held = pattern.lane(session.part);
+		final stalk = metrics.whole(3);
+
+		paint.rect(left, floor, width - gutter(), metrics.whole(1), theme.frame);
+
+		for (note in held.notes) {
+			final at = atTick(note.at);
+			if (at < left - stalk || at > x + width) continue;
+
+			final part = share(note);
+			final reach = room * part;
+			final colour = note == chosen ? theme.ink : theme.part(session.part.index());
+
+			paint.rect(at, floor - reach, stalk, reach, colour, note == chosen ? 1 : 0.8);
+		}
+
+		paint.popClip();
+	}
+
+	function share(note:Note):Float {
+		return switch (lane) {
+			case PAN: 0.5;
+			case AUTOMATION: 0;
+			case _: note.velocity / 127.0;
+		}
+	}
+
+	function laneName():String {
+		return switch (lane) {
+			case PAN: Locale.LANE_PAN;
+			case AUTOMATION: Locale.LANE_AUTOMATION;
+			case _: Locale.LANE_VELOCITY;
+		}
+	}
+
+	public inline function onStrip(py:Float):Bool {
+		return lanes() > 0 && py >= y + height - lanes();
+	}
+
+	function stalkAt(px:Float):Null<Note> {
+		final pattern = session.current();
+		if (pattern == null) return null;
+
+		final root = root();
+		final reach = root == null ? 4.0 : root.metrics.whole(4);
+		var found:Null<Note> = null;
+		var nearest = reach;
+
+		for (note in pattern.lane(session.part).notes) {
+			final away = Math.abs(atTick(note.at) - px);
+			if (away > nearest) continue;
+
+			nearest = away;
+			found = note;
+		}
+
+		return found;
+	}
+
+	function leaned(py:Float):Void {
+		if (stalking == null || lane != VELOCITY) return;
+
+		final root = root();
+		final metrics = root == null ? null : root.metrics;
+		final gap = metrics == null ? 6.0 : metrics.gap;
+		final font = metrics == null ? null : (metrics.small == null ? metrics.body
+			: metrics.small);
+		final head = font == null ? 11.0 : font.height;
+
+		final floor = y + height - gap;
+		final room = lanes() - gap * 2 - head;
+		if (room <= 0) return;
+
+		var part = (floor - py) / room;
+		if (part < 0) part = 0;
+		if (part > 1) part = 1;
+
+		final want = Math.round(part * 127);
+		if (want == stalking.velocity) return;
+
+		stalking.velocity = want < 1 ? 1 : want;
+		chosen = stalking;
+		session.changed();
+		invalidate();
+	}
+
+	public function showsLane(which:Int):Void {
+		if (which < 0 || which >= LANES || which == lane) return;
+
+		lane = which;
+		invalidate();
 	}
 
 	function rows(paint:Paint, theme:Theme, left:Float, top:Float):Void {
@@ -541,7 +695,7 @@ final class PianoRoll extends Widget {
 
 			if (at >= left) {
 				final major = tick % bar == 0;
-				paint.rect(at, top, hair, height - ruler(), theme.frame, major ? 0.9 : 0.35);
+				paint.rect(at, top, hair, grid(), theme.frame, major ? 0.9 : 0.35);
 			}
 
 			tick += beat;
@@ -614,7 +768,7 @@ final class PianoRoll extends Widget {
 	function keys(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
 		final wide = gutter();
 
-		paint.rect(x, top, wide, height - ruler(), theme.panel);
+		paint.rect(x, top, wide, grid(), theme.panel);
 		paint.reface(metrics.small == null ? metrics.body : metrics.small);
 
 		final font = metrics.small == null ? metrics.body : metrics.small;
@@ -638,7 +792,7 @@ final class PianoRoll extends Widget {
 			pitch--;
 		}
 
-		paint.rect(x + wide - metrics.whole(1), top, metrics.whole(1), height - ruler(),
+		paint.rect(x + wide - metrics.whole(1), top, metrics.whole(1), grid(),
 			theme.frame);
 	}
 

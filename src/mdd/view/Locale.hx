@@ -29,6 +29,12 @@ class Locale {
 
 	public static inline final FILE_NO_UPDATE = "file.noUpdate";
 
+	public static inline final PANEL_FROM_IMPORT = "panel.fromImport";
+
+	public static inline final LANE_VELOCITY = "lane.velocity";
+	public static inline final LANE_PAN = "lane.pan";
+	public static inline final LANE_AUTOMATION = "lane.automation";
+
 	public static inline final REGISTERS_NOTHING = "registers.nothing";
 	public static inline final REGISTERS_FOLLOWING = "registers.following";
 	public static inline final REGISTERS_HELD = "registers.held";
@@ -175,6 +181,7 @@ class Locale {
 	public static inline final TRANSPORT_LENGTH = "transport.length";
 	public static inline final TRANSPORT_VIDEO = "transport.video";
 	public static inline final TRANSPORT_SNAP = "transport.snap";
+	public static inline final TRANSPORT_BARS = "transport.bars";
 
 	public static inline final PANEL_RACK = "panel.rack";
 	public static inline final PANEL_SAMPLES = "panel.samples";
@@ -213,6 +220,8 @@ class Locale {
 		PATTERN_ADD, PATTERN_DUPLICATE, PATTERN_RENAME, PATTERN_CLEAR,
 		CHANNELS_UNMUTE, CHANNELS_UNSOLO, CHANNELS_MUTE_REST, CHANNELS_CLEAR,
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
+		PANEL_FROM_IMPORT,
+		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
 		REGISTERS_LEVEL, REGISTERS_TONE,
 		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI,
@@ -245,6 +254,7 @@ class Locale {
 		TRANSPORT_RECORD, TRANSPORT_ARMED, TRANSPORT_DISARMED,
 		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
 		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,
+		TRANSPORT_BARS,
 		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_BANK, PANEL_SCOPE, PANEL_PATCHES,
 		PANEL_NO_PATCHES, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
 		PANEL_WARNING, PANEL_WARNINGS, PANEL_BYTES,
