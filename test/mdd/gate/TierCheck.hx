@@ -315,12 +315,13 @@ class TierCheck {
 
 	static function started(made:Transcription):Array<Int> {
 		final out:Array<Int> = [];
-		final pattern = made.song.patterns[0];
 		final tempo = made.song.tempo;
 
 		for (index in 0...6) {
-			for (note in pattern.lanes[index].notes) {
-				out.push((tempo.samplesAt(note.at) << 4) | index);
+			for (pattern in made.song.patterns) {
+				for (note in pattern.lanes[index].notes) {
+					out.push((tempo.samplesAt(note.at) << 4) | index);
+				}
 			}
 		}
 

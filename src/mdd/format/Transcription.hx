@@ -110,6 +110,7 @@ final class Transcription {
 		}
 
 		close(last);
+		parted();
 		session();
 		for (index in 0...Part.COUNT) song.rack[index] = -1;
 		settle();
@@ -244,6 +245,33 @@ final class Transcription {
 			if (until <= from) until = from + 1;
 
 			placed(6 + channel, from, until, psgNote[channel], squareInstrument(channel));
+		}
+	}
+
+	function parted():Void {
+		final source = pattern;
+		final length = source.length;
+
+		var used = 0;
+		for (index in 0...Part.COUNT) if (source.lane(index).notes.length > 0) used++;
+
+		if (used < 2) return;
+
+		song.patterns.remove(source);
+		while (song.tracks.length > 0) song.tracks.remove(song.tracks[0]);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final lane = source.lane(part);
+			if (lane.notes.length == 0) continue;
+
+			final made = song.add(new Pattern(part.name(), length,
+				mdd.ui.Theme.PARTS[index]));
+
+			for (note in lane.notes) made.lane(part).notes.push(note);
+
+			final track = song.track(new Track(part.name()));
+			track.add(new Clip(song.patterns.length - 1, 0, length));
 		}
 	}
 

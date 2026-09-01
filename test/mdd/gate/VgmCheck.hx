@@ -369,6 +369,37 @@ class VgmCheck {
 			}
 		}
 
+		var patterns = 0;
+		var tracks = 0;
+		var mixed = 0;
+
+		for (name in files) {
+			if (name.indexOf("Green Hill") < 0) continue;
+
+			final stream = new mdd.play.Stream(1 << 22);
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+				stream);
+
+			final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+			patterns = song.patterns.length;
+			tracks = song.tracks.length;
+
+			for (held in song.patterns) {
+				var parts = 0;
+				for (index in 0...mdd.song.Part.COUNT) {
+					if (held.lane(index).notes.length > 0) parts++;
+				}
+
+				if (parts > 1) mixed++;
+			}
+		}
+
+		says("an import gives every part its own pattern", patterns > 1 && mixed == 0
+			&& tracks == patterns,
+			patterns + " patterns across " + tracks + " tracks, " + mixed
+			+ " of them holding more than one part");
+
 		says("a game vgm reads back as playable", troubled == 0,
 			read + " files transcribed, " + troubled + " of them raising a warning"
 			+ (most == 0 ? "" : ": " + said.toString()));
@@ -614,7 +645,12 @@ class VgmCheck {
 
 			var lanes = 0;
 			for (index in 0...Part.COUNT) {
-				if (made.song.patterns[0].lanes[index].notes.length > 0) lanes++;
+				for (held in made.song.patterns) {
+					if (held.lanes[index].notes.length == 0) continue;
+
+					lanes++;
+					break;
+				}
 			}
 
 			if (lanes < 2) laneless++;
