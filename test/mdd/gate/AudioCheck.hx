@@ -446,11 +446,19 @@ class AudioCheck {
 		Audio.close(handle);
 
 		final mean = looks == 0 ? 0.0 : total / looks;
-		final ceiling = period + Render.BLOCK;
+		final ceiling = render.cushion + Render.BLOCK;
 
-		says("the ring adds", worst <= ceiling,
-			"mean " + round(mean * 1000 / rate, 2) + " ms, worst " + round(worst * 1000.0 / rate, 2)
-			+ " ms, of one period and one block");
+		says("the ring holds its cushion", worst <= ceiling
+			&& mean > render.cushion * 0.5,
+			"mean " + round(mean * 1000 / rate, 2) + " ms held against a cushion of "
+			+ round(render.cushion * 1000.0 / rate, 2) + " ms, worst "
+			+ round(worst * 1000.0 / rate, 2) + " ms");
+
+		says("and never runs it down", render.leastHeld > period && render.dropped == 0,
+			"the thinnest the ring ever got was "
+			+ round(render.leastHeld * 1000.0 / rate, 2) + " ms, against a driver period of "
+			+ round(period * 1000.0 / rate, 2) + " ms, and " + render.dropped
+			+ " frames were dropped for want of room");
 
 		says("no underruns", underruns == 0,
 			early + " in the first 250 ms, " + underruns + " across " + round(taken / rate, 1) + " s the device drained");

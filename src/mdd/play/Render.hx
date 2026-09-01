@@ -23,6 +23,9 @@ final class Render {
 		new haxe.ds.Vector<cpp.Float32>(mdd.song.Part.COUNT * TAPS);
 
 	public var tapped(default, null):Int = 0;
+	public var cushion(default, null):Int = 0;
+	public var dropped(default, null):Int = 0;
+	public var leastHeld(default, null):Int = 0;
 	var tapNext:Int = 0;
 
 	public final ym:Ym2612 = new Ym2612();
@@ -226,8 +229,12 @@ final class Render {
 
 		final buffer = Audio.buffer(device);
 		final least = buffer > 0 ? buffer : Audio.period(device) * 2;
-		final cushion = Std.int(rate * PRIMED);
-		final aim = cushion > least ? cushion : least;
+		final primed = Std.int(rate * PRIMED);
+		final aim = primed > least ? primed : least;
+
+		cushion = aim;
+		dropped = 0;
+		leastHeld = aim;
 
 		while (Audio.held(device) < aim) deliver();
 
@@ -261,16 +268,20 @@ final class Render {
 			serve(transport.stream, from, frames, transport.entering);
 		}
 
-		Audio.write(device, pointer(), frames);
+		final took = Audio.write(device, pointer(), frames);
+		if (took < frames) dropped += frames - took;
+
 		blocks++;
 	}
 
 	function feed():Void {
-		final aim = Audio.period(device);
+		final aim = cushion > 0 ? cushion : Audio.period(device) * 2;
 
 		while (alive) {
 			final held = Audio.held(device);
+
 			if (held > worstHeld) worstHeld = held;
+			if (held < leastHeld) leastHeld = held;
 
 			if (held >= aim) {
 				Sdl.sleep(0.0005);
