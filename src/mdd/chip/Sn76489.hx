@@ -132,6 +132,11 @@ final class Sn76489 {
 		return answer;
 	}
 
+	public inline function voice(channel:Int):Int {
+		if (channel < 0 || channel > 3) return 0;
+		return output[channel] > 0 ? volumes[attenuation[channel]] : 0;
+	}
+
 	public function level():Int {
 		var sum = 0;
 		for (channel in 0...4) if (output[channel] > 0) sum += volumes[attenuation[channel]];

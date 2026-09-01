@@ -153,6 +153,29 @@ final class Transcription {
 		}
 	}
 
+	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int):Void {
+		final lane = pattern.lane(part);
+		final many = lane.notes.length;
+
+		if (many > 0) {
+			final last = lane.notes[many - 1];
+
+			if (last.at + last.length > from) {
+				final want = from - last.at;
+
+				if (want < 1) {
+					lane.notes.remove(last);
+					notes--;
+				} else {
+					last.length = want;
+				}
+			}
+		}
+
+		lane.add(new Note(from, until - from, pitch, 100, instrument));
+		notes++;
+	}
+
 	function start(at:Int, channel:Int):Void {
 		startedAt[channel] = at;
 		startedOn[channel] = pitchOf(channel);
@@ -165,11 +188,7 @@ final class Transcription {
 		if (at <= startedAt[channel]) return;
 		if (until <= from) until = from + 1;
 
-		final part:Part = channel;
-		final note = new Note(from, until - from, startedOn[channel], 100, instrumentFor(channel));
-
-		pattern.lane(part).add(note);
-		notes++;
+		placed(channel, from, until, startedOn[channel], instrumentFor(channel));
 	}
 
 	function sampled(at:Int):Void {
@@ -181,8 +200,7 @@ final class Transcription {
 
 		if (until <= from) return;
 
-		pattern.lane(Part.Dac).add(new Note(from, until - from, 60, 100, sampleInstrument()));
-		notes++;
+		placed(Part.Dac, from, until, 60, sampleInstrument());
 	}
 
 	function square(at:Int, value:Int):Void {
@@ -225,10 +243,7 @@ final class Transcription {
 			if (at <= was) return;
 			if (until <= from) until = from + 1;
 
-			final part:Part = 6 + channel;
-			pattern.lane(part).add(new Note(from, until - from, psgNote[channel], 100,
-				squareInstrument(channel)));
-			notes++;
+			placed(6 + channel, from, until, psgNote[channel], squareInstrument(channel));
 		}
 	}
 

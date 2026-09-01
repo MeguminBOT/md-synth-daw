@@ -16,6 +16,15 @@ final class Render {
 	public static inline final SCALE = 1.0 / FULL_SCALE;
 	public static inline final PRIMED = 0.100;
 
+	public static inline final TAPS = 2048;
+	public static inline final TAP_EVERY = 4;
+
+	public final taps:haxe.ds.Vector<cpp.Float32> =
+		new haxe.ds.Vector<cpp.Float32>(mdd.song.Part.COUNT * TAPS);
+
+	public var tapped(default, null):Int = 0;
+	var tapNext:Int = 0;
+
 	public final ym:Ym2612 = new Ym2612();
 	public final psg:Sn76489 = new Sn76489();
 	public final queue:Queue;
@@ -150,6 +159,13 @@ final class Render {
 			wentLeft = left;
 			wentRight = right;
 
+			tapNext++;
+
+			if (tapNext >= TAP_EVERY) {
+				tapNext = 0;
+				tapping();
+			}
+
 			block[frame * 2] = clamped(heldLeft * SCALE);
 			block[frame * 2 + 1] = clamped(heldRight * SCALE);
 
@@ -176,6 +192,21 @@ final class Render {
 		else ym.write(stream.portAt(index), stream.valueAt(index));
 
 		writes++;
+	}
+
+	inline function tapping():Void {
+		final slot = tapped % TAPS;
+
+		for (index in 0...6) {
+			taps[index * TAPS + slot] = ym.channels[index].delivered / 300.0;
+		}
+
+		for (index in 0...4) {
+			taps[(6 + index) * TAPS + slot] = psg.voice(index) / 300.0;
+		}
+
+		taps[10 * TAPS + slot] = ym.dacOn ? ((ym.dac - 0x80) << 1) / 300.0 : 0;
+		tapped++;
 	}
 
 	static inline function clamped(value:Float):cpp.Float32 {

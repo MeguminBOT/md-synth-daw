@@ -82,6 +82,7 @@ class App {
 	var render:Null<Render> = null;
 
 	var seen:Int = 0;
+	var tookTaps:Int = 0;
 	var heard:Int = 0;
 	final sounding:mdd.play.Sounding = new mdd.play.Sounding();
 	var windowID:Int = 0;
@@ -1100,7 +1101,7 @@ class App {
 
 		if (!centre.scope.visible) return;
 
-		for (index in 0...6) centre.scope.feed(index, traced(index));
+		poured();
 
 		for (index in 0...mdd.song.Part.COUNT) {
 			centre.scope.sang(index, sounding.keyed[index] ? sounding.notes[index] : -1);
@@ -1109,8 +1110,24 @@ class App {
 		centre.scope.invalidate();
 	}
 
-	function traced(index:Int):Float {
-		return render.ym.channels[index].delivered / 3000.0;
+	function poured():Void {
+		final now = render.tapped;
+		var from = tookTaps;
+
+		if (now - from > Render.TAPS) from = now - Render.TAPS;
+		if (from < 0) from = 0;
+
+		while (from < now) {
+			final slot = from % Render.TAPS;
+
+			for (index in 0...mdd.song.Part.COUNT) {
+				centre.scope.feed(index, render.taps[index * Render.TAPS + slot]);
+			}
+
+			from++;
+		}
+
+		tookTaps = now;
 	}
 
 	function loudness(index:Int):Float {

@@ -20,7 +20,8 @@ class VgmCheck {
 
 		Sys.println("  vgm");
 
-		final where = args.length > 0 ? args[0] : Gate.root + "/vendor/vgm";
+		final where = args.length > 0 && !StringTools.startsWith(args[0], "--")
+			? args[0] : Gate.root + "/vendor/vgm";
 
 		if (!FileSystem.exists(where)) {
 			Sys.println("    no corpus at " + where);
@@ -41,6 +42,10 @@ class VgmCheck {
 		corpus(where, files);
 		sounds(where, files);
 		rated(where, files);
+		sound(where, files);
+
+		final into = args.indexOf("--wav");
+		if (into >= 0 && into + 1 < args.length) written(where, files, args[into + 1]);
 		transported(where, files);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -223,6 +228,79 @@ class VgmCheck {
 			"four seconds at 44100 and 48000 cross zero " + zeroes[0] + " and " + zeroes[1]
 			+ " times, " + round(worst * 100, 2) + " per cent apart, peaking at "
 			+ round(peaks[0], 3) + " and " + round(peaks[1], 3));
+	}
+
+	static function written(where:String, files:Array<String>, into:String):Void {
+		var name = "";
+
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+		final seconds = 12;
+		final frames = 44100 * seconds;
+		final sound = new haxe.ds.Vector<cpp.Float32>(frames * 2);
+
+		var done = 0;
+
+		while (done < frames) {
+			final from = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
+			final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
+			if (many <= 0) break;
+
+			for (i in 0...many) {
+				if ((done + i) * 2 + 1 >= sound.length) break;
+				sound[(done + i) * 2] = render.block[i * 2];
+				sound[(done + i) * 2 + 1] = render.block[i * 2 + 1];
+			}
+
+			done += many;
+		}
+
+		sys.io.File.saveBytes(into, mdd.format.Wav.write(sound, frames, 2, 44100));
+		Sys.println("    wrote " + seconds + " s of " + name + " to " + into);
+	}
+
+	static function sound(where:String, files:Array<String>):Void {
+		final budget = new mdd.check.Budget(mdd.check.Profile.megaDrive());
+		final said = new StringBuf();
+
+		var read = 0;
+		var troubled = 0;
+		var worst = "";
+		var most = 0;
+
+		for (name in files) {
+			if (read >= 20) break;
+
+			final stream = new mdd.play.Stream(1 << 22);
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+				stream);
+
+			final made = mdd.format.Transcription.of(stream, vgm.rate, name);
+
+			budget.overSong(made.song);
+
+			read++;
+			if (budget.found.length == 0) continue;
+
+			troubled++;
+
+			said.add(name + " " + budget.found.length + "   ");
+
+			if (budget.found.length > most) {
+				most = budget.found.length;
+				worst = name;
+			}
+		}
+
+		says("a game vgm reads back as playable", troubled == 0,
+			read + " files transcribed, " + troubled + " of them raising a warning"
+			+ (most == 0 ? "" : ": " + said.toString()));
 	}
 
 	static function compare(a:String, b:String):Int {
