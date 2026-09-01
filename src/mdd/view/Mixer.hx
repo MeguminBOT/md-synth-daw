@@ -2,6 +2,7 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.song.Part;
+import mdd.song.Song;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
@@ -18,6 +19,7 @@ final class Mixer extends Widget {
 	public final levels:Vector<Float> = new Vector<Float>(Part.COUNT);
 
 	var hoverAt:Int = -1;
+	var sliding:Int = -1;
 
 	public function new(session:Session) {
 		super();
@@ -56,10 +58,23 @@ final class Mixer extends Widget {
 				}
 
 				session.choose(part);
-				invalidate();
+
+				sliding = at;
+				leaned(at, event.y);
+				return true;
+
+			case Kind.PointerUp:
+				if (sliding < 0) return false;
+
+				sliding = -1;
 				return true;
 
 			case Kind.PointerMove:
+				if (sliding >= 0) {
+					leaned(sliding, event.y);
+					return true;
+				}
+
 				final at = stripAt(event.x);
 				if (at == hoverAt) return false;
 
@@ -71,6 +86,31 @@ final class Mixer extends Widget {
 		}
 
 		return false;
+	}
+
+	public function throwAt(py:Float):Float {
+		final root = root();
+		final metrics = root == null ? null : root.metrics;
+		final gap = metrics == null ? 6.0 : metrics.gap;
+		final row = metrics == null ? 30.0 : metrics.row;
+
+		final top = y + gap;
+		final tall = height - gap * 2 - row;
+		if (tall <= 0) return 1;
+
+		final part = 1 - (py - top) / tall;
+		return part < 0 ? 0 : (part > 1 ? 1 : part);
+	}
+
+	function leaned(at:Int, py:Float):Void {
+		final want = Math.round(throwAt(py) * Song.LOUDEST);
+		if (session.song.volume[at] == want) return;
+
+		session.song.volume[at] = want;
+		final part:Part = at;
+		session.say(part.name() + " " + Math.round(want * 100 / Song.LOUDEST) + "%");
+		session.changed();
+		invalidate();
 	}
 
 	override function hovered(on:Bool):Void {
@@ -108,6 +148,13 @@ final class Mixer extends Widget {
 			final middle = left + wide * 0.5;
 
 			paint.roundedRect(middle - track * 0.5, top, track, tall, track * 0.5, theme.sink);
+
+			final want = session.song.volume[index] / Song.LOUDEST;
+			final knob = metrics.whole(4);
+			final at = top + tall * (1 - want);
+
+			paint.roundedRect(middle - track, at - knob * 0.5, track * 2, knob,
+				metrics.radiusSmall, quiet ? theme.dim : theme.ink, index == sliding ? 1 : 0.85);
 
 			final level = levels[index];
 			final high = tall * (level > 1 ? 1 : level);

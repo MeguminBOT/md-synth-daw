@@ -39,6 +39,8 @@ class VgmCheck {
 		}
 
 		corpus(where, files);
+		sounds(where, files);
+		transported(where, files);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -49,6 +51,93 @@ class VgmCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	static function sounds(where:String, files:Array<String>):Void {
+		var loudest = 0.0;
+		var raw = 0;
+		var played = 0;
+		var quiet = 0;
+
+		for (name in files) {
+			if (played >= 6) break;
+
+			final stream = new mdd.play.Stream(1 << 22);
+			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+
+			final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+			final span = 44100 * 4;
+
+			var done = 0;
+			var most = 0.0;
+
+			while (done < span) {
+				final from = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
+				final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
+				if (many <= 0) break;
+
+				for (i in 0...many * 2) {
+					final value = render.block[i] < 0 ? -render.block[i] : render.block[i];
+					if (value > most) most = value;
+				}
+
+				final peak = render.ym.left < 0 ? -render.ym.left : render.ym.left;
+				if (peak > raw) raw = peak;
+
+				done += many;
+			}
+
+			played++;
+			if (most < 0.05) quiet++;
+			if (most > loudest) loudest = most;
+		}
+
+		says("an imported vgm sounds", played > 0 && quiet == 0,
+			played + " files rendered for four seconds, loudest sample " + round(loudest, 4)
+			+ " with the chip reaching " + raw + ", " + quiet + " under a twentieth of full"
+			+ " scale");
+	}
+
+	static function transported(where:String, files:Array<String>):Void {
+		if (files.length == 0) return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + files[0]),
+			stream);
+
+		final made = mdd.format.Transcription.of(stream, vgm.rate, files[0]);
+		final song = made.song;
+
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+
+		render.transport = transport;
+		transport.play();
+
+		var done = 0;
+		var most = 0.0;
+		var writes = 0;
+
+		while (done < 44100 * 4) {
+			final from = transport.advance(mdd.play.Render.BLOCK, 44100);
+			final many = render.serve(transport.stream, from, mdd.play.Render.BLOCK,
+				transport.entering);
+
+			if (many <= 0) break;
+
+			for (i in 0...many * 2) {
+				final value = render.block[i] < 0 ? -render.block[i] : render.block[i];
+				if (value > most) most = value;
+			}
+
+			if (transport.stream.count > writes) writes = transport.stream.count;
+			done += many;
+		}
+
+		says("and it plays through the transport", most > 0.02 && writes > 0,
+			"four seconds of the transcribed " + files[0] + " driven the way the device asks"
+			+ " for it, " + writes + " register writes reaching the chips and the loudest"
+			+ " sample " + round(most, 4));
 	}
 
 	static function compare(a:String, b:String):Int {

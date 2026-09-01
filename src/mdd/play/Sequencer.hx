@@ -124,7 +124,7 @@ final class Sequencer {
 			final onSample = tempo.samplesAt(start);
 			final offSample = tempo.samplesAt(ends);
 			final pitch = voices.pitchAt(slice) + transpose;
-			final velocity = voices.velocityAt(slice);
+			final velocity = louder(part, voices.velocityAt(slice));
 			final named = voices.instrumentAt(slice);
 
 			if (onSample >= fromSample && onSample < toSample) {
@@ -161,7 +161,8 @@ final class Sequencer {
 			final at = onSample + Math.round(index * step);
 			if (at >= toSample || at >= offSample) break;
 
-			if (at >= fromSample) push(at, Part.Dac, DATA, sample.bytes[index], DAC_BYTE);
+			if (at >= fromSample) push(at, Part.Dac, DATA, quieter(sample.bytes[index]),
+				DAC_BYTE);
 			index++;
 		}
 	}
@@ -193,6 +194,22 @@ final class Sequencer {
 
 			index++;
 		}
+	}
+
+	inline function quieter(value:Int):Int {
+		final held = song.volume[Part.Dac.index()];
+		if (held >= Song.LOUDEST) return value;
+
+		final want = 0x80 + Std.int((value - 0x80) * held / Song.LOUDEST);
+		return want < 0 ? 0 : (want > 255 ? 255 : want);
+	}
+
+	inline function louder(part:Part, velocity:Int):Int {
+		final held = song.volume[part.index()];
+		if (held >= Song.LOUDEST) return velocity;
+
+		final want = Std.int(velocity * held / Song.LOUDEST);
+		return want < 0 ? 0 : (want > 127 ? 127 : want);
 	}
 
 	function instrumentOf(named:Int, part:Part):Null<Instrument> {

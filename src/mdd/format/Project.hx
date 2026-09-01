@@ -79,6 +79,11 @@ class Project {
 		for (i in 0...Part.COUNT) out.flag(song.soloed[i]);
 		out.ends();
 
+		out.key("volume");
+		out.list();
+		for (i in 0...Part.COUNT) out.whole(song.volume[i]);
+		out.ends();
+
 		out.key("instruments");
 		out.list();
 		for (instrument in song.instruments) wroteInstrument(out, instrument);
@@ -330,11 +335,13 @@ class Project {
 		final rack = node.get("rack");
 		final muted = node.get("muted");
 		final soloed = node.get("soloed");
+		final volume = node.get("volume");
 
 		for (i in 0...Part.COUNT) {
 			song.rack[i] = rack.at(i).whole(-1);
 			song.muted[i] = muted.at(i).truth(false);
 			song.soloed[i] = soloed.at(i).truth(false);
+			song.volume[i] = volume.at(i).whole(Song.LOUDEST);
 		}
 
 		final instruments = node.get("instruments");

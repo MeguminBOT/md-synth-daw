@@ -12,7 +12,8 @@ import mdd.song.Tempo;
 final class Render {
 	public static inline final BLOCK = 128;
 	public static inline final COUPLING = 0.9975;
-	public static inline final SCALE = 1.0 / 32768.0;
+	public static inline final FULL_SCALE = 2560.0;
+	public static inline final SCALE = 1.0 / FULL_SCALE;
 	public static inline final PRIMED = 0.100;
 
 	public final ym:Ym2612 = new Ym2612();

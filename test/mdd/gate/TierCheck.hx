@@ -37,6 +37,7 @@ class TierCheck {
 		sampling();
 		filed();
 		keeping();
+		levelled();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -53,6 +54,54 @@ class TierCheck {
 		ran++;
 		if (!ok) failed++;
 		Sys.println("    " + StringTools.rpad(name, " ", 40) + said + (ok ? "" : "   FAILED"));
+	}
+
+	static function levelled():Void {
+		final song = mdd.gate.StreamCheck.written();
+		final span = song.tempo.samplesAt(song.ends());
+
+		final full = new Stream(262144);
+		new Sequencer(song).emit(full, 0, span);
+
+		for (index in 0...mdd.song.Part.COUNT) song.volume[index] = 40;
+
+		final quiet = new Stream(262144);
+		new Sequencer(song).emit(quiet, 0, span);
+
+		says("a channel fader is heard", loudness(full) > loudness(quiet) * 1.5,
+			"the same song renders at " + shown(loudness(full), 4) + " at full level and "
+			+ shown(loudness(quiet), 4) + " with every fader at a third");
+
+		for (index in 0...mdd.song.Part.COUNT) song.volume[index] = 0;
+
+		final off = new Stream(262144);
+		new Sequencer(song).emit(off, 0, span);
+
+		says("and a fader down is all but silence", loudness(off) < loudness(full) * 0.2,
+			"every fader at nothing renders at " + shown(loudness(off), 5)
+			+ ", which is the switching transients the register writes leave behind and"
+			+ " nothing that was keyed");
+	}
+
+	static function loudness(stream:Stream):Float {
+		final render = new Render(RATE, Render.BLOCK);
+		var done = 0;
+		var most = 0.0;
+
+		while (done < RATE * 3) {
+			final from = Std.int(done * (Tempo.TICKS / RATE));
+			final many = render.serve(stream, from, Render.BLOCK, 0);
+			if (many <= 0) break;
+
+			for (i in 0...many * 2) {
+				final value = render.block[i] < 0 ? -render.block[i] : render.block[i];
+				if (value > most) most = value;
+			}
+
+			done += many;
+		}
+
+		return most;
 	}
 
 	static function shown(value:Float, places:Int):Float {
