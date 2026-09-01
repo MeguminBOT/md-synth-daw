@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+
+	<!-- Everything the build reads. There is no .hxml: ./mdd builds from this file.
+	     Conditions are if="..." and unless="...", and take windows, linux, mac, debug or release. -->
+
+	<meta title="mdd" version="0.1.0"
+		description="A hardware-aware DAW for the Sega Mega Drive" />
+
+	<window width="1440" height="900" least-width="960" least-height="600"
+		vsync="true" resizable="true" high-dpi="true" />
+
+	<source path="src" />
+	<generated path="export/haxe" />
+	<output path="export" />
+
+	<target id="mdd" main="mdd.App" />
+	<target id="gate" main="mdd.check.Gate" />
+
+	<!-- Haxe does not define these for the cpp target, so the build does. Every #if windows,
+	     #if linux and #if mac in the source depends on them being here. -->
+
+	<define name="windows" if="windows" />
+	<define name="linux" if="linux" />
+	<define name="mac" if="mac" />
+	<define name="desktop" />
+
+	<define name="analyzer-optimize" />
+	<define name="HXCPP_OPTIMIZE_LINK" />
+	<define name="HXCPP_GC_GENERATIONAL" />
+	<define name="HXCPP_M64" />
+	<define name="HXCPP_CHECK_POINTER" if="debug" />
+	<define name="HXCPP_STACK_LINE" if="debug" />
+
+	<!-- Fetched by ./mdd setup into vendor/, which is never tracked. -->
+
+	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" size="12 MB"
+		about="the window and its events, called directly. A system package off Windows" />
+	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
+		about="the audio device, called directly" />
+	<vendor name="stb" present="stb/stb_truetype.h" size="1 MB"
+		about="the glyph rasteriser the font atlas is baked with" />
+	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="2 MB"
+		about="Go and Go Mono, the faces the atlas is baked from" />
+
+	<path name="SDL3PATH" value="vendor/SDL3" />
+	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
+	<path name="STBPATH" value="vendor/stb" />
+	<path name="FONTPATH" value="vendor/fonts" />
+	<path name="NATIVEPATH" value="native" />
+
+	<native path="native">
+		<file name="window.cpp" />
+		<file name="events.cpp" />
+		<file name="draw.cpp" />
+		<file name="text.cpp" />
+	</native>
+
+	<include value="${SDL3PATH}/include" />
+	<include value="${MINIAUDIOPATH}" />
+	<include value="${STBPATH}" />
+	<include value="${NATIVEPATH}" />
+
+	<!-- What each platform has to be told to link against. -->
+
+	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" />
+	<link value="-lSDL3" unless="windows" />
+
+	<link value="-lm" if="linux" />
+	<link value="-ldl" if="linux" />
+	<link value="-lpthread" if="linux" />
+
+	<link value="-framework CoreFoundation" if="mac" />
+	<link value="-framework CoreAudio" if="mac" />
+	<link value="-framework AudioToolbox" if="mac" />
+
+	<!-- Copied beside the executable so it runs from export/bin with nothing installed. -->
+
+	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
+
+</project>

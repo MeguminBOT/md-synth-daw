@@ -32,7 +32,7 @@ class PaintCheck {
 			return 1;
 		}
 
-		window = Sdl.createWindow("mdd gate paint", SIDE, SIDE);
+		window = Sdl.createWindow("mdd gate paint", SIDE, SIDE, 0, 0);
 		if (window == null) {
 			Sys.println("    no window: " + Sdl.error());
 			Sdl.quit();

@@ -20,7 +20,7 @@ class WindowCheck {
 			return 1;
 		}
 
-		final window = Sdl.createWindow("mdd gate window", 640, 400);
+		final window = Sdl.createWindow("mdd gate window", 640, 400, 0, 0);
 		if (window == null) {
 			Sys.println("    no window: " + Sdl.error());
 			Sdl.quit();

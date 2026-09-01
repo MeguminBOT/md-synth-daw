@@ -11,7 +11,8 @@ int mdd_sdl_init(void);
 void mdd_sdl_quit(void);
 const char *mdd_sdl_error(void);
 
-SDL_Window *mdd_window_create(const char *title, int width, int height);
+SDL_Window *mdd_window_create(const char *title, int width, int height, int resizable,
+	int highDpi);
 void mdd_window_destroy(SDL_Window *window);
 unsigned int mdd_window_id(SDL_Window *window);
 void mdd_window_set_title(SDL_Window *window, const char *title);
@@ -24,6 +25,7 @@ void mdd_window_set_minimum_size(SDL_Window *window, int width, int height);
 void mdd_window_set_fullscreen(SDL_Window *window, int on);
 void mdd_window_show(SDL_Window *window);
 float mdd_window_display_scale(SDL_Window *window);
+float mdd_display_pixel_density(SDL_Window *window);
 float mdd_display_refresh(SDL_Window *window);
 
 void mdd_text_input_start(SDL_Window *window);
@@ -36,6 +38,8 @@ int mdd_renderer_vsync(SDL_Renderer *renderer);
 
 void mdd_render_clear(SDL_Renderer *renderer, float r, float g, float b, float a);
 void mdd_render_present(SDL_Renderer *renderer);
+int mdd_render_output_width(SDL_Renderer *renderer);
+int mdd_render_output_height(SDL_Renderer *renderer);
 void mdd_set_clip(SDL_Renderer *renderer, int x, int y, int width, int height);
 void mdd_clear_clip(SDL_Renderer *renderer);
 

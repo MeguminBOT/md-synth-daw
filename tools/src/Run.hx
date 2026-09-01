@@ -1,79 +1,79 @@
 import sys.FileSystem;
 import sys.io.File;
 
-typedef Source = {
-	final name:String;
-	final present:String;
-	final size:String;
-	final about:String;
-}
-
 class Run {
 	static inline final SDL_VERSION = "3.4.14";
 	static inline final MINIAUDIO_COMMIT = "9634bedb5b5a2ca38c1ee7108a9358a4e233f14d";
 
-	static final SOURCES:Array<Source> = [
-		{
-			name: "SDL3", present: "SDL3/include/SDL3/SDL.h", size: "12 MB",
-			about: "the window and its events, called directly. A system package off Windows"
-		},
-		{
-			name: "miniaudio", present: "miniaudio/miniaudio.h", size: "1 MB",
-			about: "the audio device, called directly by native/audio.cpp"
-		},
-		{
-			name: "stb", present: "stb/stb_truetype.h", size: "1 MB",
-			about: "the glyph rasteriser the font atlas is baked with"
-		},
-		{
-			name: "fonts", present: "fonts/Go-Regular.ttf", size: "2 MB",
-			about: "Go and Go Mono, the faces the atlas is baked from"
-		}
-	];
-
 	static final FACES:Array<String> = ["Go-Regular", "Go-Medium", "Go-Mono", "Go-Mono-Bold"];
-
-	static final TARGETS:Array<String> = ["mdd", "gate"];
 
 	public static function main():Void {
 		final args = Sys.args();
-		final root = rootOf();
+		final root = native(Sys.getCwd());
+		final debug = args.indexOf("-debug") >= 0 || args.indexOf("--debug") >= 0;
+		final project = read(root, debug);
 
 		if (args.length == 0) {
-			usage();
+			usage(project);
 			return;
 		}
 
 		switch (args[0]) {
-			case "setup": setup(root);
-			case "check": check(root);
-			case "build": build(root, args.slice(1));
-			case "run": start(root, args.slice(1));
-			case "gate": gate(root, args.slice(1));
-			case "clean": clean(root);
-			case "help", "--help", "-h": usage();
+			case "setup": setup(root, project);
+			case "check": check(root, project);
+			case "build": build(root, project, args.slice(1), debug);
+			case "run": start(root, project, args.slice(1), debug);
+			case "gate": gate(root, project, args.slice(1));
+			case "clean": clean(root, project);
+			case "help", "--help", "-h": usage(project);
 			case unknown:
 				Sys.println("mdd: no command called '" + unknown + "'");
-				usage();
+				usage(project);
 				Sys.exit(1);
 		}
 	}
 
-	static function usage():Void {
-		Sys.println("");
-		Sys.println("  mdd setup             fetch SDL3, miniaudio, stb and the fonts into vendor/");
-		Sys.println("  mdd check             what is present and what is missing");
-		Sys.println("  mdd build [target]    build a target, default mdd. -debug for a debug build");
-		Sys.println("  mdd run [args]        build the application and start it");
-		Sys.println("  mdd gate [name]       every check, in order, or one by name");
-		Sys.println("  mdd clean             delete export/");
-		Sys.println("");
-		Sys.println("  targets: " + TARGETS.join(", "));
-		Sys.println("");
+	static function read(root:String, debug:Bool):Project {
+		final path = root + "/project.xml";
+
+		if (!FileSystem.exists(path)) {
+			Sys.println("mdd: no project.xml beside the command");
+			Sys.exit(1);
+		}
+
+		try {
+			return new Project(path, system(), debug);
+		} catch (e:Dynamic) {
+			Sys.println("mdd: project.xml would not read: " + e);
+			Sys.exit(1);
+			return null;
+		}
 	}
 
-	static function rootOf():String {
-		return native(Sys.getCwd());
+	static function system():String {
+		return switch (Sys.systemName()) {
+			case "Windows": "windows";
+			case "Mac": "mac";
+			case _: "linux";
+		}
+	}
+
+	static inline function windows():Bool {
+		return system() == "windows";
+	}
+
+	static function usage(project:Project):Void {
+		Sys.println("");
+		Sys.println("  mdd setup             fetch what vendor/ is missing");
+		Sys.println("  mdd check             what is present and what is missing");
+		Sys.println("  mdd build [target]    build a target. -debug for a debug build");
+		Sys.println("  mdd run [args]        build the application and start it");
+		Sys.println("  mdd gate [name]       every check, in order, or one by name");
+		Sys.println("  mdd clean             delete the output directory");
+		Sys.println("");
+		Sys.println("  targets: " + project.names().join(", "));
+		Sys.println("  every option lives in project.xml, and there is no .hxml");
+		Sys.println("");
 	}
 
 	static function native(path:String):String {
@@ -85,17 +85,13 @@ class Run {
 		return StringTools.rpad(text, " ", 14);
 	}
 
-	static function windows():Bool {
-		return Sys.systemName() == "Windows";
-	}
-
-	static function setup(root:String):Void {
+	static function setup(root:String, project:Project):Void {
 		final vendor = root + "/vendor";
-		if (!FileSystem.exists(vendor)) FileSystem.createDirectory(vendor);
+		tree(vendor);
 
 		Sys.println("");
 
-		for (source in SOURCES) {
+		for (source in project.vendors) {
 			if (FileSystem.exists(vendor + "/" + source.present)) {
 				Sys.println("  " + pad(source.name) + "present");
 				continue;
@@ -114,23 +110,25 @@ class Run {
 			if (!done || !FileSystem.exists(vendor + "/" + source.present)) {
 				Sys.println("  " + pad("") + "failed. " + source.about);
 				if (source.name == "SDL3" && !windows()) {
-					Sys.println("  " + pad("") + "off Windows, install SDL3 from the system packages");
+					Sys.println("  " + pad("") + "install SDL3 from the system packages");
 				}
 			}
 		}
 
 		Sys.println("");
-		check(root);
+		check(root, project);
 	}
 
-	static function check(root:String):Void {
+	static function check(root:String, project:Project):Void {
 		final vendor = root + "/vendor";
 		var missing = 0;
 
 		Sys.println("");
+		Sys.println("  " + project.title + " " + project.version + ", building for " + system());
+		Sys.println("");
 		Sys.println("  vendor");
 
-		for (source in SOURCES) {
+		for (source in project.vendors) {
 			final here = FileSystem.exists(vendor + "/" + source.present);
 			if (!here) missing++;
 			Sys.println("    " + (here ? "[x] " : "[ ] ") + pad(source.name) + source.about);
@@ -138,18 +136,17 @@ class Run {
 
 		Sys.println("");
 		Sys.println("  toolchain");
-
-		final haxe = tool("haxe", ["--version"]);
-		final curl = tool("curl", ["--version"]);
-		Sys.println("    " + (haxe ? "[x] " : "[ ] ") + pad("haxe") + "4.3 or newer");
-		Sys.println("    " + (curl ? "[x] " : "[ ] ") + pad("curl") + "what setup fetches with");
+		Sys.println("    " + (tool("haxe", ["--version"]) ? "[x] " : "[ ] ") + pad("haxe")
+			+ "4.3 or newer");
+		Sys.println("    " + (tool("curl", ["--version"]) ? "[x] " : "[ ] ") + pad("curl")
+			+ "what setup fetches with");
 
 		Sys.println("");
 		Sys.println("  built");
 
-		for (target in TARGETS) {
-			final exe = exeOf(root, target);
-			Sys.println("    " + (exe != "" ? "[x] " : "[ ] ") + pad(target)
+		for (target in project.targets) {
+			final exe = exeOf(root, project, target.id);
+			Sys.println("    " + (exe != "" ? "[x] " : "[ ] ") + pad(target.id)
 				+ (exe != "" ? exe.substr(root.length + 1) : "not built"));
 		}
 
@@ -169,51 +166,126 @@ class Run {
 		}
 	}
 
-	static function build(root:String, args:Array<String>):Void {
-		final extra = new Array<String>();
-		var target = "mdd";
-		var debug = false;
+	static function build(root:String, project:Project, args:Array<String>, debug:Bool):Void {
+		var target = project.targets[0].id;
+		for (arg in args) if (!StringTools.startsWith(arg, "-")) target = arg;
 
-		for (arg in args) {
-			if (arg == "-debug" || arg == "--debug") debug = true;
-			else if (StringTools.startsWith(arg, "-")) extra.push(arg);
-			else target = arg;
-		}
-
-		if (TARGETS.indexOf(target) < 0) {
-			Sys.println("mdd: nothing here builds '" + target + "'. Targets: " + TARGETS.join(", "));
+		if (project.targetOf(target) == null) {
+			Sys.println("mdd: nothing here builds '" + target + "'. Targets: "
+				+ project.names().join(", "));
 			Sys.exit(1);
 		}
 
-		built(root, target, debug, extra);
-		ship(root, target);
+		built(root, project, target, debug);
+		ship(root, project, target);
 	}
 
-	static function built(root:String, target:String, debug:Bool, extra:Array<String>):Void {
-		final vendor = root + "/vendor";
+	static function configure(root:String, project:Project):Void {
+		final into = root + "/" + project.generated + "/mdd";
+		tree(into);
 
-		if (windows() && !FileSystem.exists(vendor + "/SDL3/lib/SDL3.lib")) {
+		final out = new StringBuf();
+		out.add("package mdd;\n\n");
+		out.add("class Config {\n");
+		out.add("\tpublic static inline final TITLE = \"" + project.title + "\";\n");
+		out.add("\tpublic static inline final VERSION = \"" + project.version + "\";\n");
+		out.add("\tpublic static inline final WIDTH = " + project.windowWidth + ";\n");
+		out.add("\tpublic static inline final HEIGHT = " + project.windowHeight + ";\n");
+		out.add("\tpublic static inline final LEAST_WIDTH = " + project.leastWidth + ";\n");
+		out.add("\tpublic static inline final LEAST_HEIGHT = " + project.leastHeight + ";\n");
+		out.add("\tpublic static inline final VSYNC = " + project.vsync + ";\n");
+		out.add("\tpublic static inline final RESIZABLE = " + project.resizable + ";\n");
+		out.add("\tpublic static inline final HIGH_DPI = " + project.highDpi + ";\n");
+		out.add("}\n");
+
+		File.saveContent(into + "/Config.hx", out.toString());
+	}
+
+	static function nativeXml(root:String, project:Project):String {
+		final into = root + "/" + project.output + "/build";
+		tree(into);
+
+		final flags = new StringBuf();
+		for (path in project.includes) {
+			flags.add("\t\t<compilerflag value=\"-I" + native(root + "/" + path) + "\" />\n");
+		}
+
+		final out = new StringBuf();
+		out.add("<xml>\n");
+
+		for (id in ["haxe", "__main__", "mdd_native"]) {
+			out.add("\t<files id=\"" + id + "\">\n");
+			out.add(flags.toString());
+
+			if (id == "mdd_native") {
+				for (file in project.nativeFiles) {
+					out.add("\t\t<file name=\"" + native(root + "/" + project.nativePath) + "/"
+						+ file + "\" />\n");
+				}
+			}
+
+			out.add("\t</files>\n");
+		}
+
+		out.add("\t<target id=\"haxe\">\n");
+
+		for (link in project.links) {
+			out.add("\t\t<lib name=\""
+				+ (StringTools.startsWith(link, "-") ? link : native(root + "/" + link))
+				+ "\" />\n");
+		}
+
+		out.add("\t\t<files id=\"mdd_native\" />\n");
+		out.add("\t</target>\n");
+		out.add("</xml>\n");
+
+		final path = into + "/native.xml";
+		File.saveContent(path, out.toString());
+		return native(path);
+	}
+
+	static function built(root:String, project:Project, target:String, debug:Bool):Void {
+		if (windows() && !FileSystem.exists(root + "/" + project.pathOf("SDL3PATH")
+				+ "/lib/SDL3.lib")) {
 			Sys.println("mdd: SDL3 is missing from vendor/. Run: mdd setup");
 			Sys.exit(1);
 		}
 
-		final flags = [
-			"-D", "SDL3PATH=" + native(vendor + "/SDL3"),
-			"-D", "MINIAUDIOPATH=" + native(vendor + "/miniaudio"),
-			"-D", "STBPATH=" + native(vendor + "/stb"),
-			"-D", "FONTPATH=" + native(vendor + "/fonts"),
-			"-D", "NATIVEPATH=" + native(root + "/native")
-		].concat(extra);
+		configure(root, project);
+		final xml = nativeXml(root, project);
+		final one = project.targetOf(target);
 
-		if (debug) flags.push("-debug");
+		final args = ["-main", one.main, "-cpp", root + "/" + project.output + "/obj/" + target];
+
+		for (path in project.sources) {
+			args.push("-cp");
+			args.push(root + "/" + path);
+		}
+
+		args.push("-cp");
+		args.push(root + "/" + project.generated);
+
+		for (define in project.defines) {
+			args.push("-D");
+			args.push(define);
+		}
+
+		for (one in project.paths) {
+			args.push("-D");
+			args.push(one.name + "=" + native(root + "/" + one.value));
+		}
+
+		args.push("-D");
+		args.push("MDDBUILD=" + xml);
+
+		if (debug) args.push("-debug");
 
 		Sys.println("  " + pad(target) + "building");
-
 		release(target);
 
 		final here = Sys.getCwd();
 		Sys.setCwd(root);
-		final code = Sys.command("haxe", [target + ".hxml"].concat(flags));
+		final code = Sys.command("haxe", args);
 		Sys.setCwd(here);
 
 		if (code != 0) Sys.exit(code);
@@ -228,17 +300,12 @@ class Run {
 		} catch (e:Dynamic) {}
 	}
 
-	static function objOf(root:String, target:String):String {
-		return root + "/export/obj/" + (target == "mdd" ? "app" : target);
-	}
+	static function exeOf(root:String, project:Project, target:String):String {
+		final one = project.targetOf(target);
+		if (one == null) return "";
 
-	static function stemOf(target:String):String {
-		return target == "mdd" ? "App" : "Gate";
-	}
-
-	static function exeOf(root:String, target:String):String {
-		final dir = objOf(root, target);
-		final stem = stemOf(target);
+		final dir = root + "/" + project.output + "/obj/" + target;
+		final stem = one.main.split(".").pop();
 
 		for (name in [dir + "/" + stem + ".exe", dir + "/" + stem]) {
 			if (FileSystem.exists(name)) return name;
@@ -246,11 +313,11 @@ class Run {
 		return "";
 	}
 
-	static function ship(root:String, target:String):String {
-		final exe = exeOf(root, target);
+	static function ship(root:String, project:Project, target:String):String {
+		final exe = exeOf(root, project, target);
 		if (exe == "") return "";
 
-		final into = root + "/export/bin";
+		final into = root + "/" + project.output + "/bin";
 		tree(into);
 
 		final suffix = StringTools.endsWith(exe, ".exe") ? ".exe" : "";
@@ -258,26 +325,24 @@ class Run {
 
 		copyFile(exe, shipped);
 
-		final dll = root + "/vendor/SDL3/lib/SDL3.dll";
-		if (windows() && FileSystem.exists(dll)) copyFile(dll, into + "/SDL3.dll");
+		for (one in project.ships) {
+			final from = root + "/" + one;
+			if (FileSystem.exists(from)) {
+				copyFile(from, into + "/" + haxe.io.Path.withoutDirectory(one));
+			}
+		}
 
 		Sys.println("  " + pad(target) + shipped.substr(root.length + 1));
 		return shipped;
 	}
 
-	static function start(root:String, args:Array<String>):Void {
-		final extra = new Array<String>();
-		final passed = new Array<String>();
-		var debug = false;
+	static function start(root:String, project:Project, args:Array<String>, debug:Bool):Void {
+		final passed = [for (arg in args) if (!StringTools.startsWith(arg, "-")) arg];
+		final first = project.targets[0].id;
 
-		for (arg in args) {
-			if (arg == "-debug" || arg == "--debug") debug = true;
-			else if (StringTools.startsWith(arg, "-D")) extra.push(arg);
-			else passed.push(arg);
-		}
+		built(root, project, first, debug);
+		final shipped = ship(root, project, first);
 
-		built(root, "mdd", debug, extra);
-		final shipped = ship(root, "mdd");
 		if (shipped == "") {
 			Sys.println("mdd: built, but no executable came out");
 			Sys.exit(1);
@@ -287,13 +352,10 @@ class Run {
 		Sys.exit(Sys.command(shipped, passed));
 	}
 
-	static function gate(root:String, args:Array<String>):Void {
-		final exe = exeOf(root, "gate");
-		if (exe == "") {
-			built(root, "gate", false, []);
-		}
+	static function gate(root:String, project:Project, args:Array<String>):Void {
+		if (exeOf(root, project, "gate") == "") built(root, project, "gate", false);
 
-		final shipped = ship(root, "gate");
+		final shipped = ship(root, project, "gate");
 		if (shipped == "") {
 			Sys.println("mdd: the gate is not built");
 			Sys.exit(1);
@@ -302,17 +364,22 @@ class Run {
 		Sys.exit(Sys.command(shipped, args.concat(["--root", root])));
 	}
 
-	static function clean(root:String):Void {
-		for (target in TARGETS) release(target);
+	static function clean(root:String, project:Project):Void {
+		for (target in project.targets) release(target.id);
 
-		final out = root + "/export";
+		final out = root + "/" + project.output;
 		if (FileSystem.exists(out)) remove(out);
-		Sys.println("  " + pad("clean") + "export/ is gone");
+		Sys.println("  " + pad("clean") + project.output + "/ is gone");
 	}
 
 	static function sdl(vendor:String):Bool {
-		if (!windows()) return FileSystem.exists("/usr/include/SDL3/SDL.h")
-			|| FileSystem.exists("/usr/local/include/SDL3/SDL.h");
+		if (!windows()) {
+			for (where in ["/usr/include/SDL3/SDL.h", "/usr/local/include/SDL3/SDL.h",
+					"/opt/homebrew/include/SDL3/SDL.h"]) {
+				if (FileSystem.exists(where)) return true;
+			}
+			return false;
+		}
 
 		final base = "https://github.com/libsdl-org/SDL/releases/download/release-" + SDL_VERSION;
 		final archive = vendor + "/.sdl3.zip";
@@ -360,8 +427,7 @@ class Run {
 		if (!download(base + "/stb_truetype.h", into + "/stb_truetype.h")) return false;
 		download(base + "/LICENSE", into + "/LICENSE");
 
-		final header = File.getContent(into + "/stb_truetype.h");
-		if (header.indexOf("stbtt_PackFontRange") < 0) {
+		if (File.getContent(into + "/stb_truetype.h").indexOf("stbtt_PackFontRange") < 0) {
 			FileSystem.deleteFile(into + "/stb_truetype.h");
 			return false;
 		}
@@ -380,29 +446,26 @@ class Run {
 			final coded = into + "/." + face + ".b64";
 			if (!download(base + face + ".ttf?format=TEXT", coded)) return false;
 
-			final packed = StringTools.replace(StringTools.replace(
-				File.getContent(coded), "
-", ""), "
-", "");
-			File.saveBytes(into + "/" + face + ".ttf", haxe.crypto.Base64.decode(packed));
+			File.saveBytes(into + "/" + face + ".ttf", decode(coded));
 			FileSystem.deleteFile(coded);
 		}
 
-		download("https://go.googlesource.com/image/+/master/LICENSE?format=TEXT",
-			into + "/.LICENSE.b64");
-		if (FileSystem.exists(into + "/.LICENSE.b64")) {
-			final packed = StringTools.replace(StringTools.replace(
-				File.getContent(into + "/.LICENSE.b64"), "
-", ""), "
-", "");
-			File.saveBytes(into + "/LICENSE", haxe.crypto.Base64.decode(packed));
-			FileSystem.deleteFile(into + "/.LICENSE.b64");
+		final licence = into + "/.LICENSE.b64";
+		if (download("https://go.googlesource.com/image/+/master/LICENSE?format=TEXT", licence)) {
+			File.saveBytes(into + "/LICENSE", decode(licence));
+			FileSystem.deleteFile(licence);
 		}
 
 		for (face in FACES) {
 			if (!FileSystem.exists(into + "/" + face + ".ttf")) return false;
 		}
 		return true;
+	}
+
+	static function decode(path:String):haxe.io.Bytes {
+		final packed = StringTools.replace(
+			StringTools.replace(File.getContent(path), "\n", ""), "\r", "");
+		return haxe.crypto.Base64.decode(packed);
 	}
 
 	static function resolved(owner:String, repository:String, branch:String):String {
@@ -434,12 +497,10 @@ class Run {
 	}
 
 	static function unpack(archive:String, into:String):Void {
-		final ways = [
+		for (way in [
 			{ tool: "tar", flags: ["-xf", archive, "-C", into] },
 			{ tool: "unzip", flags: ["-o", "-q", archive, "-d", into] }
-		];
-
-		for (way in ways) {
+		]) {
 			try {
 				final run = new sys.io.Process(way.tool, way.flags);
 				final code = run.exitCode();

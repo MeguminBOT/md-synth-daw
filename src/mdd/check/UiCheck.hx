@@ -82,7 +82,7 @@ class UiCheck {
 			return 1;
 		}
 
-		final window = Sdl.createWindow("mdd gate ui", SIDE, SIDE);
+		final window = Sdl.createWindow("mdd gate ui", SIDE, SIDE, 0, 0);
 		final renderer = Sdl.createRenderer(window, 0);
 		final target = Draw.createTarget(renderer, SIDE, SIDE);
 

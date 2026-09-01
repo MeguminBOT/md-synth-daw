@@ -13,9 +13,13 @@ extern "C" const char *mdd_sdl_error(void) {
 	return SDL_GetError();
 }
 
-extern "C" SDL_Window *mdd_window_create(const char *title, int width, int height) {
-	return SDL_CreateWindow(title, width, height,
-		SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
+extern "C" SDL_Window *mdd_window_create(const char *title, int width, int height, int resizable,
+		int highDpi) {
+	SDL_WindowFlags flags = SDL_WINDOW_HIDDEN;
+	if (resizable != 0) flags |= SDL_WINDOW_RESIZABLE;
+	if (highDpi != 0) flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+
+	return SDL_CreateWindow(title, width, height, flags);
 }
 
 extern "C" void mdd_window_destroy(SDL_Window *window) {
@@ -80,6 +84,26 @@ extern "C" float mdd_window_display_scale(SDL_Window *window) {
 	return scale > 0.0f ? scale : 1.0f;
 }
 
+extern "C" float mdd_display_pixel_density(SDL_Window *window) {
+	if (window == nullptr) return 1.0f;
+	const float density = SDL_GetWindowPixelDensity(window);
+	return density > 0.0f ? density : 1.0f;
+}
+
+extern "C" int mdd_render_output_width(SDL_Renderer *renderer) {
+	int width = 0;
+	int height = 0;
+	if (renderer != nullptr) SDL_GetCurrentRenderOutputSize(renderer, &width, &height);
+	return width;
+}
+
+extern "C" int mdd_render_output_height(SDL_Renderer *renderer) {
+	int width = 0;
+	int height = 0;
+	if (renderer != nullptr) SDL_GetCurrentRenderOutputSize(renderer, &width, &height);
+	return height;
+}
+
 extern "C" float mdd_display_refresh(SDL_Window *window) {
 	if (window == nullptr) return 60.0f;
 
@@ -101,6 +125,7 @@ extern "C" SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync) {
 	if (renderer == nullptr) return nullptr;
 
 	SDL_SetRenderVSync(renderer, vsync != 0 ? 1 : SDL_RENDERER_VSYNC_DISABLED);
+	SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	return renderer;
 }

@@ -40,8 +40,8 @@ extern class Sdl {
 	public static function error():cpp.ConstCharStar;
 
 	@:native("mdd_window_create")
-	public static function createWindow(title:cpp.ConstCharStar, width:Int,
-		height:Int):cpp.Star<Window>;
+	public static function createWindow(title:cpp.ConstCharStar, width:Int, height:Int,
+		resizable:Int, highDpi:Int):cpp.Star<Window>;
 
 	@:native("mdd_window_destroy")
 	public static function destroyWindow(window:cpp.Star<Window>):Void;
@@ -79,6 +79,15 @@ extern class Sdl {
 
 	@:native("mdd_window_display_scale")
 	public static function windowDisplayScale(window:cpp.Star<Window>):Single;
+
+	@:native("mdd_display_pixel_density")
+	public static function pixelDensity(window:cpp.Star<Window>):Single;
+
+	@:native("mdd_render_output_width")
+	public static function outputWidth(renderer:cpp.Star<Canvas>):Int;
+
+	@:native("mdd_render_output_height")
+	public static function outputHeight(renderer:cpp.Star<Canvas>):Int;
 
 	@:native("mdd_display_refresh")
 	public static function displayRefresh(window:cpp.Star<Window>):Single;
