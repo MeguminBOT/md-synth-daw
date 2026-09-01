@@ -332,6 +332,19 @@ class App {
 		menus.offer(root.translate(Locale.MENU_EXPORT), exportMenu());
 		menus.offer(root.translate(Locale.MENU_VIEW), viewMenu());
 		menus.offer(root.translate(Locale.MENU_HELP), helpMenu());
+
+		menus.trailing.resize(0);
+		menus.trailing.push(root.translate(Locale.FILE_OPEN));
+		menus.trailing.push(root.translate(Locale.FILE_SAVE));
+		menus.trailing.push(root.translate(Locale.FILE_PREFERENCES));
+
+		menus.onTrailing = function(which:Int):Void {
+			switch (which) {
+				case 0: files.ask(window, Files.OPEN);
+				case 1: keeping();
+				case _: opened();
+			}
+		};
 	}
 
 	function patternMenu():Menu {
