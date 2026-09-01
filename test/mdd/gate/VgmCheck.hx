@@ -55,7 +55,15 @@ class VgmCheck {
 				if (want != null) seconds = want;
 			}
 
-			written(where, files, args[into + 1], seconds);
+			final asked = args.indexOf("--rate");
+			var rate = 44100;
+
+			if (asked >= 0 && asked + 1 < args.length) {
+				final want = Std.parseInt(args[asked + 1]);
+				if (want != null && want > 0) rate = want;
+			}
+
+			written(where, files, args[into + 1], seconds, rate);
 		}
 		transported(where, files);
 
@@ -242,21 +250,24 @@ class VgmCheck {
 	}
 
 	static function written(where:String, files:Array<String>, into:String,
-			seconds:Int):Void {
+			seconds:Int, rate:Int):Void {
 		final one = StringTools.endsWith(into.toLowerCase(), ".wav");
 
 		if (!one && !sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
+
+		var chosen = files.length > 0 ? files[0] : "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) chosen = held;
 
 		var wrote = 0;
 		var held = 0.0;
 
 		for (name in files) {
-			if (one && name.indexOf("Green Hill") < 0 && files.indexOf(name) != 0) continue;
+			if (one && name != chosen) continue;
 
 			final where2 = one ? into
 				: into + "/" + name.substr(0, name.length - 4) + ".wav";
 
-			final much = rendered(where + "/" + name, where2, seconds);
+			final much = rendered(where + "/" + name, where2, seconds, rate);
 			if (much <= 0) continue;
 
 			wrote++;
@@ -277,8 +288,8 @@ class VgmCheck {
 		return Math.round(value * scale) / scale;
 	}
 
-	static function rendered(from:String, into:String, seconds:Int):Float {
-		final rate = 44100;
+	static function rendered(from:String, into:String, seconds:Int,
+			rate:Int):Float {
 		final stream = new mdd.play.Stream(1 << 23);
 		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(from), stream);
 
@@ -288,7 +299,8 @@ class VgmCheck {
 		if (ticks <= 0) return 0;
 
 		ticks += rate;
-		if (seconds > 0 && ticks > seconds * rate) ticks = seconds * rate;
+		final capped = seconds * mdd.song.Tempo.TICKS;
+		if (seconds > 0 && ticks > capped) ticks = capped;
 
 		final frames = Std.int(ticks * (rate / mdd.song.Tempo.TICKS));
 		final sound = new haxe.ds.Vector<cpp.Float32>(frames * 2);
