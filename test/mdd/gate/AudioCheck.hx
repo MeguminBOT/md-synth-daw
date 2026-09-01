@@ -7,6 +7,7 @@ import mdd.host.Native;
 import mdd.host.Sdl;
 import mdd.play.Queue;
 import mdd.play.Render;
+import mdd.play.Stream;
 
 @:unreflective
 class AudioCheck {
@@ -113,10 +114,10 @@ class AudioCheck {
 	static function queueing():Void {
 		final queue = new Queue(64);
 
-		for (i in 0...64) queue.push(Queue.YM, i & 3, i & 0xFF);
+		for (i in 0...64) queue.push(Stream.YM, i & 3, i & 0xFF);
 		final full = queue.waiting();
 
-		final refused = queue.push(Queue.YM, 0, 0);
+		final refused = queue.push(Stream.YM, 0, 0);
 		final dropped = queue.dropped;
 
 		var read = 0;
@@ -126,7 +127,7 @@ class AudioCheck {
 			final word = queue.pull();
 			if (word < 0) break;
 
-			if (Queue.kindOf(word) != Queue.YM) right = false;
+			if (Queue.kindOf(word) != Stream.YM) right = false;
 			if (Queue.portOf(word) != (read & 3)) right = false;
 			if (Queue.valueOf(word) != (read & 0xFF)) right = false;
 
@@ -170,14 +171,14 @@ class AudioCheck {
 		push(render, 0xA0, 0x69);
 		push(render, 0x28, 0xF0);
 
-		render.queue.push(Queue.PSG, 0, 0x80 | 0x00 | 0x0E);
-		render.queue.push(Queue.PSG, 0, 0x08);
-		render.queue.push(Queue.PSG, 0, 0x80 | 0x10 | 0x04);
+		render.queue.push(Stream.PSG, 0, 0x80 | 0x00 | 0x0E);
+		render.queue.push(Stream.PSG, 0, 0x08);
+		render.queue.push(Stream.PSG, 0, 0x80 | 0x10 | 0x04);
 	}
 
 	static function push(render:Render, at:Int, value:Int):Void {
-		render.queue.push(Queue.YM, 0, at);
-		render.queue.push(Queue.YM, 1, value);
+		render.queue.push(Stream.YM, 0, at);
+		render.queue.push(Stream.YM, 1, value);
 	}
 
 	static function offline():Void {

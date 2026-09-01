@@ -86,7 +86,7 @@ final class Render {
 			final word = queue.pull();
 			if (word < 0) break;
 
-			if (Queue.kindOf(word) == Queue.PSG) psg.write(Queue.valueOf(word));
+			if (Queue.kindOf(word) == Stream.PSG) psg.write(Queue.valueOf(word));
 			else ym.write(Queue.portOf(word), Queue.valueOf(word));
 
 			took++;

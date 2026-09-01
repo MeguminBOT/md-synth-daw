@@ -5,9 +5,6 @@ import haxe.ds.Vector;
 
 @:unreflective
 final class Queue {
-	public static inline final YM = 0;
-	public static inline final PSG = 1;
-
 	public static inline function packed(kind:Int, port:Int, value:Int):Int {
 		return ((kind & 0xFF) << 16) | ((port & 0xFF) << 8) | (value & 0xFF);
 	}
