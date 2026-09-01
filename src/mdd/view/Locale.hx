@@ -41,6 +41,9 @@ class Locale {
 	public static inline final TOOL_GHOSTS = "tool.ghosts";
 
 	public static inline final PANEL_FROM_IMPORT = "panel.fromImport";
+	public static inline final BANK_KEEP = "bank.keep";
+	public static inline final BANK_KEPT = "bank.kept";
+	public static inline final BANK_ALREADY = "bank.already";
 
 	public static inline final LANE_VELOCITY = "lane.velocity";
 	public static inline final LANE_PAN = "lane.pan";
@@ -233,7 +236,7 @@ class Locale {
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
-		PANEL_FROM_IMPORT,
+		PANEL_FROM_IMPORT, BANK_KEEP, BANK_KEPT, BANK_ALREADY,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
 		REGISTERS_LEVEL, REGISTERS_TONE,

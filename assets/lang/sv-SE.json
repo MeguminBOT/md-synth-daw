@@ -1,5 +1,8 @@
 {
   "app": "MD Synth DAW",
+  "bank.already": "banken hör redan till projektet",
+  "bank.keep": "Behåll banken",
+  "bank.kept": "behöll",
   "channels.clear": "Rensa kanalen",
   "channels.muteRest": "Tysta de andra",
   "channels.unmute": "Ljud på alla",

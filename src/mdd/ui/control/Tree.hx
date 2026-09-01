@@ -76,6 +76,8 @@ final class Tree extends Scroll {
 		return true;
 	}
 
+	public var onContext:Null<(Item, Float, Float) -> Void> = null;
+
 	public function choose(item:Null<Item>):Void {
 		if (!select(item)) return;
 		if (chosen != null && onChoose != null) onChoose(chosen);
@@ -103,12 +105,17 @@ final class Tree extends Scroll {
 
 		switch (event.kind) {
 			case Kind.PointerDown:
-				if (event.button != Pointer.Left) return false;
-
 				final at = rowAt(event.y);
 				if (at < 0) return false;
 
 				final item = shown[at];
+
+				if (event.button == Pointer.Right) {
+					if (onContext != null) onContext(item, event.x, event.y);
+					return true;
+				}
+
+				if (event.button != Pointer.Left) return false;
 
 				if (item.branch() && (onChevron(root.metrics, item, event.x) || event.clicks > 1)) {
 					fold(item, !item.open);

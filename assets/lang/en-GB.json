@@ -1,5 +1,8 @@
 {
   "app": "MD Synth DAW",
+  "bank.already": "this bank is already part of the project",
+  "bank.keep": "Keep this bank",
+  "bank.kept": "kept",
   "channels.clear": "Clear this channel",
   "channels.muteRest": "Mute the rest",
   "channels.unmute": "Unmute all",

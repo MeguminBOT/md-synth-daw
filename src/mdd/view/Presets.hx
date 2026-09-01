@@ -6,6 +6,8 @@ import mdd.ui.Input;
 import mdd.ui.Item;
 import mdd.ui.Paint;
 import mdd.ui.Theme;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.control.Tree;
 import mdd.ui.Widget;
 
@@ -17,7 +19,11 @@ final class Presets extends Widget {
 	public var listed(default, null):Int = 0;
 	public var banks(default, null):Int = 0;
 
+	var menu:Null<Menu> = null;
+
 	final named:Array<Int> = [];
+	final heads:Array<Item> = [];
+	final banked:Array<Int> = [];
 	final held:Array<Item> = [];
 
 	public function new(session:Session) {
@@ -30,6 +36,8 @@ final class Presets extends Widget {
 		add(tree);
 
 		tree.onChoose = function(item:Item):Void picked(item);
+		tree.onContext = function(item:Item, px:Float, py:Float):Void
+			popped(item, px, py);
 	}
 
 	function picked(item:Item):Void {
@@ -45,6 +53,35 @@ final class Presets extends Widget {
 		session.changed();
 	}
 
+	function popped(item:Item, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final at = heads.indexOf(item);
+		if (at < 0) return;
+
+		final which = banked[at];
+		final bank = session.song.banks[which];
+		if (bank == null) return;
+
+		menu = new Menu();
+
+		final keep = menu.offer(new Choice(translate(Locale.BANK_KEEP)));
+
+		if (bank.kept) {
+			keep.enabled = false;
+			keep.reason = translate(Locale.BANK_ALREADY);
+		} else {
+			keep.onFire = function(from:Choice):Void {
+				bank.kept = true;
+				session.say(translate(Locale.BANK_KEPT) + " " + bank.name);
+				session.changed();
+			};
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
 	public function instrumentOf(item:Item):Int {
 		final at = held.indexOf(item);
 		return at < 0 ? -1 : named[at];
@@ -54,6 +91,8 @@ final class Presets extends Widget {
 		tree.clear();
 
 		named.resize(0);
+		heads.resize(0);
+		banked.resize(0);
 		held.resize(0);
 
 		listed = 0;
@@ -63,6 +102,8 @@ final class Presets extends Widget {
 		final part = session.part;
 		final chosen = song.rack[part.index()];
 		final from = translate(Locale.PANEL_FROM_IMPORT);
+		final root = root();
+		final warned = root == null ? -1 : (root.theme.warn : Int);
 
 		for (at in 0...song.banks.length) {
 			final bank = song.banks[at];
@@ -78,7 +119,10 @@ final class Presets extends Widget {
 			if (holds.length == 0) continue;
 
 			final badge = bank.kept || bank.name.indexOf(from) >= 0 ? "" : "   " + from;
-			final head = new Item(bank.name + badge);
+			final head = new Item(bank.name + badge, bank.kept ? -1 : warned);
+
+			heads.push(head);
+			banked.push(at);
 
 			for (index in holds) {
 				final child = head.add(new Item(song.instruments[index].name,
