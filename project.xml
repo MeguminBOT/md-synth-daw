@@ -64,6 +64,7 @@
 		<file name="draw.cpp" />
 		<file name="text.cpp" />
 		<file name="audio.cpp" />
+		<file name="dialog.cpp" />
 	</native>
 
 	<include value="${SDL3PATH}/include" />

@@ -19,15 +19,22 @@ import mdd.check.Budget;
 import mdd.check.Profile;
 import mdd.play.Render;
 import mdd.song.Part;
+import mdd.song.Song;
 import mdd.view.Centre;
 import mdd.view.ChannelRack;
+import mdd.ui.Choice;
+import mdd.ui.Menu;
+import mdd.ui.MenuBar;
 import mdd.view.Dock;
+import mdd.view.Files;
 import mdd.view.Inspector;
 import mdd.view.Session;
 import mdd.view.TransportBar;
 
 @:unreflective
 class App {
+	static inline final IDLE = 0.002;
+
 	var window:cpp.Star<Window>;
 	var renderer:cpp.Star<Canvas>;
 
@@ -45,6 +52,8 @@ class App {
 	var centre:Null<Centre> = null;
 	var inspector:Null<Inspector> = null;
 	var dock:Null<Dock> = null;
+	var menus:Null<MenuBar> = null;
+	var files:Null<Files> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -131,6 +140,14 @@ class App {
 		shell.zone(Shell.INSPECTOR).add(inspector);
 		shell.zone(Shell.DOCK).add(dock);
 
+		files = new Files(session);
+		files.onLoad = function(song:Song):Void loaded(song);
+
+		menus = new MenuBar();
+		shell.zone(Shell.MENU).add(menus);
+
+		commands();
+
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
 		dock.warnings.budget = budget;
@@ -163,6 +180,101 @@ class App {
 		centre.show(Centre.ROLL);
 		centre.roll.reveal(found.note.at, found.note.pitch);
 		centre.roll.choose(found.note);
+	}
+
+	function commands():Void {
+		final file = new Menu();
+
+		fired(file.offer(new Choice("Open", "Ctrl+O")), function():Void
+			files.ask(window, Files.OPEN));
+		fired(file.offer(new Choice("Save", "Ctrl+S")), function():Void
+			files.ask(window, Files.SAVE));
+		file.divide();
+		fired(file.offer(new Choice("Export a vgm")), function():Void
+			files.ask(window, Files.VGM));
+		fired(file.offer(new Choice("Export a wav")), function():Void
+			files.ask(window, Files.WAV));
+		fired(file.offer(new Choice("Export a midi file")), function():Void
+			files.ask(window, Files.MIDI));
+		file.divide();
+		fired(file.offer(new Choice("Quit", "Alt+F4")), function():Void running = false);
+
+		final edit = new Menu();
+
+		fired(edit.offer(new Choice("Undo", "Ctrl+Z")), function():Void undone());
+		fired(edit.offer(new Choice("Redo", "Ctrl+Y")), function():Void redone());
+
+		final view = new Menu();
+
+		fired(view.offer(new Choice("Piano roll")), function():Void centre.show(Centre.ROLL));
+		fired(view.offer(new Choice("Arrangement")), function():Void
+			centre.show(Centre.PLAYLIST));
+		view.divide();
+		fired(view.offer(new Choice("Mixer")), function():Void dock.show(Dock.MIXER));
+		fired(view.offer(new Choice("Warnings")), function():Void dock.show(Dock.WARNINGS));
+
+		menus.offer("File", file);
+		menus.offer("Edit", edit);
+		menus.offer("View", view);
+	}
+
+	function fired(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(chosen:Choice):Void what();
+	}
+
+	function undone():Void {
+		if (session.undo()) session.say("undone");
+		else session.say("nothing to undo");
+
+		session.changed();
+	}
+
+	function redone():Void {
+		if (session.redo()) session.say("redone");
+		else session.say("nothing to redo");
+
+		session.changed();
+	}
+
+	function loaded(song:Song):Void {
+		if (render != null) render.transport.stop();
+
+		session = new Session(song);
+		session.onChange = function(held:Session):Void changed();
+		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
+
+		files = new Files(session);
+		files.onLoad = function(held:Song):Void loaded(held);
+
+		bar = new TransportBar(session);
+		rack = new ChannelRack(session);
+		centre = new Centre(session);
+		inspector = new Inspector(session);
+		dock = new Dock(session);
+		menus = new MenuBar();
+
+		for (which in [Shell.MENU, Shell.TRANSPORT, Shell.RAIL, Shell.CENTRE, Shell.INSPECTOR,
+				Shell.DOCK]) {
+			final zone = shell.zone(which);
+			while (zone.children.length > 0) zone.remove(zone.children[0]);
+		}
+
+		shell.zone(Shell.MENU).add(menus);
+		shell.zone(Shell.TRANSPORT).add(bar);
+		shell.zone(Shell.RAIL).add(rack);
+		shell.zone(Shell.CENTRE).add(centre);
+		shell.zone(Shell.INSPECTOR).add(inspector);
+		shell.zone(Shell.DOCK).add(dock);
+
+		centre.roll.budget = budget;
+		dock.warnings.budget = budget;
+
+		commands();
+
+		if (render != null) render.transport = session.transport;
+
+		measured();
+		changed();
 	}
 
 	function sound():Void {
@@ -260,6 +372,7 @@ class App {
 			if (since > 0.100) since = 0.100;
 
 			root.advance(since);
+			if (files != null && files.poll()) root.soil();
 			watch();
 			draw();
 		}
@@ -364,7 +477,7 @@ class App {
 
 	function draw():Void {
 		if (!root.stale()) {
-			Sdl.renderPresent(renderer);
+			Sdl.sleep(IDLE);
 			return;
 		}
 
