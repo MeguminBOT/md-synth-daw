@@ -11,6 +11,7 @@ final class Centre extends Widget {
 	public static inline final SAMPLES = 2;
 	public static inline final TRACKER = 3;
 	public static inline final PLAYLIST = 4;
+	public static inline final REGISTERS = 5;
 
 	public final session:Session;
 
@@ -20,6 +21,7 @@ final class Centre extends Widget {
 	public final samples:Samples;
 	public final tracker:Tracker;
 	public final playlist:Playlist;
+	public final registers:Registers;
 
 	public var showing(default, null):Int = ROLL;
 
@@ -27,12 +29,13 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", "", "", "", ""]);
+		tabs = new Tabs(["", "", "", "", "", ""]);
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
 		samples = new Samples(session);
 		tracker = new Tracker(session);
 		playlist = new Playlist(session);
+		registers = new Registers(session);
 
 		add(tabs);
 		add(roll);
@@ -40,11 +43,13 @@ final class Centre extends Widget {
 		add(samples);
 		add(tracker);
 		add(playlist);
+		add(registers);
 
 		scope.visible = false;
 		samples.visible = false;
 		tracker.visible = false;
 		playlist.visible = false;
+		registers.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
 	}
@@ -58,6 +63,7 @@ final class Centre extends Widget {
 		samples.visible = which == SAMPLES;
 		tracker.visible = which == TRACKER;
 		playlist.visible = which == PLAYLIST;
+		registers.visible = which == REGISTERS;
 
 		relayout();
 	}
@@ -76,6 +82,7 @@ final class Centre extends Widget {
 		samples.arrange(x, y + tall, width, height - tall);
 		tracker.arrange(x, y + tall, width, height - tall);
 		playlist.arrange(x, y + tall, width, height - tall);
+		registers.arrange(x, y + tall, width, height - tall);
 	}
 
 	public function playhead(tick:Int):Void {
@@ -108,6 +115,7 @@ final class Centre extends Widget {
 		tabs.labels[2] = translate(Locale.VIEW_SAMPLES);
 		tabs.labels[3] = translate(Locale.VIEW_TRACKER);
 		tabs.labels[4] = translate(Locale.VIEW_PLAYLIST);
+		tabs.labels[5] = translate(Locale.VIEW_REGISTERS);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -120,5 +128,6 @@ final class Centre extends Widget {
 		if (samples.visible) samples.paint(paint);
 		if (tracker.visible) tracker.paint(paint);
 		if (playlist.visible) playlist.paint(paint);
+		if (registers.visible) registers.paint(paint);
 	}
 }

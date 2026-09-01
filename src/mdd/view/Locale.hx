@@ -6,7 +6,35 @@ class Locale {
 
 	public static inline final MENU_FILE = "menu.file";
 	public static inline final MENU_EDIT = "menu.edit";
+	public static inline final MENU_PATTERN = "menu.pattern";
+	public static inline final MENU_CHANNELS = "menu.channels";
+	public static inline final MENU_INSTRUMENT = "menu.instrument";
+	public static inline final MENU_IMPORT = "menu.import";
+	public static inline final MENU_EXPORT = "menu.export";
 	public static inline final MENU_VIEW = "menu.view";
+	public static inline final MENU_HELP = "menu.help";
+
+	public static inline final PATTERN_ADD = "pattern.add";
+	public static inline final PATTERN_DUPLICATE = "pattern.duplicate";
+	public static inline final PATTERN_RENAME = "pattern.rename";
+	public static inline final PATTERN_CLEAR = "pattern.clear";
+
+	public static inline final CHANNELS_UNMUTE = "channels.unmute";
+	public static inline final CHANNELS_UNSOLO = "channels.unsolo";
+	public static inline final CHANNELS_MUTE_REST = "channels.muteRest";
+	public static inline final CHANNELS_CLEAR = "channels.clear";
+
+	public static inline final HELP_ABOUT = "help.about";
+	public static inline final HELP_SOURCE = "help.source";
+
+	public static inline final FILE_NO_UPDATE = "file.noUpdate";
+
+	public static inline final REGISTERS_NOTHING = "registers.nothing";
+	public static inline final REGISTERS_FOLLOWING = "registers.following";
+	public static inline final REGISTERS_HELD = "registers.held";
+	public static inline final REGISTERS_DATA = "registers.data";
+	public static inline final REGISTERS_LEVEL = "registers.level";
+	public static inline final REGISTERS_TONE = "registers.tone";
 
 	public static inline final FILE_OPEN = "file.open";
 	public static inline final FILE_SAVE = "file.save";
@@ -180,7 +208,13 @@ class Locale {
 
 	public static final ALL:Array<String> = [
 		APP, READY,
-		MENU_FILE, MENU_EDIT, MENU_VIEW,
+		MENU_FILE, MENU_EDIT, MENU_PATTERN, MENU_CHANNELS, MENU_INSTRUMENT, MENU_IMPORT,
+		MENU_EXPORT, MENU_VIEW, MENU_HELP,
+		PATTERN_ADD, PATTERN_DUPLICATE, PATTERN_RENAME, PATTERN_CLEAR,
+		CHANNELS_UNMUTE, CHANNELS_UNSOLO, CHANNELS_MUTE_REST, CHANNELS_CLEAR,
+		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
+		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
+		REGISTERS_LEVEL, REGISTERS_TONE,
 		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI,
 		FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,

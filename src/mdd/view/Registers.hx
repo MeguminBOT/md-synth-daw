@@ -1,0 +1,223 @@
+package mdd.view;
+
+import haxe.ds.Vector;
+import mdd.play.Stream;
+import mdd.song.Part;
+import mdd.ui.Input;
+import mdd.ui.Kind;
+import mdd.ui.Paint;
+import mdd.ui.Scroll;
+import mdd.ui.Theme;
+
+@:unreflective
+final class Registers extends Scroll {
+	public static inline final KEPT = 512;
+	public static inline final SEEN = 256;
+
+	public final session:Session;
+
+	public var writes(default, null):Int = 0;
+	public var painted(default, null):Int = 0;
+	public var following:Bool = true;
+
+	final ticks:Vector<Int> = new Vector<Int>(KEPT);
+	final kinds:Vector<Int> = new Vector<Int>(KEPT);
+	final ports:Vector<Int> = new Vector<Int>(KEPT);
+	final values:Vector<Int> = new Vector<Int>(KEPT);
+
+	final ymSeen:Vector<Int> = new Vector<Int>(SEEN * 2);
+	final psgSeen:Vector<Int> = new Vector<Int>(4);
+
+	var at:Int = 0;
+
+	public function new(session:Session) {
+		super();
+		this.session = session;
+
+		focusable = true;
+		opaque = true;
+
+		for (index in 0...KEPT) {
+			ticks[index] = 0;
+			kinds[index] = 0;
+			ports[index] = 0;
+			values[index] = -1;
+		}
+
+		for (index in 0...SEEN * 2) ymSeen[index] = -1;
+		for (index in 0...4) psgSeen[index] = -1;
+	}
+
+	public function forget():Void {
+		writes = 0;
+		at = 0;
+
+		for (index in 0...KEPT) values[index] = -1;
+		for (index in 0...SEEN * 2) ymSeen[index] = -1;
+		for (index in 0...4) psgSeen[index] = -1;
+
+		invalidate();
+	}
+
+	public function take(stream:Stream, from:Int):Int {
+		final many = stream.count;
+		if (from >= many) return many;
+
+		for (index in from...many) {
+			ticks[at] = stream.tickAt(index);
+			kinds[at] = stream.kindAt(index);
+			ports[at] = stream.portAt(index);
+			values[at] = stream.valueAt(index);
+
+			remember(kinds[at], ports[at], values[at]);
+
+			at = (at + 1) % KEPT;
+			writes++;
+		}
+
+		invalidate();
+		return many;
+	}
+
+	function remember(kind:Int, port:Int, value:Int):Void {
+		if (kind != Stream.YM) {
+			if ((value & 0x80) == 0) return;
+
+			final which = (value >> 5) & 3;
+			psgSeen[which] = value;
+			return;
+		}
+
+		final held = port & 1;
+		if (held > 1) return;
+	}
+
+	public function rowTall():Float {
+		final root = root();
+		return root == null ? 18 : root.metrics.whole(18);
+	}
+
+	public function rows():Int {
+		return writes < KEPT ? writes : KEPT;
+	}
+
+	function indexOf(row:Int):Int {
+		final many = rows();
+		if (writes < KEPT) return row;
+
+		return (at + row) % KEPT;
+	}
+
+	override function took(event:Input):Bool {
+		if (super.took(event)) return true;
+
+		switch (event.kind) {
+			case Kind.PointerDown:
+				following = !following;
+				invalidate();
+				return true;
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function named(kind:Int, port:Int, value:Int):String {
+		if (kind != Stream.YM) return square(value);
+		return "port " + port;
+	}
+
+	function square(value:Int):String {
+		if ((value & 0x80) == 0) return translate(Locale.REGISTERS_DATA);
+
+		final which = (value >> 5) & 3;
+		final volume = (value & 0x10) != 0;
+
+		return (which == 3 ? "noise" : "psg" + (which + 1)) + " "
+			+ translate(volume ? Locale.REGISTERS_LEVEL : Locale.REGISTERS_TONE);
+	}
+
+	static function hex(value:Int, wide:Int):String {
+		return StringTools.lpad(StringTools.hex(value, wide), "0", wide);
+	}
+
+	override function paint(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final font = metrics.mono == null ? metrics.body : metrics.mono;
+		final small = metrics.small == null ? metrics.body : metrics.small;
+		final tall = rowTall();
+		final head = metrics.whole(24);
+		final many = rows();
+
+		contentHeight = many * tall;
+
+		paint.rect(x, y, width, height, theme.panel);
+		paint.reface(small);
+
+		paint.text(translate(Locale.VIEW_REGISTERS), x + metrics.inset,
+			y + head * 0.5 + small.ascent * 0.5, theme.dim, 0.75);
+
+		paint.textRight(writes + "   " + translate(following
+			? Locale.REGISTERS_FOLLOWING : Locale.REGISTERS_HELD),
+			x + width - metrics.inset, y + head * 0.5 + small.ascent * 0.5, theme.dim, 0.7);
+
+		if (many == 0) {
+			paint.text(translate(Locale.REGISTERS_NOTHING), x + metrics.inset,
+				y + head + metrics.gap + small.ascent, theme.dim, 0.7);
+
+			painted = 0;
+			return;
+		}
+
+		if (following) offsetY = contentHeight - (height - head);
+		if (offsetY < 0) offsetY = 0;
+
+		paint.pushClip(x, y + head, width, height - head);
+		paint.reface(font);
+
+		var first = Std.int(offsetY / tall);
+		if (first < 0) first = 0;
+
+		var last = Std.int((offsetY + height - head) / tall) + 1;
+		if (last > many) last = many;
+
+		painted = last - first;
+
+		final tickAt = x + metrics.inset;
+		final chipAt = tickAt + font.measure("00000000") + metrics.inset;
+		final portAt = chipAt + font.measure("psg") + metrics.inset;
+		final valueAt = portAt + font.measure("port 0") + metrics.inset;
+		final sayAt = valueAt + font.measure("00") + metrics.inset;
+
+		for (row in first...last) {
+			final index = indexOf(row);
+			if (values[index] < 0) continue;
+
+			final top = y + head + row * tall - offsetY;
+			final line = top + (tall - font.height) * 0.5 + font.ascent;
+
+			if (row % 2 == 1) paint.rect(x, top, width, tall, theme.sink, 0.35);
+
+			final ym = kinds[index] == Stream.YM;
+
+			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.7);
+			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? theme.accent : theme.which, 0.75);
+
+			if (ym) paint.text("port " + ports[index], portAt, line, theme.dim, 0.7);
+
+			paint.text(hex(values[index], 2), valueAt, line, theme.ink, 0.85);
+
+			paint.reface(small);
+			paint.text(named(kinds[index], ports[index], values[index]), sayAt, line,
+				theme.dim, 0.7);
+			paint.reface(font);
+		}
+
+		paint.popClip();
+	}
+}

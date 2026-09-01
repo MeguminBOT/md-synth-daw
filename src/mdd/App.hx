@@ -80,6 +80,7 @@ class App {
 	var speaker:cpp.Star<Device> = null;
 	var render:Null<Render> = null;
 
+	var seen:Int = 0;
 	var windowID:Int = 0;
 	var scale:Float = 1;
 	var running:Bool = true;
@@ -289,66 +290,262 @@ class App {
 
 		fired(file.offer(new Choice(root.translate(Locale.FILE_OPEN), "Ctrl+O")), function():Void
 			files.ask(window, Files.OPEN));
-		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE), "Ctrl+S")), function():Void keeping());
-		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE_AS))), function():Void files.ask(window, Files.SAVE));
+		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE), "Ctrl+S")), function():Void
+			keeping());
+		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE_AS))), function():Void
+			files.ask(window, Files.SAVE));
 		file.divide();
-		fired(file.offer(new Choice(root.translate(Locale.FILE_READ_VGM))), function():Void
-			files.ask(window, Files.READ_VGM));
-		fired(file.offer(new Choice(root.translate(Locale.FILE_READ_MIDI))), function():Void
-			files.ask(window, Files.READ_MIDI));
-		file.divide();
-		fired(file.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
-			files.ask(window, Files.VGM));
-		fired(file.offer(new Choice(root.translate(Locale.FILE_WAV))), function():Void
-			files.ask(window, Files.WAV));
-		fired(file.offer(new Choice(root.translate(Locale.FILE_MIDI))), function():Void
-			files.ask(window, Files.MIDI));
-		file.divide();
-		file.divide();
+
 		final looking = file.offer(new Choice(root.translate(Locale.FILE_UPDATE)));
 
 		if (update.possible()) fired(looking, function():Void looks());
 		else {
 			looking.enabled = false;
-			looking.reason = "no update address is configured in project.xml";
+			looking.reason = root.translate(Locale.FILE_NO_UPDATE);
 		}
 
 		file.divide();
-		fired(file.offer(new Choice(root.translate(Locale.FILE_PREFERENCES), "Ctrl+,")), function():Void
-			opened());
+		fired(file.offer(new Choice(root.translate(Locale.FILE_PREFERENCES), "Ctrl+,")),
+			function():Void opened());
 		file.divide();
 		fired(file.offer(new Choice(root.translate(Locale.FILE_QUIT), "Alt+F4")), function():Void
 			running = false);
 
 		final edit = new Menu();
 
-		fired(edit.offer(new Choice(root.translate(Locale.EDIT_UNDO), "Ctrl+Z")), function():Void undone());
-		fired(edit.offer(new Choice(root.translate(Locale.EDIT_REDO), "Ctrl+Y")), function():Void redone());
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_UNDO), "Ctrl+Z")), function():Void
+			undone());
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_REDO), "Ctrl+Y")), function():Void
+			redone());
 		edit.divide();
 		fired(edit.offer(new Choice(root.translate(Locale.EDIT_PLAY), "Space")), function():Void
 			bar.press(TransportBar.PLAY));
-		fired(edit.offer(new Choice(root.translate(Locale.EDIT_STOP), "Ctrl+Space")), function():Void
-			bar.press(TransportBar.STOP));
-
-		final view = new Menu();
-
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_ROLL))), function():Void
-			centre.show(Centre.ROLL));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_SCOPE))), function():Void
-			centre.show(Centre.SCOPE));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_SAMPLES))), function():Void
-			centre.show(Centre.SAMPLES));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_TRACKER))), function():Void
-			centre.show(Centre.TRACKER));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_PLAYLIST))), function():Void
-			centre.show(Centre.PLAYLIST));
-		view.divide();
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_MIXER))), function():Void dock.show(Dock.MIXER));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_WARNINGS))), function():Void dock.show(Dock.WARNINGS));
+		fired(edit.offer(new Choice(root.translate(Locale.EDIT_STOP), "Ctrl+Space")),
+			function():Void bar.press(TransportBar.STOP));
 
 		menus.offer(root.translate(Locale.MENU_FILE), file);
 		menus.offer(root.translate(Locale.MENU_EDIT), edit);
-		menus.offer(root.translate(Locale.MENU_VIEW), view);
+		menus.offer(root.translate(Locale.MENU_PATTERN), patternMenu());
+		menus.offer(root.translate(Locale.MENU_CHANNELS), channelsMenu());
+		menus.offer(root.translate(Locale.MENU_INSTRUMENT), instrumentMenu());
+		menus.offer(root.translate(Locale.MENU_IMPORT), importMenu());
+		menus.offer(root.translate(Locale.MENU_EXPORT), exportMenu());
+		menus.offer(root.translate(Locale.MENU_VIEW), viewMenu());
+		menus.offer(root.translate(Locale.MENU_HELP), helpMenu());
+	}
+
+	function patternMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_ADD))), function():Void
+			dock.patterns.added());
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_DUPLICATE))), function():Void
+			duplicated());
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_RENAME))), function():Void
+			renamed());
+		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_CLEAR))), function():Void
+			emptied());
+		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_PATTERNS))), function():Void
+			dock.show(Dock.PATTERNS));
+
+		return held;
+	}
+
+	function channelsMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.CHANNELS_UNMUTE))), function():Void {
+			for (index in 0...Part.COUNT) session.song.muted[index] = false;
+			session.changed();
+		});
+
+		fired(held.offer(new Choice(root.translate(Locale.CHANNELS_UNSOLO))), function():Void {
+			for (index in 0...Part.COUNT) session.song.soloed[index] = false;
+			session.changed();
+		});
+
+		held.divide();
+
+		fired(held.offer(new Choice(root.translate(Locale.CHANNELS_MUTE_REST))), function():Void {
+			final which = session.part.index();
+			for (index in 0...Part.COUNT) session.song.muted[index] = index != which;
+			session.changed();
+		});
+
+		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.CHANNELS_CLEAR))), function():Void
+			cleared());
+
+		return held;
+	}
+
+	function instrumentMenu():Menu {
+		final held = new Menu();
+
+		final copy = held.offer(new Choice(root.translate(Locale.RACK_COPY_PATCH)));
+		final paste = held.offer(new Choice(root.translate(Locale.RACK_PASTE_PATCH)));
+		final reset = held.offer(new Choice(root.translate(Locale.RACK_RESET_PATCH)));
+
+		fired(copy, function():Void copiedPatch());
+		fired(paste, function():Void pastedPatch());
+		fired(reset, function():Void resetPatch());
+
+		paste.enabled = session.copiedPatch != null;
+		if (!paste.enabled) paste.reason = root.translate(Locale.RACK_NONE_COPIED);
+
+		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.PANEL_BANK))), function():Void
+			inspector.show(Inspector.BANK));
+
+		return held;
+	}
+
+	function importMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_VGM))), function():Void
+			files.ask(window, Files.READ_VGM));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_MIDI))), function():Void
+			files.ask(window, Files.READ_MIDI));
+
+		return held;
+	}
+
+	function exportMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
+			files.ask(window, Files.VGM));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_WAV))), function():Void
+			files.ask(window, Files.WAV));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_MIDI))), function():Void
+			files.ask(window, Files.MIDI));
+
+		return held;
+	}
+
+	function viewMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_ROLL))), function():Void
+			centre.show(Centre.ROLL));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_SCOPE))), function():Void
+			centre.show(Centre.SCOPE));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_SAMPLES))), function():Void
+			centre.show(Centre.SAMPLES));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_TRACKER))), function():Void
+			centre.show(Centre.TRACKER));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_PLAYLIST))), function():Void
+			centre.show(Centre.PLAYLIST));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_REGISTERS))), function():Void
+			centre.show(Centre.REGISTERS));
+		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_PATTERNS))), function():Void
+			dock.show(Dock.PATTERNS));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_MIXER))), function():Void
+			dock.show(Dock.MIXER));
+		fired(held.offer(new Choice(root.translate(Locale.VIEW_WARNINGS))), function():Void
+			dock.show(Dock.WARNINGS));
+
+		return held;
+	}
+
+	function helpMenu():Menu {
+		final held = new Menu();
+
+		fired(held.offer(new Choice(root.translate(Locale.HELP_ABOUT))), function():Void
+			session.say(Config.TITLE + " " + Config.VERSION + ", "
+				+ session.song.patterns.length + " patterns"));
+
+		final source = held.offer(new Choice(root.translate(Locale.HELP_SOURCE)));
+
+		if (update.possible()) {
+			fired(source, function():Void session.say("https://github.com/" + Config.GITHUB));
+		} else {
+			source.enabled = false;
+			source.reason = root.translate(Locale.FILE_NO_UPDATE);
+		}
+
+		return held;
+	}
+
+	function duplicated():Void {
+		final from = session.current();
+		if (from == null) return;
+
+		final made = new mdd.song.Pattern(from.name + " 2", from.length, from.colour);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+
+			for (note in from.lane(part).notes) {
+				made.lane(part).notes.push(note.copy());
+			}
+		}
+
+		session.does(new mdd.song.edit.AddPattern(made));
+		session.chooses(session.song.patterns.length - 1);
+	}
+
+	function renamed():Void {
+		final held = session.current();
+		if (held == null) return;
+
+		session.does(new mdd.song.edit.RenamePattern(session.pattern,
+			held.name + " " + (session.pattern + 1)));
+	}
+
+	function emptied():Void {
+		final held = session.current();
+		if (held == null) return;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final lane = held.lane(part);
+
+			while (lane.notes.length > 0) {
+				session.does(new mdd.song.edit.RemoveNote(session.pattern, part, lane.notes[0]));
+			}
+		}
+	}
+
+	function cleared():Void {
+		final held = session.current();
+		if (held == null) return;
+
+		final lane = held.lane(session.part);
+
+		while (lane.notes.length > 0) {
+			session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part,
+				lane.notes[0]));
+		}
+	}
+
+	function copiedPatch():Void {
+		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		if (held == null || held.patch == null) return;
+
+		session.copiedPatch = held.patch.copy();
+		session.say(root.translate(Locale.RACK_COPY_PATCH));
+		session.changed();
+	}
+
+	function pastedPatch():Void {
+		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		if (held == null || session.copiedPatch == null) return;
+
+		held.patch = session.copiedPatch.copy();
+		session.changed();
+	}
+
+	function resetPatch():Void {
+		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		if (held == null) return;
+
+		held.patch = new mdd.song.Patch();
+		session.changed();
 	}
 
 	function looks():Void {
@@ -809,7 +1006,11 @@ class App {
 			if (moved) dock.mixer.invalidate();
 		}
 
-		if (centre == null || !centre.scope.visible) return;
+		if (centre.registers.visible) {
+			seen = centre.registers.take(session.transport.stream, seen);
+		}
+
+		if (!centre.scope.visible) return;
 
 		for (index in 0...6) centre.scope.feed(index, traced(index));
 		centre.scope.invalidate();
