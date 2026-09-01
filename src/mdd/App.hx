@@ -227,6 +227,8 @@ class App {
 		centre.roll.budget = budget;
 		rail.hardware.budget = budget;
 		centre.samples.budget = budget;
+		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
+		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
 
@@ -818,6 +820,8 @@ class App {
 		centre.roll.budget = budget;
 		rail.hardware.budget = budget;
 		centre.samples.budget = budget;
+		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
+		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		dock.warnings.budget = budget;
 

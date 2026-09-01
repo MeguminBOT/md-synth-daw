@@ -45,6 +45,10 @@ class Locale {
 	public static inline final TOOL_GHOSTS = "tool.ghosts";
 
 	public static inline final PANEL_FROM_IMPORT = "panel.fromImport";
+	public static inline final SAMPLE_NORMALISE = "sample.normalise";
+	public static inline final SAMPLE_CLEAR = "sample.clear";
+	public static inline final SAMPLE_EMPTY = "sample.empty";
+
 	public static inline final BANK_EXPAND = "bank.expand";
 	public static inline final BANK_COLLAPSE = "bank.collapse";
 	public static inline final BANK_KEEP = "bank.keep";
@@ -56,6 +60,12 @@ class Locale {
 	public static inline final LANE_AUTOMATION = "lane.automation";
 
 	public static inline final REGISTERS_NOTHING = "registers.nothing";
+	public static inline final REGISTERS_COPY = "registers.copy";
+	public static inline final REGISTERS_AS_VGM = "registers.asVgm";
+	public static inline final REGISTERS_NO_ROW = "registers.noRow";
+	public static inline final REGISTERS_HOLD = "registers.hold";
+	public static inline final REGISTERS_FOLLOW = "registers.follow";
+	public static inline final REGISTERS_FORGET = "registers.forget";
 	public static inline final REGISTERS_FOLLOWING = "registers.following";
 	public static inline final REGISTERS_HELD = "registers.held";
 	public static inline final REGISTERS_DATA = "registers.data";
@@ -248,10 +258,13 @@ class Locale {
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM, SCOPE_INSPECT,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
+		SAMPLE_NORMALISE, SAMPLE_CLEAR, SAMPLE_EMPTY,
 		PANEL_FROM_IMPORT, BANK_EXPAND, BANK_COLLAPSE, BANK_KEEP, BANK_KEPT,
 		BANK_ALREADY,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
+		REGISTERS_COPY, REGISTERS_AS_VGM, REGISTERS_NO_ROW, REGISTERS_HOLD,
+		REGISTERS_FOLLOW, REGISTERS_FORGET,
 		REGISTERS_LEVEL, REGISTERS_TONE,
 		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI, FILE_READ_WAV,
 		FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,

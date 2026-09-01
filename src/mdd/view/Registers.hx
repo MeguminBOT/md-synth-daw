@@ -6,6 +6,9 @@ import mdd.song.Part;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Paint;
+import mdd.ui.Pointer;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.Scroll;
 import mdd.ui.Theme;
 
@@ -19,6 +22,8 @@ final class Registers extends Scroll {
 	public var writes(default, null):Int = 0;
 	public var painted(default, null):Int = 0;
 	public var following:Bool = true;
+
+	var menu:Null<Menu> = null;
 
 	final ticks:Vector<Int> = new Vector<Int>(KEPT);
 	final kinds:Vector<Int> = new Vector<Int>(KEPT);
@@ -113,6 +118,11 @@ final class Registers extends Scroll {
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				if (event.button == Pointer.Right) {
+					popped(rowUnder(event.y), event.x, event.y);
+					return true;
+				}
+
 				following = !following;
 				invalidate();
 				return true;
@@ -121,6 +131,74 @@ final class Registers extends Scroll {
 		}
 
 		return false;
+	}
+
+	public function rowUnder(py:Float):Int {
+		final root = root();
+		if (root == null) return -1;
+
+		final head = root.metrics.whole(24);
+		final at = Std.int((py - y - head + offsetY) / rowTall());
+
+		return at < 0 || at >= rows() ? -1 : at;
+	}
+
+	public function said(row:Int):String {
+		final index = indexOf(row);
+		if (values[index] < 0) return "";
+
+		final ym = kinds[index] == Stream.YM;
+
+		return hex(ticks[index], 8) + "  " + (ym ? "ym" : "psg")
+			+ (ym ? "  port " + ports[index] : "") + "  " + hex(values[index], 2)
+			+ "  " + named(kinds[index], ports[index], values[index]);
+	}
+
+	public function command(row:Int):String {
+		final index = indexOf(row);
+		if (values[index] < 0) return "";
+
+		if (kinds[index] != Stream.YM) return "0x50 " + hex(values[index], 2);
+
+		final port = ports[index] < 2 ? "0x52" : "0x53";
+		return port + " " + hex(values[index], 2);
+	}
+
+	function popped(row:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		final copy = menu.offer(new Choice(translate(Locale.REGISTERS_COPY)));
+		final asVgm = menu.offer(new Choice(translate(Locale.REGISTERS_AS_VGM)));
+
+		if (row < 0) {
+			copy.enabled = false;
+			asVgm.enabled = false;
+			copy.reason = translate(Locale.REGISTERS_NO_ROW);
+			asVgm.reason = copy.reason;
+		} else {
+			fires(copy, function():Void mdd.host.Sdl.setClipboard(said(row)));
+			fires(asVgm, function():Void mdd.host.Sdl.setClipboard(command(row)));
+		}
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(following
+			? Locale.REGISTERS_HOLD : Locale.REGISTERS_FOLLOW))), function():Void {
+			following = !following;
+			invalidate();
+		});
+
+		fires(menu.offer(new Choice(translate(Locale.REGISTERS_FORGET))), function():Void
+			forget());
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:Choice):Void what();
 	}
 
 	function named(kind:Int, port:Int, value:Int):String {

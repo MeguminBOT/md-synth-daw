@@ -7,6 +7,8 @@ import mdd.ui.Kind;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Pointer;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 
@@ -59,9 +61,79 @@ final class Samples extends Widget {
 	}
 
 	public var budget:Null<mdd.check.Budget> = null;
+	var menu:Null<Menu> = null;
 
 	static function kb(bytes:Int):Float {
 		return Math.round(bytes / 1024 * 10) / 10;
+	}
+
+	public var onImport:Null<Void -> Void> = null;
+
+	function popped(slot:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		fires(menu.offer(new Choice(translate(Locale.FILE_READ_WAV))), function():Void {
+			if (onImport != null) onImport();
+		});
+
+		menu.divide();
+
+		final held = session.song.samples[slot];
+		final loud = menu.offer(new Choice(translate(Locale.SAMPLE_NORMALISE)));
+		final drop = menu.offer(new Choice(translate(Locale.SAMPLE_CLEAR)));
+
+		if (held == null) {
+			loud.enabled = false;
+			drop.enabled = false;
+			loud.reason = translate(Locale.SAMPLE_EMPTY);
+			drop.reason = loud.reason;
+		} else {
+			fires(loud, function():Void normalised(held));
+			fires(drop, function():Void cleared(slot));
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:Choice):Void what();
+	}
+
+	function normalised(held:Sample):Void {
+		final bytes = held.bytes;
+		var most = 0;
+
+		for (index in 0...bytes.length) {
+			final away = bytes[index] - 128;
+			final much = away < 0 ? -away : away;
+			if (much > most) most = much;
+		}
+
+		if (most <= 0 || most >= 127) return;
+
+		final gain = 127 / most;
+
+		for (index in 0...bytes.length) {
+			final value = Math.round((bytes[index] - 128) * gain) + 128;
+			bytes[index] = value < 0 ? 0 : (value > 255 ? 255 : value);
+		}
+
+		session.say(translate(Locale.SAMPLE_NORMALISE));
+		session.changed();
+		invalidate();
+	}
+
+	function cleared(slot:Int):Void {
+		if (slot < 0 || slot >= session.song.samples.length) return;
+
+		session.song.samples.splice(slot, 1);
+		if (chosen >= session.song.samples.length) chosen = session.song.samples.length - 1;
+
+		session.changed();
+		invalidate();
 	}
 
 	public function held():Int {
@@ -95,6 +167,8 @@ final class Samples extends Widget {
 					start = 0;
 					ends = -1;
 					invalidate();
+
+					if (event.button == Pointer.Right) popped(slot, event.x, event.y);
 					return true;
 				}
 
