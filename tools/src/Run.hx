@@ -24,6 +24,7 @@ class Run {
 			case "build": build(root, project, args.slice(1), debug);
 			case "run": start(root, project, args.slice(1), debug);
 			case "gate": gate(root, project, args.slice(1));
+			case "package": packaged(root, project, args.slice(1));
 			case "clean": clean(root, project);
 			case "help", "--help", "-h": usage(project);
 			case unknown:
@@ -69,6 +70,7 @@ class Run {
 		Sys.println("  mdd build [target]    build a target. -debug for a debug build");
 		Sys.println("  mdd run [args]        build the application and start it");
 		Sys.println("  mdd gate [name]       every check, in order, or one by name");
+		Sys.println("  mdd package [kind]    portable, installer, or both");
 		Sys.println("  mdd clean             delete the output directory");
 		Sys.println("");
 		Sys.println("  targets: " + project.names().join(", "));
@@ -189,6 +191,10 @@ class Run {
 		out.add("package mdd;\n\n");
 		out.add("class Config {\n");
 		out.add("\tpublic static inline final TITLE = \"" + project.title + "\";\n");
+		out.add("\tpublic static inline final SHORT = \"" + project.short + "\";\n");
+		out.add("\tpublic static inline final COMPANY = \"" + project.company + "\";\n");
+		out.add("\tpublic static inline final CHECK_AT = \"" + project.checkAt + "\";\n");
+		out.add("\tpublic static inline final DOWNLOAD_AT = \"" + project.downloadAt + "\";\n");
 		out.add("\tpublic static inline final VERSION = \"" + project.version + "\";\n");
 		out.add("\tpublic static inline final WIDTH = " + project.windowWidth + ";\n");
 		out.add("\tpublic static inline final HEIGHT = " + project.windowHeight + ";\n");
@@ -412,6 +418,253 @@ class Run {
 		}
 
 		Sys.exit(Sys.command(shipped, args.concat(["--root", root])));
+	}
+
+	static function packaged(root:String, project:Project, args:Array<String>):Void {
+		final kind = args.length > 0 && !StringTools.startsWith(args[0], "-") ? args[0] : "both";
+
+		if (exeOf(root, project, project.targets[0].id) == "") {
+			Sys.println("mdd: build it first");
+			Sys.exit(1);
+		}
+
+		Sys.println("");
+
+		if (kind == "portable" || kind == "both") portable(root, project);
+		if (kind == "installer" || kind == "both") installer(root, project);
+
+		Sys.println("");
+	}
+
+	static function staged(root:String, project:Project, into:String):String {
+		if (FileSystem.exists(into)) remove(into);
+		tree(into);
+
+		final bin = root + "/" + project.output + "/bin";
+
+		for (entry in FileSystem.readDirectory(bin)) {
+			final from = bin + "/" + entry;
+			if (FileSystem.isDirectory(from)) continue;
+
+			final held = entry.toLowerCase();
+			if (StringTools.endsWith(held, ".pdb") || StringTools.endsWith(held, ".ilk")) continue;
+			if (StringTools.startsWith(held, "gate")) continue;
+			if (StringTools.startsWith(held, "opn2")) continue;
+
+			copyFile(from, into + "/" + entry);
+		}
+
+		final fonts = root + "/" + project.pathOf("FONTPATH");
+		tree(into + "/fonts");
+
+		for (entry in FileSystem.readDirectory(fonts)) {
+			if (!StringTools.endsWith(entry.toLowerCase(), ".ttf")) continue;
+			copyFile(fonts + "/" + entry, into + "/fonts/" + entry);
+		}
+
+		for (entry in ["LICENSE", "README.md"]) {
+			if (FileSystem.exists(root + "/" + entry)) copyFile(root + "/" + entry, into + "/" + entry);
+		}
+
+		return into;
+	}
+
+	static function archived(where:String, what:String, into:String):Int {
+		final here = Sys.getCwd();
+		Sys.setCwd(where);
+
+		final made = Sys.command("tar",
+			windows() ? ["-a", "-c", "-f", into, what] : ["-czf", into, what]);
+
+		Sys.setCwd(here);
+		return made;
+	}
+
+	static function portable(root:String, project:Project):Void {
+		final name = project.short + "-" + project.version + "-" + system() + "-portable";
+		final into = root + "/" + project.output + "/package/" + name;
+
+		staged(root, project, into);
+
+		File.saveContent(into + "/portable.txt",
+			"This file keeps " + project.title + " portable: settings live beside the program\n"
+			+ "rather than in the account's own directory. Delete it to use the usual place.\n");
+
+		final archive = root + "/" + project.output + "/package/" + name
+			+ (windows() ? ".zip" : ".tar.gz");
+
+		if (FileSystem.exists(archive)) FileSystem.deleteFile(archive);
+
+		final made = archived(root + "/" + project.output + "/package", name,
+			name + (windows() ? ".zip" : ".tar.gz"));
+
+		if (made != 0) {
+			Sys.println("  " + pad("portable") + "the folder is at " + into
+				+ ", but tar would not archive it");
+			return;
+		}
+
+		Sys.println("  " + pad("portable") + archive.substr(root.length + 1) + ", "
+			+ Math.round(FileSystem.stat(archive).size / 1024) + " kb");
+	}
+
+	static function installer(root:String, project:Project):Void {
+		if (windows()) {
+			inno(root, project);
+			return;
+		}
+
+		if (system() == "mac") {
+			bundle(root, project);
+			return;
+		}
+
+		desktop(root, project);
+	}
+
+	static function inno(root:String, project:Project):Void {
+		final into = root + "/" + project.output + "/package/windows";
+		staged(root, project, into);
+
+		final script = root + "/" + project.output + "/package/" + project.short + ".iss";
+		final out = new StringBuf();
+
+		out.add("[Setup]\n");
+		out.add("AppName=" + project.title + "\n");
+		out.add("AppVersion=" + project.version + "\n");
+		out.add("AppPublisher=" + project.company + "\n");
+		out.add("DefaultDirName={autopf}\\" + project.title + "\n");
+		out.add("DefaultGroupName=" + project.title + "\n");
+		out.add("OutputDir=" + StringTools.replace(root + "/" + project.output + "/package",
+			"/", "\\") + "\n");
+		out.add("OutputBaseFilename=" + project.short + "-" + project.version + "-setup\n");
+		out.add("Compression=lzma2\n");
+		out.add("SolidCompression=yes\n");
+		out.add("ArchitecturesInstallIn64BitMode=x64compatible\n\n");
+
+		out.add("[Files]\n");
+		out.add("Source: \"" + StringTools.replace(into, "/", "\\")
+			+ "\\*\"; DestDir: \"{app}\"; Flags: recursesubdirs ignoreversion\n\n");
+
+		out.add("[Icons]\n");
+		out.add("Name: \"{group}\\" + project.title + "\"; Filename: \"{app}\\"
+			+ project.short + ".exe\"\n");
+		out.add("Name: \"{autodesktop}\\" + project.title + "\"; Filename: \"{app}\\"
+			+ project.short + ".exe\"; Tasks: desktopicon\n\n");
+
+		out.add("[Tasks]\n");
+		out.add("Name: \"desktopicon\"; Description: \"Create a desktop shortcut\"\n\n");
+
+		out.add("[Run]\n");
+		out.add("Filename: \"{app}\\" + project.short
+			+ ".exe\"; Description: \"Start " + project.title
+			+ "\"; Flags: nowait postinstall skipifsilent\n");
+
+		File.saveContent(script, out.toString());
+
+		if (!tool("iscc", ["/?"])) {
+			Sys.println("  " + pad("installer") + script.substr(root.length + 1)
+				+ " is written; install Inno Setup and run iscc on it");
+			return;
+		}
+
+		final made = Sys.command("iscc", ["/Q", script]);
+
+		if (made != 0) {
+			Sys.println("  " + pad("installer") + "iscc would not build " + script);
+			return;
+		}
+
+		Sys.println("  " + pad("installer") + project.output + "/package/" + project.short + "-"
+			+ project.version + "-setup.exe");
+	}
+
+	static function bundle(root:String, project:Project):Void {
+		final app = root + "/" + project.output + "/package/" + project.title + ".app";
+		final inside = app + "/Contents";
+
+		if (FileSystem.exists(app)) remove(app);
+
+		tree(inside + "/MacOS");
+		tree(inside + "/Resources");
+
+		staged(root, project, inside + "/MacOS");
+
+		final out = new StringBuf();
+		out.add("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		out.add("<plist version=\"1.0\">\n<dict>\n");
+		out.add("\t<key>CFBundleName</key><string>" + project.title + "</string>\n");
+		out.add("\t<key>CFBundleExecutable</key><string>" + project.short + "</string>\n");
+		out.add("\t<key>CFBundleIdentifier</key><string>com." + project.company + "."
+			+ project.short + "</string>\n");
+		out.add("\t<key>CFBundleShortVersionString</key><string>" + project.version
+			+ "</string>\n");
+		out.add("\t<key>CFBundlePackageType</key><string>APPL</string>\n");
+		out.add("\t<key>NSHighResolutionCapable</key><true/>\n");
+		out.add("</dict>\n</plist>\n");
+
+		File.saveContent(inside + "/Info.plist", out.toString());
+
+		final image = root + "/" + project.output + "/package/" + project.short + "-"
+			+ project.version + ".dmg";
+
+		if (FileSystem.exists(image)) FileSystem.deleteFile(image);
+
+		if (!tool("hdiutil", ["help"])) {
+			Sys.println("  " + pad("installer") + app.substr(root.length + 1)
+				+ " is built; hdiutil is what turns it into a dmg");
+			return;
+		}
+
+		final made = Sys.command("hdiutil", ["create", "-volname", project.title, "-srcfolder",
+			app, "-ov", "-format", "UDZO", image]);
+
+		Sys.println("  " + pad("installer") + (made == 0
+			? image.substr(root.length + 1) : "hdiutil would not make a dmg"));
+	}
+
+	static function desktop(root:String, project:Project):Void {
+		final into = root + "/" + project.output + "/package/" + project.short + "-"
+			+ project.version;
+
+		staged(root, project, into);
+
+		final out = new StringBuf();
+		out.add("[Desktop Entry]\n");
+		out.add("Type=Application\n");
+		out.add("Name=" + project.title + "\n");
+		out.add("Comment=" + project.description + "\n");
+		out.add("Exec=" + project.short + "\n");
+		out.add("Terminal=false\n");
+		out.add("Categories=AudioVideo;Audio;Music;\n");
+
+		File.saveContent(into + "/" + project.short + ".desktop", out.toString());
+
+		final out2 = new StringBuf();
+		out2.add("#!/usr/bin/env sh\n");
+		out2.add("set -e\n");
+		out2.add("HERE=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n");
+		out2.add("PREFIX=\"${PREFIX:-$HOME/.local}\"\n");
+		out2.add("mkdir -p \"$PREFIX/lib/" + project.short + "\" \"$PREFIX/bin\" "
+			+ "\"$PREFIX/share/applications\"\n");
+		out2.add("cp -r \"$HERE\"/* \"$PREFIX/lib/" + project.short + "/\"\n");
+		out2.add("ln -sf \"$PREFIX/lib/" + project.short + "/" + project.short
+			+ "\" \"$PREFIX/bin/" + project.short + "\"\n");
+		out2.add("cp \"$HERE/" + project.short + ".desktop\" "
+			+ "\"$PREFIX/share/applications/\"\n");
+		out2.add("echo \"installed to $PREFIX\"\n");
+
+		File.saveContent(into + "/install.sh", out2.toString());
+
+		final archive = into + ".tar.gz";
+		if (FileSystem.exists(archive)) FileSystem.deleteFile(archive);
+
+		final held = project.short + "-" + project.version;
+		final made = archived(root + "/" + project.output + "/package", held, held + ".tar.gz");
+
+		Sys.println("  " + pad("installer") + (made == 0
+			? archive.substr(root.length + 1) + " with install.sh and a desktop entry"
+			: "tar would not archive " + into));
 	}
 
 	static function clean(root:String, project:Project):Void {

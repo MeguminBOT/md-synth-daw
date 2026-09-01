@@ -5,39 +5,41 @@ import sys.FileSystem;
 class Paths {
 	public static function settings():String {
 		#if windows
-		return beneath(env("APPDATA"), "mdd");
+		return beneath(env("APPDATA"), mdd.Config.SHORT);
 		#elseif mac
-		return beneath(home() + "/Library/Application Support", "mdd");
+		return beneath(home() + "/Library/Application Support", mdd.Config.SHORT);
 		#else
 		final given = env("XDG_CONFIG_HOME");
-		return beneath(given != "" ? given : home() + "/.config", "mdd");
+		return beneath(given != "" ? given : home() + "/.config", mdd.Config.SHORT);
 		#end
 	}
 
 	public static function data():String {
 		#if windows
-		return beneath(env("LOCALAPPDATA"), "mdd");
+		return beneath(env("LOCALAPPDATA"), mdd.Config.SHORT);
 		#elseif mac
-		return beneath(home() + "/Library/Application Support", "mdd");
+		return beneath(home() + "/Library/Application Support", mdd.Config.SHORT);
 		#else
 		final given = env("XDG_DATA_HOME");
-		return beneath(given != "" ? given : home() + "/.local/share", "mdd");
+		return beneath(given != "" ? given : home() + "/.local/share", mdd.Config.SHORT);
 		#end
 	}
 
 	public static function documents():String {
 		#if windows
-		return beneath(home() + "/Documents", "mdd");
+		return beneath(home() + "/Documents", mdd.Config.SHORT);
 		#elseif mac
-		return beneath(home() + "/Documents", "mdd");
+		return beneath(home() + "/Documents", mdd.Config.SHORT);
 		#else
-		return beneath(home(), "mdd");
+		return beneath(home(), mdd.Config.SHORT);
 		#end
 	}
 
 	public static function beside():String {
 		final exe = Sys.programPath();
-		return exe == "" ? Sys.getCwd() : haxe.io.Path.directory(exe);
+		final held = exe == "" ? Sys.getCwd() : haxe.io.Path.directory(exe);
+
+		return haxe.io.Path.removeTrailingSlashes(StringTools.replace(held, "\\", "/"));
 	}
 
 	public static inline function suffix():String {

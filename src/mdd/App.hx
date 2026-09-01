@@ -7,6 +7,7 @@ import mdd.host.Event;
 import mdd.host.Native;
 import mdd.host.Paths;
 import mdd.host.Settings;
+import mdd.host.Update;
 import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;
@@ -31,6 +32,7 @@ import mdd.ui.MenuBar;
 import mdd.view.Dock;
 import mdd.view.Files;
 import mdd.view.Inspector;
+import mdd.view.Notice;
 import mdd.view.Preferences;
 import mdd.view.Session;
 import mdd.view.Speech;
@@ -61,6 +63,8 @@ class App {
 	var files:Null<Files> = null;
 	var preferences:Null<Preferences> = null;
 	var settings:Null<Settings> = null;
+	var update:Null<Update> = null;
+	var notice:Null<Notice> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -157,12 +161,24 @@ class App {
 
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
+		preferences.onKeep = function():Void keeps();
+		preferences.onKeeping = function(every:Float):Void files.every = every;
+
+		update = new Update(Config.CHECK_AT, Config.DOWNLOAD_AT, Config.VERSION);
+
+		notice = new Notice(session);
+		notice.update = update;
+		notice.onTake = function():Void fetching();
+		notice.onNever = function():Void {
+			settings.flag("update", false);
+			settings.save();
+		};
 
 		settings = new Settings();
 		settings.load();
 		remembered();
 
-		preferences.onKeep = function():Void keeps();
+
 
 		commands();
 		root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
@@ -173,6 +189,8 @@ class App {
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
 		session.say("ready");
+
+		keeps();
 
 		session.onChange = function(session:Session):Void changed();
 		changed();
@@ -217,6 +235,15 @@ class App {
 			files.ask(window, Files.MIDI));
 		file.divide();
 		file.divide();
+		final looking = file.offer(new Choice(root.saying("file.update")));
+
+		if (update.possible()) fired(looking, function():Void looks());
+		else {
+			looking.enabled = false;
+			looking.reason = "no update address is configured in project.xml";
+		}
+
+		file.divide();
 		fired(file.offer(new Choice(root.saying("file.preferences"), "Ctrl+,")), function():Void
 			opened());
 		file.divide();
@@ -249,10 +276,70 @@ class App {
 		menus.offer(root.saying("menu.view"), view);
 	}
 
+	function looks():Void {
+		if (!update.look()) {
+			session.say(update.state() == Update.LOOKING ? "already looking"
+				: "no update address is configured");
+			session.changed();
+			return;
+		}
+
+		session.say("looking for an update");
+		session.changed();
+	}
+
+	function fetching():Void {
+		final into = Paths.documents() + "/" + Config.SHORT + "-" + update.offered
+			+ Paths.suffix();
+
+		if (update.take(into)) session.say("downloading to " + into);
+		else session.say("that update cannot be downloaded");
+
+		session.changed();
+	}
+
+	function watched():Bool {
+		if (update == null) return false;
+
+		switch (update.state()) {
+			case Update.WAITING:
+				if (root.sheet == notice) return false;
+
+				notice.arrive();
+				root.raise(notice);
+				return true;
+
+			case Update.CURRENT:
+				if (session.said == "looking for an update") {
+					session.say("this is the newest version");
+					session.changed();
+					return true;
+				}
+				return false;
+
+			case Update.UNREACHABLE:
+				update.forget();
+				session.say("the update address would not answer");
+				session.changed();
+				return true;
+
+			case Update.FETCHED:
+				update.forget();
+				session.say("downloaded to " + update.into + ", close this and run it");
+				session.changed();
+				return true;
+
+			case _:
+				return false;
+		}
+	}
+
 	function remembered():Void {
 		final which = settings.asWhole("theme", 0);
 		final motion = settings.asWhole("motion", root.flow);
 		final density = settings.asWhole("density", 1);
+		final keeping = settings.asWhole("keeping", 2);
+		if (settings.asFlag("update", true) && update.possible()) update.look();
 
 		session.theme = which;
 		session.motion = motion;
@@ -261,6 +348,7 @@ class App {
 		root.flow = motion;
 
 		preferences.chose(Preferences.DENSITY, density);
+		preferences.chose(Preferences.KEEPING, keeping);
 		root.reshape();
 	}
 
@@ -270,6 +358,7 @@ class App {
 		settings.whole("theme", session.theme);
 		settings.whole("motion", session.motion);
 		settings.whole("density", preferences.density);
+		settings.whole("keeping", preferences.keeping);
 		settings.whole("width", Sdl.windowWidth(window));
 		settings.whole("height", Sdl.windowHeight(window));
 		settings.put("song", files == null ? "" : files.path);
@@ -483,13 +572,17 @@ class App {
 		Sys.println("  display scale " + scale);
 		Sys.println("  motion        " + (root.flow == Flow.Reduced ? "reduced, as the desktop asks"
 			: "full"));
-		Sys.println("  settings      " + Paths.settings());
+		Sys.println("  settings      " + settings.path);
 		Sys.println("  audio         " + (speaker == null ? "no device"
 			: Audio.name(speaker) + ", " + Audio.rate(speaker) + " Hz"));
 		Sys.println("  profile       " + budget.profile.name + ", "
 			+ budget.profile.counted() + " parts");
 		Sys.println("  remembered    " + settings.read + " settings from "
-			+ settings.path.substr(settings.path.lastIndexOf("/") + 1));
+			+ (settings.portable ? "beside the program" : "the settings directory"));
+		Sys.println("  saving        " + (files.every <= 0 ? "only when asked"
+			: "on its own every " + Std.int(files.every / 60) + " minutes"));
+		Sys.println("  updates       " + (update.possible()
+			? "looking at " + update.checkAt : "no address configured, never looks"));
 	}
 
 	function loop():Void {
@@ -507,6 +600,8 @@ class App {
 
 			root.advance(since);
 			if (files != null && files.poll()) root.soil();
+			if (files != null && files.tick(since)) root.soil();
+			if (watched()) root.soil();
 			watch();
 			draw();
 		}

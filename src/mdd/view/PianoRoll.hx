@@ -307,6 +307,27 @@ final class PianoRoll extends Widget {
 
 			menu.divide();
 
+			final scales = new Menu();
+
+			for (kind in 0...mdd.song.Scale.KINDS) {
+				final choice = scales.offer(new Choice(root.saying(
+					mdd.song.Scale.nameOf(kind))));
+
+				fires(choice, function():Void scaled(kind, session.scale.root));
+			}
+
+			final keys = new Menu();
+
+			for (note in 0...12) {
+				final choice = keys.offer(new Choice(mdd.song.Scale.rootOf(note)));
+				fires(choice, function():Void scaled(session.scale.kind, note));
+			}
+
+			menu.offer(new Choice("Scale")).submenu = scales;
+			menu.offer(new Choice("Key")).submenu = keys;
+
+			menu.divide();
+
 			fires(menu.offer(new Choice("Zoom to fit")), function():Void fitted());
 			fires(menu.offer(new Choice("Snap to a beat")), function():Void snapped(24));
 			fires(menu.offer(new Choice("Snap to a bar")), function():Void snapped(96));
@@ -352,6 +373,22 @@ final class PianoRoll extends Widget {
 		note.pitch = want < LOWEST ? LOWEST : (want > HIGHEST ? HIGHEST : want);
 
 		session.say("moved to " + note.pitch);
+		session.changed();
+		invalidate();
+	}
+
+	function scaled(kind:Int, key:Int):Void {
+		session.scale.kind = kind;
+		session.scale.root = key;
+
+		final held = root();
+		final named = held == null ? mdd.song.Scale.nameOf(kind)
+			: held.saying(mdd.song.Scale.nameOf(kind));
+
+		session.say(kind == mdd.song.Scale.CHROMATIC ? "every note lit"
+			: mdd.song.Scale.rootOf(key) + " " + named + ", "
+			+ session.scale.degrees() + " of twelve lit");
+
 		session.changed();
 		invalidate();
 	}
@@ -457,8 +494,17 @@ final class PianoRoll extends Widget {
 			}
 			if (row + rowTall < top) break;
 
-			if (BLACK[pitch % 12]) paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.5);
-			else if (pitch % 12 == 0) {
+			final scale = session.scale;
+			final lit = session.highlight && scale.kind != mdd.song.Scale.CHROMATIC;
+
+			if (lit && scale.rooted(pitch)) {
+				paint.rect(left, row, width - gutter(), rowTall,
+					theme.part(session.part.index()), 0.14);
+			} else if (lit && !scale.holds(pitch)) {
+				paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.72);
+			} else if (BLACK[pitch % 12]) {
+				paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.5);
+			} else if (pitch % 12 == 0) {
 				paint.rect(left, row, width - gutter(), rowTall, theme.raise1, 0.4);
 			}
 

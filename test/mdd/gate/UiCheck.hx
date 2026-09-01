@@ -125,6 +125,7 @@ class UiCheck {
 		saying();
 		modal();
 		remembers();
+		updates();
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
@@ -692,6 +693,30 @@ class UiCheck {
 		says("and an absent one falls back", back.asWhole("nothing", 7) == 7
 			&& back.of("nothing", "held") == "held",
 			"a key that was never written gives what the caller asked for instead");
+	}
+
+	static function updates():Void {
+		var right = true;
+
+		for (pair in [["0.2.0", "0.1.9"], ["1.0.0", "0.9.9"], ["0.1.10", "0.1.9"],
+				["1.2.3", "1.2.2"]]) {
+			if (!mdd.host.Update.newer(pair[0], pair[1])) right = false;
+		}
+
+		for (pair in [["0.1.0", "0.1.0"], ["0.1.0", "0.2.0"], ["0.9.9", "1.0.0"],
+				["1.2.2", "1.2.3"]]) {
+			if (mdd.host.Update.newer(pair[0], pair[1])) right = false;
+		}
+
+		says("a version is compared in parts", right,
+			"0.1.10 is newer than 0.1.9 and 0.9.9 is not newer than 1.0.0, which string order "
+			+ "gets wrong both ways");
+
+		final quiet = new mdd.host.Update("", "", "0.1.0");
+
+		says("no address means no looking", !quiet.possible() && !quiet.look()
+			&& quiet.state() == mdd.host.Update.IDLE,
+			"an updater with no address configured never reaches the network");
 	}
 
 	static function saying():Void {

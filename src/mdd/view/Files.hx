@@ -29,13 +29,63 @@ final class Files {
 	public var path(default, null):String = "";
 	public var asking(default, null):Int = NOTHING;
 
+	public var every:Float = 0;
+	public var since(default, null):Float = 0;
+	public var kept(default, null):Int = 0;
+	public var recovered(default, null):String = "";
+
+	var edits:Int = -1;
+
 	public var onLoad:Null<Song -> Void> = null;
 
-	final session:Session;
+	public final session:Session;
 	var chooser:cpp.Star<Chooser> = null;
 
 	public function new(session:Session) {
 		this.session = session;
+	}
+
+	public function tick(seconds:Float):Bool {
+		if (every <= 0) return false;
+
+		since += seconds;
+		if (since < every) return false;
+
+		since = 0;
+		return keep();
+	}
+
+	public function keep():Bool {
+		final depth = session.history.depth();
+		if (depth == edits) return false;
+
+		final where = path != "" ? path : recovery();
+
+		try {
+			Project.save(session.song, where);
+		} catch (e:Dynamic) {
+			session.say("that would not save on its own: " + e);
+			return true;
+		}
+
+		edits = depth;
+		kept++;
+		recovered = path != "" ? "" : where;
+
+		session.say(path != "" ? "saved on its own" : "kept a recovery beside the settings");
+		return true;
+	}
+
+	public function recovery():String {
+		final held = mdd.host.Settings.carried()
+			? Paths.beside() : Paths.settings();
+
+		return held + "/recovered.mdd";
+	}
+
+	public function forget():Void {
+		edits = session.history.depth();
+		since = 0;
 	}
 
 	public function ask(window:cpp.Star<Window>, what:Int):Void {
@@ -103,6 +153,7 @@ final class Files {
 
 		path = where;
 		if (onLoad != null) onLoad(song);
+		forget();
 
 		session.say("opened " + name(where) + ", " + song.patterns.length + " patterns and "
 			+ song.instruments.length + " instruments");
@@ -113,6 +164,7 @@ final class Files {
 
 		Project.save(session.song, named);
 		path = named;
+		forget();
 
 		session.say("saved " + name(named));
 		return named;

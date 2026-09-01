@@ -12,6 +12,12 @@ class Speech {
 		words.put("preference.motion", "Motion");
 		words.put("preference.language", "Language");
 		words.put("preference.density", "Density");
+		words.put("preference.keeping", "Saving on its own");
+
+		words.put("keeping.never", "Never");
+		words.put("keeping.one", "Every minute");
+		words.put("keeping.five", "Every 5 minutes");
+		words.put("keeping.ten", "Every 10 minutes");
 
 		words.put("theme.midnight", "Midnight");
 		words.put("theme.rack", "Rack");
@@ -50,6 +56,25 @@ class Speech {
 		words.put("view.arrangement", "Arrangement");
 		words.put("view.mixer", "Mixer");
 		words.put("view.warnings", "Warnings");
+
+		words.put("scale.chromatic", "Chromatic");
+		words.put("scale.major", "Major");
+		words.put("scale.minor", "Natural minor");
+		words.put("scale.harmonic", "Harmonic minor");
+		words.put("scale.dorian", "Dorian");
+		words.put("scale.mixolydian", "Mixolydian");
+		words.put("scale.pentatonic", "Pentatonic");
+		words.put("scale.minorPentatonic", "Minor pentatonic");
+		words.put("scale.blues", "Blues");
+
+		words.put("update.found", "There is a newer version");
+		words.put("update.running", "Running");
+		words.put("update.offered", "Available");
+		words.put("update.consent", "Nothing is downloaded until asked for.");
+		words.put("update.take", "Download it");
+		words.put("update.later", "Not now");
+		words.put("update.never", "Stop looking");
+		words.put("file.update", "Look for an update");
 
 		words.put("ready", "ready");
 

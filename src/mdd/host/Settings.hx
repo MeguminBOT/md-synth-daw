@@ -6,15 +6,28 @@ import sys.io.File;
 @:unreflective
 final class Settings {
 	public static inline final NAME = "settings.txt";
+	public static inline final MARK = "portable.txt";
 
 	public var path(default, null):String;
+	public var portable(default, null):Bool = false;
 	public var read(default, null):Int = 0;
 
 	final keys:Array<String> = [];
 	final said:Array<String> = [];
 
 	public function new(path:String = "") {
-		this.path = path == "" ? Paths.settings() + "/" + NAME : path;
+		if (path != "") {
+			this.path = path;
+			return;
+		}
+
+		portable = carried();
+		this.path = (portable ? Paths.beside() : Paths.settings()) + "/" + NAME;
+	}
+
+	public static function carried():Bool {
+		final beside = Paths.beside();
+		return FileSystem.exists(beside + "/" + MARK) || FileSystem.exists(beside + "/" + NAME);
 	}
 
 	public function put(key:String, value:String):Void {

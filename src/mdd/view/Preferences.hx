@@ -16,10 +16,16 @@ final class Preferences extends Widget {
 	public static inline final MOTION = 1;
 	public static inline final LANGUAGE = 2;
 	public static inline final DENSITY = 3;
-	public static inline final ROWS = 4;
+	public static inline final KEEPING = 4;
+	public static inline final ROWS = 5;
 
 	static final NAMES:Array<String> = ["preference.theme", "preference.motion",
-		"preference.language", "preference.density"];
+		"preference.language", "preference.density", "preference.keeping"];
+
+	static final KEEPINGS:Array<String> = ["keeping.never", "keeping.one", "keeping.five",
+		"keeping.ten"];
+
+	public static final MINUTES:Array<Float> = [0, 60, 300, 600];
 
 	static final THEMES:Array<String> = ["theme.midnight", "theme.rack", "theme.slate"];
 	static final MOTIONS:Array<String> = ["motion.full", "motion.reduced", "motion.none"];
@@ -31,12 +37,14 @@ final class Preferences extends Widget {
 	public var chosen(default, null):Int = 0;
 	public var density(default, null):Int = 1;
 	public var language(default, null):Int = 0;
+	public var keeping(default, null):Int = 2;
 
 	public final rise:Motion;
 	public final fade:Motion;
 
 	public var onScale:Null<Float -> Void> = null;
 	public var onKeep:Null<Void -> Void> = null;
+	public var onKeeping:Null<Float -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverOn:Int = -1;
@@ -92,6 +100,7 @@ final class Preferences extends Widget {
 			case THEME: THEMES;
 			case MOTION: MOTIONS;
 			case DENSITY: DENSITIES;
+			case KEEPING: KEEPINGS;
 			case _: languages;
 		}
 	}
@@ -101,35 +110,42 @@ final class Preferences extends Widget {
 			case THEME: session.theme;
 			case MOTION: session.motion;
 			case DENSITY: density;
+			case KEEPING: keeping;
 			case _: language;
 		}
 	}
 
 	public function chose(row:Int, which:Int):Void {
 		final root = root();
-		if (root == null) return;
 
 		switch (row) {
 			case THEME:
 				session.theme = which;
-				root.theme.wear(which);
+				if (root != null) root.theme.wear(which);
 				session.say("theme " + which);
 
 			case MOTION:
 				session.motion = which;
-				root.flow = which;
+				if (root != null) root.flow = which;
 				session.say("motion " + which);
 
 			case DENSITY:
 				density = which;
 				if (onScale != null) onScale(0.9 + which * 0.1);
 
+			case KEEPING:
+				keeping = which;
+				if (onKeeping != null) onKeeping(MINUTES[which]);
+				session.say(which == 0 ? "no saving on its own"
+					: "saving on its own every " + Std.int(MINUTES[which] / 60) + " minutes");
+
 			case _:
 				language = which;
 				session.say("language " + languages[which]);
 		}
 
-		root.reshape();
+		if (root != null) root.reshape();
+
 		session.changed();
 		invalidate();
 

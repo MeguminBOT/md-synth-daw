@@ -36,6 +36,7 @@ class TierCheck {
 		midi();
 		sampling();
 		filed();
+		keeping();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -51,7 +52,7 @@ class TierCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 40) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shown(value:Float, places:Int):Float {
@@ -211,6 +212,56 @@ class TierCheck {
 
 		says("the exported midi reads", notes > 0,
 			notes + " notes come back out of the exported midi file");
+	}
+
+	static function keeping():Void {
+		final into = Gate.root + "/export/keeping";
+
+		wipe(into);
+		sys.FileSystem.createDirectory(into);
+
+		final session = Session.started();
+		final files = new Files(session);
+
+		files.every = 2;
+
+		says("it waits its interval", !files.tick(1.0) && files.tick(1.5),
+			"nothing at one second of a two second interval, and a save at two and a half");
+
+		final made = files.save(into + "/held");
+
+		says("and a save takes the path", files.path == made
+			&& sys.FileSystem.exists(made),
+			"saving by hand puts the path on the files so the next one goes there");
+
+		says("and nothing changed means nothing written", !files.tick(3.0),
+			"an interval with no edit behind it does not rewrite the file");
+
+		session.does(new mdd.song.AddNote(0, Part.Fm1,
+			new mdd.song.Note(0, 48, 60, 100)));
+
+		final was = files.kept;
+		final wrote = files.tick(3.0);
+
+		says("and an edit brings it back", wrote && files.kept == was + 1,
+			"one note written, and the next interval saved it, " + files.kept
+			+ " saves in all");
+
+		final recovery = new Files(Session.started());
+		recovery.every = 1;
+		recovery.session.does(new mdd.song.AddNote(0, Part.Fm1,
+			new mdd.song.Note(0, 48, 60, 100)));
+
+		recovery.tick(2.0);
+
+		says("and an unsaved song has somewhere to go", recovery.recovered != ""
+			&& sys.FileSystem.exists(recovery.recovered),
+			"a song that was never saved by hand is kept at "
+			+ Files.name(recovery.recovered));
+
+		says("a portable copy is told by a file", !mdd.host.Settings.carried()
+			|| sys.FileSystem.exists(mdd.host.Paths.beside() + "/portable.txt"),
+			"settings live beside the program only when a marker beside it says so");
 	}
 
 	static function started(made:Transcription):Array<Int> {

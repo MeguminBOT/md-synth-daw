@@ -32,6 +32,7 @@ class CheckCheck {
 		ranges();
 		registers();
 		speed();
+		scales();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -47,7 +48,7 @@ class CheckCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 40) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function round(value:Float, places:Int):Float {
@@ -189,6 +190,50 @@ class CheckCheck {
 
 		says("a key on that is not there", keys > 0,
 			keys + " key ons name a channel it does not have");
+	}
+
+	static function scales():Void {
+		final scale = new mdd.song.Scale(0, mdd.song.Scale.CHROMATIC);
+
+		var all = true;
+		for (pitch in 48...72) if (!scale.holds(pitch)) all = false;
+
+		says("chromatic holds everything", all && scale.degrees() == 12,
+			"every one of twelve is in the chromatic scale, which is what makes it the default");
+
+		scale.kind = mdd.song.Scale.MAJOR;
+		scale.root = 0;
+
+		final wanted = [0, 2, 4, 5, 7, 9, 11];
+		var major = true;
+
+		for (step in 0...12) {
+			final inside = wanted.indexOf(step) >= 0;
+			if (scale.holds(60 + step) != inside) major = false;
+		}
+
+		says("major is the major scale", major && scale.degrees() == 7 && scale.rooted(60)
+			&& scale.rooted(72) && !scale.rooted(61),
+			"C major lights " + scale.degrees() + " of twelve, and every C is the root");
+
+		scale.root = 9;
+		scale.kind = mdd.song.Scale.MINOR;
+
+		var minor = true;
+		for (step in [9, 11, 0, 2, 4, 5, 7]) if (!scale.holds(60 + step)) minor = false;
+		for (step in [10, 1, 3, 6, 8]) if (scale.holds(60 + step)) minor = false;
+
+		says("a natural minor moves with its root", minor && scale.rooted(69),
+			"A minor lights the same pitches as C major, rooted on A instead");
+
+		var named = true;
+		for (kind in 0...mdd.song.Scale.KINDS) {
+			if (mdd.song.Scale.nameOf(kind) == "") named = false;
+		}
+
+		says("every scale has a name", named && mdd.song.Scale.rootOf(1) == "C#"
+			&& mdd.song.Scale.rootOf(-1) == "B",
+			mdd.song.Scale.KINDS + " scales, and a root that wraps below zero");
 	}
 
 	static function speed():Void {
