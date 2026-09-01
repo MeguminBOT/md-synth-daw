@@ -255,6 +255,10 @@ class App {
 
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
+		centre.roll.onAudition = function(part:Part, pitch:Int):Void
+			session.transport.auditions(part, pitch);
+		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
+			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
 		centre.samples.budget = budget;
 		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
@@ -850,6 +854,10 @@ class App {
 		shell.zone(Shell.DOCK).add(dock);
 
 		centre.roll.budget = budget;
+		centre.roll.onAudition = function(part:Part, pitch:Int):Void
+			session.transport.auditions(part, pitch);
+		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
+			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
 		centre.samples.budget = budget;
 		centre.samples.onImport = function():Void files.ask(window, Files.READ_WAV);

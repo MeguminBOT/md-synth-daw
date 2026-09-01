@@ -1,5 +1,6 @@
 package mdd.play;
 
+import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
 
@@ -23,7 +24,13 @@ final class Transport {
 
 	final gate:sys.thread.Mutex = new sys.thread.Mutex();
 
+	public static inline final AUDITION_BLOCKS = 90;
+
 	public var source:Null<Stream> = null;
+	var heardPart:Int = -1;
+	var heardNote:Int = 0;
+	var heardLeft:Int = 0;
+	var heardFresh:Bool = false;
 	var poured:Int = 0;
 
 	var carried:Int = 0;
@@ -66,6 +73,11 @@ final class Transport {
 
 		if (!playing) {
 			stepped = 0;
+
+			gate.acquire();
+			auditioned(position);
+			gate.release();
+
 			return position;
 		}
 
@@ -83,6 +95,8 @@ final class Transport {
 		if (source != null) replayed(from, until);
 		else sequencer.emit(stream, from, until);
 
+		auditioned(from);
+
 		gate.release();
 		served++;
 		stepped = until - from;
@@ -95,6 +109,53 @@ final class Transport {
 		}
 
 		return from;
+	}
+
+	public function auditions(part:Part, note:Int):Void {
+		gate.acquire();
+
+		heardPart = part.index();
+		heardNote = note;
+		heardLeft = AUDITION_BLOCKS;
+		heardFresh = true;
+
+		gate.release();
+	}
+
+	function auditioned(at:Int):Void {
+		if (heardPart < 0) return;
+
+		final part:Part = heardPart;
+
+		if (heardFresh) {
+			heardFresh = false;
+
+			final instrument = song.instrumentAt(song.rack[heardPart]);
+
+			if (part.fm()) {
+				if (instrument != null && instrument.patch != null) {
+					stream.patch(at, part, instrument.patch, 110);
+				}
+
+				stream.tune(at, part, heardNote);
+				stream.keyOn(at, part);
+			} else if (part.square()) {
+				stream.square(at, part, heardNote);
+				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);
+			} else if (part.noise()) {
+				if (instrument != null && instrument.envelope != null) {
+					stream.noise(at, instrument.envelope.noise);
+				}
+
+				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);
+			}
+		}
+
+		heardLeft--;
+		if (heardLeft > 0) return;
+
+		stream.silence(at, part);
+		heardPart = -1;
 	}
 
 	function replayed(from:Int, until:Int):Void {

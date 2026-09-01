@@ -39,6 +39,7 @@ class AudioCheck {
 		offline();
 		pitch();
 		shape();
+		auditioned();
 		device(Math.isNaN(live) ? LIVE : live);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -200,6 +201,50 @@ class AudioCheck {
 		says("the render keeps up", spent < OFFLINE,
 			Std.int(OFFLINE) + " s of audio rendered in " + round(spent, 2) + " s, "
 			+ round(OFFLINE / spent, 1) + " times faster than real time");
+	}
+
+	static function auditioned():Void {
+		final session = mdd.view.Session.started();
+		final render = new Render(RATE, Render.BLOCK);
+
+		render.transport = session.transport;
+
+		var before = 0.0;
+
+		for (block in 0...40) {
+			final from = session.transport.advance(Render.BLOCK, RATE);
+			final many = render.serve(session.transport.stream, from, Render.BLOCK,
+				session.transport.entering);
+
+			if (block < 30) continue;
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > before) before = much;
+			}
+		}
+
+		session.transport.auditions(mdd.song.Part.Fm1, 60);
+
+		var after = 0.0;
+
+		for (block in 0...40) {
+			final from = session.transport.advance(Render.BLOCK, RATE);
+			final many = render.serve(session.transport.stream, from, Render.BLOCK,
+				session.transport.entering);
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > after) after = much;
+			}
+		}
+
+		says("a key sounds without playing", after > before * 5,
+			"the transport stopped and settled renders " + round(before, 5)
+			+ ", and a key on FM1"
+			+ " asked for through the stream renders " + round(after, 4));
 	}
 
 	static function toned(render:Render):Void {

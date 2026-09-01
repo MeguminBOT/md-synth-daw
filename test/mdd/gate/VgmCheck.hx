@@ -115,46 +115,60 @@ class VgmCheck {
 	}
 
 	static function transported(where:String, files:Array<String>):Void {
-		if (files.length == 0) return;
+		final wanted = ["Green Hill", "Emerald Hill", "Chemical Plant", "Star Light"];
+		final said = new StringBuf();
 
-		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + files[0]),
-			stream);
+		var played = 0;
+		var quiet = 0;
 
-		final made = mdd.format.Transcription.of(stream, vgm.rate, files[0]);
-		final song = made.song;
+		for (want in wanted) {
+			var name = "";
 
-		final transport = new mdd.play.Transport(song, 1 << 18);
-		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+			for (held in files) if (held.indexOf(want) >= 0) name = held;
+			if (name == "") continue;
 
-		render.transport = transport;
-		transport.source = stream;
-		transport.play();
+			final stream = new mdd.play.Stream(1 << 22);
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+				stream);
 
-		var done = 0;
-		var most = 0.0;
-		var writes = 0;
+			final made = mdd.format.Transcription.of(stream, vgm.rate, name);
+			final transport = new mdd.play.Transport(made.song, 1 << 18);
+			final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
-		while (done < 44100 * 4) {
-			final from = transport.advance(mdd.play.Render.BLOCK, 44100);
-			final many = render.serve(transport.stream, from, mdd.play.Render.BLOCK,
-				transport.entering);
+			render.transport = transport;
+			transport.source = stream;
+			transport.play();
 
-			if (many <= 0) break;
+			var done = 0;
+			var most = 0.0;
+			var writes = 0;
 
-			for (i in 0...many * 2) {
-				final value = render.block[i] < 0 ? -render.block[i] : render.block[i];
-				if (value > most) most = value;
+			while (done < 44100 * 4) {
+				final from = transport.advance(mdd.play.Render.BLOCK, 44100);
+				final many = render.serve(transport.stream, from, mdd.play.Render.BLOCK,
+					transport.entering);
+
+				if (many <= 0) break;
+
+				for (i in 0...many) {
+					final value = render.block[i * 2];
+					final much = value < 0 ? -value : value;
+					if (much > most) most = much;
+				}
+
+				writes += transport.stream.count;
+				done += many;
 			}
 
-			if (transport.stream.count > writes) writes = transport.stream.count;
-			done += many;
+			played++;
+			if (most < 0.15) quiet++;
+
+			said.add(want + " " + round(most, 3) + " over " + writes + " writes   ");
 		}
 
-		says("and playing it back is the file", most > 0.15 && writes > 0,
-			"four seconds of " + files[0] + " driven the way the device asks for it, "
-			+ writes + " register writes reaching the chips and the loudest sample "
-			+ round(most, 4));
+		says("and playing one back is the file", played > 0 && quiet == 0,
+			played + " sonic tracks driven four seconds each the way the device asks for"
+			+ " them: " + said.toString());
 	}
 
 	static function rated(where:String, files:Array<String>):Void {
