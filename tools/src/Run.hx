@@ -1187,7 +1187,23 @@ class Run {
 		}
 	}
 
+	static function alike(from:String, to:String):Bool {
+		if (!FileSystem.exists(to)) return false;
+
+		try {
+			final source = FileSystem.stat(from);
+			final held = FileSystem.stat(to);
+
+			return held.size == source.size
+				&& held.mtime.getTime() >= source.mtime.getTime();
+		} catch (e:Dynamic) {
+			return false;
+		}
+	}
+
 	static function copyFile(from:String, to:String):Void {
+		if (alike(from, to)) return;
+
 		var attempt = 0;
 
 		while (attempt < 5) {
