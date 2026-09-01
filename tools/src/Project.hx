@@ -42,6 +42,7 @@ class Project {
 
 	public var targets(default, null):Array<Target> = [];
 	public var defines(default, null):Array<String> = [];
+	public var libraries(default, null):Array<String> = [];
 	public var vendors(default, null):Array<Vendor> = [];
 	public var paths(default, null):Array<Named> = [];
 	public var includes(default, null):Array<String> = [];
@@ -115,6 +116,9 @@ class Project {
 					if (child.nodeName == "source" && allowed(child)) own.push(child.get("path"));
 				}
 				targets.push({ id: node.get("id"), main: node.get("main"), sources: own });
+
+			case "library":
+				libraries.push(node.get("name"));
 
 			case "define":
 				defines.push(has(node, "value")

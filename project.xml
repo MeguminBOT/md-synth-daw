@@ -21,6 +21,11 @@
 	<generated path="export/haxe" />
 	<languages path="assets/lang" />
 	<icons path="assets/icon" />
+
+	<!-- A debug build carries the hxcpp debug server, so a debugger can attach to it on
+	     port 6972. A release build does not. -->
+
+	<library name="hxcpp-debug-server" if="debug" />
 	<output path="export" />
 
 	<target id="mdd" main="mdd.App" />

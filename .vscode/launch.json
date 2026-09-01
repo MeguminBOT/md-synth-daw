@@ -1,0 +1,37 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "mdd",
+			"type": "hxcpp",
+			"request": "launch",
+			"program": "${workspaceFolder}/export/bin/mdd.exe",
+			"cwd": "${workspaceFolder}",
+			"preLaunchTask": "mdd build -debug"
+		},
+		{
+			"name": "mdd with a vgm",
+			"type": "hxcpp",
+			"request": "launch",
+			"program": "${workspaceFolder}/export/bin/mdd.exe",
+			"cwd": "${workspaceFolder}",
+			"args": [
+				"vendor/vgm/02 - Green Hill Zone.vgm"
+			],
+			"preLaunchTask": "mdd build -debug"
+		},
+		{
+			"name": "mdd gate fuzz",
+			"type": "hxcpp",
+			"request": "launch",
+			"program": "${workspaceFolder}/export/bin/gate.exe",
+			"cwd": "${workspaceFolder}",
+			"args": [
+				"--root",
+				".",
+				"fuzz"
+			],
+			"preLaunchTask": "mdd build gate -debug"
+		}
+	]
+}

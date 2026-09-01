@@ -77,11 +77,15 @@ class Run {
 		Sys.println("  mdd check             what is present and what is missing");
 		Sys.println("  mdd build [target]    build a target. -debug for a debug build");
 		Sys.println("  mdd run [args]        build the application and start it");
+		Sys.println("  mdd run -debug        the same, carrying the hxcpp debug server on"
+			+ " 6972");
 		Sys.println("  mdd gate [name]       every check, in order, or one by name");
 		Sys.println("  mdd package [kind]    portable, installer, or both");
 		Sys.println("  mdd clean             delete the output directory");
 		Sys.println("");
 		Sys.println("  targets: " + project.names().join(", "));
+		Sys.println("  a debugger attaches to a -debug build; vscode has the launch"
+			+ " entries for it");
 		Sys.println("  every option lives in project.xml, and there is no .hxml");
 		Sys.println("");
 	}
@@ -389,6 +393,11 @@ class Run {
 
 		args.push("-cp");
 		args.push(root + "/" + project.generated);
+
+		for (library in project.libraries) {
+			args.push("-lib");
+			args.push(library);
+		}
 
 		for (define in project.defines) {
 			args.push("-D");
