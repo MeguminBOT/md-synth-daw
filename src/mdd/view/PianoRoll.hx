@@ -214,7 +214,7 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				if (event.button == Pointer.Middle) {
+				if (event.button == Pointer.Middle || session.tool == Session.PAN) {
 					panning = true;
 					panX = event.x + offsetX;
 					panY = event.y + offsetY;
@@ -231,10 +231,28 @@ final class PianoRoll extends Widget {
 				}
 
 				if (under != null) {
+					if (session.tool == Session.ERASE) {
+						if (chosen == under) chosen = null;
+						session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part, under));
+						invalidate();
+						return true;
+					}
+
+					if (session.tool == Session.SLICE) {
+						sliced(under, session.snapped(tickAt(event.x)));
+						return true;
+					}
+
 					chosen = under;
 					dragging = under;
 					grabTick = tickAt(event.x) - under.at;
 					grabPitch = pitchAt(event.y) - under.pitch;
+					invalidate();
+					return true;
+				}
+
+				if (session.tool != Session.DRAW) {
+					chosen = null;
 					invalidate();
 					return true;
 				}
@@ -590,6 +608,17 @@ final class PianoRoll extends Widget {
 			case AUTOMATION: Locale.LANE_AUTOMATION;
 			case _: Locale.LANE_VELOCITY;
 		}
+	}
+
+	function sliced(note:Note, at:Int):Void {
+		if (at <= note.at || at >= note.at + note.length) return;
+
+		final rest = new Note(at, note.at + note.length - at, note.pitch, note.velocity,
+			note.instrument);
+
+		note.length = at - note.at;
+		session.does(new AddNote(session.pattern, session.part, rest));
+		invalidate();
 	}
 
 	public inline function onStrip(py:Float):Bool {

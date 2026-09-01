@@ -16,7 +16,15 @@ final class Session {
 	public final transport:Transport;
 
 	public var part:Part = Part.Fm1;
+	public static inline final SELECT = 0;
+	public static inline final DRAW = 1;
+	public static inline final ERASE = 2;
+	public static inline final SLICE = 3;
+	public static inline final PAN = 4;
+	public static inline final TOOLS = 5;
+
 	public var pattern:Int = 0;
+	public var tool:Int = DRAW;
 	public var alone:Bool = false;
 	public var arming:Bool = false;
 	public var snap:Int = 24;
@@ -148,6 +156,13 @@ final class Session {
 
 		pattern = which;
 		follows();
+		changed();
+	}
+
+	public function uses(which:Int):Void {
+		if (which < 0 || which >= TOOLS || which == tool) return;
+
+		tool = which;
 		changed();
 	}
 

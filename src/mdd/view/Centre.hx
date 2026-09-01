@@ -16,6 +16,7 @@ final class Centre extends Widget {
 	public final session:Session;
 
 	public final tabs:Tabs;
+	public final tools:Tools;
 	public final roll:PianoRoll;
 	public final scope:Scope;
 	public final samples:Samples;
@@ -30,6 +31,7 @@ final class Centre extends Widget {
 		this.session = session;
 
 		tabs = new Tabs(["", "", "", "", "", ""]);
+		tools = new Tools(session);
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
 		samples = new Samples(session);
@@ -38,6 +40,7 @@ final class Centre extends Widget {
 		registers = new Registers(session);
 
 		add(tabs);
+		add(tools);
 		add(roll);
 		add(scope);
 		add(samples);
@@ -76,7 +79,10 @@ final class Centre extends Widget {
 	override function layout():Void {
 		final tall = head();
 
-		tabs.arrange(x, y, width, tall);
+		final room = tools.wide();
+
+		tabs.arrange(x, y, width - room, tall);
+		tools.arrange(x + width - room, y, room, tall);
 		roll.arrange(x, y + tall, width, height - tall);
 		scope.arrange(x, y + tall, width, height - tall);
 		samples.arrange(x, y + tall, width, height - tall);
@@ -122,6 +128,7 @@ final class Centre extends Widget {
 		named();
 
 		tabs.paint(paint);
+		tools.paint(paint);
 
 		if (roll.visible) roll.paint(paint);
 		if (scope.visible) scope.paint(paint);

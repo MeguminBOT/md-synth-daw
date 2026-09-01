@@ -71,6 +71,15 @@ final class FmEditor extends Widget {
 		return root == null ? 110 : root.metrics.whole(110);
 	}
 
+	function curve():Float {
+		final root = root();
+		return root == null ? 44 : root.metrics.whole(44);
+	}
+
+	function rowsTop():Float {
+		return y + head() + curve();
+	}
+
 	function rowTall():Float {
 		final root = root();
 		return root == null ? 22 : root.metrics.whole(22);
@@ -83,7 +92,7 @@ final class FmEditor extends Widget {
 		final column = Std.int((px - x) / wide);
 		if (column < 0 || column >= Patch.SLOTS) return -1;
 
-		final row = Std.int((py - y - head()) / rowTall());
+		final row = Std.int((py - rowsTop()) / rowTall());
 		if (row < 0 || row >= NAMES.length) return -1;
 
 		return column * NAMES.length + row;
@@ -260,6 +269,7 @@ final class FmEditor extends Widget {
 			+ patch.feedback, x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
 
 		routing(paint, theme, metrics, patch);
+		envelopes(paint, theme, metrics, patch);
 		slots(paint, theme, metrics, patch);
 	}
 
@@ -303,10 +313,75 @@ final class FmEditor extends Widget {
 		}
 	}
 
+	static inline function spanOf(rate:Int):Float {
+		return (32 - rate) / 32.0;
+	}
+
+	function envelopes(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
+		final wide = columns();
+		final tall = curve();
+		final top = y + head();
+		final inset = metrics.gap;
+
+		for (slot in 0...Patch.SLOTS) {
+			final left = x + slot * wide + inset;
+			final room = wide - inset * 2;
+			final floor = top + tall - inset;
+			final ceiling = top + inset;
+			final reach = floor - ceiling;
+
+			paint.rect(left, ceiling, room, reach, theme.sink, 0.5);
+
+			final peak = (127 - patch.totalLevel[slot]) / 127.0;
+			final held = patch.sustainLevel[slot] / 15.0;
+			final rest = peak * (1 - held);
+
+			var attack = spanOf(patch.attack[slot]);
+			var decay = spanOf(patch.decay[slot]);
+			var sustain = spanOf(patch.sustain[slot]);
+			var release = spanOf(patch.release[slot] * 2);
+
+			final total = attack + decay + sustain + release;
+			final scale = total <= 0 ? 0 : room / total;
+
+			final carrier = patch.carries(slot);
+			final ink = carrier ? theme.part(session.part.index()) : theme.dim;
+			final hair = metrics.whole(2);
+
+			var pen = left;
+			var level = 0.0;
+
+			final points = new haxe.ds.Vector<Float>(10);
+			points[0] = pen;
+			points[1] = floor;
+
+			pen += attack * scale;
+			level = peak;
+			points[2] = pen;
+			points[3] = floor - reach * level;
+
+			pen += decay * scale;
+			level = rest;
+			points[4] = pen;
+			points[5] = floor - reach * level;
+
+			pen += sustain * scale;
+			level = rest * 0.35;
+			points[6] = pen;
+			points[7] = floor - reach * level;
+
+			pen += release * scale;
+			points[8] = pen;
+			points[9] = floor;
+
+			paint.polyline(points, 5, hair, ink, carrier ? 1 : 0.7);
+		}
+	}
+
 	function slots(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
 		final wide = columns();
 		final tall = rowTall();
-		final top = y + head();
+		final top = rowsTop();
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
 		final small = metrics.small == null ? metrics.body : metrics.small;
 
