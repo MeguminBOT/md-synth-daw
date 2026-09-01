@@ -20,6 +20,8 @@ package mdd.host;
 	<compilerflag value="-I${NATIVEPATH}" />
 	<file name="${NATIVEPATH}/window.cpp" />
 	<file name="${NATIVEPATH}/events.cpp" />
+	<file name="${NATIVEPATH}/draw.cpp" />
+	<file name="${NATIVEPATH}/text.cpp" />
 </files>
 <target id="haxe">
 	<lib name="${SDL3PATH}/lib/SDL3.lib" if="windows" />

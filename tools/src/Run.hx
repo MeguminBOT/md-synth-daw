@@ -24,8 +24,14 @@ class Run {
 		{
 			name: "stb", present: "stb/stb_truetype.h", size: "1 MB",
 			about: "the glyph rasteriser the font atlas is baked with"
+		},
+		{
+			name: "fonts", present: "fonts/Go-Regular.ttf", size: "2 MB",
+			about: "Go and Go Mono, the faces the atlas is baked from"
 		}
 	];
+
+	static final FACES:Array<String> = ["Go-Regular", "Go-Medium", "Go-Mono", "Go-Mono-Bold"];
 
 	static final TARGETS:Array<String> = ["mdd", "gate"];
 
@@ -101,6 +107,7 @@ class Run {
 				case "SDL3": sdl(vendor);
 				case "miniaudio": miniaudio(vendor);
 				case "stb": stb(vendor);
+				case "fonts": fonts(vendor);
 				case _: false;
 			}
 
@@ -194,6 +201,7 @@ class Run {
 			"-D", "SDL3PATH=" + native(vendor + "/SDL3"),
 			"-D", "MINIAUDIOPATH=" + native(vendor + "/miniaudio"),
 			"-D", "STBPATH=" + native(vendor + "/stb"),
+			"-D", "FONTPATH=" + native(vendor + "/fonts"),
 			"-D", "NATIVEPATH=" + native(root + "/native")
 		].concat(extra);
 
@@ -359,6 +367,41 @@ class Run {
 		}
 
 		File.saveContent(into + "/COMMIT", sha == "" ? "master, unpinned" : sha);
+		return true;
+	}
+
+	static function fonts(vendor:String):Bool {
+		final into = vendor + "/fonts";
+		tree(into);
+
+		final base = "https://go.googlesource.com/image/+/master/font/gofont/ttfs/";
+
+		for (face in FACES) {
+			final coded = into + "/." + face + ".b64";
+			if (!download(base + face + ".ttf?format=TEXT", coded)) return false;
+
+			final packed = StringTools.replace(StringTools.replace(
+				File.getContent(coded), "
+", ""), "
+", "");
+			File.saveBytes(into + "/" + face + ".ttf", haxe.crypto.Base64.decode(packed));
+			FileSystem.deleteFile(coded);
+		}
+
+		download("https://go.googlesource.com/image/+/master/LICENSE?format=TEXT",
+			into + "/.LICENSE.b64");
+		if (FileSystem.exists(into + "/.LICENSE.b64")) {
+			final packed = StringTools.replace(StringTools.replace(
+				File.getContent(into + "/.LICENSE.b64"), "
+", ""), "
+", "");
+			File.saveBytes(into + "/LICENSE", haxe.crypto.Base64.decode(packed));
+			FileSystem.deleteFile(into + "/.LICENSE.b64");
+		}
+
+		for (face in FACES) {
+			if (!FileSystem.exists(into + "/" + face + ".ttf")) return false;
+		}
 		return true;
 	}
 
