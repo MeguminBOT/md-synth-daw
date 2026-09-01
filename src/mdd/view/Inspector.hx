@@ -99,9 +99,9 @@ final class Inspector extends Widget {
 		final root = root();
 		if (root == null) return;
 
-			tabs.labels[0] = translate(Locale.PANEL_CHANNEL);
-			tabs.labels[1] = translate(Locale.PANEL_BANK);
-			tabs.labels[2] = translate(Locale.PANEL_SCOPE);
+		tabs.labels[0] = translate(Locale.PANEL_CHANNEL);
+		tabs.labels[1] = translate(Locale.PANEL_BANK);
+		tabs.labels[2] = translate(Locale.PANEL_SCOPE);
 	}
 
 	override function paint(paint:Paint):Void {

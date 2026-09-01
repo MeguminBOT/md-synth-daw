@@ -36,7 +36,10 @@ final class Presets extends Widget {
 		final at = held.indexOf(item);
 		if (at < 0) return;
 
-		session.song.rack[session.part.index()] = named[at];
+		final part = session.part.index();
+		if (session.song.rack[part] == named[at]) return;
+
+		session.song.rack[part] = named[at];
 		session.say("loaded " + session.song.instruments[named[at]].name + " into "
 			+ session.part.name());
 		session.changed();
@@ -89,7 +92,7 @@ final class Presets extends Widget {
 		}
 
 		final at = named.indexOf(chosen);
-		if (at >= 0) tree.choose(held[at]);
+		if (at >= 0) tree.select(held[at]);
 
 		tree.reflow();
 		invalidate();

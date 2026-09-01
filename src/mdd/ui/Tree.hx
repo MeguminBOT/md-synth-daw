@@ -69,10 +69,15 @@ final class Tree extends Scroll {
 		if (onOpen != null) onOpen(item);
 	}
 
-	public function choose(item:Null<Item>):Void {
-		if (item == chosen || (item != null && !item.enabled)) return;
+	public function select(item:Null<Item>):Bool {
+		if (item == chosen || (item != null && !item.enabled)) return false;
 		chosen = item;
 		invalidate();
+		return true;
+	}
+
+	public function choose(item:Null<Item>):Void {
+		if (!select(item)) return;
 		if (chosen != null && onChoose != null) onChoose(chosen);
 	}
 
