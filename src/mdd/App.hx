@@ -10,6 +10,8 @@ import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;
 import mdd.ui.Font;
+import mdd.ui.Key;
+import mdd.ui.Mod;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Root;
@@ -147,6 +149,7 @@ class App {
 		shell.zone(Shell.MENU).add(menus);
 
 		commands();
+		root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
 
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
@@ -187,10 +190,10 @@ class App {
 
 		fired(file.offer(new Choice("Open", "Ctrl+O")), function():Void
 			files.ask(window, Files.OPEN));
-		fired(file.offer(new Choice("Save", "Ctrl+S")), function():Void
-			files.ask(window, Files.SAVE));
+		fired(file.offer(new Choice("Save", "Ctrl+S")), function():Void keeping());
+		fired(file.offer(new Choice("Save as")), function():Void files.ask(window, Files.SAVE));
 		file.divide();
-		fired(file.offer(new Choice("Export a vgm")), function():Void
+		fired(file.offer(new Choice("Export a vgm", "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
 		fired(file.offer(new Choice("Export a wav")), function():Void
 			files.ask(window, Files.WAV));
@@ -203,6 +206,11 @@ class App {
 
 		fired(edit.offer(new Choice("Undo", "Ctrl+Z")), function():Void undone());
 		fired(edit.offer(new Choice("Redo", "Ctrl+Y")), function():Void redone());
+		edit.divide();
+		fired(edit.offer(new Choice("Play or pause", "Space")), function():Void
+			bar.press(TransportBar.PLAY));
+		fired(edit.offer(new Choice("Stop", "Ctrl+Space")), function():Void
+			bar.press(TransportBar.STOP));
 
 		final view = new Menu();
 
@@ -216,6 +224,64 @@ class App {
 		menus.offer("File", file);
 		menus.offer("Edit", edit);
 		menus.offer("View", view);
+	}
+
+	function chorded(code:Key, mods:Mod):Bool {
+		final ctrl = (mods & Mod.Ctrl) != 0;
+		final shift = (mods & Mod.Shift) != 0;
+
+		if (code == Key.Space) {
+			bar.press(ctrl ? TransportBar.STOP : TransportBar.PLAY);
+			return true;
+		}
+
+		if (!ctrl) return false;
+
+		switch (code) {
+			case Key.Z:
+				if (shift) redone();
+				else undone();
+				return true;
+
+			case Key.Y:
+				redone();
+				return true;
+
+			case Key.L:
+				bar.press(TransportBar.LOOP);
+				return true;
+
+			case Key.S:
+				keeping();
+				return true;
+
+			case Key.O:
+				files.ask(window, Files.OPEN);
+				return true;
+
+			case Key.E:
+				files.ask(window, Files.VGM);
+				return true;
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function keeping():Void {
+		if (files.path == "") {
+			files.ask(window, Files.SAVE);
+			return;
+		}
+
+		try {
+			files.save(files.path);
+		} catch (e:Dynamic) {
+			session.say("that would not save: " + e);
+		}
+
+		session.changed();
 	}
 
 	function fired(choice:Choice, what:Void -> Void):Void {

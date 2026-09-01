@@ -11,6 +11,8 @@ final class Root {
 
 	public var flow:Flow = Flow.Full;
 
+	public var onChord:Null<(Key, Mod) -> Bool> = null;
+
 	public var focus(default, null):Null<Widget> = null;
 	public var capture(default, null):Null<Widget> = null;
 	public var over(default, null):Null<Widget> = null;
@@ -491,7 +493,14 @@ final class Root {
 			at = at.parent;
 		}
 
-		return false;
+		if (!down || onChord == null) return false;
+		if (typed() && (mods & (Mod.Ctrl | Mod.Alt)) == 0) return false;
+
+		return onChord(code, mods);
+	}
+
+	public inline function typed():Bool {
+		return focus != null && focus.typing;
 	}
 
 	public function said(text:String, mods:Mod):Bool {

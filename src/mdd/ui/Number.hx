@@ -19,7 +19,6 @@ final class Number extends Widget implements Range {
 	var grabValue:Int = 0;
 	var fine:Bool = false;
 
-	public var typing(default, null):Bool = false;
 	var entry:String = "";
 
 	public function new(label:String, value:Int, least:Int, most:Int) {

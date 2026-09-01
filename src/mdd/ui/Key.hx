@@ -2,12 +2,28 @@ package mdd.ui;
 
 enum abstract Key(Int) from Int to Int {
 	var A = 4;
+	var B = 5;
 	var C = 6;
 	var D = 7;
 	var E = 8;
+	var F = 9;
 	var G = 10;
+	var H = 11;
+	var I = 12;
+	var J = 13;
+	var K = 14;
+	var L = 15;
+	var M = 16;
+	var N = 17;
+	var O = 18;
+	var P = 19;
+	var Q = 20;
+	var R = 21;
 	var S = 22;
+	var T = 23;
+	var U = 24;
 	var V = 25;
+	var W = 26;
 	var X = 27;
 	var Y = 28;
 	var Z = 29;

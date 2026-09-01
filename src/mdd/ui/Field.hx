@@ -16,6 +16,7 @@ final class Field extends Widget {
 	public function new(value:String = "") {
 		super();
 		focusable = true;
+		typing = true;
 		opaque = true;
 		set(value);
 	}

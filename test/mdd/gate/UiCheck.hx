@@ -120,6 +120,7 @@ class UiCheck {
 		menus(renderer, target, face, monoFace);
 		tooltips(renderer, face, monoFace);
 		bars(renderer, face, monoFace);
+		chords();
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
@@ -143,7 +144,7 @@ class UiCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 20) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 26) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shaped():Root {
@@ -613,6 +614,48 @@ class UiCheck {
 	static inline function round(value:Float, places:Int):Float {
 		final scale = Math.pow(10, places);
 		return Math.round(value * scale) / scale;
+	}
+
+	static function chords():Void {
+		final root = shaped();
+		root.resize(400, 300);
+
+		final field = new Field("name");
+		root.top.add(field);
+		root.top.arrange(0, 0, 400, 300);
+		field.arrange(0, 0, 200, 30);
+
+		var heard = "";
+
+		root.onChord = function(code:Key, mods:Mod):Bool {
+			heard = code.chord(mods);
+			return true;
+		};
+
+		root.focusOn(null);
+		root.key(true, Key.Space, Mod.None);
+		final loose = heard;
+
+		heard = "";
+		root.key(true, Key.S, Mod.Ctrl);
+		final saved = heard;
+
+		says("a chord reaches the session", loose == "Space" && saved == "Ctrl+S",
+			"with nothing focused the session heard \"" + loose + "\" and \"" + saved + "\"");
+
+		heard = "";
+		root.focusOn(field);
+		root.key(true, Key.Space, Mod.None);
+		final whileTyping = heard;
+
+		says("and the field keeps its space", whileTyping == "" && root.typed(),
+			"a focused text field takes the space rather than the transport");
+
+		heard = "";
+		root.key(true, Key.S, Mod.Ctrl);
+
+		says("but not the chord", heard == "Ctrl+S",
+			"a modified chord still reaches the session past a focused field");
 	}
 
 	static function motions():Void {

@@ -18,6 +18,7 @@ class Widget {
 	public var enabled:Bool = true;
 	public var focusable:Bool = false;
 	public var opaque:Bool = false;
+	public var typing:Bool = false;
 
 	public var parent(default, null):Null<Widget> = null;
 	public final children:Array<Widget> = [];
