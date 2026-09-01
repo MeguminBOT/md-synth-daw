@@ -13,14 +13,16 @@ import mdd.ui.Widget;
 @:unreflective
 final class Preferences extends Widget {
 	public static inline final THEME = 0;
-	public static inline final MOTION = 1;
-	public static inline final LANGUAGE = 2;
-	public static inline final DENSITY = 3;
-	public static inline final KEEPING = 4;
-	public static inline final ROWS = 5;
+	public static inline final TYPEFACE = 1;
+	public static inline final MOTION = 2;
+	public static inline final LANGUAGE = 3;
+	public static inline final DENSITY = 4;
+	public static inline final KEEPING = 5;
+	public static inline final ROWS = 6;
 
-	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_MOTION,
-		Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY, Locale.PREFERENCE_KEEPING];
+	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
+		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
+		Locale.PREFERENCE_KEEPING];
 
 	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
@@ -31,6 +33,8 @@ final class Preferences extends Widget {
 		Locale.THEME_SLATE];
 	static final MOTIONS:Array<String> = [Locale.MOTION_FULL, Locale.MOTION_REDUCED,
 		Locale.MOTION_NONE];
+	static final TYPEFACES:Array<String> = [Locale.TYPEFACE_GO, Locale.TYPEFACE_PLEX,
+		Locale.TYPEFACE_INTER, Locale.TYPEFACE_BARLOW];
 	static final DENSITIES:Array<String> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
 		Locale.DENSITY_ROOMY];
 
@@ -47,6 +51,7 @@ final class Preferences extends Widget {
 	public final fade:Motion;
 
 	public var onScale:Null<Float -> Void> = null;
+	public var onTypeface:Null<Int -> Void> = null;
 	public var onKeep:Null<Void -> Void> = null;
 	public var onKeeping:Null<Float -> Void> = null;
 
@@ -119,6 +124,7 @@ final class Preferences extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case THEME: THEMES;
+			case TYPEFACE: TYPEFACES;
 			case MOTION: MOTIONS;
 			case DENSITY: DENSITIES;
 			case KEEPING: KEEPINGS;
@@ -129,6 +135,7 @@ final class Preferences extends Widget {
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case THEME: session.theme;
+			case TYPEFACE: session.typeface;
 			case MOTION: session.motion;
 			case DENSITY: density;
 			case KEEPING: keeping;
@@ -144,6 +151,10 @@ final class Preferences extends Widget {
 				session.theme = which;
 				if (root != null) root.theme.wear(which);
 				session.say("theme " + which);
+
+			case TYPEFACE:
+				session.typeface = which;
+				if (onTypeface != null) onTypeface(which);
 
 			case MOTION:
 				session.motion = which;

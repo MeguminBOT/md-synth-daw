@@ -103,6 +103,11 @@ class Locale {
 	public static inline final PREFERENCES = "preferences";
 	public static inline final PREFERENCES_CLOSE = "preferences.close";
 	public static inline final PREFERENCE_THEME = "preference.theme";
+	public static inline final PREFERENCE_TYPEFACE = "preference.typeface";
+	public static inline final TYPEFACE_GO = "typeface.go";
+	public static inline final TYPEFACE_PLEX = "typeface.plex";
+	public static inline final TYPEFACE_INTER = "typeface.inter";
+	public static inline final TYPEFACE_BARLOW = "typeface.barlow";
 	public static inline final PREFERENCE_MOTION = "preference.motion";
 	public static inline final PREFERENCE_LANGUAGE = "preference.language";
 	public static inline final PREFERENCE_DENSITY = "preference.density";
@@ -256,7 +261,8 @@ class Locale {
 		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,
 		VIEW_ROLL, VIEW_SCOPE, VIEW_SAMPLES, VIEW_TRACKER, VIEW_PLAYLIST,
 		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
-		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_MOTION,
+		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
+		TYPEFACE_GO, TYPEFACE_PLEX, TYPEFACE_INTER, TYPEFACE_BARLOW, PREFERENCE_MOTION,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,
 		MOTION_FULL, MOTION_REDUCED, MOTION_NONE,

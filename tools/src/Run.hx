@@ -7,6 +7,14 @@ class Run {
 
 	static final FACES:Array<String> = ["Go-Regular", "Go-Medium", "Go-Mono", "Go-Mono-Bold"];
 
+	static final PAIRINGS:Array<Array<String>> = [
+		["ibmplexsans", "IBMPlexSans[wdth,wght].ttf", "IBMPlexSans.ttf"],
+		["ibmplexmono", "IBMPlexMono-Regular.ttf", "IBMPlexMono.ttf"],
+		["inter", "Inter[opsz,wght].ttf", "Inter.ttf"],
+		["jetbrainsmono", "JetBrainsMono[wght].ttf", "JetBrainsMono.ttf"],
+		["barlowsemicondensed", "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed.ttf"]
+	];
+
 	public static function main():Void {
 		final args = Sys.args();
 		final root = native(Sys.getCwd());
@@ -117,6 +125,8 @@ class Run {
 				}
 			}
 		}
+
+		if (FileSystem.exists(vendor + "/fonts")) pairings(vendor + "/fonts");
 
 		Sys.println("");
 		check(root, project);
@@ -592,7 +602,13 @@ class Run {
 		tree(into + "/fonts");
 
 		for (entry in FileSystem.readDirectory(fonts)) {
-			if (!StringTools.endsWith(entry.toLowerCase(), ".ttf")) continue;
+			final held = entry.toLowerCase();
+
+			if (!StringTools.endsWith(held, ".ttf") && !StringTools.endsWith(held, ".txt")
+				&& entry != "LICENSE") {
+				continue;
+			}
+
 			copyFile(fonts + "/" + entry, into + "/fonts/" + entry);
 		}
 
@@ -1064,7 +1080,34 @@ class Run {
 		for (face in FACES) {
 			if (!FileSystem.exists(into + "/" + face + ".ttf")) return false;
 		}
-		return true;
+
+		return pairings(into);
+	}
+
+	static function pairings(into:String):Bool {
+		final base = "https://raw.githubusercontent.com/google/fonts/main/ofl/";
+		var every = true;
+
+		for (pairing in PAIRINGS) {
+			final family = pairing[0];
+			final held = into + "/" + pairing[2];
+
+			if (!FileSystem.exists(held)) {
+				if (!download(base + family + "/" + encoded(pairing[1]), held)) {
+					every = false;
+					continue;
+				}
+			}
+
+			final licence = into + "/OFL-" + family + ".txt";
+			if (!FileSystem.exists(licence)) download(base + family + "/OFL.txt", licence);
+		}
+
+		return every;
+	}
+
+	static function encoded(name:String):String {
+		return StringTools.replace(StringTools.replace(name, "[", "%5B"), "]", "%5D");
 	}
 
 	static function decode(path:String):haxe.io.Bytes {

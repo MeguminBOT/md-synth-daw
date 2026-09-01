@@ -189,6 +189,7 @@ class App {
 
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
+		preferences.onTypeface = function(which:Int):Void redressed();
 		preferences.onKeep = function():Void keeps();
 		preferences.onKeeping = function(every:Float):Void files.every = every;
 
@@ -649,6 +650,7 @@ class App {
 
 	function remembered():Void {
 		final which = settings.asWhole("theme", 0);
+		final typeface = settings.asWhole("typeface", 0);
 		final motion = settings.asWhole("motion", root.flow);
 		final density = settings.asWhole("density", 1);
 		final keeping = settings.asWhole("keeping", 2);
@@ -656,9 +658,12 @@ class App {
 
 		session.theme = which;
 		session.motion = motion;
+		session.typeface = typeface;
 
 		root.theme.wear(which);
 		root.flow = motion;
+
+		if (typeface != 0) redressed();
 
 		preferences.chose(Preferences.DENSITY, density);
 		preferences.chose(Preferences.KEEPING, keeping);
@@ -669,6 +674,7 @@ class App {
 		if (settings == null) return;
 
 		settings.whole("theme", session.theme);
+		settings.whole("typeface", session.typeface);
 		settings.whole("motion", session.motion);
 		settings.whole("density", preferences.density);
 		settings.whole("keeping", preferences.keeping);
@@ -683,6 +689,13 @@ class App {
 	function opened():Void {
 		preferences.arrive();
 		root.raise(preferences);
+	}
+
+	function redressed():Void {
+		if (!faces(root.metrics)) return;
+
+		measured();
+		root.reshape();
 	}
 
 	function densified(much:Float):Void {
@@ -825,6 +838,24 @@ class App {
 		render.start(speaker);
 	}
 
+	static final PAIRINGS:Array<Array<String>> = [
+		["Go-Regular.ttf", "Go-Mono.ttf"],
+		["IBMPlexSans.ttf", "IBMPlexMono.ttf"],
+		["Inter.ttf", "JetBrainsMono.ttf"],
+		["BarlowSemiCondensed.ttf", "IBMPlexMono.ttf"]
+	];
+
+	function paired(where:String):Array<String> {
+		final which = session == null ? 0 : session.typeface;
+		final held = which < 0 || which >= PAIRINGS.length ? PAIRINGS[0] : PAIRINGS[which];
+
+		for (name in held) {
+			if (!sys.FileSystem.exists(where + "/" + name)) return PAIRINGS[0];
+		}
+
+		return held;
+	}
+
 	function faces(metrics:Metrics):Bool {
 		final where = fonts();
 
@@ -835,10 +866,14 @@ class App {
 
 		shed();
 
-		body = Font.bake(renderer, where + "/Go-Regular.ttf", 13 * scale);
-		small = Font.bake(renderer, where + "/Go-Regular.ttf", 11 * scale);
-		mono = Font.bake(renderer, where + "/Go-Mono.ttf", 12 * scale);
-		large = Font.bake(renderer, where + "/Go-Mono.ttf", 19 * scale);
+		final pairing = paired(where);
+		final sans = where + "/" + pairing[0];
+		final fixed = where + "/" + pairing[1];
+
+		body = Font.bake(renderer, sans, 13 * scale);
+		small = Font.bake(renderer, sans, 11 * scale);
+		mono = Font.bake(renderer, fixed, 12 * scale);
+		large = Font.bake(renderer, fixed, 19 * scale);
 
 		if (body == null || small == null || mono == null || large == null) {
 			Sys.println("mdd: the fonts would not bake");
