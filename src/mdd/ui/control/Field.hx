@@ -1,4 +1,4 @@
-package mdd.ui;
+package mdd.ui.control;
 
 @:unreflective
 final class Field extends Widget {

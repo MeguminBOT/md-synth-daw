@@ -1,4 +1,4 @@
-package mdd.song;
+package mdd.song.edit;
 
 final class MoveNote implements Command {
 	final pattern:Int;

@@ -2,7 +2,7 @@ package mdd.view;
 
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
-import mdd.ui.Tabs;
+import mdd.ui.control.Tabs;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 

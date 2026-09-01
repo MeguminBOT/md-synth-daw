@@ -1,7 +1,7 @@
 package mdd.view;
 
 import mdd.ui.Paint;
-import mdd.ui.Tabs;
+import mdd.ui.control.Tabs;
 import mdd.ui.Widget;
 
 @:unreflective

@@ -1,4 +1,4 @@
-package mdd.ui;
+package mdd.ui.control;
 
 import haxe.ds.Vector;
 

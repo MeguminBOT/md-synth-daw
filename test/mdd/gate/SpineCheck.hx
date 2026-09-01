@@ -325,7 +325,7 @@ class SpineCheck {
 
 		says("a channel has a menu", menus > 0 && tree.popups.length == 1
 			&& !tree.popups[0].crowded(),
-			menus + " commands under the right button, of " + mdd.ui.Menu.CEILING
+			menus + " commands under the right button, of " + mdd.ui.control.Menu.CEILING
 			+ " allowed, separators excluded");
 
 		var fired = "";

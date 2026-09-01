@@ -1,4 +1,4 @@
-package mdd.song;
+package mdd.song.edit;
 
 final class AddPattern implements Command {
 	final pattern:Pattern;

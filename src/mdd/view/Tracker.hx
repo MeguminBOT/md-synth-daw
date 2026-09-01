@@ -1,9 +1,9 @@
 package mdd.view;
 
-import mdd.song.AddNote;
+import mdd.song.edit.AddNote;
 import mdd.song.Note;
 import mdd.song.Part;
-import mdd.song.RemoveNote;
+import mdd.song.edit.RemoveNote;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;

@@ -1,4 +1,4 @@
-package mdd.song;
+package mdd.song.edit;
 
 final class RemoveClip implements Command {
 	final track:Int;

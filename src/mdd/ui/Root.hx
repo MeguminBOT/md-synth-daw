@@ -1,5 +1,7 @@
 package mdd.ui;
 
+import mdd.ui.control.Menu;
+import mdd.ui.control.Tooltip;
 @:unreflective
 final class Root {
 	public static inline final STILL = 0.450;

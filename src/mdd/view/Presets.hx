@@ -6,7 +6,7 @@ import mdd.ui.Input;
 import mdd.ui.Item;
 import mdd.ui.Paint;
 import mdd.ui.Theme;
-import mdd.ui.Tree;
+import mdd.ui.control.Tree;
 import mdd.ui.Widget;
 
 @:unreflective

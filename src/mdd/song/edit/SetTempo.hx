@@ -1,4 +1,4 @@
-package mdd.song;
+package mdd.song.edit;
 
 final class SetTempo implements Command {
 	final at:Int;

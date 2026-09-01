@@ -1,17 +1,17 @@
 package mdd.view;
 
 import mdd.check.Budget;
-import mdd.song.AddNote;
+import mdd.song.edit.AddNote;
 import mdd.song.Lane;
 import mdd.song.Note;
 import mdd.song.Part;
-import mdd.song.RemoveNote;
-import mdd.ui.Choice;
+import mdd.song.edit.RemoveNote;
+import mdd.ui.control.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
-import mdd.ui.Menu;
+import mdd.ui.control.Menu;
 import mdd.ui.Metrics;
 import mdd.ui.Mod;
 import mdd.ui.Paint;

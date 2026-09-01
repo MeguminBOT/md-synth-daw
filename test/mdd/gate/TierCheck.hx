@@ -237,7 +237,7 @@ class TierCheck {
 		says("and nothing changed means nothing written", !files.tick(3.0),
 			"an interval with no edit behind it does not rewrite the file");
 
-		session.does(new mdd.song.AddNote(0, Part.Fm1,
+		session.does(new mdd.song.edit.AddNote(0, Part.Fm1,
 			new mdd.song.Note(0, 48, 60, 100)));
 
 		final was = files.kept;
@@ -249,7 +249,7 @@ class TierCheck {
 
 		final recovery = new Files(Session.started());
 		recovery.every = 1;
-		recovery.session.does(new mdd.song.AddNote(0, Part.Fm1,
+		recovery.session.does(new mdd.song.edit.AddNote(0, Part.Fm1,
 			new mdd.song.Note(0, 48, 60, 100)));
 
 		recovery.tick(2.0);

@@ -1,4 +1,4 @@
-package mdd.song;
+package mdd.song.edit;
 
 final class ResizePattern implements Command {
 	final which:Int;

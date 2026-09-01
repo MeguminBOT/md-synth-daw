@@ -2,11 +2,11 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.song.Part;
-import mdd.ui.Choice;
+import mdd.ui.control.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
-import mdd.ui.Menu;
+import mdd.ui.control.Menu;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Pointer;
@@ -183,7 +183,7 @@ final class ChannelRack extends Widget {
 			final many = lane.notes.length;
 
 			while (lane.notes.length > 0) {
-				session.does(new mdd.song.RemoveNote(session.pattern, part, lane.notes[0]));
+				session.does(new mdd.song.edit.RemoveNote(session.pattern, part, lane.notes[0]));
 			}
 
 			session.say("cleared " + many + " notes from " + part.name());

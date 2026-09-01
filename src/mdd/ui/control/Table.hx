@@ -1,4 +1,4 @@
-package mdd.ui;
+package mdd.ui.control;
 
 typedef Cell = (row:Int, column:Int) -> String;
 

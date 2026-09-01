@@ -1,6 +1,6 @@
-package mdd.song;
+package mdd.song.edit;
 
-final class AddNote implements Command {
+final class RemoveNote implements Command {
 	final pattern:Int;
 	final part:Part;
 	final note:Note;
@@ -13,15 +13,15 @@ final class AddNote implements Command {
 
 	public function apply(song:Song):Void {
 		final held = song.patternAt(pattern);
-		if (held != null) held.lane(part).add(note);
+		if (held != null) held.lane(part).remove(note);
 	}
 
 	public function revert(song:Song):Void {
 		final held = song.patternAt(pattern);
-		if (held != null) held.lane(part).remove(note);
+		if (held != null) held.lane(part).add(note);
 	}
 
 	public function label():String {
-		return "add a note";
+		return "remove a note";
 	}
 }

@@ -1,9 +1,9 @@
 package mdd.view;
 
-import mdd.song.AddClip;
+import mdd.song.edit.AddClip;
 import mdd.song.Clip;
-import mdd.song.MoveClip;
-import mdd.song.RemoveClip;
+import mdd.song.edit.MoveClip;
+import mdd.song.edit.RemoveClip;
 import mdd.song.Track;
 import mdd.ui.Colour;
 import mdd.ui.Input;
