@@ -228,19 +228,19 @@ class SpineCheck {
 			placed + " notes on six channels, " + drawnNotes + " of them on screen, "
 			+ calls + " draw calls a frame");
 
-		editor.show(Inspector.SCOPE);
+		centre.show(Centre.SCOPE);
 
 		for (index in 0...6) {
 			for (step in 0...mdd.view.Scope.SPAN) {
-				editor.scope.feed(index, Math.sin(step * (index + 1) * 0.05) * (0.2 + index * 0.1));
+				centre.scope.feed(index, Math.sin(step * (index + 1) * 0.05) * (0.2 + index * 0.1));
 			}
-			editor.scope.sang(index, 48 + index * 5);
+			centre.scope.sang(index, 48 + index * 5);
 		}
 
 		var scopeWorst = 0.0;
 
 		for (frame in 0...120) {
-			editor.scope.invalidate();
+			centre.scope.invalidate();
 
 			Sdl.renderClear(renderer, 0, 0, 0, 1);
 			final began = Sdl.ticks();
@@ -251,9 +251,9 @@ class SpineCheck {
 			if (took > scopeWorst) scopeWorst = took;
 		}
 
-		says("the scope draws its lanes", editor.scope.painted == 6 && scopeWorst * 1000 < 16.67,
-			editor.scope.painted + " lanes traced, worst frame " + round(scopeWorst * 1000, 3)
-			+ " ms with the scope in the inspector");
+		says("the scope draws its lanes", centre.scope.painted == 6 && scopeWorst * 1000 < 16.67,
+			centre.scope.painted + " lanes traced, worst frame " + round(scopeWorst * 1000, 3)
+			+ " ms with the scope in the centre");
 
 		editor.show(Inspector.BANK);
 

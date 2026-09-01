@@ -3,6 +3,7 @@ package mdd.view;
 import haxe.ds.Vector;
 import mdd.format.Midi;
 import mdd.format.Project;
+import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.format.Wav;
 import mdd.host.Chooser;
@@ -23,6 +24,8 @@ final class Files {
 	public static inline final VGM = 3;
 	public static inline final WAV = 4;
 	public static inline final MIDI = 5;
+	public static inline final READ_VGM = 6;
+	public static inline final READ_MIDI = 7;
 
 	public static inline final RATE = 44100;
 
@@ -98,6 +101,8 @@ final class Files {
 			case VGM: Dialog.save(window, "vgm", "vgm", where);
 			case WAV: Dialog.save(window, "wav", "wav", where);
 			case MIDI: Dialog.save(window, "midi", "mid", where);
+			case READ_VGM: Dialog.open(window, "vgm", "vgm", where);
+			case READ_MIDI: Dialog.open(window, "midi", "mid", where);
 			case _: null;
 		}
 
@@ -136,6 +141,8 @@ final class Files {
 				case VGM: exportVgm(where);
 				case WAV: exportWav(where);
 				case MIDI: exportMidi(where);
+				case READ_VGM: readVgm(where);
+				case READ_MIDI: readMidi(where);
 				case _:
 			}
 		} catch (e:Dynamic) {
@@ -153,6 +160,30 @@ final class Files {
 		forget();
 
 		session.say("opened " + name(where) + ", " + song.patterns.length + " patterns and "
+			+ song.instruments.length + " instruments");
+	}
+
+	public function readVgm(where:String):Void {
+		final into = new Stream(1 << 20);
+		final vgm = Vgm.read(sys.io.File.getBytes(where), into);
+		final made = Transcription.of(into, vgm.rate, name(where));
+
+		path = "";
+		if (onLoad != null) onLoad(made.song);
+		forget();
+
+		session.say("read " + name(where) + ", " + made.notes + " notes on "
+			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
+	}
+
+	public function readMidi(where:String):Void {
+		final song = Midi.read(sys.io.File.getBytes(where), name(where));
+
+		path = "";
+		if (onLoad != null) onLoad(song);
+		forget();
+
+		session.say("read " + name(where) + ", " + song.patterns.length + " patterns and "
 			+ song.instruments.length + " instruments");
 	}
 

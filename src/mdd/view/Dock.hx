@@ -8,30 +8,35 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class Dock extends Widget {
-	public static inline final MIXER = 0;
-	public static inline final WARNINGS = 1;
+	public static inline final PATTERNS = 0;
+	public static inline final MIXER = 1;
+	public static inline final WARNINGS = 2;
 
 	public final session:Session;
 
 	public final tabs:Tabs;
+	public final patterns:Patterns;
 	public final mixer:Mixer;
 	public final warnings:Warnings;
 
 	public var said:String = "";
-	public var showing(default, null):Int = MIXER;
+	public var showing(default, null):Int = PATTERNS;
 
 	public function new(session:Session) {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", ""]);
+		tabs = new Tabs(["", "", ""]);
+		patterns = new Patterns(session);
 		mixer = new Mixer(session);
 		warnings = new Warnings(session);
 
 		add(tabs);
+		add(patterns);
 		add(mixer);
 		add(warnings);
 
+		mixer.visible = false;
 		warnings.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
@@ -41,6 +46,7 @@ final class Dock extends Widget {
 		if (which == showing) return;
 
 		showing = which;
+		patterns.visible = which == PATTERNS;
 		mixer.visible = which == MIXER;
 		warnings.visible = which == WARNINGS;
 
@@ -63,6 +69,7 @@ final class Dock extends Widget {
 		final tall = height - top - bottom;
 
 		tabs.arrange(x, y, width, top);
+		patterns.arrange(x, y + top, width, tall);
 		mixer.arrange(x, y + top, width, tall);
 		warnings.arrange(x, y + top, width, tall);
 	}
@@ -71,8 +78,9 @@ final class Dock extends Widget {
 		final root = root();
 		if (root == null) return;
 
-			tabs.labels[0] = translate(Locale.VIEW_MIXER);
-			tabs.labels[1] = translate(Locale.VIEW_WARNINGS);
+		tabs.labels[0] = translate(Locale.VIEW_PATTERNS);
+		tabs.labels[1] = translate(Locale.VIEW_MIXER);
+		tabs.labels[2] = translate(Locale.VIEW_WARNINGS);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -86,6 +94,7 @@ final class Dock extends Widget {
 
 		tabs.paint(paint);
 
+		if (patterns.visible) patterns.paint(paint);
 		if (mixer.visible) mixer.paint(paint);
 		if (warnings.visible) warnings.paint(paint);
 

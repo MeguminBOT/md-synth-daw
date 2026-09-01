@@ -14,6 +14,8 @@ class Locale {
 	public static inline final FILE_VGM = "file.vgm";
 	public static inline final FILE_WAV = "file.wav";
 	public static inline final FILE_MIDI = "file.midi";
+	public static inline final FILE_READ_VGM = "file.readVgm";
+	public static inline final FILE_READ_MIDI = "file.readMidi";
 	public static inline final FILE_UPDATE = "file.update";
 	public static inline final FILE_PREFERENCES = "file.preferences";
 	public static inline final FILE_QUIT = "file.quit";
@@ -23,9 +25,23 @@ class Locale {
 	public static inline final EDIT_PLAY = "edit.play";
 	public static inline final EDIT_STOP = "edit.stop";
 
+	public static inline final PATTERN = "pattern";
+	public static inline final PATTERN_BAR = "pattern.bar";
+	public static inline final PATTERN_BARS = "pattern.bars";
+
+	public static inline final HARDWARE = "hardware";
+	public static inline final HARDWARE_FM = "hardware.fm";
+	public static inline final HARDWARE_OPERATORS = "hardware.operators";
+	public static inline final HARDWARE_SQUARE = "hardware.square";
+	public static inline final HARDWARE_SAMPLE = "hardware.sample";
+
 	public static inline final VIEW_ROLL = "view.roll";
+	public static inline final VIEW_SCOPE = "view.scope";
+	public static inline final VIEW_SAMPLES = "view.samples";
 	public static inline final VIEW_TRACKER = "view.tracker";
-	public static inline final VIEW_ARRANGEMENT = "view.arrangement";
+	public static inline final VIEW_PLAYLIST = "view.playlist";
+	public static inline final VIEW_REGISTERS = "view.registers";
+	public static inline final VIEW_PATTERNS = "view.patterns";
 	public static inline final VIEW_MIXER = "view.mixer";
 	public static inline final VIEW_WARNINGS = "view.warnings";
 
@@ -154,10 +170,14 @@ class Locale {
 	public static final ALL:Array<String> = [
 		APP, READY,
 		MENU_FILE, MENU_EDIT, MENU_VIEW,
-		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
+		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI,
+		FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
-		VIEW_ROLL, VIEW_TRACKER, VIEW_ARRANGEMENT, VIEW_MIXER, VIEW_WARNINGS,
+		PATTERN, PATTERN_BAR, PATTERN_BARS,
+		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,
+		VIEW_ROLL, VIEW_SCOPE, VIEW_SAMPLES, VIEW_TRACKER, VIEW_PLAYLIST,
+		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_MOTION,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,

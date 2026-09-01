@@ -35,6 +35,7 @@ import mdd.view.Files;
 import mdd.view.Inspector;
 import mdd.view.Notice;
 import mdd.view.Preferences;
+import mdd.view.Rail;
 import mdd.view.Session;
 import mdd.view.Locale;
 import mdd.view.Languages;
@@ -60,6 +61,7 @@ class App {
 	var large:Null<Font> = null;
 
 	var session:Null<Session> = null;
+	var rail:Null<Rail> = null;
 	var rack:Null<ChannelRack> = null;
 	var centre:Null<Centre> = null;
 	var inspector:Null<Inspector> = null;
@@ -163,13 +165,14 @@ class App {
 		session = Session.started();
 
 		bar = new TransportBar(session);
-		rack = new ChannelRack(session);
+		rail = new Rail(session);
+		rack = rail.rack;
 		centre = new Centre(session);
 		inspector = new Inspector(session);
 		dock = new Dock(session);
 
 		shell.zone(Shell.TRANSPORT).add(bar);
-		shell.zone(Shell.RAIL).add(rack);
+		shell.zone(Shell.RAIL).add(rail);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(inspector);
 		shell.zone(Shell.DOCK).add(dock);
@@ -218,6 +221,7 @@ class App {
 
 		budget = new Budget(Profile.megaDrive());
 		centre.roll.budget = budget;
+		rail.hardware.budget = budget;
 		dock.warnings.budget = budget;
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -225,8 +229,35 @@ class App {
 
 		keeps();
 		greeting();
+		handed();
 
 		session.onChange = function(session:Session):Void changed();
+		changed();
+	}
+
+	function handed():Void {
+		for (arg in Sys.args()) {
+			if (StringTools.startsWith(arg, "-")) continue;
+			if (!sys.FileSystem.exists(arg)) continue;
+
+			opens(arg);
+			return;
+		}
+	}
+
+	public function opens(where:String):Void {
+		final suffix = haxe.io.Path.extension(where).toLowerCase();
+
+		try {
+			switch (suffix) {
+				case "vgm", "vgz": files.readVgm(where);
+				case "mid", "midi": files.readMidi(where);
+				case _: files.load(where);
+			}
+		} catch (e:Dynamic) {
+			session.say("that would not open: " + e);
+		}
+
 		changed();
 	}
 
@@ -260,6 +291,11 @@ class App {
 			files.ask(window, Files.OPEN));
 		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE), "Ctrl+S")), function():Void keeping());
 		fired(file.offer(new Choice(root.translate(Locale.FILE_SAVE_AS))), function():Void files.ask(window, Files.SAVE));
+		file.divide();
+		fired(file.offer(new Choice(root.translate(Locale.FILE_READ_VGM))), function():Void
+			files.ask(window, Files.READ_VGM));
+		fired(file.offer(new Choice(root.translate(Locale.FILE_READ_MIDI))), function():Void
+			files.ask(window, Files.READ_MIDI));
 		file.divide();
 		fired(file.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
@@ -296,10 +332,15 @@ class App {
 
 		final view = new Menu();
 
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_ROLL))), function():Void centre.show(Centre.ROLL));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_ROLL))), function():Void
+			centre.show(Centre.ROLL));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_SCOPE))), function():Void
+			centre.show(Centre.SCOPE));
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_SAMPLES))), function():Void
+			centre.show(Centre.SAMPLES));
 		fired(view.offer(new Choice(root.translate(Locale.VIEW_TRACKER))), function():Void
 			centre.show(Centre.TRACKER));
-		fired(view.offer(new Choice(root.translate(Locale.VIEW_ARRANGEMENT))), function():Void
+		fired(view.offer(new Choice(root.translate(Locale.VIEW_PLAYLIST))), function():Void
 			centre.show(Centre.PLAYLIST));
 		view.divide();
 		fired(view.offer(new Choice(root.translate(Locale.VIEW_MIXER))), function():Void dock.show(Dock.MIXER));
@@ -546,7 +587,8 @@ class App {
 		files.onLoad = function(held:Song):Void loaded(held);
 
 		bar = new TransportBar(session);
-		rack = new ChannelRack(session);
+		rail = new Rail(session);
+		rack = rail.rack;
 		centre = new Centre(session);
 		inspector = new Inspector(session);
 		dock = new Dock(session);
@@ -560,12 +602,13 @@ class App {
 
 		shell.zone(Shell.MENU).add(menus);
 		shell.zone(Shell.TRANSPORT).add(bar);
-		shell.zone(Shell.RAIL).add(rack);
+		shell.zone(Shell.RAIL).add(rail);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(inspector);
 		shell.zone(Shell.DOCK).add(dock);
 
 		centre.roll.budget = budget;
+		rail.hardware.budget = budget;
 		dock.warnings.budget = budget;
 
 		commands();
@@ -766,10 +809,10 @@ class App {
 			if (moved) dock.mixer.invalidate();
 		}
 
-		if (inspector == null || !inspector.scope.visible) return;
+		if (centre == null || !centre.scope.visible) return;
 
-		for (index in 0...6) inspector.scope.feed(index, traced(index));
-		inspector.scope.invalidate();
+		for (index in 0...6) centre.scope.feed(index, traced(index));
+		centre.scope.invalidate();
 	}
 
 	function traced(index:Int):Float {

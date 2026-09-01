@@ -7,13 +7,17 @@ import mdd.ui.Widget;
 @:unreflective
 final class Centre extends Widget {
 	public static inline final ROLL = 0;
-	public static inline final TRACKER = 1;
-	public static inline final PLAYLIST = 2;
+	public static inline final SCOPE = 1;
+	public static inline final SAMPLES = 2;
+	public static inline final TRACKER = 3;
+	public static inline final PLAYLIST = 4;
 
 	public final session:Session;
 
 	public final tabs:Tabs;
 	public final roll:PianoRoll;
+	public final scope:Scope;
+	public final samples:Samples;
 	public final tracker:Tracker;
 	public final playlist:Playlist;
 
@@ -23,16 +27,22 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", "", ""]);
+		tabs = new Tabs(["", "", "", "", ""]);
 		roll = new PianoRoll(session);
+		scope = new Scope(session);
+		samples = new Samples(session);
 		tracker = new Tracker(session);
 		playlist = new Playlist(session);
 
 		add(tabs);
 		add(roll);
+		add(scope);
+		add(samples);
 		add(tracker);
 		add(playlist);
 
+		scope.visible = false;
+		samples.visible = false;
 		tracker.visible = false;
 		playlist.visible = false;
 
@@ -44,6 +54,8 @@ final class Centre extends Widget {
 
 		showing = which;
 		roll.visible = which == ROLL;
+		scope.visible = which == SCOPE;
+		samples.visible = which == SAMPLES;
 		tracker.visible = which == TRACKER;
 		playlist.visible = which == PLAYLIST;
 
@@ -60,6 +72,8 @@ final class Centre extends Widget {
 
 		tabs.arrange(x, y, width, tall);
 		roll.arrange(x, y + tall, width, height - tall);
+		scope.arrange(x, y + tall, width, height - tall);
+		samples.arrange(x, y + tall, width, height - tall);
 		tracker.arrange(x, y + tall, width, height - tall);
 		playlist.arrange(x, y + tall, width, height - tall);
 	}
@@ -89,9 +103,11 @@ final class Centre extends Widget {
 		final root = root();
 		if (root == null) return;
 
-			tabs.labels[0] = translate(Locale.VIEW_ROLL);
-			tabs.labels[1] = translate(Locale.VIEW_TRACKER);
-			tabs.labels[2] = translate(Locale.VIEW_ARRANGEMENT);
+		tabs.labels[0] = translate(Locale.VIEW_ROLL);
+		tabs.labels[1] = translate(Locale.VIEW_SCOPE);
+		tabs.labels[2] = translate(Locale.VIEW_SAMPLES);
+		tabs.labels[3] = translate(Locale.VIEW_TRACKER);
+		tabs.labels[4] = translate(Locale.VIEW_PLAYLIST);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -100,6 +116,8 @@ final class Centre extends Widget {
 		tabs.paint(paint);
 
 		if (roll.visible) roll.paint(paint);
+		if (scope.visible) scope.paint(paint);
+		if (samples.visible) samples.paint(paint);
 		if (tracker.visible) tracker.paint(paint);
 		if (playlist.visible) playlist.paint(paint);
 	}
