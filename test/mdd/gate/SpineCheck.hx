@@ -56,7 +56,7 @@ class SpineCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 26) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 30) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function round(value:Float, places:Int):Float {

@@ -1,5 +1,6 @@
 package mdd.view;
 
+import mdd.check.Budget;
 import mdd.song.AddNote;
 import mdd.song.Lane;
 import mdd.song.Note;
@@ -33,6 +34,7 @@ final class PianoRoll extends Widget {
 	public var offsetY:Float = 0;
 
 	public var playhead:Int = -1;
+	public var budget:Null<Budget> = null;
 
 	public var painted(default, null):Int = 0;
 	public var chosen(default, null):Null<Note> = null;
@@ -386,11 +388,30 @@ final class PianoRoll extends Widget {
 				continue;
 			}
 
-			paint.roundedRect(at, row, wide, tall, radius, colour, 0.9);
+			final unsound = budget != null && budget.troubled(note);
+
+			paint.roundedRect(at, row, wide, tall, radius, colour, unsound ? 0.35 : 0.9);
+
+			if (unsound) hatch(paint, theme, metrics, at, row, wide, tall);
 
 			if (note == chosen) {
 				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1), 0.9);
 			}
+		}
+	}
+
+	function hatch(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, wide:Float,
+			tall:Float):Void {
+		final hair = metrics.whole(1);
+		final step = tall;
+
+		paint.outline(at, row, wide, tall, theme.warn, hair, 0.9);
+
+		var pen = at;
+		while (pen < at + wide) {
+			final reach = pen + tall > at + wide ? at + wide - pen : tall;
+			paint.line(pen, row + tall, pen + reach, row + tall - reach, hair, theme.warn, 0.7);
+			pen += step;
 		}
 	}
 

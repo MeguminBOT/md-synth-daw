@@ -15,6 +15,8 @@ import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
+import mdd.check.Budget;
+import mdd.check.Profile;
 import mdd.play.Render;
 import mdd.song.Part;
 import mdd.view.ChannelRack;
@@ -42,6 +44,7 @@ class App {
 	var roll:Null<PianoRoll> = null;
 	var editor:Null<FmEditor> = null;
 	var bar:Null<TransportBar> = null;
+	var budget:Null<Budget> = null;
 
 	var speaker:cpp.Star<Device> = null;
 	var render:Null<Render> = null;
@@ -123,6 +126,19 @@ class App {
 		shell.zone(Shell.RAIL).add(rack);
 		shell.zone(Shell.CENTRE).add(roll);
 		shell.zone(Shell.INSPECTOR).add(editor);
+
+		budget = new Budget(Profile.megaDrive());
+		roll.budget = budget;
+
+		session.onChange = function(session:Session):Void weighed();
+		weighed();
+	}
+
+	function weighed():Void {
+		if (budget == null || session == null) return;
+
+		budget.overSong(session.song);
+		if (roll != null) roll.invalidate();
 	}
 
 	function sound():Void {
@@ -202,6 +218,8 @@ class App {
 		Sys.println("  settings      " + Paths.settings());
 		Sys.println("  audio         " + (speaker == null ? "no device"
 			: Audio.name(speaker) + ", " + Audio.rate(speaker) + " Hz"));
+		Sys.println("  profile       " + budget.profile.name + ", "
+			+ budget.profile.counted() + " parts");
 	}
 
 	function loop():Void {
