@@ -27,7 +27,19 @@ final class Tools extends Widget {
 
 	public function cell():Float {
 		final root = root();
-		return root == null ? 24 : root.metrics.whole(24);
+		if (root == null) return 24;
+
+		final metrics = root.metrics;
+		final tall = height - metrics.whole(3) - metrics.unit * 2;
+
+		return tall < 12 ? metrics.whole(24) : tall;
+	}
+
+	public function top():Float {
+		final root = root();
+		if (root == null) return y;
+
+		return y + root.metrics.whole(3) + root.metrics.unit;
 	}
 
 	public function wide():Float {
@@ -42,7 +54,7 @@ final class Tools extends Widget {
 		if (root == null) return -1;
 
 		final size = cell();
-		final top = y + (height - size) * 0.5;
+		final top = top();
 
 		if (py < top || py >= top + size) return -1;
 
@@ -117,7 +129,7 @@ final class Tools extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final size = cell();
-		final top = y + (height - size) * 0.5;
+		final top = top();
 
 		var pen = x;
 
@@ -125,7 +137,11 @@ final class Tools extends Widget {
 			final on = lit(index);
 
 			paint.roundedRect(pen, top, size, size, metrics.radiusSmall,
-				on ? theme.accent : theme.raise1, on ? 0.8 : 0.6);
+				on ? theme.accent : theme.raise1, on ? 0.9 : 1);
+
+			if (!on) {
+				paint.outline(pen, top, size, size, theme.frame, metrics.whole(1));
+			}
 
 			if (index == hoverAt) {
 				paint.roundedRect(pen, top, size, size, metrics.radiusSmall, theme.accent,

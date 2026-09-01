@@ -412,7 +412,7 @@ final class TransportBar extends Widget {
 			final lit = index == RECORD ? theme.over : theme.accent;
 
 			paint.roundedRect(pen, top, button, button, metrics.radiusRow,
-				on ? lit : theme.raise1, on ? 0.85 : 1);
+				on ? lit : theme.raise2, on ? 0.85 : 1);
 
 			if (index == hoverAt) {
 				paint.roundedRect(pen, top, button, button, metrics.radiusRow, theme.accent,
@@ -449,7 +449,7 @@ final class TransportBar extends Widget {
 		final on = session.alone ? 0 : 1;
 
 		paint.reface(font);
-		paint.roundedRect(left, top, wide * 2, button, metrics.radiusRow, theme.raise1);
+		paint.roundedRect(left, top, wide * 2, button, metrics.radiusRow, theme.raise2);
 		paint.roundedRect(left + wide * on, top, wide, button, metrics.radiusRow, theme.accent,
 			0.85);
 
@@ -471,7 +471,7 @@ final class TransportBar extends Widget {
 		final line = top + (button - font.height) * 0.5 + font.ascent;
 		final pattern = session.current();
 
-		paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.raise1);
+		paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.raise2);
 
 		if (overPicker) {
 			paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.accent,
