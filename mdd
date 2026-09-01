@@ -1,0 +1,7 @@
+#!/bin/sh
+# the one command this repository is driven by:
+#
+#     ./mdd setup | check | build | run | gate | clean
+#
+cd "$(dirname "$0")" || exit 1
+exec haxe -cp tools/src --run Run "$@"
