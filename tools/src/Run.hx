@@ -104,6 +104,7 @@ class Run {
 				case "miniaudio": miniaudio(vendor);
 				case "stb": stb(vendor);
 				case "fonts": fonts(vendor);
+				case "Nuked-OPN2": nuked(vendor);
 				case _: false;
 			}
 
@@ -352,8 +353,46 @@ class Run {
 		Sys.exit(Sys.command(shipped, passed));
 	}
 
+	static function compiler():String {
+		for (name in ["gcc", "clang", "cc"]) if (tool(name, ["--version"])) return name;
+		return "";
+	}
+
+	static function opn2(root:String, project:Project):Void {
+		final source = root + "/vendor/Nuked-OPN2/ym3438.c";
+		if (!FileSystem.exists(source)) return;
+
+		final into = root + "/" + project.output + "/bin";
+		tree(into);
+
+		final exe = into + "/opn2" + (windows() ? ".exe" : "");
+		final own = root + "/tools/opn2/opn2.c";
+
+		if (FileSystem.exists(exe)
+			&& FileSystem.stat(exe).mtime.getTime() >= FileSystem.stat(own).mtime.getTime()
+			&& FileSystem.stat(exe).mtime.getTime() >= FileSystem.stat(source).mtime.getTime()) {
+			return;
+		}
+
+		final which = compiler();
+		if (which == "") {
+			Sys.println("  " + pad("opn2") + "no C compiler on the path, the reference cannot build");
+			return;
+		}
+
+		Sys.println("  " + pad("opn2") + "building the reference with " + which);
+
+		final code = Sys.command(which, [
+			"-O2", "-o", exe, own, source, "-I" + root + "/vendor/Nuked-OPN2"
+		]);
+
+		if (code != 0) Sys.println("  " + pad("opn2") + "the reference would not build");
+	}
+
 	static function gate(root:String, project:Project, args:Array<String>):Void {
 		if (exeOf(root, project, "gate") == "") built(root, project, "gate", false);
+
+		if (args.length == 0 || args[0] == "chip") opn2(root, project);
 
 		final shipped = ship(root, project, "gate");
 		if (shipped == "") {
@@ -405,6 +444,22 @@ class Run {
 
 		FileSystem.deleteFile(archive);
 		remove(staging);
+		return true;
+	}
+
+	static function nuked(vendor:String):Bool {
+		final into = vendor + "/Nuked-OPN2";
+		tree(into);
+
+		final sha = resolved("nukeykt", "Nuked-OPN2", "master");
+		final base = "https://raw.githubusercontent.com/nukeykt/Nuked-OPN2/"
+			+ (sha == "" ? "master" : sha);
+
+		if (!download(base + "/ym3438.c", into + "/ym3438.c")) return false;
+		if (!download(base + "/ym3438.h", into + "/ym3438.h")) return false;
+		download(base + "/LICENSE", into + "/LICENSE");
+
+		File.saveContent(into + "/COMMIT", sha == "" ? "master, unpinned" : sha);
 		return true;
 	}
 
