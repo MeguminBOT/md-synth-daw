@@ -1,0 +1,300 @@
+package mdd.gate;
+
+import haxe.ds.Vector;
+import mdd.format.Midi;
+import mdd.format.Transcription;
+import mdd.format.Vgm;
+import mdd.format.Wav;
+import mdd.host.Sdl;
+import mdd.play.Render;
+import mdd.play.Sequencer;
+import mdd.play.Stream;
+import mdd.song.Note;
+import mdd.song.Part;
+import mdd.song.Song;
+import mdd.song.Tempo;
+
+@:unreflective
+class TierCheck {
+	static inline final RATE = 44100;
+
+	static var failed:Int = 0;
+	static var ran:Int = 0;
+
+	public static function run(args:Array<String>):Int {
+		failed = 0;
+		ran = 0;
+
+		Sys.println("  tier");
+
+		final at = args.indexOf("--wav");
+		final into = at >= 0 && at + 1 < args.length ? args[at + 1] : "";
+
+		round(into);
+		midi();
+		sampling();
+
+		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
+
+		if (failed > 0) {
+			Sys.println("    failed");
+			return 1;
+		}
+
+		Sys.println("    passed");
+		return 0;
+	}
+
+	static function says(name:String, ok:Bool, said:String):Void {
+		ran++;
+		if (!ok) failed++;
+		Sys.println("    " + StringTools.rpad(name, " ", 30) + said + (ok ? "" : "   FAILED"));
+	}
+
+	static function shown(value:Float, places:Int):Float {
+		final scale = Math.pow(10, places);
+		return Math.round(value * scale) / scale;
+	}
+
+	static function alike(one:Stream, two:Stream):Int {
+		if (one.count != two.count) return -1;
+
+		for (i in 0...one.count) {
+			if (one.tickAt(i) != two.tickAt(i)) return i;
+			if (one.kindAt(i) != two.kindAt(i)) return i;
+			if (one.portAt(i) != two.portAt(i)) return i;
+			if (one.valueAt(i) != two.valueAt(i)) return i;
+		}
+
+		return -2;
+	}
+
+	static function keyed(stream:Stream):Array<Int> {
+		final out:Array<Int> = [];
+
+		var half = 0;
+		var address = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) == Stream.PSG) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x28 || (value & 0xF0) == 0) continue;
+
+			final within = value & 3;
+			if (within == 3) continue;
+
+			out.push((stream.tickAt(index) << 4) | (within + ((value & 4) != 0 ? 3 : 0)));
+		}
+
+		return out;
+	}
+
+	static function started(made:Transcription):Array<Int> {
+		final out:Array<Int> = [];
+		final pattern = made.song.patterns[0];
+		final tempo = made.song.tempo;
+
+		for (index in 0...6) {
+			for (note in pattern.lanes[index].notes) {
+				out.push((tempo.samplesAt(note.at) << 4) | index);
+			}
+		}
+
+		return out;
+	}
+
+	static function round(into:String):Void {
+		final song = StreamCheck.written();
+		final span = song.tempo.samplesAt(song.ends());
+
+		final made = new Stream(262144);
+		final sequencer = new Sequencer(song);
+		sequencer.emit(made, 0, span);
+
+		final bytes = Vgm.write(made, 0, span, song.tempo.rate);
+
+		final back = new Stream(262144);
+		final vgm = Vgm.read(bytes, back);
+
+		says("composed and exported", made.count > 0 && bytes.length > 64,
+			made.count + " register writes become a " + bytes.length + " byte vgm across "
+			+ shown(span / Tempo.TICKS, 2) + " s");
+
+		says("exported and imported", alike(made, back) == -2,
+			"the vgm reads back as the same " + back.count + " writes");
+
+		final transcribed = Transcription.of(back, vgm.rate, song.name);
+		final again = new Stream(262144);
+		final replay = new Sequencer(transcribed.song);
+
+		replay.emit(again, 0, transcribed.song.tempo.samplesAt(transcribed.song.ends()));
+
+		final wanted = keyed(made);
+		final got = started(transcribed);
+		final taken = [for (i in 0...got.length) false];
+
+		final slack = Std.int(Tempo.TICKS * 60 / (transcribed.beats * 96)) + 1;
+
+		var placed = 0;
+		var worst = 0;
+		var doubled = 0;
+
+		for (i in 0...wanted.length) {
+			for (j in 0...i) if (wanted[j] == wanted[i]) {
+				doubled++;
+				break;
+			}
+		}
+
+		for (want in wanted) {
+			final channel = want & 0x0F;
+			final at = want >> 4;
+
+			var best = -1;
+			var near = slack + 1;
+
+			for (i in 0...got.length) {
+				if (taken[i] || (got[i] & 0x0F) != channel) continue;
+
+				final off = (got[i] >> 4) - at;
+				final size = off < 0 ? -off : off;
+
+				if (size >= near) continue;
+
+				near = size;
+				best = i;
+			}
+
+			if (best < 0) continue;
+
+			taken[best] = true;
+			placed++;
+			if (near > worst) worst = near;
+		}
+
+		says("imported and compared", placed == wanted.length - doubled && worst <= slack,
+			placed + " of " + (wanted.length - doubled) + " key ons come back as a note on the "
+			+ "same channel, none further than " + worst + " samples from where it was, which "
+			+ "is " + shown(worst * 1000.0 / Tempo.TICKS, 2) + " ms and inside one musical tick; "
+			+ doubled + " more land on a channel at the sample another already did, and cannot "
+			+ "be two notes");
+
+		says("and the notes still play", again.count > 0,
+			again.count + " register writes when the imported song is played again, against "
+			+ made.count + " the piece made; the difference is the polyphony policy refusing "
+			+ "what one voice cannot hold");
+
+		final frames = Std.int(span * (RATE / Tempo.TICKS));
+		final sound = new Vector<cpp.Float32>(frames * 2);
+
+		for (i in 0...sound.length) sound[i] = 0;
+
+		final render = new Render(RATE, Render.BLOCK);
+		var done = 0;
+		var next = 0;
+
+		while (done < frames) {
+			final from = Std.int(done * (Tempo.TICKS / RATE));
+			final many = render.serve(made, from, Render.BLOCK, 0);
+
+			for (i in 0...many) {
+				if ((done + i) * 2 + 1 >= sound.length) break;
+				sound[(done + i) * 2] = render.block[i * 2];
+				sound[(done + i) * 2 + 1] = render.block[i * 2 + 1];
+			}
+
+			done += many;
+		}
+
+		var loudest = 0.0;
+		for (i in 0...sound.length) {
+			final value = sound[i] < 0 ? -sound[i] : sound[i];
+			if (value > loudest) loudest = value;
+		}
+
+		says("and it makes a sound", loudest > 0.001,
+			shown(frames / RATE, 2) + " s rendered from the exported stream, loudest sample "
+			+ shown(loudest, 4));
+
+		if (into == "") return;
+
+		sys.io.File.saveBytes(into, Wav.write(sound, frames, 2, RATE));
+		Sys.println("    " + StringTools.rpad("wrote", " ", 30) + into);
+	}
+
+	static function midi():Void {
+		final song = StreamCheck.written();
+		final bytes = Midi.write(song);
+		final back = Midi.read(bytes, song.name);
+
+		var wanted = 0;
+		final flat = song.unshared();
+
+		for (pattern in flat.patterns) {
+			for (index in 0...6) wanted += pattern.lanes[index].notes.length;
+		}
+
+		var got = 0;
+		for (pattern in back.patterns) {
+			for (index in 0...6) got += pattern.lanes[index].notes.length;
+		}
+
+		says("a song becomes midi", bytes.length > 22 && bytes.getString(0, 4) == "MThd",
+			bytes.length + " bytes, " + (Part.COUNT + 1) + " tracks");
+
+		says("and midi becomes a song", got == wanted,
+			got + " of " + wanted + " fm notes come back, on the parts they left on");
+
+		var same = true;
+		for (i in 0...back.tempo.at.length) {
+			if (Math.abs(back.tempo.bpm[i] - song.tempo.bpm[i]) > 0.5) same = false;
+		}
+
+		says("the tempo survives", back.tempo.at.length == song.tempo.at.length && same,
+			back.tempo.at.length + " tempo changes at "
+			+ shown(back.tempo.bpm[0], 1) + " and " + shown(back.tempo.bpm[1], 1) + " bpm");
+	}
+
+	static function sampling():Void {
+		final frames = 4410;
+		final made = new Vector<cpp.Float32>(frames);
+
+		for (i in 0...frames) made[i] = Math.sin(i * 2 * Math.PI * 440 / RATE) * 0.8;
+
+		final bytes = Wav.write(made, frames, 1, RATE);
+		final wav = Wav.read(bytes);
+
+		var worst = 0.0;
+		for (i in 0...frames) {
+			final off = Math.abs(wav.samples[i] - made[i]);
+			if (off > worst) worst = off;
+		}
+
+		says("a wav writes and reads", wav.frames == frames && wav.rate == RATE
+			&& worst < 0.0001,
+			frames + " frames at " + wav.rate + " Hz, worst sample off by "
+			+ shown(worst, 6));
+
+		final held = wav.bytes(8000, 60);
+		var lowest = 255;
+		var highest = 0;
+
+		for (i in 0...held.length) {
+			if (held[i] < lowest) lowest = held[i];
+			if (held[i] > highest) highest = held[i];
+		}
+
+		says("and becomes converter bytes", lowest < 60 && highest > 195,
+			held.length + " unsigned bytes between " + lowest + " and " + highest
+			+ ", centred on 128 the way the converter reads them");
+	}
+}

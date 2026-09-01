@@ -126,8 +126,11 @@ final class Transcription {
 			final channel = within + ((value & 4) != 0 ? 3 : 0);
 			final on = (value & 0xF0) != 0;
 
-			if (on && !keyed[channel]) start(at, channel);
-			else if (!on && keyed[channel]) finish(at, channel);
+			if (on && keyed[channel]) {
+				finish(at, channel);
+				start(at, channel);
+			} else if (on) start(at, channel);
+			else if (keyed[channel]) finish(at, channel);
 
 			keyed[channel] = on;
 			return;
@@ -156,8 +159,10 @@ final class Transcription {
 
 	function finish(at:Int, channel:Int):Void {
 		final from = ticked(startedAt[channel]);
-		final until = ticked(at);
-		if (until <= from) return;
+		var until = ticked(at);
+
+		if (at <= startedAt[channel]) return;
+		if (until <= from) until = from + 1;
 
 		final part:Part = channel;
 		final note = new Note(from, until - from, startedOn[channel], 100, instrumentFor(channel));
@@ -212,10 +217,12 @@ final class Transcription {
 
 		if (level >= 15 && was < 15 && psgFrom[channel] >= 0) {
 			final from = ticked(psgFrom[channel]);
-			final until = ticked(at);
+			var until = ticked(at);
+			final was = psgFrom[channel];
 			psgFrom[channel] = -1;
 
-			if (until <= from) return;
+			if (at <= was) return;
+			if (until <= from) until = from + 1;
 
 			final part:Part = 6 + channel;
 			pattern.lane(part).add(new Note(from, until - from, psgNote[channel], 100,

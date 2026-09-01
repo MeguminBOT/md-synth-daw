@@ -70,22 +70,7 @@ class AudioCheck {
 		render.drain();
 
 		final frames = Std.int(seconds * RATE);
-		final out = new haxe.io.BytesOutput();
-		final body = frames * 4;
-
-		out.writeString("RIFF");
-		out.writeInt32(36 + body);
-		out.writeString("WAVE");
-		out.writeString("fmt ");
-		out.writeInt32(16);
-		out.writeUInt16(1);
-		out.writeUInt16(2);
-		out.writeInt32(RATE);
-		out.writeInt32(RATE * 4);
-		out.writeUInt16(4);
-		out.writeUInt16(16);
-		out.writeString("data");
-		out.writeInt32(body);
+		final held = new haxe.ds.Vector<cpp.Float32>(frames * 2);
 
 		var done = 0;
 
@@ -93,22 +78,18 @@ class AudioCheck {
 			final many = render.fill(Render.BLOCK);
 
 			for (i in 0...many) {
-				if (done + i >= frames) break;
-				out.writeInt16(whole(render.block[i * 2]));
-				out.writeInt16(whole(render.block[i * 2 + 1]));
+				if ((done + i) * 2 + 1 >= held.length) break;
+				held[(done + i) * 2] = render.block[i * 2];
+				held[(done + i) * 2 + 1] = render.block[i * 2 + 1];
 			}
 
 			done += many;
 		}
 
-		sys.io.File.saveBytes(path, out.getBytes());
+		sys.io.File.saveBytes(path, mdd.format.Wav.write(held, frames, 2, RATE));
+
 		Sys.println("    " + StringTools.rpad("wrote", " ", 22) + Std.int(seconds)
 			+ " s of the test voice to " + path);
-	}
-
-	static inline function whole(value:cpp.Float32):Int {
-		final scaled = Math.round(value * 32767);
-		return scaled > 32767 ? 32767 : (scaled < -32768 ? -32768 : scaled);
 	}
 
 	static function queueing():Void {
