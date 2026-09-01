@@ -49,6 +49,14 @@ class Locale {
 	public static inline final SAMPLE_CLEAR = "sample.clear";
 	public static inline final SAMPLE_EMPTY = "sample.empty";
 
+	public static inline final NAMING_HINT = "naming.hint";
+	public static inline final PRESET_SAVE = "preset.save";
+	public static inline final PRESET_NAME = "preset.name";
+	public static inline final PRESET_RENAME = "preset.rename";
+	public static inline final PRESET_DUPLICATE = "preset.duplicate";
+	public static inline final PRESET_DELETE = "preset.delete";
+	public static inline final PRESET_LOAD = "preset.load";
+
 	public static inline final BANK_EXPAND = "bank.expand";
 	public static inline final BANK_COLLAPSE = "bank.collapse";
 	public static inline final BANK_KEEP = "bank.keep";
@@ -257,6 +265,8 @@ class Locale {
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM, SCOPE_INSPECT,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
+		NAMING_HINT, PRESET_SAVE, PRESET_NAME, PRESET_RENAME,
+		PRESET_DUPLICATE, PRESET_DELETE, PRESET_LOAD,
 		SAMPLE_NORMALISE, SAMPLE_CLEAR, SAMPLE_EMPTY,
 		PANEL_FROM_IMPORT, BANK_EXPAND, BANK_COLLAPSE, BANK_KEEP, BANK_KEPT,
 		BANK_ALREADY,

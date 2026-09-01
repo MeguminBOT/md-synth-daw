@@ -38,21 +38,21 @@ final class Metrics {
 		unit = whole(4);
 		inset = whole(12);
 		gap = whole(8);
-		row = whole(30);
-		control = whole(30);
-		bar = whole(29);
-		tab = whole(30);
+		row = whole(34);
+		control = whole(32);
+		bar = whole(32);
+		tab = whole(34);
 
 		radiusSmall = whole(4);
 		radiusWindow = whole(6);
 		radiusRow = whole(7);
 		radiusPanel = whole(10);
 
-		rail = whole(250);
-		inspector = whole(314);
-		dock = whole(132);
-		menu = whole(30);
-		transport = whole(52);
+		rail = whole(268);
+		inspector = whole(332);
+		dock = whole(150);
+		menu = whole(34);
+		transport = whole(58);
 	}
 
 	public function dress(body:Font, small:Font, mono:Font, large:Font):Void {

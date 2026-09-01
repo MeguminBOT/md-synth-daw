@@ -153,9 +153,9 @@ class SpineCheck {
 		final window = Sdl.createWindow("mdd gate spine", 1440, 900, 0, 0);
 		final renderer = Sdl.createRenderer(window, 0);
 
-		final body = Font.bake(renderer, face, 13);
-		final small = Font.bake(renderer, face, 11);
-		final mono = Font.bake(renderer, monoFace, 12);
+		final body = Font.bake(renderer, face, 15);
+		final small = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 14);
 
 		if (body == null || small == null || mono == null) {
 			says("the spine draws", false, "the fonts would not bake");
@@ -299,6 +299,10 @@ class SpineCheck {
 			scopeTimes[frame] = took;
 			if (took > scopeWorst) scopeWorst = took;
 		}
+
+		says("a key row fits its name", roll.rowTall >= small.height,
+			"a row of the gutter is " + round(roll.rowTall, 1) + " px against a name "
+			+ round(small.height, 1) + " px tall, so every key can be labelled");
 
 		final nested = paint.nesting();
 

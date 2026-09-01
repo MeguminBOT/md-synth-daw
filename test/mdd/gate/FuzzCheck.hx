@@ -105,9 +105,9 @@ class FuzzCheck {
 		final window = Sdl.createWindow("mdd gate fuzz", 1440, 900, 0, 0);
 		final renderer = Sdl.createRenderer(window, 0);
 
-		final body = Font.bake(renderer, face, 13);
-		final small = Font.bake(renderer, face, 11);
-		final mono = Font.bake(renderer, monoFace, 12);
+		final body = Font.bake(renderer, face, 15);
+		final small = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 14);
 
 		if (body == null || small == null || mono == null) {
 			says("the roll survives being used", false, "the fonts would not bake");

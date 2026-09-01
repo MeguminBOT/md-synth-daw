@@ -99,7 +99,7 @@ final class Registers extends Scroll {
 
 	public function rowTall():Float {
 		final root = root();
-		return root == null ? 18 : root.metrics.whole(18);
+		return root == null ? 22 : root.metrics.whole(22);
 	}
 
 	public function rows():Int {

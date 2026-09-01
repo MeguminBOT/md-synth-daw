@@ -45,7 +45,7 @@ final class ChannelRack extends Widget {
 
 	function header():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 26 : root.metrics.whole(26);
 	}
 
 	override function took(event:Input):Bool {

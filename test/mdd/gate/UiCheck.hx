@@ -1138,7 +1138,7 @@ class UiCheck {
 
 		final shut = shell.zone(Shell.RAIL).width;
 
-		says("zone collapses", wide == 250 && midway > 24 && midway < wide && shut == 24
+		says("zone collapses", wide == 268 && midway > 24 && midway < wide && shut == 24
 			&& fading > 0 && fading < 1,
 			wide + " wide, " + midway + " half way through, " + shut + " shut");
 
@@ -1149,7 +1149,7 @@ class UiCheck {
 		root.advance(1.0);
 		shell.arrange(0, 0, 1400, 900);
 
-		says("zone reopens", shell.zone(Shell.RAIL).width == 250 && shell.share(Shell.RAIL) == 1
+		says("zone reopens", shell.zone(Shell.RAIL).width == 268 && shell.share(Shell.RAIL) == 1
 			&& root.animating() == 0,
 			"back to " + shell.zone(Shell.RAIL).width + " with nothing left running");
 

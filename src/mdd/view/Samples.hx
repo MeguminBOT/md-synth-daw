@@ -43,7 +43,7 @@ final class Samples extends Widget {
 
 	public function head():Float {
 		final root = root();
-		return root == null ? 26 : root.metrics.whole(26);
+		return root == null ? 30 : root.metrics.whole(30);
 	}
 
 	public function slots():Float {

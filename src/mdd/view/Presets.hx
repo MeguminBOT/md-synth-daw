@@ -19,6 +19,9 @@ final class Presets extends Widget {
 	public var listed(default, null):Int = 0;
 	public var banks(default, null):Int = 0;
 
+	public var onRename:Null<Int -> Void> = null;
+	public var onSave:Null<Void -> Void> = null;
+
 	var menu:Null<Menu> = null;
 
 	final named:Array<Int> = [];
@@ -53,6 +56,62 @@ final class Presets extends Widget {
 		session.changed();
 	}
 
+	function preset(item:Item, px:Float, py:Float):Void {
+		final root = root();
+		final at = held.indexOf(item);
+		if (root == null || at < 0) return;
+
+		final which = named[at];
+		final instrument = session.song.instrumentAt(which);
+		if (instrument == null) return;
+
+		menu = new Menu();
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_LOAD) + " "
+			+ session.part.name())), function():Void picked(item));
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void {
+			if (onRename != null) onRename(which);
+		});
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_DUPLICATE))), function():Void
+			duplicated(which));
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_DELETE))), function():Void
+			dropped(which));
+
+		root.pop(menu, px, py, this);
+	}
+
+	function duplicated(which:Int):Void {
+		final from = session.song.instrumentAt(which);
+		if (from == null) return;
+
+		final made = from.copy();
+		made.name = from.name + " 2";
+
+		session.holds();
+		session.song.instrument(made);
+
+		final index = session.song.instruments.length - 1;
+		for (bank in session.song.banks) if (bank.holds(which)) bank.add(index);
+
+		session.frees();
+		session.changed();
+	}
+
+	function dropped(which:Int):Void {
+		session.holds();
+		for (bank in session.song.banks) bank.remove(which);
+		session.frees();
+
+		session.changed();
+	}
+
 	function fires(choice:Choice, what:Void -> Void):Void {
 		choice.onFire = function(from:Choice):Void what();
 	}
@@ -62,7 +121,11 @@ final class Presets extends Widget {
 		if (root == null) return;
 
 		final at = heads.indexOf(item);
-		if (at < 0) return;
+
+		if (at < 0) {
+			preset(item, px, py);
+			return;
+		}
 
 		final which = banked[at];
 		final bank = session.song.banks[which];

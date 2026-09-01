@@ -87,7 +87,7 @@ final class PianoRoll extends Widget {
 
 	public function gutter():Float {
 		final root = root();
-		return root == null ? 44 : root.metrics.whole(44);
+		return root == null ? 56 : root.metrics.whole(56);
 	}
 
 	public function ruler():Float {
@@ -542,6 +542,11 @@ final class PianoRoll extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final pattern = session.current();
+
+		final named = metrics.small == null ? metrics.body : metrics.small;
+		final least = named.height + metrics.unit * 1.5;
+
+		if (rowTall < least) rowTall = least;
 
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;

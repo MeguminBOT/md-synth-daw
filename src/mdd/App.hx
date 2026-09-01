@@ -74,6 +74,7 @@ class App {
 	var update:Null<Update> = null;
 	var notice:Null<Notice> = null;
 	var welcome:Null<Welcome> = null;
+	var naming:Null<mdd.view.Naming> = null;
 	var firstRun:Bool = false;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
@@ -221,6 +222,9 @@ class App {
 		shell.zone(Shell.MENU).add(menus);
 
 
+		naming = new mdd.view.Naming();
+		naming.onShut = function():Void root.lower();
+
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
 		preferences.onTypeface = function(which:Int):Void redressed();
@@ -266,6 +270,8 @@ class App {
 		rail.hardware.budget = budget;
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
+		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
+		inspector.presets.onSave = function():Void savedPreset();
 		dock.warnings.budget = budget;
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -457,6 +463,8 @@ class App {
 		if (!paste.enabled) paste.reason = root.translate(Locale.RACK_NONE_COPIED);
 
 		held.divide();
+		fired(held.offer(new Choice(root.translate(Locale.PRESET_SAVE))), function():Void
+			savedPreset());
 		fired(held.offer(new Choice(root.translate(Locale.PANEL_BANK))), function():Void
 			inspector.show(Inspector.BANK));
 
@@ -722,6 +730,43 @@ class App {
 		settings.save();
 	}
 
+	function renamedPreset(which:Int):Void {
+		final held = session.song.instrumentAt(which);
+		if (held == null || naming == null) return;
+
+		naming.ask(root.translate(Locale.PRESET_NAME), held.name);
+		naming.onName = function(said:String):Void {
+			held.name = said;
+			session.changed();
+		};
+
+		root.raise(naming);
+	}
+
+	function savedPreset():Void {
+		if (naming == null) return;
+
+		final part = session.part;
+		final from = session.song.instrumentAt(session.song.rack[part.index()]);
+		if (from == null) return;
+
+		naming.ask(root.translate(Locale.PRESET_NAME), from.name);
+		naming.onName = function(said:String):Void {
+			final made = from.copy();
+			made.name = said;
+
+			session.holds();
+			session.song.instrument(made);
+			session.frees();
+
+			session.song.rack[part.index()] = session.song.instruments.length - 1;
+			session.say(said);
+			session.changed();
+		};
+
+		root.raise(naming);
+	}
+
 	function opened():Void {
 		preferences.arrive();
 		root.raise(preferences);
@@ -861,6 +906,8 @@ class App {
 		rail.hardware.budget = budget;
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
+		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
+		inspector.presets.onSave = function():Void savedPreset();
 		dock.warnings.budget = budget;
 
 		commands();

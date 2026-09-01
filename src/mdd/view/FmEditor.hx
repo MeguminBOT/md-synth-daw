@@ -82,7 +82,7 @@ final class FmEditor extends Widget {
 
 	function rowTall():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 26 : root.metrics.whole(26);
 	}
 
 	public function fieldAt(px:Float, py:Float):Int {
