@@ -39,6 +39,10 @@ final class Paint {
 	final clipH:Vector<Float> = new Vector<Float>(DEPTH);
 	var clipped:Int = 0;
 
+	var skippedClips:Int = 0;
+	var skippedDeep:Int = 0;
+	var skippedVeils:Int = 0;
+
 	final corners:Vector<Int> = new Vector<Int>(512);
 
 	function new() {}
@@ -71,7 +75,11 @@ final class Paint {
 	}
 
 	public function pushOpacity(amount:Float):Void {
-		if (veiled >= DEPTH) return;
+		if (veiled >= DEPTH) {
+			skippedVeils++;
+			return;
+		}
+
 
 		opacities[veiled] = opacity;
 		veiled++;
@@ -79,6 +87,11 @@ final class Paint {
 	}
 
 	public function popOpacity():Void {
+		if (skippedVeils > 0) {
+			skippedVeils--;
+			return;
+		}
+
 		if (veiled <= 0) return;
 
 		veiled--;
@@ -88,6 +101,10 @@ final class Paint {
 	public function reface(font:Font):Void {
 		flush();
 		this.font = font;
+	}
+
+	public inline function nesting():Int {
+		return clipped + deep + veiled + skippedClips + skippedDeep + skippedVeils;
 	}
 
 	public inline function pending():Int {
@@ -479,6 +496,11 @@ final class Paint {
 	}
 
 	public function pushClip(x:Float, y:Float, width:Float, height:Float):Void {
+		if (clipped >= DEPTH) {
+			skippedClips++;
+			return;
+		}
+
 		flush();
 
 		var left = at(x);
@@ -512,6 +534,11 @@ final class Paint {
 	}
 
 	public function popClip():Void {
+		if (skippedClips > 0) {
+			skippedClips--;
+			return;
+		}
+
 		if (clipped == 0) return;
 
 		flush();
@@ -527,7 +554,11 @@ final class Paint {
 	}
 
 	public function pushTransform(dx:Float, dy:Float, sx:Float = 1, sy:Float = 1):Void {
-		if (deep >= DEPTH) return;
+		if (deep >= DEPTH) {
+			skippedDeep++;
+			return;
+		}
+
 
 		stackX[deep] = offsetX;
 		stackY[deep] = offsetY;
@@ -542,6 +573,11 @@ final class Paint {
 	}
 
 	public function popTransform():Void {
+		if (skippedDeep > 0) {
+			skippedDeep--;
+			return;
+		}
+
 		if (deep == 0) return;
 
 		deep--;

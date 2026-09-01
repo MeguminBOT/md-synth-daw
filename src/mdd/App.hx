@@ -2,6 +2,7 @@ package mdd;
 
 import mdd.host.Audio;
 import mdd.host.Canvas;
+import mdd.host.Crash;
 import mdd.host.Device;
 import mdd.host.Event;
 import mdd.host.Instance;
@@ -97,6 +98,8 @@ class App {
 			Sys.println("mdd: SDL would not start: " + Sdl.error());
 			Sys.exit(1);
 		}
+
+		Crash.watch(Paths.within("logs") + "/fault.txt");
 
 		if (Instance.claim(Config.SHORT + LOCK) == 0) {
 			Sdl.message(Config.TITLE, Config.TITLE + " is already running.");

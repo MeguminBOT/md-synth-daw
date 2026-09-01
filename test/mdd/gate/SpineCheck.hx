@@ -298,6 +298,12 @@ class SpineCheck {
 			if (took > scopeWorst) scopeWorst = took;
 		}
 
+		final nested = paint.nesting();
+
+		says("a frame puts back every clip it took", nested == 0,
+			nested + " clips, transforms and veils left on the stacks after "
+			+ rolls + " frames of the whole shell");
+
 		final scopeMiddle = median(scopeTimes, 120) * 1000;
 
 		says("the scope draws its lanes", centre.scope.painted == 6 && scopeMiddle < 16.67,
