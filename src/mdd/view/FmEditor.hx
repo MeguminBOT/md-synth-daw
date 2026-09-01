@@ -17,6 +17,14 @@ final class FmEditor extends Widget {
 	static final NAMES:Array<String> = ["TL", "AR", "D1R", "D1L", "D2R", "RR", "MUL", "DT", "RS",
 		"SSG"];
 
+	static final SPELT:Array<String> = ["Total level", "Attack rate", "First decay rate",
+		"Sustain level", "Second decay rate", "Release rate", "Multiple", "Detune",
+		"Rate scaling", "SSG envelope"];
+
+	static final BASES:Array<Int> = [0x40, 0x50, 0x60, 0x80, 0x70, 0x80, 0x30, 0x30, 0x50, 0x90];
+
+	static final GROUP:Array<Int> = [0, 2, 1, 3];
+
 	static final ROUTES:Array<Array<Int>> = [
 		[0, 1, 1, 2, 2, 3],
 		[0, 2, 1, 2, 2, 3],
@@ -125,6 +133,54 @@ final class FmEditor extends Widget {
 		}
 	}
 
+	public function registerOf(slot:Int, row:Int):Int {
+		final group = GROUP[slot];
+		return BASES[row] + group * 4 + (session.part.index() % 3);
+	}
+
+	public function saying(patch:Patch, slot:Int, row:Int):String {
+		return SPELT[row] + "   OP" + (slot + 1);
+	}
+
+	public function detailOf(patch:Patch, slot:Int, row:Int):String {
+		final at = registerOf(slot, row);
+		final half = session.part.index() >= 3 ? 1 : 0;
+		final value = valueOf(patch, slot, row);
+
+		var said = "register " + (half == 1 ? "part 2 " : "") + "$"
+			+ StringTools.hex(at, 2) + "   value " + value;
+
+		if (row == 0) said += "   " + shown(-0.75 * value) + " dB";
+		else if (row == 3) said += "   " + shown(-3.0 * value) + " dB";
+		else if (row == 6) said += "   x" + (value == 0 ? "0.5" : Std.string(value));
+
+		return said;
+	}
+
+	static function shown(value:Float):String {
+		final held = Math.round(value * 100) / 100;
+		return held > 0 ? "+" + held : Std.string(held);
+	}
+
+	function described(px:Float, py:Float):Void {
+		final patch = patch();
+		final field = patch == null ? -1 : fieldAt(px, py);
+
+		if (field < 0) {
+			if (tip == "") return;
+
+			tip = "";
+			detail = "";
+			return;
+		}
+
+		final slot = Std.int(field / NAMES.length);
+		final row = field % NAMES.length;
+
+		tip = saying(patch, slot, row);
+		detail = detailOf(patch, slot, row);
+	}
+
 	override function took(event:Input):Bool {
 		final patch = patch();
 		if (patch == null) return false;
@@ -144,6 +200,8 @@ final class FmEditor extends Widget {
 				return true;
 
 			case Kind.PointerMove:
+				described(event.x, event.y);
+
 				if (grabbing < 0) return false;
 
 				final by = Std.int((grabAt - event.y) / (event.ctrl() ? 8 : 2));

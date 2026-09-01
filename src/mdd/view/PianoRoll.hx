@@ -6,10 +6,12 @@ import mdd.song.Lane;
 import mdd.song.Note;
 import mdd.song.Part;
 import mdd.song.RemoveNote;
+import mdd.ui.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
+import mdd.ui.Menu;
 import mdd.ui.Metrics;
 import mdd.ui.Mod;
 import mdd.ui.Paint;
@@ -45,6 +47,7 @@ final class PianoRoll extends Widget {
 	var grabTick:Int = 0;
 	var grabPitch:Int = 0;
 	var panning:Bool = false;
+	var menu:Null<Menu> = null;
 	var panX:Float = 0;
 	var panY:Float = 0;
 
@@ -176,11 +179,9 @@ final class PianoRoll extends Widget {
 				final under = noteAt(event.x, event.y);
 
 				if (event.button == Pointer.Right) {
-					if (under != null) {
-						session.does(new RemoveNote(session.pattern, session.part, under));
-						chosen = null;
-						invalidate();
-					}
+					if (under != null) chosen = under;
+					popped(under, event.x, event.y);
+					invalidate();
 					return true;
 				}
 
@@ -247,6 +248,129 @@ final class PianoRoll extends Widget {
 		}
 
 		return false;
+	}
+
+	function popped(under:Null<Note>, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		if (under != null) {
+			fires(menu.offer(new Choice("Copy", "Ctrl+C")), function():Void copy(under));
+			fires(menu.offer(new Choice("Cut", "Ctrl+X")), function():Void {
+				copy(under);
+				session.does(new RemoveNote(session.pattern, session.part, under));
+				chosen = null;
+			});
+			fires(menu.offer(new Choice("Delete", "Del")), function():Void {
+				session.does(new RemoveNote(session.pattern, session.part, under));
+				chosen = null;
+			});
+
+			menu.divide();
+
+			fires(menu.offer(new Choice("Louder")), function():Void {
+				under.velocity = under.velocity > 111 ? 127 : under.velocity + 16;
+				session.say("velocity " + under.velocity);
+				session.changed();
+			});
+			fires(menu.offer(new Choice("Quieter")), function():Void {
+				under.velocity = under.velocity < 16 ? 0 : under.velocity - 16;
+				session.say("velocity " + under.velocity);
+				session.changed();
+			});
+			fires(menu.offer(new Choice("An octave up")), function():Void shifted(under, 12));
+			fires(menu.offer(new Choice("An octave down")), function():Void shifted(under, -12));
+
+			menu.divide();
+
+			final why = menu.offer(new Choice("Explain the warning"));
+			final found = budget == null ? null : reasonFor(under);
+
+			if (found == null) {
+				why.enabled = false;
+				why.reason = "this note sounds as it is written";
+			} else {
+				fires(why, function():Void {
+					session.say(found.saying + " because " + found.reason + ", so " + found.remedy);
+					session.changed();
+				});
+			}
+		} else {
+			final paste = menu.offer(new Choice("Paste", "Ctrl+V"));
+			paste.enabled = session.copiedNotes.length > 0;
+			if (!paste.enabled) paste.reason = "nothing has been copied";
+
+			final at = session.snapped(tickAt(px));
+			fires(paste, function():Void pasted(at));
+
+			menu.divide();
+
+			fires(menu.offer(new Choice("Zoom to fit")), function():Void fitted());
+			fires(menu.offer(new Choice("Snap to a beat")), function():Void snapped(24));
+			fires(menu.offer(new Choice("Snap to a bar")), function():Void snapped(96));
+			fires(menu.offer(new Choice("No snap")), function():Void snapped(1));
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(chosen:Choice):Void what();
+	}
+
+	function reasonFor(note:Note):Null<mdd.check.Diagnostic> {
+		if (budget == null) return null;
+		for (found in budget.found) if (found.note == note) return found;
+		return null;
+	}
+
+	function copy(note:Note):Void {
+		session.copiedNotes.resize(0);
+		session.copiedNotes.push(note.copy());
+
+		session.say("copied a note");
+		session.changed();
+	}
+
+	function pasted(at:Int):Void {
+		if (session.copiedNotes.length == 0) return;
+
+		final held = session.copiedNotes[0].copy();
+		held.at = at < 0 ? 0 : at;
+
+		session.does(new AddNote(session.pattern, session.part, held));
+		chosen = held;
+
+		session.say("pasted a note");
+		invalidate();
+	}
+
+	function shifted(note:Note, by:Int):Void {
+		final want = note.pitch + by;
+		note.pitch = want < LOWEST ? LOWEST : (want > HIGHEST ? HIGHEST : want);
+
+		session.say("moved to " + note.pitch);
+		session.changed();
+		invalidate();
+	}
+
+	function snapped(to:Int):Void {
+		session.snap = to;
+		session.say(to == 1 ? "no snap" : "snapping to " + to + " ticks");
+		session.changed();
+	}
+
+	function fitted():Void {
+		final pattern = session.current();
+		if (pattern == null || pattern.length <= 0) return;
+
+		perTick = (width - gutter()) / pattern.length;
+		if (perTick < 0.02) perTick = 0.02;
+
+		scrollTo(0, offsetY);
+		session.say("zoomed to the pattern");
 	}
 
 	function steered(event:Input):Bool {

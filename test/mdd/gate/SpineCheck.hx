@@ -58,12 +58,30 @@ class SpineCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 30) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function round(value:Float, places:Int):Float {
 		final scale = Math.pow(10, places);
 		return Math.round(value * scale) / scale;
+	}
+
+	static function tipUnder(tree:Root, widget:mdd.ui.Widget, px:Float, py:Float):String {
+		tree.moved(px, py, mdd.ui.Mod.None);
+		tree.advance(1.0);
+
+		return tree.tipUp ? widget.tip : "";
+	}
+
+	static function popUnder(tree:Root, widget:mdd.ui.Widget, px:Float, py:Float):Int {
+		tree.dismiss();
+
+		final event = new mdd.ui.Input();
+		event.pointer(mdd.ui.Kind.PointerDown, px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		widget.took(event);
+
+		return tree.popups.length == 0 ? 0 : tree.popups[0].commands();
 	}
 
 	static function pressAt(px:Float, py:Float):mdd.ui.Input {
@@ -280,6 +298,51 @@ class SpineCheck {
 
 		session.choose(Part.Fm1);
 		editor.show(Inspector.CHANNEL);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final fm = editor.fm;
+		final patch = fm.patch();
+
+		final level = fm.detailOf(patch, 3, 0);
+		final spelt = fm.saying(patch, 3, 0);
+		final at = fm.registerOf(3, 0);
+
+		says("a parameter says what the chip sees", at == 0x4C
+			&& StringTools.startsWith(spelt, "Total level")
+			&& level.indexOf("$4C") >= 0 && level.indexOf("dB") >= 0,
+			spelt + "   " + level);
+
+		final rackTip = tipUnder(tree, rack, rack.x + 30, rack.y + 40);
+
+		says("a channel says what it is", rackTip != "",
+			"hovering the rack says " + rackTip);
+
+		final menus = popUnder(tree, rack, rack.x + 30, rack.y + 40);
+
+		says("a channel has a menu", menus > 0 && tree.popups.length == 1
+			&& !tree.popups[0].crowded(),
+			menus + " commands under the right button, of " + mdd.ui.Menu.CEILING
+			+ " allowed, separators excluded");
+
+		var fired = "";
+		final before = session.song.muted[session.part.index()];
+
+		tree.popups[0].fire(0);
+		fired = session.said;
+
+		says("and the menu does something", session.song.muted[session.part.index()] != before
+			&& tree.popups.length == 0,
+			"the first command said \"" + fired + "\" and closed the menu");
+
+		final rollMenus = popUnder(tree, roll, roll.x + 200, roll.y + 120);
+
+		says("the roll has a menu too", rollMenus > 0 && tree.popups.length == 1,
+			rollMenus + " commands on the roll's background");
+
+		tree.dismiss();
 
 		pattern.lane(Part.Fm1).add(new Note(0, 384, 60, 100));
 		pattern.lane(Part.Fm1).add(new Note(96, 192, 64, 100));

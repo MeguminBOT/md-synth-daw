@@ -25,6 +25,9 @@ final class Session {
 
 	public var said(default, null):String = "";
 
+	public var copiedPatch:Null<mdd.song.Patch> = null;
+	public final copiedNotes:Array<mdd.song.Note> = [];
+
 	public function new(song:Song) {
 		this.song = song;
 		transport = new Transport(song, 65536);

@@ -26,7 +26,22 @@ final class TransportBar extends Widget {
 
 		focusable = true;
 		opaque = true;
-		tip = "Transport";
+	}
+
+	static final TIPS:Array<String> = ["Play", "Stop and rewind", "Loop the pattern"];
+	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "Ctrl+L"];
+
+	function described(which:Int):Void {
+		if (which < 0) {
+			tip = "";
+			chord = "";
+			detail = "";
+			return;
+		}
+
+		tip = which == PLAY && session.transport.playing ? "Pause" : TIPS[which];
+		chord = CHORDS[which];
+		detail = "";
 	}
 
 	function size():Float {
@@ -66,6 +81,8 @@ final class TransportBar extends Widget {
 
 			case Kind.PointerMove:
 				final which = buttonAt(event.x, event.y);
+				described(which);
+
 				if (which == hoverAt) return false;
 
 				hoverAt = which;

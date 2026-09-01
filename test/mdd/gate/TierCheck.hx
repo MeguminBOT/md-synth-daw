@@ -13,6 +13,8 @@ import mdd.song.Note;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
+import mdd.view.Files;
+import mdd.view.Session;
 
 @:unreflective
 class TierCheck {
@@ -33,6 +35,7 @@ class TierCheck {
 		round(into);
 		midi();
 		sampling();
+		filed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -48,7 +51,7 @@ class TierCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 30) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shown(value:Float, places:Int):Float {
@@ -96,6 +99,118 @@ class TierCheck {
 		}
 
 		return out;
+	}
+
+	static function wipe(path:String):Void {
+		if (!sys.FileSystem.exists(path)) return;
+
+		if (!sys.FileSystem.isDirectory(path)) {
+			sys.FileSystem.deleteFile(path);
+			return;
+		}
+
+		for (entry in sys.FileSystem.readDirectory(path)) wipe(path + "/" + entry);
+		sys.FileSystem.deleteDirectory(path);
+	}
+
+	static function filed():Void {
+		final into = Gate.root + "/export/files";
+
+		wipe(into);
+		sys.FileSystem.createDirectory(into);
+
+		says("a suffix is added once", Files.suffixed("song", "mdd") == "song.mdd"
+			&& Files.suffixed("song.mdd", "mdd") == "song.mdd"
+			&& Files.suffixed("song.MDD", "mdd") == "song.MDD"
+			&& Files.suffixed("song.vgm", "mdd") == "song.vgm.mdd",
+			"a name without one gets it, a name with it keeps it, and a different one is kept "
+			+ "and added to");
+
+		final session = Session.started();
+		final pattern = session.current();
+
+		for (index in 0...4) {
+			final part:Part = index;
+			pattern.lane(part).add(new Note(index * 48, 96, 52 + index * 5, 100));
+		}
+
+		pattern.lane(Part.Dac).add(new Note(0, 48, 60, 110));
+		pattern.lane(Part.Psg1).add(new Note(96, 96, 72, 100));
+
+		final files = new Files(session);
+
+		final saved = files.save(into + "/song");
+		final vgm = files.exportVgm(into + "/song");
+		final wav = files.exportWav(into + "/song");
+		final mid = files.exportMidi(into + "/song");
+
+		says("every export names itself", StringTools.endsWith(saved, ".mdd")
+			&& StringTools.endsWith(vgm, ".vgm") && StringTools.endsWith(wav, ".wav")
+			&& StringTools.endsWith(mid, ".mid"),
+			"the project, the vgm, the wav and the midi file all took their own suffix");
+
+		var wrote = 0;
+		for (name in [saved, vgm, wav, mid]) if (sys.FileSystem.exists(name)) wrote++;
+
+		says("every export lands", wrote == 4,
+			wrote + " of 4 files are on disk, the project as a zip and the rest as themselves");
+
+		var opened:Null<mdd.song.Song> = null;
+		var brought = "";
+
+		final reader = new Files(session);
+		reader.onLoad = function(song:mdd.song.Song):Void opened = song;
+
+		try {
+			reader.load(saved);
+		} catch (e:Dynamic) {
+			brought = "" + e;
+		}
+
+		says("a saved project opens", opened != null && brought == "",
+			brought != "" ? brought
+				: opened.patterns.length + " patterns, " + opened.instruments.length
+				+ " instruments, " + opened.banks.length + " banks and "
+				+ opened.samples.length + " samples come back");
+
+		says("and it is the same song",
+			opened != null && mdd.format.Project.text(opened)
+				== mdd.format.Project.text(session.song),
+			"the written form of what came back is the written form of what went in");
+
+		final stream = new Stream(262144);
+		Vgm.read(sys.io.File.getBytes(vgm), stream);
+
+		final wanted = new Stream(262144);
+		final sequencer = new Sequencer(session.song);
+		sequencer.emit(wanted, 0, session.song.tempo.samplesAt(session.song.ends()));
+
+		says("the exported vgm plays", alike(stream, wanted) == -2,
+			stream.count + " register writes read back out of the exported vgm, every one the "
+			+ "same as the song makes");
+
+		final sound = Wav.read(sys.io.File.getBytes(wav));
+		var loudest = 0.0;
+
+		for (i in 0...sound.samples.length) {
+			final value = sound.samples[i] < 0 ? -sound.samples[i] : sound.samples[i];
+			if (value > loudest) loudest = value;
+		}
+
+		says("the exported wav sounds", sound.channels == 2 && sound.frames > 0
+			&& loudest > 0.001,
+			shown(sound.frames / sound.rate, 2) + " s of stereo at " + sound.rate
+			+ " Hz, loudest sample " + shown(loudest, 4));
+
+		final back = mdd.format.Midi.read(sys.io.File.getBytes(mid), "back");
+		var notes = 0;
+
+		for (held in back.patterns) {
+			for (index in 0...Part.COUNT) notes += held.lanes[index].notes.length;
+		}
+
+		says("the exported midi reads", notes > 0,
+			notes + " notes come back out of the exported midi file");
 	}
 
 	static function started(made:Transcription):Array<Int> {

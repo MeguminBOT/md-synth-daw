@@ -37,6 +37,8 @@ final class Root {
 	var blocked:Bool = false;
 
 	var returnFocus:Null<Widget> = null;
+	var tipText:String = "";
+	var tipDetail:String = "";
 	var opener:Null<Widget> = null;
 
 	final event:Input = new Input();
@@ -137,7 +139,23 @@ final class Root {
 			return false;
 		}
 
-		if (tipUp) return false;
+		if (tipUp) {
+			final held = over;
+			if (held == null) return false;
+			if (held.tip == tipText && held.detail == tipDetail) return false;
+
+			tipText = held.tip;
+			tipDetail = held.detail;
+
+			if (held.tip == "") {
+				hideTip();
+				return false;
+			}
+
+			placeTip();
+			soil();
+			return true;
+		}
 
 		still += seconds;
 		grace += seconds;
@@ -156,6 +174,8 @@ final class Root {
 		if (tooltip.wantWidth <= 0) return;
 
 		tipUp = true;
+		tipText = want.tip;
+		tipDetail = want.detail;
 		placeTip();
 		start(tooltip.fade, 1, Motion.ENTER);
 	}

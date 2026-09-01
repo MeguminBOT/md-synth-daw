@@ -2,9 +2,11 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.song.Part;
+import mdd.ui.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
+import mdd.ui.Menu;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Pointer;
@@ -18,6 +20,8 @@ final class ChannelRack extends Widget {
 	public final levels:Vector<Float> = new Vector<Float>(Part.COUNT);
 
 	var hoverAt:Int = -1;
+	var menu:Null<Menu> = null;
+	var menuFor:Int = -1;
 
 	public function new(session:Session) {
 		super();
@@ -56,6 +60,12 @@ final class ChannelRack extends Widget {
 				final metrics = root.metrics;
 				final part:Part = at;
 
+				if (event.button == Pointer.Right) {
+					session.choose(part);
+					popped(at, event.x, event.y);
+					return true;
+				}
+
 				if (event.x >= x + width - metrics.whole(96)
 						&& event.x < x + width - metrics.whole(72)) {
 					session.song.muted[at] = !session.song.muted[at];
@@ -78,7 +88,10 @@ final class ChannelRack extends Widget {
 
 			case Kind.PointerMove:
 				final at = rowAt(event.y);
+				described(at, event.x, root.metrics);
+
 				if (at == hoverAt) return false;
+
 				hoverAt = at;
 				invalidate();
 				return true;
@@ -87,6 +100,136 @@ final class ChannelRack extends Widget {
 		}
 
 		return false;
+	}
+
+	function popped(at:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final part:Part = at;
+		final song = session.song;
+
+		menu = new Menu();
+		menuFor = at;
+
+		fires(menu.offer(new Choice(song.muted[at] ? "Unmute" : "Mute")), function():Void {
+			song.muted[at] = !song.muted[at];
+			session.say((song.muted[at] ? "muted " : "unmuted ") + part.name());
+			session.changed();
+		});
+
+		fires(menu.offer(new Choice(song.soloed[at] ? "Unsolo" : "Solo")), function():Void {
+			song.soloed[at] = !song.soloed[at];
+			session.say((song.soloed[at] ? "soloed " : "unsoloed ") + part.name());
+			session.changed();
+		});
+
+		fires(menu.offer(new Choice("Solo only this")), function():Void {
+			for (i in 0...Part.COUNT) song.soloed[i] = i == at;
+			session.say("soloed " + part.name() + " alone");
+			session.changed();
+		});
+
+		menu.divide();
+
+		final copy = menu.offer(new Choice("Copy patch"));
+		final paste = menu.offer(new Choice("Paste patch"));
+		final reset = menu.offer(new Choice("Reset patch"));
+
+		if (!part.fm()) {
+			for (choice in [copy, paste, reset]) {
+				choice.enabled = false;
+				choice.reason = part.name() + " has no four operator patch";
+			}
+		} else {
+			fires(copy, function():Void {
+				final held = song.instrumentAt(song.rack[at]);
+				if (held == null || held.patch == null) return;
+
+				session.copiedPatch = held.patch.copy();
+				session.say("copied the patch on " + part.name());
+				session.changed();
+			});
+
+			paste.enabled = session.copiedPatch != null;
+			if (!paste.enabled) paste.reason = "no patch has been copied";
+
+			fires(paste, function():Void {
+				final held = song.instrumentAt(song.rack[at]);
+				if (held == null || session.copiedPatch == null) return;
+
+				held.patch = session.copiedPatch.copy();
+				session.say("pasted a patch onto " + part.name());
+				session.changed();
+			});
+
+			fires(reset, function():Void {
+				final held = song.instrumentAt(song.rack[at]);
+				if (held == null) return;
+
+				held.patch = new mdd.song.Patch();
+				session.say("reset the patch on " + part.name());
+				session.changed();
+			});
+		}
+
+		menu.divide();
+
+		fires(menu.offer(new Choice("Clear this channel")), function():Void {
+			final pattern = session.current();
+			if (pattern == null) return;
+
+			final lane = pattern.lane(part);
+			final many = lane.notes.length;
+
+			while (lane.notes.length > 0) {
+				session.does(new mdd.song.RemoveNote(session.pattern, part, lane.notes[0]));
+			}
+
+			session.say("cleared " + many + " notes from " + part.name());
+			session.changed();
+		});
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(chosen:Choice):Void what();
+	}
+
+	function described(at:Int, px:Float, metrics:Metrics):Void {
+		if (at < 0) {
+			tip = "";
+			chord = "";
+			detail = "";
+			return;
+		}
+
+		final part:Part = at;
+		final muted = session.song.muted[at];
+		final soloed = session.song.soloed[at];
+
+		if (px >= x + width - metrics.whole(96) && px < x + width - metrics.whole(72)) {
+			tip = (muted ? "Unmute " : "Mute ") + part.name();
+			chord = "";
+			detail = "";
+			return;
+		}
+
+		if (px >= x + width - metrics.whole(72) && px < x + width - metrics.whole(48)) {
+			tip = (soloed ? "Unsolo " : "Solo ") + part.name();
+			chord = "Alt+click to solo exclusively";
+			detail = "";
+			return;
+		}
+
+		tip = part.name();
+		chord = "";
+
+		if (part.sampled()) detail = "the converter, and it holds FM6 while it sounds";
+		else if (part.fm()) detail = "four operator FM";
+		else if (part.noise()) detail = "the noise channel";
+		else detail = "a ten bit square";
 	}
 
 	override function hovered(on:Bool):Void {
