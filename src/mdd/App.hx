@@ -81,6 +81,8 @@ class App {
 	var render:Null<Render> = null;
 
 	var seen:Int = 0;
+	var heard:Int = 0;
+	final sounding:mdd.play.Sounding = new mdd.play.Sounding();
 	var windowID:Int = 0;
 	var scale:Float = 1;
 	var running:Bool = true;
@@ -1019,6 +1021,10 @@ class App {
 			if (moved) dock.mixer.invalidate();
 		}
 
+		heard = sounding.take(session.transport.stream, heard);
+
+		if (centre.roll.visible) centre.roll.lights(sounding);
+
 		if (centre.registers.visible) {
 			seen = centre.registers.take(session.transport.stream, seen);
 		}
@@ -1026,6 +1032,11 @@ class App {
 		if (!centre.scope.visible) return;
 
 		for (index in 0...6) centre.scope.feed(index, traced(index));
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			centre.scope.sang(index, sounding.keyed[index] ? sounding.notes[index] : -1);
+		}
+
 		centre.scope.invalidate();
 	}
 

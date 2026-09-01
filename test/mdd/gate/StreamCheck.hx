@@ -39,6 +39,7 @@ class StreamCheck {
 		commands();
 		faces();
 		chunks();
+		sounded();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -246,6 +247,69 @@ class StreamCheck {
 		}
 
 		return -2;
+	}
+
+	static function sounded():Void {
+		final stream = new Stream(8192);
+		final held = new mdd.play.Sounding();
+
+		final wanted:Array<Int> = [];
+		final parts:Array<Int> = [];
+
+		for (index in 0...6) {
+			final part:Part = index;
+			final note = 48 + index * 5;
+
+			stream.tune(index * 100, part, note);
+			stream.keyOn(index * 100, part);
+
+			wanted.push(note);
+			parts.push(index);
+		}
+
+		for (index in 6...9) {
+			final part:Part = index;
+			final note = 60 + (index - 6) * 7;
+
+			stream.square(index * 100, part, note);
+			stream.attenuate(index * 100, part, 0);
+
+			wanted.push(note);
+			parts.push(index);
+		}
+
+		held.take(stream, 0);
+
+		var right = 0;
+		var worst = 0;
+
+		for (at in 0...parts.length) {
+			final index = parts[at];
+			final away = held.notes[index] - wanted[at];
+			final much = away < 0 ? -away : away;
+
+			if (much == 0) right++;
+			if (much > worst) worst = much;
+		}
+
+		says("the stream says what sounds", right == parts.length && worst == 0,
+			right + " of " + parts.length + " notes read back off the register writes alone, "
+			+ "on the part that was keyed");
+
+		var on = 0;
+		for (index in 0...9) if (held.keyed[index]) on++;
+
+		says("and which of them are keyed", on == 9, on + " of 9 parts keyed on");
+
+		for (index in 0...6) stream.keyOff(1000, index);
+		for (index in 6...9) stream.attenuate(1000, index, 15);
+
+		held.take(stream, 0);
+
+		var still = 0;
+		for (index in 0...9) if (held.keyed[index]) still++;
+
+		says("and when they stop", still == 0, "every part reads silent after key off");
 	}
 
 	static function identical():Void {

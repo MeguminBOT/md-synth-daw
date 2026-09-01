@@ -50,6 +50,8 @@ final class PianoRoll extends Widget {
 	public var onAudition:Null<(Part, Int) -> Void> = null;
 	public var showLanes:Bool = true;
 	var stalking:Null<Note> = null;
+	var litNote:Int = -1;
+	var litOn:Bool = false;
 	public var lane(default, null):Int = VELOCITY;
 
 	var dragging:Null<Note> = null;
@@ -763,7 +765,7 @@ final class PianoRoll extends Widget {
 			final tall = rowTall - 1;
 
 			if (ghost) {
-				paint.roundedRect(at, row, wide, tall, radius, colour, 0.22);
+				paint.roundedRect(at, row, wide, tall, radius, theme.panel.mix(colour, 0.3));
 				continue;
 			}
 
@@ -794,6 +796,18 @@ final class PianoRoll extends Widget {
 		}
 	}
 
+	public function lights(sounding:mdd.play.Sounding):Void {
+		final which = session.part.index();
+		final on = sounding.keyed[which];
+		final note = on ? sounding.notes[which] : -1;
+
+		if (note == litNote && on == litOn) return;
+
+		litNote = note;
+		litOn = on;
+		invalidate();
+	}
+
 	function keys(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
 		final wide = gutter();
 
@@ -809,8 +823,14 @@ final class PianoRoll extends Widget {
 			if (row + rowTall >= top && row <= y + height) {
 				final black = BLACK[pitch % 12];
 
-				paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
-					black ? 1 : 0.85);
+				final lit = litOn && pitch == litNote;
+
+				if (lit) {
+					paint.rect(x, row, wide, rowTall - 1, theme.part(session.part.index()));
+				} else {
+					paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
+						black ? 1 : 0.85);
+				}
 
 				if (pitch % 12 == 0 && rowTall >= font.height) {
 					paint.text("C" + (Std.int(pitch / 12) - 1), x + metrics.unit,
