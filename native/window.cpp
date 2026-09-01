@@ -186,6 +186,11 @@ extern "C" int mdd_reduce_motion(void) {
 #endif
 }
 
+extern "C" void mdd_sleep(double seconds) {
+	if (seconds <= 0.0) return;
+	SDL_DelayNS(static_cast<Uint64>(seconds * 1000000000.0));
+}
+
 extern "C" double mdd_ticks(void) {
 	return static_cast<double>(SDL_GetTicksNS()) / 1000000000.0;
 }

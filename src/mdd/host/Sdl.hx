@@ -127,6 +127,9 @@ extern class Sdl {
 	@:native("mdd_reduce_motion")
 	public static function reduceMotion():Int;
 
+	@:native("mdd_sleep")
+	public static function sleep(seconds:Float):Void;
+
 	@:native("mdd_ticks")
 	public static function ticks():Float;
 

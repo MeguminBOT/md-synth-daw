@@ -63,6 +63,7 @@
 		<file name="events.cpp" />
 		<file name="draw.cpp" />
 		<file name="text.cpp" />
+		<file name="audio.cpp" />
 	</native>
 
 	<include value="${SDL3PATH}/include" />
