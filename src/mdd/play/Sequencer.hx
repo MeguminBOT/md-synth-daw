@@ -22,6 +22,8 @@ final class Sequencer {
 	public final song:Song;
 	public final voices:Voices;
 
+	public var alone:Int = -1;
+
 	public var capacity(default, null):Int;
 	public var count(default, null):Int = 0;
 	public var dropped(default, null):Int = 0;
@@ -67,6 +69,15 @@ final class Sequencer {
 
 		final high = tempo.tickAt(toSample) + 1;
 
+		if (alone >= 0) {
+			final pattern = song.patternAt(alone);
+			if (pattern != null) {
+				walk(pattern, 0, pattern.length, 0, low, high, fromSample, toSample);
+			}
+
+			return;
+		}
+
 		for (track in song.tracks) {
 			if (track.muted) continue;
 
@@ -76,17 +87,25 @@ final class Sequencer {
 				final pattern = song.patternAt(clip.pattern);
 				if (pattern == null) continue;
 
-				for (index in 0...Part.COUNT) {
-					final part:Part = index;
-					if (!song.audible(part)) continue;
-
-					final lane = pattern.lane(part);
-					if (lane.notes.length == 0) continue;
-
-					voices.resolve(lane);
-					sound(clip.at, clip.ends(), clip.transpose, part, fromSample, toSample);
-				}
+				walk(pattern, clip.at, clip.ends(), clip.transpose, low, high, fromSample,
+					toSample);
 			}
+		}
+	}
+
+	function walk(pattern:mdd.song.Pattern, from:Int, until:Int, transpose:Int, low:Int,
+			high:Int, fromSample:Int, toSample:Int):Void {
+		if (from > high || until <= low) return;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			if (!song.audible(part)) continue;
+
+			final lane = pattern.lane(part);
+			if (lane.notes.length == 0) continue;
+
+			voices.resolve(lane);
+			sound(from, until, transpose, part, fromSample, toSample);
 		}
 	}
 

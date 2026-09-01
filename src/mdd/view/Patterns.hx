@@ -36,11 +36,7 @@ final class Patterns extends Scroll {
 	}
 
 	public function choose(index:Int):Void {
-		if (index < 0 || index >= session.song.patterns.length) return;
-		if (session.pattern == index) return;
-
-		session.pattern = index;
-		session.changed();
+		session.chooses(index);
 	}
 
 	public function added():Void {
@@ -48,8 +44,7 @@ final class Patterns extends Scroll {
 		final length = held == null ? Tempo.TICKS * 4 : held.length;
 
 		session.does(new AddPattern(new Pattern(named(), length)));
-		session.pattern = session.song.patterns.length - 1;
-		session.changed();
+		session.chooses(session.song.patterns.length - 1);
 	}
 
 	function named():String {

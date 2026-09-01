@@ -17,6 +17,8 @@ final class Session {
 
 	public var part:Part = Part.Fm1;
 	public var pattern:Int = 0;
+	public var alone:Bool = false;
+	public var arming:Bool = false;
 	public var snap:Int = 24;
 	public var ghosts:Bool = true;
 	public final scale:mdd.song.Scale = new mdd.song.Scale();
@@ -139,6 +141,26 @@ final class Session {
 		if (this.part == part) return;
 		this.part = part;
 		changed();
+	}
+
+	public function chooses(which:Int):Void {
+		if (which < 0 || which >= song.patterns.length || which == pattern) return;
+
+		pattern = which;
+		follows();
+		changed();
+	}
+
+	public function plays(alone:Bool):Void {
+		if (this.alone == alone) return;
+
+		this.alone = alone;
+		follows();
+		changed();
+	}
+
+	public function follows():Void {
+		transport.sequencer.alone = alone ? pattern : -1;
 	}
 
 	public function current():Null<Pattern> {

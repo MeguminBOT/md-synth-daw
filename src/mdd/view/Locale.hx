@@ -136,6 +136,17 @@ class Locale {
 	public static inline final TRANSPORT_PAUSE = "transport.pause";
 	public static inline final TRANSPORT_STOP = "transport.stop";
 	public static inline final TRANSPORT_LOOP = "transport.loop";
+	public static inline final TRANSPORT_RECORD = "transport.record";
+	public static inline final TRANSPORT_ARMED = "transport.armed";
+	public static inline final TRANSPORT_DISARMED = "transport.disarmed";
+	public static inline final TRANSPORT_REWIND = "transport.rewind";
+	public static inline final TRANSPORT_PATTERN = "transport.pattern";
+	public static inline final TRANSPORT_SONG = "transport.song";
+	public static inline final TRANSPORT_TEMPO = "transport.tempo";
+	public static inline final TRANSPORT_RESOLUTION = "transport.resolution";
+	public static inline final TRANSPORT_LENGTH = "transport.length";
+	public static inline final TRANSPORT_VIDEO = "transport.video";
+	public static inline final TRANSPORT_SNAP = "transport.snap";
 
 	public static inline final PANEL_RACK = "panel.rack";
 	public static inline final PANEL_SAMPLES = "panel.samples";
@@ -197,6 +208,9 @@ class Locale {
 		RACK_PASTE_PATCH, RACK_RESET_PATCH, RACK_CLEAR, RACK_NO_PATCH, RACK_NONE_COPIED,
 		RACK_SOLO_CHORD, RACK_FM, RACK_SQUARE, RACK_NOISE, RACK_DAC,
 		TRANSPORT_PLAY, TRANSPORT_PAUSE, TRANSPORT_STOP, TRANSPORT_LOOP,
+		TRANSPORT_RECORD, TRANSPORT_ARMED, TRANSPORT_DISARMED,
+		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
+		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,
 		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_BANK, PANEL_SCOPE, PANEL_PATCHES,
 		PANEL_NO_PATCHES, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
 		PANEL_WARNING, PANEL_WARNINGS, PANEL_BYTES,

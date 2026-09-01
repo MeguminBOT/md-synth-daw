@@ -59,6 +59,19 @@ final class PianoRoll extends Widget {
 		opaque = true;
 	}
 
+	function records(pitch:Int):Void {
+		if (!session.arming || !session.transport.playing) return;
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final at = session.snapped(session.transport.tick());
+		final length = session.snap < 1 ? session.song.tempo.ppqn : session.snap;
+
+		session.does(new mdd.song.edit.AddNote(session.pattern, session.part,
+			new mdd.song.Note(at, length, pitch)));
+	}
+
 	public function gutter():Float {
 		final root = root();
 		return root == null ? 44 : root.metrics.whole(44);
@@ -166,6 +179,7 @@ final class PianoRoll extends Widget {
 				if (event.x < x + gutter()) {
 					final pitch = pitchAt(event.y);
 					if (onAudition != null) onAudition(session.part, pitch);
+					records(pitch);
 					return true;
 				}
 

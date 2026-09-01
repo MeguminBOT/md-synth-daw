@@ -1,6 +1,7 @@
 package mdd.view;
 
 import mdd.song.Tempo;
+import mdd.song.edit.SetTempo;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
@@ -8,17 +9,41 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
+import mdd.ui.control.Number;
 
 @:unreflective
 final class TransportBar extends Widget {
 	public static inline final PLAY = 0;
 	public static inline final STOP = 1;
-	public static inline final LOOP = 2;
-	public static inline final BUTTONS = 3;
+	public static inline final RECORD = 2;
+	public static inline final REWIND = 3;
+	public static inline final LOOP = 4;
+	public static inline final BUTTONS = 5;
+
+	static final SNAPS:Array<Int> = [16, 8, 4, 2, 1];
+	static final SNAP_NAMES:Array<String> = ["1/16", "1/8", "1/4", "1/2", "1/1"];
+
+	static final TIPS:Array<String> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
+		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
+	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
 
 	public final session:Session;
 
+	public final tempo:Number;
+	public final resolution:Number;
+	public final length:Number;
+	public final video:Number;
+	public final snap:Number;
+
+	final held:Array<Number>;
+
 	var hoverAt:Int = -1;
+	var overMode:Int = -1;
+	var overPicker:Bool = false;
+	var menu:Null<Menu> = null;
+	var settling:Bool = false;
 
 	public function new(session:Session) {
 		super();
@@ -26,11 +51,99 @@ final class TransportBar extends Widget {
 
 		focusable = true;
 		opaque = true;
+
+		final song = session.song;
+
+		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
+		resolution = new Number("", song.tempo.ppqn, 24, 960);
+		length = new Number("", bars(), 1, 256);
+		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
+		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
+
+		held = [tempo, resolution, length, video, snap];
+
+		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
+		snap.derived = function(value:Int):String return SNAP_NAMES[value];
+
+		for (field in held) add(field);
+
+		tempo.onChange = function(from:Number):Void tempoChanged(from);
+		resolution.onChange = function(from:Number):Void resolutionChanged(from);
+		length.onChange = function(from:Number):Void lengthChanged(from);
+		video.onChange = function(from:Number):Void videoChanged(from);
+		snap.onChange = function(from:Number):Void snapChanged(from);
 	}
 
-	static final TIPS:Array<String> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
-		Locale.TRANSPORT_LOOP];
-	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "Ctrl+L"];
+	public function fields():Array<Number> {
+		return held;
+	}
+
+	function bars():Int {
+		final pattern = session.current();
+		final bar = session.song.tempo.ppqn * 4;
+
+		return pattern == null || bar <= 0 ? 4 : Math.round(pattern.length / bar);
+	}
+
+	function snapIndex():Int {
+		final ppqn = session.song.tempo.ppqn;
+
+		for (index in 0...SNAPS.length) {
+			if (Math.round(ppqn * 4 / SNAPS[index]) == session.snap) return index;
+		}
+
+		return 0;
+	}
+
+	public function settles():Void {
+		if (settling) return;
+		settling = true;
+
+		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
+		resolution.set(session.song.tempo.ppqn);
+		length.set(bars());
+		video.set(session.song.tempo.rate == 50 ? 0 : 1);
+		snap.set(snapIndex());
+
+		settling = false;
+	}
+
+	function tempoChanged(from:Number):Void {
+		if (settling) return;
+		session.does(new SetTempo(0, from.value));
+	}
+
+	function resolutionChanged(from:Number):Void {
+		if (settling) return;
+
+		session.song.tempo.resolve(from.value);
+		session.snap = Math.round(from.value * 4 / SNAPS[snap.value]);
+		session.changed();
+	}
+
+	function lengthChanged(from:Number):Void {
+		if (settling) return;
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		pattern.length = from.value * session.song.tempo.ppqn * 4;
+		session.changed();
+	}
+
+	function videoChanged(from:Number):Void {
+		if (settling) return;
+
+		session.song.tempo.rate = from.value == 0 ? 50 : 60;
+		session.changed();
+	}
+
+	function snapChanged(from:Number):Void {
+		if (settling) return;
+
+		session.snap = Math.round(session.song.tempo.ppqn * 4 / SNAPS[from.value]);
+		session.changed();
+	}
 
 	function described(which:Int):Void {
 		if (which < 0) {
@@ -74,23 +187,95 @@ final class TransportBar extends Widget {
 		return -1;
 	}
 
+	function modeLeft():Float {
+		final root = root();
+		if (root == null) return x;
+
+		final metrics = root.metrics;
+		return x + metrics.inset + (size() + metrics.unit) * BUTTONS + metrics.inset;
+	}
+
+	function modeWide():Float {
+		final root = root();
+		return root == null ? 44 : root.metrics.whole(44);
+	}
+
+	public function modeAt(px:Float, py:Float):Int {
+		final root = root();
+		if (root == null) return -1;
+
+		final button = size();
+		final top = y + (height - button) * 0.5;
+
+		if (py < top || py >= top + button) return -1;
+
+		final left = modeLeft();
+		final wide = modeWide();
+
+		if (px < left || px >= left + wide * 2) return -1;
+		return px < left + wide ? 0 : 1;
+	}
+
+	function pickerLeft():Float {
+		final root = root();
+		if (root == null) return x;
+
+		return modeLeft() + modeWide() * 2 + root.metrics.inset;
+	}
+
+	function pickerWide():Float {
+		final root = root();
+		return root == null ? 150 : root.metrics.whole(150);
+	}
+
+	public function onPicker(px:Float, py:Float):Bool {
+		final button = size();
+		final top = y + (height - button) * 0.5;
+
+		if (py < top || py >= top + button) return false;
+
+		final left = pickerLeft();
+		return px >= left && px < left + pickerWide();
+	}
+
 	override function took(event:Input):Bool {
+		if (super.took(event)) return true;
+
 		switch (event.kind) {
 			case Kind.PointerDown:
 				final which = buttonAt(event.x, event.y);
-				if (which < 0) return false;
 
-				press(which);
-				invalidate();
-				return true;
+				if (which >= 0) {
+					press(which);
+					invalidate();
+					return true;
+				}
+
+				final mode = modeAt(event.x, event.y);
+
+				if (mode >= 0) {
+					session.plays(mode == 0);
+					invalidate();
+					return true;
+				}
+
+				if (onPicker(event.x, event.y)) {
+					popped(pickerLeft(), y + height);
+					return true;
+				}
 
 			case Kind.PointerMove:
 				final which = buttonAt(event.x, event.y);
+				final mode = modeAt(event.x, event.y);
+				final picker = onPicker(event.x, event.y);
+
 				described(which);
 
-				if (which == hoverAt) return false;
+				if (which == hoverAt && mode == overMode && picker == overPicker) return false;
 
 				hoverAt = which;
+				overMode = mode;
+				overPicker = picker;
 				invalidate();
 				return true;
 
@@ -98,6 +283,23 @@ final class TransportBar extends Widget {
 		}
 
 		return false;
+	}
+
+	function popped(px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		for (index in 0...session.song.patterns.length) {
+			final which = index;
+			final pattern = session.song.patterns[index];
+			final choice = menu.offer(new Choice((index + 1) + "  " + pattern.name));
+
+			choice.onFire = function(from:Choice):Void session.chooses(which);
+		}
+
+		root.pop(menu, px, py, this);
 	}
 
 	public function press(which:Int):Void {
@@ -112,12 +314,20 @@ final class TransportBar extends Widget {
 				transport.stop();
 				transport.seek(0);
 
+			case RECORD:
+				session.arming = !session.arming;
+				session.say(translate(session.arming
+					? Locale.TRANSPORT_ARMED : Locale.TRANSPORT_DISARMED));
+
+			case REWIND:
+				transport.seek(0);
+
 			case LOOP:
 				if (transport.looping) transport.looping = false;
 				else {
 					final pattern = session.current();
-					final length = pattern == null ? 384 : pattern.length;
-					transport.loop(0, session.song.tempo.samplesAt(length));
+					final span = pattern == null ? 384 : pattern.length;
+					transport.loop(0, session.song.tempo.samplesAt(span));
 				}
 
 			case _:
@@ -127,13 +337,39 @@ final class TransportBar extends Widget {
 	}
 
 	override function hovered(on:Bool):Void {
-		if (!on) hoverAt = -1;
+		if (!on) {
+			hoverAt = -1;
+			overMode = -1;
+			overPicker = false;
+		}
+
 		super.hovered(on);
+	}
+
+	override function layout():Void {
+		final root = root();
+		if (root == null) return;
+
+		final metrics = root.metrics;
+		final button = size();
+		final top = y + (height - button) * 0.5;
+		final wide = metrics.whole(58);
+
+		var pen = x + width - metrics.inset - wide;
+		var index = held.length - 1;
+
+		while (index >= 0) {
+			held[index].arrange(pen, top, wide, button);
+			pen -= wide + metrics.unit;
+			index--;
+		}
 	}
 
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null || root.metrics.body == null) return;
+
+		settles();
 
 		final theme = root.theme;
 		final metrics = root.metrics;
@@ -146,11 +382,17 @@ final class TransportBar extends Widget {
 		var pen = x + metrics.inset;
 
 		for (index in 0...BUTTONS) {
-			final on = index == PLAY ? transport.playing
-				: (index == LOOP ? transport.looping : false);
+			final on = switch (index) {
+				case PLAY: transport.playing;
+				case RECORD: session.arming;
+				case LOOP: transport.looping;
+				case _: false;
+			}
+
+			final lit = index == RECORD ? theme.over : theme.accent;
 
 			paint.roundedRect(pen, top, button, button, metrics.radiusRow,
-				on ? theme.accent : theme.raise1, on ? 0.85 : 1);
+				on ? lit : theme.raise1, on ? 0.85 : 1);
 
 			if (index == hoverAt) {
 				paint.roundedRect(pen, top, button, button, metrics.radiusRow, theme.accent,
@@ -161,28 +403,83 @@ final class TransportBar extends Widget {
 			pen += button + metrics.unit;
 		}
 
+		mode(paint, theme, metrics, top, button);
+		picker(paint, theme, metrics, top, button);
+
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
-		final small = metrics.small == null ? metrics.body : metrics.small;
 
 		paint.reface(font);
 
 		final line = y + (height - font.height) * 0.5 + font.ascent;
-		pen += metrics.inset;
+		var clockAt = pickerLeft() + pickerWide() + metrics.inset;
 
-		paint.text(clock(transport.seconds()), pen, line, theme.ink);
-		pen += font.measure("00:00.000") + metrics.inset;
+		paint.text(clock(transport.seconds()), clockAt, line, theme.ink);
+		clockAt += font.measure("00:00.000") + metrics.inset;
 
-		paint.text(bars(transport.tick()), pen, line, theme.ink);
-		pen += font.measure("bar 000.0") + metrics.inset;
+		paint.text(bar(transport.tick()), clockAt, line, theme.ink);
 
-		paint.reface(small);
+		for (field in held) field.paint(paint);
+	}
 
-		final beats = session.song.tempo.beatsAt(transport.tick());
-		final said = Std.string(Math.round(beats * 10) / 10) + " BPM   "
-			+ session.song.tempo.ppqn + " PPQN   " + session.song.tempo.rate + " Hz";
+	function mode(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {
+		final left = modeLeft();
+		final wide = modeWide();
+		final font = metrics.small == null ? metrics.body : metrics.small;
+		final line = top + (button - font.height) * 0.5 + font.ascent;
+		final on = session.alone ? 0 : 1;
 
-		paint.textRight(said, x + width - metrics.inset,
-			y + (height - small.height) * 0.5 + small.ascent, theme.dim);
+		paint.reface(font);
+		paint.roundedRect(left, top, wide * 2, button, metrics.radiusRow, theme.raise1);
+		paint.roundedRect(left + wide * on, top, wide, button, metrics.radiusRow, theme.accent,
+			0.85);
+
+		if (overMode >= 0) {
+			paint.roundedRect(left + wide * overMode, top, wide, button, metrics.radiusRow,
+				theme.accent, Theme.HOVER);
+		}
+
+		paint.textCentred(translate(Locale.TRANSPORT_PATTERN), left + wide * 0.5, line,
+			on == 0 ? theme.ink : theme.dim, 0.75);
+		paint.textCentred(translate(Locale.TRANSPORT_SONG), left + wide * 1.5, line,
+			on == 1 ? theme.ink : theme.dim, 0.75);
+	}
+
+	function picker(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {
+		final left = pickerLeft();
+		final wide = pickerWide();
+		final font = metrics.body;
+		final line = top + (button - font.height) * 0.5 + font.ascent;
+		final pattern = session.current();
+
+		paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.raise1);
+
+		if (overPicker) {
+			paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.accent,
+				Theme.HOVER);
+		}
+
+		final swatch = metrics.whole(10);
+
+		paint.rect(left + metrics.gap, top + (button - swatch) * 0.5, swatch, swatch,
+			Theme.PARTS[session.pattern % Theme.PARTS.length]);
+
+		paint.reface(font);
+		paint.text((session.pattern + 1) + "  " + (pattern == null ? "" : pattern.name),
+			left + metrics.gap * 2 + swatch, line, theme.ink, 0.85);
+
+		final arrow = metrics.whole(4);
+		final middle = left + wide - metrics.gap - arrow;
+		final centre = top + button * 0.5;
+		final points = new haxe.ds.Vector<Float>(6);
+
+		points[0] = middle - arrow;
+		points[1] = centre - arrow * 0.5;
+		points[2] = middle + arrow;
+		points[3] = centre - arrow * 0.5;
+		points[4] = middle;
+		points[5] = centre + arrow * 0.6;
+
+		paint.polygon(points, 3, theme.dim);
 	}
 
 	function glyph(paint:Paint, theme:Theme, metrics:Metrics, which:Int, at:Float, top:Float,
@@ -212,6 +509,22 @@ final class TransportBar extends Widget {
 				paint.rect(middle - reach * 0.8, centre - reach * 0.8, reach * 1.6, reach * 1.6,
 					ink);
 
+			case RECORD:
+				paint.circle(middle, centre, reach * 0.8, on ? theme.ink : theme.over);
+
+			case REWIND:
+				paint.rect(middle - reach * 0.9, centre - reach * 0.8, metrics.whole(2),
+					reach * 1.6, ink);
+
+				final points = new haxe.ds.Vector<Float>(6);
+				points[0] = middle + reach * 0.8;
+				points[1] = centre - reach * 0.8;
+				points[2] = middle + reach * 0.8;
+				points[3] = centre + reach * 0.8;
+				points[4] = middle - reach * 0.4;
+				points[5] = centre;
+				paint.polygon(points, 3, ink);
+
 			case LOOP:
 				paint.ring(middle, centre, reach * 0.8, metrics.whole(2), ink);
 
@@ -230,11 +543,11 @@ final class TransportBar extends Widget {
 			+ StringTools.lpad(Std.string(parts), "0", 3);
 	}
 
-	public function bars(tick:Int):String {
+	public function bar(tick:Int):String {
 		final beat = session.song.tempo.ppqn;
-		final bar = beat * 4;
-		final which = Std.int(tick / bar) + 1;
-		final within = Std.int((tick % bar) / beat) + 1;
+		final span = beat * 4;
+		final which = Std.int(tick / span) + 1;
+		final within = Std.int((tick % span) / beat) + 1;
 
 		return "bar " + which + "." + within;
 	}
