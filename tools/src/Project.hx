@@ -3,6 +3,7 @@ import sys.io.File;
 typedef Target = {
 	final id:String;
 	final main:String;
+	final sources:Array<String>;
 }
 
 typedef Vendor = {
@@ -93,7 +94,11 @@ class Project {
 				output = node.get("path");
 
 			case "target":
-				targets.push({ id: node.get("id"), main: node.get("main") });
+				final own:Array<String> = [];
+				for (child in node.elements()) {
+					if (child.nodeName == "source" && allowed(child)) own.push(child.get("path"));
+				}
+				targets.push({ id: node.get("id"), main: node.get("main"), sources: own });
 
 			case "define":
 				defines.push(has(node, "value")
@@ -158,6 +163,11 @@ class Project {
 	public function targetOf(id:String):Null<Target> {
 		for (one in targets) if (one.id == id) return one;
 		return null;
+	}
+
+	public function sourcesOf(id:String):Array<String> {
+		final one = targetOf(id);
+		return one == null ? sources.copy() : sources.concat(one.sources);
 	}
 
 	public function names():Array<String> {

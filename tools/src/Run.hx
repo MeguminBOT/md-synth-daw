@@ -257,7 +257,7 @@ class Run {
 
 		final args = ["-main", one.main, "-cpp", root + "/" + project.output + "/obj/" + target];
 
-		for (path in project.sources) {
+		for (path in project.sourcesOf(target)) {
 			args.push("-cp");
 			args.push(root + "/" + path);
 		}

@@ -1,4 +1,4 @@
-package mdd.check;
+package mdd.gate;
 
 class Gate {
 	static final PROGRAMS:Array<String> = ["window", "paint", "ui"];

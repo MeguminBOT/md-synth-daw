@@ -10,12 +10,18 @@
 	<window width="1440" height="900" least-width="960" least-height="600"
 		vsync="true" resizable="true" high-dpi="true" />
 
+	<!-- src/ is the application. A target may add source paths of its own, and only the gate
+	     does: nothing that tests the application is compiled into it. -->
+
 	<source path="src" />
 	<generated path="export/haxe" />
 	<output path="export" />
 
 	<target id="mdd" main="mdd.App" />
-	<target id="gate" main="mdd.check.Gate" />
+
+	<target id="gate" main="mdd.gate.Gate">
+		<source path="test" />
+	</target>
 
 	<!-- Haxe does not define these for the cpp target, so the build does. Every #if windows,
 	     #if linux and #if mac in the source depends on them being here. -->

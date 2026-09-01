@@ -1,4 +1,4 @@
-package mdd.check;
+package mdd.gate;
 
 import haxe.ds.Vector;
 import mdd.host.Canvas;

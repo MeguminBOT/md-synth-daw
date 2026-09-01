@@ -1,4 +1,4 @@
-package mdd.check;
+package mdd.gate;
 
 import mdd.host.Canvas;
 import mdd.host.Event;
