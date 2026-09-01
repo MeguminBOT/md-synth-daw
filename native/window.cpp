@@ -1,5 +1,9 @@
 #include "window.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 extern "C" int mdd_sdl_init(void) {
 	SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");
 	return SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) ? 1 : 0;
@@ -168,6 +172,18 @@ extern "C" void mdd_set_clip(SDL_Renderer *renderer, int x, int y, int width, in
 
 extern "C" void mdd_clear_clip(SDL_Renderer *renderer) {
 	if (renderer != nullptr) SDL_SetRenderClipRect(renderer, nullptr);
+}
+
+extern "C" int mdd_reduce_motion(void) {
+#ifdef _WIN32
+	BOOL animate = TRUE;
+	if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animate, 0) != 0) {
+		return animate != FALSE ? 0 : 1;
+	}
+	return 0;
+#else
+	return 0;
+#endif
 }
 
 extern "C" double mdd_ticks(void) {

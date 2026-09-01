@@ -82,7 +82,7 @@ extern "C" void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture
 }
 
 extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
-		float width, float height) {
+		float width, float height, float alpha) {
 	if (renderer == nullptr || texture == nullptr) return;
 
 	SDL_FRect into;
@@ -91,6 +91,7 @@ extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture,
 	into.w = width;
 	into.h = height;
 
+	SDL_SetTextureAlphaModFloat(texture, alpha);
 	SDL_RenderTexture(renderer, texture, nullptr, &into);
 	calls++;
 }

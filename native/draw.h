@@ -20,7 +20,7 @@ int mdd_read_pixels(SDL_Renderer *renderer, int x, int y, int width, int height,
 void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture, const float *vertices,
 	int vertexCount);
 void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
-	float width, float height);
+	float width, float height, float alpha);
 
 int mdd_draw_calls(void);
 void mdd_draw_calls_reset(void);

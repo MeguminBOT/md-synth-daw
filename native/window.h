@@ -43,6 +43,8 @@ int mdd_render_output_height(SDL_Renderer *renderer);
 void mdd_set_clip(SDL_Renderer *renderer, int x, int y, int width, int height);
 void mdd_clear_clip(SDL_Renderer *renderer);
 
+int mdd_reduce_motion(void);
+
 double mdd_ticks(void);
 
 #ifdef __cplusplus

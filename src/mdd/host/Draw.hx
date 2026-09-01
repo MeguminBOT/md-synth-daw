@@ -33,7 +33,7 @@ extern class Draw {
 
 	@:native("mdd_render_texture")
 	public static function texture(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>, x:Single,
-		y:Single, width:Single, height:Single):Void;
+		y:Single, width:Single, height:Single, alpha:Single):Void;
 
 	@:native("mdd_draw_calls")
 	public static function calls():Int;

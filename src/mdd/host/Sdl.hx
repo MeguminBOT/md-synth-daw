@@ -124,6 +124,9 @@ extern class Sdl {
 	@:native("mdd_clear_clip")
 	public static function clearClip(renderer:cpp.Star<Canvas>):Void;
 
+	@:native("mdd_reduce_motion")
+	public static function reduceMotion():Int;
+
 	@:native("mdd_ticks")
 	public static function ticks():Float;
 
