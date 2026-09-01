@@ -17,6 +17,7 @@ import mdd.ui.Key;
 import mdd.ui.Item;
 import mdd.ui.Kind;
 import mdd.ui.Menu;
+import mdd.ui.MenuBar;
 import mdd.ui.Mod;
 import mdd.ui.Motion;
 import mdd.ui.Pointer;
@@ -118,6 +119,7 @@ class UiCheck {
 		trees();
 		menus(renderer, target, face, monoFace);
 		tooltips(renderer, face, monoFace);
+		bars(renderer, face, monoFace);
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
@@ -963,5 +965,76 @@ class UiCheck {
 
 		says("zone reduced", still.zone(Shell.RAIL).width == 24 && quiet.animating() == 0,
 			"snaps to " + still.zone(Shell.RAIL).width + " with motion reduced");
+	}
+
+	static function bars(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {
+		final body = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 12);
+
+		if (body == null || mono == null) {
+			says("bar opens", false, "the fonts would not bake");
+			return;
+		}
+
+		final metrics = new Metrics(1);
+		metrics.dress(body, body, mono, mono);
+
+		final top = new Widget();
+		final root = new Root(top, metrics, new Theme());
+		root.flow = Flow.None;
+		root.resize(600, 400);
+		top.arrange(0, 0, 600, 400);
+
+		final bar = new MenuBar();
+		top.add(bar);
+		bar.arrange(0, 0, 600, 30);
+
+		final file = new Menu();
+		file.offer(new Choice("New", "Ctrl+N"));
+		file.offer(new Choice("Open", "Ctrl+O"));
+
+		final edit = new Menu();
+		edit.offer(new Choice("Undo", "Ctrl+Z"));
+
+		bar.offer("File", file);
+		bar.offer("Edit", edit);
+
+		final fileAt = bar.penOf(0) + 4;
+		final editAt = bar.penOf(1) + 4;
+
+		root.pressed(fileAt, 15, Pointer.Left, Mod.None);
+		root.released(fileAt, 15, Pointer.Left, Mod.None);
+
+		says("bar opens", bar.openAt == 0 && root.popups.length == 1
+			&& root.popups[0] == file,
+			"clicking File opened its menu under it at " + root.popups[0].x);
+
+		root.pressed(editAt, 15, Pointer.Left, Mod.None);
+		root.released(editAt, 15, Pointer.Left, Mod.None);
+
+		says("bar switches", bar.openAt == 1 && root.popups.length == 1
+			&& root.popups[0] == edit,
+			"one click on Edit swapped the open menu");
+
+		root.pressed(editAt, 15, Pointer.Left, Mod.None);
+		root.released(editAt, 15, Pointer.Left, Mod.None);
+
+		says("bar closes", bar.openAt == -1 && root.popups.length == 0,
+			"clicking the open title again closed it");
+
+		root.pressed(fileAt, 15, Pointer.Left, Mod.None);
+		root.released(fileAt, 15, Pointer.Left, Mod.None);
+		root.moved(editAt, 15, Mod.None);
+
+		says("bar hovers", bar.openAt == 1 && root.popups[0] == edit,
+			"moving along the bar with one open follows the pointer");
+
+		root.pressed(300, 300, Pointer.Left, Mod.None);
+
+		says("bar released", bar.openAt == -1 && root.popups.length == 0,
+			"a press in the body closed it and cleared the bar");
+
+		body.shut();
+		mono.shut();
 	}
 }

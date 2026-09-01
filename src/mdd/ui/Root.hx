@@ -37,6 +37,7 @@ final class Root {
 	var blocked:Bool = false;
 
 	var returnFocus:Null<Widget> = null;
+	var opener:Null<Widget> = null;
 
 	final event:Input = new Input();
 	final order:Array<Widget> = [];
@@ -189,10 +190,13 @@ final class Root {
 		tooltip.arrange(px, py, wide, tall);
 	}
 
-	public function pop(menu:Menu, px:Float, py:Float):Void {
+	public function pop(menu:Menu, px:Float, py:Float, from:Null<Widget> = null):Void {
 		@:privateAccess menu.attach(this);
 
-		if (popups.length == 0) returnFocus = focus;
+		if (popups.length == 0) {
+			returnFocus = focus;
+			opener = from;
+		}
 
 		menu.anchor(px, py);
 		menu.arrive();
@@ -245,6 +249,7 @@ final class Root {
 			if (one.closing && !one.fade.running) {
 				if (focus == one) focusOn(null);
 				@:privateAccess one.attach(null);
+				if (one.onClose != null) one.onClose(one.fade);
 				soil();
 				continue;
 			}
@@ -261,6 +266,7 @@ final class Root {
 		else {
 			focusOn(returnFocus);
 			returnFocus = null;
+			opener = null;
 		}
 	}
 
@@ -292,6 +298,17 @@ final class Root {
 		}
 
 		return top.hit(px, py);
+	}
+
+	function owns(widget:Null<Widget>):Bool {
+		if (widget == null || opener == null) return false;
+
+		var at:Null<Widget> = widget;
+		while (at != null) {
+			if (at == opener) return true;
+			at = at.parent;
+		}
+		return false;
 	}
 
 	function popped(widget:Null<Widget>):Bool {
@@ -386,7 +403,7 @@ final class Root {
 
 		final under = pick(x, y);
 
-		if (popups.length > 0 && !popped(under)) {
+		if (popups.length > 0 && !popped(under) && !owns(under)) {
 			dismiss();
 			return;
 		}

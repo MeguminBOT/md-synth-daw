@@ -11,6 +11,7 @@ final class Menu extends Widget {
 	public final choices:Array<Choice> = [];
 
 	public var onChoose:Null<Choice -> Void> = null;
+	public var onClose:Null<Motion -> Void> = null;
 
 	public var hoverAt(default, null):Int = -1;
 	public var opened(default, null):Null<Menu> = null;
