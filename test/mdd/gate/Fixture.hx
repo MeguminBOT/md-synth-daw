@@ -1,6 +1,6 @@
 package mdd.gate;
 
-class Patch {
+class Fixture {
 	public var algorithm:Int = 7;
 	public var feedback:Int = 0;
 
@@ -34,18 +34,18 @@ class Patch {
 
 	public function new() {}
 
-	public function loud(at:Int):Patch {
+	public function loud(at:Int):Fixture {
 		for (i in 0...4) totalLevel[i] = at;
 		return this;
 	}
 
-	public function alone(which:Int, at:Int):Patch {
+	public function alone(which:Int, at:Int):Fixture {
 		for (i in 0...4) totalLevel[i] = i == which ? at : 127;
 		return this;
 	}
 
 	public function envelope(attackRate:Int, decayRate:Int, sustainRate:Int, sustainLevel:Int,
-			releaseRate:Int, scaling:Int = 0):Patch {
+			releaseRate:Int, scaling:Int = 0):Fixture {
 		for (i in 0...4) {
 			attack[i] = attackRate;
 			decay[i] = decayRate;
@@ -57,13 +57,13 @@ class Patch {
 		return this;
 	}
 
-	public function note(atBlock:Int, atFrequency:Int):Patch {
+	public function note(atBlock:Int, atFrequency:Int):Fixture {
 		block = atBlock;
 		frequency = atFrequency;
 		return this;
 	}
 
-	public function wiring(which:Int, back:Int):Patch {
+	public function wiring(which:Int, back:Int):Fixture {
 		algorithm = which;
 		feedback = back;
 		return this;
