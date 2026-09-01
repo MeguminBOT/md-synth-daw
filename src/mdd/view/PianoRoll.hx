@@ -322,7 +322,9 @@ final class PianoRoll extends Widget {
 
 				if (dragging == null) return false;
 
+				session.holds();
 				pattern.lane(session.part).sort();
+				session.frees();
 				dragging = null;
 				sizing = false;
 				session.changed();

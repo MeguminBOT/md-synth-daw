@@ -21,6 +21,11 @@ final class Transport {
 	public var stepped(default, null):Int = 0;
 	public var entering(default, null):Int = 0;
 
+	final gate:sys.thread.Mutex = new sys.thread.Mutex();
+
+	public var source:Null<Stream> = null;
+	var poured:Int = 0;
+
 	var carried:Int = 0;
 
 	public function new(song:Song, capacity:Int = 8192) {
@@ -47,6 +52,14 @@ final class Transport {
 		looping = toTick > loopFrom;
 	}
 
+	public inline function holds():Void {
+		gate.acquire();
+	}
+
+	public inline function frees():Void {
+		gate.release();
+	}
+
 	public function advance(frames:Int, rate:Int):Int {
 		stream.clear();
 		entering = carried;
@@ -65,7 +78,12 @@ final class Transport {
 
 		if (looping && until > loopTo) until = loopTo;
 
-		sequencer.emit(stream, from, until);
+		gate.acquire();
+
+		if (source != null) replayed(from, until);
+		else sequencer.emit(stream, from, until);
+
+		gate.release();
 		served++;
 		stepped = until - from;
 
@@ -77,6 +95,21 @@ final class Transport {
 		}
 
 		return from;
+	}
+
+	function replayed(from:Int, until:Int):Void {
+		final held = source;
+		if (held == null) return;
+
+		if (poured > held.count || held.tickAt(poured) > from) poured = 0;
+
+		while (poured < held.count && held.tickAt(poured) < from) poured++;
+
+		while (poured < held.count && held.tickAt(poured) < until) {
+			stream.raw(held.tickAt(poured), held.kindAt(poured), held.portAt(poured),
+				held.valueAt(poured));
+			poured++;
+		}
 	}
 
 	public function rewind():Void {
@@ -91,6 +124,7 @@ final class Transport {
 	public function silence():Void {
 		stream.clear();
 		stream.reset(position);
+		poured = 0;
 	}
 
 	public inline function seconds():Float {

@@ -40,6 +40,7 @@ class VgmCheck {
 
 		corpus(where, files);
 		sounds(where, files);
+		rated(where, files);
 		transported(where, files);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -58,6 +59,10 @@ class VgmCheck {
 		var raw = 0;
 		var played = 0;
 		var quiet = 0;
+		var clipped = 0;
+		var worstJump = 0.0;
+		var last = 0.0;
+		var heard = 0;
 
 		for (name in files) {
 			if (played >= 6) break;
@@ -76,9 +81,19 @@ class VgmCheck {
 				final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
 				if (many <= 0) break;
 
-				for (i in 0...many * 2) {
-					final value = render.block[i] < 0 ? -render.block[i] : render.block[i];
+				for (i in 0...many) {
+					final held = render.block[i * 2];
+					final value = held < 0 ? -held : held;
+
 					if (value > most) most = value;
+					if (value >= 0.999) clipped++;
+
+					final away = held - last;
+					final jump = away < 0 ? -away : away;
+					if (jump > worstJump) worstJump = jump;
+
+					last = held;
+					heard++;
 				}
 
 				final peak = render.ym.left < 0 ? -render.ym.left : render.ym.left;
@@ -92,10 +107,11 @@ class VgmCheck {
 			if (most > loudest) loudest = most;
 		}
 
-		says("an imported vgm sounds", played > 0 && quiet == 0,
+		says("an imported vgm sounds", played > 0 && quiet == 0 && clipped == 0,
 			played + " files rendered for four seconds, loudest sample " + round(loudest, 4)
 			+ " with the chip reaching " + raw + ", " + quiet + " under a twentieth of full"
-			+ " scale");
+			+ " scale, " + clipped + " of " + heard + " samples at the ceiling and the worst"
+			+ " step between neighbours " + round(worstJump, 4));
 	}
 
 	static function transported(where:String, files:Array<String>):Void {
@@ -112,6 +128,7 @@ class VgmCheck {
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 		render.transport = transport;
+		transport.source = stream;
 		transport.play();
 
 		var done = 0;
@@ -134,10 +151,64 @@ class VgmCheck {
 			done += many;
 		}
 
-		says("and it plays through the transport", most > 0.02 && writes > 0,
-			"four seconds of the transcribed " + files[0] + " driven the way the device asks"
-			+ " for it, " + writes + " register writes reaching the chips and the loudest"
-			+ " sample " + round(most, 4));
+		says("and playing it back is the file", most > 0.15 && writes > 0,
+			"four seconds of " + files[0] + " driven the way the device asks for it, "
+			+ writes + " register writes reaching the chips and the loudest sample "
+			+ round(most, 4));
+	}
+
+	static function rated(where:String, files:Array<String>):Void {
+		if (files.length == 0) return;
+
+		final at = [44100, 48000];
+		final peaks:Array<Float> = [];
+		final zeroes:Array<Int> = [];
+
+		for (rate in at) {
+			final stream = new mdd.play.Stream(1 << 22);
+			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + files[0]), stream);
+
+			final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
+			final span = rate * 4;
+
+			var done = 0;
+			var most = 0.0;
+			var crossings = 0;
+			var last = 0.0;
+
+			while (done < span) {
+				final from = Std.int(done * (mdd.song.Tempo.TICKS / rate));
+				final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
+				if (many <= 0) break;
+
+				for (i in 0...many) {
+					final value = render.block[i * 2];
+					final much = value < 0 ? -value : value;
+
+					if (much > most) most = much;
+					if (last <= 0 && value > 0) crossings++;
+					last = value;
+				}
+
+				done += many;
+			}
+
+			peaks.push(most);
+			zeroes.push(crossings);
+		}
+
+		var worst = 0.0;
+
+		for (index in 1...zeroes.length) {
+			final away = zeroes[index] - zeroes[0];
+			final much = (away < 0 ? -away : away) / zeroes[0];
+			if (much > worst) worst = much;
+		}
+
+		says("and the same at either device rate", worst < 0.02,
+			"four seconds at 44100 and 48000 cross zero " + zeroes[0] + " and " + zeroes[1]
+			+ " times, " + round(worst * 100, 2) + " per cent apart, peaking at "
+			+ round(peaks[0], 3) + " and " + round(peaks[1], 3));
 	}
 
 	static function compare(a:String, b:String):Int {

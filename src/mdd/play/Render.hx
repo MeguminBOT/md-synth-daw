@@ -34,10 +34,8 @@ final class Render {
 	var fmAt:Float = 0;
 	var psgAt:Float = 0;
 
-	var fmLeft:Int = 0;
-	var fmRight:Int = 0;
-	var olderLeft:Int = 0;
-	var olderRight:Int = 0;
+	var fmLeft:Float = 0;
+	var fmRight:Float = 0;
 
 	var wentLeft:Float = 0;
 	var wentRight:Float = 0;
@@ -73,8 +71,6 @@ final class Render {
 		psgAt = 0;
 		fmLeft = 0;
 		fmRight = 0;
-		olderLeft = 0;
-		olderRight = 0;
 		wentLeft = 0;
 		wentRight = 0;
 		heldLeft = 0;
@@ -121,13 +117,22 @@ final class Render {
 
 			fmAt += fmStep;
 
+			var tookLeft = 0;
+			var tookRight = 0;
+			var took = 0;
+
 			while (fmAt >= 1) {
 				fmAt -= 1;
-				olderLeft = fmLeft;
-				olderRight = fmRight;
 				ym.sample();
-				fmLeft = ym.left;
-				fmRight = ym.right;
+
+				tookLeft += ym.left;
+				tookRight += ym.right;
+				took++;
+			}
+
+			if (took > 0) {
+				fmLeft = tookLeft / took;
+				fmRight = tookRight / took;
 			}
 
 			psgAt += psgStep;
@@ -137,8 +142,8 @@ final class Render {
 
 			final other = psg.taken();
 
-			final left = olderLeft + (fmLeft - olderLeft) * fmAt + other;
-			final right = olderRight + (fmRight - olderRight) * fmAt + other;
+			final left = fmLeft + other;
+			final right = fmRight + other;
 
 			heldLeft = (left - wentLeft) + COUPLING * heldLeft;
 			heldRight = (right - wentRight) + COUPLING * heldRight;

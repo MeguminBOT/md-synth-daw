@@ -129,7 +129,9 @@ final class Samples extends Widget {
 	function cleared(slot:Int):Void {
 		if (slot < 0 || slot >= session.song.samples.length) return;
 
+		session.holds();
 		session.song.samples.splice(slot, 1);
+		session.frees();
 		if (chosen >= session.song.samples.length) chosen = session.song.samples.length - 1;
 
 		session.changed();

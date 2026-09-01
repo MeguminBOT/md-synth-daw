@@ -38,6 +38,7 @@ class AudioCheck {
 		queueing();
 		offline();
 		pitch();
+		shape();
 		device(Math.isNaN(live) ? LIVE : live);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -199,6 +200,73 @@ class AudioCheck {
 		says("the render keeps up", spent < OFFLINE,
 			Std.int(OFFLINE) + " s of audio rendered in " + round(spent, 2) + " s, "
 			+ round(OFFLINE / spent, 1) + " times faster than real time");
+	}
+
+	static function toned(render:Render):Void {
+		for (at in 0...4) {
+			push(render, 0x30 + at * 4, 0x01);
+			push(render, 0x40 + at * 4, at == 3 ? 0x00 : 0x7F);
+			push(render, 0x50 + at * 4, 0x1F);
+			push(render, 0x60 + at * 4, 0x00);
+			push(render, 0x70 + at * 4, 0x00);
+			push(render, 0x80 + at * 4, 0x0F);
+		}
+
+		push(render, 0xB0, 0x07);
+		push(render, 0xB4, 0xC0);
+		push(render, 0xA4, 0x22);
+		push(render, 0xA0, 0x69);
+		push(render, 0x28, 0xF0);
+
+		render.drain();
+	}
+
+	static function shape():Void {
+		final render = new Render(RATE, Render.BLOCK);
+		toned(render);
+
+		final held = new haxe.ds.Vector<Float>(16384);
+		var done = 0;
+
+		while (done < held.length) {
+			final many = render.fill(Render.BLOCK);
+			for (i in 0...many) {
+				if (done + i >= held.length) break;
+				held[done + i] = render.block[i * 2];
+			}
+			done += many;
+		}
+
+		final from = 4096;
+		final window = 8192;
+		final hz = 250.75;
+
+		var total = 0.0;
+
+		for (i in 0...window) total += held[from + i] * held[from + i];
+
+		total = Math.sqrt(total / window);
+
+		var real = 0.0;
+		var imaginary = 0.0;
+
+		for (i in 0...window) {
+			final turn = 2 * Math.PI * hz * i / RATE;
+			real += held[from + i] * Math.cos(turn);
+			imaginary += held[from + i] * Math.sin(turn);
+		}
+
+		final fundamental = 2 * Math.sqrt(real * real + imaginary * imaginary) / window
+			/ Math.sqrt(2);
+
+		final rest = total * total - fundamental * fundamental;
+		final distortion = fundamental <= 0 ? 1.0
+			: Math.sqrt(rest < 0 ? 0 : rest) / fundamental;
+
+		says("one operator is a sine", distortion < 0.25,
+			"a single carrier at full level renders " + round(distortion * 100, 1)
+			+ " per cent of its energy away from the fundamental, at "
+			+ round(fundamental, 4) + " against " + round(total, 4) + " overall");
 	}
 
 	static function pitch():Void {

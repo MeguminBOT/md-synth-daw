@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-
 	<!-- Everything the build reads. There is no .hxml: ./mdd builds from this file.
 	     Conditions are if="..." and unless="...", and take windows, linux, mac, debug or release. -->
 

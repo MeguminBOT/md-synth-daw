@@ -82,10 +82,14 @@ final class Patterns extends Scroll {
 
 		final made = new Pattern(from.name + " 2", from.length, from.colour);
 
+		session.holds();
+
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			for (note in from.lane(part).notes) made.lane(part).notes.push(note.copy());
 		}
+
+		session.frees();
 
 		session.does(new AddPattern(made));
 		session.chooses(session.song.patterns.length - 1);

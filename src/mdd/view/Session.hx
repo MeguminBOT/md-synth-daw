@@ -111,19 +111,36 @@ final class Session {
 		return new Session(song);
 	}
 
+	public inline function holds():Void {
+		transport.holds();
+	}
+
+	public inline function frees():Void {
+		transport.frees();
+	}
+
 	public function does(command:Command):Void {
+		transport.holds();
 		history.does(song, command);
+		transport.frees();
+
 		changed();
 	}
 
 	public function undo():Bool {
+		transport.holds();
 		final done = history.undo(song);
+		transport.frees();
+
 		if (done) changed();
 		return done;
 	}
 
 	public function redo():Bool {
+		transport.holds();
 		final done = history.redo(song);
+		transport.frees();
+
 		if (done) changed();
 		return done;
 	}

@@ -113,10 +113,40 @@ class App {
 		}
 
 		app.report();
-		app.loop();
-		app.shut();
+
+		try {
+			app.loop();
+			app.shut();
+		} catch (e:haxe.Exception) {
+			recorded(e);
+			Instance.release();
+			Sdl.quit();
+			Sys.exit(2);
+		}
+
 		Instance.release();
 		Sdl.quit();
+	}
+
+	static function recorded(e:haxe.Exception):Void {
+		final said = new StringBuf();
+
+		said.add(Config.TITLE + " " + Config.VERSION + " stopped at " + Date.now() + "
+");
+		said.add(e.message + "
+
+");
+		said.add(haxe.CallStack.toString(e.stack) + "
+");
+
+		Sys.println("mdd: " + e.message);
+		Sys.println(haxe.CallStack.toString(e.stack));
+
+		try {
+			final where = Paths.within("logs") + "/crash.txt";
+			sys.io.File.saveContent(where, said.toString());
+			Sys.println("mdd: written to " + where);
+		} catch (held:haxe.Exception) {}
 	}
 
 	function open():Bool {
@@ -789,6 +819,8 @@ class App {
 	function loaded(song:Song):Void {
 		if (render != null) render.transport.stop();
 
+		final carried = files == null ? null : files.imported;
+
 		session = new Session(song);
 		session.onChange = function(held:Session):Void changed();
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -826,6 +858,8 @@ class App {
 		dock.warnings.budget = budget;
 
 		commands();
+
+		session.transport.source = carried;
 
 		if (render != null) render.transport = session.transport;
 

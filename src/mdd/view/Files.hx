@@ -42,6 +42,7 @@ final class Files {
 	var edits:Int = -1;
 
 	public var onLoad:Null<Song -> Void> = null;
+	public var imported(default, null):Null<Stream> = null;
 
 	public final session:Session;
 	var chooser:cpp.Star<Chooser> = null;
@@ -159,6 +160,8 @@ final class Files {
 	public function load(where:String):Void {
 		final song = Project.open(where);
 
+		imported = null;
+
 		path = where;
 		if (onLoad != null) onLoad(song);
 		forget();
@@ -168,11 +171,12 @@ final class Files {
 	}
 
 	public function readVgm(where:String):Void {
-		final into = new Stream(1 << 20);
+		final into = new Stream(1 << 22);
 		final vgm = Vgm.read(sys.io.File.getBytes(where), into);
 		final made = Transcription.of(into, vgm.rate, name(where));
 
 		path = "";
+		imported = into;
 		if (onLoad != null) onLoad(made.song);
 		forget();
 
@@ -185,7 +189,9 @@ final class Files {
 		final made = new mdd.song.Sample(name(where), DAC_RATE);
 
 		made.hold(wav.bytes(DAC_RATE));
+		session.holds();
 		session.song.samples.push(made);
+		session.frees();
 
 		session.say("read " + name(where) + ", " + made.length() + " bytes at "
 			+ DAC_RATE + " Hz");
@@ -196,6 +202,8 @@ final class Files {
 
 	public function readMidi(where:String):Void {
 		final song = Midi.read(sys.io.File.getBytes(where), name(where));
+
+		imported = null;
 
 		path = "";
 		if (onLoad != null) onLoad(song);

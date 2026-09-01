@@ -40,6 +40,7 @@ class StreamCheck {
 		faces();
 		chunks();
 		sounded();
+		raced();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -247,6 +248,60 @@ class StreamCheck {
 		}
 
 		return -2;
+	}
+
+	static function raced():Void {
+		final session = mdd.view.Session.started();
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+
+		render.transport = session.transport;
+		session.transport.play();
+
+		final blocks = new haxe.atomic.AtomicInt(0);
+		final alive = new haxe.atomic.AtomicInt(1);
+
+		sys.thread.Thread.create(function():Void {
+			while (alive.load() == 1) {
+				final from = session.transport.advance(mdd.play.Render.BLOCK, 44100);
+				render.serve(session.transport.stream, from, mdd.play.Render.BLOCK,
+					session.transport.entering);
+				blocks.add(1);
+			}
+		});
+
+		var made = 0;
+		var dropped = 0;
+
+		for (round in 0...3000) {
+			if (round % 40 == 0) Sys.sleep(0.001);
+
+			final part:Part = round % 6;
+			final note = new Note((round * 7) % 384, 24, 48 + (round % 24), 100);
+
+			session.does(new AddNote(session.pattern, part, note));
+			made++;
+
+			if (round % 3 != 0) continue;
+
+			session.does(new mdd.song.edit.RemoveNote(session.pattern, part, note));
+			dropped++;
+		}
+
+		alive.store(0);
+		Sys.sleep(0.05);
+
+		var left = 0;
+		final pattern = session.current();
+
+		if (pattern != null) {
+			for (index in 0...Part.COUNT) left += pattern.lane(index).notes.length;
+		}
+
+		says("the song survives being edited while it plays", left == made - dropped
+			&& blocks.load() > 0,
+			made + " notes written and " + dropped + " taken back while the render thread"
+			+ " served " + blocks.load() + " blocks of the same song, leaving " + left
+			+ " of an expected " + (made - dropped));
 	}
 
 	static function sounded():Void {
