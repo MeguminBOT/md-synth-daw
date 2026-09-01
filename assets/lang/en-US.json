@@ -1,6 +1,8 @@
 {
   "app": "MD Synth DAW",
   "bank.already": "this bank is already part of the project",
+  "bank.collapse": "Collapse all",
+  "bank.expand": "Expand all",
   "bank.keep": "Keep this bank",
   "bank.kept": "kept",
   "channels.clear": "Clear this channel",
@@ -144,6 +146,7 @@
   "scale.minorPentatonic": "Minor pentatonic",
   "scale.mixolydian": "Mixolydian",
   "scale.pentatonic": "Pentatonic",
+  "scope.inspect": "Show in the inspector",
   "scope.spectrum": "Spectrum",
   "scope.waveform": "Waveform",
   "theme.midnight": "Midnight",

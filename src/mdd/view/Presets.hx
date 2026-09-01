@@ -53,6 +53,10 @@ final class Presets extends Widget {
 		session.changed();
 	}
 
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:Choice):Void what();
+	}
+
 	function popped(item:Item, px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
@@ -65,6 +69,16 @@ final class Presets extends Widget {
 		if (bank == null) return;
 
 		menu = new Menu();
+
+		fires(menu.offer(new Choice(translate(Locale.BANK_EXPAND))), function():Void {
+			for (held in heads) tree.fold(held, true);
+		});
+
+		fires(menu.offer(new Choice(translate(Locale.BANK_COLLAPSE))), function():Void {
+			for (held in heads) tree.fold(held, false);
+		});
+
+		menu.divide();
 
 		final keep = menu.offer(new Choice(translate(Locale.BANK_KEEP)));
 

@@ -2,6 +2,8 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.song.Part;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
@@ -33,6 +35,8 @@ final class Scope extends Widget {
 
 	public var painted(default, null):Int = 0;
 	public var showing(default, null):Int = WAVEFORM;
+
+	var menu:Null<Menu> = null;
 
 	final line:Vector<Float> = new Vector<Float>(SPAN * 2);
 	final bins:Vector<Float> = new Vector<Float>(BARS);
@@ -98,6 +102,25 @@ final class Scope extends Widget {
 		return root == null ? 26 : root.metrics.whole(26);
 	}
 
+	public function laneAt(px:Float, py:Float):Int {
+		final top = head();
+		if (py < y + top) return -1;
+
+		final wide = width / COLUMNS;
+		final tall = (height - top) / ROWS;
+		if (wide <= 0 || tall <= 0) return -1;
+
+		final column = Std.int((px - x) / wide);
+		final row = Std.int((py - y - top) / tall);
+
+		if (column < 0 || column >= COLUMNS || row < 0 || row >= ROWS) return -1;
+
+		final cell = row * COLUMNS + column;
+		if (cell == 11) return -1;
+
+		return ORDER[cell];
+	}
+
 	public function switchAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null || py < y || py >= y + head()) return -1;
@@ -114,15 +137,65 @@ final class Scope extends Widget {
 		switch (event.kind) {
 			case Kind.PointerDown:
 				final which = switchAt(event.x, event.y);
-				if (which < 0) return false;
 
-				shows(which);
+				if (which >= 0) {
+					shows(which);
+					return true;
+				}
+
+				final part = laneAt(event.x, event.y);
+				if (part < 0) return false;
+
+				if (event.button == Pointer.Right) {
+					popped(part, event.x, event.y);
+					return true;
+				}
+
+				session.choose(part);
 				return true;
 
 			case _:
 		}
 
 		return false;
+	}
+
+	function popped(part:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final song = session.song;
+		menu = new Menu();
+
+		fires(menu.offer(new Choice(translate(song.soloed[part]
+			? Locale.RACK_UNSOLO : Locale.RACK_SOLO))), function():Void {
+			song.soloed[part] = !song.soloed[part];
+			session.changed();
+		});
+
+		fires(menu.offer(new Choice(translate(song.muted[part]
+			? Locale.RACK_UNMUTE : Locale.RACK_MUTE))), function():Void {
+			song.muted[part] = !song.muted[part];
+			session.changed();
+		});
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.SCOPE_WAVEFORM))), function():Void
+			shows(WAVEFORM));
+		fires(menu.offer(new Choice(translate(Locale.SCOPE_SPECTRUM))), function():Void
+			shows(SPECTRUM));
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.SCOPE_INSPECT))), function():Void
+			session.choose(part));
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:Choice):Void what();
 	}
 
 	function bands(part:Int):Float {

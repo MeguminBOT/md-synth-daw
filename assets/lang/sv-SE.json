@@ -1,6 +1,8 @@
 {
   "app": "MD Synth DAW",
   "bank.already": "banken hör redan till projektet",
+  "bank.collapse": "Fäll ihop alla",
+  "bank.expand": "Fäll ut alla",
   "bank.keep": "Behåll banken",
   "bank.kept": "behöll",
   "channels.clear": "Rensa kanalen",
@@ -144,6 +146,7 @@
   "scale.minorPentatonic": "Pentatonisk moll",
   "scale.mixolydian": "Mixolydisk",
   "scale.pentatonic": "Pentatonisk",
+  "scope.inspect": "Visa i inspektorn",
   "scope.spectrum": "Spektrum",
   "scope.waveform": "Vågform",
   "theme.midnight": "Midnatt",
