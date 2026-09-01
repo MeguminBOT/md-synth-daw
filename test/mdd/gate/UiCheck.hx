@@ -124,6 +124,7 @@ class UiCheck {
 		chords();
 		saying();
 		modal();
+		remembers();
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
@@ -659,6 +660,38 @@ class UiCheck {
 
 		says("but not the chord", heard == "Ctrl+S",
 			"a modified chord still reaches the session past a focused field");
+	}
+
+	static function remembers():Void {
+		final path = Gate.root + "/export/settings.txt";
+		if (sys.FileSystem.exists(path)) sys.FileSystem.deleteFile(path);
+
+		final settings = new mdd.host.Settings(path);
+		final missing = settings.load();
+
+		says("nothing to remember yet", !missing && settings.count() == 0,
+			"a settings file that is not there loads as nothing rather than as a fault");
+
+		settings.whole("theme", 2);
+		settings.whole("density", 0);
+		settings.flag("ghosts", false);
+		settings.number("gain", 0.75);
+		settings.put("song", "R:/a song.mdd");
+
+		says("and it writes", settings.save() && sys.FileSystem.exists(path),
+			settings.count() + " settings written to " + path.substr(path.length - 12));
+
+		final back = new mdd.host.Settings(path);
+		back.load();
+
+		says("and reads back", back.asWhole("theme") == 2 && back.asWhole("density") == 0
+			&& !back.asFlag("ghosts", true) && back.asNumber("gain") == 0.75
+			&& back.of("song") == "R:/a song.mdd",
+			back.read + " settings come back with their types, including a path with a space");
+
+		says("and an absent one falls back", back.asWhole("nothing", 7) == 7
+			&& back.of("nothing", "held") == "held",
+			"a key that was never written gives what the caller asked for instead");
 	}
 
 	static function saying():Void {

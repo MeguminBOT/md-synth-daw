@@ -36,6 +36,7 @@ final class Preferences extends Widget {
 	public final fade:Motion;
 
 	public var onScale:Null<Float -> Void> = null;
+	public var onKeep:Null<Void -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverOn:Int = -1;
@@ -131,6 +132,8 @@ final class Preferences extends Widget {
 		root.reshape();
 		session.changed();
 		invalidate();
+
+		if (onKeep != null) onKeep();
 	}
 
 	public function optionAt(row:Int, px:Float):Int {

@@ -6,6 +6,7 @@ import mdd.host.Device;
 import mdd.host.Event;
 import mdd.host.Native;
 import mdd.host.Paths;
+import mdd.host.Settings;
 import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;
@@ -59,6 +60,7 @@ class App {
 	var menus:Null<MenuBar> = null;
 	var files:Null<Files> = null;
 	var preferences:Null<Preferences> = null;
+	var settings:Null<Settings> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -156,6 +158,12 @@ class App {
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
 
+		settings = new Settings();
+		settings.load();
+		remembered();
+
+		preferences.onKeep = function():Void keeps();
+
 		commands();
 		root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
 
@@ -210,7 +218,7 @@ class App {
 		file.divide();
 		file.divide();
 		fired(file.offer(new Choice(root.saying("file.preferences"), "Ctrl+,")), function():Void
-			settings());
+			opened());
 		file.divide();
 		fired(file.offer(new Choice(root.saying("file.quit"), "Alt+F4")), function():Void
 			running = false);
@@ -239,7 +247,35 @@ class App {
 		menus.offer(root.saying("menu.view"), view);
 	}
 
-	function settings():Void {
+	function remembered():Void {
+		final which = settings.asWhole("theme", 0);
+		final motion = settings.asWhole("motion", root.flow);
+		final density = settings.asWhole("density", 1);
+
+		session.theme = which;
+		session.motion = motion;
+
+		root.theme.wear(which);
+		root.flow = motion;
+
+		preferences.chose(Preferences.DENSITY, density);
+		root.reshape();
+	}
+
+	function keeps():Void {
+		if (settings == null) return;
+
+		settings.whole("theme", session.theme);
+		settings.whole("motion", session.motion);
+		settings.whole("density", preferences.density);
+		settings.whole("width", Sdl.windowWidth(window));
+		settings.whole("height", Sdl.windowHeight(window));
+		settings.put("song", files == null ? "" : files.path);
+
+		settings.save();
+	}
+
+	function opened():Void {
 		preferences.arrive();
 		root.raise(preferences);
 	}
@@ -288,7 +324,7 @@ class App {
 				return true;
 
 			case Key.Comma:
-				settings();
+				opened();
 				return true;
 
 			case _:
@@ -450,6 +486,8 @@ class App {
 			: Audio.name(speaker) + ", " + Audio.rate(speaker) + " Hz"));
 		Sys.println("  profile       " + budget.profile.name + ", "
 			+ budget.profile.counted() + " parts");
+		Sys.println("  remembered    " + settings.read + " settings from "
+			+ settings.path.substr(settings.path.lastIndexOf("/") + 1));
 	}
 
 	function loop():Void {
@@ -582,6 +620,8 @@ class App {
 	}
 
 	function shut():Void {
+		keeps();
+
 		if (render != null) render.stop();
 		if (speaker != null) Audio.close(speaker);
 
