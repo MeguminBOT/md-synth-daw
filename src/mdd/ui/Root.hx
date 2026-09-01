@@ -2,9 +2,14 @@ package mdd.ui;
 
 @:unreflective
 final class Root {
+	public static inline final STILL = 0.450;
+	public static inline final GRACE = 0.250;
+
 	public var top(default, null):Widget;
 	public var metrics(default, null):Metrics;
 	public var theme(default, null):Theme;
+
+	public var flow:Flow = Flow.Full;
 
 	public var focus(default, null):Null<Widget> = null;
 	public var capture(default, null):Null<Widget> = null;
@@ -19,17 +24,30 @@ final class Root {
 
 	public var painted(default, null):Int = 0;
 
+	public final popups:Array<Menu> = [];
+	public final tooltip:Tooltip = new Tooltip();
+
+	public var tipUp(default, null):Bool = false;
+
 	var soiled:Bool = true;
 	var reshaped:Bool = true;
 
+	var still:Float = 0;
+	var grace:Float = GRACE;
+	var blocked:Bool = false;
+
+	var returnFocus:Null<Widget> = null;
+
 	final event:Input = new Input();
 	final order:Array<Widget> = [];
+	final running:Array<Motion> = [];
 
 	public function new(top:Widget, metrics:Metrics, theme:Theme) {
 		this.top = top;
 		this.metrics = metrics;
 		this.theme = theme;
 		@:privateAccess top.attach(this);
+		@:privateAccess tooltip.attach(this);
 	}
 
 	public function soil():Void {
@@ -58,26 +76,270 @@ final class Root {
 		reshape();
 	}
 
+	public inline function animating():Int {
+		return running.length;
+	}
+
+	public function start(motion:Motion, to:Float, duration:Float):Void {
+		if (motion.run(to, duration, flow) && running.indexOf(motion) < 0) running.push(motion);
+		soil();
+	}
+
+	public function advance(seconds:Float):Bool {
+		var moved = false;
+
+		if (running.length > 0) {
+			final many = running.length;
+			var kept = 0;
+
+			for (i in 0...many) {
+				final one = running[i];
+				one.advance(seconds);
+
+				if (one.running) {
+					running[kept] = one;
+					kept++;
+				}
+			}
+
+			var at = many;
+			while (at < running.length) {
+				running[kept] = running[at];
+				kept++;
+				at++;
+			}
+
+			running.resize(kept);
+			moved = true;
+			soil();
+		}
+
+		sweep();
+
+		var at = 0;
+		final many = popups.length;
+
+		while (at < many && at < popups.length) {
+			popups[at].tick(seconds);
+			at++;
+		}
+
+		if (hint(seconds)) moved = true;
+
+		return moved;
+	}
+
+	function hint(seconds:Float):Bool {
+		if (capture != null || blocked) {
+			if (tipUp) hideTip();
+			still = 0;
+			return false;
+		}
+
+		if (tipUp) return false;
+
+		still += seconds;
+		grace += seconds;
+
+		final want = over;
+		if (want == null || want.tip == "" || !want.visible) return false;
+		if (still < STILL && grace >= GRACE) return false;
+
+		showTip(want);
+		return true;
+	}
+
+	function showTip(want:Widget):Void {
+		tooltip.describe(want);
+		tooltip.measure(width, height);
+		if (tooltip.wantWidth <= 0) return;
+
+		tipUp = true;
+		placeTip();
+		start(tooltip.fade, 1, Motion.ENTER);
+	}
+
+	function hideTip():Void {
+		if (!tipUp) return;
+
+		tipUp = false;
+		grace = 0;
+		start(tooltip.fade, 0, Motion.leaving(Motion.ENTER));
+	}
+
+	function placeTip():Void {
+		final want = tooltip.subject;
+		if (want == null) return;
+
+		tooltip.measure(width, height);
+
+		final clear = metrics.sizeOf(Tooltip.CLEAR);
+		final wide = tooltip.wantWidth;
+		final tall = tooltip.wantHeight;
+
+		var px = want.x + clear;
+		var py = want.y + want.height + clear;
+
+		if (px + wide > width) px = width - wide - clear;
+		if (px < 0) px = 0;
+
+		if (py + tall > height) py = want.y - tall - clear;
+		if (py < 0) py = 0;
+
+		tooltip.arrange(px, py, wide, tall);
+	}
+
+	public function pop(menu:Menu, px:Float, py:Float):Void {
+		@:privateAccess menu.attach(this);
+
+		if (popups.length == 0) returnFocus = focus;
+
+		menu.anchor(px, py);
+		menu.arrive();
+
+		if (popups.indexOf(menu) < 0) popups.push(menu);
+
+		place(menu);
+		start(menu.fade, 1, Motion.ENTER);
+		start(menu.rise, 1, Motion.ENTER);
+
+		hideTip();
+		focusOn(menu);
+		soil();
+	}
+
+	public function shut(menu:Menu):Void {
+		final at = popups.indexOf(menu);
+		if (at < 0) return;
+
+		var i = popups.length - 1;
+		while (i >= at) {
+			leave(popups[i]);
+			i--;
+		}
+
+		sweep();
+	}
+
+	public function dismiss():Void {
+		if (popups.length == 0) return;
+		shut(popups[0]);
+	}
+
+	function leave(menu:Menu):Void {
+		if (menu.closing) return;
+
+		menu.leaving();
+		start(menu.fade, 0, Motion.leaving(Motion.ENTER));
+		soil();
+	}
+
+	function sweep():Void {
+		if (popups.length == 0) return;
+
+		var kept = 0;
+
+		for (i in 0...popups.length) {
+			final one = popups[i];
+
+			if (one.closing && !one.fade.running) {
+				if (focus == one) focusOn(null);
+				@:privateAccess one.attach(null);
+				soil();
+				continue;
+			}
+
+			popups[kept] = one;
+			kept++;
+		}
+
+		if (kept == popups.length) return;
+
+		popups.resize(kept);
+
+		if (popups.length > 0) focusOn(popups[popups.length - 1]);
+		else {
+			focusOn(returnFocus);
+			returnFocus = null;
+		}
+	}
+
+	function place(menu:Menu):Void {
+		menu.measure(width, height);
+
+		final wide = menu.wantWidth;
+		final tall = menu.wantHeight;
+
+		var px = menu.anchorX;
+		var py = menu.anchorY;
+
+		if (px + wide > width) px = menu.anchorX - wide;
+		if (px < 0) px = 0;
+
+		if (py + tall > height) py = height - tall;
+		if (py < 0) py = 0;
+
+		menu.arrange(px, py, wide, tall);
+	}
+
+	public function pick(px:Float, py:Float):Null<Widget> {
+		var i = popups.length - 1;
+
+		while (i >= 0) {
+			final found = popups[i].hit(px, py);
+			if (found != null) return found;
+			i--;
+		}
+
+		return top.hit(px, py);
+	}
+
+	function popped(widget:Null<Widget>):Bool {
+		if (widget == null) return false;
+
+		var at:Null<Widget> = widget;
+		while (at.parent != null) at = at.parent;
+
+		for (menu in popups) if (menu == at) return true;
+		return false;
+	}
+
 	public function frame(paint:Paint):Bool {
 		if (!soiled) return false;
 
 		if (reshaped) {
 			top.measure(width, height);
 			top.arrange(0, 0, width, height);
+
+			for (menu in popups) place(menu);
+			if (tipUp) placeTip();
+
 			reshaped = false;
 		}
 
 		paint.reset();
 		top.paint(paint);
+
+		for (menu in popups) menu.paint(paint);
+		if (tooltip.fade.value > 0) tooltip.paint(paint);
+
 		paint.flush();
 
 		top.settle();
+		for (menu in popups) menu.settle();
+		tooltip.settle();
+
 		soiled = false;
 		painted++;
 		return true;
 	}
 
 	public function moved(x:Float, y:Float, mods:Mod):Void {
+		if (x != pointerX || y != pointerY) {
+			still = 0;
+			blocked = false;
+		}
+
 		pointerX = x;
 		pointerY = y;
 		this.mods = mods;
@@ -88,7 +350,7 @@ final class Root {
 			return;
 		}
 
-		hover(top.hit(x, y));
+		hover(pick(x, y));
 
 		if (over != null) {
 			event.pointer(Kind.PointerMove, x, y, Pointer.Nothing, mods);
@@ -102,6 +364,16 @@ final class Root {
 		if (over != null) over.hovered(false);
 		over = next;
 		if (over != null) over.hovered(true);
+
+		if (!tipUp) return;
+
+		if (over != null && over.tip != "") {
+			tooltip.describe(over);
+			placeTip();
+			soil();
+		} else {
+			hideTip();
+		}
 	}
 
 	public function pressed(x:Float, y:Float, button:Pointer, mods:Mod, clicks:Int = 1):Void {
@@ -109,7 +381,16 @@ final class Root {
 		pointerY = y;
 		this.mods = mods;
 
-		final under = top.hit(x, y);
+		blocked = true;
+		hideTip();
+
+		final under = pick(x, y);
+
+		if (popups.length > 0 && !popped(under)) {
+			dismiss();
+			return;
+		}
+
 		hover(under);
 
 		if (under == null) {
@@ -120,7 +401,7 @@ final class Root {
 		capture = under;
 
 		if (under.focusable && under.enabled) focusOn(under);
-		else focusOn(null);
+		else if (!popped(under)) focusOn(null);
 
 		event.pointer(Kind.PointerDown, x, y, button, mods, clicks);
 		send(under, event);
@@ -139,13 +420,13 @@ final class Root {
 			send(held, event);
 		}
 
-		hover(top.hit(x, y));
+		hover(pick(x, y));
 	}
 
 	public function turned(dx:Float, dy:Float, mods:Mod):Void {
 		this.mods = mods;
 
-		final under = capture != null ? capture : top.hit(pointerX, pointerY);
+		final under = capture != null ? capture : pick(pointerX, pointerY);
 		if (under == null) return;
 
 		event.turned(pointerX, pointerY, dx, dy, mods);
@@ -155,7 +436,12 @@ final class Root {
 	public function key(down:Bool, code:Key, mods:Mod, repeat:Bool = false):Bool {
 		this.mods = mods;
 
-		if (down && code == Key.Tab) {
+		if (down) {
+			blocked = true;
+			hideTip();
+		}
+
+		if (down && code == Key.Tab && popups.length == 0) {
 			step((mods & Mod.Shift) != 0 ? -1 : 1);
 			return true;
 		}

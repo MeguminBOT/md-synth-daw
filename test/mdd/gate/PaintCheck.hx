@@ -77,6 +77,7 @@ class PaintCheck {
 		measured(paint, font, root);
 		scales(root);
 		clipping(paint);
+		opacities(paint);
 
 		font.shut();
 		shut();
@@ -285,5 +286,47 @@ class PaintCheck {
 
 	static function round(value:Float):Float {
 		return Math.round(value * 100) / 100;
+	}
+
+	static function channel(px:Int, py:Int):Int {
+		Draw.readPixels(renderer, 0, 0, SIDE, SIDE,
+			cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+		Draw.setTarget(renderer, null);
+		return pixels[(py * SIDE + px) * 4];
+	}
+
+	static function opacities(paint:Paint):Void {
+		begin();
+		paint.rect(20, 20, 40, 40, 0xFFFFFF);
+		paint.flush();
+		final full = channel(30, 30);
+
+		begin();
+		paint.pushOpacity(0.5);
+		paint.rect(20, 20, 40, 40, 0xFFFFFF);
+		paint.flush();
+		paint.popOpacity();
+		final half = channel(30, 30);
+
+		begin();
+		paint.pushOpacity(0.5);
+		paint.pushOpacity(0.5);
+		paint.rect(20, 20, 40, 40, 0xFFFFFF);
+		paint.flush();
+		paint.popOpacity();
+		paint.popOpacity();
+		final quarter = channel(30, 30);
+
+		begin();
+		paint.pushOpacity(0.5);
+		paint.popOpacity();
+		paint.rect(20, 20, 40, 40, 0xFFFFFF);
+		paint.flush();
+		final back = channel(30, 30);
+
+		says("opacity", full == 255 && Math.abs(half - 128) <= 2 && Math.abs(quarter - 64) <= 2
+			&& back == 255,
+			"white at " + full + ", halved to " + half + ", nested to " + quarter
+			+ ", back to " + back);
 	}
 }

@@ -8,12 +8,17 @@ import mdd.host.Sdl;
 import mdd.host.Texture;
 import mdd.host.Window;
 import mdd.ui.Button;
+import mdd.ui.Choice;
 import mdd.ui.Field;
+import mdd.ui.Flow;
 import mdd.ui.Font;
 import mdd.ui.Input;
 import mdd.ui.Key;
+import mdd.ui.Item;
 import mdd.ui.Kind;
+import mdd.ui.Menu;
 import mdd.ui.Mod;
+import mdd.ui.Motion;
 import mdd.ui.Pointer;
 import mdd.ui.Metrics;
 import mdd.ui.Number;
@@ -30,6 +35,8 @@ import mdd.ui.Slider;
 import mdd.ui.Table;
 import mdd.ui.Tabs;
 import mdd.ui.Toggle;
+import mdd.ui.Tooltip;
+import mdd.ui.Tree;
 import mdd.ui.Widget;
 
 @:unreflective
@@ -107,7 +114,12 @@ class UiCheck {
 		scrolling();
 		tables();
 		marquee();
+		motions();
+		trees();
+		menus(renderer, target, face, monoFace);
+		tooltips(renderer, face, monoFace);
 		shells(renderer, face, monoFace);
+		collapse();
 		quiet(renderer, target, face, monoFace);
 		sheets(renderer, target, face, monoFace);
 
@@ -129,7 +141,7 @@ class UiCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 18) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 20) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shaped():Root {
@@ -594,5 +606,362 @@ class UiCheck {
 
 		body.shut();
 		mono.shut();
+	}
+
+	static inline function round(value:Float, places:Int):Float {
+		final scale = Math.pow(10, places);
+		return Math.round(value * scale) / scale;
+	}
+
+	static function motions():Void {
+		final start = Motion.ease(0);
+		final half = Motion.ease(0.5);
+		final end = Motion.ease(1);
+
+		says("ease out cubic", Math.abs(start) < 1e-6 && Math.abs(half - 0.875) < 1e-6
+			&& Math.abs(end - 1) < 1e-6,
+			"0, " + round(half, 3) + " half way, 1");
+
+		says("leaving is faster", Math.abs(Motion.leaving(Motion.ENTER) - 0.126) < 1e-6,
+			"enters in " + Math.round(Motion.ENTER * 1000) + " ms, leaves in "
+			+ Math.round(Motion.leaving(Motion.ENTER) * 1000));
+
+		final root = shaped();
+		root.resize(400, 300);
+
+		final fade = new Motion(null, 0, false);
+		root.start(fade, 1, Motion.ENTER);
+		final began = root.animating();
+
+		root.advance(0.090);
+		final midway = fade.value;
+
+		root.advance(0.090);
+		final landed = fade.value;
+		final left = root.animating();
+
+		says("motion runs", began == 1 && Math.abs(midway - 0.875) < 1e-6 && landed == 1
+			&& left == 0,
+			"at half the time " + round(midway, 3) + ", landed on " + landed + ", "
+			+ left + " running");
+
+		final none = shaped();
+		none.flow = Flow.None;
+
+		final jump = new Motion(null, 0, false);
+		none.start(jump, 1, Motion.ENTER);
+
+		says("motion none", jump.value == 1 && !jump.running && none.animating() == 0,
+			"jumped to 1 with nothing left running");
+
+		final less = shaped();
+		less.flow = Flow.Reduced;
+
+		final slide = new Motion(null, 0, true);
+		final dim = new Motion(null, 0, false);
+		less.start(slide, 1, Motion.ENTER);
+		less.start(dim, 1, Motion.ENTER);
+
+		says("motion reduced", slide.value == 1 && !slide.running && dim.running
+			&& less.animating() == 1,
+			"movement jumped, opacity still running");
+	}
+
+	static function trees():Void {
+		final root = shaped();
+		root.resize(300, 400);
+
+		final tree = new Tree();
+		tree.rowHeight = 20;
+		root.top.add(tree);
+		root.top.arrange(0, 0, 300, 400);
+		tree.arrange(0, 0, 300, 400);
+
+		final bank = new Item("Sonic The Hedgehog");
+		bank.add(new Item("Lead", Theme.FM1));
+		bank.add(new Item("Bass", Theme.FM5));
+		bank.add(new Item("Brass", Theme.FM3));
+
+		final later = new Item("Sonic The Hedgehog 2");
+		later.add(new Item("Organ", Theme.FM2));
+
+		tree.plant(bank);
+		tree.plant(later);
+
+		final opened = tree.rows();
+		tree.fold(bank, false);
+		final folded = tree.rows();
+
+		says("tree folds", opened == 6 && folded == 3,
+			opened + " rows with both banks open, " + folded + " with one shut");
+
+		says("tree height", tree.contentHeight == folded * 20,
+			"content is " + tree.contentHeight + " tall for " + folded + " rows of 20");
+
+		root.pressed(6, 10, Pointer.Left, Mod.None);
+		root.released(6, 10, Pointer.Left, Mod.None);
+
+		says("tree chevron", bank.open && tree.rows() == 6,
+			"a click on the chevron reopened the bank");
+
+		root.focusOn(tree);
+		tree.choose(bank);
+
+		root.key(true, Key.Down, Mod.None);
+		final onLead = tree.chosen != null && tree.chosen.label == "Lead";
+
+		root.key(true, Key.Left, Mod.None);
+		final onBank = tree.chosen == bank;
+
+		root.key(true, Key.Left, Mod.None);
+
+		says("tree keys", onLead && onBank && !bank.open,
+			"down to a preset, left to its bank, left again shuts it");
+	}
+
+	static function menus(renderer:cpp.Star<Canvas>, target:cpp.Star<Texture>, face:String,
+			monoFace:String):Void {
+		final body = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 12);
+
+		if (body == null || mono == null) {
+			says("menu opens", false, "the fonts would not bake");
+			return;
+		}
+
+		final metrics = new Metrics(1);
+		metrics.dress(body, body, mono, mono);
+
+		final top = new Widget();
+		final root = new Root(top, metrics, new Theme());
+		root.flow = Flow.None;
+		root.resize(400, 300);
+		top.arrange(0, 0, 400, 300);
+
+		final velocity = new Menu();
+		velocity.offer(new Choice("Set to 100"));
+		velocity.offer(new Choice("Randomise"));
+
+		final menu = new Menu();
+		menu.offer(new Choice("Cut", "Ctrl+X"));
+		menu.offer(new Choice("Copy", "Ctrl+C"));
+		menu.offer(new Choice("Paste", "Ctrl+V"));
+		menu.divide();
+
+		final deeper = menu.offer(new Choice("Velocity"));
+		deeper.submenu = velocity;
+
+		final off = menu.offer(new Choice("Quantise", "Ctrl+Q"));
+		off.enabled = false;
+		off.reason = "no notes are selected";
+
+		menu.divide();
+		menu.offer(new Choice("Explain the warning"));
+
+		var chosen = "";
+		menu.onChoose = function(choice:Choice):Void chosen = choice.label;
+
+		root.pop(menu, 20, 20);
+
+		says("menu opens", root.popups.length == 1 && root.focus == menu,
+			"one popup, focused, " + menu.commands() + " commands");
+
+		says("menu ceiling", !menu.crowded() && menu.commands() == 6,
+			menu.commands() + " commands of " + Menu.CEILING + ", separators excluded");
+
+		final tallRow = menu.topOf(6) - menu.topOf(5);
+		says("menu reason", tallRow == metrics.row + metrics.whole(16) && !off.pickable(),
+			"the disabled row is " + tallRow + " tall, carrying its reason");
+
+		menu.fire(5);
+		says("menu disabled", chosen == "", "a disabled command does not fire");
+
+		final rowY = menu.y + menu.topOf(4) + 4;
+		root.moved(menu.x + 20, rowY, Mod.None);
+
+		root.advance(0.150);
+		final early = root.popups.length;
+
+		root.advance(0.100);
+		final late = root.popups.length;
+
+		says("submenu dwell", early == 1 && late == 2,
+			early + " popup at 150 ms, " + late + " at 250");
+
+		final paint = Paint.on(renderer, body);
+		Draw.setTarget(renderer, target);
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		Draw.resetCalls();
+		root.frame(paint);
+		final drawn = Draw.calls();
+		Draw.setTarget(renderer, null);
+
+		says("menu paints", drawn >= 1, drawn + " draw calls with two menus open");
+
+		root.dismiss();
+		root.pop(menu, 20, 20);
+
+		root.key(true, Key.Down, Mod.None);
+		final first = menu.hoverAt;
+
+		root.key(true, Key.Down, Mod.None);
+		root.key(true, Key.Down, Mod.None);
+		root.key(true, Key.Down, Mod.None);
+		final past = menu.hoverAt;
+
+		root.key(true, Key.Down, Mod.None);
+		final skipped = menu.hoverAt;
+
+		says("menu keys", first == 0 && past == 4 && skipped == 7,
+			"down lands on " + first + ", then " + past + " past the divider, then "
+			+ skipped + " past the disabled one");
+
+		root.key(true, Key.Return, Mod.None);
+		says("menu fires", chosen == "Explain the warning" && root.popups.length == 0,
+			"chose it and closed " + root.popups.length + " popups");
+
+		root.pop(menu, 395, 10);
+		says("menu flips", menu.x + menu.width <= 400.5 && menu.x < 395,
+			"anchored at 395 of 400, drawn from " + menu.x + " to " + (menu.x + menu.width));
+
+		root.pressed(2, 290, Pointer.Left, Mod.None);
+		says("menu dismissed", root.popups.length == 0, "a press outside closes it");
+
+		body.shut();
+		mono.shut();
+	}
+
+	static function tooltips(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {
+		final body = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 12);
+
+		if (body == null || mono == null) {
+			says("tooltip delay", false, "the fonts would not bake");
+			return;
+		}
+
+		final metrics = new Metrics(1);
+		metrics.dress(body, body, mono, mono);
+
+		final top = new Widget();
+		final root = new Root(top, metrics, new Theme());
+		root.flow = Flow.None;
+		root.resize(400, 300);
+		top.arrange(0, 0, 400, 300);
+
+		final play = new Button("");
+		play.tip = "Play";
+		play.chord = "Space";
+		top.add(play);
+		play.arrange(20, 20, 40, 30);
+
+		final level = new Button("");
+		level.tip = "Total level";
+		level.detail = "register 4A, value 23, minus 17.25 dB";
+		top.add(level);
+		level.arrange(20, 240, 40, 30);
+
+		final bare = new Button("");
+		top.add(bare);
+		bare.arrange(200, 20, 40, 30);
+
+		root.moved(30, 30, Mod.None);
+		root.advance(0.400);
+		final early = root.tipUp;
+
+		root.advance(0.100);
+
+		says("tooltip delay", !early && root.tipUp,
+			"nothing at 400 ms of stillness, shown at 500");
+
+		says("tooltip below", root.tooltip.y >= play.y + play.height && root.tooltip.x >= play.x,
+			"below and right of the control, at " + root.tooltip.x + ", " + root.tooltip.y);
+
+		root.pressed(30, 30, Pointer.Left, Mod.None);
+		final afterPress = root.tipUp;
+		root.released(30, 30, Pointer.Left, Mod.None);
+
+		root.moved(210, 30, Mod.None);
+		root.advance(1.0);
+
+		says("tooltip dismissed", !afterPress && !root.tipUp,
+			"a press closes it, and a control with no tip never opens one");
+
+		root.moved(30, 30, Mod.None);
+		root.advance(0.500);
+		final again = root.tipUp;
+
+		root.moved(210, 30, Mod.None);
+		final closed = !root.tipUp;
+
+		root.moved(30, 250, Mod.None);
+		root.advance(0.050);
+
+		says("tooltip grace", again && closed && root.tipUp,
+			"the next one inside 250 ms shows without waiting again");
+
+		says("tooltip flips", root.tooltip.y + root.tooltip.height <= level.y,
+			"flipped above the control at the bottom edge, at " + root.tooltip.y);
+
+		root.pressed(30, 250, Pointer.Left, Mod.None);
+		root.moved(35, 255, Mod.None);
+		root.advance(1.0);
+
+		says("tooltip drag", !root.tipUp, "none while a drag holds the pointer");
+
+		body.shut();
+		mono.shut();
+	}
+
+	static function collapse():Void {
+		final metrics = new Metrics(1);
+		final shell = new Shell();
+		final root = new Root(shell, metrics, new Theme());
+
+		root.resize(1400, 900);
+		shell.fit(metrics);
+		shell.arrange(0, 0, 1400, 900);
+
+		final wide = shell.zone(Shell.RAIL).width;
+
+		shell.open(Shell.RAIL, false);
+		root.advance(0.090);
+		shell.arrange(0, 0, 1400, 900);
+
+		final midway = shell.zone(Shell.RAIL).width;
+		final fading = shell.share(Shell.RAIL);
+
+		root.advance(0.090);
+		shell.arrange(0, 0, 1400, 900);
+
+		final shut = shell.zone(Shell.RAIL).width;
+
+		says("zone collapses", wide == 250 && midway > 24 && midway < wide && shut == 24
+			&& fading > 0 && fading < 1,
+			wide + " wide, " + midway + " half way through, " + shut + " shut");
+
+		says("zone fades", Math.abs(fading - 0.125) < 1e-6 && shell.share(Shell.RAIL) == 0,
+			"contents at " + round(fading, 3) + " half way, 0 when shut");
+
+		shell.open(Shell.RAIL, true);
+		root.advance(1.0);
+		shell.arrange(0, 0, 1400, 900);
+
+		says("zone reopens", shell.zone(Shell.RAIL).width == 250 && shell.share(Shell.RAIL) == 1
+			&& root.animating() == 0,
+			"back to " + shell.zone(Shell.RAIL).width + " with nothing left running");
+
+		final still = new Shell();
+		final quiet = new Root(still, new Metrics(1), new Theme());
+		quiet.flow = Flow.Reduced;
+		quiet.resize(1400, 900);
+		still.fit(quiet.metrics);
+		still.arrange(0, 0, 1400, 900);
+
+		still.open(Shell.RAIL, false);
+		still.arrange(0, 0, 1400, 900);
+
+		says("zone reduced", still.zone(Shell.RAIL).width == 24 && quiet.animating() == 0,
+			"snaps to " + still.zone(Shell.RAIL).width + " with motion reduced");
 	}
 }

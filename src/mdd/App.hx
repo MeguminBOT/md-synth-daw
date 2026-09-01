@@ -6,6 +6,7 @@ import mdd.host.Native;
 import mdd.host.Paths;
 import mdd.host.Sdl;
 import mdd.host.Window;
+import mdd.ui.Flow;
 import mdd.ui.Font;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
@@ -30,6 +31,7 @@ class App {
 	var windowID:Int = 0;
 	var scale:Float = 1;
 	var running:Bool = true;
+	var last:Float = 0;
 
 	function new() {}
 
@@ -78,6 +80,7 @@ class App {
 		final metrics = new Metrics(scale);
 		shell = new Shell();
 		root = new Root(shell, metrics, new Theme());
+		root.flow = Sdl.reduceMotion() != 0 ? Flow.Reduced : Flow.Full;
 
 		if (!dress(metrics)) return false;
 
@@ -151,16 +154,25 @@ class App {
 			+ Sdl.outputHeight(renderer) + " native pixels");
 		Sys.println("  pixel density " + Sdl.pixelDensity(window));
 		Sys.println("  display scale " + scale);
+		Sys.println("  motion        " + (root.flow == Flow.Reduced ? "reduced, as the desktop asks"
+			: "full"));
 		Sys.println("  settings      " + Paths.settings());
 	}
 
 	function loop():Void {
 		final event = new Event();
+		last = Sdl.ticks();
 
 		while (running) {
 			while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) took(event);
 			if (!running) break;
 
+			final now = Sdl.ticks();
+			var since = now - last;
+			last = now;
+			if (since > 0.100) since = 0.100;
+
+			root.advance(since);
 			draw();
 		}
 	}

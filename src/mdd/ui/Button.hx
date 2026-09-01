@@ -3,7 +3,6 @@ package mdd.ui;
 @:unreflective
 final class Button extends Widget {
 	public var label:String;
-	public var chord:String = "";
 	public var pressed(default, null):Bool = false;
 	public var down(default, null):Bool = false;
 	public var toggle:Bool = false;

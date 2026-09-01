@@ -18,6 +18,10 @@ final class Shell extends Widget {
 	public var inspectorOpen:Bool = true;
 	public var dockOpen:Bool = true;
 
+	public final railSize:Motion;
+	public final inspectorSize:Motion;
+	public final dockSize:Motion;
+
 	final zones:Array<Widget> = [];
 
 	public var dragging(default, null):Int = -1;
@@ -27,6 +31,11 @@ final class Shell extends Widget {
 
 	public function new() {
 		super();
+
+		railSize = new Motion(this, 0, true, true);
+		inspectorSize = new Motion(this, 0, true, true);
+		dockSize = new Motion(this, 0, true, true);
+
 		for (i in 0...ZONES) {
 			final zone = new Widget();
 			zones.push(zone);
@@ -42,6 +51,71 @@ final class Shell extends Widget {
 		railWide = metrics.rail;
 		inspectorWide = metrics.inspector;
 		dockTall = metrics.dock;
+
+		railSize.hold(railOpen ? railWide : strip(metrics));
+		inspectorSize.hold(inspectorOpen ? inspectorWide : strip(metrics));
+		dockSize.hold(dockOpen ? dockTall : metrics.bar);
+	}
+
+	static inline function strip(metrics:Metrics):Float {
+		return metrics.whole(24);
+	}
+
+	public inline function openAt(which:Int):Bool {
+		return switch (which) {
+			case RAIL: railOpen;
+			case INSPECTOR: inspectorOpen;
+			case DOCK: dockOpen;
+			case _: true;
+		}
+	}
+
+	public function open(which:Int, on:Bool):Void {
+		final root = root();
+		if (root == null || openAt(which) == on) return;
+
+		final metrics = root.metrics;
+		if (railWide <= 0) fit(metrics);
+
+		switch (which) {
+			case RAIL:
+				railOpen = on;
+				root.start(railSize, on ? railWide : strip(metrics), Motion.ENTER);
+
+			case INSPECTOR:
+				inspectorOpen = on;
+				root.start(inspectorSize, on ? inspectorWide : strip(metrics), Motion.ENTER);
+
+			case DOCK:
+				dockOpen = on;
+				root.start(dockSize, on ? dockTall : metrics.bar, Motion.ENTER);
+
+			case _:
+				return;
+		}
+
+		relayout();
+	}
+
+	public function share(which:Int):Float {
+		final root = root();
+		if (root == null) return 1;
+
+		final least = strip(root.metrics);
+
+		return switch (which) {
+			case RAIL: reach(railSize.value, least, railWide);
+			case INSPECTOR: reach(inspectorSize.value, least, inspectorWide);
+			case DOCK: reach(dockSize.value, root.metrics.bar, dockTall);
+			case _: 1;
+		}
+	}
+
+	static function reach(value:Float, least:Float, most:Float):Float {
+		if (most <= least) return 1;
+
+		final part = (value - least) / (most - least);
+		return part < 0 ? 0 : (part > 1 ? 1 : part);
 	}
 
 	override function layout():Void {
@@ -51,13 +125,12 @@ final class Shell extends Widget {
 		final metrics = root.metrics;
 		if (railWide <= 0) fit(metrics);
 
-		final strip = metrics.whole(24);
 		final menuTall = metrics.menu;
 		final transportTall = metrics.transport;
 
-		final rail = railOpen ? railWide : strip;
-		final inspector = inspectorOpen ? inspectorWide : strip;
-		final dock = dockOpen ? dockTall : metrics.bar;
+		final rail = railSize.value;
+		final inspector = inspectorSize.value;
+		final dock = dockSize.value;
 
 		final bodyTop = y + menuTall + transportTall;
 		var bodyTall = height - menuTall - transportTall - dock;
@@ -127,10 +200,13 @@ final class Shell extends Widget {
 				switch (dragging) {
 					case RAIL:
 						railWide = hold(grabSize + (event.x - grabAt), least, width * 0.5);
+						railSize.hold(railWide);
 					case INSPECTOR:
 						inspectorWide = hold(grabSize - (event.x - grabAt), least, width * 0.5);
+						inspectorSize.hold(inspectorWide);
 					case DOCK:
 						dockTall = hold(grabSize - (event.y - grabAt), metrics.bar, height * 0.6);
+						dockSize.hold(dockTall);
 					case _:
 				}
 
@@ -176,6 +252,21 @@ final class Shell extends Widget {
 		paint.rect(divider(INSPECTOR), zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
 		paint.rect(x, divider(DOCK), width, hair, theme.frame);
 
-		super.paint(paint);
+		for (which in 0...ZONES) {
+			final zone = zones[which];
+			if (!zone.visible) continue;
+
+			final showing = share(which);
+			if (showing <= 0.004) continue;
+
+			if (showing >= 1) {
+				zone.paint(paint);
+				continue;
+			}
+
+			paint.pushOpacity(showing);
+			zone.paint(paint);
+			paint.popOpacity();
+		}
 	}
 }

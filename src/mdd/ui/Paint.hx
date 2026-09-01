@@ -29,6 +29,10 @@ final class Paint {
 	final stackSy:Vector<Float> = new Vector<Float>(DEPTH);
 	var deep:Int = 0;
 
+	var opacity:Float = 1;
+	final opacities:Vector<Float> = new Vector<Float>(DEPTH);
+	var veiled:Int = 0;
+
 	final clipX:Vector<Float> = new Vector<Float>(DEPTH);
 	final clipY:Vector<Float> = new Vector<Float>(DEPTH);
 	final clipW:Vector<Float> = new Vector<Float>(DEPTH);
@@ -63,7 +67,22 @@ final class Paint {
 	public function blit(texture:cpp.Star<Texture>, x:Float, y:Float, width:Float,
 			height:Float):Void {
 		flush();
-		Draw.texture(renderer, texture, at(x), down(y), width * scaleX, height * scaleY);
+		Draw.texture(renderer, texture, at(x), down(y), width * scaleX, height * scaleY, opacity);
+	}
+
+	public function pushOpacity(amount:Float):Void {
+		if (veiled >= DEPTH) return;
+
+		opacities[veiled] = opacity;
+		veiled++;
+		opacity *= amount < 0 ? 0 : (amount > 1 ? 1 : amount);
+	}
+
+	public function popOpacity():Void {
+		if (veiled <= 0) return;
+
+		veiled--;
+		opacity = opacities[veiled];
 	}
 
 	public function reface(font:Font):Void {
@@ -108,7 +127,7 @@ final class Paint {
 		batch[used + 2] = r;
 		batch[used + 3] = g;
 		batch[used + 4] = b;
-		batch[used + 5] = a;
+		batch[used + 5] = a * opacity;
 		batch[used + 6] = u;
 		batch[used + 7] = v;
 		used += FLOATS;
@@ -534,6 +553,8 @@ final class Paint {
 
 	public function reset():Void {
 		deep = 0;
+		veiled = 0;
+		opacity = 1;
 		offsetX = 0;
 		offsetY = 0;
 		scaleX = 1;

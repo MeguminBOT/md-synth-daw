@@ -10,6 +10,10 @@ class Widget {
 	public var wantWidth(default, null):Float = 0;
 	public var wantHeight(default, null):Float = 0;
 
+	public var tip:String = "";
+	public var detail:String = "";
+	public var chord:String = "";
+
 	public var visible:Bool = true;
 	public var enabled:Bool = true;
 	public var focusable:Bool = false;
@@ -126,6 +130,8 @@ class Widget {
 	public function took(event:Input):Bool {
 		return false;
 	}
+
+	public function tick(seconds:Float):Void {}
 
 	public function focused(on:Bool):Void {
 		invalidate();
