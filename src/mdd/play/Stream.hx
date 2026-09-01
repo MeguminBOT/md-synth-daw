@@ -118,6 +118,27 @@ final class Stream {
 		raw(tick, PSG, 0, value);
 	}
 
+	public static function ymPart(half:Int, address:Int):Int {
+		if (address == 0x2A || address == 0x2B) return Part.Dac.index();
+		if (address < 0x30 || address > 0xB6) return -1;
+
+		final channel = address & 3;
+		if (channel == 3) return -1;
+
+		if (address >= 0xA0 && address <= 0xA3) return half * 3 + channel;
+		if (address >= 0xA4 && address <= 0xB6) return half * 3 + channel;
+		if (address >= 0x30 && address <= 0x9F) return half * 3 + channel;
+
+		return -1;
+	}
+
+	public static function keyPart(value:Int):Int {
+		final channel = value & 3;
+		if (channel == 3) return -1;
+
+		return ((value & 4) != 0 ? 3 : 0) + channel;
+	}
+
 	public static inline function halfOf(part:Part):Int {
 		return part.index() >= 3 ? 1 : 0;
 	}

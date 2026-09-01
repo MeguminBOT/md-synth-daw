@@ -32,6 +32,8 @@ final class Transport {
 	var heardLeft:Int = 0;
 	var heardFresh:Bool = false;
 	var poured:Int = 0;
+	var hushing:Bool = false;
+	var latched:Int = -1;
 
 	var carried:Int = 0;
 
@@ -47,10 +49,13 @@ final class Transport {
 
 	public function stop():Void {
 		playing = false;
+		hushing = true;
 	}
 
 	public function seek(tick:Int):Void {
 		position = tick < 0 ? 0 : tick;
+		hushing = true;
+		poured = 0;
 	}
 
 	public function loop(fromTick:Int, toTick:Int):Void {
@@ -70,6 +75,12 @@ final class Transport {
 	public function advance(frames:Int, rate:Int):Int {
 		stream.clear();
 		entering = carried;
+
+		if (hushing) {
+			hushing = false;
+			heardPart = -1;
+			stream.reset(position);
+		}
 
 		if (!playing) {
 			stepped = 0;
@@ -162,13 +173,58 @@ final class Transport {
 		final held = source;
 		if (held == null) return;
 
-		if (poured > held.count || held.tickAt(poured) > from) poured = 0;
+		if (poured > held.count || (poured < held.count && held.tickAt(poured) > from)) {
+			poured = 0;
+			latched = -1;
+		}
 
 		while (poured < held.count && held.tickAt(poured) < from) poured++;
 
 		while (poured < held.count && held.tickAt(poured) < until) {
-			stream.raw(held.tickAt(poured), held.kindAt(poured), held.portAt(poured),
-				held.valueAt(poured));
+			final tick = held.tickAt(poured);
+			final kind = held.kindAt(poured);
+			final port = held.portAt(poured);
+			final value = held.valueAt(poured);
+
+			if (kind != Stream.YM) {
+				if ((value & 0x80) != 0) latched = 6 + ((value >> 5) & 3);
+
+				if (latched >= 0 && !song.audible(latched)) {
+					poured++;
+					continue;
+				}
+
+				stream.raw(tick, kind, port, value);
+				poured++;
+				continue;
+			}
+
+			if ((port & 1) != 0) {
+				stream.raw(tick, kind, port, value);
+				poured++;
+				continue;
+			}
+
+			final after = poured + 1;
+			final paired = after < held.count && held.kindAt(after) == Stream.YM
+				&& (held.portAt(after) & 1) != 0;
+
+			final data = paired ? held.valueAt(after) : 0;
+			final half = port >> 1;
+
+			final part = value == 0x28 ? Stream.keyPart(data) : Stream.ymPart(half, value);
+
+			if (part >= 0 && !song.audible(part)) {
+				poured += paired ? 2 : 1;
+				continue;
+			}
+
+			stream.raw(tick, kind, port, value);
+			poured++;
+
+			if (!paired) continue;
+
+			stream.raw(held.tickAt(after), Stream.YM, held.portAt(after), data);
 			poured++;
 		}
 	}
@@ -183,8 +239,7 @@ final class Transport {
 	}
 
 	public function silence():Void {
-		stream.clear();
-		stream.reset(position);
+		hushing = true;
 		poured = 0;
 	}
 

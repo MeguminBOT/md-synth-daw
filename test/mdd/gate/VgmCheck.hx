@@ -43,6 +43,7 @@ class VgmCheck {
 		sounds(where, files);
 		rated(where, files);
 		sound(where, files);
+		hushed(where, files);
 
 		final into = args.indexOf("--wav");
 
@@ -371,6 +372,116 @@ class VgmCheck {
 		says("a game vgm reads back as playable", troubled == 0,
 			read + " files transcribed, " + troubled + " of them raising a warning"
 			+ (most == 0 ? "" : ": " + said.toString()));
+	}
+
+	static function hushed(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		final loud = ran_(song, stream, 44100 * 3, -1);
+
+		says("a fader on the rack reaches a replayed vgm", loud > 0.1,
+			"three seconds of " + name + " replayed at " + round(loud, 3));
+
+		var quietest = loud;
+		var muted = 0;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final held = ran_(song, stream, 44100 * 3, index);
+			if (held >= loud) continue;
+
+			muted++;
+			if (held < quietest) quietest = held;
+		}
+
+		says("and muting a part is heard", muted > 0,
+			muted + " of the eleven parts changed what reached the chips when muted, the quietest"
+			+ " leaving " + round(quietest, 3) + " against " + round(loud, 3));
+
+		final after = stopped(song, stream);
+
+		says("and stop silences the chips", after < 0.002,
+			"a second of rendering after the transport stopped peaks at " + round(after, 5));
+	}
+
+	static function ran_(song:mdd.song.Song, source:mdd.play.Stream, frames:Int,
+			mute:Int):Float {
+		for (index in 0...mdd.song.Part.COUNT) song.muted[index] = index == mute;
+
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+
+		render.transport = transport;
+		transport.source = source;
+		transport.play();
+
+		var done = 0;
+		var most = 0.0;
+
+		while (done < frames) {
+			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+				transport.entering);
+			if (many <= 0) break;
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > most) most = much;
+			}
+
+			done += many;
+		}
+
+		for (index in 0...mdd.song.Part.COUNT) song.muted[index] = false;
+		return most;
+	}
+
+	static function stopped(song:mdd.song.Song, source:mdd.play.Stream):Float {
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+
+		render.transport = transport;
+		transport.source = source;
+		transport.play();
+
+		var done = 0;
+
+		while (done < 44100 * 3) {
+			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+			done += render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+				transport.entering);
+		}
+
+		transport.stop();
+
+		var most = 0.0;
+		done = 0;
+
+		while (done < 44100) {
+			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+				transport.entering);
+			if (many <= 0) break;
+
+			if (done > 22050) {
+				for (i in 0...many) {
+					final value = render.block[i * 2];
+					final much = value < 0 ? -value : value;
+					if (much > most) most = much;
+				}
+			}
+
+			done += many;
+		}
+
+		return most;
 	}
 
 	static function compare(a:String, b:String):Int {
