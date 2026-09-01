@@ -445,6 +445,9 @@ class StreamCheck {
 		history.does(song, new MoveNote(0, Part.Fm2, note, 168, 76));
 		history.does(song, new SetTempo(192, 96.5));
 		history.does(song, new AddClip(0, new Clip(1, 768, 384)));
+		history.does(song, new mdd.song.edit.AddPattern(
+			new mdd.song.Pattern("spare", 384)));
+		history.does(song, new mdd.song.edit.RemovePattern(0));
 
 		final after = Project.text(song);
 
@@ -459,14 +462,15 @@ class StreamCheck {
 		final again = Project.text(song);
 
 		says("edits change the song", before != after,
-			"four edits move the song by " + Math.round(Math.abs(after.length - before.length))
+			"six edits move the song by " + Math.round(Math.abs(after.length - before.length))
 			+ " bytes of written state");
 
 		says("undo returns it", back == before,
 			undone + " reverts put the song back byte for byte");
 
-		says("the stack knows", undone == 4 && redone == 4,
-			"four undone and four redone, and nothing left waiting either way");
+		says("the stack knows", undone == 6 && redone == 6,
+			undone + " undone and " + redone
+			+ " redone, and nothing left waiting either way");
 
 		says("redo repeats it", again == after,
 			redone + " replays put it back where the edits left it");

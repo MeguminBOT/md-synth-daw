@@ -358,9 +358,13 @@ class App {
 		fired(held.offer(new Choice(root.translate(Locale.PATTERN_ADD))), function():Void
 			dock.patterns.added());
 		fired(held.offer(new Choice(root.translate(Locale.PATTERN_DUPLICATE))), function():Void
-			duplicated());
+			dock.patterns.duplicated(session.pattern));
 		fired(held.offer(new Choice(root.translate(Locale.PATTERN_RENAME))), function():Void
-			renamed());
+			dock.patterns.renamed(session.pattern));
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_INSERT))), function():Void
+			dock.patterns.inserted(session.pattern));
+		fired(held.offer(new Choice(root.translate(Locale.PATTERN_DELETE))), function():Void
+			dock.patterns.dropped(session.pattern));
 		held.divide();
 		fired(held.offer(new Choice(root.translate(Locale.PATTERN_CLEAR))), function():Void
 			emptied());
@@ -489,32 +493,6 @@ class App {
 		}
 
 		return held;
-	}
-
-	function duplicated():Void {
-		final from = session.current();
-		if (from == null) return;
-
-		final made = new mdd.song.Pattern(from.name + " 2", from.length, from.colour);
-
-		for (index in 0...Part.COUNT) {
-			final part:Part = index;
-
-			for (note in from.lane(part).notes) {
-				made.lane(part).notes.push(note.copy());
-			}
-		}
-
-		session.does(new mdd.song.edit.AddPattern(made));
-		session.chooses(session.song.patterns.length - 1);
-	}
-
-	function renamed():Void {
-		final held = session.current();
-		if (held == null) return;
-
-		session.does(new mdd.song.edit.RenamePattern(session.pattern,
-			held.name + " " + (session.pattern + 1)));
 	}
 
 	function emptied():Void {

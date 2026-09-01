@@ -18,6 +18,9 @@ class Locale {
 	public static inline final PATTERN_DUPLICATE = "pattern.duplicate";
 	public static inline final PATTERN_RENAME = "pattern.rename";
 	public static inline final PATTERN_CLEAR = "pattern.clear";
+	public static inline final PATTERN_INSERT = "pattern.insert";
+	public static inline final PATTERN_DELETE = "pattern.delete";
+	public static inline final PATTERN_LAST = "pattern.last";
 
 	public static inline final CHANNELS_UNMUTE = "channels.unmute";
 	public static inline final CHANNELS_UNSOLO = "channels.unsolo";
@@ -235,6 +238,7 @@ class Locale {
 		MENU_FILE, MENU_EDIT, MENU_PATTERN, MENU_CHANNELS, MENU_INSTRUMENT, MENU_IMPORT,
 		MENU_EXPORT, MENU_VIEW, MENU_HELP,
 		PATTERN_ADD, PATTERN_DUPLICATE, PATTERN_RENAME, PATTERN_CLEAR,
+		PATTERN_INSERT, PATTERN_DELETE, PATTERN_LAST,
 		CHANNELS_UNMUTE, CHANNELS_UNSOLO, CHANNELS_MUTE_REST, CHANNELS_CLEAR,
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM, SCOPE_INSPECT,

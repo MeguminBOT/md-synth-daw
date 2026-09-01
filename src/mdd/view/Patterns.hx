@@ -7,6 +7,9 @@ import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
 import mdd.ui.Paint;
+import mdd.ui.Pointer;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.Scroll;
 import mdd.ui.Theme;
 
@@ -17,6 +20,7 @@ final class Patterns extends Scroll {
 	public var painted(default, null):Int = 0;
 
 	var hoverAt:Int = -1;
+	var menu:Null<Menu> = null;
 
 	public function new(session:Session) {
 		super();
@@ -38,6 +42,87 @@ final class Patterns extends Scroll {
 		session.chooses(index);
 	}
 
+	function popped(at:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		fires(menu.offer(new Choice(translate(Locale.PATTERN_DUPLICATE))), function():Void
+			duplicated(at));
+		fires(menu.offer(new Choice(translate(Locale.PATTERN_RENAME))), function():Void
+			renamed(at));
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.PATTERN_INSERT))), function():Void
+			inserted(at));
+
+		menu.divide();
+
+		final drop = menu.offer(new Choice(translate(Locale.PATTERN_DELETE)));
+
+		if (session.song.patterns.length <= 1) {
+			drop.enabled = false;
+			drop.reason = translate(Locale.PATTERN_LAST);
+		} else {
+			fires(drop, function():Void dropped(at));
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:Choice):Void what();
+	}
+
+	public function duplicated(at:Int):Void {
+		final from = session.song.patternAt(at);
+		if (from == null) return;
+
+		final made = new Pattern(from.name + " 2", from.length, from.colour);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			for (note in from.lane(part).notes) made.lane(part).notes.push(note.copy());
+		}
+
+		session.does(new AddPattern(made));
+		session.chooses(session.song.patterns.length - 1);
+	}
+
+	public function renamed(at:Int):Void {
+		final held = session.song.patternAt(at);
+		if (held == null) return;
+
+		session.does(new mdd.song.edit.RenamePattern(at, held.name + " " + (at + 1)));
+	}
+
+	public function inserted(at:Int):Void {
+		final held = session.song.patternAt(at);
+		final track = session.song.tracks[0];
+		if (held == null || track == null) return;
+
+		var ends = 0;
+		for (clip in track.clips) if (clip.ends() > ends) ends = clip.ends();
+
+		session.does(new mdd.song.edit.AddClip(0, new mdd.song.Clip(at, ends,
+			held.length)));
+	}
+
+	public function dropped(at:Int):Void {
+		if (session.song.patterns.length <= 1) return;
+
+		session.does(new mdd.song.edit.RemovePattern(at));
+
+		if (session.pattern >= session.song.patterns.length) {
+			session.pattern = session.song.patterns.length - 1;
+		}
+
+		session.follows();
+		session.changed();
+	}
+
 	public function added():Void {
 		final held = session.current();
 		final length = held == null ? session.song.tempo.ppqn * 4 : held.length;
@@ -57,6 +142,12 @@ final class Patterns extends Scroll {
 			case Kind.PointerDown:
 				final at = rowAt(event.y);
 				if (at < 0) return false;
+
+				if (event.button == Pointer.Right) {
+					choose(at);
+					popped(at, event.x, event.y);
+					return true;
+				}
 
 				choose(at);
 				return true;
