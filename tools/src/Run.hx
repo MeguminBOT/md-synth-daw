@@ -308,10 +308,21 @@ class Run {
 		final dir = root + "/" + project.output + "/obj/" + target;
 		final stem = one.main.split(".").pop();
 
-		for (name in [dir + "/" + stem + ".exe", dir + "/" + stem]) {
-			if (FileSystem.exists(name)) return name;
+		var found = "";
+		var newest = 0.0;
+
+		for (name in [dir + "/" + stem + ".exe", dir + "/" + stem,
+				dir + "/" + stem + "-debug.exe", dir + "/" + stem + "-debug"]) {
+			if (!FileSystem.exists(name)) continue;
+
+			final made = FileSystem.stat(name).mtime.getTime();
+			if (made < newest) continue;
+
+			newest = made;
+			found = name;
 		}
-		return "";
+
+		return found;
 	}
 
 	static function ship(root:String, project:Project, target:String):String {
