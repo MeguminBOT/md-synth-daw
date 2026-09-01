@@ -37,6 +37,7 @@ class Project {
 	public var sources(default, null):Array<String> = [];
 	public var generated(default, null):String = "export/haxe";
 	public var languages(default, null):String = "assets/lang";
+	public var icons(default, null):String = "assets/icon";
 	public var output(default, null):String = "export";
 
 	public var targets(default, null):Array<Target> = [];
@@ -101,6 +102,9 @@ class Project {
 
 			case "languages":
 				languages = node.get("path");
+
+			case "icons":
+				icons = node.get("path");
 
 			case "output":
 				output = node.get("path");

@@ -45,6 +45,7 @@ import mdd.view.Welcome;
 class App {
 	static inline final IDLE = 0.002;
 	static inline final LOCK = "-running";
+	static inline final ICON = 64;
 
 	var window:cpp.Star<Window>;
 	var renderer:cpp.Star<Canvas>;
@@ -123,6 +124,7 @@ class App {
 		}
 
 		Sdl.setWindowMinimumSize(window, Config.LEAST_WIDTH, Config.LEAST_HEIGHT);
+		faced();
 		windowID = Sdl.windowID(window);
 
 		renderer = Sdl.createRenderer(window, Config.VSYNC ? 1 : 0);
@@ -148,6 +150,13 @@ class App {
 
 		Sdl.showWindow(window);
 		return true;
+	}
+
+	function faced():Void {
+		final held = haxe.Resource.getBytes("icon");
+		if (held == null || held.length != ICON * ICON * 4) return;
+
+		Sdl.windowIcon(window, cpp.NativeArray.address(held.getData(), 0).constRaw, ICON, ICON);
 	}
 
 	function dress():Void {

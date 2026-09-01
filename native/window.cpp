@@ -198,3 +198,16 @@ extern "C" double mdd_ticks(void) {
 extern "C" void mdd_message(const char *title, const char *said) {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title, said, NULL);
 }
+
+extern "C" void mdd_window_icon(SDL_Window *window, const unsigned char *pixels, int width,
+	int height) {
+	if (window == NULL || pixels == NULL) return;
+
+	SDL_Surface *face = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32,
+		(void *) pixels, width * 4);
+
+	if (face == NULL) return;
+
+	SDL_SetWindowIcon(window, face);
+	SDL_DestroySurface(face);
+}

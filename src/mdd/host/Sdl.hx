@@ -130,6 +130,10 @@ extern class Sdl {
 	@:native("mdd_sleep")
 	public static function sleep(seconds:Float):Void;
 
+	@:native("mdd_window_icon")
+	public static function windowIcon(window:cpp.Star<Window>, pixels:cpp.RawConstPointer<cpp.UInt8>,
+		width:Int, height:Int):Void;
+
 	@:native("mdd_message")
 	public static function message(title:cpp.ConstCharStar, said:cpp.ConstCharStar):Void;
 

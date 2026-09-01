@@ -279,6 +279,8 @@ class Run {
 			flags.add("\t\t<compilerflag value=\"-I" + native(root + "/" + path) + "\" />\n");
 		}
 
+		final script = windows() ? resourceScript(root, project) : "";
+
 		final out = new StringBuf();
 		out.add("<xml>\n");
 
@@ -291,6 +293,8 @@ class Run {
 					out.add("\t\t<file name=\"" + native(root + "/" + project.nativePath) + "/"
 						+ file + "\" />\n");
 				}
+
+				if (script != "") out.add("\t\t<file name=\"" + script + "\" />\n");
 			}
 
 			out.add("\t</files>\n");
@@ -309,6 +313,46 @@ class Run {
 		out.add("</xml>\n");
 
 		final path = into + "/native.xml";
+		File.saveContent(path, out.toString());
+		return native(path);
+	}
+
+	static function resourceScript(root:String, project:Project):String {
+		final ico = native(root + "/" + project.icons) + "/" + project.short + ".ico";
+		if (!FileSystem.exists(ico)) return "";
+
+		final into = root + "/" + project.output + "/build";
+		tree(into);
+
+		final parts = project.version.split(".");
+		while (parts.length < 4) parts.push("0");
+
+		final out = new StringBuf();
+		out.add("1 ICON \"" + ico + "\"\n\n");
+		out.add("1 VERSIONINFO\n");
+		out.add("FILEVERSION " + parts.join(",") + "\n");
+		out.add("PRODUCTVERSION " + parts.join(",") + "\n");
+		out.add("BEGIN\n");
+		out.add("  BLOCK \"StringFileInfo\"\n");
+		out.add("  BEGIN\n");
+		out.add("    BLOCK \"080904b0\"\n");
+		out.add("    BEGIN\n");
+		out.add("      VALUE \"CompanyName\", \"" + project.company + "\"\n");
+		out.add("      VALUE \"FileDescription\", \"" + project.description + "\"\n");
+		out.add("      VALUE \"FileVersion\", \"" + project.version + "\"\n");
+		out.add("      VALUE \"InternalName\", \"" + project.short + "\"\n");
+		out.add("      VALUE \"OriginalFilename\", \"" + project.short + ".exe\"\n");
+		out.add("      VALUE \"ProductName\", \"" + project.title + "\"\n");
+		out.add("      VALUE \"ProductVersion\", \"" + project.version + "\"\n");
+		out.add("    END\n");
+		out.add("  END\n");
+		out.add("  BLOCK \"VarFileInfo\"\n");
+		out.add("  BEGIN\n");
+		out.add("    VALUE \"Translation\", 0x809, 1200\n");
+		out.add("  END\n");
+		out.add("END\n");
+
+		final path = into + "/" + project.short + ".rc";
 		File.saveContent(path, out.toString());
 		return native(path);
 	}
@@ -352,6 +396,13 @@ class Run {
 		for (code in spoken) {
 			args.push("-resource");
 			args.push(root + "/" + project.output + "/lang/" + code + ".mdl@lang." + code);
+		}
+
+		final face = root + "/" + project.icons + "/" + project.short + "-64.rgba";
+
+		if (FileSystem.exists(face)) {
+			args.push("-resource");
+			args.push(face + "@icon");
 		}
 
 		if (debug) args.push("-debug");
@@ -523,6 +574,20 @@ class Run {
 			copyFile(from, into + "/" + entry);
 		}
 
+		final icons = root + "/" + project.icons;
+
+		if (FileSystem.exists(icons)) {
+			tree(into + "/icons");
+
+			for (entry in FileSystem.readDirectory(icons)) {
+				if (entry == "sheet.png") continue;
+				if (!StringTools.endsWith(entry, ".png") && !StringTools.endsWith(entry, ".ico"))
+					continue;
+
+				copyFile(icons + "/" + entry, into + "/icons/" + entry);
+			}
+		}
+
 		final fonts = root + "/" + project.pathOf("FONTPATH");
 		tree(into + "/fonts");
 
@@ -639,6 +704,10 @@ class Run {
 			+ "-setup\n");
 		out.add("CloseApplications=yes\n");
 		out.add("RestartApplications=no\n");
+		final ico = native(root + "/" + project.icons) + "/" + project.short + ".ico";
+		if (FileSystem.exists(ico)) out.add("SetupIconFile=" + StringTools.replace(ico,
+			"/", "\\") + "\n");
+
 		out.add("WizardStyle=modern\n");
 		out.add("DisableProgramGroupPage=yes\n\n");
 
@@ -790,6 +859,7 @@ class Run {
 			+ project.short + "</string>\n");
 		out.add("\t<key>CFBundleShortVersionString</key><string>" + project.version
 			+ "</string>\n");
+		out.add("\t<key>CFBundleIconFile</key><string>" + project.short + "</string>\n");
 		out.add("\t<key>CFBundlePackageType</key><string>APPL</string>\n");
 		out.add("\t<key>NSHighResolutionCapable</key><true/>\n");
 		out.add("</dict>\n</plist>\n");
@@ -827,6 +897,7 @@ class Run {
 		out.add("Comment=" + project.description + "\n");
 		out.add("Exec=" + project.short + "\n");
 		out.add("Terminal=false\n");
+		out.add("Icon=" + project.short + "\n");
 		out.add("Categories=AudioVideo;Audio;Music;\n");
 
 		File.saveContent(into + "/" + project.short + ".desktop", out.toString());
@@ -843,6 +914,13 @@ class Run {
 			+ "\" \"$PREFIX/bin/" + project.short + "\"\n");
 		out2.add("cp \"$HERE/" + project.short + ".desktop\" "
 			+ "\"$PREFIX/share/applications/\"\n");
+		for (size in [16, 24, 32, 48, 64, 128, 256, 512]) {
+			final where = "$PREFIX/share/icons/hicolor/" + size + "x" + size + "/apps";
+			out2.add("mkdir -p \"" + where + "\"\n");
+			out2.add("cp \"$HERE/icons/" + project.short + "-" + size + ".png\" "
+				+ "\"" + where + "/" + project.short + ".png\"\n");
+		}
+
 		out2.add("echo \"installed to $PREFIX\"\n");
 
 		File.saveContent(into + "/install.sh", out2.toString());
