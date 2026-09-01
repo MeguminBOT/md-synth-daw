@@ -19,6 +19,7 @@ import mdd.check.Budget;
 import mdd.check.Profile;
 import mdd.play.Render;
 import mdd.song.Part;
+import mdd.view.Centre;
 import mdd.view.ChannelRack;
 import mdd.view.FmEditor;
 import mdd.view.PianoRoll;
@@ -41,7 +42,7 @@ class App {
 
 	var session:Null<Session> = null;
 	var rack:Null<ChannelRack> = null;
-	var roll:Null<PianoRoll> = null;
+	var centre:Null<Centre> = null;
 	var editor:Null<FmEditor> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
@@ -119,16 +120,16 @@ class App {
 
 		bar = new TransportBar(session);
 		rack = new ChannelRack(session);
-		roll = new PianoRoll(session);
+		centre = new Centre(session);
 		editor = new FmEditor(session);
 
 		shell.zone(Shell.TRANSPORT).add(bar);
 		shell.zone(Shell.RAIL).add(rack);
-		shell.zone(Shell.CENTRE).add(roll);
+		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(editor);
 
 		budget = new Budget(Profile.megaDrive());
-		roll.budget = budget;
+		centre.roll.budget = budget;
 
 		session.onChange = function(session:Session):Void weighed();
 		weighed();
@@ -138,7 +139,7 @@ class App {
 		if (budget == null || session == null) return;
 
 		budget.overSong(session.song);
-		if (roll != null) roll.invalidate();
+		if (centre != null) centre.roll.invalidate();
 	}
 
 	function sound():Void {
@@ -295,14 +296,9 @@ class App {
 	}
 
 	function watch():Void {
-		if (session == null || roll == null || rack == null) return;
+		if (session == null || centre == null || rack == null) return;
 
-		final tick = session.transport.tick();
-
-		if (roll.playhead != tick) {
-			roll.playhead = tick;
-			if (session.transport.playing) roll.invalidate();
-		}
+		centre.playhead(session.transport.tick());
 
 		if (render == null) return;
 

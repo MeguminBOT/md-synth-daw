@@ -18,6 +18,7 @@ import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
+import mdd.view.Centre;
 import mdd.view.ChannelRack;
 import mdd.view.FmEditor;
 import mdd.view.PianoRoll;
@@ -109,12 +110,13 @@ class SpineCheck {
 
 		final bar = new TransportBar(session);
 		final rack = new ChannelRack(session);
-		final roll = new PianoRoll(session);
+		final centre = new Centre(session);
+		final roll = centre.roll;
 		final editor = new FmEditor(session);
 
 		shell.zone(Shell.TRANSPORT).add(bar);
 		shell.zone(Shell.RAIL).add(rack);
-		shell.zone(Shell.CENTRE).add(roll);
+		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(editor);
 
 		final pattern = session.current();

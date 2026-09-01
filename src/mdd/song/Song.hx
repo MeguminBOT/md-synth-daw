@@ -77,6 +77,79 @@ final class Song {
 		return !muted[index];
 	}
 
+	public function unshared():Song {
+		final out = new Song(name, tempo.ppqn, tempo.bpm[0]);
+
+		out.author = author;
+		out.tempo.rate = tempo.rate;
+
+		for (i in 1...tempo.at.length) out.tempo.set(tempo.at[i], tempo.bpm[i]);
+
+		for (instrument in instruments) out.instrument(instrument.copy());
+		for (sample in samples) out.sample(sample.copy());
+
+		for (i in 0...Part.COUNT) {
+			out.rack[i] = rack[i];
+			out.muted[i] = muted[i];
+			out.soloed[i] = soloed[i];
+		}
+
+		for (track in tracks) {
+			final made = new Track(track.name, track.held);
+			made.muted = track.muted;
+
+			for (clip in track.clips) {
+				final source = patternAt(clip.pattern);
+
+				if (source == null) {
+					made.add(clip.copy());
+					continue;
+				}
+
+				final pattern = new Pattern(source.name + " " + out.patterns.length,
+					source.length, source.colour);
+
+				for (index in 0...Part.COUNT) {
+					final part:Part = index;
+					final lane = source.lane(part);
+
+					for (note in lane.notes) {
+						final held = note.copy();
+						held.pitch += clip.transpose;
+						pattern.lane(part).add(held);
+					}
+
+					for (line in lane.automation) {
+						final held = new Automation(line.target, line.slot);
+						for (point in line.points) held.add(point.copy());
+						pattern.lane(part).automation.push(held);
+					}
+				}
+
+				out.add(pattern);
+				made.add(new Clip(out.patterns.length - 1, clip.at, clip.length, 0));
+			}
+
+			out.track(made);
+		}
+
+		return out;
+	}
+
+	public function shares():Int {
+		final seen:Array<Int> = [];
+		var many = 0;
+
+		for (track in tracks) {
+			for (clip in track.clips) {
+				if (seen.indexOf(clip.pattern) >= 0) many++;
+				else seen.push(clip.pattern);
+			}
+		}
+
+		return many;
+	}
+
 	public function ends():Int {
 		var most = 0;
 		for (track in tracks) if (track.ends() > most) most = track.ends();
