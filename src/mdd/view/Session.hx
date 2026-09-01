@@ -19,6 +19,8 @@ final class Session {
 	public var pattern:Int = 0;
 	public var snap:Int = 24;
 	public var ghosts:Bool = true;
+	public var theme:Int = 0;
+	public var motion:Int = 0;
 
 	public var onChange:Null<Session -> Void> = null;
 	public var onReveal:Null<Diagnostic -> Void> = null;

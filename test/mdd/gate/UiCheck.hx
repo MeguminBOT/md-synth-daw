@@ -39,6 +39,7 @@ import mdd.ui.Toggle;
 import mdd.ui.Tooltip;
 import mdd.ui.Tree;
 import mdd.ui.Widget;
+import mdd.ui.Words;
 
 @:unreflective
 class Marquee extends Widget {
@@ -121,6 +122,8 @@ class UiCheck {
 		tooltips(renderer, face, monoFace);
 		bars(renderer, face, monoFace);
 		chords();
+		saying();
+		modal();
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
@@ -144,7 +147,7 @@ class UiCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 26) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shaped():Root {
@@ -656,6 +659,86 @@ class UiCheck {
 
 		says("but not the chord", heard == "Ctrl+S",
 			"a modified chord still reaches the session past a focused field");
+	}
+
+	static function saying():Void {
+		final words = new Words();
+
+		final taken = words.read("# a comment\n"
+			+ "menu.file = File\n"
+			+ "  menu.edit  =  Edit  \n"
+			+ "\n"
+			+ "broken line without a mark\n"
+			+ "theme.rack = Rack\n");
+
+		says("a table reads", taken == 3 && words.count() == 3
+			&& words.of("menu.edit") == "Edit",
+			taken + " lines taken, a comment and a line with no mark skipped");
+
+		words.forget();
+		final absent = words.of("nothing.here");
+
+		says("a missing word says itself", absent == "nothing.here" && words.missing == 1,
+			"an untranslated key comes back as the key and is counted, " + words.missing
+			+ " missing");
+
+		final again = new Words();
+		again.read(words.write());
+
+		says("a table writes what it read", again.count() == words.count()
+			&& again.of("theme.rack") == "Rack",
+			again.count() + " keys survive being written and read back");
+
+		final english = mdd.view.Speech.english(new Words());
+		var held = 0;
+
+		for (key in ["preferences", "menu.file", "file.save", "theme.midnight", "motion.reduced",
+				"density.usual", "view.mixer"]) {
+			if (english.has(key)) held++;
+		}
+
+		says("the interface has words", held == 7 && english.count() > 25,
+			english.count() + " strings in the english table, and none of them is a literal in "
+			+ "a widget");
+	}
+
+	static function modal():Void {
+		final root = shaped();
+		root.resize(800, 600);
+		root.flow = Flow.None;
+
+		final under = new Button("under");
+		root.top.add(under);
+		root.top.arrange(0, 0, 800, 600);
+		under.arrange(0, 0, 800, 600);
+
+		final sheet = new Widget();
+		sheet.focusable = true;
+		sheet.opaque = true;
+
+		root.raise(sheet);
+
+		says("a sheet takes the room", root.sheet == sheet && root.focus == sheet
+			&& root.scrim.value > 0.6,
+			"raised, focused, and the scrim behind it is at "
+			+ round(root.scrim.value * 100, 0) + " per cent");
+
+		final inside = root.pick(400, 300);
+		final outside = root.pick(10, 10);
+
+		says("and nothing under it is reachable", inside == sheet && outside == sheet,
+			"every point picks the sheet rather than what it covers");
+
+		root.key(true, Key.Escape, Mod.None);
+
+		says("escape lowers it", root.sheet == null && root.scrim.value == 0,
+			"the sheet is gone and the scrim with it");
+
+		root.raise(sheet);
+		root.pressed(10, 10, Pointer.Left, Mod.None);
+
+		says("and a press outside lowers it", root.sheet == null,
+			"clicking the scrim closes the one modal the application has");
 	}
 
 	static function motions():Void {

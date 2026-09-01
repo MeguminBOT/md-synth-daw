@@ -30,7 +30,9 @@ import mdd.ui.MenuBar;
 import mdd.view.Dock;
 import mdd.view.Files;
 import mdd.view.Inspector;
+import mdd.view.Preferences;
 import mdd.view.Session;
+import mdd.view.Speech;
 import mdd.view.TransportBar;
 
 @:unreflective
@@ -56,6 +58,7 @@ class App {
 	var dock:Null<Dock> = null;
 	var menus:Null<MenuBar> = null;
 	var files:Null<Files> = null;
+	var preferences:Null<Preferences> = null;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
 
@@ -148,6 +151,11 @@ class App {
 		menus = new MenuBar();
 		shell.zone(Shell.MENU).add(menus);
 
+		Speech.english(root.words);
+
+		preferences = new Preferences(session);
+		preferences.onScale = function(much:Float):Void densified(much);
+
 		commands();
 		root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
 
@@ -188,42 +196,58 @@ class App {
 	function commands():Void {
 		final file = new Menu();
 
-		fired(file.offer(new Choice("Open", "Ctrl+O")), function():Void
+		fired(file.offer(new Choice(root.saying("file.open"), "Ctrl+O")), function():Void
 			files.ask(window, Files.OPEN));
-		fired(file.offer(new Choice("Save", "Ctrl+S")), function():Void keeping());
-		fired(file.offer(new Choice("Save as")), function():Void files.ask(window, Files.SAVE));
+		fired(file.offer(new Choice(root.saying("file.save"), "Ctrl+S")), function():Void keeping());
+		fired(file.offer(new Choice(root.saying("file.saveAs"))), function():Void files.ask(window, Files.SAVE));
 		file.divide();
-		fired(file.offer(new Choice("Export a vgm", "Ctrl+E")), function():Void
+		fired(file.offer(new Choice(root.saying("file.vgm"), "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
-		fired(file.offer(new Choice("Export a wav")), function():Void
+		fired(file.offer(new Choice(root.saying("file.wav"))), function():Void
 			files.ask(window, Files.WAV));
-		fired(file.offer(new Choice("Export a midi file")), function():Void
+		fired(file.offer(new Choice(root.saying("file.midi"))), function():Void
 			files.ask(window, Files.MIDI));
 		file.divide();
-		fired(file.offer(new Choice("Quit", "Alt+F4")), function():Void running = false);
+		file.divide();
+		fired(file.offer(new Choice(root.saying("file.preferences"), "Ctrl+,")), function():Void
+			settings());
+		file.divide();
+		fired(file.offer(new Choice(root.saying("file.quit"), "Alt+F4")), function():Void
+			running = false);
 
 		final edit = new Menu();
 
-		fired(edit.offer(new Choice("Undo", "Ctrl+Z")), function():Void undone());
-		fired(edit.offer(new Choice("Redo", "Ctrl+Y")), function():Void redone());
+		fired(edit.offer(new Choice(root.saying("edit.undo"), "Ctrl+Z")), function():Void undone());
+		fired(edit.offer(new Choice(root.saying("edit.redo"), "Ctrl+Y")), function():Void redone());
 		edit.divide();
-		fired(edit.offer(new Choice("Play or pause", "Space")), function():Void
+		fired(edit.offer(new Choice(root.saying("edit.play"), "Space")), function():Void
 			bar.press(TransportBar.PLAY));
-		fired(edit.offer(new Choice("Stop", "Ctrl+Space")), function():Void
+		fired(edit.offer(new Choice(root.saying("edit.stop"), "Ctrl+Space")), function():Void
 			bar.press(TransportBar.STOP));
 
 		final view = new Menu();
 
-		fired(view.offer(new Choice("Piano roll")), function():Void centre.show(Centre.ROLL));
-		fired(view.offer(new Choice("Arrangement")), function():Void
+		fired(view.offer(new Choice(root.saying("view.roll"))), function():Void centre.show(Centre.ROLL));
+		fired(view.offer(new Choice(root.saying("view.arrangement"))), function():Void
 			centre.show(Centre.PLAYLIST));
 		view.divide();
-		fired(view.offer(new Choice("Mixer")), function():Void dock.show(Dock.MIXER));
-		fired(view.offer(new Choice("Warnings")), function():Void dock.show(Dock.WARNINGS));
+		fired(view.offer(new Choice(root.saying("view.mixer"))), function():Void dock.show(Dock.MIXER));
+		fired(view.offer(new Choice(root.saying("view.warnings"))), function():Void dock.show(Dock.WARNINGS));
 
-		menus.offer("File", file);
-		menus.offer("Edit", edit);
-		menus.offer("View", view);
+		menus.offer(root.saying("menu.file"), file);
+		menus.offer(root.saying("menu.edit"), edit);
+		menus.offer(root.saying("menu.view"), view);
+	}
+
+	function settings():Void {
+		preferences.arrive();
+		root.raise(preferences);
+	}
+
+	function densified(much:Float):Void {
+		root.rescale(scale * much);
+		faces(root.metrics);
+		measured();
 	}
 
 	function chorded(code:Key, mods:Mod):Bool {
@@ -261,6 +285,10 @@ class App {
 
 			case Key.E:
 				files.ask(window, Files.VGM);
+				return true;
+
+			case Key.Comma:
+				settings();
 				return true;
 
 			case _:

@@ -28,6 +28,11 @@ final class Root {
 
 	public final popups:Array<Menu> = [];
 	public final tooltip:Tooltip = new Tooltip();
+	public final words:Words = new Words();
+
+	public var sheet(default, null):Null<Widget> = null;
+
+	public final scrim:Motion;
 
 	public var tipUp(default, null):Bool = false;
 
@@ -53,6 +58,8 @@ final class Root {
 		this.theme = theme;
 		@:privateAccess top.attach(this);
 		@:privateAccess tooltip.attach(this);
+
+		scrim = new Motion(null, 0, false);
 	}
 
 	public function soil():Void {
@@ -212,6 +219,36 @@ final class Root {
 		tooltip.arrange(px, py, wide, tall);
 	}
 
+	public inline function saying(key:String):String {
+		return words.of(key);
+	}
+
+	public function raise(widget:Widget):Void {
+		if (sheet == widget) return;
+
+		lower();
+
+		sheet = widget;
+		@:privateAccess widget.attach(this);
+
+		start(scrim, 0.68, Motion.ENTER);
+		hideTip();
+		reshape();
+
+		if (widget.focusable) focusOn(widget);
+	}
+
+	public function lower():Void {
+		if (sheet == null) return;
+
+		@:privateAccess sheet.attach(null);
+		sheet = null;
+
+		start(scrim, 0, Motion.leaving(Motion.ENTER));
+		reshape();
+		focusOn(null);
+	}
+
 	public function pop(menu:Menu, px:Float, py:Float, from:Null<Widget> = null):Void {
 		@:privateAccess menu.attach(this);
 
@@ -292,6 +329,18 @@ final class Root {
 		}
 	}
 
+	function spread(widget:Widget):Void {
+		widget.measure(width, height);
+
+		final wide = widget.wantWidth > 0 ? widget.wantWidth : width * 0.5;
+		final tall = widget.wantHeight > 0 ? widget.wantHeight : height * 0.6;
+
+		final held = wide > width ? width : wide;
+		final deep = tall > height ? height : tall;
+
+		widget.arrange((width - held) * 0.5, (height - deep) * 0.5, held, deep);
+	}
+
 	function place(menu:Menu):Void {
 		menu.measure(width, height);
 
@@ -317,6 +366,11 @@ final class Root {
 			final found = popups[i].hit(px, py);
 			if (found != null) return found;
 			i--;
+		}
+
+		if (sheet != null) {
+			final found = sheet.hit(px, py);
+			return found != null ? found : sheet;
 		}
 
 		return top.hit(px, py);
@@ -350,6 +404,8 @@ final class Root {
 			top.measure(width, height);
 			top.arrange(0, 0, width, height);
 
+			if (sheet != null) spread(sheet);
+
 			for (menu in popups) place(menu);
 			if (tipUp) placeTip();
 
@@ -359,12 +415,19 @@ final class Root {
 		paint.reset();
 		top.paint(paint);
 
+		if (scrim.value > 0.004) {
+			paint.rect(0, 0, width, height, theme.sink, scrim.value);
+		}
+
+		if (sheet != null) sheet.paint(paint);
+
 		for (menu in popups) menu.paint(paint);
 		if (tooltip.fade.value > 0) tooltip.paint(paint);
 
 		paint.flush();
 
 		top.settle();
+		if (sheet != null) sheet.settle();
 		for (menu in popups) menu.settle();
 		tooltip.settle();
 
@@ -430,6 +493,11 @@ final class Root {
 			return;
 		}
 
+		if (sheet != null && under == sheet) {
+			lower();
+			return;
+		}
+
 		hover(under);
 
 		if (under == null) {
@@ -478,6 +546,11 @@ final class Root {
 		if (down) {
 			blocked = true;
 			hideTip();
+		}
+
+		if (down && code == Key.Escape && popups.length == 0 && sheet != null) {
+			lower();
+			return true;
 		}
 
 		if (down && code == Key.Tab && popups.length == 0) {

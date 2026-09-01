@@ -38,6 +38,7 @@ enum abstract Key(Int) from Int to Int {
 	var Tab = 43;
 	var Space = 44;
 	var Minus = 45;
+	var Comma = 54;
 	var Equals = 46;
 
 	var Home = 74;
