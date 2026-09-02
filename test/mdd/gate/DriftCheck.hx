@@ -69,7 +69,12 @@ class DriftCheck {
 				seconds(args, "--channel", 3));
 		}
 
-		hissed(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 45));
+		alike(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 30),
+			args.indexOf("--wav") >= 0 ? args[args.indexOf("--wav") + 1] : "", name);
+
+		if (args.indexOf("--mix") >= 0) {
+			hissed(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 45));
+		}
 
 		classes(source, made);
 		converter(source, made);
@@ -516,6 +521,99 @@ class DriftCheck {
 		}
 
 		return done < 1 ? 0 : Math.sqrt(total / done);
+	}
+
+	static function alike(one:Stream, two:Stream, from:Int, to:Int, into:String,
+			name:String):Void {
+		final rate = 44100;
+		final frames = (to - from) * rate;
+		final step = 735;
+
+		final oneRender = new Render(rate, Render.BLOCK);
+		final twoRender = new Render(rate, Render.BLOCK);
+
+		var done = 0;
+
+		var oneTotal = 0.0;
+		var twoTotal = 0.0;
+		var bothTotal = 0.0;
+		var oneSquare = 0.0;
+		var twoSquare = 0.0;
+
+		var oneHeld = 0.0;
+		var twoHeld = 0.0;
+		var counted = 0;
+
+		final keeping = into != "";
+		final oneKept = new Vector<cpp.Float32>(keeping ? frames * 2 : 0);
+		final twoKept = new Vector<cpp.Float32>(keeping ? frames * 2 : 0);
+
+		while (done < frames) {
+			final at = from * Tempo.TICKS + Std.int(done * (Tempo.TICKS / rate));
+
+			final oneMany = oneRender.serve(one, at, Render.BLOCK, 0);
+			final twoMany = twoRender.serve(two, at, Render.BLOCK, 0);
+
+			final many = oneMany < twoMany ? oneMany : twoMany;
+			if (many <= 0) break;
+
+			for (index in 0...many) {
+				final a = oneRender.block[index * 2];
+				final b = twoRender.block[index * 2];
+
+				if (keeping && (done + index) * 2 + 1 < oneKept.length) {
+					oneKept[(done + index) * 2] = a;
+					oneKept[(done + index) * 2 + 1] = oneRender.block[index * 2 + 1];
+					twoKept[(done + index) * 2] = b;
+					twoKept[(done + index) * 2 + 1] = twoRender.block[index * 2 + 1];
+				}
+
+				oneTotal += a * a;
+				twoTotal += b * b;
+
+				oneHeld += a < 0 ? -a : a;
+				twoHeld += b < 0 ? -b : b;
+
+				if ((done + index) % step != step - 1) continue;
+
+				final left = oneHeld / step;
+				final right = twoHeld / step;
+
+				bothTotal += left * right;
+				oneSquare += left * left;
+				twoSquare += right * right;
+				counted++;
+
+				oneHeld = 0;
+				twoHeld = 0;
+			}
+
+			done += many;
+		}
+
+		final root = Math.sqrt(oneSquare * twoSquare);
+		final tied = root <= 0 ? 0.0 : bothTotal / root;
+
+		Sys.println("");
+		Sys.println("    " + round(done / 44100.0, 1) + " s rendered from each: the file holds "
+			+ round(Math.sqrt(oneTotal / (done < 1 ? 1 : done)), 4) + " and the song "
+			+ round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
+			+ ", and their envelopes agree " + round(tied, 4) + " over " + counted
+			+ " frames");
+
+		if (!keeping) return;
+
+		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
+
+		final stem = into + "/" + name.substr(0, name.length - 4);
+
+		sys.io.File.saveBytes(stem + " - file.wav",
+			mdd.format.Wav.write(oneKept, done, 2, rate, 16, false));
+
+		sys.io.File.saveBytes(stem + " - song.wav",
+			mdd.format.Wav.write(twoKept, done, 2, rate, 16, false));
+
+		Sys.println("    wrote both to " + into);
 	}
 
 	static function hissed(source:Stream, made:Stream, from:Int, to:Int):Void {
