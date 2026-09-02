@@ -83,6 +83,8 @@ final class Ym2612 {
 	var mode:Int = 0;
 	var csmKeyed:Bool = false;
 	var busyFor:Int = 0;
+	var frequencyLatch:Int = 0;
+	var operatorLatch:Int = 0;
 
 	public function new() {
 		for (i in 0...6) channels[i] = new Channel();
@@ -123,6 +125,8 @@ final class Ym2612 {
 		mode = 0;
 		csmKeyed = false;
 		busyFor = 0;
+		frequencyLatch = 0;
+		operatorLatch = 0;
 		swell = 126;
 	}
 
@@ -188,11 +192,25 @@ final class Ym2612 {
 			if (at < 0x30) return;
 		}
 
-		if (half == 0 && at >= 0xA8 && at <= 0xAE && (at & 3) != 3) {
+		if (at >= 0xA8 && at <= 0xAF) {
+			if (at >= 0xAC) {
+				operatorLatch = value;
+				return;
+			}
+
+			if (half != 0 || (at & 3) == 3) return;
+
 			final which = APART[at & 3];
 			final third = channels[2];
-			if (at < 0xAC) third.setSeparate(which, third.blocks[which], (third.notes[which] & 0x700) | value);
-			else third.setSeparate(which, (value >> 3) & 7, ((value & 7) << 8) | (third.notes[which] & 0xFF));
+
+			third.setSeparate(which, (operatorLatch >> 3) & 7,
+				((operatorLatch & 7) << 8) | value);
+
+			return;
+		}
+
+		if (at >= 0xA4 && at <= 0xA7) {
+			frequencyLatch = value;
 			return;
 		}
 
@@ -208,8 +226,8 @@ final class Ym2612 {
 		}
 
 		switch (at & 0xFC) {
-			case 0xA0: channel.setFrequency(channel.block, (channel.frequency & 0x700) | value);
-			case 0xA4: channel.setFrequency((value >> 3) & 7, ((value & 7) << 8) | (channel.frequency & 0xFF));
+			case 0xA0: channel.setFrequency((frequencyLatch >> 3) & 7,
+				((frequencyLatch & 7) << 8) | value);
 			case 0xB0:
 				channel.algorithm = value & 7;
 				channel.feedback = (value >> 3) & 7;
