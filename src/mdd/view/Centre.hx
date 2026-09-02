@@ -56,6 +56,7 @@ final class Centre extends Widget {
 		if (which == showing) return;
 
 		showing = which;
+		tabs.select(which);
 		playlist.visible = which == PLAYLIST;
 		roll.visible = which == ROLL;
 		scope.visible = which == SCOPE;

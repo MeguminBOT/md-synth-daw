@@ -233,5 +233,6 @@
   "hardware.now": "nu",
   "hardware.song": "låt",
   "psg.noLoop": "av",
-  "tracker.division": "rad"
+  "tracker.division": "rad",
+  "psg.steps": "steg"
 }

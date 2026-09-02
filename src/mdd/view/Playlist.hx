@@ -24,7 +24,7 @@ final class Playlist extends Widget {
 
 	public final session:Session;
 
-	public var perTick:Float = 0.08;
+	public var perTick:Float = 0.25;
 	public var offsetX:Float = 0;
 	public var offsetY:Float = 0;
 
@@ -35,6 +35,7 @@ final class Playlist extends Widget {
 	public var onRename:Null<Int -> Void> = null;
 
 	var chosenTrack:Int = -1;
+	var scrubbing:Bool = false;
 	var dragging:Null<Clip> = null;
 	var sizing:Bool = false;
 	var grabTick:Int = 0;
@@ -163,9 +164,20 @@ final class Playlist extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				if (event.y < y + ruler() && event.x >= x + names()) {
+					scrubbing = true;
+					scrubbed(event.x);
+					return true;
+				}
+
 				return pressed(event);
 
 			case Kind.PointerMove:
+				if (scrubbing) {
+					scrubbed(event.x);
+					return true;
+				}
+
 				final which = trackAt(event.y);
 
 				if (which != hoverTrack) {
@@ -188,6 +200,11 @@ final class Playlist extends Widget {
 				return true;
 
 			case Kind.PointerUp:
+				if (scrubbing) {
+					scrubbing = false;
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				dragging = null;
@@ -202,6 +219,16 @@ final class Playlist extends Widget {
 		}
 
 		return false;
+	}
+
+	public function scrubbed(px:Float):Void {
+		final tick = session.snapped(tickAt(px));
+		final want = tick < 0 ? 0 : tick;
+
+		session.transport.seek(session.song.tempo.samplesAt(want));
+		playhead = want;
+
+		invalidate();
 	}
 
 	function pressed(event:Input):Bool {
@@ -464,8 +491,12 @@ final class Playlist extends Widget {
 				final tail = clip.transpose == 0 ? ""
 					: (clip.transpose > 0 ? "  +" + clip.transpose : "  " + clip.transpose);
 
+				if (wide < metrics.whole(24)) continue;
+
+				paint.pushClip(at, row + 2, wide - metrics.unit, tall - 5);
 				paint.text(said + tail, at + metrics.unit,
 					row + 2 + (tall - 5 - font.height) * 0.5 + font.ascent, theme.sink);
+				paint.popClip();
 			}
 		}
 	}

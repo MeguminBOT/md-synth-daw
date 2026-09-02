@@ -44,6 +44,7 @@ final class Inspector extends Widget {
 
 	public function show(which:Int):Void {
 		showing = which;
+		tabs.select(which);
 		follow();
 	}
 

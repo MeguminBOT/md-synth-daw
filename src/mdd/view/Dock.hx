@@ -46,6 +46,7 @@ final class Dock extends Widget {
 		if (which == showing) return;
 
 		showing = which;
+		tabs.select(which);
 		patterns.visible = which == PATTERNS;
 		mixer.visible = which == MIXER;
 		warnings.visible = which == WARNINGS;

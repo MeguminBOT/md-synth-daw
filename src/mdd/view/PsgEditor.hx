@@ -196,12 +196,22 @@ final class PsgEditor extends Widget {
 		return false;
 	}
 
+	public function graphTall():Float {
+		final root = root();
+		if (root == null) return 220;
+
+		final room = height - head() - root.metrics.gap;
+		final most = root.metrics.whole(240);
+
+		return room > most ? most : room;
+	}
+
 	function drew(envelope:Envelope, event:Input):Void {
 		final at = stepAt(event.x);
 		if (at < 0) return;
 
 		final top = y + head();
-		final tall = height - head() - (root() == null ? 8 : root().metrics.gap);
+		final tall = graphTall();
 
 		while (envelope.steps.length <= at) envelope.steps.push(0);
 		envelope.steps[at] = levelAt(event.y, top, tall);
@@ -239,7 +249,7 @@ final class PsgEditor extends Widget {
 		dials(paint, theme, metrics, envelope);
 
 		final top = y + head();
-		final tall = height - head() - metrics.gap;
+		final tall = graphTall();
 		final wide = stepWide();
 		final colour = theme.part(session.part.index());
 
@@ -269,6 +279,10 @@ final class PsgEditor extends Widget {
 		}
 
 		paint.rect(x, top + tall, width, metrics.whole(1), theme.frame);
+
+		paint.reface(small);
+		paint.text(translate(Locale.PSG_STEPS) + " " + envelope.steps.length,
+			x + metrics.inset, top + tall + metrics.gap + small.ascent, theme.dim, 0.8);
 	}
 
 	function dials(paint:Paint, theme:Theme, metrics:Metrics, envelope:Envelope):Void {

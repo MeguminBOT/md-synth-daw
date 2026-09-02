@@ -139,7 +139,14 @@ final class FmEditor extends Widget {
 
 	function rowTall():Float {
 		final root = root();
-		return root == null ? 26 : root.metrics.whole(26);
+		if (root == null) return 26;
+
+		final metrics = root.metrics;
+		final room = (height - head() - curve() - metrics.gap) / NAMES.length;
+		final least = metrics.whole(24);
+		final most = metrics.whole(40);
+
+		return room < least ? least : (room > most ? most : room);
 	}
 
 	public function fieldAt(px:Float, py:Float):Int {

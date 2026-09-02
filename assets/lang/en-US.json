@@ -233,5 +233,6 @@
   "hardware.now": "now",
   "hardware.song": "song",
   "psg.noLoop": "off",
-  "tracker.division": "row"
+  "tracker.division": "row",
+  "psg.steps": "steps"
 }

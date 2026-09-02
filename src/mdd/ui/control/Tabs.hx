@@ -18,10 +18,17 @@ final class Tabs extends Widget {
 	}
 
 	public function choose(which:Int):Void {
-		if (which < 0 || which >= labels.length || which == chosen) return;
+		if (!select(which)) return;
+		if (onChoose != null) onChoose(which);
+	}
+
+	public function select(which:Int):Bool {
+		if (which < 0 || which >= labels.length || which == chosen) return false;
+
 		chosen = which;
 		invalidate();
-		if (onChoose != null) onChoose(which);
+
+		return true;
 	}
 
 	function widthOf(font:Font, metrics:Metrics, which:Int):Float {

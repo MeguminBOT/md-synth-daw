@@ -30,7 +30,7 @@ final class Tools extends Widget {
 		if (root == null) return 24;
 
 		final metrics = root.metrics;
-		final tall = height - metrics.whole(3) - metrics.unit;
+		final tall = metrics.tab - metrics.whole(3) - metrics.unit;
 
 		return tall < 12 ? metrics.whole(24) : tall;
 	}

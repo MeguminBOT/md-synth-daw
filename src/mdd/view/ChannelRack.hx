@@ -295,8 +295,14 @@ final class ChannelRack extends Widget {
 			final instrument = session.song.instrumentAt(session.song.rack[index]);
 			if (instrument == null) continue;
 
-			paint.text(instrument.name, x + metrics.inset + swatch + metrics.gap
-				+ metrics.whole(48), line, theme.dim, 0.7);
+			final left = x + metrics.inset + swatch + metrics.gap + metrics.whole(48);
+			final room = x + width - metrics.whole(104) - left;
+
+			if (room < metrics.whole(24)) continue;
+
+			paint.pushClip(left, row, room, tall);
+			paint.text(instrument.name, left, line, theme.dim, 0.8);
+			paint.popClip();
 		}
 
 		paint.reface(font);

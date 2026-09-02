@@ -147,8 +147,29 @@ final class Session {
 
 	public function choose(part:Part):Void {
 		if (this.part == part) return;
+
 		this.part = part;
+		followed(part);
 		changed();
+	}
+
+	function followed(part:Part):Void {
+		final held = current();
+		if (held != null && held.lane(part).notes.length > 0) return;
+
+		var found = -1;
+
+		for (index in 0...song.patterns.length) {
+			if (song.patterns[index].lane(part).notes.length == 0) continue;
+			if (found >= 0) return;
+
+			found = index;
+		}
+
+		if (found < 0 || found == pattern) return;
+
+		pattern = found;
+		follows();
 	}
 
 	public function chooses(which:Int):Void {

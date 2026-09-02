@@ -337,6 +337,8 @@ final class Scope extends Widget {
 			return;
 		}
 
+		paint.rect(from, middle, across, metrics.whole(1), theme.frame, 0.5);
+
 		final gain = reach / peak;
 		final base = part * SPAN;
 		final at = trigger(part);

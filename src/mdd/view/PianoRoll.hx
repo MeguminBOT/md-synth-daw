@@ -61,6 +61,7 @@ final class PianoRoll extends Widget {
 	var sizing:Bool = false;
 	var drawn:Int = 0;
 	var panning:Bool = false;
+	var scrubbing:Bool = false;
 	var menu:Null<Menu> = null;
 	var panX:Float = 0;
 	var panY:Float = 0;
@@ -68,6 +69,8 @@ final class PianoRoll extends Widget {
 	final kit:Array<Int> = [];
 
 	var wasTall:Float = 0;
+	var settledOn:Int = -1;
+	var settledPart:Int = -1;
 
 	public function new(session:Session) {
 		super();
@@ -234,6 +237,41 @@ final class PianoRoll extends Widget {
 		return found;
 	}
 
+	function centred():Void {
+		final part = session.part.index();
+		if (settledOn == session.pattern && settledPart == part) return;
+
+		settledOn = session.pattern;
+		settledPart = part;
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		if (lane.notes.length == 0) return;
+
+		var low = 127;
+		var high = 0;
+
+		for (note in lane.notes) {
+			final seat = seatOf(note);
+			if (seat < low) low = seat;
+			if (seat > high) high = seat;
+		}
+
+		reveal(lane.notes[0].at, Math.round((low + high) * 0.5));
+	}
+
+	public function scrubbed(px:Float):Void {
+		final tick = session.snapped(tickAt(px));
+		final want = tick < 0 ? 0 : tick;
+
+		session.transport.seek(session.song.tempo.samplesAt(want));
+		playhead = want;
+
+		invalidate();
+	}
+
 	public function reveal(tick:Int, pitch:Int):Void {
 		final wide = width - gutter();
 		final tall = grid();
@@ -286,6 +324,12 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				if (event.y < y + ruler() && event.x >= x + gutter()) {
+					scrubbing = true;
+					scrubbed(event.x);
+					return true;
+				}
+
 				if (onStrip(event.y)) {
 					if (event.x < x + gutter()) {
 						showsLane((lane + 1) % LANES);
@@ -370,6 +414,11 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Kind.PointerMove:
+				if (scrubbing) {
+					scrubbed(event.x);
+					return true;
+				}
+
 				if (panning) {
 					scrollTo(panX - event.x, panY - event.y);
 					return true;
@@ -400,6 +449,11 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Kind.PointerUp:
+				if (scrubbing) {
+					scrubbing = false;
+					return true;
+				}
+
 				if (panning) {
 					panning = false;
 					return true;
@@ -641,6 +695,8 @@ final class PianoRoll extends Widget {
 		final least = named.height + metrics.unit * 1.5;
 
 		if (rowTall < least) rowTall = least;
+
+		centred();
 
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;
@@ -987,7 +1043,7 @@ final class PianoRoll extends Widget {
 					paint.rect(x, row, wide, rowTall - 1, theme.raise1);
 				} else {
 					paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
-						black ? 1 : 0.85);
+						black ? 1 : 0.72);
 				}
 
 				if (rowTall >= font.height) {

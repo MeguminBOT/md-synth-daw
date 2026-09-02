@@ -56,7 +56,7 @@ final class Tracker extends Widget {
 
 	public function numbers():Float {
 		final root = root();
-		return root == null ? 52 : root.metrics.whole(52);
+		return root == null ? 84 : root.metrics.whole(84);
 	}
 
 	public function head():Float {
@@ -551,7 +551,7 @@ final class Tracker extends Widget {
 
 		paint.popClip();
 
-		paint.textRight("1/" + division + "   oct " + octave, x + numbers() - metrics.unit,
+		paint.text("1/" + division + "  oct " + octave, x + metrics.gap,
 			y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.85);
 
 		paint.rect(x, y + tall - hair, width, hair, theme.frame);

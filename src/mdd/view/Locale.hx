@@ -249,6 +249,7 @@ class Locale {
 	public static inline final PANEL_NOT_SQUARE = "panel.notSquare";
 	public static inline final PANEL_ENVELOPE = "panel.envelope";
 	public static inline final PSG_NO_LOOP = "psg.noLoop";
+	public static inline final PSG_STEPS = "psg.steps";
 	public static inline final PANEL_NO_WARNINGS = "panel.noWarnings";
 	public static inline final PANEL_WARNING = "panel.warning";
 	public static inline final PANEL_WARNINGS = "panel.warnings";
@@ -327,6 +328,7 @@ class Locale {
 		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_BANK, PANEL_SCOPE, PANEL_PATCHES,
 		PANEL_NO_PATCHES, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
 		PSG_NO_LOOP,
+		PSG_STEPS,
 		PANEL_WARNING, PANEL_WARNINGS,
 		SAID_SAVED, SAID_OPENED, SAID_EXPORTED, SAID_RENDERED, SAID_KEPT, SAID_RECOVERED,
 		SAID_NOTHING_CHOSEN, SAID_UNDONE, SAID_REDONE, SAID_NOTHING_UNDO, SAID_NOTHING_REDO,
