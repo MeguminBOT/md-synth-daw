@@ -59,7 +59,8 @@ final class Transcription {
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
 	static inline final DAC_ROOM = 1 << 22;
-	static inline final DAC_NEAR = 0;
+	static inline final DAC_NEAR = 2;
+	static inline final DAC_STRETCH = 64;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -479,9 +480,42 @@ final class Transcription {
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
 
-			hit(head, last, dacWhen[last] + 1, Tempo.TICKS);
+			final gap = paces(head, last);
+
+			hit(head, last, dacWhen[last] + gap, Std.int(Tempo.TICKS / gap));
 			head = last + 1;
 		}
+	}
+
+	function paces(head:Int, last:Int):Int {
+		final gaps:Array<Int> = [];
+
+		for (index in head + 1...last + 1) {
+			final apart = dacWhen[index] - dacWhen[index - 1];
+			if (apart >= 0 && apart <= DAC_GAP) gaps.push(apart);
+		}
+
+		if (gaps.length < 4) return spacing();
+
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+
+		final middle = gaps[gaps.length >> 1];
+		final most = (middle < 1 ? 1 : middle) * 4;
+
+		var total = 0;
+		var counted = 0;
+
+		for (apart in gaps) {
+			if (apart > most) break;
+
+			total += apart;
+			counted++;
+		}
+
+		if (counted < 1 || total < 1) return spacing();
+
+		final gap = Math.round(total / counted);
+		return gap < 1 ? 1 : (gap > 22 ? 22 : gap);
 	}
 
 	function hit(head:Int, last:Int, ends:Int, rate:Int):Void {
@@ -647,6 +681,17 @@ final class Transcription {
 		return steps;
 	}
 
+	static function moves(lane:mdd.song.Lane):Bool {
+		for (line in lane.automation) {
+			if (line.points.length < 2) continue;
+
+			final first = line.points[0].value;
+			for (point in line.points) if (point.value != first) return true;
+		}
+
+		return false;
+	}
+
 	function parted():Void {
 		final source = pattern;
 		final length = source.length;
@@ -662,7 +707,7 @@ final class Transcription {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			final lane = source.lane(part);
-			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
+			if (lane.notes.length == 0 && !moves(lane)) continue;
 
 			final made = song.add(new Pattern(part.name(), length,
 				mdd.ui.Theme.PARTS[index]));
@@ -871,8 +916,15 @@ final class Transcription {
 	}
 
 	function alike(sample:Sample):Bool {
-		final many = sample.length();
-		if (many < 1 || many != dacTake.length) return false;
+		final one = sample.length();
+		final two = dacTake.length;
+
+		if (one < 1 || two < 1) return false;
+
+		final many = one < two ? one : two;
+		final apart = one > two ? one - two : two - one;
+
+		if (apart * DAC_STRETCH > many) return false;
 
 		final bytes = sample.bytes;
 
