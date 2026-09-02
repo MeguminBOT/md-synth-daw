@@ -41,7 +41,7 @@ class FuzzCheck {
 			if (held != null) seed = held;
 		}
 
-		hammered(rounds == null ? 40000 : rounds);
+		hammered(rounds == null ? 40000 : rounds, args);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -84,7 +84,7 @@ class FuzzCheck {
 		return Session.started();
 	}
 
-	static function hammered(rounds:Int):Void {
+	static function hammered(rounds:Int, args:Array<String>):Void {
 		Native.ready();
 
 		if (Sdl.init() == 0) {
@@ -157,7 +157,7 @@ class FuzzCheck {
 		if (pattern.notes() == 0) {
 			pattern.length = 96 * 4 * 32;
 
-			for (index in 0...6) {
+			for (index in 0...Part.COUNT) {
 				final part:Part = index;
 				var when = index * 9;
 
@@ -176,8 +176,18 @@ class FuzzCheck {
 		render.transport = session.transport;
 		session.transport.play();
 
-		sys.thread.Thread.create(function():Void {
+		final threaded = args.indexOf("--still") < 0;
+
+		final quiet = args.indexOf("--silent") >= 0;
+
+		if (threaded) sys.thread.Thread.create(function():Void {
 			while (alive.load() == 1) {
+				if (quiet) {
+					render.fill(mdd.play.Render.BLOCK);
+					blocks.add(1);
+					continue;
+				}
+
 				final at = session.transport.advance(mdd.play.Render.BLOCK, 44100);
 				render.serve(session.transport.stream, at, mdd.play.Render.BLOCK,
 					session.transport.entering);
@@ -192,11 +202,25 @@ class FuzzCheck {
 		var painted = 0;
 		var events = 0;
 
+		final loud = args.indexOf("--say") >= 0;
+		final held = args.indexOf("--tab");
+		final pinned = held >= 0 && held + 1 < args.length
+			? Std.parseInt(args[held + 1]) : -1;
+
+		if (pinned != null && pinned >= 0) centre.show(pinned);
+
 		for (round in 0...rounds) {
 			final px = next(1440);
 			final py = next(900);
+			final kind = next(14);
 
-			switch (next(14)) {
+			if (loud && round + 8 >= rounds) {
+				Sys.println("      round " + round + " kind " + kind + " at " + px + "," + py
+					+ " tab " + centre.showing + " part " + session.part.index()
+					+ " pattern " + session.pattern);
+			}
+
+			switch (kind) {
 				case 0:
 					tree.turned(px, py, next(4) == 0 ? Mod.Ctrl
 						: (next(3) == 0 ? Mod.Shift : Mod.None));
@@ -234,7 +258,7 @@ class FuzzCheck {
 					tree.key(false, code, Mod.None);
 
 				case 8:
-					centre.show(next(Centre.TABS));
+					centre.show(pinned >= 0 ? pinned : next(Centre.TABS));
 
 				case 9:
 					session.choose(next(Part.COUNT));

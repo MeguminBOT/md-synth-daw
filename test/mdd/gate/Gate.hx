@@ -6,6 +6,9 @@ class Gate {
 	public static var root(default, null):String = ".";
 
 	public static function main():Void {
+		mdd.host.Native.ready();
+		mdd.host.Crash.watch("R:/tmp/gate-fault.txt");
+
 		final args = Sys.args();
 
 		final flag = args.indexOf("--root");
