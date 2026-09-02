@@ -65,6 +65,14 @@ final class Render {
 	public var blocks(default, null):Int = 0;
 	public var worstHeld(default, null):Int = 0;
 
+	public static inline final WEIGHTS = 31;
+
+	final weights:Vector<Float> = new Vector<Float>(WEIGHTS);
+	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS);
+	final pastRight:Vector<Float> = new Vector<Float>(WEIGHTS);
+
+	var pastAt:Int = 0;
+
 	public function new(rate:Int, frames:Int = BLOCK, queue:Null<Queue> = null) {
 		this.rate = rate <= 0 ? 48000 : rate;
 		this.frames = frames <= 0 ? BLOCK : frames;
@@ -74,6 +82,36 @@ final class Render {
 
 		fmStep = Ym2612.CLOCK / (Ym2612.PER_SAMPLE * this.rate);
 		psgStep = Sn76489.CLOCK / this.rate;
+
+		shaped();
+	}
+
+	function shaped():Void {
+		final chip = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
+
+		var cut = 0.45 * rate / chip;
+		if (cut > 0.5) cut = 0.5;
+
+		final middle = (WEIGHTS - 1) * 0.5;
+		var total = 0.0;
+
+		for (index in 0...WEIGHTS) {
+			final at = index - middle;
+			final sinc = at == 0 ? 2 * cut
+				: Math.sin(2 * Math.PI * cut * at) / (Math.PI * at);
+
+			final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (WEIGHTS - 1))
+				+ 0.08 * Math.cos(4 * Math.PI * index / (WEIGHTS - 1));
+
+			weights[index] = sinc * window;
+			total += weights[index];
+		}
+
+		for (index in 0...WEIGHTS) weights[index] /= total;
+		for (index in 0...WEIGHTS) {
+			pastLeft[index] = 0;
+			pastRight[index] = 0;
+		}
 	}
 
 	public function reset():Void {
@@ -83,6 +121,12 @@ final class Render {
 
 		fmAt = 0;
 		psgAt = 0;
+		pastAt = 0;
+
+		for (index in 0...WEIGHTS) {
+			pastLeft[index] = 0;
+			pastRight[index] = 0;
+		}
 		fmLeft = 0;
 		fmRight = 0;
 		wentLeft = 0;
@@ -131,23 +175,31 @@ final class Render {
 
 			fmAt += fmStep;
 
-			var tookLeft = 0;
-			var tookRight = 0;
-			var took = 0;
-
 			while (fmAt >= 1) {
 				fmAt -= 1;
 				ym.sample();
 
-				tookLeft += ym.left;
-				tookRight += ym.right;
-				took++;
+				pastAt++;
+				if (pastAt >= WEIGHTS) pastAt = 0;
+
+				pastLeft[pastAt] = ym.left;
+				pastRight[pastAt] = ym.right;
 			}
 
-			if (took > 0) {
-				fmLeft = tookLeft / took;
-				fmRight = tookRight / took;
+			var gotLeft = 0.0;
+			var gotRight = 0.0;
+			var at = pastAt;
+
+			for (index in 0...WEIGHTS) {
+				gotLeft += pastLeft[at] * weights[index];
+				gotRight += pastRight[at] * weights[index];
+
+				at--;
+				if (at < 0) at = WEIGHTS - 1;
 			}
+
+			fmLeft = gotLeft;
+			fmRight = gotRight;
 
 			psgAt += psgStep;
 			final clocks = Std.int(psgAt);
