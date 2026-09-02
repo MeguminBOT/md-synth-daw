@@ -1156,12 +1156,12 @@ class VgmCheck {
 			if (much > loudest) loudest = much;
 		}
 
-		says("and the same at either device rate", loudest < 0.02,
+		says("and the same at either device rate", loudest < 0.02 && worst < 0.01,
 			"four seconds at 44100 and 48000 peak at " + round(peaks[0], 3) + " and "
 			+ round(peaks[1], 3) + ", " + round(loudest * 100, 2) + " per cent apart; they"
 			+ " cross zero " + zeroes[0] + " and " + zeroes[1] + " times, "
-			+ round(worst * 100, 2) + " per cent apart, which is the anti alias filter"
-			+ " tracking the device rate rather than the music changing");
+			+ round(worst * 100, 2) + " per cent apart, the band kept being the same either"
+			+ " way");
 	}
 
 	static function written(where:String, files:Array<String>, into:String,
