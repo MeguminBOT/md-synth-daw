@@ -75,7 +75,18 @@ class DriftCheck {
 
 		final into = args.indexOf("--wav") >= 0 ? args[args.indexOf("--wav") + 1] : "";
 		final from = seconds(args, "--from", 0);
-		final to = seconds(args, "--to", 30);
+		final asked = seconds(args, "--to", 30);
+
+		final covered = source.count < 1 ? asked
+			: Std.int(source.tickAt(source.count - 1) / Tempo.TICKS);
+
+		final to = asked < covered ? asked : covered;
+
+		if (to < asked) {
+			Sys.println("");
+			Sys.println("    the file stops writing at " + to + " s, so that is as far as"
+				+ " there is anything to compare");
+		}
 
 		alike(source, whole, from, to, into, name);
 
