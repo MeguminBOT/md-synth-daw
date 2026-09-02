@@ -219,12 +219,7 @@ final class Budget {
 	}
 
 	static function halfPart(half:Int, address:Int):Part {
-		if (address == 0x2A || address == 0x2B) return Part.Dac;
-		if (address < 0x30) return Part.Fm1;
-
-		final within = address & 3;
-		if (within == 3) return Part.Fm1;
-
-		return half * 3 + within;
+		final held = Stream.ymPart(half, address);
+		return held < 0 ? Part.Fm1 : held;
 	}
 }

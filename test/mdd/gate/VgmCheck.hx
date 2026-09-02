@@ -428,7 +428,6 @@ class VgmCheck {
 		var worstClass = 0.0;
 		var worstTune = 0.0;
 		var worstSquare = 0.0;
-		var worstKeys = 0;
 		var read = 0;
 
 		for (want in wanted) {
@@ -441,17 +440,19 @@ class VgmCheck {
 		}
 
 		says("and the registers the chip sees agree", read > 0 && every < 1.2 && everyTune < 12
-			&& everySquare < 2.5 && everyKeys < 200,
+			&& everySquare < 2.5 && everyKeys < 30 && everyStruck < 10,
 			read + " files replayed as songs and read back off the register writes: "
 			+ said.toString() + "; worst class " + round(every, 2) + ", worst pitch "
 			+ round(everyTune, 1) + " cents, worst square " + round(everySquare, 2)
-			+ ", worst key count " + everyKeys);
+			+ ", worst keyed time " + everyKeys + " per thousand and " + everyStruck
+			+ " strikes");
 	}
 
 	static var every:Float = 0;
 	static var everyTune:Float = 0;
 	static var everySquare:Float = 0;
 	static var everyKeys:Int = 0;
+	static var everyStruck:Int = 0;
 
 	static function looked(where:String, name:String, said:StringBuf):Void {
 
@@ -502,6 +503,17 @@ class VgmCheck {
 			counted[index] = 0;
 		}
 
+		var levelWorst = 0;
+		var levelWhere = "";
+
+		final levelBy = new haxe.ds.Vector<Float>(6);
+		final levelSeen = new haxe.ds.Vector<Int>(6);
+
+		for (index in 0...6) {
+			levelBy[index] = 0;
+			levelSeen[index] = 0;
+		}
+
 		var tuned = 0.0;
 		var tunes = 0;
 		var squares = 0.0;
@@ -511,11 +523,21 @@ class VgmCheck {
 
 		final fileKeyed = new haxe.ds.Vector<Int>(6);
 		final songKeyed = new haxe.ds.Vector<Int>(6);
+		final fileStruck = new haxe.ds.Vector<Int>(6);
+		final songStruck = new haxe.ds.Vector<Int>(6);
 
 		for (index in 0...6) {
 			fileKeyed[index] = 0;
 			songKeyed[index] = 0;
+			fileStruck[index] = 0;
+			songStruck[index] = 0;
 		}
+
+		final fileHeld = new haxe.ds.Vector<Int>(6);
+		final songHeld = new haxe.ds.Vector<Int>(6);
+
+		edged(source, span, fileStruck, fileHeld);
+		edged(made, span, songStruck, songHeld);
 
 		final extraBy = new haxe.ds.Vector<Int>(4);
 		final liveBy = new haxe.ds.Vector<Int>(4);
@@ -534,12 +556,11 @@ class VgmCheck {
 
 			for (half in 0...2) {
 				for (channel in 0...3) {
-					final which = half * 3 + channel;
+					final which2 = half * 3 + channel;
+					final which = which2;
 					final fileOn = (wanted[0x200 + which] & 0xF0) != 0;
 					final songOn = (held[0x200 + which] & 0xF0) != 0;
 
-					if (fileOn) fileKeyed[which]++;
-					if (songOn) songKeyed[which]++;
 
 					if (!fileOn) continue;
 
@@ -559,9 +580,23 @@ class VgmCheck {
 							final where2 = (half << 8) | (base + group * 4 + channel);
 							final mask = base == 0x40 ? 0x7F : 0xFF;
 							final away = (wanted[where2] & mask) - (held[where2] & mask);
+							final much = away < 0 ? -away : away;
 
-							apart[which] += away < 0 ? -away : away;
+							apart[which] += much;
 							counted[which]++;
+
+							if (base == 0x40) {
+								levelBy[which2] += much;
+								levelSeen[which2]++;
+							}
+
+							if (base != 0x40 || much <= levelWorst) continue;
+							if (at < mdd.song.Tempo.TICKS) continue;
+
+							levelWorst = much;
+							levelWhere = "FM" + (which2 + 1) + " op" + (group + 1) + " at "
+								+ Math.round(at / mdd.song.Tempo.TICKS) + " s "
+								+ (wanted[where2] & mask) + " against " + (held[where2] & mask);
 						}
 					}
 
@@ -617,9 +652,14 @@ class VgmCheck {
 		}
 
 		var keysApart = 0;
+
 		for (index in 0...6) {
-			final away = songKeyed[index] - fileKeyed[index];
-			keysApart += away < 0 ? -away : away;
+			if (fileHeld[index] < 1) continue;
+
+			final away = songHeld[index] - fileHeld[index];
+			final much = Math.round((away < 0 ? -away : away) * 1000.0 / fileHeld[index]);
+
+			if (much > keysApart) keysApart = much;
 		}
 
 		final tune = tunes == 0 ? 0.0 : tuned / tunes;
@@ -628,16 +668,36 @@ class VgmCheck {
 		if (worstClass > every) every = worstClass;
 		if (tune > everyTune) everyTune = tune;
 		if (square > everySquare) everySquare = square;
+		var struck = 0;
+
+		for (index in 0...6) {
+			final away = songStruck[index] - fileStruck[index];
+			struck += away < 0 ? -away : away;
+		}
+
 		if (keysApart > everyKeys) everyKeys = keysApart;
+		if (struck > everyStruck) everyStruck = struck;
 
 		said.add(name.substr(0, 18) + " class " + round(worstClass, 2) + " pitch "
-			+ round(tune, 1) + " square " + round(square, 2) + " keys " + keysApart);
+			+ round(tune, 1) + " square " + round(square, 2));
 
-		if (keysApart >= 40) {
+
+		said.add(" strikes " + struck + " keyed " + keysApart + " per thousand"
+			+ (levelWorst == 0 ? "" : " worst level " + levelWorst + " " + levelWhere));
+
+		said.add(" level by channel ");
+
+		for (index in 0...6) {
+			if (levelSeen[index] == 0) continue;
+			said.add("FM" + (index + 1) + " " + round(levelBy[index] / levelSeen[index], 2)
+				+ " ");
+		}
+
+		if (struck >= 20 || keysApart >= 40) {
 			said.add(" [");
 
 			for (index in 0...6) {
-				said.add(songKeyed[index] + "/" + fileKeyed[index] + " ");
+				said.add(songStruck[index] + "/" + fileStruck[index] + " ");
 			}
 
 			said.add("]");
@@ -654,6 +714,56 @@ class VgmCheck {
 
 		return number * (mdd.chip.Ym2612.CLOCK / mdd.chip.Ym2612.PER_SAMPLE) / 1048576.0
 			* Math.pow(2, block - 1);
+	}
+
+	static function edged(stream:mdd.play.Stream, span:Int, struck:haxe.ds.Vector<Int>,
+			held:haxe.ds.Vector<Int>):Void {
+		final keyed = new haxe.ds.Vector<Bool>(6);
+		final since = new haxe.ds.Vector<Int>(6);
+
+		for (index in 0...6) {
+			struck[index] = 0;
+			held[index] = 0;
+			keyed[index] = false;
+			since[index] = 0;
+		}
+
+		var address = -1;
+		var half = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+			final at = stream.tickAt(index);
+
+			if (at > span) break;
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x28) continue;
+
+			final within = value & 3;
+			if (within == 3) continue;
+
+			final which = within + ((value & 4) != 0 ? 3 : 0);
+			final on = (value & 0xF0) != 0;
+
+			if (on == keyed[which]) continue;
+
+			if (on) struck[which]++;
+			else held[which] += at - since[which];
+
+			keyed[which] = on;
+			since[which] = at;
+		}
+
+		for (index in 0...6) if (keyed[index]) held[index] += span - since[index];
 	}
 
 	static function poured(stream:mdd.play.Stream, shadow:haxe.ds.Vector<Int>, from:Int,

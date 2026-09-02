@@ -122,14 +122,12 @@ final class Stream {
 		if (address == 0x2A || address == 0x2B) return Part.Dac.index();
 		if (address < 0x30 || address > 0xB6) return -1;
 
+		if (half == 0 && address >= 0xA8 && address <= 0xAE) return 2;
+
 		final channel = address & 3;
 		if (channel == 3) return -1;
 
-		if (address >= 0xA0 && address <= 0xA3) return half * 3 + channel;
-		if (address >= 0xA4 && address <= 0xB6) return half * 3 + channel;
-		if (address >= 0x30 && address <= 0x9F) return half * 3 + channel;
-
-		return -1;
+		return half * 3 + channel;
 	}
 
 	public static function keyPart(value:Int):Int {
