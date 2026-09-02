@@ -20,7 +20,7 @@ final class Sequencer {
 	public static inline final PSG_STEP = 1;
 
 	public static inline final ENVELOPE_TICKS = 735;
-	public static inline final GUARD = 16;
+	public static inline final GUARD = 1;
 
 	public final song:Song;
 	public final voices:Voices;
