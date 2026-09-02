@@ -250,16 +250,19 @@ final class PianoRoll extends Widget {
 		final lane = pattern.lane(session.part);
 		if (lane.notes.length == 0) return;
 
-		var low = 127;
-		var high = 0;
+		final first = lane.notes[0];
+		var low = seatOf(first);
+		var high = low;
 
 		for (note in lane.notes) {
+			if (note.at > first.at + session.song.tempo.ppqn * 16) break;
+
 			final seat = seatOf(note);
 			if (seat < low) low = seat;
 			if (seat > high) high = seat;
 		}
 
-		reveal(lane.notes[0].at, Math.round((low + high) * 0.5));
+		reveal(first.at, Math.round((low + high) * 0.5));
 	}
 
 	public function scrubbed(px:Float):Void {

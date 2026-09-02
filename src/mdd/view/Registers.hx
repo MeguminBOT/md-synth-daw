@@ -2,7 +2,6 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.play.Stream;
-import mdd.song.Part;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Paint;

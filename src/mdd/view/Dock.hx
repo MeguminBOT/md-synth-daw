@@ -61,7 +61,7 @@ final class Dock extends Widget {
 
 	public function foot():Float {
 		final root = root();
-		return root == null ? 20 : root.metrics.whole(20);
+		return root == null ? 24 : root.metrics.whole(24);
 	}
 
 	override function layout():Void {

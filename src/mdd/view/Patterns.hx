@@ -20,12 +20,28 @@ final class Patterns extends Scroll {
 	public var painted(default, null):Int = 0;
 
 	var hoverAt:Int = -1;
+	var settledOn:Int = -1;
 	var menu:Null<Menu> = null;
 
 	public function new(session:Session) {
 		super();
 		this.session = session;
 		focusable = true;
+	}
+
+	function revealed(tall:Float):Void {
+		if (settledOn == session.pattern) return;
+
+		settledOn = session.pattern;
+
+		final top = session.pattern * tall;
+
+		if (top < offsetY) offsetY = top;
+		else if (top + tall > offsetY + height) offsetY = top + tall - height;
+
+		final most = contentHeight - height;
+		if (offsetY > most) offsetY = most < 0 ? 0 : most;
+		if (offsetY < 0) offsetY = 0;
 	}
 
 	public function rowTall():Float {
@@ -197,6 +213,7 @@ final class Patterns extends Scroll {
 		final tall = rowTall();
 
 		contentHeight = session.song.patterns.length * tall;
+		revealed(tall);
 
 		paint.rect(x, y, width, height, theme.panel);
 		paint.pushClip(x, y, width, height);

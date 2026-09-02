@@ -2,7 +2,6 @@ package mdd.view;
 
 import haxe.ds.Vector;
 import mdd.check.Budget;
-import mdd.song.Part;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Theme;
