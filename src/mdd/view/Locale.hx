@@ -88,6 +88,29 @@ class Locale {
 	public static inline final FILE_WAV = "file.wav";
 	public static inline final FILE_MIDI = "file.midi";
 	public static inline final FILE_XGM = "file.xgm";
+	public static inline final EXPORT = "export";
+	public static inline final EXPORT_FORMAT = "export.format";
+	public static inline final EXPORT_RATE = "export.rate";
+	public static inline final EXPORT_DEPTH = "export.depth";
+	public static inline final EXPORT_SIDES = "export.sides";
+	public static inline final EXPORT_LEAD = "export.lead";
+	public static inline final EXPORT_TAIL = "export.tail";
+	public static inline final EXPORT_FADE = "export.fade";
+	public static inline final EXPORT_CEILING = "export.ceiling";
+	public static inline final EXPORT_DITHER = "export.dither";
+	public static inline final EXPORT_MONO = "export.mono";
+	public static inline final EXPORT_STEREO = "export.stereo";
+	public static inline final EXPORT_OFF = "export.off";
+	public static inline final EXPORT_ON = "export.on";
+	public static inline final EXPORT_TITLE = "export.title";
+	public static inline final EXPORT_ARTIST = "export.artist";
+	public static inline final EXPORT_ALBUM = "export.album";
+	public static inline final EXPORT_YEAR = "export.year";
+	public static inline final EXPORT_COMMENT = "export.comment";
+	public static inline final EXPORT_GO = "export.go";
+	public static inline final EXPORT_CANCEL = "export.cancel";
+	public static inline final FILE_AUDIO = "file.audio";
+
 	public static inline final FILE_READ_VGM = "file.readVgm";
 	public static inline final FILE_READ_XGM = "file.readXgm";
 	public static inline final FILE_READ_MIDI = "file.readMidi";
@@ -296,6 +319,7 @@ class Locale {
 		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_XGM, FILE_READ_MIDI,
 		FILE_READ_WAV, FILE_VGM, FILE_XGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,
+		EXPORT, EXPORT_FORMAT, EXPORT_RATE, EXPORT_DEPTH, EXPORT_SIDES, EXPORT_LEAD, EXPORT_TAIL, EXPORT_FADE, EXPORT_CEILING, EXPORT_DITHER, EXPORT_MONO, EXPORT_STEREO, EXPORT_OFF, EXPORT_ON, EXPORT_TITLE, EXPORT_ARTIST, EXPORT_ALBUM, EXPORT_YEAR, EXPORT_COMMENT, EXPORT_GO, EXPORT_CANCEL, FILE_AUDIO,
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
 		PATTERN, PATTERN_BAR, PATTERN_BARS,
 		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,

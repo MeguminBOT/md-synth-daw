@@ -70,6 +70,7 @@ class App {
 	var menus:Null<MenuBar> = null;
 	var files:Null<Files> = null;
 	var preferences:Null<Preferences> = null;
+	var exporting:Null<mdd.view.Export> = null;
 	var settings:Null<Settings> = null;
 	var update:Null<Update> = null;
 	var notice:Null<Notice> = null;
@@ -227,6 +228,14 @@ class App {
 
 		naming = new mdd.view.Naming();
 		naming.onShut = function():Void root.lower();
+
+		exporting = new mdd.view.Export(session);
+		exporting.onShut = function():Void root.lower();
+
+		exporting.onExport = function(mixing:mdd.play.Mixing):Void {
+			files.mixing = mixing;
+			files.ask(window, Files.AUDIO);
+		};
 
 		preferences = new Preferences(session);
 		preferences.onScale = function(much:Float):Void densified(much);
@@ -496,6 +505,8 @@ class App {
 
 		fired(held.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_AUDIO), "Ctrl+Shift+E")),
+			function():Void sounded());
 		fired(held.offer(new Choice(root.translate(Locale.FILE_XGM))), function():Void
 			files.ask(window, Files.XGM));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_WAV))), function():Void
@@ -799,6 +810,11 @@ class App {
 	function opened():Void {
 		root.raise(preferences);
 		preferences.arrive();
+	}
+
+	function sounded():Void {
+		root.raise(exporting);
+		exporting.ask();
 	}
 
 	function redressed():Void {
