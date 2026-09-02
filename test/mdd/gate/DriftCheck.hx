@@ -201,6 +201,22 @@ class DriftCheck {
 		final missed = tracked(one, two);
 		final many = one.length >> 1;
 
+		var apart = 0.0;
+		var worst = 0;
+		var counted = 0;
+
+		for (index in 0...(many < (two.length >> 1) ? many : two.length >> 1)) {
+			if (one[index * 2 + 1] != two[index * 2 + 1]) continue;
+
+			final away = two[index * 2] - one[index * 2];
+			final much = away < 0 ? -away : away;
+
+			apart += much;
+			counted++;
+
+			if (much > worst) worst = much;
+		}
+
 		Sys.println("      " + StringTools.rpad(channel == 3 ? "NOISE"
 			: "PSG" + (channel + 1), " ", 7)
 			+ StringTools.rpad(levels ? "level" : "period", " ", 8)
@@ -208,7 +224,10 @@ class DriftCheck {
 			+ StringTools.lpad("" + (two.length >> 1), " ", 6) + " in the song, "
 			+ StringTools.lpad("" + missed, " ", 5) + " of " + weighed
 			+ " the song does not reach, "
-			+ (weighed < 1 ? 0 : Math.round(missed * 100.0 / weighed)) + " per cent");
+			+ (weighed < 1 ? 0 : Math.round(missed * 100.0 / weighed)) + " per cent, "
+			+ round(counted < 1 ? 0 : apart / counted * 1000.0 / Tempo.TICKS, 3)
+			+ " ms late on average, worst "
+			+ round(worst * 1000.0 / Tempo.TICKS, 2) + " ms");
 	}
 
 	static function struck(stream:Stream, from:Int, to:Int, channel:Int):Array<Int> {
