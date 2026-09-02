@@ -90,6 +90,11 @@ class Run {
 		Sys.println("");
 	}
 
+	static function loose(link:String):Bool {
+		if (StringTools.startsWith(link, "-")) return true;
+		return link.indexOf("/") < 0 && link.indexOf("\\") < 0;
+	}
+
 	static function native(path:String):String {
 		return haxe.io.Path.removeTrailingSlashes(
 			StringTools.replace(FileSystem.absolutePath(path), "\\", "/"));
@@ -318,7 +323,7 @@ class Run {
 
 		for (link in project.links) {
 			out.add("\t\t<lib name=\""
-				+ (StringTools.startsWith(link, "-") ? link : native(root + "/" + link))
+				+ (loose(link) ? link : native(root + "/" + link))
 				+ "\" />\n");
 		}
 

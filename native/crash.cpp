@@ -27,6 +27,63 @@ static void mdd_crash_write(const char *kind, unsigned long long code,
 
 #include <windows.h>
 
+#include <dbghelp.h>
+
+static void mdd_crash_named(FILE *into, HANDLE process, DWORD64 address) {
+	char room[sizeof(SYMBOL_INFO) + 512];
+	SYMBOL_INFO *found = (SYMBOL_INFO *) room;
+
+	memset(room, 0, sizeof(room));
+	found->SizeOfStruct = sizeof(SYMBOL_INFO);
+	found->MaxNameLen = 500;
+
+	DWORD64 away = 0;
+
+	if (SymFromAddr(process, address, &away, found)) {
+		fprintf(into, "  %s + 0x%llX\n", found->Name, (unsigned long long) away);
+		return;
+	}
+
+	fprintf(into, "  0x%llX\n", (unsigned long long) address);
+}
+
+static void mdd_crash_walked(EXCEPTION_POINTERS *held) {
+	if (mdd_crash_path[0] == 0 || held == NULL) return;
+
+	FILE *into = fopen(mdd_crash_path, "a");
+	if (into == NULL) return;
+
+	HANDLE process = GetCurrentProcess();
+
+	SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME | SYMOPT_LOAD_LINES);
+	SymInitialize(process, NULL, TRUE);
+
+	CONTEXT frame = *held->ContextRecord;
+	STACKFRAME64 walk;
+
+	memset(&walk, 0, sizeof(walk));
+	walk.AddrPC.Offset = frame.Rip;
+	walk.AddrPC.Mode = AddrModeFlat;
+	walk.AddrFrame.Offset = frame.Rbp;
+	walk.AddrFrame.Mode = AddrModeFlat;
+	walk.AddrStack.Offset = frame.Rsp;
+	walk.AddrStack.Mode = AddrModeFlat;
+
+	fprintf(into, "the stack it stopped on\n");
+
+	for (int depth = 0; depth < 40; depth++) {
+		if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, GetCurrentThread(), &walk,
+			&frame, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) break;
+
+		if (walk.AddrPC.Offset == 0) break;
+
+		mdd_crash_named(into, process, walk.AddrPC.Offset);
+	}
+
+	SymCleanup(process);
+	fclose(into);
+}
+
 static LONG WINAPI mdd_crash_caught(EXCEPTION_POINTERS *held) {
 	unsigned long long at = 0;
 	unsigned long long code = 0;
@@ -37,6 +94,8 @@ static LONG WINAPI mdd_crash_caught(EXCEPTION_POINTERS *held) {
 	}
 
 	mdd_crash_write("the process stopped on a hardware fault", code, at);
+	mdd_crash_walked(held);
+
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 

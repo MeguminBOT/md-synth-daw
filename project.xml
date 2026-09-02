@@ -48,6 +48,7 @@
 	<define name="HXCPP_M64" />
 	<define name="HXCPP_CHECK_POINTER" if="debug" />
 	<define name="HXCPP_STACK_LINE" if="debug" />
+	<define name="HXCPP_DEBUG_LINK" />
 
 	<!-- Fetched by ./mdd setup into vendor/, which is never tracked. -->
 
@@ -88,6 +89,7 @@
 	<!-- What each platform has to be told to link against. -->
 
 	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" />
+	<link value="dbghelp.lib" if="windows" />
 	<link value="-lSDL3" unless="windows" />
 
 	<link value="-lm" if="linux" />
