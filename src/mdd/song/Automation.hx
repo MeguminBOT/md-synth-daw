@@ -27,14 +27,8 @@ final class Automation {
 	public function heldAt(tick:Int):Int {
 		if (points.length == 0) return -1;
 
-		var value = points[0].value;
-
-		for (point in points) {
-			if (point.at > tick) break;
-			value = point.value;
-		}
-
-		return value;
+		final at = seek(tick + 1);
+		return points[at < 1 ? 0 : at - 1].value;
 	}
 
 	public function seek(tick:Int):Int {

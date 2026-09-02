@@ -522,6 +522,13 @@ class App {
 		fired(held.offer(new Choice(root.translate(Locale.VIEW_WARNINGS))), function():Void
 			dock.show(Dock.WARNINGS));
 
+		held.divide();
+
+		fired(held.offer(new Choice(root.translate(Locale.TOOL_SNAP))), function():Void
+			centre.tools.press(mdd.view.Tools.SNAP));
+		fired(held.offer(new Choice(root.translate(Locale.TOOL_GHOSTS))), function():Void
+			centre.tools.press(mdd.view.Tools.GHOSTS));
+
 		return held;
 	}
 
