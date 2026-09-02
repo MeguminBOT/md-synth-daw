@@ -15,7 +15,7 @@ class Gate {
 		}
 
 		mdd.host.Native.ready();
-		mdd.host.Crash.watch(root + "/export/fault.txt");
+		mdd.host.Crash.watch(root + "/export/fault.txt", "The gate", false);
 
 		if (args.length > 0 && (args[0] == "--list" || args[0] == "-l")) {
 			for (name in PROGRAMS) Sys.println(name);

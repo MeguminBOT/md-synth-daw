@@ -248,7 +248,10 @@ final class Render {
 		alive = true;
 		running = true;
 
-		sys.thread.Thread.create(function():Void feed());
+		sys.thread.Thread.create(function():Void {
+			mdd.host.Crash.thread("the render thread");
+			feed();
+		});
 		return true;
 	}
 

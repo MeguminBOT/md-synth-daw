@@ -103,7 +103,8 @@ class App {
 			Sys.exit(1);
 		}
 
-		Crash.watch(Paths.within("logs") + "/fault.txt");
+		Crash.watch(Paths.within("logs") + "/fault.txt",
+			Config.TITLE + " " + Config.VERSION, true);
 
 		if (Instance.claim(Config.SHORT + LOCK) == 0) {
 			Sdl.message(Config.TITLE, Config.TITLE + " is already running.");
