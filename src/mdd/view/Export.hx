@@ -22,18 +22,23 @@ final class Export extends Widget {
 	public static inline final FADE = 6;
 	public static inline final CEILING = 7;
 	public static inline final DITHER = 8;
-	public static inline final ROWS = 9;
+	public static inline final QUALITY = 9;
+	public static inline final KINDS = 10;
 
 	public static inline final FIELDS = 5;
 
 	static final NAMES:Array<String> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
-		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER];
+		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
+		Locale.EXPORT_QUALITY];
 
 	static final LABELS:Array<String> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
 
-	static final FORMATS:Array<String> = ["WAV", "FLAC"];
+	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
+
+	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
+	static final RATED:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
 	static final SIDINGS:Array<String> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
 	static final SWITCHES:Array<String> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
 
@@ -61,6 +66,8 @@ final class Export extends Widget {
 
 	var hoverAt:Int = -1;
 	var hoverOn:Int = -1;
+
+	final showing:Array<Int> = [];
 
 	public function new(session:Session) {
 		super();
@@ -90,7 +97,32 @@ final class Export extends Widget {
 		stop.onFire = function(button:Button):Void shut();
 	}
 
+	function ordered():Void {
+		showing.resize(0);
+
+		showing.push(FORMAT);
+		showing.push(RATE);
+
+		if (mixing.whole()) showing.push(DEPTH);
+		else showing.push(QUALITY);
+
+		showing.push(SIDES);
+		showing.push(LEAD);
+		showing.push(TAIL);
+		showing.push(FADE);
+		showing.push(CEILING);
+
+		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
+	}
+
+	public function rows():Int {
+		if (showing.length == 0) ordered();
+		return showing.length;
+	}
+
 	public function ask():Void {
+		ordered();
+
 		if (mixing.title == "") mixing.title = session.song.name;
 
 		fields[0].set(mixing.title);
@@ -150,7 +182,7 @@ final class Export extends Widget {
 		final metrics = root == null ? null : root.metrics;
 
 		wantWidth = metrics == null ? 640 : metrics.whole(640);
-		wantHeight = metrics == null ? 620 : head() + ROWS * rowTall()
+		wantHeight = metrics == null ? 620 : head() + rows() * rowTall()
 			+ metrics.whole(24) + FIELDS * fieldTall() + metrics.control
 			+ metrics.inset * 3;
 	}
@@ -163,7 +195,7 @@ final class Export extends Widget {
 		final small = metrics.small == null ? metrics.body : metrics.small;
 		final label = small == null ? 12 : small.height;
 
-		var top = y + head() + ROWS * rowTall() + metrics.whole(24);
+		var top = y + head() + rows() * rowTall() + metrics.whole(24);
 
 		for (index in 0...FIELDS) {
 			fields[index].arrange(x + metrics.whole(120), top + label * 0.2,
@@ -183,13 +215,14 @@ final class Export extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
-			case RATE: rates();
+			case RATE: mixing.kind == Mixing.OPUS ? ["48000"] : rates();
 			case DEPTH: depths();
 			case SIDES: SIDINGS;
 			case LEAD: LEADS;
 			case TAIL: TAILED;
 			case FADE: TAILED;
 			case CEILING: CEILED;
+			case QUALITY: mixing.kind == Mixing.OPUS ? RATED : QUALITIES;
 			case _: SWITCHES;
 		}
 	}
@@ -208,13 +241,14 @@ final class Export extends Widget {
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case FORMAT: mixing.kind;
-			case RATE: nearest(Mixing.RATES, mixing.rate);
+			case RATE: mixing.kind == Mixing.OPUS ? 0 : nearest(Mixing.RATES, mixing.rate);
 			case DEPTH: mixing.depth == 32 ? 2 : (mixing.depth == 24 ? 1 : 0);
 			case SIDES: mixing.stereo ? 1 : 0;
 			case LEAD: closest(SECONDS, mixing.padStart);
 			case TAIL: closest(TAILS, mixing.padEnd);
 			case FADE: closest(TAILS, mixing.fade);
 			case CEILING: mixing.normalise ? closest(CEILINGS, mixing.ceiling) : 0;
+			case QUALITY: mixing.quality;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -244,7 +278,8 @@ final class Export extends Widget {
 	public function chose(row:Int, which:Int):Void {
 		switch (row) {
 			case FORMAT: mixing.kind = which;
-			case RATE: mixing.rate = Mixing.RATES[which];
+			case RATE: mixing.rate = mixing.kind == Mixing.OPUS
+				? mdd.format.Coded.OPUS_RATE : Mixing.RATES[which];
 			case DEPTH: mixing.depth = which == 2 ? 32 : (which == 1 ? 24 : 16);
 			case SIDES: mixing.stereo = which == 1;
 			case LEAD: mixing.padStart = SECONDS[which];
@@ -255,10 +290,14 @@ final class Export extends Widget {
 				mixing.normalise = which > 0;
 				if (which > 0) mixing.ceiling = CEILINGS[which];
 
+			case QUALITY: mixing.quality = which;
 			case _: mixing.dither = which == 1;
 		}
 
 		if (mixing.kind == Mixing.FLAC && mixing.depth == 32) mixing.depth = 24;
+		if (mixing.kind == Mixing.OPUS) mixing.rate = mdd.format.Coded.OPUS_RATE;
+
+		ordered();
 
 		session.changed();
 		invalidate();
@@ -266,7 +305,9 @@ final class Export extends Widget {
 
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y - head()) / rowTall());
-		return at < 0 || at >= ROWS ? -1 : at;
+		if (at < 0 || at >= rows()) return -1;
+
+		return showing[at];
 	}
 
 	public function optionAt(row:Int, px:Float):Int {
@@ -329,7 +370,7 @@ final class Export extends Widget {
 
 	function shown(row:Int, which:Int, label:String):String {
 		if (row == RATE || row == LEAD || row == TAIL || row == FADE) return label;
-		if (row == FORMAT || row == DEPTH) return label;
+		if (row == FORMAT || row == DEPTH || row == QUALITY) return label;
 		if (row == CEILING && which > 0) return label;
 
 		return translate(label);
@@ -366,8 +407,9 @@ final class Export extends Widget {
 		final left = x + metrics.whole(120);
 		final room = width - metrics.whole(120) - metrics.inset;
 
-		for (row in 0...ROWS) {
-			final top = y + head() + row * tall;
+		for (index in 0...rows()) {
+			final row = showing[index];
+			final top = y + head() + index * tall;
 
 			paint.reface(small);
 			paint.text(translate(NAMES[row]), x + metrics.inset,
@@ -399,7 +441,7 @@ final class Export extends Widget {
 			}
 		}
 
-		var top = y + head() + ROWS * tall + metrics.whole(24);
+		var top = y + head() + rows() * tall + metrics.whole(24);
 
 		for (index in 0...FIELDS) {
 			paint.reface(small);

@@ -31,6 +31,7 @@
   "export.mono": "Mono",
   "export.off": "Off",
   "export.on": "On",
+  "export.quality": "Quality",
   "export.rate": "Sample rate",
   "export.sides": "Channels",
   "export.stereo": "Stereo",

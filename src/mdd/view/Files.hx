@@ -6,6 +6,7 @@ import mdd.format.Project;
 import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.format.Wav;
+import mdd.format.Coded;
 import mdd.format.Flac;
 import mdd.format.Xgm;
 import mdd.host.Chooser;
@@ -285,11 +286,23 @@ final class Files {
 			return "";
 		}
 
-		final bytes = mixing.kind == Mixing.FLAC
-			? Flac.write(made.samples, made.frames, made.channels, made.rate, mixing.depth,
-				tagged())
-			: Wav.write(made.samples, made.frames, made.channels, made.rate, mixing.depth,
-				mixing.dither && mixing.depth < 32);
+		final bytes = switch (mixing.kind) {
+			case Mixing.FLAC:
+				Flac.write(made.samples, made.frames, made.channels, made.rate,
+					mixing.depth, tagged());
+
+			case Mixing.OGG:
+				Coded.vorbis(made.samples, made.frames, made.channels, made.rate,
+					Coded.QUALITIES[mixing.quality], tagged());
+
+			case Mixing.OPUS:
+				Coded.opus(made.samples, made.frames, made.channels, made.rate,
+					Coded.BITRATES[mixing.quality], tagged());
+
+			case _:
+				Wav.write(made.samples, made.frames, made.channels, made.rate, mixing.depth,
+					mixing.dither && mixing.depth < 32);
+		}
 
 		sys.io.File.saveBytes(named, bytes);
 

@@ -6,11 +6,10 @@ final class Mixing {
 	public static inline final FLAC = 1;
 	public static inline final OGG = 2;
 	public static inline final OPUS = 3;
-	public static inline final MP3 = 4;
-	public static inline final KINDS = 5;
+	public static inline final KINDS = 4;
 
-	public static final SUFFIXES:Array<String> = ["wav", "flac", "ogg", "opus", "mp3"];
-	public static final NAMES:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus", "MP3"];
+	public static final SUFFIXES:Array<String> = ["wav", "flac", "ogg", "opus"];
+	public static final NAMES:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	public static final RATES:Array<Int> = [22050, 32000, 44100, 48000, 88200, 96000];
 	public static final DEPTHS:Array<Int> = [16, 24, 32];
@@ -21,7 +20,7 @@ final class Mixing {
 	public var depth:Int = 16;
 	public var stereo:Bool = true;
 
-	public var quality:Int = 5;
+	public var quality:Int = 3;
 	public var bitrate:Int = 192;
 
 	public var padStart:Float = 0;
@@ -42,7 +41,7 @@ final class Mixing {
 	public function new() {}
 
 	public inline function lossy():Bool {
-		return kind == OGG || kind == OPUS || kind == MP3;
+		return kind == OGG || kind == OPUS;
 	}
 
 	public inline function whole():Bool {
