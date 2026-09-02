@@ -59,7 +59,7 @@ final class Transcription {
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
 	static inline final DAC_ROOM = 1 << 22;
-	static inline final DAC_NEAR = 3;
+	static inline final DAC_NEAR = 0;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -300,7 +300,7 @@ final class Transcription {
 		final was = tunes[channel];
 		tunes[channel] = word;
 
-		if (was < 0 || !keyed[channel]) return;
+		if (was < 0) return;
 
 		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
 		if (line == null) return;
@@ -423,7 +423,7 @@ final class Transcription {
 
 	function exact(at:Int, channel:Int):Void {
 		final word = tunes[channel];
-		if (word < 0 || word == mdd.play.Stream.wordOf(startedOn[channel])) return;
+		if (word < 0) return;
 
 		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
 		if (line == null) return;
