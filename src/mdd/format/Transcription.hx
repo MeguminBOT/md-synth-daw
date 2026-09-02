@@ -55,7 +55,7 @@ final class Transcription {
 
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_PAUSE = 256;
-	static inline final DAC_LEAST = 48;
+	static inline final DAC_LEAST = 128;
 	static inline final DAC_ROOM = 1 << 20;
 	static inline final DAC_JITTER = 4;
 	static inline final DAC_NEAR = 3;
@@ -67,6 +67,7 @@ final class Transcription {
 	final dacTake:Array<Int> = [];
 	final kits:Array<Int> = [];
 	var dacHeld:Int = 0;
+	var dacRate:Int = 8000;
 
 	var perTick:Float = 183.75;
 	var pattern:Pattern;
@@ -114,6 +115,8 @@ final class Transcription {
 			psgFrom[i] = -1;
 			psgNote[i] = 60;
 		}
+
+		rated(stream);
 
 		final last = stream.count == 0 ? 0 : stream.tickAt(stream.count - 1);
 		pattern = song.add(new Pattern(name, ticked(last) + 96));
@@ -354,6 +357,58 @@ final class Transcription {
 		dacWhen.resize(0);
 	}
 
+	function rated(stream:Stream):Void {
+		final gaps:Array<Int> = [];
+
+		var half = 0;
+		var address = -1;
+		var last = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x2A) continue;
+
+			final at = stream.tickAt(index);
+
+			if (last >= 0 && at > last && at - last <= DAC_GAP) gaps.push(at - last);
+			last = at;
+		}
+
+		if (gaps.length < 8) return;
+
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+
+		final middle = gaps[gaps.length >> 1];
+		final most = (middle < 1 ? 1 : middle) * DAC_JITTER;
+
+		var total = 0;
+		var counted = 0;
+
+		for (gap in gaps) {
+			if (gap > most) break;
+
+			total += gap;
+			counted++;
+		}
+
+		if (counted < 1 || total < 1) return;
+
+		final mean = total / counted;
+		final rate = Math.ceil(Tempo.TICKS / mean / DAC_STEP) * DAC_STEP;
+
+		dacRate = rate < 2000 ? 2000 : (rate > 32000 ? 32000 : rate);
+	}
+
 	function spacing():Int {
 		final many = dacWhen.length;
 		if (many < 2) return 6;
@@ -366,32 +421,8 @@ final class Transcription {
 		return middle < 1 ? 1 : middle;
 	}
 
-	function paced(middle:Int):Int {
-		final many = dacWhen.length;
-		if (many < 2) return 8000;
-
-		final most = middle * DAC_JITTER;
-
-		var total = 0;
-		var counted = 0;
-
-		for (index in 1...many) {
-			final gap = dacWhen[index] - dacWhen[index - 1];
-			if (gap > most) continue;
-
-			total += gap;
-			counted++;
-		}
-
-		if (counted < 1 || total < 1) return 8000;
-
-		final rate = Math.ceil(Tempo.TICKS * counted / (total * DAC_STEP)) * DAC_STEP;
-		return rate < 2000 ? 2000 : (rate > 32000 ? 32000 : rate);
-	}
-
 	function split():Void {
 		final middle = spacing();
-		final rate = paced(middle);
 		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
 
 		var head = 0;
@@ -402,7 +433,7 @@ final class Transcription {
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
 
-			hit(head, last, dacWhen[last] + middle, rate);
+			hit(head, last, dacWhen[last] + middle, dacRate);
 			head = last + 1;
 		}
 	}
@@ -446,8 +477,10 @@ final class Transcription {
 			final channel = latched >> 1;
 
 			if ((latched & 1) != 0) attenuated(at, channel, value & 0x0F);
-			else if (channel < 3) psgPeriod[channel] = (psgPeriod[channel] & 0x3F0) | (value & 0x0F);
-			else noiseMode = value & 0x0F;
+			else if (channel < 3) {
+				psgPeriod[channel] = (psgPeriod[channel] & 0x3F0) | (value & 0x0F);
+				slid(at, channel);
+			} else noiseMode = value & 0x0F;
 
 			return;
 		}
@@ -459,7 +492,19 @@ final class Transcription {
 			return;
 		}
 
-		if (channel < 3) psgPeriod[channel] = (psgPeriod[channel] & 0x0F) | ((value & 0x3F) << 4);
+		if (channel >= 3) return;
+
+		psgPeriod[channel] = (psgPeriod[channel] & 0x0F) | ((value & 0x3F) << 4);
+		slid(at, channel);
+	}
+
+	function slid(at:Int, channel:Int):Void {
+		if (psgFrom[channel] < 0) return;
+
+		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, -1);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), psgPeriod[channel]));
 	}
 
 	function attenuated(at:Int, channel:Int, level:Int):Void {
@@ -474,6 +519,11 @@ final class Transcription {
 			psgHeld[channel].resize(0);
 			psgWhen[channel].push(at);
 			psgHeld[channel].push(level);
+
+			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, -1);
+			if (line != null) line.add(new mdd.song.Point(ticked(at), level));
+
+			if (channel < 3) slid(at, channel);
 			return;
 		}
 
@@ -482,6 +532,10 @@ final class Transcription {
 
 			psgWhen[channel].push(at);
 			psgHeld[channel].push(level);
+
+			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, -1);
+			if (line != null) line.add(new mdd.song.Point(ticked(at), level));
+
 			return;
 		}
 
