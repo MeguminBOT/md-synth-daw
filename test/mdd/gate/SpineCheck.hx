@@ -87,6 +87,54 @@ class SpineCheck {
 			"the last few pixels of a note resize it and the middle of it does not");
 	}
 
+	static function dragged(tree:Root, roll:mdd.view.PianoRoll, session:mdd.view.Session,
+			centre:Centre, paint:Paint, renderer:cpp.Star<Canvas>):Void {
+		centre.show(Centre.ROLL);
+		session.uses(mdd.view.Session.SELECT);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		lane.notes.resize(0);
+
+		final note = new mdd.song.Note(96, 48, 60, 100);
+		lane.add(note);
+
+		roll.reveal(96, 60);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final atX = roll.atTick(96) + roll.perTick * 12;
+		final atY = roll.atPitch(60) + roll.rowTall * 0.5;
+
+		tree.pressed(atX, atY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(atX + roll.perTick * 48, atY, mdd.ui.Mod.None);
+		tree.released(atX + roll.perTick * 48, atY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final moved = note.at;
+		final back = session.undo();
+
+		says("a dragged note can be taken back", moved != 96 && back && note.at == 96,
+			"the note moved from 96 to " + moved + " and undo put it at " + note.at);
+
+		final right = roll.atTick(note.at + note.length) - roll.edge() * 0.5;
+
+		tree.pressed(right, atY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(right + roll.perTick * 96, atY, mdd.ui.Mod.None);
+		tree.released(right + roll.perTick * 96, atY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final grew = note.length;
+		final undone = session.undo();
+
+		says("and so can a stretched one", grew != 48 && undone && note.length == 48,
+			"the note grew from 48 to " + grew + " and undo put it at " + note.length);
+
+		lane.notes.resize(0);
+	}
+
 	static function median(times:haxe.ds.Vector<Float>, many:Int):Float {
 		if (many <= 0) return 0;
 
@@ -432,6 +480,7 @@ class SpineCheck {
 			"the first command said \"" + fired + "\" and closed the menu");
 
 		sized(roll, session);
+		dragged(tree, roll, session, centre, paint, renderer);
 
 		centre.show(Centre.TRACKER);
 		session.snap = 24;

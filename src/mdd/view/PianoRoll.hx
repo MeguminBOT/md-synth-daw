@@ -58,6 +58,11 @@ final class PianoRoll extends Widget {
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
 	var grabPitch:Int = 0;
+	var grabWasAt:Int = 0;
+	var grabWasPitch:Int = 0;
+	var grabWasHeld:Int = 0;
+	var grabWasLong:Int = 0;
+	var grabFresh:Bool = false;
 	var sizing:Bool = false;
 	var drawn:Int = 0;
 	var panning:Bool = false;
@@ -271,6 +276,51 @@ final class PianoRoll extends Widget {
 		reveal(first.at, Math.round((low + high) * 0.5));
 	}
 
+	function settled():Void {
+		final held = dragging;
+
+		dragging = null;
+
+		if (held == null) {
+			sizing = false;
+			return;
+		}
+
+		session.holds();
+		session.current().lane(session.part).sort();
+		session.frees();
+
+		if (grabFresh) {
+			sizing = false;
+			grabFresh = false;
+			session.changed();
+			return;
+		}
+
+		if (sizing && held.length != grabWasLong) {
+			final want = held.length;
+
+			held.length = grabWasLong;
+			session.does(new mdd.song.edit.SizeNote(session.pattern, session.part, held,
+				want));
+		} else if (!sizing && (held.at != grabWasAt || held.pitch != grabWasPitch
+				|| held.instrument != grabWasHeld)) {
+			final at = held.at;
+			final pitch = held.pitch;
+			final want = held.instrument;
+
+			held.at = grabWasAt;
+			held.pitch = grabWasPitch;
+			held.instrument = grabWasHeld;
+
+			session.does(new mdd.song.edit.MoveNote(session.pattern, session.part, held, at,
+				pitch, want));
+		}
+
+		sizing = false;
+		session.changed();
+	}
+
 	public function scrubbed(px:Float):Void {
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
@@ -398,6 +448,11 @@ final class PianoRoll extends Widget {
 					sizing = onEdge(under, event.x);
 					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 					grabPitch = sizing ? 0 : pitchAt(event.y) - seatOf(under);
+					grabWasAt = under.at;
+					grabWasPitch = under.pitch;
+					grabWasHeld = under.instrument;
+					grabWasLong = under.length;
+					grabFresh = false;
 					invalidate();
 					return true;
 				}
@@ -423,6 +478,11 @@ final class PianoRoll extends Widget {
 				sizing = true;
 				grabTick = 0;
 				grabPitch = 0;
+				grabWasAt = note.at;
+				grabWasPitch = note.pitch;
+				grabWasHeld = note.instrument;
+				grabWasLong = note.length;
+				grabFresh = true;
 
 				if (onAudition != null) onAudition(session.part, pitch);
 
@@ -482,12 +542,7 @@ final class PianoRoll extends Widget {
 
 				if (dragging == null) return false;
 
-				session.holds();
-				pattern.lane(session.part).sort();
-				session.frees();
-				dragging = null;
-				sizing = false;
-				session.changed();
+				settled();
 				return true;
 
 			case Kind.KeyDown:
