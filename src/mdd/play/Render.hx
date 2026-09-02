@@ -39,6 +39,7 @@ final class Render {
 
 	public var made(default, null):Int = 0;
 	public var writes(default, null):Int = 0;
+	public var poured(default, null):Int = 0;
 
 	public final block:Vector<cpp.Float32>;
 
@@ -168,6 +169,7 @@ final class Render {
 		heldRight = 0;
 		made = 0;
 		writes = 0;
+		poured = 0;
 	}
 
 	public function drain():Int {
@@ -191,10 +193,13 @@ final class Render {
 		return serve(null, 0, count);
 	}
 
-	public function serve(stream:Null<Stream>, from:Int, count:Int, carry:Int = 0):Int {
+	public function serve(stream:Null<Stream>, from:Int, count:Int, carry:Int = 0,
+			fresh:Bool = false):Int {
 		final many = count > frames ? frames : count;
 
-		var next = 0;
+		if (fresh || stream == null || poured > stream.count) poured = 0;
+
+		var next = poured;
 		var tick = from;
 		var held = carry;
 
@@ -280,14 +285,16 @@ final class Render {
 			}
 		}
 
-		if (stream != null) {
+		if (stream != null && fresh) {
 			while (next < stream.count) {
 				pour(stream, next);
 				next++;
 			}
 		}
 
+		poured = next;
 		made += many;
+
 		return many;
 	}
 
@@ -371,7 +378,7 @@ final class Render {
 		} else {
 			final from = held.advance(frames, rate);
 			drain();
-			serve(held.stream, from, frames, held.entering);
+			serve(held.stream, from, frames, held.entering, true);
 		}
 
 		final took = Audio.write(device, pointer(), frames);
