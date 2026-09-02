@@ -717,7 +717,7 @@ final class Transcription {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			final lane = source.lane(part);
-			if (lane.notes.length == 0) continue;
+			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
 
 			final made = song.add(new Pattern(part.name(), length,
 				mdd.ui.Theme.PARTS[index]));
