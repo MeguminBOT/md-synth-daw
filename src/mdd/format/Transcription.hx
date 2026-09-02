@@ -32,6 +32,8 @@ final class Transcription {
 	final startedAt:Vector<Int> = new Vector<Int>(6);
 	final startedOn:Vector<Int> = new Vector<Int>(6);
 	final startedWith:Vector<Int> = new Vector<Int>(6);
+	final tying:Vector<Bool> = new Vector<Bool>(6);
+	final started:Vector<Bool> = new Vector<Bool>(6);
 
 	final psgPeriod:Vector<Int> = new Vector<Int>(4);
 	final psgLevel:Vector<Int> = new Vector<Int>(4);
@@ -53,7 +55,7 @@ final class Transcription {
 
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_LEAST = 48;
-	static inline final DAC_ROOM = 65536;
+	static inline final DAC_ROOM = 262144;
 
 	final dacBytes:Array<Int> = [];
 	final kits:Array<Int> = [];
@@ -82,12 +84,21 @@ final class Transcription {
 
 		for (i in 0...shadow.length) shadow[i] = 0;
 
+		for (half in 0...2) {
+			for (at in 0x40...0x50) shadow[(half << 8) | at] = 0x7F;
+		}
+
 		for (i in 0...6) {
 			keyed[i] = false;
 			startedAt[i] = 0;
 			startedOn[i] = 60;
 			startedWith[i] = -1;
+			tying[i] = false;
+			started[i] = false;
 		}
+
+		for (i in 0...levels.length) levels[i] = -1;
+		for (i in 0...stereos.length) stereos[i] = -1;
 
 		for (i in 0...4) {
 			psgPeriod[i] = 0;
@@ -148,9 +159,14 @@ final class Transcription {
 
 			if (on && keyed[channel]) {
 				finish(at, channel);
+				tying[channel] = true;
 				start(at, channel);
-			} else if (on) start(at, channel);
-			else if (keyed[channel]) finish(at, channel);
+			} else if (on) {
+				tying[channel] = false;
+				start(at, channel);
+			} else if (keyed[channel]) {
+				finish(at, channel);
+			}
 
 			keyed[channel] = on;
 			return;
@@ -171,6 +187,16 @@ final class Transcription {
 			return;
 		}
 
+		if (address >= 0x40 && address <= 0x4F && (address & 3) != 3) {
+			levelled(at, half, address, value & 0x7F);
+			return;
+		}
+
+		if (address >= 0xB4 && address <= 0xB6 && (address & 3) != 3) {
+			sided(at, half * 3 + (address & 3), value & 0xFF);
+			return;
+		}
+
 		if (half == 0 && address == 0x2A) {
 			if (!dacOn) return;
 
@@ -186,8 +212,62 @@ final class Transcription {
 		}
 	}
 
+	static final GROUP_OF:Vector<Int> = Vector.fromArrayCopy([0, 2, 1, 3]);
+
+	final levels:Vector<Int> = new Vector<Int>(24);
+
+	final stereos:Vector<Int> = new Vector<Int>(6);
+
+	function sided(at:Int, channel:Int, value:Int):Void {
+		if (stereos[channel] == value) return;
+
+		final was = stereos[channel];
+		stereos[channel] = value;
+
+		if (was < 0) return;
+
+		final line = lined(channel, mdd.song.Automation.SIDES, 0, was);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
+	function lined(channel:Int, target:Int, slot:Int, first:Int):Null<mdd.song.Automation> {
+		final lane = pattern.lane(channel);
+
+		for (held in lane.automation) {
+			if (!held.held(target, slot)) continue;
+			return held.points.length >= mdd.song.Automation.ROOM ? null : held;
+		}
+
+		final made = new mdd.song.Automation(target, slot);
+
+		lane.automation.push(made);
+		made.add(new mdd.song.Point(0, first));
+
+		return made;
+	}
+
+	function levelled(at:Int, half:Int, address:Int, value:Int):Void {
+		final channel = half * 3 + (address & 3);
+		final slot = GROUP_OF[(address - 0x40) >> 2];
+		final which = channel * 4 + slot;
+
+		if (levels[which] == value) return;
+
+		final was = levels[which];
+		levels[which] = value;
+
+		if (was < 0) return;
+
+		final line = lined(channel, mdd.song.Automation.LEVEL, slot, was);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
 	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int,
-			velocity:Int = 127):Void {
+			velocity:Int = 127, tied:Bool = false):Void {
 		final lane = pattern.lane(part);
 		final many = lane.notes.length;
 
@@ -206,7 +286,10 @@ final class Transcription {
 			}
 		}
 
-		lane.add(new Note(from, until - from, pitch, velocity, instrument));
+		final made = new Note(from, until - from, pitch, velocity, instrument);
+		made.tied = tied;
+
+		lane.add(made);
 		notes++;
 	}
 
@@ -214,6 +297,7 @@ final class Transcription {
 		startedAt[channel] = at;
 		startedOn[channel] = pitchOf(channel);
 		startedWith[channel] = instrumentFor(channel);
+		started[channel] = tying[channel];
 	}
 
 	function finish(at:Int, channel:Int):Void {
@@ -224,7 +308,7 @@ final class Transcription {
 		if (until <= from) until = from + 1;
 
 		placed(channel, from, until, startedOn[channel], startedWith[channel] < 0
-			? instrumentFor(channel) : startedWith[channel]);
+			? instrumentFor(channel) : startedWith[channel], 127, started[channel]);
 	}
 
 	function sampled(at:Int):Void {
@@ -387,6 +471,7 @@ final class Transcription {
 				mdd.ui.Theme.PARTS[index]));
 
 			for (note in lane.notes) made.lane(part).add(note);
+			for (line in lane.automation) made.lane(part).automation.push(line);
 
 			final track = song.track(new Track(part.name()));
 			track.add(new Clip(song.patterns.length - 1, 0, length));

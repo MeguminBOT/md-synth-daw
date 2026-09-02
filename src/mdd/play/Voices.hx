@@ -20,6 +20,8 @@ final class Voices {
 	final pitches:Vector<Int>;
 	final velocities:Vector<Int>;
 	final instruments:Vector<Int>;
+	final ties:Vector<Bool>;
+	final holds:Vector<Bool>;
 
 	public function new(capacity:Int = 4096) {
 		this.capacity = capacity < 16 ? 16 : capacity;
@@ -29,6 +31,8 @@ final class Voices {
 		pitches = new Vector<Int>(this.capacity);
 		velocities = new Vector<Int>(this.capacity);
 		instruments = new Vector<Int>(this.capacity);
+		ties = new Vector<Bool>(this.capacity);
+		holds = new Vector<Bool>(this.capacity);
 	}
 
 	public inline function startAt(index:Int):Int {
@@ -49,6 +53,14 @@ final class Voices {
 
 	public inline function instrumentAt(index:Int):Int {
 		return instruments[index];
+	}
+
+	public inline function tiedAt(index:Int):Bool {
+		return ties[index];
+	}
+
+	public inline function heldAt(index:Int):Bool {
+		return holds[index];
 	}
 
 	public function resolve(lane:Lane, from:Int = 0, until:Int = 0x3FFFFFFF):Int {
@@ -84,7 +96,7 @@ final class Voices {
 		return low;
 	}
 
-	function hold(start:Int, ends:Int, note:Note):Void {
+	function hold(start:Int, ends:Int, note:Note, held:Bool):Void {
 		if (start >= ends) return;
 
 		if (count >= capacity) {
@@ -97,7 +109,16 @@ final class Voices {
 		pitches[count] = note.pitch;
 		velocities[count] = note.velocity;
 		instruments[count] = note.instrument;
+		ties[count] = note.tied;
+		holds[count] = held;
 		count++;
+	}
+
+	static inline function joined(notes:Array<Note>, index:Int):Bool {
+		final next = index + 1;
+
+		return next < notes.length && notes[next].tied
+			&& notes[next].at <= notes[index].ends();
 	}
 
 	function strict(notes:Array<Note>, first:Int, last:Int):Int {
@@ -111,7 +132,7 @@ final class Voices {
 				continue;
 			}
 
-			hold(note.at, note.ends(), note);
+			hold(note.at, note.ends(), note, joined(notes, index));
 			sounding = note.ends();
 		}
 
@@ -131,7 +152,7 @@ final class Voices {
 				break;
 			}
 
-			hold(note.at, ends, note);
+			hold(note.at, ends, note, joined(notes, index));
 		}
 
 		return count;
@@ -165,7 +186,7 @@ final class Voices {
 
 			if (chosen >= 0) {
 				hold(at, ends > notes[chosen].ends() ? notes[chosen].ends() : ends,
-					notes[chosen]);
+					notes[chosen], false);
 			}
 
 			at = ends;

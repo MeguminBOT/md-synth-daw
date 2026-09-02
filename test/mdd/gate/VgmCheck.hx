@@ -46,6 +46,7 @@ class VgmCheck {
 		hushed(where, files);
 		paced(where, files);
 		covered(where, files);
+		shadowed(where, files);
 
 		final into = args.indexOf("--wav");
 
@@ -393,11 +394,285 @@ class VgmCheck {
 			heldSteps + " frames of fm sounding against " + wantSteps + " the file keys, and no"
 			+ " two second window differs by more than " + round(apart * 100, 1) + " per cent");
 
+		var lines = 0;
+		var moves = 0;
+
+		for (pattern in made.song.patterns) {
+			for (part in 0...6) {
+				for (line in pattern.lane(part).automation) {
+					lines++;
+					moves += line.points.length;
+				}
+			}
+		}
+
+		says("and a level that moves is kept", lines > 0,
+			lines + " automation lines over the fm parts, holding " + moves + " points");
+
 		says("and every fm key on becomes a note",
 			totalKeyed == 0 || totalNoted >= totalKeyed * 0.98,
 			totalNoted + " fm notes against " + totalKeyed + " key ons; the thinnest two second"
 			+ " window keeps " + round(worst * 100, 1) + " per cent of them, at "
 			+ (where2 * 2) + " s");
+	}
+
+	static final CLASSES:Array<Int> = [0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xB0, 0xB4];
+	static final CLASS_NAMES:Array<String> = ["DT MUL", "TL", "KS AR", "AM D1R", "D2R",
+		"D1L RR", "SSG", "FB ALG", "SIDES"];
+
+	static function shadowed(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final source = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+
+		final seconds = 30;
+		final span = mdd.song.Tempo.TICKS * seconds;
+		final made = new mdd.play.Stream(1 << 22);
+
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		transport.play();
+
+		var done = 0;
+
+		while (done < span) {
+			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+			final held = transport.stream;
+
+			for (index in 0...held.count) {
+				made.raw(held.tickAt(index), held.kindAt(index), held.portAt(index),
+					held.valueAt(index));
+			}
+
+			done += Std.int(mdd.play.Render.BLOCK * (mdd.song.Tempo.TICKS / 44100.0));
+			if (made.count > made.capacity - 4096) break;
+		}
+
+		final wanted = new haxe.ds.Vector<Int>(544);
+		final held = new haxe.ds.Vector<Int>(544);
+
+		for (index in 0...544) {
+			wanted[index] = 0;
+			held[index] = 0;
+		}
+
+		for (index in 0...4) {
+			wanted[0x210 + index] = 15;
+			held[0x210 + index] = 15;
+		}
+
+		final apart = new haxe.ds.Vector<Float>(CLASSES.length);
+		final counted = new haxe.ds.Vector<Int>(CLASSES.length);
+
+		for (index in 0...CLASSES.length) {
+			apart[index] = 0;
+			counted[index] = 0;
+		}
+
+		var tuned = 0.0;
+		var tunes = 0;
+		var squares = 0.0;
+		var squared = 0;
+		var extra = 0;
+		var missing = 0;
+
+		final fileKeyed = new haxe.ds.Vector<Int>(6);
+		final songKeyed = new haxe.ds.Vector<Int>(6);
+
+		for (index in 0...6) {
+			fileKeyed[index] = 0;
+			songKeyed[index] = 0;
+		}
+
+		final extraBy = new haxe.ds.Vector<Int>(4);
+		final liveBy = new haxe.ds.Vector<Int>(4);
+		for (index in 0...4) {
+			extraBy[index] = 0;
+			liveBy[index] = 0;
+		}
+
+		var readWanted = 0;
+		var readHeld = 0;
+		var at = 0;
+
+		while (at < span) {
+			readWanted = poured(source, wanted, readWanted, at);
+			readHeld = poured(made, held, readHeld, at);
+
+			for (half in 0...2) {
+				for (channel in 0...3) {
+					final which = half * 3 + channel;
+					final fileOn = (wanted[0x200 + which] & 0xF0) != 0;
+					final songOn = (held[0x200 + which] & 0xF0) != 0;
+
+					if (fileOn) fileKeyed[which]++;
+					if (songOn) songKeyed[which]++;
+
+					if (!fileOn) continue;
+
+					for (which in 0...CLASSES.length) {
+						final base = CLASSES[which];
+
+						if (base >= 0xB0) {
+							final where2 = (half << 8) | (base + channel);
+							final away = wanted[where2] - held[where2];
+
+							apart[which] += away < 0 ? -away : away;
+							counted[which]++;
+							continue;
+						}
+
+						for (group in 0...4) {
+							final where2 = (half << 8) | (base + group * 4 + channel);
+							final mask = base == 0x40 ? 0x7F : 0xFF;
+							final away = (wanted[where2] & mask) - (held[where2] & mask);
+
+							apart[which] += away < 0 ? -away : away;
+							counted[which]++;
+						}
+					}
+
+					final high = (half << 8) | (0xA4 + channel);
+					final low = (half << 8) | (0xA0 + channel);
+
+					final one = hertz(wanted[high], wanted[low]);
+					final two = hertz(held[high], held[low]);
+
+					if (one > 1 && two > 1) {
+						final away = 1200 * Math.log(one / two) / Math.log(2);
+
+						tuned += away < 0 ? -away : away;
+						tunes++;
+					}
+				}
+			}
+
+			for (channel in 0...4) {
+				final one = wanted[0x210 + channel];
+				final two = held[0x210 + channel];
+
+				if (one < 15) liveBy[channel]++;
+				if (one >= 15 && two >= 15) continue;
+
+				if (one >= 15) {
+					extra++;
+					extraBy[channel]++;
+					continue;
+				}
+
+				if (two >= 15) {
+					missing++;
+					continue;
+				}
+
+				final away = one - two;
+				squares += away < 0 ? -away : away;
+				squared++;
+			}
+
+			at += 735;
+		}
+
+		final said = new StringBuf();
+
+		for (index in 0...CLASSES.length) {
+			if (counted[index] == 0) continue;
+			said.add(CLASS_NAMES[index] + " " + round(apart[index] / counted[index], 2) + "  ");
+		}
+
+		var worstClass = 0.0;
+
+		for (index in 0...CLASSES.length) {
+			if (counted[index] == 0) continue;
+
+			final mean = apart[index] / counted[index];
+			if (mean > worstClass) worstClass = mean;
+		}
+
+		final keys = new StringBuf();
+		var keysApart = 0;
+
+		for (index in 0...6) {
+			final away = songKeyed[index] - fileKeyed[index];
+			keysApart += away < 0 ? -away : away;
+
+			keys.add("FM" + (index + 1) + " " + songKeyed[index] + "/" + fileKeyed[index]
+				+ "  ");
+		}
+
+		says("and the same channels are keyed", keysApart < 20, keys.toString());
+
+		says("and the registers the chip sees agree",
+			counted[1] > 0 && worstClass < 0.5 && tunes > 0 && tuned / tunes < 10
+			&& squared > 0 && squares / squared < 1,
+			"mean apart on a keyed channel: " + said.toString() + "PITCH "
+			+ (tunes == 0 ? "0" : Std.string(round(tuned / tunes, 1))) + " cents; a square"
+			+ " sounding on both is " + (squared == 0 ? "0"
+			: Std.string(round(squares / squared, 2))) + " steps apart over " + squared
+			+ " looks; the file sounds where the song does not " + missing + " times and the"
+			+ " song sounds where the file does not " + extra + " times ("
+			+ extraBy[0] + "/" + liveBy[0] + " " + extraBy[1] + "/" + liveBy[1] + " "
+			+ extraBy[2] + "/" + liveBy[2] + " " + extraBy[3] + "/" + liveBy[3] + ")");
+	}
+
+	static function hertz(high:Int, low:Int):Float {
+		final number = ((high & 7) << 8) | low;
+		if (number == 0) return 0;
+
+		final block = (high >> 3) & 7;
+
+		return number * (mdd.chip.Ym2612.CLOCK / mdd.chip.Ym2612.PER_SAMPLE) / 1048576.0
+			* Math.pow(2, block - 1);
+	}
+
+	static function poured(stream:mdd.play.Stream, shadow:haxe.ds.Vector<Int>, from:Int,
+			until:Int):Int {
+		var index = from;
+		var address = -1;
+		var half = 0;
+		var latched = 0;
+
+		while (index < stream.count && stream.tickAt(index) <= until) {
+			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) != mdd.play.Stream.YM) {
+				if ((value & 0x80) != 0) {
+					latched = (value >> 4) & 7;
+
+					if ((latched & 1) != 0) shadow[0x210 + (latched >> 1)] = value & 0x0F;
+				} else if ((latched & 1) != 0) {
+					shadow[0x210 + (latched >> 1)] = value & 0x0F;
+				}
+
+				index++;
+				continue;
+			}
+
+			final port = stream.portAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+			} else if (address >= 0) {
+				shadow[(half << 8) | address] = value;
+
+				if (half == 0 && address == 0x28) {
+					final within = value & 3;
+
+					if (within != 3) {
+						shadow[0x200 + within + ((value & 4) != 0 ? 3 : 0)] = value & 0xF0;
+					}
+				}
+			}
+
+			index++;
+		}
+
+		return index;
 	}
 
 	static function paced(where:String, files:Array<String>):Void {
@@ -560,8 +835,9 @@ class VgmCheck {
 	}
 
 	static function raw(from:String, into:String, seconds:Int, rate:Int):Float {
-		final stream = new mdd.play.Stream(1 << 23);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(from), stream);
+		final read = new mdd.play.Stream(1 << 23);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(from), read);
+		final stream = only == "" ? read : sifted(read, only);
 
 		var ticks = vgm.samples;
 
@@ -597,6 +873,50 @@ class VgmCheck {
 	}
 
 	public static var only:String = "";
+
+	static function sifted(from:mdd.play.Stream, want:String):mdd.play.Stream {
+		final wanted = want.split(",");
+		final out = new mdd.play.Stream(from.capacity);
+
+		var address = -1;
+		var half = 0;
+		var latched = 0;
+
+		for (index in 0...from.count) {
+			final kind = from.kindAt(index);
+			final port = from.portAt(index);
+			final value = from.valueAt(index);
+			final tick = from.tickAt(index);
+
+			if (kind != mdd.play.Stream.YM) {
+				if ((value & 0x80) != 0) latched = (value >> 4) & 7;
+
+				final channel = 6 + (latched >> 1);
+				if (wanted.indexOf(Std.string(channel)) < 0) continue;
+
+				out.raw(tick, kind, port, value);
+				continue;
+			}
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (address < 0) continue;
+
+			final part = half == 0 && address == 0x28 ? mdd.play.Stream.keyPart(value)
+				: mdd.play.Stream.ymPart(half, address);
+
+			if (part >= 0 && wanted.indexOf(Std.string(part)) < 0) continue;
+
+			out.raw(tick, kind, half * 2, address);
+			out.raw(tick, kind, half * 2 + 1, value);
+		}
+
+		return out;
+	}
 
 	static function rendered(from:String, into:String, seconds:Int,
 			rate:Int):Float {

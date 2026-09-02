@@ -14,7 +14,7 @@ final class Profile {
 	public var highestSquare:Int = 127;
 	public var lowestFm:Int = 12;
 	public var highestFm:Int = 107;
-	public var sampleBytes:Int = 65536;
+	public var sampleBytes:Int = 262144;
 
 	public function new(name:String) {
 		this.name = name;

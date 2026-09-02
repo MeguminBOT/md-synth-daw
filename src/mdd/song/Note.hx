@@ -7,6 +7,7 @@ final class Note {
 	public var pitch:Int;
 	public var velocity:Int;
 	public var instrument:Int;
+	public var tied:Bool = false;
 
 	public function new(at:Int, length:Int, pitch:Int, velocity:Int = 100,
 			instrument:Int = -1) {
@@ -18,7 +19,10 @@ final class Note {
 	}
 
 	public function copy():Note {
-		return new Note(at, length, pitch, velocity, instrument);
+		final out = new Note(at, length, pitch, velocity, instrument);
+		out.tied = tied;
+
+		return out;
 	}
 
 	public inline function ends():Int {
@@ -27,6 +31,7 @@ final class Note {
 
 	public function same(other:Note):Bool {
 		return at == other.at && length == other.length && pitch == other.pitch
-			&& velocity == other.velocity && instrument == other.instrument;
+			&& velocity == other.velocity && instrument == other.instrument
+			&& tied == other.tied;
 	}
 }

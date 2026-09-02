@@ -2,6 +2,11 @@ package mdd.song;
 
 @:unreflective
 final class Automation {
+	public static inline final LEVEL = 0;
+	public static inline final SIDES = 1;
+
+	public static inline final ROOM = 8192;
+
 	public var target:Int;
 	public var slot:Int;
 	public final points:Array<Point> = [];
@@ -17,6 +22,37 @@ final class Automation {
 
 		points.insert(at, point);
 		return point;
+	}
+
+	public function heldAt(tick:Int):Int {
+		if (points.length == 0) return -1;
+
+		var value = points[0].value;
+
+		for (point in points) {
+			if (point.at > tick) break;
+			value = point.value;
+		}
+
+		return value;
+	}
+
+	public function seek(tick:Int):Int {
+		var low = 0;
+		var high = points.length;
+
+		while (low < high) {
+			final middle = (low + high) >> 1;
+
+			if (points[middle].at < tick) low = middle + 1;
+			else high = middle;
+		}
+
+		return low;
+	}
+
+	public function held(target:Int, slot:Int):Bool {
+		return this.target == target && this.slot == slot;
 	}
 
 	public function valueAt(tick:Int):Int {

@@ -174,6 +174,22 @@ final class Stream {
 			((sides & 3) << 6) | ((patch.ams & 3) << 4) | (patch.pms & 7));
 	}
 
+	public function sides(tick:Int, part:Part, value:Int):Void {
+		if (!part.fm()) return;
+
+		ym(tick, halfOf(part), 0xB4 + channelOf(part), value & 0xFF);
+	}
+
+	public function totalLevel(tick:Int, part:Part, slot:Int, value:Int):Void {
+		if (!part.fm()) return;
+
+		final half = halfOf(part);
+		final channel = channelOf(part);
+		final group = slot == 1 ? 2 : (slot == 2 ? 1 : slot);
+
+		ym(tick, half, 0x40 + group * 4 + channel, value & 0x7F);
+	}
+
 	public function level(tick:Int, part:Part, patch:Patch, velocity:Int):Void {
 		if (!part.fm()) return;
 

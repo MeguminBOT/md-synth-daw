@@ -80,7 +80,6 @@ final class Transport {
 			hushing = false;
 			heardPart = -1;
 			stream.reset(position);
-			stream.lfo(position, song.lfoOn, song.lfoRate);
 		}
 
 		if (!playing) {

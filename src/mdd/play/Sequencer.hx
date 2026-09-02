@@ -13,11 +13,14 @@ final class Sequencer {
 	public static inline final TUNE = 2;
 	public static inline final ON = 3;
 	public static inline final DATA = 4;
+	public static inline final TWEAK = 5;
+	public static inline final SETUP = 6;
 
 	public static inline final DAC_BYTE = 0;
 	public static inline final PSG_STEP = 1;
 
 	public static inline final ENVELOPE_TICKS = 735;
+	public static inline final GUARD = 16;
 
 	public final song:Song;
 	public final voices:Voices;
@@ -53,6 +56,8 @@ final class Sequencer {
 		dropped = 0;
 
 		if (toSample <= fromSample) return 0;
+
+		if (fromSample <= 0) push(0, Part.Fm1, SETUP, (song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
 
 		gather(fromSample, toSample);
 		sort();
@@ -108,13 +113,24 @@ final class Sequencer {
 			if (head < 0) head = 0;
 
 			voices.resolve(lane, head, high - from + 1);
-			sound(from, until, transpose, part, fromSample, toSample);
+			sound(lane, from, until, transpose, part, fromSample, toSample);
+			tweaked(lane, from, part, head, high - from + 1, fromSample, toSample);
 		}
 	}
 
-	function sound(from:Int, until:Int, transpose:Int, part:Part, fromSample:Int,
-			toSample:Int):Void {
+	function sound(lane:mdd.song.Lane, from:Int, until:Int, transpose:Int, part:Part,
+			fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
+		var sided:Null<mdd.song.Automation> = null;
+
+		if (part.fm()) {
+			for (line in lane.automation) {
+				if (line.target != mdd.song.Automation.SIDES) continue;
+
+				sided = line;
+				break;
+			}
+		}
 
 		for (slice in 0...voices.count) {
 			var start = from + voices.startAt(slice);
@@ -124,25 +140,64 @@ final class Sequencer {
 			if (ends > until) ends = until;
 			if (ends <= start) continue;
 
+			final tied = part.fm() && voices.tiedAt(slice);
+			final held = part.fm() && voices.heldAt(slice);
+
 			final onSample = tempo.samplesAt(start);
-			final offSample = tempo.samplesAt(ends);
+			final ending = tempo.samplesAt(ends);
+			final offSample = !held && ending - onSample > GUARD * 2 ? ending - GUARD : ending;
 			final pitch = voices.pitchAt(slice) + transpose;
 			final velocity = louder(part, voices.velocityAt(slice));
 			final named = voices.instrumentAt(slice);
 
 			if (onSample >= fromSample && onSample < toSample) {
-				push(onSample, part, PATCH, named, velocity);
+				if (!tied) {
+					push(onSample, part, PATCH, named, velocity);
+
+					if (sided != null) {
+						push(onSample, part, TWEAK, sided.heldAt(start - from) & 0xFF, 1);
+					}
+				}
+
 				push(onSample, part, TUNE, pitch, 0);
-				push(onSample, part, ON, velocity, named);
+				if (!tied) push(onSample, part, ON, velocity, named);
 			}
 
-			if (offSample >= fromSample && offSample < toSample) {
+			if (!held && offSample >= fromSample && offSample < toSample) {
 				push(offSample, part, OFF, 0, 0);
 			}
 
 			if (part.sampled()) sampled(onSample, offSample, named, fromSample, toSample);
 			else if (part.square() || part.noise()) {
 				shaped(onSample, offSample, part, named, velocity, fromSample, toSample);
+			}
+		}
+	}
+
+	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
+			fromSample:Int, toSample:Int):Void {
+		if (!part.fm() || lane.automation.length == 0) return;
+
+		final tempo = song.tempo;
+
+		for (line in lane.automation) {
+			final level = line.target == mdd.song.Automation.LEVEL;
+			if (!level && line.target != mdd.song.Automation.SIDES) continue;
+
+			var index = line.seek(head);
+			if (index > 0) index--;
+
+			while (index < line.points.length) {
+				final point = line.points[index];
+				if (point.at > tail) break;
+
+				index++;
+
+				final at = tempo.samplesAt(from + point.at);
+				if (at < fromSample || at >= toSample) continue;
+
+				if (level) push(at, part, TWEAK, (line.slot << 8) | (point.value & 0x7F), 0);
+				else push(at, part, TWEAK, point.value & 0xFF, 1);
 			}
 		}
 	}
@@ -319,6 +374,13 @@ final class Sequencer {
 				case DATA:
 					if (second == DAC_BYTE) stream.byte(tick, first);
 					else stream.attenuate(tick, part, first);
+
+				case TWEAK:
+					if (second == 0) stream.totalLevel(tick, part, (first >> 8) & 3, first & 0x7F);
+					else stream.sides(tick, part, first);
+
+				case SETUP:
+					stream.lfo(tick, (first & 8) != 0, first & 7);
 
 				case _:
 			}
