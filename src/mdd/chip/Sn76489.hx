@@ -137,6 +137,11 @@ final class Sn76489 {
 		return output[channel] > 0 ? volumes[attenuation[channel]] : 0;
 	}
 
+	public inline function sample():Int {
+		step();
+		return level();
+	}
+
 	public function level():Int {
 		var sum = 0;
 		for (channel in 0...4) if (output[channel] > 0) sum += volumes[attenuation[channel]];

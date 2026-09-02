@@ -67,11 +67,18 @@ final class Render {
 
 	public static inline final WEIGHTS = 31;
 
+	public static inline final SQUARES = 96;
+
 	final weights:Vector<Float> = new Vector<Float>(WEIGHTS);
 	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS);
 	final pastRight:Vector<Float> = new Vector<Float>(WEIGHTS);
 
 	var pastAt:Int = 0;
+
+	final squareWeights:Vector<Float> = new Vector<Float>(SQUARES);
+	final squarePast:Vector<Float> = new Vector<Float>(SQUARES);
+
+	var squareAt:Int = 0;
 
 	public function new(rate:Int, frames:Int = BLOCK, queue:Null<Queue> = null) {
 		this.rate = rate <= 0 ? 48000 : rate;
@@ -81,7 +88,7 @@ final class Render {
 		block = new Vector<cpp.Float32>(this.frames * 2);
 
 		fmStep = Ym2612.CLOCK / (Ym2612.PER_SAMPLE * this.rate);
-		psgStep = Sn76489.CLOCK / this.rate;
+		psgStep = Sn76489.CLOCK / (Sn76489.DIVIDER * this.rate);
 
 		shaped();
 	}
@@ -112,6 +119,29 @@ final class Render {
 			pastLeft[index] = 0;
 			pastRight[index] = 0;
 		}
+
+		final square = Sn76489.CLOCK / Sn76489.DIVIDER;
+
+		var edge = 0.45 * rate / square;
+		if (edge > 0.5) edge = 0.5;
+
+		final centre = (SQUARES - 1) * 0.5;
+		var whole = 0.0;
+
+		for (index in 0...SQUARES) {
+			final at = index - centre;
+			final sinc = at == 0 ? 2 * edge
+				: Math.sin(2 * Math.PI * edge * at) / (Math.PI * at);
+
+			final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (SQUARES - 1))
+				+ 0.08 * Math.cos(4 * Math.PI * index / (SQUARES - 1));
+
+			squareWeights[index] = sinc * window;
+			whole += squareWeights[index];
+		}
+
+		for (index in 0...SQUARES) squareWeights[index] /= whole;
+		for (index in 0...SQUARES) squarePast[index] = 0;
 	}
 
 	public function reset():Void {
@@ -122,11 +152,14 @@ final class Render {
 		fmAt = 0;
 		psgAt = 0;
 		pastAt = 0;
+		squareAt = 0;
 
 		for (index in 0...WEIGHTS) {
 			pastLeft[index] = 0;
 			pastRight[index] = 0;
 		}
+
+		for (index in 0...SQUARES) squarePast[index] = 0;
 		fmLeft = 0;
 		fmRight = 0;
 		wentLeft = 0;
@@ -202,11 +235,25 @@ final class Render {
 			fmRight = gotRight;
 
 			psgAt += psgStep;
-			final clocks = Std.int(psgAt);
-			psgAt -= clocks;
-			psg.run(clocks);
 
-			final other = psg.taken();
+			while (psgAt >= 1) {
+				psgAt -= 1;
+
+				squareAt++;
+				if (squareAt >= SQUARES) squareAt = 0;
+
+				squarePast[squareAt] = psg.sample();
+			}
+
+			var other = 0.0;
+			var square = squareAt;
+
+			for (index in 0...SQUARES) {
+				other += squarePast[square] * squareWeights[index];
+
+				square--;
+				if (square < 0) square = SQUARES - 1;
+			}
 
 			final left = fmLeft + other;
 			final right = fmRight + other;
