@@ -48,12 +48,12 @@ final class Transcription {
 	final shapes:Array<Int> = [];
 
 	var latched:Int = 0;
-	var noiseMode:Int = 4;
+	var noiseMode:Int = -1;
 	var dacOn:Bool = false;
 	var dacHead:Int = -1;
 	var dacLast:Int = 0;
 
-	static inline final PER_TICK = 6;
+	static inline final PER_TICK = 1;
 
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_PAUSE = 256;
@@ -110,7 +110,9 @@ final class Transcription {
 		}
 
 		for (i in 0...levels.length) levels[i] = -1;
+		for (i in 0...envelopes.length) envelopes[i] = -1;
 		for (i in 0...stereos.length) stereos[i] = -1;
+		for (i in 0...wirings.length) wirings[i] = -1;
 		for (i in 0...tunes.length) tunes[i] = -1;
 		for (i in 0...operators.length) operators[i] = -1;
 
@@ -220,6 +222,16 @@ final class Transcription {
 			return;
 		}
 
+		if (address >= 0x30 && address <= 0x9F && (address & 3) != 3) {
+			envelope(at, half, address, value);
+			return;
+		}
+
+		if (address >= 0xB0 && address <= 0xB2) {
+			wired(at, half * 3 + (address & 3), value & 0xFF);
+			return;
+		}
+
 		if (address >= 0xA0 && address <= 0xA2) {
 			final within = address & 3;
 
@@ -253,6 +265,7 @@ final class Transcription {
 	static final GROUP_OF:Vector<Int> = Vector.fromArrayCopy([0, 2, 1, 3]);
 
 	final levels:Vector<Int> = new Vector<Int>(24);
+	final envelopes:Vector<Int> = new Vector<Int>(24 * 7);
 
 	final stereos:Vector<Int> = new Vector<Int>(6);
 	final tunes:Vector<Int> = new Vector<Int>(6);
@@ -311,6 +324,49 @@ final class Transcription {
 		if (first >= 0) made.add(new mdd.song.Point(0, first));
 
 		return made;
+	}
+
+	static final SHAPING:Array<Int> = [mdd.song.Automation.TIMBRE,
+		mdd.song.Automation.TIMBRE, mdd.song.Automation.ATTACK, mdd.song.Automation.DECAY,
+		mdd.song.Automation.SUSTAIN, mdd.song.Automation.RELEASE,
+		mdd.song.Automation.LOOP];
+
+	function envelope(at:Int, half:Int, address:Int, value:Int):Void {
+		final base = (address >> 4) - 3;
+		if (base < 0 || base > 6 || base == 1) return;
+
+		final target = SHAPING[base];
+		final channel = half * 3 + (address & 3);
+		final slot = GROUP_OF[(address & 0x0F) >> 2];
+		final which = (channel * 4 + slot) * 7 + base;
+
+		if (envelopes[which] == value) return;
+
+		final was = envelopes[which];
+		envelopes[which] = value;
+
+		if (was < 0) return;
+
+		final line = lined(channel, target, slot, was);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
+	final wirings:Vector<Int> = new Vector<Int>(6);
+
+	function wired(at:Int, channel:Int, value:Int):Void {
+		if (wirings[channel] == value) return;
+
+		final was = wirings[channel];
+		wirings[channel] = value;
+
+		if (was < 0) return;
+
+		final line = lined(channel, mdd.song.Automation.WIRING, 0, was);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), value));
 	}
 
 	function levelled(at:Int, half:Int, address:Int, value:Int):Void {
@@ -446,9 +502,10 @@ final class Transcription {
 
 		if (counted < 1 || total < 1) return;
 
-		final mean = total / counted;
-		final rate = Math.ceil(Tempo.TICKS / mean / DAC_STEP) * DAC_STEP;
+		var gap = Math.round(total / counted);
+		if (gap < 1) gap = 1;
 
+		final rate = Std.int(Tempo.TICKS / gap);
 		dacRate = rate < 2000 ? 2000 : (rate > 32000 ? 32000 : rate);
 	}
 
@@ -523,7 +580,7 @@ final class Transcription {
 			else if (channel < 3) {
 				psgPeriod[channel] = (psgPeriod[channel] & 0x3F0) | (value & 0x0F);
 				slid(at, channel);
-			} else noiseMode = value & 0x0F;
+			} else hissed(at, value & 0x0F);
 
 			return;
 		}
@@ -541,8 +598,20 @@ final class Transcription {
 		slid(at, channel);
 	}
 
+	function hissed(at:Int, value:Int):Void {
+		if (noiseMode == value) return;
+
+		final was = noiseMode;
+		noiseMode = value;
+
+		final line = lined(9, mdd.song.Automation.TUNE, 0, -1);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
 	function slid(at:Int, channel:Int):Void {
-		if (psgFrom[channel] < 0) return;
+		if (psgFrom[channel] < 0 && channel != 2) return;
 
 		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, -1);
 		if (line == null) return;
