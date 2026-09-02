@@ -97,10 +97,9 @@ final class PianoRoll extends Widget {
 		}
 
 		final root = root();
-		final want = root == null ? 34 : root.metrics.row;
+		var want = root == null ? 34.0 : root.metrics.row;
 
 		if (wasTall <= 0) wasTall = rowTall;
-		if (rowTall < want) rowTall = want;
 
 		final song = session.song;
 
@@ -110,6 +109,13 @@ final class PianoRoll extends Widget {
 
 			kit.push(index);
 		}
+
+		final most = root == null ? 60.0 : root.metrics.whole(60);
+		final room = kit.length < 1 ? want : grid() / kit.length;
+
+		if (room > want) want = room > most ? most : room;
+
+		rowTall = want;
 	}
 
 	public function lowest():Int {
@@ -954,6 +960,15 @@ final class PianoRoll extends Widget {
 
 	function rows(paint:Paint, theme:Theme, left:Float, top:Float):Void {
 		final floor = lowest();
+
+		if (kitting()) {
+			final under = atPitch(floor);
+
+			if (under + rowTall < y + height) {
+				paint.rect(left, under + rowTall, width - gutter(),
+					y + height - under - rowTall, theme.sink, 0.6);
+			}
+		}
 		var pitch = pitchAt(top);
 		if (pitch > highest()) pitch = highest();
 
