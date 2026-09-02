@@ -864,7 +864,9 @@ class App {
 				return true;
 
 			case Key.E:
-				files.ask(window, Files.VGM);
+				if (shift) sounded();
+				else files.ask(window, Files.VGM);
+
 				return true;
 
 			case Key.Comma:
