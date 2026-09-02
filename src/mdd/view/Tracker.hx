@@ -83,12 +83,57 @@ final class Tracker extends Widget {
 		return held < 1 ? 1 : held;
 	}
 
-	public function rows():Int {
-		final pattern = session.current();
-		if (pattern == null) return 0;
+	public inline function songly():Bool {
+		return !session.alone && session.song.tracks.length > 0;
+	}
 
-		final many = Math.ceil(pattern.length / step());
+	public function rows():Int {
+		final span = songly() ? session.song.ends() : lengthOf();
+		final many = Math.ceil(span / step());
+
 		return many < 1 ? 1 : many;
+	}
+
+	function lengthOf():Int {
+		final pattern = session.current();
+		return pattern == null ? 0 : pattern.length;
+	}
+
+	public function clipAt(tick:Int, part:Part):Null<mdd.song.Clip> {
+		for (track in session.song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (tick < clip.at || tick >= clip.ends()) continue;
+
+				final pattern = session.song.patternAt(clip.pattern);
+				if (pattern == null || pattern.lane(part).notes.length == 0) continue;
+
+				return clip;
+			}
+		}
+
+		return null;
+	}
+
+	public function laneAt(tick:Int, part:Part):Null<mdd.song.Lane> {
+		if (!songly()) {
+			final pattern = session.current();
+			return pattern == null ? null : pattern.lane(part);
+		}
+
+		final clip = clipAt(tick, part);
+		if (clip == null) return null;
+
+		final pattern = session.song.patternAt(clip.pattern);
+		return pattern == null ? null : pattern.lane(part);
+	}
+
+	public function originAt(tick:Int, part:Part):Int {
+		if (!songly()) return 0;
+
+		final clip = clipAt(tick, part);
+		return clip == null ? 0 : clip.at;
 	}
 
 	public inline function tickOf(row:Int):Int {
@@ -109,15 +154,60 @@ final class Tracker extends Widget {
 		return x + numbers() + which * columnWide() - offsetX;
 	}
 
-	public function noteAt(row:Int, column:Int):Null<Note> {
-		final pattern = session.current();
-		if (pattern == null || row < 0 || column < 0) return null;
+	public var carried(default, null):Bool = false;
 
-		final from = tickOf(row);
-		final until = from + step();
+	public function noteOf(row:Int, column:Int):Null<Note> {
+		carried = false;
+
+		if (row < 0 || column < 0) return null;
+
 		final part:Part = column;
+		final tick = tickOf(row);
 
-		for (note in pattern.lane(part).notes) {
+		var lane:Null<mdd.song.Lane> = null;
+		var origin = 0;
+
+		if (songly()) {
+			final clip = clipAt(tick, part);
+			if (clip == null) return null;
+
+			final pattern = session.song.patternAt(clip.pattern);
+			if (pattern == null) return null;
+
+			lane = pattern.lane(part);
+			origin = clip.at;
+		} else {
+			final pattern = session.current();
+			if (pattern == null) return null;
+
+			lane = pattern.lane(part);
+		}
+
+		final at = tick - origin;
+		final until = at + step();
+
+		for (note in lane.notes) {
+			if (note.at >= until) break;
+
+			if (note.at >= at) return note;
+			if (at < note.ends()) carried = true;
+		}
+
+		return null;
+	}
+
+	public function noteAt(row:Int, column:Int):Null<Note> {
+		if (row < 0 || column < 0) return null;
+
+		final part:Part = column;
+		final tick = tickOf(row);
+		final lane = laneAt(tick, part);
+		if (lane == null) return null;
+
+		final from = tick - originAt(tick, part);
+		final until = from + step();
+
+		for (note in lane.notes) {
 			if (note.at >= from && note.at < until) return note;
 		}
 
@@ -125,13 +215,16 @@ final class Tracker extends Widget {
 	}
 
 	public function holding(row:Int, column:Int):Bool {
-		final pattern = session.current();
-		if (pattern == null || row < 0 || column < 0) return false;
+		if (row < 0 || column < 0) return false;
 
-		final at = tickOf(row);
 		final part:Part = column;
+		final tick = tickOf(row);
+		final lane = laneAt(tick, part);
+		if (lane == null) return false;
 
-		for (note in pattern.lane(part).notes) {
+		final at = tick - originAt(tick, part);
+
+		for (note in lane.notes) {
 			if (note.at >= at) break;
 			if (at < note.ends()) return true;
 		}
@@ -189,31 +282,38 @@ final class Tracker extends Widget {
 	}
 
 	public function place(pitch:Int):Void {
-		final pattern = session.current();
-		if (pattern == null) return;
-
 		final part:Part = column;
+		final tick = tickOf(row);
+		final which = writing(tick, part);
+		if (which < 0) return;
+
 		final held = noteAt(row, column);
+		if (held != null) session.does(new RemoveNote(which, part, held));
 
-		if (held != null) session.does(new RemoveNote(session.pattern, part, held));
-
-		final note = new Note(tickOf(row), step(), pitch, 100,
+		final note = new Note(tick - originAt(tick, part), step(), pitch, 100,
 			session.song.rack[part.index()]);
 
-		session.does(new AddNote(session.pattern, part, note));
+		session.does(new AddNote(which, part, note));
 
 		if (onAudition != null) onAudition(part, pitch);
 
 		forward();
 	}
 
-	public function cut():Void {
-		final pattern = session.current();
-		if (pattern == null) return;
+	public function writing(tick:Int, part:Part):Int {
+		if (!songly()) return session.pattern;
 
+		final clip = clipAt(tick, part);
+		return clip == null ? session.pattern : clip.pattern;
+	}
+
+	public function cut():Void {
 		final part:Part = column;
-		final at = tickOf(row);
-		final lane = pattern.lane(part);
+		final tick = tickOf(row);
+		final lane = laneAt(tick, part);
+		if (lane == null) return;
+
+		final at = tick - originAt(tick, part);
 
 		var held:Null<Note> = null;
 
@@ -238,7 +338,7 @@ final class Tracker extends Widget {
 		}
 
 		final part:Part = column;
-		session.does(new RemoveNote(session.pattern, part, held));
+		session.does(new RemoveNote(writing(tickOf(row), part), part, held));
 
 		forward();
 	}
@@ -446,8 +546,7 @@ final class Tracker extends Widget {
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;
 
-		final pattern = session.current();
-		if (pattern == null) return;
+		if (rows() < 1) return;
 
 		final tall = rowTall();
 		final wide = columnWide();
@@ -488,11 +587,11 @@ final class Tracker extends Widget {
 				final left = atColumn(index);
 				if (left + wide < x + numbers() || left > x + width) continue;
 
-				final held = noteAt(at, index);
+				final held = noteOf(at, index);
 				final loud = session.song.audible(index) ? 1.0 : 0.4;
 
 				if (held == null) {
-					if (!holding(at, index)) continue;
+					if (!carried) continue;
 
 					paint.text("|", left + metrics.gap, baseline, theme.part(index), loud * 0.4);
 					continue;

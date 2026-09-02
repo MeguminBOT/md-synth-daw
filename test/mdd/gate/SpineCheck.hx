@@ -446,9 +446,25 @@ class SpineCheck {
 		final grid = tracker.rows();
 		final shown = tracker.painted;
 
-		says("the tracker is a grid", grid == pattern.length / 24 && shown > 8,
+		says("the tracker is the arrangement", grid == session.song.ends() / 24 && shown > 8,
 			grid + " rows of " + Part.COUNT + " voices at a snap of 24 ticks, " + shown
-			+ " of them on screen");
+			+ " of them on screen, covering the whole song");
+
+		session.plays(true);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		says("and the pattern when the transport is on one",
+			tracker.rows() == pattern.length / 24,
+			tracker.rows() + " rows for a pattern of " + pattern.length + " ticks");
+
+		session.plays(false);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
 
 		final third = pattern.lane(Part.Fm3);
 		third.notes.resize(0);

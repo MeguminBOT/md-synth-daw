@@ -315,6 +315,8 @@ final class ChannelRack extends Widget {
 
 		paint.reface(small);
 
+		final names = x + metrics.inset + swatch + metrics.gap + widest(font);
+
 		for (index in 0...Part.COUNT) {
 			final row = atRow(index);
 			final line = row + (tall - small.height) * 0.5 + small.ascent;
@@ -328,8 +330,7 @@ final class ChannelRack extends Widget {
 			final instrument = session.song.instrumentAt(session.song.rack[index]);
 			if (instrument == null) continue;
 
-			final left = x + metrics.inset + swatch + metrics.gap + widest(font)
-				+ metrics.gap;
+			final left = names + metrics.gap;
 			final room = x + width - metrics.whole(104) - left;
 
 			if (room < metrics.whole(24)) continue;
@@ -354,7 +355,12 @@ final class ChannelRack extends Widget {
 		paint.popClip();
 	}
 
+	var namesWide:Float = 0;
+	var namesFor:mdd.ui.Font = null;
+
 	function widest(font:mdd.ui.Font):Float {
+		if (namesFor == font) return namesWide;
+
 		var most = 0.0;
 
 		for (index in 0...Part.COUNT) {
@@ -363,6 +369,9 @@ final class ChannelRack extends Widget {
 
 			if (held > most) most = held;
 		}
+
+		namesFor = font;
+		namesWide = most;
 
 		return most;
 	}
