@@ -117,27 +117,62 @@ final class Wav {
 	}
 
 	public static function write(samples:Vector<cpp.Float32>, frames:Int, channels:Int,
-			rate:Int):Bytes {
+			rate:Int, depth:Int = 16, dither:Bool = false):Bytes {
 		final out = new BytesOutput();
-		final body = frames * channels * 2;
+		final wide = depth == 32 ? 4 : (depth == 24 ? 3 : 2);
+		final floating = depth == 32;
+		final body = frames * channels * wide;
 
 		out.writeString("RIFF");
 		out.writeInt32(36 + body);
 		out.writeString("WAVE");
 		out.writeString("fmt ");
 		out.writeInt32(16);
-		out.writeUInt16(1);
+		out.writeUInt16(floating ? 3 : 1);
 		out.writeUInt16(channels);
 		out.writeInt32(rate);
-		out.writeInt32(rate * channels * 2);
-		out.writeUInt16(channels * 2);
-		out.writeUInt16(16);
+		out.writeInt32(rate * channels * wide);
+		out.writeUInt16(channels * wide);
+		out.writeUInt16(depth);
 		out.writeString("data");
 		out.writeInt32(body);
 
-		for (i in 0...frames * channels) {
-			final value = Math.round(samples[i] * 32767);
-			out.writeInt16(value > 32767 ? 32767 : (value < -32768 ? -32768 : value));
+		var seed = 0x12345678;
+
+		for (index in 0...frames * channels) {
+			final value = samples[index];
+
+			if (floating) {
+				out.writeFloat(value);
+				continue;
+			}
+
+			final ceiling = depth == 24 ? 8388607.0 : 32767.0;
+			var scaled = value * ceiling;
+
+			if (dither) {
+				seed = seed * 1103515245 + 12345;
+				final one = ((seed >>> 16) & 0x7FFF) / 32767.0;
+
+				seed = seed * 1103515245 + 12345;
+				final two = ((seed >>> 16) & 0x7FFF) / 32767.0;
+
+				scaled += one - two;
+			}
+
+			var held = Math.round(scaled);
+
+			if (held > ceiling) held = Std.int(ceiling);
+			if (held < -ceiling - 1) held = Std.int(-ceiling - 1);
+
+			if (depth == 24) {
+				out.writeByte(held & 0xFF);
+				out.writeByte((held >> 8) & 0xFF);
+				out.writeByte((held >> 16) & 0xFF);
+				continue;
+			}
+
+			out.writeInt16(held);
 		}
 
 		return out.getBytes();
