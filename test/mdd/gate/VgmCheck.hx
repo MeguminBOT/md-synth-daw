@@ -145,6 +145,10 @@ class VgmCheck {
 
 		var played = 0;
 		var quiet = 0;
+		var dark = 0;
+
+		final peaks = new haxe.ds.Vector<Float>(mdd.song.Part.COUNT);
+		for (index in 0...peaks.length) peaks[index] = 0;
 
 		for (want in wanted) {
 			var name = "";
@@ -161,7 +165,6 @@ class VgmCheck {
 			final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 			render.transport = transport;
-			transport.source = stream;
 			transport.play();
 
 			var done = 0;
@@ -185,15 +188,46 @@ class VgmCheck {
 				done += many;
 			}
 
+			tapped(render, peaks);
+
 			played++;
 			if (most < 0.15) quiet++;
 
 			said.add(want + " " + round(most, 3) + " over " + writes + " writes   ");
 		}
 
-		says("and playing one back is the file", played > 0 && quiet == 0,
+		says("and the transcription plays", played > 0 && quiet == 0,
 			played + " sonic tracks driven four seconds each the way the device asks for"
 			+ " them: " + said.toString());
+
+		final loudest = new StringBuf();
+
+		for (index in 0...peaks.length) {
+			final part:mdd.song.Part = index;
+
+			if (peaks[index] < 0.02) dark++;
+			loudest.add(part.name() + " " + round(peaks[index], 2) + "  ");
+		}
+
+		says("and every part drives a meter", played == 0 || dark <= 3,
+			"the loudest tap each part reached, one being the meter's ceiling: "
+			+ loudest.toString() + "(" + dark + " never moved)");
+	}
+
+	static function tapped(render:mdd.play.Render, peaks:haxe.ds.Vector<Float>):Void {
+		final many = render.tapped < mdd.play.Render.TAPS
+			? render.tapped : mdd.play.Render.TAPS;
+
+		for (index in 0...peaks.length) {
+			final base = index * mdd.play.Render.TAPS;
+
+			for (slot in 0...many) {
+				final value = render.taps[base + slot] * mdd.App.METER;
+				final size = value < 0 ? -value : value;
+
+				if (size > peaks[index]) peaks[index] = size;
+			}
+		}
 	}
 
 	static function rated(where:String, files:Array<String>):Void {
@@ -311,7 +345,6 @@ class VgmCheck {
 		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
 
 		render.transport = transport;
-		transport.source = stream;
 		transport.play();
 
 		var done = 0;
@@ -415,16 +448,16 @@ class VgmCheck {
 		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
-		final loud = ran_(song, stream, 44100 * 3, -1);
+		final loud = sounded(song, 44100 * 3, -1);
 
-		says("a fader on the rack reaches a replayed vgm", loud > 0.1,
-			"three seconds of " + name + " replayed at " + round(loud, 3));
+		says("a fader on the rack reaches an imported vgm", loud > 0.1,
+			"three seconds of " + name + " played at " + round(loud, 3));
 
 		var quietest = loud;
 		var muted = 0;
 
 		for (index in 0...mdd.song.Part.COUNT) {
-			final held = ran_(song, stream, 44100 * 3, index);
+			final held = sounded(song, 44100 * 3, index);
 			if (held >= loud) continue;
 
 			muted++;
@@ -435,21 +468,19 @@ class VgmCheck {
 			muted + " of the eleven parts changed what reached the chips when muted, the quietest"
 			+ " leaving " + round(quietest, 3) + " against " + round(loud, 3));
 
-		final after = stopped(song, stream);
+		final after = stopped(song);
 
 		says("and stop silences the chips", after < 0.002,
 			"a second of rendering after the transport stopped peaks at " + round(after, 5));
 	}
 
-	static function ran_(song:mdd.song.Song, source:mdd.play.Stream, frames:Int,
-			mute:Int):Float {
+	static function sounded(song:mdd.song.Song, frames:Int, mute:Int):Float {
 		for (index in 0...mdd.song.Part.COUNT) song.muted[index] = index == mute;
 
 		final transport = new mdd.play.Transport(song, 1 << 18);
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 		render.transport = transport;
-		transport.source = source;
 		transport.play();
 
 		var done = 0;
@@ -474,12 +505,11 @@ class VgmCheck {
 		return most;
 	}
 
-	static function stopped(song:mdd.song.Song, source:mdd.play.Stream):Float {
+	static function stopped(song:mdd.song.Song):Float {
 		final transport = new mdd.play.Transport(song, 1 << 18);
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 		render.transport = transport;
-		transport.source = source;
 		transport.play();
 
 		var done = 0;

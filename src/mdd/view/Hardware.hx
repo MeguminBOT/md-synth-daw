@@ -1,5 +1,6 @@
 package mdd.view;
 
+import haxe.ds.Vector;
 import mdd.check.Budget;
 import mdd.song.Part;
 import mdd.ui.Metrics;
@@ -10,10 +11,12 @@ import mdd.ui.Widget;
 @:unreflective
 final class Hardware extends Widget {
 	public static inline final ROWS = 4;
+	public static inline final AUDIBLE = 0.02;
 
 	public final session:Session;
 
 	public var budget:Null<Budget> = null;
+	public var levels:Null<Vector<Float>> = null;
 
 	public function new(session:Session) {
 		super();
@@ -23,6 +26,11 @@ final class Hardware extends Widget {
 
 	public function step():Float {
 		final root = root();
+		return root == null ? 26 : root.metrics.whole(26);
+	}
+
+	public function head():Float {
+		final root = root();
 		return root == null ? 24 : root.metrics.whole(24);
 	}
 
@@ -30,11 +38,57 @@ final class Hardware extends Widget {
 		final root = root();
 		final inset = root == null ? 8.0 : root.metrics.inset;
 
-		return step() * (1 + Math.ceil(ROWS / 2)) + inset * 2;
+		return head() + step() * Math.ceil(ROWS / 2) + inset;
+	}
+
+	public function live():Bool {
+		return levels != null && session.transport.playing;
+	}
+
+	function loud(from:Int, to:Int):Int {
+		final held = levels;
+		if (held == null) return 0;
+
+		var many = 0;
+		for (index in from...to) if (held[index] > AUDIBLE) many++;
+
+		return many;
+	}
+
+	function operators():Int {
+		final held = levels;
+		if (held == null) return 0;
+
+		var many = 0;
+
+		for (index in 0...6) {
+			if (held[index] <= AUDIBLE) continue;
+
+			final instrument = session.song.instrumentAt(session.song.rack[index]);
+			final patch = instrument == null ? null : instrument.patch;
+
+			if (patch == null) {
+				many += 4;
+				continue;
+			}
+
+			for (slot in 0...4) if (patch.totalLevel[slot] < 127) many++;
+		}
+
+		return many;
 	}
 
 	function used(row:Int):Int {
 		if (budget == null) return 0;
+
+		if (live()) {
+			return switch (row) {
+				case 0: loud(0, 6);
+				case 1: operators();
+				case 2: loud(6, 10);
+				case _: budget.sampleBytes;
+			}
+		}
 
 		return switch (row) {
 			case 0: sounding(0, 6);
@@ -90,22 +144,31 @@ final class Hardware extends Widget {
 		final metrics = root.metrics;
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		final row = step();
+		final hair = metrics.whole(1);
 
 		paint.rect(x, y, width, height, theme.panel);
+		paint.rect(x, y, width, head(), theme.bar);
+		paint.rect(x, y, width, hair, theme.frame);
+		paint.rect(x, y + head() - hair, width, hair, theme.frame, 0.6);
+
 		paint.reface(font);
 
 		paint.text(translate(Locale.HARDWARE), x + metrics.inset,
-			y + metrics.inset + font.ascent, theme.dim, 0.7);
+			y + (head() - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
+
+		paint.textRight(translate(live() ? Locale.HARDWARE_NOW : Locale.HARDWARE_SONG),
+			x + width - metrics.inset, y + (head() - font.height) * 0.5 + font.ascent,
+			live() ? theme.accent : theme.dim, 0.8);
 
 		final wide = (width - metrics.inset * 3) * 0.5;
 		final barTall = metrics.whole(4);
 
 		for (at in 0...ROWS) {
 			final left = x + metrics.inset + (at % 2 == 0 ? 0 : wide + metrics.inset);
-			final top = y + metrics.inset + row * (1 + Math.floor(at / 2));
+			final top = y + head() + row * Math.floor(at / 2);
 
-			paint.text(named(at), left, top + font.ascent, theme.dim, 0.65);
-			paint.textRight(shown(at), left + wide, top + font.ascent, theme.ink, 0.65);
+			paint.text(named(at), left, top + font.ascent, theme.dim, 0.7);
+			paint.textRight(shown(at), left + wide, top + font.ascent, theme.ink, 0.8);
 
 			final ceiling = most(at);
 			final part = ceiling <= 0 ? 0.0 : used(at) / ceiling;
@@ -115,7 +178,7 @@ final class Hardware extends Widget {
 			paint.roundedRect(left, line, wide, barTall, barTall * 0.5, theme.sink);
 			if (full > 0) {
 				paint.roundedRect(left, line, wide * full, barTall, barTall * 0.5,
-					full >= 1 ? theme.over : theme.accent);
+					part > 1 ? theme.over : theme.accent);
 			}
 		}
 	}

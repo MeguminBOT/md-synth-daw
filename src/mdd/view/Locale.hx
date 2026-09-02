@@ -107,6 +107,8 @@ class Locale {
 	public static inline final HARDWARE_OPERATORS = "hardware.operators";
 	public static inline final HARDWARE_SQUARE = "hardware.square";
 	public static inline final HARDWARE_SAMPLE = "hardware.sample";
+	public static inline final HARDWARE_NOW = "hardware.now";
+	public static inline final HARDWARE_SONG = "hardware.song";
 
 	public static inline final VIEW_ROLL = "view.roll";
 	public static inline final VIEW_SCOPE = "view.scope";
@@ -116,6 +118,13 @@ class Locale {
 	public static inline final VIEW_PATTERNS = "view.patterns";
 	public static inline final VIEW_MIXER = "view.mixer";
 	public static inline final VIEW_WARNINGS = "view.warnings";
+	public static inline final TRACK_ADD = "track.add";
+	public static inline final TRACK_RENAME = "track.rename";
+	public static inline final TRACK_DELETE = "track.delete";
+	public static inline final TRACK_MUTE = "track.mute";
+	public static inline final TRACK_UNMUTE = "track.unmute";
+	public static inline final TRACK_LAST = "track.last";
+	public static inline final TRACK_NAME = "track.name";
 
 	public static inline final PREFERENCES = "preferences";
 	public static inline final PREFERENCES_CLOSE = "preferences.close";
@@ -213,6 +222,8 @@ class Locale {
 	public static inline final TRANSPORT_PAUSE = "transport.pause";
 	public static inline final TRANSPORT_STOP = "transport.stop";
 	public static inline final TRANSPORT_LOOP = "transport.loop";
+	public static inline final TRANSPORT_LOOPING = "transport.looping";
+	public static inline final TRANSPORT_ONCE = "transport.once";
 	public static inline final TRANSPORT_RECORD = "transport.record";
 	public static inline final TRANSPORT_ARMED = "transport.armed";
 	public static inline final TRANSPORT_DISARMED = "transport.disarmed";
@@ -281,8 +292,10 @@ class Locale {
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
 		PATTERN, PATTERN_BAR, PATTERN_BARS,
 		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,
+		HARDWARE_NOW, HARDWARE_SONG,
 		VIEW_ROLL, VIEW_SCOPE, VIEW_TRACKER, VIEW_PLAYLIST,
 		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
+		TRACK_ADD, TRACK_RENAME, TRACK_DELETE, TRACK_MUTE, TRACK_UNMUTE, TRACK_LAST, TRACK_NAME,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
 		TYPEFACE_GO, TYPEFACE_PLEX, TYPEFACE_INTER, TYPEFACE_BARLOW, PREFERENCE_MOTION,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
@@ -303,6 +316,7 @@ class Locale {
 		RACK_PASTE_PATCH, RACK_RESET_PATCH, RACK_CLEAR, RACK_NO_PATCH, RACK_NONE_COPIED,
 		RACK_SOLO_CHORD, RACK_FM, RACK_SQUARE, RACK_NOISE, RACK_DAC,
 		TRANSPORT_PLAY, TRANSPORT_PAUSE, TRANSPORT_STOP, TRANSPORT_LOOP,
+		TRANSPORT_LOOPING, TRANSPORT_ONCE,
 		TRANSPORT_RECORD, TRANSPORT_ARMED, TRANSPORT_DISARMED,
 		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
 		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,

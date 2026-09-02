@@ -18,6 +18,8 @@ final class Render {
 
 	public static inline final TAPS = 2048;
 	public static inline final TAP_EVERY = 4;
+	public static inline final FM_TAP = 1.0 / 200.0;
+	public static inline final PSG_TAP = 1.0 / 340.0;
 
 	public final taps:haxe.ds.Vector<cpp.Float32> =
 		new haxe.ds.Vector<cpp.Float32>(mdd.song.Part.COUNT * TAPS);
@@ -201,14 +203,14 @@ final class Render {
 		final slot = tapped % TAPS;
 
 		for (index in 0...6) {
-			taps[index * TAPS + slot] = ym.channels[index].delivered / 300.0;
+			taps[index * TAPS + slot] = ym.channels[index].delivered * FM_TAP;
 		}
 
 		for (index in 0...4) {
-			taps[(6 + index) * TAPS + slot] = psg.voice(index) / 300.0;
+			taps[(6 + index) * TAPS + slot] = psg.voice(index) * PSG_TAP;
 		}
 
-		taps[10 * TAPS + slot] = ym.dacOn ? ((ym.dac - 0x80) << 1) / 300.0 : 0;
+		taps[10 * TAPS + slot] = ym.dacOn ? ((ym.dac - 0x80) << 1) * PSG_TAP : 0;
 		tapped++;
 	}
 

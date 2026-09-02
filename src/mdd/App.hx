@@ -84,6 +84,8 @@ class App {
 
 	var seen:Int = 0;
 	var tookTaps:Int = 0;
+	var tookMeters:Int = 0;
+	final peaks:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(mdd.song.Part.COUNT);
 	var heard:Int = 0;
 	final sounding:mdd.play.Sounding = new mdd.play.Sounding();
 	var windowID:Int = 0;
@@ -265,9 +267,11 @@ class App {
 		centre.roll.budget = budget;
 		centre.roll.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
+		centre.playlist.onRename = function(which:Int):Void renamedTrack(which);
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
+		rail.hardware.levels = rack.levels;
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
@@ -678,8 +682,8 @@ class App {
 			session.changed();
 		};
 
-		welcome.arrive(root.translation.language);
 		root.raise(welcome);
+		welcome.arrive(root.translation.language);
 	}
 
 	function relabel():Void {
@@ -743,6 +747,19 @@ class App {
 		root.raise(naming);
 	}
 
+	function renamedTrack(which:Int):Void {
+		if (naming == null || which < 0 || which >= session.song.tracks.length) return;
+
+		final held = session.song.tracks[which];
+
+		naming.ask(root.translate(Locale.TRACK_NAME), held.name);
+		naming.onName = function(said:String):Void {
+			session.does(new mdd.song.edit.RenameTrack(which, said));
+		};
+
+		root.raise(naming);
+	}
+
 	function savedPreset():Void {
 		if (naming == null) return;
 
@@ -768,8 +785,8 @@ class App {
 	}
 
 	function opened():Void {
-		preferences.arrive();
 		root.raise(preferences);
+		preferences.arrive();
 	}
 
 	function redressed():Void {
@@ -868,7 +885,6 @@ class App {
 	function loaded(song:Song):Void {
 		if (render != null) render.transport.stop();
 
-		final carried = files == null ? null : files.imported;
 
 		session = new Session(song);
 		session.onChange = function(held:Session):Void changed();
@@ -901,9 +917,11 @@ class App {
 		centre.roll.budget = budget;
 		centre.roll.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
+		centre.playlist.onRename = function(which:Int):Void renamedTrack(which);
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;
+		rail.hardware.levels = rack.levels;
 		inspector.samples.onImport = function():Void files.ask(window, Files.READ_WAV);
 		inspector.samples.budget = budget;
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
@@ -911,8 +929,6 @@ class App {
 		dock.warnings.budget = budget;
 
 		commands();
-
-		session.transport.source = carried;
 
 		if (render != null) render.transport = session.transport;
 
@@ -1115,17 +1131,21 @@ class App {
 		if (render == null) return;
 
 		var moved = false;
+		metered();
 
 		for (index in 0...Part.COUNT) {
 			final was = rack.levels[index];
-			final now = loudness(index);
+			final now = peaks[index];
 			final held = now > was ? now : was * 0.86;
 
 			if (Math.abs(held - was) > 0.01) moved = true;
 			rack.levels[index] = held;
 		}
 
-		if (moved) rack.invalidate();
+		if (moved) {
+			rack.invalidate();
+			if (rail != null) rail.hardware.invalidate();
+		}
 
 		if (dock != null && dock.mixer.visible) {
 			for (index in 0...Part.COUNT) dock.mixer.levels[index] = rack.levels[index];
@@ -1171,13 +1191,32 @@ class App {
 		tookTaps = now;
 	}
 
-	function loudness(index:Int):Float {
-		if (index >= 6) return 0;
+	public static inline final METER = 1.0;
 
-		final value = render.ym.channels[index].delivered;
-		final size = value < 0 ? -value : value;
+	function metered():Void {
+		final now = render.tapped;
+		var from = tookMeters;
 
-		return size / 3000.0;
+		if (now - from > Render.TAPS) from = now - Render.TAPS;
+		if (from < 0) from = 0;
+
+		tookMeters = now;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final base = index * Render.TAPS;
+			var most = 0.0;
+			var at = from;
+
+			while (at < now) {
+				final value = render.taps[base + at % Render.TAPS];
+				final size = value < 0 ? -value : value;
+
+				if (size > most) most = size;
+				at++;
+			}
+
+			peaks[index] = most * METER;
+		}
 	}
 
 	function draw():Void {

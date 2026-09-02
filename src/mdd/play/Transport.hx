@@ -26,14 +26,11 @@ final class Transport {
 
 	public static inline final AUDITION_BLOCKS = 90;
 
-	public var source:Null<Stream> = null;
 	var heardPart:Int = -1;
 	var heardNote:Int = 0;
 	var heardLeft:Int = 0;
 	var heardFresh:Bool = false;
-	var poured:Int = 0;
 	var hushing:Bool = false;
-	var latched:Int = -1;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
 	var carried:Int = 0;
@@ -57,7 +54,6 @@ final class Transport {
 	public function seek(tick:Int):Void {
 		position = tick < 0 ? 0 : tick;
 		hushing = true;
-		poured = 0;
 	}
 
 	public function loop(fromTick:Int, toTick:Int):Void {
@@ -103,27 +99,49 @@ final class Transport {
 		final from = position;
 		var until = from + step;
 
-		if (looping && until > loopTo) until = loopTo;
-
 		gate.acquire();
 
-		if (source != null) replayed(from, until);
-		else sequencer.emit(stream, from, until);
+		final ranged = looping && loopTo > loopFrom;
+		final ending = ranged ? loopTo : ends();
+		final bounded = ending > from;
 
+		if (bounded && until > ending) until = ending;
+
+		sequencer.emit(stream, from, until);
 		auditioned(from);
 
 		gate.release();
 		served++;
 		stepped = until - from;
 
-		if (looping && until >= loopTo) {
-			position = loopFrom;
-			wrapped++;
+		if (bounded && until >= ending) {
+			if (looping) {
+				position = ranged ? loopFrom : 0;
+				wrapped++;
+			} else {
+				position = 0;
+				playing = false;
+				hushing = true;
+			}
 		} else {
 			position = until;
 		}
 
 		return from;
+	}
+
+	function ends():Int {
+		final alone = sequencer.alone;
+
+		if (alone >= 0) {
+			final pattern = song.patternAt(alone);
+			return pattern == null ? 0 : song.tempo.samplesAt(pattern.length);
+		}
+
+		final last = song.ends();
+		if (last <= 0) return 0;
+
+		return song.tempo.samplesAt(last + song.tempo.ppqn * 4);
 	}
 
 	public function auditions(part:Part, note:Int):Void {
@@ -187,66 +205,6 @@ final class Transport {
 		}
 	}
 
-	function replayed(from:Int, until:Int):Void {
-		final held = source;
-		if (held == null) return;
-
-		if (poured > held.count || (poured < held.count && held.tickAt(poured) > from)) {
-			poured = 0;
-			latched = -1;
-		}
-
-		while (poured < held.count && held.tickAt(poured) < from) poured++;
-
-		while (poured < held.count && held.tickAt(poured) < until) {
-			final tick = held.tickAt(poured);
-			final kind = held.kindAt(poured);
-			final port = held.portAt(poured);
-			final value = held.valueAt(poured);
-
-			if (kind != Stream.YM) {
-				if ((value & 0x80) != 0) latched = 6 + ((value >> 5) & 3);
-
-				if (latched >= 0 && !song.audible(latched)) {
-					poured++;
-					continue;
-				}
-
-				stream.raw(tick, kind, port, value);
-				poured++;
-				continue;
-			}
-
-			if ((port & 1) != 0) {
-				stream.raw(tick, kind, port, value);
-				poured++;
-				continue;
-			}
-
-			final after = poured + 1;
-			final paired = after < held.count && held.kindAt(after) == Stream.YM
-				&& (held.portAt(after) & 1) != 0;
-
-			final data = paired ? held.valueAt(after) : 0;
-			final half = port >> 1;
-
-			final part = value == 0x28 ? Stream.keyPart(data) : Stream.ymPart(half, value);
-
-			if (part >= 0 && !song.audible(part)) {
-				poured += paired ? 2 : 1;
-				continue;
-			}
-
-			stream.raw(tick, kind, port, value);
-			poured++;
-
-			if (!paired) continue;
-
-			stream.raw(held.tickAt(after), Stream.YM, held.portAt(after), data);
-			poured++;
-		}
-	}
-
 	public function rewind():Void {
 		position = 0;
 		carried = 0;
@@ -258,7 +216,6 @@ final class Transport {
 
 	public function silence():Void {
 		hushing = true;
-		poured = 0;
 	}
 
 	public inline function seconds():Float {

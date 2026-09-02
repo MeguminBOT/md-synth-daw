@@ -48,6 +48,8 @@ final class Session {
 		transport = new Transport(song, 65536);
 	}
 
+	public static inline final TRACKS = 8;
+
 	public static function started():Session {
 		final song = new Song("untitled", 96, 120);
 
@@ -105,8 +107,8 @@ final class Session {
 
 		song.add(new Pattern("pattern 1", 384));
 
-		final track = song.track(new mdd.song.Track("track 1"));
-		track.add(new mdd.song.Clip(0, 0, 384));
+		for (index in 0...TRACKS) song.track(new mdd.song.Track("track " + (index + 1)));
+		song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
 
 		return new Session(song);
 	}

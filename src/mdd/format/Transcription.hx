@@ -39,8 +39,16 @@ final class Transcription {
 
 	var latched:Int = 0;
 	var dacOn:Bool = false;
-	var dacFrom:Int = -1;
+	var dacHead:Int = -1;
 	var dacLast:Int = 0;
+
+	static inline final DAC_GAP = 2205;
+	static inline final DAC_LEAST = 48;
+	static inline final DAC_ROOM = 65536;
+
+	final dacBytes:Array<Int> = [];
+	final kits:Array<Int> = [];
+	var dacHeld:Int = 0;
 
 	var perTick:Float = 183.75;
 	var pattern:Pattern;
@@ -141,15 +149,23 @@ final class Transcription {
 		if (half == 0 && address == 0x2B) {
 			final on = (value & 0x80) != 0;
 
-			if (on && !dacOn) dacFrom = at;
-			else if (!on && dacOn) sampled(at);
+			if (!on && dacOn) sampled(at);
 
 			dacOn = on;
 			return;
 		}
 
 		if (half == 0 && address == 0x2A) {
-			if (dacOn && dacFrom < 0) dacFrom = at;
+			if (!dacOn) return;
+
+			if (dacHead >= 0 && at - dacLast > DAC_GAP) sampled(dacLast + 1);
+
+			if (dacHead < 0) {
+				dacHead = at;
+				dacBytes.resize(0);
+			}
+
+			dacBytes.push(value & 0xFF);
 			dacLast = at;
 		}
 	}
@@ -173,7 +189,7 @@ final class Transcription {
 			}
 		}
 
-		lane.add(new Note(from, until - from, pitch, 100, instrument));
+		lane.add(new Note(from, until - from, pitch, 127, instrument));
 		notes++;
 	}
 
@@ -193,15 +209,49 @@ final class Transcription {
 	}
 
 	function sampled(at:Int):Void {
-		if (dacFrom < 0) return;
+		if (dacHead < 0) return;
 
-		final from = ticked(dacFrom);
-		final until = ticked(at > dacLast ? at : dacLast + 1);
-		dacFrom = -1;
+		final head = dacHead;
+		final tail = at > dacLast ? at : dacLast + 1;
+		dacHead = -1;
 
-		if (until <= from) return;
+		trimmed();
 
-		placed(Part.Dac, from, until, 60, sampleInstrument());
+		if (dacBytes.length < DAC_LEAST || tail <= head) {
+			dacBytes.resize(0);
+			return;
+		}
+
+		final which = sampleInstrument(tail - head);
+
+		final from = ticked(head);
+		var until = ticked(tail);
+		if (until <= from) until = from + 1;
+
+		dacBytes.resize(0);
+
+		if (which < 0) return;
+
+		placed(Part.Dac, from, until, 60, which);
+	}
+
+	function trimmed():Void {
+		var tail = dacBytes.length;
+		while (tail > 0 && quiet(dacBytes[tail - 1])) tail--;
+
+		var head = 0;
+		while (head < tail && quiet(dacBytes[head])) head++;
+
+		if (head == 0 && tail == dacBytes.length) return;
+
+		final held = dacBytes.slice(head, tail);
+		dacBytes.resize(0);
+		for (byte in held) dacBytes.push(byte);
+	}
+
+	static inline function quiet(byte:Int):Bool {
+		final away = byte - 0x80;
+		return (away < 0 ? -away : away) < 3;
 	}
 
 	function square(at:Int, value:Int):Void {
@@ -403,7 +453,6 @@ final class Transcription {
 	}
 
 	var squares:Int = -1;
-	var sampler:Int = -1;
 
 	function squareInstrument(channel:Int):Int {
 		if (squares >= 0) return squares;
@@ -414,17 +463,42 @@ final class Transcription {
 		return squares;
 	}
 
-	function sampleInstrument():Int {
-		if (sampler >= 0) return sampler;
+	function sampleInstrument(span:Int):Int {
+		final many = dacBytes.length;
 
-		final instrument = new Instrument("kit", Part.Dac);
-		instrument.sample = song.samples.length;
+		for (index in 0...song.samples.length) {
+			if (alike(song.samples[index])) return kits[index];
+		}
 
-		song.sample(new Sample("imported", 8000, 60));
+		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
+
+		final counted = Math.round(many * Tempo.TICKS / (span < 1 ? 1 : span));
+		final rate = counted < 2000 ? 2000 : (counted > 32000 ? 32000 : counted);
+
+		final held = new Vector<Int>(many);
+		for (index in 0...many) held[index] = dacBytes[index];
+
+		final sample = new Sample("hit " + (song.samples.length + 1), rate, 60);
+		sample.hold(held);
+		song.sample(sample);
+
+		final instrument = new Instrument(sample.name, Part.Dac);
+		instrument.sample = song.samples.length - 1;
 		song.instrument(instrument);
 
-		sampler = song.instruments.length - 1;
-		return sampler;
+		kits.push(song.instruments.length - 1);
+		dacHeld += many;
+
+		return song.instruments.length - 1;
+	}
+
+	function alike(sample:Sample):Bool {
+		if (sample.length() != dacBytes.length) return false;
+
+		final bytes = sample.bytes;
+		for (index in 0...bytes.length) if (bytes[index] != dacBytes[index]) return false;
+
+		return true;
 	}
 
 	function session():Void {

@@ -330,12 +330,9 @@ final class TransportBar extends Widget {
 				transport.seek(0);
 
 			case LOOP:
-				if (transport.looping) transport.looping = false;
-				else {
-					final pattern = session.current();
-					final span = pattern == null ? 384 : pattern.length;
-					transport.loop(0, session.song.tempo.samplesAt(span));
-				}
+				transport.looping = !transport.looping;
+				session.say(translate(transport.looping
+					? Locale.TRANSPORT_LOOPING : Locale.TRANSPORT_ONCE));
 
 			case _:
 		}

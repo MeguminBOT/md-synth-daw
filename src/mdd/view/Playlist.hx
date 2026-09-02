@@ -1,11 +1,14 @@
 package mdd.view;
 
 import mdd.song.edit.AddClip;
+import mdd.song.edit.AddTrack;
 import mdd.song.Clip;
 import mdd.song.edit.MoveClip;
 import mdd.song.edit.RemoveClip;
-import mdd.song.Track;
+import mdd.song.edit.RemoveTrack;
 import mdd.ui.Colour;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
@@ -17,15 +20,19 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class Playlist extends Widget {
+	public static inline final SPARE = 4;
+
 	public final session:Session;
 
 	public var perTick:Float = 0.08;
-	public var trackTall:Float = 34;
 	public var offsetX:Float = 0;
+	public var offsetY:Float = 0;
 
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Clip> = null;
 	public var painted(default, null):Int = 0;
+
+	public var onRename:Null<Int -> Void> = null;
 
 	var chosenTrack:Int = -1;
 	var dragging:Null<Clip> = null;
@@ -41,14 +48,23 @@ final class Playlist extends Widget {
 		opaque = true;
 	}
 
+	public function trackTall():Float {
+		final root = root();
+		return root == null ? 34 : root.metrics.row;
+	}
+
 	public function names():Float {
 		final root = root();
-		return root == null ? 110 : root.metrics.whole(110);
+		return root == null ? 148 : root.metrics.whole(148);
 	}
 
 	public function ruler():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 24 : root.metrics.whole(24);
+	}
+
+	public function rows():Int {
+		return session.song.tracks.length + SPARE;
 	}
 
 	public inline function tickAt(px:Float):Int {
@@ -59,9 +75,23 @@ final class Playlist extends Widget {
 		return x + names() + tick * perTick - offsetX;
 	}
 
+	public inline function atTrack(which:Int):Float {
+		return y + ruler() + which * trackTall() - offsetY;
+	}
+
 	public function trackAt(py:Float):Int {
-		final at = Std.int((py - y - ruler()) / trackTall);
-		return at < 0 || at >= session.song.tracks.length ? -1 : at;
+		final at = Std.int((py - y - ruler() + offsetY) / trackTall());
+		return at < 0 || at >= rows() ? -1 : at;
+	}
+
+	public function muteAt(px:Float):Bool {
+		final root = root();
+		if (root == null) return false;
+
+		final metrics = root.metrics;
+		final left = x + names() - metrics.whole(26);
+
+		return px >= left && px < left + metrics.whole(18);
 	}
 
 	public function edge():Float {
@@ -88,7 +118,7 @@ final class Playlist extends Widget {
 
 	public function clipAt(px:Float, py:Float):Null<Clip> {
 		final which = trackAt(py);
-		if (which < 0) return null;
+		if (which < 0 || which >= session.song.tracks.length) return null;
 
 		final tick = tickAt(px);
 		final track = session.song.tracks[which];
@@ -106,6 +136,12 @@ final class Playlist extends Widget {
 		invalidate();
 	}
 
+	public function scrollDown(py:Float):Void {
+		final most = rows() * trackTall() - (height - ruler());
+		offsetY = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+		invalidate();
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.Wheel:
@@ -118,50 +154,16 @@ final class Playlist extends Widget {
 					return true;
 				}
 
-				scrollTo(offsetX - event.dy * trackTall * 3);
+				if (event.shift()) {
+					scrollTo(offsetX - event.dy * trackTall() * 3);
+					return true;
+				}
+
+				scrollDown(offsetY - event.dy * trackTall() * 2);
 				return true;
 
 			case Kind.PointerDown:
-				final which = trackAt(event.y);
-				if (which < 0) return false;
-
-				final under = clipAt(event.x, event.y);
-
-				if (event.button == Pointer.Right) {
-					if (under != null) {
-						session.does(new RemoveClip(which, under));
-						chosen = null;
-						invalidate();
-					}
-					return true;
-				}
-
-				if (under != null) {
-					chosen = under;
-					chosenTrack = which;
-					dragging = under;
-					sizing = onEdge(under, event.x);
-					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
-					invalidate();
-					return true;
-				}
-
-				final pattern = session.current();
-				if (pattern == null) return true;
-
-				final at = session.snapped(tickAt(event.x));
-				final clip = new Clip(session.pattern, at < 0 ? 0 : at, pattern.length);
-
-				session.does(new AddClip(which, clip));
-
-				chosen = clip;
-				chosenTrack = which;
-				dragging = clip;
-				sizing = true;
-				grabTick = 0;
-
-				invalidate();
-				return true;
+				return pressed(event);
 
 			case Kind.PointerMove:
 				final which = trackAt(event.y);
@@ -188,9 +190,6 @@ final class Playlist extends Widget {
 			case Kind.PointerUp:
 				if (dragging == null) return false;
 
-				final held = dragging;
-				final was = grabTick;
-
 				dragging = null;
 				sizing = false;
 				session.changed();
@@ -203,6 +202,128 @@ final class Playlist extends Widget {
 		}
 
 		return false;
+	}
+
+	function pressed(event:Input):Bool {
+		final which = trackAt(event.y);
+		if (which < 0) return false;
+
+		if (event.x < x + names()) return railed(which, event);
+
+		final under = clipAt(event.x, event.y);
+
+		if (event.button == Pointer.Right) {
+			if (under != null) {
+				session.does(new RemoveClip(which, under));
+				chosen = null;
+				invalidate();
+			}
+			return true;
+		}
+
+		if (under != null) {
+			chosen = under;
+			chosenTrack = which;
+			dragging = under;
+			sizing = onEdge(under, event.x);
+			grabTick = sizing ? 0 : tickAt(event.x) - under.at;
+			invalidate();
+			return true;
+		}
+
+		final pattern = session.current();
+		if (pattern == null) return true;
+
+		if (which >= session.song.tracks.length) session.does(new AddTrack(which));
+
+		final at = session.snapped(tickAt(event.x));
+		final clip = new Clip(session.pattern, at < 0 ? 0 : at, pattern.length);
+
+		session.does(new AddClip(which, clip));
+
+		chosen = clip;
+		chosenTrack = which;
+		dragging = clip;
+		sizing = true;
+		grabTick = 0;
+
+		invalidate();
+		return true;
+	}
+
+	function railed(which:Int, event:Input):Bool {
+		if (event.button == Pointer.Right) {
+			popped(which, event.x, event.y);
+			return true;
+		}
+
+		if (which >= session.song.tracks.length) {
+			session.does(new AddTrack(which));
+			chosenTrack = which;
+			invalidate();
+			return true;
+		}
+
+		if (muteAt(event.x)) {
+			final track = session.song.tracks[which];
+
+			track.muted = !track.muted;
+			session.say((track.muted ? "muted " : "unmuted ") + track.name);
+			session.changed();
+			invalidate();
+			return true;
+		}
+
+		chosenTrack = which;
+		invalidate();
+		return true;
+	}
+
+	function popped(which:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final song = session.song;
+		final menu = new Menu();
+		final held = which < song.tracks.length ? song.tracks[which] : null;
+
+		fires(menu.offer(new Choice(translate(Locale.TRACK_ADD))), function():Void {
+			session.does(new AddTrack(song.tracks.length));
+		});
+
+		if (held != null) {
+			fires(menu.offer(new Choice(translate(Locale.TRACK_RENAME))), function():Void {
+				if (onRename != null) onRename(which);
+			});
+
+			fires(menu.offer(new Choice(translate(held.muted
+					? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE))), function():Void {
+				held.muted = !held.muted;
+				session.changed();
+			});
+
+			menu.divide();
+
+			final drop = menu.offer(new Choice(translate(Locale.TRACK_DELETE)));
+
+			drop.enabled = song.tracks.length > 1;
+			if (!drop.enabled) drop.reason = translate(Locale.TRACK_LAST);
+
+			fires(drop, function():Void {
+				session.does(new RemoveTrack(which));
+				chosen = null;
+				chosenTrack = -1;
+			});
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
+	function fires(choice:Choice, what:Void -> Void):Void {
+		choice.onFire = function(chosen:Choice):Void {
+			what();
+			invalidate();
+		};
 	}
 
 	function steered(event:Input):Bool {
@@ -242,7 +363,6 @@ final class Playlist extends Widget {
 
 		final theme = root.theme;
 		final metrics = root.metrics;
-		final song = session.song;
 
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;
@@ -253,7 +373,7 @@ final class Playlist extends Widget {
 		paint.pushClip(left, top, width - names(), height - ruler());
 
 		bars(paint, theme, metrics, left, top);
-		clips(paint, theme, metrics, top);
+		clips(paint, theme, metrics);
 
 		if (playhead >= 0) {
 			final at = atTick(playhead);
@@ -266,11 +386,14 @@ final class Playlist extends Widget {
 
 		rails(paint, theme, metrics, top);
 		heading(paint, theme, metrics, left);
+
+		paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
 	}
 
 	function bars(paint:Paint, theme:Theme, metrics:Metrics, left:Float, top:Float):Void {
 		final bar = session.song.tempo.ppqn * 4;
 		final hair = metrics.whole(1);
+		final tall = trackTall();
 		final length = session.song.ends() + bar * 4;
 
 		var tick = Std.int(tickAt(left) / bar) * bar;
@@ -288,27 +411,33 @@ final class Playlist extends Widget {
 			tick += bar;
 		}
 
-		for (which in 0...session.song.tracks.length) {
-			final row = top + which * trackTall;
+		for (which in 0...rows()) {
+			final row = atTrack(which);
+			if (row + tall < top) continue;
 			if (row > y + height) break;
 
-			if (which == hoverTrack) {
-				paint.rect(left, row, width - names(), trackTall, theme.ink, 0.02);
+			if (which >= session.song.tracks.length) {
+				paint.rect(left, row, width - names(), tall, theme.sink, 0.35);
+			} else if (which == hoverTrack) {
+				paint.rect(left, row, width - names(), tall, theme.ink, 0.03);
 			}
 
-			paint.rect(left, row + trackTall - metrics.whole(1), width - names(),
-				metrics.whole(1), theme.frame, 0.4);
+			paint.rect(left, row + tall - hair, width - names(), hair, theme.frame, 0.5);
 		}
 	}
 
-	function clips(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
+	function clips(paint:Paint, theme:Theme, metrics:Metrics):Void {
 		final font = metrics.small == null ? metrics.body : metrics.small;
+		final tall = trackTall();
+		final top = y + ruler();
+
 		paint.reface(font);
 
 		for (which in 0...session.song.tracks.length) {
 			final track = session.song.tracks[which];
-			final row = top + which * trackTall;
+			final row = atTrack(which);
 
+			if (row + tall < top) continue;
 			if (row > y + height) break;
 
 			for (clip in track.clips) {
@@ -324,11 +453,11 @@ final class Playlist extends Widget {
 					? new Colour(pattern.colour)
 					: theme.part(clip.pattern % 11);
 
-				paint.roundedRect(at, row + 2, wide, trackTall - 5, metrics.radiusSmall, colour,
+				paint.roundedRect(at, row + 2, wide, tall - 5, metrics.radiusSmall, colour,
 					track.muted ? 0.3 : 0.75);
 
 				if (clip == chosen) {
-					paint.outline(at, row + 2, wide, trackTall - 5, theme.ink, metrics.whole(1));
+					paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));
 				}
 
 				final said = pattern == null ? "?" : pattern.name;
@@ -336,7 +465,7 @@ final class Playlist extends Widget {
 					: (clip.transpose > 0 ? "  +" + clip.transpose : "  " + clip.transpose);
 
 				paint.text(said + tail, at + metrics.unit,
-					row + 2 + (trackTall - 5 - font.height) * 0.5 + font.ascent, theme.sink);
+					row + 2 + (tall - 5 - font.height) * 0.5 + font.ascent, theme.sink);
 			}
 		}
 	}
@@ -344,23 +473,58 @@ final class Playlist extends Widget {
 	function rails(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
 		final wide = names();
 		final font = metrics.body;
+		final small = metrics.small == null ? font : metrics.small;
+		final tall = trackTall();
+		final hair = metrics.whole(1);
 
 		paint.rect(x, top, wide, height - ruler(), theme.panel);
-		paint.reface(font);
+		paint.pushClip(x, top, wide, height - ruler());
 
-		for (which in 0...session.song.tracks.length) {
-			final track = session.song.tracks[which];
-			final row = top + which * trackTall;
-
+		for (which in 0...rows()) {
+			final row = atTrack(which);
+			if (row + tall < top) continue;
 			if (row > y + height) break;
 
-			paint.text(track.name, x + metrics.inset,
-				row + (trackTall - font.height) * 0.5 + font.ascent,
-				track.muted ? theme.dim : theme.ink);
+			final held = which < session.song.tracks.length
+				? session.song.tracks[which] : null;
+
+			if (which == chosenTrack) {
+				paint.rect(x, row, wide, tall - hair, theme.accent, Theme.SELECT);
+			} else if (which == hoverTrack) {
+				paint.rect(x, row, wide, tall - hair, theme.accent, Theme.HOVER);
+			}
+
+			paint.rect(x, row + tall - hair, wide, hair, theme.frame, 0.5);
+
+			if (held == null) {
+				paint.reface(small);
+				paint.textCentred("+", x + wide * 0.5,
+					row + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.5);
+				continue;
+			}
+
+			paint.rect(x, row + metrics.unit, metrics.whole(3), tall - metrics.unit * 2 - hair,
+				theme.part(which % 11), held.muted ? 0.25 : 0.9);
+
+			final box = metrics.whole(18);
+			final at = x + wide - metrics.whole(26);
+
+			paint.roundedRect(at, row + (tall - box) * 0.5, box, box, metrics.radiusSmall,
+				held.muted ? theme.accent : theme.raise1, held.muted ? 0.8 : 1);
+
+			paint.reface(font);
+			paint.text(held.name, x + metrics.inset + metrics.gap,
+				row + (tall - font.height) * 0.5 + font.ascent,
+				held.muted ? theme.dim : theme.ink);
+
+			paint.reface(small);
+			paint.textCentred("M", at + box * 0.5,
+				row + (tall - small.height) * 0.5 + small.ascent,
+				held.muted ? theme.ink : theme.dim);
 		}
 
-		paint.rect(x + wide - metrics.whole(1), top, metrics.whole(1), height - ruler(),
-			theme.frame);
+		paint.popClip();
+		paint.rect(x + wide - hair, top, hair, height - ruler(), theme.frame);
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, left:Float):Void {
@@ -391,6 +555,10 @@ final class Playlist extends Widget {
 		}
 
 		paint.popClip();
+
+		paint.textRight(translate(Locale.VIEW_PLAYLIST), x + names() - metrics.inset,
+			y + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.7);
+
 		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame);
 	}
 }

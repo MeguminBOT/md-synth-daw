@@ -183,7 +183,9 @@
   "transport.bars": "TAKT",
   "transport.disarmed": "spelar inte längre in",
   "transport.length": "Mönsterlängd",
-  "transport.loop": "Loopa mönstret",
+  "transport.loop": "Loopa låten",
+  "transport.looping": "loopar",
+  "transport.once": "spelar en gång",
   "transport.pattern": "MÖN",
   "transport.pause": "Pausa",
   "transport.play": "Spela",
@@ -220,5 +222,14 @@
   "view.warnings": "Varningar",
   "welcome": "Välkommen",
   "welcome.language": "Välj ett språk",
-  "welcome.start": "Börja"
+  "welcome.start": "Börja",
+  "track.add": "Lägg till ett spår",
+  "track.rename": "Byt namn på spåret",
+  "track.delete": "Ta bort spåret",
+  "track.mute": "Tysta spåret",
+  "track.unmute": "Slå på spåret",
+  "track.last": "en låt behåller minst ett spår",
+  "track.name": "Spårnamn",
+  "hardware.now": "nu",
+  "hardware.song": "låt"
 }
