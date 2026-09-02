@@ -416,13 +416,21 @@ final class FmEditor extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 
 		final wires = ROUTES[patch.algorithm & 7];
+		final many = Std.int(wires.length / 2);
+		final hair = metrics.whole(2);
+		final step = many < 1 ? tall : tall / (many + 1);
 
-		for (i in 0...Std.int(wires.length / 2)) {
-			final from = x + metrics.inset + wires[i * 2] * (box + gap) + box * 0.5;
-			final to = x + metrics.inset + wires[i * 2 + 1] * (box + gap) + box * 0.5;
+		for (i in 0...many) {
+			final one = wires[i * 2];
+			final two = wires[i * 2 + 1];
 
-			paint.line(from, top + tall * 0.5, to, top + tall * 0.5, metrics.whole(1),
-				theme.frame);
+			final from = x + metrics.inset + one * (box + gap) + box;
+			final to = x + metrics.inset + two * (box + gap);
+			final line = top + step * (i + 1) - hair * 0.5;
+
+			paint.rect(from, line, to - from, hair, colour, 0.7);
+			paint.circle(to - metrics.whole(3), line + hair * 0.5, metrics.whole(2.5),
+				colour, 0.9);
 		}
 
 		paint.reface(font);
