@@ -295,8 +295,6 @@ final class Transcription {
 	}
 
 	function bent(at:Int, channel:Int, word:Int):Void {
-		if (tunes[channel] == word) return;
-
 		final was = tunes[channel];
 		tunes[channel] = word;
 
@@ -428,7 +426,10 @@ final class Transcription {
 		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
 		if (line == null) return;
 
-		line.add(new mdd.song.Point(ticked(at), word));
+		final when = ticked(at);
+		if (line.heldAt(when) == word) return;
+
+		line.add(new mdd.song.Point(when, word));
 	}
 
 	function finish(at:Int, channel:Int):Void {

@@ -207,10 +207,7 @@ final class Sequencer {
 
 				if (bent == null) push(onSample, part, TUNE, pitch, 0);
 				else if (part.fm()) {
-					final want = bent.heldAt(start - from);
-
-					push(onSample, part, TUNE, want < 0 ? Stream.wordOf(pitch)
-						: shifted(want, transpose), 1);
+					if (bent.heldAt(start - from) < 0) push(onSample, part, TUNE, pitch, 0);
 				} else push(onSample, part, TUNE, bent.heldAt(start - from) & 0x3FF, 2);
 
 				final levelled = (part.square() || part.noise()) && lines[0] != null;
