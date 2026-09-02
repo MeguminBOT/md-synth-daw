@@ -66,7 +66,8 @@ class MixCheck {
 		final flac = Flac.write(held, rate, 2, rate, 16, ["TITLE=a tone"]);
 
 		final vorbis = Coded.vorbis(held, rate, 2, rate, 0.6, ["TITLE=a tone"]);
-		final opus = Coded.opus(held, 48000, 2, 48000, 128, ["TITLE=a tone"]);
+		final quick = tone(48000, 48000, 2);
+		final opus = Coded.opus(quick, 48000, 2, 48000, 128, ["TITLE=a tone"]);
 
 		says("an ogg is smaller than the flac", vorbis.length > 0
 			&& vorbis.getString(0, 4) == "OggS" && vorbis.length < flac.length,
