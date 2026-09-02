@@ -436,7 +436,7 @@ final class Transcription {
 		final from = ticked(startedAt[channel]);
 		var until = ticked(at);
 
-		if (at <= startedAt[channel]) return;
+		if (at < startedAt[channel]) return;
 		if (until <= from) until = from + 1;
 
 		placed(channel, from, until, startedOn[channel], startedWith[channel] < 0
