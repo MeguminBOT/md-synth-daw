@@ -53,7 +53,7 @@ final class Transcription {
 	var dacHead:Int = -1;
 	var dacLast:Int = 0;
 
-	static inline final PPQN = 960;
+	static inline final PER_TICK = 6;
 
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_PAUSE = 256;
@@ -89,8 +89,10 @@ final class Transcription {
 	function take(stream:Stream, rate:Int, name:String):Void {
 		beats = tempoFor(rate);
 
-		song = new Song(name, PPQN, beats);
-		perTick = Tempo.TICKS * 60.0 / (beats * PPQN);
+		final ppqn = Math.round(Tempo.TICKS * 60.0 / (beats * PER_TICK));
+
+		song = new Song(name, ppqn, beats);
+		perTick = Tempo.TICKS * 60.0 / (beats * ppqn);
 
 		for (i in 0...shadow.length) shadow[i] = 0;
 
@@ -122,7 +124,7 @@ final class Transcription {
 		rated(stream);
 
 		final last = stream.count == 0 ? 0 : stream.tickAt(stream.count - 1);
-		pattern = song.add(new Pattern(name, ticked(last) + PPQN));
+		pattern = song.add(new Pattern(name, ticked(last) + song.tempo.ppqn));
 
 		final track = song.track(new Track("imported"));
 		track.add(new Clip(0, 0, pattern.length));
