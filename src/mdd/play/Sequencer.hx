@@ -234,6 +234,38 @@ final class Sequencer {
 		}
 	}
 
+	inline function carries(part:Part, line:mdd.song.Automation):Bool {
+		final level = line.target == mdd.song.Automation.LEVEL;
+		final tune = line.target == mdd.song.Automation.TUNE;
+
+		final shaping = part.fm() && mdd.song.Automation.operates(line.target) && !level;
+
+		if (!level && !tune && !shaping
+			&& line.target != mdd.song.Automation.SIDES) return false;
+
+		return part.fm() || level || tune;
+	}
+
+	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int,
+			transpose:Int):Void {
+		final level = line.target == mdd.song.Automation.LEVEL;
+		final tune = line.target == mdd.song.Automation.TUNE;
+
+		final shaping = part.fm() && mdd.song.Automation.operates(line.target) && !level;
+
+		if (shaping) {
+			push(at, part, TWEAK, (line.slot << 8) | (value & 0xFF), 2 + line.target);
+		} else if (level && !part.fm()) push(at, part, DATA, value & 0x0F, PSG_STEP);
+		else if (level) push(at, part, TWEAK, (line.slot << 8) | (value & 0x7F), 0);
+		else if (tune && part.sampled()) push(at, part, TUNE, value, 5);
+		else if (tune && part.noise()) push(at, part, TUNE, value & 0x0F, 4);
+		else if (tune && !part.fm()) push(at, part, TUNE, value & 0x3FF, 2);
+		else if (tune && line.slot > 0) {
+			push(at, part, TUNE, (line.slot << 14) | shifted(value, transpose), 3);
+		} else if (tune) push(at, part, TUNE, shifted(value, transpose), 1);
+		else push(at, part, TWEAK, masked(part, value), 1);
+	}
+
 	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
 			transpose:Int, fromSample:Int, toSample:Int):Void {
 		if (lane.automation.length == 0) return;
@@ -242,16 +274,7 @@ final class Sequencer {
 		final tempo = song.tempo;
 
 		for (line in lane.automation) {
-			final level = line.target == mdd.song.Automation.LEVEL;
-			final tune = line.target == mdd.song.Automation.TUNE;
-
-			final shaping = part.fm() && mdd.song.Automation.operates(line.target)
-				&& line.target != mdd.song.Automation.LEVEL;
-
-			if (!level && !tune && !shaping
-				&& line.target != mdd.song.Automation.SIDES) continue;
-
-			if (!part.fm() && !level && !tune) continue;
+			if (!carries(part, line)) continue;
 
 			var index = line.seek(head);
 			if (index > 0) index--;
@@ -265,22 +288,91 @@ final class Sequencer {
 				final at = tempo.samplesAt(from + point.at);
 				if (at < fromSample || at >= toSample) continue;
 
-				if (shaping) {
-					push(at, part, TWEAK, (line.slot << 8) | (point.value & 0xFF),
-						2 + line.target);
-				} else if (level && !part.fm()) {
-					push(at, part, DATA, point.value & 0x0F, PSG_STEP);
-				}
-				else if (level) push(at, part, TWEAK, (line.slot << 8) | (point.value & 0x7F), 0);
-				else if (tune && part.sampled()) push(at, part, TUNE, point.value, 5);
-				else if (tune && part.noise()) push(at, part, TUNE, point.value & 0x0F, 4);
-				else if (tune && !part.fm()) push(at, part, TUNE, point.value & 0x3FF, 2);
-				else if (tune && line.slot > 0) {
-					push(at, part, TUNE, (line.slot << 14)
-						| shifted(point.value, transpose), 3);
-				} else if (tune) push(at, part, TUNE, shifted(point.value, transpose), 1);
-				else push(at, part, TWEAK, masked(part, point.value), 1);
+				lined(at, part, line, point.value, transpose);
 			}
+		}
+	}
+
+	public function prime(stream:Stream, fromSample:Int):Void {
+		count = 0;
+		dropped = 0;
+
+		push(fromSample, Part.Fm1, SETUP,
+			(song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
+
+		final tick = song.tempo.tickAt(fromSample);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			if (!song.audible(part)) continue;
+
+			primed(part, tick, fromSample);
+		}
+
+		sort();
+		play(stream);
+	}
+
+	function primed(part:Part, tick:Int, at:Int):Void {
+		var lane:Null<mdd.song.Lane> = null;
+		var local = 0;
+		var transpose = 0;
+
+		if (alone >= 0) {
+			final pattern = song.patternAt(alone);
+
+			if (pattern != null) {
+				lane = pattern.lane(part);
+				local = tick;
+			}
+		} else {
+			for (track in song.tracks) {
+				if (track.muted) continue;
+
+				for (clip in track.clips) {
+					if (clip.at > tick || clip.ends() <= tick) continue;
+
+					final pattern = song.patternAt(clip.pattern);
+					if (pattern == null) continue;
+
+					final held = pattern.lane(part);
+					if (held.notes.length == 0 && held.automation.length == 0) continue;
+
+					lane = held;
+					local = tick - clip.at;
+					transpose = clip.transpose;
+				}
+			}
+		}
+
+		var named = song.rack[part.index()];
+		var sided:Null<mdd.song.Automation> = null;
+
+		if (lane != null) {
+			for (note in lane.notes) {
+				if (note.at > local) break;
+				named = note.instrument;
+			}
+
+			for (line in lane.automation) {
+				if (line.target == mdd.song.Automation.SIDES) sided = line;
+			}
+		}
+
+		if (part.fm()) {
+			push(at, part, PATCH, named, 127);
+			push(at, part, TWEAK, spread(part, sided, local, named), 1);
+		}
+
+		if (lane == null) return;
+
+		for (line in lane.automation) {
+			if (!carries(part, line)) continue;
+
+			final want = line.heldAt(local);
+			if (want < 0) continue;
+
+			lined(at, part, line, want, transpose);
 		}
 	}
 

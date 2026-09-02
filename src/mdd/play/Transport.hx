@@ -33,6 +33,7 @@ final class Transport {
 	var heardCarry:Float = 0;
 	var heardIndex:Int = 0;
 	var hushing:Bool = false;
+	var priming:Bool = false;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
 	var carried:Int = 0;
@@ -82,6 +83,7 @@ final class Transport {
 			hushing = false;
 			heardPart = -1;
 			stream.reset(position);
+			priming = true;
 		}
 
 		if (!playing) {
@@ -103,6 +105,11 @@ final class Transport {
 
 		gate.acquire();
 
+		if (priming) {
+			priming = false;
+			sequencer.prime(stream, from);
+		}
+
 		final ranged = looping && loopTo > loopFrom;
 		final ending = ranged ? loopTo : ends();
 		final bounded = ending > from;
@@ -119,6 +126,7 @@ final class Transport {
 		if (bounded && until >= ending) {
 			if (looping) {
 				position = ranged ? loopFrom : 0;
+				priming = true;
 				wrapped++;
 			} else {
 				position = 0;
