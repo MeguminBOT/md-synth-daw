@@ -1,6 +1,7 @@
 package mdd.gate;
 
 import haxe.ds.Vector;
+import mdd.format.Coded;
 import mdd.format.Flac;
 import mdd.format.Wav;
 import mdd.play.Mixdown;
@@ -64,6 +65,17 @@ class MixCheck {
 
 		final flac = Flac.write(held, rate, 2, rate, 16, ["TITLE=a tone"]);
 
+		final vorbis = Coded.vorbis(held, rate, 2, rate, 0.6, ["TITLE=a tone"]);
+		final opus = Coded.opus(held, 48000, 2, 48000, 128, ["TITLE=a tone"]);
+
+		says("an ogg is smaller than the flac", vorbis.length > 0
+			&& vorbis.getString(0, 4) == "OggS" && vorbis.length < flac.length,
+			vorbis.length + " bytes of vorbis at q6 against " + flac.length + " of flac");
+
+		says("an opus is smaller still", opus.length > 0
+			&& opus.getString(0, 4) == "OggS" && opus.length < flac.length,
+			opus.length + " bytes of opus at 128k for a second at 48000");
+
 		says("a flac is smaller than the wav it came from",
 			flac.getString(0, 4) == "fLaC" && flac.length < one.length,
 			flac.length + " bytes against " + one.length + ", "
@@ -93,6 +105,16 @@ class MixCheck {
 
 		sys.io.File.saveBytes(into + "/tone-mono.flac",
 			Flac.write(one, frames, 1, rate, 16, []));
+
+		sys.io.File.saveBytes(into + "/tone.ogg",
+			Coded.vorbis(held, frames, 2, rate, 0.6,
+				["TITLE=a tone", "ARTIST=the gate", "ALBUM=Mega Drive"]));
+
+		final fast = tone(48000 * 2, 48000, 2);
+
+		sys.io.File.saveBytes(into + "/tone.opus",
+			Coded.opus(fast, 48000 * 2, 2, 48000, 128,
+				["TITLE=a tone", "ARTIST=the gate", "ALBUM=Mega Drive"]));
 
 		Sys.println("    wrote the tones to " + into);
 	}
@@ -150,6 +172,17 @@ class MixCheck {
 		mixing.rate = 48000;
 
 		final faster = Mixdown.of(song, mixing);
+
+		final ogg = Coded.vorbis(faster.samples, faster.frames, faster.channels,
+			faster.rate, 0.6, ["TITLE=" + song.name]);
+
+		final opus = Coded.opus(faster.samples, faster.frames, faster.channels,
+			faster.rate, 128, ["TITLE=" + song.name]);
+
+		says("a song goes out as ogg and opus", ogg.length > 512 && opus.length > 512
+			&& ogg.getString(0, 4) == "OggS" && opus.getString(0, 4) == "OggS",
+			"a " + round(faster.seconds(), 2) + " s mixdown is " + ogg.length
+			+ " bytes of vorbis and " + opus.length + " of opus");
 
 		says("a mixdown takes the rate it is asked for", faster.rate == 48000
 			&& faster.frames > made.frames * 0,

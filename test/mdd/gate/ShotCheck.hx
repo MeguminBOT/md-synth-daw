@@ -191,8 +191,13 @@ class ShotCheck {
 			held.arrive("en-GB");
 			held.rise.hold(1);
 			held.fade.hold(1);
-		} else if (sheet == "export") {
+		} else if (sheet == "export" || sheet == "export-opus") {
 			final held = new mdd.view.Export(session);
+
+			if (sheet == "export-opus") {
+				held.mixing.kind = mdd.play.Mixing.OPUS;
+				held.mixing.rate = 48000;
+			}
 
 			held.mixing.artist = "MeguminBOT";
 			held.mixing.album = "Mega Drive";
