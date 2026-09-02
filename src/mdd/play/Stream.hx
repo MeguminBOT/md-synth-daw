@@ -255,6 +255,16 @@ final class Stream {
 		psg(tick, (period >> 4) & 0x3F);
 	}
 
+	public function period(tick:Int, part:Part, value:Int):Void {
+		if (!part.square()) return;
+
+		final channel = part.index() - 6;
+		final held = value & 0x3FF;
+
+		psg(tick, 0x80 | (channel << 5) | (held & 0x0F));
+		psg(tick, (held >> 4) & 0x3F);
+	}
+
 	public function attenuate(tick:Int, part:Part, attenuation:Int):Void {
 		if (!part.square() && !part.noise()) return;
 

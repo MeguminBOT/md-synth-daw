@@ -21,6 +21,11 @@ final class Automation {
 		var at = points.length;
 		while (at > 0 && points[at - 1].at > point.at) at--;
 
+		if (at > 0 && points[at - 1].at == point.at) {
+			points[at - 1].value = point.value;
+			return points[at - 1];
+		}
+
 		points.insert(at, point);
 		return point;
 	}
