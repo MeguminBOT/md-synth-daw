@@ -155,7 +155,7 @@ final class Sequencer {
 			}
 
 			if (line.target == mdd.song.Automation.TUNE) {
-				if (!part.fm() && bent == null) bent = line;
+				if (!part.fm() && line.slot == 0 && bent == null) bent = line;
 				continue;
 			}
 

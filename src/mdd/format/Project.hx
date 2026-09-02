@@ -46,6 +46,9 @@ class Project {
 		out.key("lfo");
 		out.whole((song.lfoOn ? 8 : 0) | (song.lfoRate & 7));
 
+		out.key("mode");
+		out.whole(song.mode);
+
 		out.key("pan");
 		out.list();
 		for (i in 0...Part.COUNT) out.whole(song.pan[i]);
@@ -339,6 +342,7 @@ class Project {
 		final lfo = node.get("lfo").whole(0);
 		song.lfoOn = (lfo & 8) != 0;
 		song.lfoRate = lfo & 7;
+		song.mode = node.get("mode").whole(0);
 
 		final sides = node.get("pan");
 

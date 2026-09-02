@@ -44,6 +44,10 @@ final class Stream {
 		return out;
 	}
 
+	public static inline function wordOf(note:Int):Int {
+		return ((blockOf(note) & 7) << 11) | (frequencyOf(note) & 0x7FF);
+	}
+
 	public static inline function blockOf(note:Int):Int {
 		final octave = Std.int(note / 12) - 1;
 		return octave < 0 ? 0 : (octave > 7 ? 7 : octave);
@@ -310,6 +314,19 @@ final class Stream {
 
 	public function byte(tick:Int, value:Int):Void {
 		ym(tick, 0, 0x2A, value & 0xFF);
+	}
+
+	public function mode(tick:Int, value:Int):Void {
+		ym(tick, 0, 0x27, value & 0xFF);
+	}
+
+	public function operatorFrequency(tick:Int, slot:Int, word:Int):Void {
+		if (slot < 1 || slot > 3) return;
+
+		final at = slot - 1;
+
+		ym(tick, 0, 0xAC + at, (word >> 8) & 0x3F);
+		ym(tick, 0, 0xA8 + at, word & 0xFF);
 	}
 
 	public function lfo(tick:Int, on:Bool, rate:Int):Void {

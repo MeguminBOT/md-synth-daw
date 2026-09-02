@@ -9,6 +9,7 @@ final class Song {
 
 	public var lfoOn:Bool = false;
 	public var lfoRate:Int = 0;
+	public var mode:Int = 0;
 
 	public final tempo:Tempo;
 
@@ -120,6 +121,7 @@ final class Song {
 		out.author = author;
 		out.lfoOn = lfoOn;
 		out.lfoRate = lfoRate;
+		out.mode = mode;
 		out.tempo.rate = tempo.rate;
 
 		for (i in 1...tempo.at.length) out.tempo.set(tempo.at[i], tempo.bpm[i]);
