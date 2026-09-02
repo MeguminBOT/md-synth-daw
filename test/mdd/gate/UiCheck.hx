@@ -791,6 +791,7 @@ class UiCheck {
 		sheet.opaque = true;
 
 		root.raise(sheet);
+		sheet.arrange(200, 120, 400, 360);
 
 		says("a sheet takes the room", root.sheet == sheet && root.focus == sheet
 			&& root.scrim.value > 0.6,
@@ -809,6 +810,13 @@ class UiCheck {
 			"the sheet is gone and the scrim with it");
 
 		root.raise(sheet);
+		sheet.arrange(200, 120, 400, 360);
+		root.pressed(400, 300, Pointer.Left, Mod.None);
+		root.released(400, 300, Pointer.Left, Mod.None);
+
+		says("and a press inside it is the sheet's", root.sheet == sheet,
+			"a press on the sheet reaches it rather than closing it");
+
 		root.pressed(10, 10, Pointer.Left, Mod.None);
 
 		says("and a press outside lowers it", root.sheet == null,

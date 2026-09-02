@@ -87,6 +87,32 @@ class SpineCheck {
 			"the last few pixels of a note resize it and the middle of it does not");
 	}
 
+	static function sheeted(tree:Root, session:mdd.view.Session):Void {
+		final held = new mdd.view.Preferences(session);
+
+		held.speaks(["en-GB", "en-US"], "en-GB");
+		tree.raise(held);
+
+		final row = mdd.view.Preferences.THEME;
+		final top = held.y + held.head() + row * held.rowTall() + held.rowTall() * 0.7;
+		final at = held.x + held.width * 0.5;
+
+		final was = held.showing(row);
+
+		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("a press inside a sheet reaches it", tree.sheet == held
+			&& held.showing(row) != was,
+			"the theme moved from " + was + " to " + held.showing(row)
+			+ " and the sheet is still up");
+
+		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("and a press beside it closes it", tree.sheet == null,
+			"a press on the scrim lowers the sheet");
+	}
+
 	static function dragged(tree:Root, roll:mdd.view.PianoRoll, session:mdd.view.Session,
 			centre:Centre, paint:Paint, renderer:cpp.Star<Canvas>):Void {
 		centre.show(Centre.ROLL);
@@ -617,6 +643,8 @@ class SpineCheck {
 			+ round(mean, 3) + ", worst " + round(worst * 1000, 3) + " at frame " + worstAt
 			+ ", " + over + " frames of " + rolls + " over 16.67, first frame "
 			+ round(first * 1000, 1));
+
+		sheeted(tree, session);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);

@@ -110,9 +110,13 @@ final class Preferences extends Widget {
 		return root == null ? 44 : root.metrics.whole(44);
 	}
 
-	function head():Float {
+	public function head():Float {
 		final root = root();
 		return root == null ? 46 : root.metrics.whole(46);
+	}
+
+	public function showing(row:Int):Int {
+		return holding(row);
 	}
 
 	public function rowAt(py:Float):Int {

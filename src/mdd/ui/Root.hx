@@ -233,6 +233,7 @@ final class Root {
 		sheet = widget;
 		@:privateAccess widget.attach(this);
 
+		spread(widget);
 		start(scrim, 0.68, Motion.ENTER);
 		hideTip();
 		reshape();
@@ -495,7 +496,7 @@ final class Root {
 			return;
 		}
 
-		if (sheet != null && under == sheet) {
+		if (sheet != null && !sheet.accepts(x, y)) {
 			lower();
 			return;
 		}
