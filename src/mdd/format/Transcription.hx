@@ -503,7 +503,7 @@ final class Transcription {
 	function evened(head:Int, last:Int, from:Int, until:Int, rate:Int):Void {
 		dacTake.resize(0);
 
-		final many = Math.round((until - from) * rate / Tempo.TICKS);
+		final many = Math.round((until - from) * (rate / Tempo.TICKS));
 		if (many < 1) return;
 
 		final step = Tempo.TICKS / rate;
