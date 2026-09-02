@@ -58,8 +58,7 @@ final class Transcription {
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
-	static inline final DAC_ROOM = 1 << 20;
-	static inline final DAC_JITTER = 4;
+	static inline final DAC_ROOM = 1 << 22;
 	static inline final DAC_NEAR = 3;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
@@ -69,7 +68,6 @@ final class Transcription {
 	final dacTake:Array<Int> = [];
 	final kits:Array<Int> = [];
 	var dacHeld:Int = 0;
-	var dacRate:Int = 8000;
 
 	var perTick:Float = 183.75;
 	var pattern:Pattern;
@@ -123,7 +121,6 @@ final class Transcription {
 			psgNote[i] = 60;
 		}
 
-		rated(stream);
 
 		final last = stream.count == 0 ? 0 : stream.tickAt(stream.count - 1);
 		pattern = song.add(new Pattern(name, ticked(last) + song.tempo.ppqn));
@@ -457,59 +454,6 @@ final class Transcription {
 		dacWhen.resize(0);
 	}
 
-	function rated(stream:Stream):Void {
-		final gaps:Array<Int> = [];
-
-		var half = 0;
-		var address = -1;
-		var last = -1;
-
-		for (index in 0...stream.count) {
-			if (stream.kindAt(index) != Stream.YM) continue;
-
-			final port = stream.portAt(index);
-			final value = stream.valueAt(index);
-
-			if ((port & 1) == 0) {
-				half = (port >> 1) & 1;
-				address = value;
-				continue;
-			}
-
-			if (half != 0 || address != 0x2A) continue;
-
-			final at = stream.tickAt(index);
-
-			if (last >= 0 && at > last && at - last <= DAC_GAP) gaps.push(at - last);
-			last = at;
-		}
-
-		if (gaps.length < 8) return;
-
-		gaps.sort(function(one:Int, two:Int):Int return one - two);
-
-		final middle = gaps[gaps.length >> 1];
-		final most = (middle < 1 ? 1 : middle) * DAC_JITTER;
-
-		var total = 0;
-		var counted = 0;
-
-		for (gap in gaps) {
-			if (gap > most) break;
-
-			total += gap;
-			counted++;
-		}
-
-		if (counted < 1 || total < 1) return;
-
-		var gap = Math.round(total / counted);
-		if (gap < 1) gap = 1;
-
-		final rate = Std.int(Tempo.TICKS / gap);
-		dacRate = rate < 2000 ? 2000 : (rate > 32000 ? 32000 : rate);
-	}
-
 	function spacing():Int {
 		final many = dacWhen.length;
 		if (many < 2) return 6;
@@ -534,7 +478,7 @@ final class Transcription {
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
 
-			hit(head, last, dacWhen[last] + middle, dacRate);
+			hit(head, last, dacWhen[last] + 1, Tempo.TICKS);
 			head = last + 1;
 		}
 	}
@@ -901,7 +845,9 @@ final class Transcription {
 		final many = dacTake.length;
 
 		for (index in 0...song.samples.length) {
-			if (alike(song.samples[index])) return kits[index];
+			if (song.samples[index].rate == rate && alike(song.samples[index])) {
+				return kits[index];
+			}
 		}
 
 		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
