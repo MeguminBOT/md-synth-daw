@@ -81,6 +81,13 @@ class DriftCheck {
 
 		if (args.indexOf("--parts") >= 0) parted(source, whole, from, to);
 
+		if (args.indexOf("--only") >= 0) {
+			final want = args[args.indexOf("--only") + 1];
+
+			alike(sifted(source, want), sifted(whole, want), from, to, into,
+				"only " + want + ".vgm");
+		}
+
 		if (args.indexOf("--dump") >= 0) {
 			final want = seconds(args, "--dump", 0);
 
@@ -619,13 +626,25 @@ class DriftCheck {
 		var address = -1;
 		var many = 0;
 
+		var latched = 0;
+
 		for (index in 0...stream.count) {
 			final tick = stream.tickAt(index);
 			if (tick > to * Tempo.TICKS) break;
-			if (stream.kindAt(index) != Stream.YM) continue;
 
 			final port = stream.portAt(index);
 			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) != Stream.YM) {
+				if ((value & 0x80) != 0) latched = (value >> 4) & 7;
+				if (6 + (latched >> 1) != part) continue;
+				if (tick < from * Tempo.TICKS) continue;
+				if (many++ > 20000) continue;
+
+				Sys.println("      " + tick + " t   psg   "
+					+ StringTools.hex(value, 2));
+				continue;
+			}
 
 			if ((port & 1) == 0) {
 				half = (port >> 1) & 1;
@@ -639,9 +658,9 @@ class DriftCheck {
 				: Stream.ymPart(half, address);
 
 			if (held != part) continue;
-			if (many++ > 400) continue;
+			if (many++ > 20000) continue;
 
-			Sys.println("      " + round(tick / Tempo.TICKS, 3) + " s   half " + half
+			Sys.println("      " + tick + " t   half " + half
 				+ "   " + StringTools.hex(address, 2) + " = "
 				+ StringTools.hex(value, 2));
 		}
