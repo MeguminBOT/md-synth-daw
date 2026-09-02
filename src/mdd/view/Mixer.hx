@@ -40,6 +40,44 @@ final class Mixer extends Widget {
 		return at < 0 || at >= Part.COUNT ? -1 : at;
 	}
 
+	public function panTall():Float {
+		final root = root();
+		return root == null ? 20 : root.metrics.whole(20);
+	}
+
+	public function onPan(py:Float):Bool {
+		final root = root();
+		if (root == null) return false;
+
+		final top = y + root.metrics.gap;
+		return py >= top && py < top + panTall();
+	}
+
+	public function turned(at:Int):Void {
+		final part:Part = at;
+		if (!part.fm()) return;
+
+		final held = session.song.pan[at];
+
+		session.song.pan[at] = switch (held) {
+			case Song.BOTH: Song.LEFT;
+			case Song.LEFT: Song.RIGHT;
+			case _: Song.BOTH;
+		}
+
+		session.say(part.name() + " " + sided(session.song.pan[at]));
+		session.changed();
+		invalidate();
+	}
+
+	public static function sided(pan:Int):String {
+		return switch (pan) {
+			case Song.LEFT: "L";
+			case Song.RIGHT: "R";
+			case _: "L R";
+		}
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:
@@ -54,6 +92,12 @@ final class Mixer extends Widget {
 					session.song.muted[at] = !session.song.muted[at];
 					session.changed();
 					invalidate();
+					return true;
+				}
+
+				if (onPan(event.y)) {
+					session.choose(part);
+					turned(at);
 					return true;
 				}
 
@@ -93,9 +137,10 @@ final class Mixer extends Widget {
 		final metrics = root == null ? null : root.metrics;
 		final gap = metrics == null ? 6.0 : metrics.gap;
 		final row = metrics == null ? 30.0 : metrics.row;
+		final unit = metrics == null ? 4.0 : metrics.unit;
 
-		final top = y + gap;
-		final tall = height - gap * 2 - row;
+		final top = y + gap + panTall() + unit;
+		final tall = height - gap * 2 - row - panTall() - unit;
 		if (tall <= 0) return 1;
 
 		final part = 1 - (py - top) / tall;
@@ -129,8 +174,9 @@ final class Mixer extends Widget {
 
 		paint.rect(x, y, width, height, theme.panel);
 
-		final top = y + metrics.gap;
-		final tall = height - metrics.gap * 2 - metrics.row;
+		final head = y + metrics.gap;
+		final top = head + panTall() + metrics.unit;
+		final tall = height - metrics.gap * 2 - metrics.row - panTall() - metrics.unit;
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
@@ -146,6 +192,11 @@ final class Mixer extends Widget {
 
 			final track = metrics.whole(10);
 			final middle = left + wide * 0.5;
+
+			if (part.fm()) {
+				paint.roundedRect(left + metrics.unit, head, wide - metrics.unit * 2,
+					panTall(), metrics.radiusSmall, theme.raise1);
+			}
 
 			paint.roundedRect(middle - track * 0.5, top, track, tall, track * 0.5, theme.sink);
 
@@ -179,6 +230,12 @@ final class Mixer extends Widget {
 			paint.textCentred(part.name(), left + wide * 0.5,
 				y + height - metrics.row + (metrics.row - small.height) * 0.5 + small.ascent,
 				quiet ? theme.dim : theme.ink);
+
+			if (!part.fm()) continue;
+
+			paint.textCentred(sided(session.song.pan[index]), left + wide * 0.5,
+				head + (panTall() - small.height) * 0.5 + small.ascent,
+				session.song.pan[index] == Song.BOTH ? theme.dim : theme.accent, 0.95);
 		}
 	}
 }

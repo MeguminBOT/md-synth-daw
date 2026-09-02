@@ -46,6 +46,11 @@ class Project {
 		out.key("lfo");
 		out.whole((song.lfoOn ? 8 : 0) | (song.lfoRate & 7));
 
+		out.key("pan");
+		out.list();
+		for (i in 0...Part.COUNT) out.whole(song.pan[i]);
+		out.ends();
+
 		out.key("tempo");
 		out.open();
 		out.key("ppqn");
@@ -328,6 +333,15 @@ class Project {
 		final lfo = node.get("lfo").whole(0);
 		song.lfoOn = (lfo & 8) != 0;
 		song.lfoRate = lfo & 7;
+
+		final sides = node.get("pan");
+
+		for (i in 0...Part.COUNT) {
+			if (i >= sides.length()) break;
+
+			final held = sides.at(i).whole(Song.BOTH);
+			song.pan[i] = held < 1 || held > 3 ? Song.BOTH : held;
+		}
 
 		final tempo = node.get("tempo");
 		song.tempo.resolve(tempo.get("ppqn").whole(96));

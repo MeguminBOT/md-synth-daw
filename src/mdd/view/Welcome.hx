@@ -60,7 +60,7 @@ final class Welcome extends Widget {
 
 		wantWidth = metrics == null ? 420 : metrics.whole(420);
 		wantHeight = metrics == null ? 260
-			: metrics.whole(112) + languages.length * rowTall() + metrics.whole(56);
+			: head() + languages.length * rowTall() + metrics.whole(60);
 	}
 
 	public function rowTall():Float {
@@ -70,7 +70,7 @@ final class Welcome extends Widget {
 
 	function head():Float {
 		final root = root();
-		return root == null ? 96 : root.metrics.whole(96);
+		return root == null ? 74 : root.metrics.whole(74);
 	}
 
 	function buttonTall():Float {

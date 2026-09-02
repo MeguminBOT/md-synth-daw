@@ -147,7 +147,8 @@ final class Stream {
 		return part.index() % 3;
 	}
 
-	public function patch(tick:Int, part:Part, patch:Patch, velocity:Int):Void {
+	public function patch(tick:Int, part:Part, patch:Patch, velocity:Int,
+			sides:Int = 3):Void {
 		if (!part.fm()) return;
 
 		final half = halfOf(part);
@@ -169,7 +170,8 @@ final class Stream {
 		}
 
 		ym(tick, half, 0xB0 + channel, ((patch.feedback & 7) << 3) | (patch.algorithm & 7));
-		ym(tick, half, 0xB4 + channel, 0xC0 | ((patch.ams & 3) << 4) | (patch.pms & 7));
+		ym(tick, half, 0xB4 + channel,
+			((sides & 3) << 6) | ((patch.ams & 3) << 4) | (patch.pms & 7));
 	}
 
 	public function level(tick:Int, part:Part, patch:Patch, velocity:Int):Void {

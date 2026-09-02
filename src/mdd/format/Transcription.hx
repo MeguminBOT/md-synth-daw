@@ -455,6 +455,9 @@ final class Transcription {
 		patch.ams = (sides >> 4) & 3;
 		patch.pms = sides & 7;
 
+		final stereo = (sides >> 6) & 3;
+		if (stereo != 0) song.pan[channel] = stereo;
+
 		for (group in 0...4) {
 			final slot = GROUP[group];
 			final at = group * 4 + within;

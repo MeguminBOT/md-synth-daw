@@ -101,9 +101,8 @@ final class Preferences extends Widget {
 		final root = root();
 		final metrics = root == null ? null : root.metrics;
 
-		wantWidth = metrics == null ? 420 : metrics.whole(420);
-		wantHeight = metrics == null ? 300 : metrics.whole(58) + ROWS * rowTall()
-			+ metrics.inset * 2;
+		wantWidth = metrics == null ? 560 : metrics.whole(560);
+		wantHeight = metrics == null ? 300 : head() + ROWS * rowTall() + metrics.inset;
 	}
 
 	public function rowTall():Float {
@@ -292,9 +291,11 @@ final class Preferences extends Widget {
 
 				final label = row == LANGUAGE ? held[which] : translate(held[which]);
 
+				paint.pushClip(left + 1, at, wide - 2, button - metrics.unit);
 				paint.textCentred(label, left + wide * 0.5,
 					at + (button - metrics.unit - small.height) * 0.5 + small.ascent,
 					which == on ? theme.ink : theme.dim, alpha);
+				paint.popClip();
 			}
 		}
 

@@ -24,6 +24,11 @@ final class Song {
 	public final muted:Vector<Bool> = new Vector<Bool>(Part.COUNT);
 	public final soloed:Vector<Bool> = new Vector<Bool>(Part.COUNT);
 	public final volume:Vector<Int> = new Vector<Int>(Part.COUNT);
+	public final pan:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	public static inline final LEFT = 2;
+	public static inline final RIGHT = 1;
+	public static inline final BOTH = 3;
 
 	public function new(name:String = "untitled", ppqn:Int = 96, beats:Float = 120) {
 		this.name = name;
@@ -34,6 +39,7 @@ final class Song {
 			muted[i] = false;
 			soloed[i] = false;
 			volume[i] = LOUDEST;
+			pan[i] = BOTH;
 		}
 	}
 
@@ -133,6 +139,7 @@ final class Song {
 			out.muted[i] = muted[i];
 			out.soloed[i] = soloed[i];
 			out.volume[i] = volume[i];
+			out.pan[i] = pan[i];
 		}
 
 		for (track in tracks) {

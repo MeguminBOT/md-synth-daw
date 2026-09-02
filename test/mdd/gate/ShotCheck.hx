@@ -32,6 +32,7 @@ class ShotCheck {
 		var theme = Theme.MIDNIGHT;
 		var part = 0;
 		var vgm = "";
+		var sheet = "";
 
 		var at = 0;
 
@@ -49,6 +50,7 @@ class ShotCheck {
 				case "--theme": theme = whole(held, theme); at++;
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
+				case "--sheet": sheet = held; at++;
 				case _:
 			}
 
@@ -134,6 +136,28 @@ class ShotCheck {
 
 		for (index in 0...mdd.song.Part.COUNT) {
 			rail.rack.levels[index] = 0.15 + (index % 5) * 0.17;
+		}
+
+		if (sheet == "preferences") {
+			final held = new mdd.view.Preferences(session);
+
+			held.speaks(mdd.view.Languages.shipped(), "en-GB");
+			tree.raise(held);
+			held.arrive();
+			held.rise.hold(1);
+			held.fade.hold(1);
+		} else if (sheet == "welcome") {
+			final held = new mdd.view.Welcome(session);
+
+			tree.raise(held);
+			held.arrive("en-GB");
+			held.rise.hold(1);
+			held.fade.hold(1);
+		} else if (sheet == "naming") {
+			final held = new mdd.view.Naming();
+
+			held.ask("Preset name", "Brass section");
+			tree.raise(held);
 		}
 
 		final texture = Draw.createTarget(renderer, wide, tall);

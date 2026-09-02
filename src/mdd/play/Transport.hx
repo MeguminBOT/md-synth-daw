@@ -168,7 +168,7 @@ final class Transport {
 
 			if (part.fm()) {
 				if (instrument != null && instrument.patch != null) {
-					stream.patch(at, part, instrument.patch, 110);
+					stream.patch(at, part, instrument.patch, 110, song.pan[heardPart]);
 				}
 
 				stream.tune(at, part, heardNote);

@@ -56,8 +56,21 @@ final class Samples extends Widget {
 		return at < 0 || at >= session.song.samples.length ? -1 : at;
 	}
 
+	public function waveTall():Float {
+		final root = root();
+		if (root == null) return 200;
+
+		final most = root.metrics.whole(200);
+		final room = height - head() - slots();
+
+		return room < most ? (room < 0 ? 0 : room) : most;
+	}
+
 	function wave():Float {
-		return y + head() + session.song.samples.length * slots();
+		final listed = y + head() + session.song.samples.length * slots();
+		final floor = y + height - waveTall();
+
+		return listed < floor ? listed : floor;
 	}
 
 	public var budget:Null<mdd.check.Budget> = null;
@@ -294,9 +307,13 @@ final class Samples extends Widget {
 
 		final tall = slots();
 
+		final floor = wave();
+
+		paint.pushClip(x, y + head(), width, floor - y - head());
+
 		for (index in 0...session.song.samples.length) {
 			final row = y + head() + index * tall;
-			if (row > y + height) break;
+			if (row > floor) break;
 
 			if (index == chosen) {
 				paint.rect(x, row, width, tall, theme.accent, Theme.SELECT);
@@ -313,13 +330,14 @@ final class Samples extends Widget {
 				theme.dim, 0.75);
 		}
 
+		paint.popClip();
 		waveform(paint, theme, metrics);
 	}
 
 	function waveform(paint:Paint, theme:Theme, metrics:Metrics):Void {
 		final sample = sample();
 		final top = wave();
-		final tall = y + height - top;
+		final tall = waveTall();
 
 		if (tall < metrics.row) return;
 

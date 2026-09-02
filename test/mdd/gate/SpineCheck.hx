@@ -43,6 +43,7 @@ class SpineCheck {
 		played();
 		blocks();
 		looping();
+		ending();
 		drawn(args.length > 0 ? args[0] : Gate.root);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -634,6 +635,63 @@ class SpineCheck {
 			parted < 0 ? "128 and 512 frame blocks render the same "
 				+ Std.int(length / 2) + " frames sample for sample"
 				: "they part at sample " + Std.int(parted / 2) + ", worst " + round(worst, 6));
+	}
+
+	static function ending():Void {
+		final song = new Song("an end", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		pattern.lane(Part.Fm1).add(new Note(0, 336, 60, 100));
+		song.instrument(new mdd.song.Instrument("lead", Part.Fm1));
+		song.rack[0] = 0;
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		final transport = new Transport(song, 8192);
+		final render = new Render(RATE, Render.BLOCK);
+
+		render.transport = transport;
+		transport.rewind();
+		transport.play();
+
+		final bar = song.tempo.ppqn * 4;
+		final want = song.tempo.samplesAt(384 + bar);
+		final limit = Std.int(want * (RATE / Tempo.TICKS)) + RATE;
+
+		var frames = 0;
+		var stopped = -1;
+
+		while (frames < limit) {
+			final at = transport.advance(Render.BLOCK, RATE);
+			render.serve(transport.stream, at, Render.BLOCK, transport.entering);
+
+			frames += Render.BLOCK;
+			if (stopped < 0 && !transport.playing) stopped = frames;
+		}
+
+		says("a song stops a bar after its last clip", stopped > 0,
+			stopped < 0 ? "it never stopped in " + round(limit / RATE, 2) + " s"
+			: "the transport stopped at " + round(stopped / RATE, 3) + " s, against "
+			+ round(want / Tempo.TICKS, 3) + " s of song and a bar");
+
+		var most = 0.0;
+
+		for (block in 0...200) {
+			final at = transport.advance(Render.BLOCK, RATE);
+			final many = render.serve(transport.stream, at, Render.BLOCK, transport.entering);
+
+			if (block < 40) continue;
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final size = value < 0 ? -value : value;
+				if (size > most) most = size;
+			}
+		}
+
+		says("and nothing is left ringing", most < 0.0005,
+			"half a second of rendering past the end peaks at " + round(most, 6));
 	}
 
 	static function looping():Void {

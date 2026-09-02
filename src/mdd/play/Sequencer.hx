@@ -297,7 +297,8 @@ final class Sequencer {
 				case PATCH:
 					final instrument = instrumentOf(first, part);
 					if (instrument != null && instrument.patch != null) {
-						stream.patch(tick, part, instrument.patch, second);
+						stream.patch(tick, part, instrument.patch, second,
+							song.pan[part.index()]);
 					}
 					if (part.noise() && instrument != null && instrument.envelope != null) {
 						stream.noise(tick, instrument.envelope.noise);
