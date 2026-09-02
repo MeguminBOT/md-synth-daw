@@ -220,25 +220,30 @@ final class Files {
 		return named;
 	}
 
+	public static inline final PER_SECOND = 32768;
+	public static inline final LEAST_ROOM = 1 << 20;
+	public static inline final MOST_ROOM = 1 << 25;
+
+	public static function roomFor(span:Int):Int {
+		final seconds = span / Tempo.TICKS;
+		final want = Std.int(seconds * PER_SECOND);
+
+		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
+	}
+
 	public function exportVgm(where:String):String {
 		final named = suffixed(where, "vgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
 
-		final stream = new Stream(4194304);
+		final stream = new Stream(roomFor(span));
 		final sequencer = new Sequencer(session.song);
 
-		var at = 0;
-		while (at < span) {
-			var until = at + 65536;
-			if (until > span) until = span;
-
-			sequencer.emit(stream, at, until);
-			at = until;
-		}
-
+		sequencer.spanned(stream, 0, span);
 		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate));
 
-		session.say("exported " + stream.count + " register writes to " + name(named));
+		session.say("exported " + stream.count + " register writes to " + name(named)
+			+ (sequencer.lost + stream.dropped == 0 ? ""
+			: ", " + (sequencer.lost + stream.dropped) + " dropped"));
 		return named;
 	}
 
@@ -260,9 +265,9 @@ final class Files {
 			return "";
 		}
 
-		final stream = new Stream(4194304);
+		final stream = new Stream(roomFor(span));
 		final sequencer = new Sequencer(session.song);
-		sequencer.emit(stream, 0, span);
+		sequencer.spanned(stream, 0, span);
 
 		final held = new Vector<cpp.Float32>(frames * 2);
 		final render = new Render(RATE, Render.BLOCK);

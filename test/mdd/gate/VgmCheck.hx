@@ -47,6 +47,7 @@ class VgmCheck {
 		paced(where, files);
 		covered(where, files);
 		shadowed(where, files);
+		whole(where, files);
 
 		final into = args.indexOf("--wav");
 
@@ -699,6 +700,28 @@ class VgmCheck {
 		}
 
 		return index;
+	}
+
+	static function whole(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final read = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), read);
+		final song = mdd.format.Transcription.of(read, vgm.rate, name).song;
+
+		final span = song.tempo.samplesAt(song.ends());
+		final made = new mdd.play.Stream(1 << 23);
+		final sequencer = new mdd.play.Sequencer(song);
+
+		sequencer.spanned(made, 0, span);
+
+		says("an imported song exports whole", sequencer.lost == 0 && made.dropped == 0,
+			made.count + " register writes over " + round(span / mdd.song.Tempo.TICKS, 1)
+			+ " s, " + sequencer.lost + " events and " + made.dropped
+			+ " writes dropped on the way");
 	}
 
 	static function paced(where:String, files:Array<String>):Void {

@@ -27,9 +27,12 @@ final class Sequencer {
 
 	public var alone:Int = -1;
 
+	public static inline final CHUNK = 8192;
+
 	public var capacity(default, null):Int;
 	public var count(default, null):Int = 0;
 	public var dropped(default, null):Int = 0;
+	public var lost(default, null):Int = 0;
 
 	final ticks:Vector<Int>;
 	final parts:Vector<Int>;
@@ -49,6 +52,24 @@ final class Sequencer {
 		firsts = new Vector<Int>(this.capacity);
 		seconds = new Vector<Int>(this.capacity);
 		order = new Vector<Int>(this.capacity);
+	}
+
+	public function spanned(stream:Stream, from:Int, until:Int):Int {
+		lost = 0;
+
+		var at = from;
+		var made = 0;
+
+		while (at < until) {
+			var edge = at + CHUNK;
+			if (edge > until) edge = until;
+
+			made += emit(stream, at, edge);
+			lost += dropped;
+			at = edge;
+		}
+
+		return made;
 	}
 
 	public function emit(stream:Stream, fromSample:Int, toSample:Int):Int {
