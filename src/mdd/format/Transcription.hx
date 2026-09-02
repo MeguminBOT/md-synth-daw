@@ -108,6 +108,7 @@ final class Transcription {
 		for (i in 0...levels.length) levels[i] = -1;
 		for (i in 0...stereos.length) stereos[i] = -1;
 		for (i in 0...tunes.length) tunes[i] = -1;
+		for (i in 0...operators.length) operators[i] = -1;
 
 		for (i in 0...4) {
 			psgPeriod[i] = 0;
@@ -183,6 +184,18 @@ final class Transcription {
 			return;
 		}
 
+		if (half == 0 && address == 0x27) {
+			song.mode = value & 0xFF;
+			return;
+		}
+
+		if (half == 0 && address >= 0xA8 && address <= 0xAA) {
+			final slot = address - 0xA8 + 1;
+
+			operated(at, slot, ((shadow[0xAC + slot - 1] & 0x3F) << 8) | (value & 0xFF));
+			return;
+		}
+
 		if (half == 0 && address == 0x22) {
 			song.lfoOn = (value & 0x08) != 0;
 			song.lfoRate = value & 7;
@@ -250,6 +263,20 @@ final class Transcription {
 		if (line == null || was < 0) return;
 
 		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
+	final operators:Vector<Int> = new Vector<Int>(4);
+
+	function operated(at:Int, slot:Int, word:Int):Void {
+		if (operators[slot] == word) return;
+		if (operators[slot] < 0 && word == 0) return;
+
+		operators[slot] = word;
+
+		final line = lined(2, mdd.song.Automation.TUNE, slot, -1);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), word));
 	}
 
 	function bent(at:Int, channel:Int, word:Int):Void {
@@ -332,6 +359,18 @@ final class Transcription {
 		startedOn[channel] = pitchOf(channel);
 		startedWith[channel] = instrumentFor(channel);
 		started[channel] = tying[channel];
+
+		exact(at, channel);
+	}
+
+	function exact(at:Int, channel:Int):Void {
+		final word = tunes[channel];
+		if (word < 0 || word == mdd.play.Stream.wordOf(startedOn[channel])) return;
+
+		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), word));
 	}
 
 	function finish(at:Int, channel:Int):Void {
