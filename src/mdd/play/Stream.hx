@@ -69,6 +69,9 @@ final class Stream {
 	final kinds:Vector<Int>;
 	final ports:Vector<Int>;
 	final values:Vector<Int>;
+	final settled:Vector<Int> = new Vector<Int>(512);
+	final words:Vector<Int> = new Vector<Int>(10);
+	final whens:Vector<Int> = new Vector<Int>(10);
 
 	public function new(capacity:Int = 8192) {
 		this.capacity = capacity < 16 ? 16 : capacity;
@@ -77,6 +80,14 @@ final class Stream {
 		kinds = new Vector<Int>(this.capacity);
 		ports = new Vector<Int>(this.capacity);
 		values = new Vector<Int>(this.capacity);
+
+		forget();
+	}
+
+	public function forget():Void {
+		for (index in 0...settled.length) settled[index] = -1;
+		for (index in 0...words.length) words[index] = -1;
+		for (index in 0...whens.length) whens[index] = -1;
 	}
 
 	public function clear():Void {
@@ -114,8 +125,19 @@ final class Stream {
 	}
 
 	public inline function ym(tick:Int, half:Int, at:Int, value:Int):Void {
-		raw(tick, YM, half * 2, at);
-		raw(tick, YM, half * 2 + 1, value);
+		final byte = value & 0xFF;
+		final index = (half << 8) | at;
+
+		if (settled[index] != byte || !settles(at)) {
+			settled[index] = byte;
+
+			raw(tick, YM, half * 2, at);
+			raw(tick, YM, half * 2 + 1, byte);
+		}
+	}
+
+	static inline function settles(at:Int):Bool {
+		return (at >= 0x30 && at < 0xA0) || at == 0x2A || (at >= 0xB0 && at <= 0xB6) || at == 0x22;
 	}
 
 	public inline function psg(tick:Int, value:Int):Void {
@@ -176,11 +198,19 @@ final class Stream {
 	public function frequency(tick:Int, part:Part, word:Int):Void {
 		if (!part.fm()) return;
 
+		final held = word & 0x3FFF;
+		final index = part.index();
+
+		if (words[index] == held && whens[index] == tick) return;
+
+		words[index] = held;
+		whens[index] = tick;
+
 		final half = halfOf(part);
 		final channel = channelOf(part);
 
-		ym(tick, half, 0xA4 + channel, (word >> 8) & 0x3F);
-		ym(tick, half, 0xA0 + channel, word & 0xFF);
+		ym(tick, half, 0xA4 + channel, (held >> 8) & 0x3F);
+		ym(tick, half, 0xA0 + channel, held & 0xFF);
 	}
 
 	public function sides(tick:Int, part:Part, value:Int):Void {
@@ -226,13 +256,7 @@ final class Stream {
 	public function tune(tick:Int, part:Part, note:Int):Void {
 		if (!part.fm()) return;
 
-		final half = halfOf(part);
-		final channel = channelOf(part);
-		final block = blockOf(note);
-		final frequency = frequencyOf(note);
-
-		ym(tick, half, 0xA4 + channel, ((block & 7) << 3) | ((frequency >> 8) & 7));
-		ym(tick, half, 0xA0 + channel, frequency & 0xFF);
+		frequency(tick, part, wordOf(note));
 	}
 
 	public function keyOn(tick:Int, part:Part):Void {
@@ -338,10 +362,16 @@ final class Stream {
 	public function operatorFrequency(tick:Int, slot:Int, word:Int):Void {
 		if (slot < 1 || slot > 3) return;
 
+		final held = word & 0x3FFF;
+		if (words[5 + slot] == held && whens[5 + slot] == tick) return;
+
+		words[5 + slot] = held;
+		whens[5 + slot] = tick;
+
 		final at = slot - 1;
 
-		ym(tick, 0, 0xAC + at, (word >> 8) & 0x3F);
-		ym(tick, 0, 0xA8 + at, word & 0xFF);
+		ym(tick, 0, 0xAC + at, (held >> 8) & 0x3F);
+		ym(tick, 0, 0xA8 + at, held & 0xFF);
 	}
 
 	public function lfo(tick:Int, on:Bool, rate:Int):Void {
@@ -349,6 +379,7 @@ final class Stream {
 	}
 
 	public function reset(tick:Int):Void {
+		forget();
 		lfo(tick, false, 0);
 		sampling(tick, false);
 

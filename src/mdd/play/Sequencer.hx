@@ -20,7 +20,7 @@ final class Sequencer {
 	public static inline final PSG_STEP = 1;
 
 	public static inline final ENVELOPE_TICKS = 735;
-	public static inline final GUARD = 1;
+	public static inline final GUARD = 0;
 
 	public final song:Song;
 	public final voices:Voices;
@@ -155,7 +155,7 @@ final class Sequencer {
 			}
 
 			if (line.target == mdd.song.Automation.TUNE) {
-				if (!part.fm() && line.slot == 0 && bent == null) bent = line;
+				if (line.slot == 0 && bent == null) bent = line;
 				continue;
 			}
 
@@ -206,7 +206,12 @@ final class Sequencer {
 				}
 
 				if (bent == null) push(onSample, part, TUNE, pitch, 0);
-				else push(onSample, part, TUNE, bent.heldAt(start - from) & 0x3FF, 2);
+				else if (part.fm()) {
+					final want = bent.heldAt(start - from);
+
+					push(onSample, part, TUNE, want < 0 ? Stream.wordOf(pitch)
+						: shifted(want, transpose), 1);
+				} else push(onSample, part, TUNE, bent.heldAt(start - from) & 0x3FF, 2);
 
 				final levelled = (part.square() || part.noise()) && lines[0] != null;
 

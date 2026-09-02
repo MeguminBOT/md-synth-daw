@@ -252,6 +252,7 @@ final class Transport {
 	}
 
 	public function rewind():Void {
+		stream.forget();
 		position = 0;
 		carried = 0;
 		entering = 0;
