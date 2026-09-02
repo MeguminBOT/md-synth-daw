@@ -63,6 +63,7 @@ class Gate {
 			case "arrange": ArrangeCheck.run(args);
 			case "tier": TierCheck.run(args);
 			case "shot": ShotCheck.run(args);
+			case "fault": FaultCheck.run(args);
 			case _:
 				Sys.println("mdd gate: no program called '" + name + "'");
 				Sys.println("  known: " + PROGRAMS.join(", "));
