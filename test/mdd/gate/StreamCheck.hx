@@ -40,8 +40,8 @@ class StreamCheck {
 		faces();
 		chunks();
 		sounded();
-		raced();
 		sought(args);
+		raced();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -129,6 +129,9 @@ class StreamCheck {
 
 			apart++;
 			if (first < 0) first = index;
+
+			Sys.println("      " + StringTools.hex(index, 3) + "  playing "
+				+ one[index] + "  seeking " + two[index]);
 		}
 
 		says("a seek leaves the chip where playing there would", apart == 0,
