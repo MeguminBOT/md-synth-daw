@@ -586,10 +586,6 @@ final class Playlist extends Widget {
 		}
 
 		paint.popClip();
-
-		paint.textRight(translate(Locale.VIEW_PLAYLIST), x + names() - metrics.inset,
-			y + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.7);
-
 		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame);
 	}
 }

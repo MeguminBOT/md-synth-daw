@@ -33,6 +33,7 @@ class ShotCheck {
 		var part = 0;
 		var vgm = "";
 		var sheet = "";
+		var lane = 0;
 
 		var at = 0;
 
@@ -51,6 +52,7 @@ class ShotCheck {
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
 				case "--sheet": sheet = held; at++;
+				case "--lane": lane = whole(held, lane); at++;
 				case _:
 			}
 
@@ -129,6 +131,7 @@ class ShotCheck {
 		shell.zone(Shell.MENU).add(menus);
 
 		session.choose(part);
+		centre.roll.showsLane(lane);
 		centre.show(centreTab);
 		editor.show(inspectorTab);
 		dock.show(dockTab);

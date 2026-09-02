@@ -234,5 +234,6 @@
   "hardware.song": "song",
   "psg.noLoop": "off",
   "tracker.division": "row",
-  "psg.steps": "steps"
+  "psg.steps": "steps",
+  "lane.empty": "nothing is written here yet"
 }

@@ -753,6 +753,12 @@ final class PianoRoll extends Widget {
 
 		paint.rect(left, floor, width - gutter(), metrics.whole(1), theme.frame);
 
+		if (lane != VELOCITY) {
+			laned(paint, theme, metrics, held, left, floor, room);
+			paint.popClip();
+			return;
+		}
+
 		for (note in held.notes) {
 			final at = atTick(note.at);
 			if (at < left - stalk || at > x + width) continue;
@@ -765,6 +771,64 @@ final class PianoRoll extends Widget {
 		}
 
 		paint.popClip();
+	}
+
+	function laned(paint:Paint, theme:Theme, metrics:Metrics, held:mdd.song.Lane, left:Float,
+			floor:Float, room:Float):Void {
+		final want = lane == PAN ? mdd.song.Automation.SIDES : mdd.song.Automation.LEVEL;
+		final colour = theme.part(session.part.index());
+		final hair = metrics.whole(2);
+
+		var lines = 0;
+
+		for (line in held.automation) {
+			if (line.target != want || line.points.length == 0) continue;
+
+			lines++;
+
+			var last = -1.0;
+			var lastAt = 0.0;
+
+			for (point in line.points) {
+				final at = atTick(point.at);
+				if (at > x + width) break;
+
+				final part = want == mdd.song.Automation.SIDES
+					? sided(point.value) : 1 - (point.value & 0x7F) / 127.0;
+				final level = floor - room * part;
+
+				if (last >= 0 && at >= left) {
+					paint.rect(lastAt < left ? left : lastAt, last, at - lastAt, hair,
+						colour, 0.8);
+					paint.rect(at, level < last ? level : last, hair,
+						(level < last ? last - level : level - last) + hair, colour, 0.8);
+				}
+
+				last = level;
+				lastAt = at;
+			}
+
+			if (last >= 0 && lastAt < x + width) {
+				paint.rect(lastAt < left ? left : lastAt, last, x + width - lastAt, hair,
+					colour, 0.8);
+			}
+		}
+
+		if (lines > 0) return;
+
+		final font = metrics.small == null ? metrics.body : metrics.small;
+
+		paint.reface(font);
+		paint.text(translate(Locale.LANE_EMPTY), left + metrics.gap,
+			floor - room * 0.5 + font.ascent * 0.5, theme.dim, 0.6);
+	}
+
+	static function sided(value:Int):Float {
+		return switch ((value >> 6) & 3) {
+			case 1: 0.15;
+			case 2: 0.85;
+			case _: 0.5;
+		}
 	}
 
 	function share(note:Note):Float {

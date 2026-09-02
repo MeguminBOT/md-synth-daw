@@ -287,6 +287,12 @@ class Project {
 				out.whole(note.velocity);
 				out.key("instrument");
 				out.whole(note.instrument);
+
+				if (note.tied) {
+					out.key("tied");
+					out.flag(true);
+				}
+
 				out.close();
 			}
 
@@ -490,9 +496,12 @@ class Project {
 
 			for (at in 0...notes.length()) {
 				final note = notes.at(at);
-				lane.add(new Note(note.get("at").whole(0), note.get("length").whole(0),
+				final made = new Note(note.get("at").whole(0), note.get("length").whole(0),
 					note.get("pitch").whole(60), note.get("velocity").whole(100),
-					note.get("instrument").whole(-1)));
+					note.get("instrument").whole(-1));
+
+				made.tied = note.get("tied").truth(false);
+				lane.add(made);
 			}
 
 			final lines = held.get("automation");

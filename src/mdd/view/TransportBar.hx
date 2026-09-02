@@ -428,12 +428,15 @@ final class TransportBar extends Widget {
 		paint.reface(font);
 
 		final line = y + (height - font.height) * 0.5 + font.ascent;
-		var clockAt = pickerLeft() + pickerWide() + metrics.inset;
+		final clockAt = pickerLeft() + pickerWide() + metrics.inset;
+		final barAt = clockAt + font.measure("00:00.000") + metrics.inset;
+		final room = barAt + font.measure("bar 000.0") - clockAt + metrics.inset;
+
+		paint.roundedRect(clockAt - metrics.gap, top, room, button, metrics.radiusRow,
+			theme.sink);
 
 		paint.text(clock(transport.seconds()), clockAt, line, theme.ink);
-		clockAt += font.measure("00:00.000") + metrics.inset;
-
-		paint.text(bar(transport.tick()), clockAt, line, theme.ink);
+		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
 
 		for (field in held) field.paint(paint);
 	}

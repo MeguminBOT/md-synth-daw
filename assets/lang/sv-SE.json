@@ -234,5 +234,6 @@
   "hardware.song": "låt",
   "psg.noLoop": "av",
   "tracker.division": "rad",
-  "psg.steps": "steg"
+  "psg.steps": "steg",
+  "lane.empty": "inget är skrivet här än"
 }

@@ -66,6 +66,7 @@ class Locale {
 	public static inline final LANE_VELOCITY = "lane.velocity";
 	public static inline final LANE_PAN = "lane.pan";
 	public static inline final LANE_AUTOMATION = "lane.automation";
+	public static inline final LANE_EMPTY = "lane.empty";
 
 	public static inline final REGISTERS_NOTHING = "registers.nothing";
 	public static inline final REGISTERS_COPY = "registers.copy";
@@ -285,6 +286,7 @@ class Locale {
 		PANEL_FROM_IMPORT, BANK_EXPAND, BANK_COLLAPSE, BANK_KEEP, BANK_KEPT,
 		BANK_ALREADY,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
+		LANE_EMPTY,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
 		REGISTERS_COPY, REGISTERS_AS_VGM, REGISTERS_NO_ROW, REGISTERS_HOLD,
 		REGISTERS_FOLLOW, REGISTERS_FORGET,
