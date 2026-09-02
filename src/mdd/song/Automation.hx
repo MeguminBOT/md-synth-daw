@@ -4,6 +4,7 @@ package mdd.song;
 final class Automation {
 	public static inline final LEVEL = 0;
 	public static inline final SIDES = 1;
+	public static inline final TUNE = 2;
 
 	public static inline final ROOM = 8192;
 

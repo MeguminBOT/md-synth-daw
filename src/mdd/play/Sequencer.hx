@@ -40,6 +40,7 @@ final class Sequencer {
 	final firsts:Vector<Int>;
 	final seconds:Vector<Int>;
 	final order:Vector<Int>;
+	final lines:Vector<Null<mdd.song.Automation>> = new Vector<Null<mdd.song.Automation>>(4);
 
 	public function new(song:Song, voices:Null<Voices> = null, capacity:Int = 16384) {
 		this.song = song;
@@ -135,7 +136,7 @@ final class Sequencer {
 
 			voices.resolve(lane, head, high - from + 1);
 			sound(lane, from, until, transpose, part, fromSample, toSample);
-			tweaked(lane, from, part, head, high - from + 1, fromSample, toSample);
+			tweaked(lane, from, part, head, high - from + 1, transpose, fromSample, toSample);
 		}
 	}
 
@@ -144,12 +145,17 @@ final class Sequencer {
 		final tempo = song.tempo;
 		var sided:Null<mdd.song.Automation> = null;
 
+		for (slot in 0...4) lines[slot] = null;
+
 		if (part.fm()) {
 			for (line in lane.automation) {
-				if (line.target != mdd.song.Automation.SIDES) continue;
+				if (line.target == mdd.song.Automation.SIDES) {
+					if (sided == null) sided = line;
+					continue;
+				}
 
-				sided = line;
-				break;
+				if (line.target != mdd.song.Automation.LEVEL) continue;
+				if (line.slot >= 0 && line.slot < 4) lines[line.slot] = line;
 			}
 		}
 
@@ -175,8 +181,19 @@ final class Sequencer {
 				if (!tied) {
 					push(onSample, part, PATCH, named, velocity);
 
-					if (sided != null) {
-						push(onSample, part, TWEAK, sided.heldAt(start - from) & 0xFF, 1);
+					if (part.fm()) {
+						push(onSample, part, TWEAK, spread(part, sided, start - from,
+							named), 1);
+
+						for (slot in 0...4) {
+							final line = lines[slot];
+							if (line == null) continue;
+
+							final want = line.heldAt(start - from);
+							if (want < 0) continue;
+
+							push(onSample, part, TWEAK, (slot << 8) | (want & 0x7F), 0);
+						}
 					}
 				}
 
@@ -196,14 +213,16 @@ final class Sequencer {
 	}
 
 	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
-			fromSample:Int, toSample:Int):Void {
+			transpose:Int, fromSample:Int, toSample:Int):Void {
 		if (!part.fm() || lane.automation.length == 0) return;
 
 		final tempo = song.tempo;
 
 		for (line in lane.automation) {
 			final level = line.target == mdd.song.Automation.LEVEL;
-			if (!level && line.target != mdd.song.Automation.SIDES) continue;
+			final tune = line.target == mdd.song.Automation.TUNE;
+
+			if (!level && !tune && line.target != mdd.song.Automation.SIDES) continue;
 
 			var index = line.seek(head);
 			if (index > 0) index--;
@@ -218,9 +237,53 @@ final class Sequencer {
 				if (at < fromSample || at >= toSample) continue;
 
 				if (level) push(at, part, TWEAK, (line.slot << 8) | (point.value & 0x7F), 0);
-				else push(at, part, TWEAK, point.value & 0xFF, 1);
+				else if (tune) push(at, part, TUNE, shifted(point.value, transpose), 1);
+				else push(at, part, TWEAK, masked(part, point.value), 1);
 			}
 		}
+	}
+
+	function spread(part:Part, line:Null<mdd.song.Automation>, tick:Int, named:Int):Int {
+		var value = line == null ? -1 : line.heldAt(tick);
+
+		if (value < 0) {
+			final instrument = instrumentOf(named, part);
+			final patch = instrument == null ? null : instrument.patch;
+
+			value = patch == null ? 0xC0
+				: (0xC0 | ((patch.ams & 3) << 4) | (patch.pms & 7));
+		}
+
+		return masked(part, value);
+	}
+
+	static function shifted(word:Int, semitones:Int):Int {
+		final held = word & 0x3FFF;
+		if (semitones == 0) return held;
+
+		var block = (held >> 11) & 7;
+		var scaled = (held & 0x7FF) * Math.pow(2, semitones / 12.0);
+
+		while (scaled >= 2048 && block < 7) {
+			scaled *= 0.5;
+			block++;
+		}
+
+		while (scaled < 1024 && block > 0) {
+			scaled *= 2;
+			block--;
+		}
+
+		var found = Math.round(scaled);
+		if (found > 2047) found = 2047;
+		if (found < 0) found = 0;
+
+		return (block << 11) | found;
+	}
+
+	inline function masked(part:Part, value:Int):Int {
+		final pan = song.pan[part.index()] & 3;
+		return (value & 0x3F) | ((((value >> 6) & pan) & 3) << 6);
 	}
 
 	function sampled(onSample:Int, offSample:Int, named:Int, fromSample:Int, toSample:Int):Void {
@@ -373,15 +436,15 @@ final class Sequencer {
 				case PATCH:
 					final instrument = instrumentOf(first, part);
 					if (instrument != null && instrument.patch != null) {
-						stream.patch(tick, part, instrument.patch, second,
-							song.pan[part.index()]);
+						stream.patch(tick, part, instrument.patch, second);
 					}
 					if (part.noise() && instrument != null && instrument.envelope != null) {
 						stream.noise(tick, instrument.envelope.noise);
 					}
 
 				case TUNE:
-					if (part.fm()) stream.tune(tick, part, first);
+					if (second == 1) stream.frequency(tick, part, first);
+					else if (part.fm()) stream.tune(tick, part, first);
 					else if (part.square()) stream.square(tick, part, first);
 
 				case ON:
