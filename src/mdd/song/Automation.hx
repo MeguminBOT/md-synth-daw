@@ -5,6 +5,20 @@ final class Automation {
 	public static inline final LEVEL = 0;
 	public static inline final SIDES = 1;
 	public static inline final TUNE = 2;
+	public static inline final TIMBRE = 3;
+	public static inline final ATTACK = 4;
+	public static inline final DECAY = 5;
+	public static inline final SUSTAIN = 6;
+	public static inline final RELEASE = 7;
+	public static inline final LOOP = 8;
+	public static inline final WIRING = 9;
+
+	public static final BASES:Array<Int> = [0x40, 0, 0, 0x30, 0x50, 0x60, 0x70, 0x80, 0x90,
+		0xB0];
+
+	public static inline function operates(target:Int):Bool {
+		return target == LEVEL || (target >= TIMBRE && target <= WIRING);
+	}
 
 	public static inline final ROOM = 8192;
 

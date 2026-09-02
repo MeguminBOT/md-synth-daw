@@ -259,6 +259,21 @@ final class Stream {
 		psg(tick, (period >> 4) & 0x3F);
 	}
 
+	public function shaping(tick:Int, part:Part, base:Int, slot:Int, value:Int):Void {
+		if (!part.fm()) return;
+
+		final half = halfOf(part);
+		final channel = channelOf(part);
+
+		if (base == 0xB0) {
+			ym(tick, half, 0xB0 + channel, value & 0xFF);
+			return;
+		}
+
+		final group = slot == 1 ? 2 : (slot == 2 ? 1 : slot);
+		ym(tick, half, base + group * 4 + channel, value & 0xFF);
+	}
+
 	public function period(tick:Int, part:Part, value:Int):Void {
 		if (!part.square()) return;
 

@@ -129,7 +129,7 @@ final class Sequencer {
 			if (!song.audible(part)) continue;
 
 			final lane = pattern.lane(part);
-			if (lane.notes.length == 0) continue;
+			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
 
 			var head = low - from;
 			if (head < 0) head = 0;
@@ -183,20 +183,24 @@ final class Sequencer {
 
 			if (onSample >= fromSample && onSample < toSample) {
 				if (!tied) {
-					push(onSample, part, PATCH, named, velocity);
+					push(onSample, part, PATCH, named,
+						bent != null && part.noise() ? -1 : velocity);
 
 					if (part.fm()) {
 						push(onSample, part, TWEAK, spread(part, sided, start - from,
 							named), 1);
 
-						for (slot in 0...4) {
-							final line = lines[slot];
-							if (line == null) continue;
+						for (line in lane.automation) {
+							if (!mdd.song.Automation.operates(line.target)) continue;
 
 							final want = line.heldAt(start - from);
 							if (want < 0) continue;
 
-							push(onSample, part, TWEAK, (slot << 8) | (want & 0x7F), 0);
+							final level = line.target == mdd.song.Automation.LEVEL;
+
+							push(onSample, part, TWEAK,
+								(line.slot << 8) | (want & (level ? 0x7F : 0xFF)),
+								level ? 0 : 2 + line.target);
 						}
 					}
 				}
@@ -234,7 +238,12 @@ final class Sequencer {
 			final level = line.target == mdd.song.Automation.LEVEL;
 			final tune = line.target == mdd.song.Automation.TUNE;
 
-			if (!level && !tune && line.target != mdd.song.Automation.SIDES) continue;
+			final shaping = part.fm() && mdd.song.Automation.operates(line.target)
+				&& line.target != mdd.song.Automation.LEVEL;
+
+			if (!level && !tune && !shaping
+				&& line.target != mdd.song.Automation.SIDES) continue;
+
 			if (!part.fm() && !level && !tune) continue;
 
 			var index = line.seek(head);
@@ -249,10 +258,19 @@ final class Sequencer {
 				final at = tempo.samplesAt(from + point.at);
 				if (at < fromSample || at >= toSample) continue;
 
-				if (level && !part.fm()) push(at, part, DATA, point.value & 0x0F, PSG_STEP);
+				if (shaping) {
+					push(at, part, TWEAK, (line.slot << 8) | (point.value & 0xFF),
+						2 + line.target);
+				} else if (level && !part.fm()) {
+					push(at, part, DATA, point.value & 0x0F, PSG_STEP);
+				}
 				else if (level) push(at, part, TWEAK, (line.slot << 8) | (point.value & 0x7F), 0);
+				else if (tune && part.noise()) push(at, part, TUNE, point.value & 0x0F, 4);
 				else if (tune && !part.fm()) push(at, part, TUNE, point.value & 0x3FF, 2);
-				else if (tune) push(at, part, TUNE, shifted(point.value, transpose), 1);
+				else if (tune && line.slot > 0) {
+					push(at, part, TUNE, (line.slot << 14)
+						| shifted(point.value, transpose), 3);
+				} else if (tune) push(at, part, TUNE, shifted(point.value, transpose), 1);
 				else push(at, part, TWEAK, masked(part, point.value), 1);
 			}
 		}
@@ -455,12 +473,16 @@ final class Sequencer {
 					if (instrument != null && instrument.patch != null) {
 						stream.patch(tick, part, instrument.patch, second);
 					}
-					if (part.noise() && instrument != null && instrument.envelope != null) {
+					if (part.noise() && second >= 0 && instrument != null
+							&& instrument.envelope != null) {
 						stream.noise(tick, instrument.envelope.noise);
 					}
 
 				case TUNE:
-					if (second == 2) stream.period(tick, part, first);
+					if (second == 4) stream.noise(tick, first & 0x0F);
+					else if (second == 3) {
+						stream.operatorFrequency(tick, (first >> 14) & 3, first & 0x3FFF);
+					} else if (second == 2) stream.period(tick, part, first);
 					else if (second == 1) stream.frequency(tick, part, first);
 					else if (part.fm()) stream.tune(tick, part, first);
 					else if (part.square()) stream.square(tick, part, first);
@@ -478,8 +500,12 @@ final class Sequencer {
 					else stream.attenuate(tick, part, first);
 
 				case TWEAK:
-					if (second == 0) stream.totalLevel(tick, part, (first >> 8) & 3, first & 0x7F);
-					else stream.sides(tick, part, first);
+					if (second >= 2) {
+						stream.shaping(tick, part, mdd.song.Automation.BASES[second - 2],
+							(first >> 8) & 3, first & 0xFF);
+					} else if (second == 0) {
+						stream.totalLevel(tick, part, (first >> 8) & 3, first & 0x7F);
+					} else stream.sides(tick, part, first);
 
 				case SETUP:
 					stream.lfo(tick, (first & 8) != 0, first & 7);
