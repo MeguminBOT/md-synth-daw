@@ -1338,6 +1338,7 @@ class VgmCheck {
 
 		var read = 0;
 		var troubled = 0;
+		var warned = 0;
 		var worst = "";
 		var most = 0;
 
@@ -1355,9 +1356,12 @@ class VgmCheck {
 			read++;
 			if (budget.found.length == 0) continue;
 
-			troubled++;
+			if (budget.faults > 0) troubled++;
+			else warned++;
 
-			said.add(name + " " + budget.found.length + "   ");
+			said.add(name + " " + budget.found.length
+				+ (budget.faults > 0 ? " with " + budget.faults + " it cannot play" : "")
+				+ "   ");
 
 			if (budget.found.length > most) {
 				most = budget.found.length;
@@ -1397,8 +1401,9 @@ class VgmCheck {
 			+ " of them holding more than one part");
 
 		says("a game vgm reads back as playable", troubled == 0,
-			read + " files transcribed, " + troubled + " of them raising a warning"
-			+ (most == 0 ? "" : ": " + said.toString()));
+			read + " files transcribed, " + troubled + " of them raising something it cannot"
+			+ " play and " + warned + " a warning" + (said.length == 0 ? "" : ": "
+			+ said.toString()) + (worst == "" ? "" : "   most from " + worst));
 	}
 
 	static function hushed(where:String, files:Array<String>):Void {

@@ -54,10 +54,17 @@ final class Transcription {
 	var dacLast:Int = 0;
 
 	static inline final DAC_GAP = 2205;
+	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 48;
-	static inline final DAC_ROOM = 262144;
+	static inline final DAC_ROOM = 1 << 20;
+	static inline final DAC_JITTER = 4;
+	static inline final DAC_NEAR = 3;
+	static inline final DAC_BLOCK = 32;
+	static inline final DAC_STEP = 800;
 
 	final dacBytes:Array<Int> = [];
+	final dacWhen:Array<Int> = [];
+	final dacTake:Array<Int> = [];
 	final kits:Array<Int> = [];
 	var dacHeld:Int = 0;
 
@@ -99,6 +106,7 @@ final class Transcription {
 
 		for (i in 0...levels.length) levels[i] = -1;
 		for (i in 0...stereos.length) stereos[i] = -1;
+		for (i in 0...tunes.length) tunes[i] = -1;
 
 		for (i in 0...4) {
 			psgPeriod[i] = 0;
@@ -192,6 +200,14 @@ final class Transcription {
 			return;
 		}
 
+		if (address >= 0xA0 && address <= 0xA2) {
+			final within = address & 3;
+
+			bent(at, half * 3 + within, ((shadow[(half << 8) | (0xA4 + within)] & 0x3F) << 8)
+				| (value & 0xFF));
+			return;
+		}
+
 		if (address >= 0xB4 && address <= 0xB6 && (address & 3) != 3) {
 			sided(at, half * 3 + (address & 3), value & 0xFF);
 			return;
@@ -205,9 +221,11 @@ final class Transcription {
 			if (dacHead < 0) {
 				dacHead = at;
 				dacBytes.resize(0);
+				dacWhen.resize(0);
 			}
 
 			dacBytes.push(value & 0xFF);
+			dacWhen.push(at);
 			dacLast = at;
 		}
 	}
@@ -217,6 +235,7 @@ final class Transcription {
 	final levels:Vector<Int> = new Vector<Int>(24);
 
 	final stereos:Vector<Int> = new Vector<Int>(6);
+	final tunes:Vector<Int> = new Vector<Int>(6);
 
 	function sided(at:Int, channel:Int, value:Int):Void {
 		if (stereos[channel] == value) return;
@@ -224,12 +243,24 @@ final class Transcription {
 		final was = stereos[channel];
 		stereos[channel] = value;
 
-		if (was < 0) return;
-
-		final line = lined(channel, mdd.song.Automation.SIDES, 0, was);
-		if (line == null) return;
+		final line = lined(channel, mdd.song.Automation.SIDES, 0, was < 0 ? value : was);
+		if (line == null || was < 0) return;
 
 		line.add(new mdd.song.Point(ticked(at), value));
+	}
+
+	function bent(at:Int, channel:Int, word:Int):Void {
+		if (tunes[channel] == word) return;
+
+		final was = tunes[channel];
+		tunes[channel] = word;
+
+		if (was < 0 || !keyed[channel]) return;
+
+		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
+		if (line == null) return;
+
+		line.add(new mdd.song.Point(ticked(at), word));
 	}
 
 	function lined(channel:Int, target:Int, slot:Int, first:Int):Null<mdd.song.Automation> {
@@ -243,7 +274,7 @@ final class Transcription {
 		final made = new mdd.song.Automation(target, slot);
 
 		lane.automation.push(made);
-		made.add(new mdd.song.Point(0, first));
+		if (first >= 0) made.add(new mdd.song.Point(0, first));
 
 		return made;
 	}
@@ -314,26 +345,99 @@ final class Transcription {
 	function sampled(at:Int):Void {
 		if (dacHead < 0) return;
 
-		final head = dacHead;
-		final tail = at > dacLast ? at : dacLast + 1;
+		final ends = at > dacLast ? at : dacLast + 1;
 		dacHead = -1;
 
-		if (dacBytes.length < DAC_LEAST || tail <= head) {
-			dacBytes.resize(0);
-			return;
-		}
-
-		final which = sampleInstrument(tail - head);
-
-		final from = ticked(head);
-		var until = ticked(tail);
-		if (until <= from) until = from + 1;
+		if (dacBytes.length >= DAC_LEAST && ends > dacWhen[0]) split();
 
 		dacBytes.resize(0);
+		dacWhen.resize(0);
+	}
 
+	function spacing():Int {
+		final many = dacWhen.length;
+		if (many < 2) return 6;
+
+		final gaps:Array<Int> = [];
+		for (index in 1...many) gaps.push(dacWhen[index] - dacWhen[index - 1]);
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+
+		final middle = gaps[gaps.length >> 1];
+		return middle < 1 ? 1 : middle;
+	}
+
+	function paced(middle:Int):Int {
+		final many = dacWhen.length;
+		if (many < 2) return 8000;
+
+		final most = middle * DAC_JITTER;
+
+		var total = 0;
+		var counted = 0;
+
+		for (index in 1...many) {
+			final gap = dacWhen[index] - dacWhen[index - 1];
+			if (gap > most) continue;
+
+			total += gap;
+			counted++;
+		}
+
+		if (counted < 1 || total < 1) return 8000;
+
+		final rate = Math.ceil(Tempo.TICKS * counted / (total * DAC_STEP)) * DAC_STEP;
+		return rate < 2000 ? 2000 : (rate > 32000 ? 32000 : rate);
+	}
+
+	function split():Void {
+		final middle = spacing();
+		final rate = paced(middle);
+		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
+
+		var head = 0;
+
+		while (head < dacWhen.length) {
+			var last = head;
+
+			while (last + 1 < dacWhen.length
+					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
+
+			hit(head, last, dacWhen[last] + middle, rate);
+			head = last + 1;
+		}
+	}
+
+	function hit(head:Int, last:Int, ends:Int, rate:Int):Void {
+		if (last - head + 1 < DAC_LEAST) return;
+
+		final from = ticked(dacWhen[head]);
+		var until = ticked(ends);
+		if (until <= from) until = from + 1;
+
+		evened(head, last, Math.round(from * perTick), Math.round(until * perTick), rate);
+		if (dacTake.length < DAC_LEAST) return;
+
+		final which = sampleInstrument(rate);
 		if (which < 0) return;
 
 		placed(Part.Dac, from, until, 60, which);
+	}
+
+	function evened(head:Int, last:Int, from:Int, until:Int, rate:Int):Void {
+		dacTake.resize(0);
+
+		final many = Math.round((until - from) * rate / Tempo.TICKS);
+		if (many < 1) return;
+
+		final step = Tempo.TICKS / rate;
+		var cursor = head;
+
+		for (index in 0...many) {
+			final want = from + index * step;
+			while (cursor < last && dacWhen[cursor + 1] <= want) cursor++;
+
+			dacTake.push(dacBytes[cursor]);
+		}
 	}
 
 	function square(at:Int, value:Int):Void {
@@ -518,9 +622,6 @@ final class Transcription {
 		patch.ams = (sides >> 4) & 3;
 		patch.pms = sides & 7;
 
-		final stereo = (sides >> 6) & 3;
-		if (stereo != 0) song.pan[channel] = stereo;
-
 		for (group in 0...4) {
 			final slot = GROUP[group];
 			final at = group * 4 + within;
@@ -626,8 +727,8 @@ final class Transcription {
 		return true;
 	}
 
-	function sampleInstrument(span:Int):Int {
-		final many = dacBytes.length;
+	function sampleInstrument(rate:Int):Int {
+		final many = dacTake.length;
 
 		for (index in 0...song.samples.length) {
 			if (alike(song.samples[index])) return kits[index];
@@ -635,11 +736,8 @@ final class Transcription {
 
 		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
 
-		final counted = Math.round(many * Tempo.TICKS / (span < 1 ? 1 : span));
-		final rate = counted < 2000 ? 2000 : (counted > 32000 ? 32000 : counted);
-
 		final held = new Vector<Int>(many);
-		for (index in 0...many) held[index] = dacBytes[index];
+		for (index in 0...many) held[index] = dacTake[index];
 
 		final sample = new Sample("hit " + (song.samples.length + 1), rate, 60);
 		sample.hold(held);
@@ -656,12 +754,33 @@ final class Transcription {
 	}
 
 	function alike(sample:Sample):Bool {
-		if (sample.length() != dacBytes.length) return false;
+		final many = sample.length();
+		if (many < 1 || many != dacTake.length) return false;
 
 		final bytes = sample.bytes;
-		for (index in 0...bytes.length) if (bytes[index] != dacBytes[index]) return false;
 
-		return true;
+		var total = 0.0;
+		var blocks = 0;
+		var index = 0;
+
+		while (index < many) {
+			var one = 0;
+			var two = 0;
+			var counted = 0;
+
+			while (counted < DAC_BLOCK && index < many) {
+				one += bytes[index];
+				two += dacTake[index];
+				counted++;
+				index++;
+			}
+
+			final away = (one - two) / counted;
+			total += away < 0 ? -away : away;
+			blocks++;
+		}
+
+		return blocks > 0 && total <= blocks * DAC_NEAR;
 	}
 
 	function session():Void {
