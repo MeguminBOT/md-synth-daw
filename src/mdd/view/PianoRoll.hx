@@ -29,6 +29,7 @@ final class PianoRoll extends Widget {
 
 	public static inline final LOWEST = 12;
 	public static inline final HIGHEST = 108;
+	public static inline final KIT_BASE = 24;
 
 	static final BLACK:Array<Bool> = [false, true, false, true, false, false, true, false, true,
 		false, true, false];
@@ -64,12 +65,95 @@ final class PianoRoll extends Widget {
 	var panX:Float = 0;
 	var panY:Float = 0;
 
+	final kit:Array<Int> = [];
+
+	var wasTall:Float = 0;
+
 	public function new(session:Session) {
 		super();
 		this.session = session;
 
 		focusable = true;
 		opaque = true;
+	}
+
+	public inline function kitting():Bool {
+		return session.part.sampled();
+	}
+
+	public function kitted():Void {
+		kit.resize(0);
+
+		if (!kitting()) {
+			if (wasTall > 0) {
+				rowTall = wasTall;
+				wasTall = 0;
+			}
+
+			return;
+		}
+
+		final root = root();
+		final want = root == null ? 34 : root.metrics.row;
+
+		if (wasTall <= 0) wasTall = rowTall;
+		if (rowTall < want) rowTall = want;
+
+		final song = session.song;
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instruments[index];
+			if (held.sample < 0 || song.sampleAt(held.sample) == null) continue;
+
+			kit.push(index);
+		}
+	}
+
+	public function lowest():Int {
+		return kitting() ? KIT_BASE : LOWEST;
+	}
+
+	public function highest():Int {
+		if (!kitting()) return HIGHEST;
+		return KIT_BASE + (kit.length < 1 ? 0 : kit.length - 1);
+	}
+
+	public function seatOf(note:Note):Int {
+		if (!kitting()) return note.pitch;
+
+		final want = note.instrument >= 0 ? note.instrument
+			: session.song.rack[session.part.index()];
+		final at = kit.indexOf(want);
+
+		return KIT_BASE + (at < 0 ? 0 : at);
+	}
+
+	public function seated(note:Note, seat:Int):Void {
+		if (!kitting()) {
+			note.pitch = seat;
+			return;
+		}
+
+		final at = seat - KIT_BASE;
+		if (at < 0 || at >= kit.length) return;
+
+		final which = kit[at];
+		note.instrument = which;
+
+		final held = session.song.instrumentAt(which);
+		final sample = held == null ? null : session.song.sampleAt(held.sample);
+
+		note.pitch = sample == null ? 60 : sample.root;
+	}
+
+	public function seatName(seat:Int):String {
+		if (!kitting()) return named(seat);
+
+		final at = seat - KIT_BASE;
+		if (at < 0 || at >= kit.length) return "";
+
+		final held = session.song.instrumentAt(kit[at]);
+		return held == null ? "" : held.name;
 	}
 
 	function records(pitch:Int):Void {
@@ -115,11 +199,11 @@ final class PianoRoll extends Widget {
 	}
 
 	public inline function pitchAt(py:Float):Int {
-		return HIGHEST - Std.int((py - y - ruler() + offsetY) / rowTall);
+		return highest() - Std.int((py - y - ruler() + offsetY) / rowTall);
 	}
 
 	public inline function atPitch(pitch:Int):Float {
-		return y + ruler() + (HIGHEST - pitch) * rowTall - offsetY;
+		return y + ruler() + (highest() - pitch) * rowTall - offsetY;
 	}
 
 	public function contentWidth():Float {
@@ -128,7 +212,7 @@ final class PianoRoll extends Widget {
 	}
 
 	public function contentHeight():Float {
-		return (HIGHEST - LOWEST + 1) * rowTall;
+		return (highest() - lowest() + 1) * rowTall;
 	}
 
 	public function noteAt(px:Float, py:Float):Null<Note> {
@@ -142,7 +226,7 @@ final class PianoRoll extends Widget {
 		var found:Null<Note> = null;
 
 		for (note in lane.notes) {
-			if (note.pitch != pitch) continue;
+			if (seatOf(note) != pitch) continue;
 			if (tick < note.at || tick >= note.ends()) continue;
 			found = note;
 		}
@@ -154,7 +238,7 @@ final class PianoRoll extends Widget {
 		final wide = width - gutter();
 		final tall = grid();
 
-		scrollTo(tick * perTick - wide * 0.3, (HIGHEST - pitch) * rowTall - tall * 0.5);
+		scrollTo(tick * perTick - wide * 0.3, (highest() - pitch) * rowTall - tall * 0.5);
 	}
 
 	public function choose(note:Null<Note>):Void {
@@ -183,6 +267,8 @@ final class PianoRoll extends Widget {
 	override function took(event:Input):Bool {
 		final pattern = session.current();
 		if (pattern == null) return false;
+
+		kitted();
 
 		switch (event.kind) {
 			case Kind.Wheel:
@@ -251,7 +337,7 @@ final class PianoRoll extends Widget {
 					dragging = under;
 					sizing = onEdge(under, event.x);
 					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
-					grabPitch = sizing ? 0 : pitchAt(event.y) - under.pitch;
+					grabPitch = sizing ? 0 : pitchAt(event.y) - seatOf(under);
 					invalidate();
 					return true;
 				}
@@ -264,10 +350,12 @@ final class PianoRoll extends Widget {
 
 				final at = session.snapped(tickAt(event.x));
 				final pitch = pitchAt(event.y);
-				if (pitch < LOWEST || pitch > HIGHEST) return true;
+				if (pitch < lowest() || pitch > highest()) return true;
 
 				final length = drawn < 1 ? (session.snap < 1 ? 24 : session.snap) : drawn;
 				final note = new Note(at < 0 ? 0 : at, length, pitch, 100);
+
+				seated(note, pitch);
 				session.does(new AddNote(session.pattern, session.part, note));
 
 				chosen = note;
@@ -302,9 +390,11 @@ final class PianoRoll extends Widget {
 
 				final at = session.snapped(tickAt(event.x) - grabTick);
 				final pitch = pitchAt(event.y) - grabPitch;
+				final floor = lowest();
+				final ceiling = highest();
 
 				dragging.at = at < 0 ? 0 : at;
-				dragging.pitch = pitch < LOWEST ? LOWEST : (pitch > HIGHEST ? HIGHEST : pitch);
+				seated(dragging, pitch < floor ? floor : (pitch > ceiling ? ceiling : pitch));
 
 				invalidate();
 				return true;
@@ -458,10 +548,12 @@ final class PianoRoll extends Widget {
 	}
 
 	function shifted(note:Note, by:Int):Void {
-		final want = note.pitch + by;
-		note.pitch = want < LOWEST ? LOWEST : (want > HIGHEST ? HIGHEST : want);
+		final floor = lowest();
+		final ceiling = highest();
+		final want = seatOf(note) + by;
 
-		session.say("moved to " + note.pitch);
+		seated(note, want < floor ? floor : (want > ceiling ? ceiling : want));
+		session.say("moved to " + seatName(seatOf(note)));
 		session.changed();
 		invalidate();
 	}
@@ -510,12 +602,12 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Key.Up:
-				chosen.pitch = chosen.pitch < HIGHEST ? chosen.pitch + 1 : HIGHEST;
+				if (seatOf(chosen) < highest()) seated(chosen, seatOf(chosen) + 1);
 				invalidate();
 				return true;
 
 			case Key.Down:
-				chosen.pitch = chosen.pitch > LOWEST ? chosen.pitch - 1 : LOWEST;
+				if (seatOf(chosen) > lowest()) seated(chosen, seatOf(chosen) - 1);
 				invalidate();
 				return true;
 
@@ -542,6 +634,8 @@ final class PianoRoll extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final pattern = session.current();
+
+		kitted();
 
 		final named = metrics.small == null ? metrics.body : metrics.small;
 		final least = named.height + metrics.unit * 1.5;
@@ -724,10 +818,11 @@ final class PianoRoll extends Widget {
 	}
 
 	function rows(paint:Paint, theme:Theme, left:Float, top:Float):Void {
+		final floor = lowest();
 		var pitch = pitchAt(top);
-		if (pitch > HIGHEST) pitch = HIGHEST;
+		if (pitch > highest()) pitch = highest();
 
-		while (pitch >= LOWEST) {
+		while (pitch >= floor) {
 			final row = atPitch(pitch);
 			if (row > y + height) {
 				pitch--;
@@ -736,9 +831,14 @@ final class PianoRoll extends Widget {
 			if (row + rowTall < top) break;
 
 			final scale = session.scale;
-			final lit = session.highlight && scale.kind != mdd.song.Scale.CHROMATIC;
+			final lit = !kitting() && session.highlight
+				&& scale.kind != mdd.song.Scale.CHROMATIC;
 
-			if (lit && scale.rooted(pitch)) {
+			if (kitting()) {
+				if ((pitch & 1) == 0) {
+					paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.35);
+				}
+			} else if (lit && scale.rooted(pitch)) {
 				paint.rect(left, row, width - gutter(), rowTall,
 					theme.part(session.part.index()), 0.14);
 			} else if (lit && !scale.holds(pitch)) {
@@ -799,7 +899,7 @@ final class PianoRoll extends Widget {
 
 			if (at + wide < left || at > x + width) continue;
 
-			final row = atPitch(note.pitch);
+			final row = atPitch(seatOf(note));
 			if (row + rowTall < y + ruler() || row > y + height) continue;
 
 			painted++;
@@ -865,29 +965,37 @@ final class PianoRoll extends Widget {
 		paint.reface(metrics.small == null ? metrics.body : metrics.small);
 
 		final font = metrics.small == null ? metrics.body : metrics.small;
-		var pitch = HIGHEST;
+		final drums = kitting();
+		final floor = lowest();
+		var pitch = highest();
 
-		while (pitch >= LOWEST) {
+		while (pitch >= floor) {
 			final row = atPitch(pitch);
 
 			if (row + rowTall >= top && row <= y + height) {
-				final black = BLACK[pitch % 12];
-
-				final lit = litOn && pitch == litNote;
+				final black = !drums && BLACK[pitch % 12];
+				final lit = !drums && litOn && pitch == litNote;
 
 				if (lit) {
 					paint.rect(x, row, wide, rowTall - 1, theme.part(session.part.index()));
+				} else if (drums) {
+					paint.rect(x, row, wide, rowTall - 1, theme.raise1);
 				} else {
 					paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
 						black ? 1 : 0.85);
 				}
 
 				if (rowTall >= font.height) {
-					final root2 = pitch % 12 == 0;
+					final rooted = !drums && pitch % 12 == 0;
 
-					paint.textRight(named(pitch), x + wide - metrics.unit * 2,
-						row + (rowTall - font.height) * 0.5 + font.ascent,
-						black ? theme.dim : theme.sink, root2 ? 1 : 0.75);
+					if (drums) {
+						paint.text(seatName(pitch), x + metrics.unit * 2,
+							row + (rowTall - font.height) * 0.5 + font.ascent, theme.ink, 0.9);
+					} else {
+						paint.textRight(named(pitch), x + wide - metrics.unit * 2,
+							row + (rowTall - font.height) * 0.5 + font.ascent,
+							black ? theme.dim : theme.sink, rooted ? 1 : 0.75);
+					}
 				}
 			}
 

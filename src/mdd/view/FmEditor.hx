@@ -36,16 +36,27 @@ final class FmEditor extends Widget {
 		[]
 	];
 
+	public static inline final ALGORITHM = 0;
+	public static inline final FEEDBACK = 1;
+	public static inline final AMS = 2;
+	public static inline final PMS = 3;
+	public static inline final DIALS = 4;
+
+	static final DIAL_NAMES:Array<String> = ["ALG", "FB", "AMS", "PMS"];
+	static final DIAL_MOST:Array<Int> = [7, 7, 3, 7];
+
 	public final session:Session;
 
 	public var held(default, null):Int = -1;
 	public var slot(default, null):Int = -1;
+	public var dial(default, null):Int = -1;
 
 	final points:Vector<Float> = new Vector<Float>(64);
 
 	var grabbing:Int = -1;
 	var grabAt:Float = 0;
 	var grabWas:Int = 0;
+	var turning:Int = -1;
 
 	public function new(session:Session) {
 		super();
@@ -69,6 +80,52 @@ final class FmEditor extends Widget {
 	function head():Float {
 		final root = root();
 		return root == null ? 110 : root.metrics.whole(110);
+	}
+
+	function dialTall():Float {
+		final root = root();
+		return root == null ? 22 : root.metrics.whole(22);
+	}
+
+	function dialsTop():Float {
+		return y + head() - dialTall() - (root() == null ? 4.0 : root().metrics.unit);
+	}
+
+	public function dialAt(px:Float, py:Float):Int {
+		final top = dialsTop();
+		final tall = dialTall();
+
+		if (py < top || py >= top + tall) return -1;
+
+		final root = root();
+		if (root == null) return -1;
+
+		final inset = root.metrics.inset;
+		final wide = (width - inset * 2) / DIALS;
+		final at = Std.int((px - x - inset) / wide);
+
+		return at < 0 || at >= DIALS ? -1 : at;
+	}
+
+	public function dialOf(patch:Patch, which:Int):Int {
+		return switch (which) {
+			case ALGORITHM: patch.algorithm;
+			case FEEDBACK: patch.feedback;
+			case AMS: patch.ams;
+			case _: patch.pms;
+		}
+	}
+
+	public function turnTo(patch:Patch, which:Int, value:Int):Void {
+		final most = DIAL_MOST[which];
+		final want = value < 0 ? 0 : (value > most ? most : value);
+
+		switch (which) {
+			case ALGORITHM: patch.algorithm = want;
+			case FEEDBACK: patch.feedback = want;
+			case AMS: patch.ams = want;
+			case _: patch.pms = want;
+		}
 	}
 
 	function curve():Float {
@@ -196,6 +253,17 @@ final class FmEditor extends Widget {
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				final turned = dialAt(event.x, event.y);
+
+				if (turned >= 0) {
+					turning = turned;
+					grabAt = event.x;
+					grabWas = dialOf(patch, turned);
+					dial = turned;
+					invalidate();
+					return true;
+				}
+
 				final field = fieldAt(event.x, event.y);
 				if (field < 0) return false;
 
@@ -211,6 +279,13 @@ final class FmEditor extends Widget {
 			case Kind.PointerMove:
 				described(event.x, event.y);
 
+				if (turning >= 0) {
+					turnTo(patch, turning,
+						grabWas + Std.int((event.x - grabAt) / (event.ctrl() ? 24 : 8)));
+					invalidate();
+					return true;
+				}
+
 				if (grabbing < 0) return false;
 
 				final by = Std.int((grabAt - event.y) / (event.ctrl() ? 8 : 2));
@@ -221,6 +296,12 @@ final class FmEditor extends Widget {
 				return true;
 
 			case Kind.PointerUp:
+				if (turning >= 0) {
+					turning = -1;
+					session.changed();
+					return true;
+				}
+
 				if (grabbing < 0) return false;
 
 				grabbing = -1;
@@ -228,6 +309,15 @@ final class FmEditor extends Widget {
 				return true;
 
 			case Kind.Wheel:
+				final turned = dialAt(event.x, event.y);
+
+				if (turned >= 0) {
+					turnTo(patch, turned, dialOf(patch, turned) + Std.int(event.dy));
+					session.changed();
+					invalidate();
+					return true;
+				}
+
 				final field = fieldAt(event.x, event.y);
 				if (field < 0) return false;
 
@@ -269,13 +359,46 @@ final class FmEditor extends Widget {
 			+ patch.feedback, x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
 
 		routing(paint, theme, metrics, patch);
+		dials(paint, theme, metrics, patch);
 		envelopes(paint, theme, metrics, patch);
 		slots(paint, theme, metrics, patch);
 	}
 
+	function dials(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
+		final font = metrics.small == null ? metrics.body : metrics.small;
+		final top = dialsTop();
+		final tall = dialTall();
+		final room = (width - metrics.inset * 2) / DIALS;
+		final colour = theme.part(session.part.index());
+
+		paint.reface(font);
+
+		for (which in 0...DIALS) {
+			final left = x + metrics.inset + which * room;
+			final wide = room - metrics.unit;
+			final value = dialOf(patch, which);
+			final part = value / DIAL_MOST[which];
+
+			paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, theme.raise1);
+
+			if (part > 0) {
+				paint.roundedRect(left, top, wide * part, tall, metrics.radiusSmall, colour,
+					0.45);
+			}
+
+			paint.outline(left, top, wide, tall, which == dial ? theme.accent : theme.frame,
+				metrics.whole(1));
+
+			final line = top + (tall - font.height) * 0.5 + font.ascent;
+
+			paint.text(DIAL_NAMES[which], left + metrics.unit, line, theme.dim, 0.85);
+			paint.textRight(Std.string(value), left + wide - metrics.unit, line, theme.ink);
+		}
+	}
+
 	function routing(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
 		final top = y + metrics.whole(26);
-		final tall = head() - metrics.whole(34);
+		final tall = dialsTop() - top - metrics.unit;
 		final box = metrics.whole(34);
 		final gap = (width - metrics.inset * 2 - box * 4) / 3;
 		final colour = theme.part(session.part.index());
@@ -351,7 +474,6 @@ final class FmEditor extends Widget {
 			var pen = left;
 			var level = 0.0;
 
-			final points = new haxe.ds.Vector<Float>(10);
 			points[0] = pen;
 			points[1] = floor;
 
@@ -384,6 +506,7 @@ final class FmEditor extends Widget {
 		final top = rowsTop();
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
 		final small = metrics.small == null ? metrics.body : metrics.small;
+		final colour = theme.part(session.part.index());
 
 		for (slot in 0...Patch.SLOTS) {
 			final left = x + slot * wide;
@@ -394,11 +517,23 @@ final class FmEditor extends Widget {
 
 				final field = slot * NAMES.length + row;
 
+				if ((row & 1) == 0) {
+					paint.rect(left + 1, at, wide - 2, tall - 1, theme.ink, 0.02);
+				}
+
+				final ceiling = most(row);
+				final value = valueOf(patch, slot, row);
+				final part = ceiling <= 0 ? 0.0
+					: (row == 0 ? 1 - value / ceiling : value / ceiling);
+
+				if (part > 0.001) {
+					paint.rect(left + 1, at, (wide - 2) * part, tall - 1,
+						patch.carries(slot) ? colour : theme.dim, 0.22);
+				}
+
 				if (field == held) {
 					paint.roundedRect(left + 1, at, wide - 2, tall - 1, metrics.radiusSmall,
 						theme.accent, Theme.SELECT);
-				} else if ((row & 1) == 0) {
-					paint.rect(left + 1, at, wide - 2, tall - 1, theme.ink, 0.02);
 				}
 			}
 		}

@@ -231,5 +231,6 @@
   "track.last": "en låt behåller minst ett spår",
   "track.name": "Spårnamn",
   "hardware.now": "nu",
-  "hardware.song": "låt"
+  "hardware.song": "låt",
+  "psg.noLoop": "av"
 }

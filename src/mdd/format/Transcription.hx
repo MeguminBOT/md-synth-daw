@@ -120,7 +120,7 @@ final class Transcription {
 		close(last);
 		parted();
 		session();
-		for (index in 0...Part.COUNT) song.rack[index] = -1;
+		mdd.song.Shipped.into(song);
 		settle();
 	}
 
@@ -514,9 +514,16 @@ final class Transcription {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			final lane = pattern.lane(part);
-			if (lane.notes.length == 0) continue;
 
-			song.rack[index] = lane.notes[0].instrument;
+			if (lane.notes.length > 0) {
+				song.rack[index] = lane.notes[0].instrument;
+				continue;
+			}
+
+			if (part.sampled()) song.rack[index] = -1;
+			else if (part.noise()) song.rack[index] = mdd.song.Shipped.firstNoise(song);
+			else if (part.square()) song.rack[index] = mdd.song.Shipped.firstSquare(song);
+			else song.rack[index] = mdd.song.Shipped.firstFm(song);
 		}
 	}
 }

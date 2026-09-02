@@ -231,5 +231,6 @@
   "track.last": "a song keeps at least one track",
   "track.name": "Track name",
   "hardware.now": "now",
-  "hardware.song": "song"
+  "hardware.song": "song",
+  "psg.noLoop": "off"
 }

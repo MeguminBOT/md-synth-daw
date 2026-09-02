@@ -364,7 +364,7 @@ class SpineCheck {
 
 		final psgListed = editor.presets.listed;
 
-		says("the bank follows the part", fmListed == 6 && dacListed == 1 && psgListed == 3,
+		says("the bank follows the part", fmListed == 16 && dacListed == 1 && psgListed == 6,
 			"an FM channel sees " + fmListed + " patches in " + fmBanks + " bank, the converter "
 			+ dacListed + " and a square " + psgListed + ", filtered by what the part is");
 

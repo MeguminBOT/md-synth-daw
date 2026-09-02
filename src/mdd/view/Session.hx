@@ -50,43 +50,23 @@ final class Session {
 
 	public static inline final TRACKS = 8;
 
+	static final DEFAULTS:Array<Int> = [0, 1, 4, 5, 8, 2, 16, 17, 18, 22];
+
 	public static function started():Session {
 		final song = new Song("untitled", 96, 120);
+
+		mdd.song.Shipped.into(song);
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			if (part.sampled()) continue;
 
-			final instrument = song.instrument(new mdd.song.Instrument(part.name().toLowerCase(),
-				part));
-
-			if (instrument.patch != null) {
-				instrument.patch.algorithm = 4;
-				instrument.patch.feedback = 3;
-
-				for (slot in 0...4) {
-					instrument.patch.totalLevel[slot] = instrument.patch.carries(slot) ? 12 : 34;
-					instrument.patch.attack[slot] = 28;
-					instrument.patch.decay[slot] = 10;
-					instrument.patch.sustainLevel[slot] = 3;
-					instrument.patch.sustain[slot] = 3;
-					instrument.patch.release[slot] = 8;
-					instrument.patch.multiple[slot] = 1 + (slot & 1);
-				}
-			}
-
-			if (instrument.envelope != null) {
-				instrument.envelope.steps.push(0);
-				instrument.envelope.steps.push(2);
-				instrument.envelope.steps.push(5);
-				instrument.envelope.loop = 2;
-			}
-
-			song.rack[index] = index;
+			final want = DEFAULTS[index];
+			song.rack[index] = want < song.instruments.length ? want : 0;
 		}
 
-		final kit = song.instrument(new mdd.song.Instrument("kick", Part.Dac));
-		final sample = song.sample(new mdd.song.Sample("kick", 8000, 60));
+		final kit = song.instrument(new mdd.song.Instrument("Kick", Part.Dac));
+		final sample = song.sample(new mdd.song.Sample("Kick", 8000, 60));
 
 		final bytes = new haxe.ds.Vector<Int>(1200);
 		var seed = 0x2C1D;
