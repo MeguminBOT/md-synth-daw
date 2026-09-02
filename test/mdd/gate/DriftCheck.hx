@@ -9,6 +9,7 @@ import mdd.song.Tempo;
 class DriftCheck {
 	static inline final SECONDS = 30;
 	static inline final FRAME = 735;
+	static inline final WIDE = 4410;
 	static inline final GAP = 2205;
 
 	static final CLASSES:Array<Int> = [0x22, 0x27, 0x28, 0x2A, 0x2B, 0x30, 0x40, 0x50, 0x60,
@@ -181,7 +182,29 @@ class DriftCheck {
 		return found;
 	}
 
+	static function hissing(stream:Stream, to:Int):Int {
+		var many = 0;
+		var latched = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.tickAt(index) > to * Tempo.TICKS) break;
+			if (stream.kindAt(index) != Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+			if ((value & 0x80) == 0) continue;
+
+			latched = (value >> 4) & 7;
+			if (latched == 6) many++;
+		}
+
+		return many;
+	}
+
 	static function squared(source:Stream, made:Stream, from:Int, to:Int):Void {
+		Sys.println("");
+		Sys.println("      the noise control is written " + hissing(source, to)
+			+ " times in the file and " + hissing(made, to) + " in the song");
+
 		Sys.println("");
 		Sys.println("    every square change, the file against the song, from " + from
 			+ " s to " + to + " s");
@@ -707,6 +730,15 @@ class DriftCheck {
 			tied(sifted(one, want), sifted(two, want), from, to, NAMED[part]);
 		}
 
+		final all:Array<String> = [];
+		for (part in 0...NAMED.length) all.push("" + part);
+
+		Sys.println("");
+		Sys.println("    a control: the file against itself, sifted through every part");
+		Sys.println("");
+
+		tied(one, sifted(one, all.join(",")), from, to, "every part");
+
 		Sys.println("");
 		Sys.println("    and with one part taken from the file and the rest from the song");
 		Sys.println("");
@@ -763,6 +795,13 @@ class DriftCheck {
 		var counted = 0;
 
 		var bothSamples = 0.0;
+
+		var oneWide = 0.0;
+		var twoWide = 0.0;
+		var bothWide = 0.0;
+		var oneWideSquare = 0.0;
+		var twoWideSquare = 0.0;
+
 		var widest = 0.0;
 		var widestAt = 0.0;
 		var widestOne = 0.0;
@@ -798,6 +837,21 @@ class DriftCheck {
 
 				oneHeld += a < 0 ? -a : a;
 				twoHeld += b < 0 ? -b : b;
+
+				oneWide += a < 0 ? -a : a;
+				twoWide += b < 0 ? -b : b;
+
+				if ((done + index) % WIDE == WIDE - 1) {
+					final left = oneWide / WIDE;
+					final right = twoWide / WIDE;
+
+					bothWide += left * right;
+					oneWideSquare += left * left;
+					twoWideSquare += right * right;
+
+					oneWide = 0;
+					twoWide = 0;
+				}
 
 				if ((done + index) % step != step - 1) continue;
 
@@ -835,6 +889,8 @@ class DriftCheck {
 				+ "   song " + round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
 				+ "   samples " + round(oneTotal * twoTotal <= 0 ? 0
 					: bothSamples / Math.sqrt(oneTotal * twoTotal), 4)
+				+ "   tenth " + round(oneWideSquare * twoWideSquare <= 0 ? 0
+					: bothWide / Math.sqrt(oneWideSquare * twoWideSquare), 5)
 				+ "   agree " + round(tied, 4)
 				+ "   worst at " + round(widestAt, 2) + " s, " + round(widestOne, 4)
 				+ " against " + round(widestTwo, 4));
@@ -848,7 +904,10 @@ class DriftCheck {
 			+ ", their samples agree "
 			+ round(oneTotal * twoTotal <= 0 ? 0
 				: bothSamples / Math.sqrt(oneTotal * twoTotal), 4)
-			+ ", and their envelopes agree " + round(tied, 4) + " over " + counted
+			+ ", their envelopes over a tenth of a second agree "
+			+ round(oneWideSquare * twoWideSquare <= 0 ? 0
+				: bothWide / Math.sqrt(oneWideSquare * twoWideSquare), 5)
+			+ ", and over a frame " + round(tied, 4) + " across " + counted
 			+ " frames, worst at " + round(widestAt, 2) + " s where the file is "
 			+ round(widestOne, 4) + " and the song " + round(widestTwo, 4));
 
