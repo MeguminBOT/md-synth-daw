@@ -245,6 +245,35 @@ class AudioCheck {
 			"the transport stopped and settled renders " + round(before, 5)
 			+ ", and a key on FM1"
 			+ " asked for through the stream renders " + round(after, 4));
+
+		session.transport.auditions(mdd.song.Part.Dac, 60);
+
+		var struck = 0.0;
+		var bytes = 0;
+
+		for (block in 0...200) {
+			final from = session.transport.advance(Render.BLOCK, RATE);
+			final held = session.transport.stream;
+
+			for (index in 0...held.count) {
+				if (held.kindAt(index) != mdd.play.Stream.YM) continue;
+				if ((held.portAt(index) & 1) != 0) continue;
+				if (held.valueAt(index) == 0x2A) bytes++;
+			}
+
+			final many = render.serve(held, from, Render.BLOCK,
+				session.transport.entering);
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > struck) struck = much;
+			}
+		}
+
+		says("and so does a sample", bytes > 100 && struck > before * 5,
+			bytes + " converter bytes reached the chip and the strike renders "
+			+ round(struck, 4));
 	}
 
 	static function toned(render:Render):Void {

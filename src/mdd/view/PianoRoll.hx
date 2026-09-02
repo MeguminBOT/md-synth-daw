@@ -346,6 +346,13 @@ final class PianoRoll extends Widget {
 
 				if (event.x < x + gutter()) {
 					final pitch = pitchAt(event.y);
+					final seat = pitch - KIT_BASE;
+
+					if (kitting() && seat >= 0 && seat < kit.length) {
+						session.song.rack[session.part.index()] = kit[seat];
+						session.changed();
+					}
+
 					if (onAudition != null) onAudition(session.part, pitch);
 					records(pitch);
 					return true;

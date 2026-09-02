@@ -30,6 +30,8 @@ final class Transport {
 	var heardNote:Int = 0;
 	var heardLeft:Int = 0;
 	var heardFresh:Bool = false;
+	var heardCarry:Float = 0;
+	var heardIndex:Int = 0;
 	var hushing:Bool = false;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
@@ -86,7 +88,7 @@ final class Transport {
 			stepped = 0;
 
 			gate.acquire();
-			auditioned(position);
+			auditioned(position, Std.int(frames * Tempo.TICKS / rate));
 			gate.release();
 
 			return position;
@@ -108,7 +110,7 @@ final class Transport {
 		if (bounded && until > ending) until = ending;
 
 		sequencer.emit(stream, from, until);
-		auditioned(from);
+		auditioned(from, until - from);
 
 		gate.release();
 		served++;
@@ -155,10 +157,15 @@ final class Transport {
 		gate.release();
 	}
 
-	function auditioned(at:Int):Void {
+	function auditioned(at:Int, span:Int):Void {
 		if (heardPart < 0) return;
 
 		final part:Part = heardPart;
+
+		if (part.sampled()) {
+			sampled(at, span < 1 ? 1 : span);
+			return;
+		}
 
 		if (heardFresh) {
 			heardFresh = false;
@@ -188,6 +195,43 @@ final class Transport {
 		if (heardLeft > 0) return;
 
 		stream.silence(at, part);
+		heardPart = -1;
+	}
+
+	function sampled(at:Int, span:Int):Void {
+		final instrument = song.instrumentAt(song.rack[heardPart]);
+		final sample = instrument == null ? null : song.sampleAt(instrument.sample);
+
+		if (sample == null || sample.length() == 0) {
+			heardPart = -1;
+			return;
+		}
+
+		if (heardFresh) {
+			heardFresh = false;
+			heardCarry = 0;
+			heardIndex = 0;
+
+			stream.sampling(at, true);
+		}
+
+		final rate = sample.rate < 1 ? 1 : sample.rate;
+		final step = Tempo.TICKS / rate;
+
+		var when = heardCarry;
+
+		while (heardIndex < sample.length() && when < span) {
+			stream.byte(at + Math.round(when), sample.bytes[heardIndex]);
+			heardIndex++;
+			when += step;
+		}
+
+		heardCarry = when - span;
+		if (heardCarry < 0) heardCarry = 0;
+
+		if (heardIndex < sample.length()) return;
+
+		stream.sampling(at + span - 1, false);
 		heardPart = -1;
 	}
 
