@@ -38,6 +38,16 @@ final class Render {
 	public var frames(default, null):Int;
 
 	public var made(default, null):Int = 0;
+	public var heardAt(default, null):Int = 0;
+
+	public static inline final SNAPS = 96;
+
+	public final sounding:Sounding = new Sounding();
+
+	final snapAt:Vector<Int> = new Vector<Int>(SNAPS);
+	final snapNote:Vector<Int> = new Vector<Int>(SNAPS * mdd.song.Part.COUNT);
+	final snapKeyed:Vector<Bool> = new Vector<Bool>(SNAPS * mdd.song.Part.COUNT);
+	var snapNext:Int = 0;
 	public var writes(default, null):Int = 0;
 	public var poured(default, null):Int = 0;
 
@@ -174,6 +184,11 @@ final class Render {
 		made = 0;
 		writes = 0;
 		poured = 0;
+		heardAt = 0;
+		snapNext = 0;
+		sounding.forget();
+
+		for (index in 0...SNAPS) snapAt[index] = -1;
 	}
 
 	public function drain():Int {
@@ -303,10 +318,49 @@ final class Render {
 	}
 
 	inline function pour(stream:Stream, index:Int):Void {
-		if (stream.kindAt(index) == Stream.PSG) psg.write(stream.valueAt(index));
-		else ym.write(stream.portAt(index), stream.valueAt(index));
+		final kind = stream.kindAt(index);
+		final port = stream.portAt(index);
+		final value = stream.valueAt(index);
 
+		if (kind == Stream.PSG) psg.write(value);
+		else ym.write(port, value);
+
+		sounding.write(kind, port, value);
 		writes++;
+	}
+
+	public function snapped():Void {
+		final at = snapNext % SNAPS;
+		snapAt[at] = made;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			snapNote[at * mdd.song.Part.COUNT + index] = sounding.notes[index];
+			snapKeyed[at * mdd.song.Part.COUNT + index] = sounding.keyed[index];
+		}
+
+		snapNext++;
+	}
+
+	public function litAt(position:Int, into:Sounding):Bool {
+		var best = -1;
+		var found = -1;
+
+		for (index in 0...SNAPS) {
+			final at = snapAt[index];
+			if (at < 0 || at > position || at <= found) continue;
+
+			found = at;
+			best = index;
+		}
+
+		if (best < 0) return false;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			into.notes[index] = snapNote[best * mdd.song.Part.COUNT + index];
+			into.keyed[index] = snapKeyed[best * mdd.song.Part.COUNT + index];
+		}
+
+		return true;
 	}
 
 	inline function tapping():Void {
@@ -385,6 +439,8 @@ final class Render {
 			serve(held.stream, from, frames, held.entering, true);
 		}
 
+		snapped();
+
 		final took = Audio.write(device, pointer(), frames);
 		if (took < frames) dropped += frames - took;
 
@@ -396,6 +452,8 @@ final class Render {
 
 		while (alive) {
 			final held = Audio.held(device);
+
+			heardAt = made - held;
 
 			if (held > worstHeld) worstHeld = held;
 			if (held < leastHeld) leastHeld = held;

@@ -1183,9 +1183,12 @@ class App {
 			if (moved) dock.mixer.invalidate();
 		}
 
-		heard = sounding.take(session.transport.stream, heard);
+		if (!render.litAt(render.heardAt, sounding)) {
+			heard = sounding.take(session.transport.stream, heard);
+		}
 
 		if (centre.roll.visible) centre.roll.lights(sounding);
+
 
 		if (centre.registers.visible) {
 			seen = centre.registers.take(session.transport.stream, seen);
@@ -1203,7 +1206,11 @@ class App {
 	}
 
 	function poured():Void {
-		final now = render.tapped;
+		final ear = Std.int(render.heardAt / Render.TAP_EVERY);
+
+		var now = render.tapped;
+		if (ear > 0 && ear < now) now = ear;
+
 		var from = tookTaps;
 
 		if (now - from > Render.TAPS) from = now - Render.TAPS;

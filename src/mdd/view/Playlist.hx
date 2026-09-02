@@ -135,6 +135,28 @@ final class Playlist extends Widget {
 		return null;
 	}
 
+	public function widest():Float {
+		final length = session.song.ends();
+		if (length < 1) return 0.01;
+
+		final fits = (width - names()) / length;
+		return fits < 0.01 ? fits : 0.01;
+	}
+
+	public function zoom(by:Float, around:Float):Void {
+		final tick = tickAt(around);
+		final want = perTick * by;
+		final least = widest();
+
+		perTick = want < least ? least : (want > 1 ? 1 : want);
+		scrollTo(tick * perTick - (around - x - names()));
+	}
+
+	public function fit():Void {
+		perTick = widest();
+		scrollTo(0);
+	}
+
 	public function scrollTo(px:Float):Void {
 		final most = session.song.ends() * perTick - (width - names());
 		offsetX = px < 0 ? 0 : (px > most ? (most < 0 ? 0 : most) : px);
@@ -150,12 +172,8 @@ final class Playlist extends Widget {
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.Wheel:
-				if (event.ctrl()) {
-					final tick = tickAt(event.x);
-					final want = perTick * (event.dy > 0 ? 1.25 : 0.8);
-
-					perTick = want < 0.01 ? 0.01 : (want > 1 ? 1 : want);
-					scrollTo(tick * perTick - (event.x - x - names()));
+				if (event.ctrl() || event.alt()) {
+					zoom(event.dy > 0 ? 1.25 : 0.8, event.x);
 					return true;
 				}
 
@@ -168,6 +186,14 @@ final class Playlist extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				final rein = reinAt(event.x, event.y);
+
+				if (rein != 0) {
+					reining = rein;
+					reined(event.x, event.y);
+					return true;
+				}
+
 				if (event.y < y + ruler() && event.x >= x + names()) {
 					scrubbing = true;
 					scrubbed(event.x);
@@ -177,6 +203,11 @@ final class Playlist extends Widget {
 				return pressed(event);
 
 			case Kind.PointerMove:
+				if (reining != 0) {
+					reined(event.x, event.y);
+					return true;
+				}
+
 				if (scrubbing) {
 					scrubbed(event.x);
 					return true;
@@ -204,6 +235,11 @@ final class Playlist extends Widget {
 				return true;
 
 			case Kind.PointerUp:
+				if (reining != 0) {
+					reining = 0;
+					return true;
+				}
+
 				if (scrubbing) {
 					scrubbing = false;
 					return true;
@@ -449,8 +485,96 @@ final class Playlist extends Widget {
 
 		rails(paint, theme, metrics, top);
 		heading(paint, theme, metrics, left);
+		reins(paint, theme, metrics, left, top);
 
 		paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
+	}
+
+	var reining:Int = 0;
+
+	function reinAt(px:Float, py:Float):Int {
+		final thick = reinTall();
+
+		if (py >= y + height - thick && px >= x + names()
+			&& acrossReach() > width - names() + 0.5) return 1;
+
+		if (px >= x + width - thick && py >= y + ruler()
+			&& downReach() > height - ruler() + 0.5) return 2;
+
+		return 0;
+	}
+
+	function reined(px:Float, py:Float):Void {
+		if (reining == 1) {
+			final wide = width - names();
+			final held = span(wide, acrossReach());
+			final room = wide - held;
+
+			if (room <= 0) return;
+
+			final want = (px - x - names() - held * 0.5) / room;
+			scrollTo(want * (acrossReach() - wide));
+			return;
+		}
+
+		final tall = height - ruler();
+		final held = span(tall, downReach());
+		final room = tall - held;
+
+		if (room <= 0) return;
+
+		final want = (py - y - ruler() - held * 0.5) / room;
+		scrollDown(want * (downReach() - tall));
+	}
+
+	function span(across:Float, reach:Float):Float {
+		final root = root();
+		final least = root == null ? 24.0 : root.metrics.whole(24);
+		final held = across * across / reach;
+
+		return held < least ? least : held;
+	}
+
+	public function reinTall():Float {
+		final root = root();
+		return root == null ? 8 : root.metrics.whole(8);
+	}
+
+	public function acrossReach():Float {
+		return session.song.ends() * perTick;
+	}
+
+	public function downReach():Float {
+		return rows() * trackTall();
+	}
+
+	function reins(paint:Paint, theme:Theme, metrics:Metrics, left:Float,
+			top:Float):Void {
+		final thick = reinTall();
+		final wide = width - names();
+		final tall = height - ruler();
+
+		if (acrossReach() > wide + 0.5) {
+			final held = span(wide, acrossReach());
+			final room = wide - held;
+			final most = acrossReach() - wide;
+			final at = most <= 0 ? 0 : offsetX / most * room;
+
+			paint.rect(left, y + height - thick, wide, thick, theme.sink, 0.7);
+			paint.roundedRect(left + at, y + height - thick + metrics.whole(2), held,
+				thick - metrics.whole(4), metrics.whole(2), theme.frame);
+		}
+
+		if (downReach() > tall + 0.5) {
+			final held = span(tall, downReach());
+			final room = tall - held;
+			final most = downReach() - tall;
+			final at = most <= 0 ? 0 : offsetY / most * room;
+
+			paint.rect(x + width - thick, top, thick, tall, theme.sink, 0.7);
+			paint.roundedRect(x + width - thick + metrics.whole(2), top + at,
+				thick - metrics.whole(4), held, metrics.whole(2), theme.frame);
+		}
 	}
 
 	function bars(paint:Paint, theme:Theme, metrics:Metrics, left:Float, top:Float):Void {

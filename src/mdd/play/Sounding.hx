@@ -59,6 +59,11 @@ final class Sounding {
 		return to;
 	}
 
+	public inline function write(kind:Int, port:Int, value:Int):Void {
+		if (kind == Stream.YM) ym(port, value);
+		else psg(value);
+	}
+
 	function ym(port:Int, value:Int):Void {
 		final half = port >> 1;
 		if (half > 1) return;
