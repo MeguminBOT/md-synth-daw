@@ -173,6 +173,8 @@ class SpineCheck {
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme());
 
+		mdd.view.Languages.speak(tree.translation, "en-GB");
+
 		tree.flow = mdd.ui.Flow.None;
 		tree.resize(1440, 900);
 		shell.fit(metrics);
@@ -525,6 +527,36 @@ class SpineCheck {
 			+ round(mean, 3) + ", worst " + round(worst * 1000, 3) + " at frame " + worstAt
 			+ ", " + over + " frames of " + rolls + " over 16.67, first frame "
 			+ round(first * 1000, 1));
+
+		tree.resize(900, 600);
+		shell.fit(metrics);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final floor = rack.y + rack.height;
+		final last = rack.atRow(Part.COUNT - 1) + rack.rowHeight();
+		final tabs = centre.tabs;
+
+		var strays = 0;
+
+		for (field in bar.fields()) {
+			if (!field.visible) continue;
+			if (field.x + field.width <= bar.x + bar.width) continue;
+
+			strays++;
+		}
+
+		says("a small window still holds every channel", last <= floor + 1 && strays == 0
+			&& tabs.overflowed <= 3,
+			"at 900 by 600 the rack's last row ends at " + Math.round(last) + " against a panel"
+			+ " floor of " + Math.round(floor) + ", " + strays + " transport fields fall outside"
+			+ " the bar, and the tab strip hides " + tabs.overflowed + " of "
+			+ tabs.labels.length);
+
+		tree.resize(1440, 900);
+		shell.fit(metrics);
 
 		body.shut();
 		small.shut();
