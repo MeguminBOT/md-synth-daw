@@ -500,6 +500,31 @@ class SpineCheck {
 			&& third.notes.length == 1,
 			"the note under the cursor is gone and the one after it is not");
 
+		final second = session.song.add(new mdd.song.Pattern("later", 384));
+		final where = session.song.tracks[0];
+
+		where.add(new mdd.song.Clip(session.song.patterns.length - 1, 384, 384));
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final row = Std.int((384 + 48) / tracker.step());
+
+		tracker.at(row, Part.Fm4.index());
+		tree.key(true, mdd.ui.Key.Z, mdd.ui.Mod.None);
+
+		final placed = second.lane(Part.Fm4).notes;
+
+		says("and a row past a clip writes inside it",
+			placed.length == 1 && placed[0].at == 48,
+			placed.length + " notes landed in the second clip's pattern"
+			+ (placed.length == 0 ? "" : " at tick " + placed[0].at + " of a clip that starts"
+			+ " at 384"));
+
+		where.clips.pop();
+		session.song.patterns.pop();
+
 		says("and it is the roll's data", centre.roll.session == tracker.session,
 			"the tracker and the roll read the same pattern, not a copy of it");
 

@@ -116,6 +116,21 @@ final class Tracker extends Widget {
 		return null;
 	}
 
+	public function clipFor(tick:Int):Null<mdd.song.Clip> {
+		for (track in session.song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (tick < clip.at || tick >= clip.ends()) continue;
+				if (session.song.patternAt(clip.pattern) == null) continue;
+
+				return clip;
+			}
+		}
+
+		return null;
+	}
+
 	public function laneAt(tick:Int, part:Part):Null<mdd.song.Lane> {
 		if (!songly()) {
 			final pattern = session.current();
@@ -290,7 +305,7 @@ final class Tracker extends Widget {
 		final held = noteAt(row, column);
 		if (held != null) session.does(new RemoveNote(which, part, held));
 
-		final note = new Note(tick - originAt(tick, part), step(), pitch, 100,
+		final note = new Note(tick - writingAt(tick, part), step(), pitch, 100,
 			session.song.rack[part.index()]);
 
 		session.does(new AddNote(which, part, note));
@@ -303,8 +318,21 @@ final class Tracker extends Widget {
 	public function writing(tick:Int, part:Part):Int {
 		if (!songly()) return session.pattern;
 
-		final clip = clipAt(tick, part);
-		return clip == null ? session.pattern : clip.pattern;
+		final held = clipAt(tick, part);
+		if (held != null) return held.pattern;
+
+		final clip = clipFor(tick);
+		return clip == null ? -1 : clip.pattern;
+	}
+
+	public function writingAt(tick:Int, part:Part):Int {
+		if (!songly()) return 0;
+
+		final held = clipAt(tick, part);
+		if (held != null) return held.at;
+
+		final clip = clipFor(tick);
+		return clip == null ? 0 : clip.at;
 	}
 
 	public function cut():Void {
