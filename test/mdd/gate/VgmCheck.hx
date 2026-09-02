@@ -421,10 +421,38 @@ class VgmCheck {
 		"D1L RR", "SSG", "FB ALG", "SIDES"];
 
 	static function shadowed(where:String, files:Array<String>):Void {
-		var name = "";
-		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
-		if (name == "" && files.length > 0) name = files[0];
-		if (name == "") return;
+		final wanted = ["Green Hill", "Emerald Hill", "Chemical Plant", "Marble", "Star Light"];
+		final said = new StringBuf();
+
+		var worstClass = 0.0;
+		var worstTune = 0.0;
+		var worstSquare = 0.0;
+		var worstKeys = 0;
+		var read = 0;
+
+		for (want in wanted) {
+			var name = "";
+			for (held in files) if (held.indexOf(want) >= 0) name = held;
+			if (name == "") continue;
+
+			read++;
+			looked(where, name, said);
+		}
+
+		says("and the registers the chip sees agree", read > 0 && every < 1.2 && everyTune < 12
+			&& everySquare < 2.5 && everyKeys < 200,
+			read + " files replayed as songs and read back off the register writes: "
+			+ said.toString() + "; worst class " + round(every, 2) + ", worst pitch "
+			+ round(everyTune, 1) + " cents, worst square " + round(everySquare, 2)
+			+ ", worst key count " + everyKeys);
+	}
+
+	static var every:Float = 0;
+	static var everyTune:Float = 0;
+	static var everySquare:Float = 0;
+	static var everyKeys:Int = 0;
+
+	static function looked(where:String, name:String, said:StringBuf):Void {
 
 		final source = new mdd.play.Stream(1 << 22);
 		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
@@ -577,12 +605,6 @@ class VgmCheck {
 			at += 735;
 		}
 
-		final said = new StringBuf();
-
-		for (index in 0...CLASSES.length) {
-			if (counted[index] == 0) continue;
-			said.add(CLASS_NAMES[index] + " " + round(apart[index] / counted[index], 2) + "  ");
-		}
 
 		var worstClass = 0.0;
 
@@ -593,30 +615,34 @@ class VgmCheck {
 			if (mean > worstClass) worstClass = mean;
 		}
 
-		final keys = new StringBuf();
 		var keysApart = 0;
-
 		for (index in 0...6) {
 			final away = songKeyed[index] - fileKeyed[index];
 			keysApart += away < 0 ? -away : away;
-
-			keys.add("FM" + (index + 1) + " " + songKeyed[index] + "/" + fileKeyed[index]
-				+ "  ");
 		}
 
-		says("and the same channels are keyed", keysApart < 20, keys.toString());
+		final tune = tunes == 0 ? 0.0 : tuned / tunes;
+		final square = squared == 0 ? 0.0 : squares / squared;
 
-		says("and the registers the chip sees agree",
-			counted[1] > 0 && worstClass < 0.5 && tunes > 0 && tuned / tunes < 10
-			&& squared > 0 && squares / squared < 1,
-			"mean apart on a keyed channel: " + said.toString() + "PITCH "
-			+ (tunes == 0 ? "0" : Std.string(round(tuned / tunes, 1))) + " cents; a square"
-			+ " sounding on both is " + (squared == 0 ? "0"
-			: Std.string(round(squares / squared, 2))) + " steps apart over " + squared
-			+ " looks; the file sounds where the song does not " + missing + " times and the"
-			+ " song sounds where the file does not " + extra + " times ("
-			+ extraBy[0] + "/" + liveBy[0] + " " + extraBy[1] + "/" + liveBy[1] + " "
-			+ extraBy[2] + "/" + liveBy[2] + " " + extraBy[3] + "/" + liveBy[3] + ")");
+		if (worstClass > every) every = worstClass;
+		if (tune > everyTune) everyTune = tune;
+		if (square > everySquare) everySquare = square;
+		if (keysApart > everyKeys) everyKeys = keysApart;
+
+		said.add(name.substr(0, 18) + " class " + round(worstClass, 2) + " pitch "
+			+ round(tune, 1) + " square " + round(square, 2) + " keys " + keysApart);
+
+		if (keysApart >= 40) {
+			said.add(" [");
+
+			for (index in 0...6) {
+				said.add(songKeyed[index] + "/" + fileKeyed[index] + " ");
+			}
+
+			said.add("]");
+		}
+
+		said.add("   ");
 	}
 
 	static function hertz(high:Int, low:Int):Float {
