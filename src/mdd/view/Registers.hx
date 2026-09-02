@@ -283,16 +283,16 @@ final class Registers extends Scroll {
 
 			final ym = kinds[index] == Stream.YM;
 
-			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.7);
-			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? theme.accent : theme.which, 0.75);
+			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.85);
+			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? Theme.FM2 : Theme.PSG1, 1);
 
-			if (ym) paint.text("port " + ports[index], portAt, line, theme.dim, 0.7);
+			if (ym) paint.text("port " + ports[index], portAt, line, theme.dim, 0.85);
 
-			paint.text(hex(values[index], 2), valueAt, line, theme.ink, 0.85);
+			paint.text(hex(values[index], 2), valueAt, line, theme.ink, 1);
 
 			paint.reface(small);
 			paint.text(named(kinds[index], ports[index], values[index]), sayAt, line,
-				theme.dim, 0.7);
+				theme.ink, 0.7);
 			paint.reface(font);
 		}
 
