@@ -86,7 +86,7 @@ final class Patterns extends Scroll {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			for (note in from.lane(part).notes) made.lane(part).notes.push(note.copy());
+			for (note in from.lane(part).notes) made.lane(part).add(note.copy());
 		}
 
 		session.frees();

@@ -31,13 +31,22 @@ final class Transcription {
 	final keyed:Vector<Bool> = new Vector<Bool>(6);
 	final startedAt:Vector<Int> = new Vector<Int>(6);
 	final startedOn:Vector<Int> = new Vector<Int>(6);
+	final startedWith:Vector<Int> = new Vector<Int>(6);
 
 	final psgPeriod:Vector<Int> = new Vector<Int>(4);
 	final psgLevel:Vector<Int> = new Vector<Int>(4);
 	final psgFrom:Vector<Int> = new Vector<Int>(4);
 	final psgNote:Vector<Int> = new Vector<Int>(4);
 
+	static inline final ENVELOPE_TICKS = 735;
+	static inline final ENVELOPE_STEPS = 96;
+
+	final psgWhen:Array<Array<Int>> = [[], [], [], []];
+	final psgHeld:Array<Array<Int>> = [[], [], [], []];
+	final shapes:Array<Int> = [];
+
 	var latched:Int = 0;
+	var noiseMode:Int = 4;
 	var dacOn:Bool = false;
 	var dacHead:Int = -1;
 	var dacLast:Int = 0;
@@ -77,6 +86,7 @@ final class Transcription {
 			keyed[i] = false;
 			startedAt[i] = 0;
 			startedOn[i] = 60;
+			startedWith[i] = -1;
 		}
 
 		for (i in 0...4) {
@@ -146,6 +156,12 @@ final class Transcription {
 			return;
 		}
 
+		if (half == 0 && address == 0x22) {
+			song.lfoOn = (value & 0x08) != 0;
+			song.lfoRate = value & 7;
+			return;
+		}
+
 		if (half == 0 && address == 0x2B) {
 			final on = (value & 0x80) != 0;
 
@@ -170,7 +186,8 @@ final class Transcription {
 		}
 	}
 
-	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int):Void {
+	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int,
+			velocity:Int = 127):Void {
 		final lane = pattern.lane(part);
 		final many = lane.notes.length;
 
@@ -189,13 +206,14 @@ final class Transcription {
 			}
 		}
 
-		lane.add(new Note(from, until - from, pitch, 127, instrument));
+		lane.add(new Note(from, until - from, pitch, velocity, instrument));
 		notes++;
 	}
 
 	function start(at:Int, channel:Int):Void {
 		startedAt[channel] = at;
 		startedOn[channel] = pitchOf(channel);
+		startedWith[channel] = instrumentFor(channel);
 	}
 
 	function finish(at:Int, channel:Int):Void {
@@ -205,7 +223,8 @@ final class Transcription {
 		if (at <= startedAt[channel]) return;
 		if (until <= from) until = from + 1;
 
-		placed(channel, from, until, startedOn[channel], instrumentFor(channel));
+		placed(channel, from, until, startedOn[channel], startedWith[channel] < 0
+			? instrumentFor(channel) : startedWith[channel]);
 	}
 
 	function sampled(at:Int):Void {
@@ -215,14 +234,15 @@ final class Transcription {
 		final tail = at > dacLast ? at : dacLast + 1;
 		dacHead = -1;
 
+		final wrote = dacBytes.length;
 		trimmed();
 
-		if (dacBytes.length < DAC_LEAST || tail <= head) {
+		if (dacBytes.length < DAC_LEAST || tail <= head || wrote < 1) {
 			dacBytes.resize(0);
 			return;
 		}
 
-		final which = sampleInstrument(tail - head);
+		final which = sampleInstrument(Math.round((tail - head) / wrote * dacBytes.length));
 
 		final from = ticked(head);
 		var until = ticked(tail);
@@ -261,6 +281,7 @@ final class Transcription {
 
 			if ((latched & 1) != 0) attenuated(at, channel, value & 0x0F);
 			else if (channel < 3) psgPeriod[channel] = (psgPeriod[channel] & 0x3F0) | (value & 0x0F);
+			else noiseMode = value & 0x0F;
 
 			return;
 		}
@@ -282,20 +303,67 @@ final class Transcription {
 		if (level < 15 && was >= 15) {
 			psgFrom[channel] = at;
 			psgNote[channel] = channel < 3 ? squareNote(psgPeriod[channel]) : 60;
+
+			psgWhen[channel].resize(0);
+			psgHeld[channel].resize(0);
+			psgWhen[channel].push(at);
+			psgHeld[channel].push(level);
+			return;
+		}
+
+		if (level < 15 && psgFrom[channel] >= 0) {
+			if (level == was) return;
+
+			psgWhen[channel].push(at);
+			psgHeld[channel].push(level);
 			return;
 		}
 
 		if (level >= 15 && was < 15 && psgFrom[channel] >= 0) {
-			final from = ticked(psgFrom[channel]);
+			final head = psgFrom[channel];
+			final from = ticked(head);
 			var until = ticked(at);
-			final was = psgFrom[channel];
 			psgFrom[channel] = -1;
 
-			if (at <= was) return;
+			if (at <= head) return;
 			if (until <= from) until = from + 1;
 
-			placed(6 + channel, from, until, psgNote[channel], squareInstrument(channel));
+			final loudest = psgHeld[channel][0];
+			final velocity = Math.round((15 - loudest) * 127 / 15);
+
+			placed(6 + channel, from, until, psgNote[channel],
+				squareInstrument(channel, head, at), velocity < 1 ? 1 : velocity);
 		}
+	}
+
+	function shaped(channel:Int, head:Int, tail:Int):Array<Int> {
+		final when = psgWhen[channel];
+		final held = psgHeld[channel];
+		final steps:Array<Int> = [];
+
+		if (when.length == 0) return steps;
+
+		final loudest = held[0];
+		var many = Math.ceil((tail - head) / ENVELOPE_TICKS);
+
+		if (many < 1) many = 1;
+		if (many > ENVELOPE_STEPS) many = ENVELOPE_STEPS;
+
+		var at = 0;
+
+		for (step in 0...many) {
+			final want = head + step * ENVELOPE_TICKS;
+			while (at + 1 < when.length && when[at + 1] <= want) at++;
+
+			final away = held[at] - loudest;
+			steps.push(away < 0 ? 0 : (away > 15 ? 15 : away));
+		}
+
+		while (steps.length > 1 && steps[steps.length - 1] == steps[steps.length - 2]) {
+			steps.pop();
+		}
+
+		return steps;
 	}
 
 	function parted():Void {
@@ -318,7 +386,7 @@ final class Transcription {
 			final made = song.add(new Pattern(part.name(), length,
 				mdd.ui.Theme.PARTS[index]));
 
-			for (note in lane.notes) made.lane(part).notes.push(note);
+			for (note in lane.notes) made.lane(part).add(note);
 
 			final track = song.track(new Track(part.name()));
 			track.add(new Clip(song.patterns.length - 1, 0, length));
@@ -454,13 +522,42 @@ final class Transcription {
 
 	var squares:Int = -1;
 
-	function squareInstrument(channel:Int):Int {
-		if (squares >= 0) return squares;
+	function squareInstrument(channel:Int, head:Int, tail:Int):Int {
+		final steps = shaped(channel, head, tail);
+		final noise = channel == 3 ? noiseMode : -1;
 
-		song.instrument(new Instrument("square", Part.Psg1));
-		squares = song.instruments.length - 1;
+		for (index in 0...shapes.length) {
+			final held = song.instruments[shapes[index]];
+			if (held.envelope == null) continue;
+			if (noise >= 0 && held.envelope.noise != noise) continue;
+			if (noise < 0 && held.kind.noise()) continue;
+			if (noise >= 0 && !held.kind.noise()) continue;
+			if (!alikeShape(held.envelope.steps, steps)) continue;
 
-		return squares;
+			return shapes[index];
+		}
+
+		final kind = channel == 3 ? Part.Noise : Part.Psg1;
+		final instrument = new Instrument((channel == 3 ? "noise " : "square ")
+			+ (shapes.length + 1), kind);
+
+		if (instrument.envelope != null) {
+			for (step in steps) instrument.envelope.steps.push(step);
+			if (noise >= 0) instrument.envelope.noise = noise;
+		}
+
+		song.instrument(instrument);
+		shapes.push(song.instruments.length - 1);
+
+		if (squares < 0) squares = song.instruments.length - 1;
+		return song.instruments.length - 1;
+	}
+
+	static function alikeShape(one:Array<Int>, two:Array<Int>):Bool {
+		if (one.length != two.length) return false;
+		for (index in 0...one.length) if (one[index] != two[index]) return false;
+
+		return true;
 	}
 
 	function sampleInstrument(span:Int):Int {

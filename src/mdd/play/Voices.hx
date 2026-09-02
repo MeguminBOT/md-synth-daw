@@ -51,15 +51,37 @@ final class Voices {
 		return instruments[index];
 	}
 
-	public function resolve(lane:Lane):Int {
+	public function resolve(lane:Lane, from:Int = 0, until:Int = 0x3FFFFFFF):Int {
 		count = 0;
 		refused = 0;
 
+		final notes = lane.notes;
+		final many = notes.length;
+		if (many == 0) return 0;
+
+		final head = from - lane.reach;
+		final first = seek(notes, head < 0 ? 0 : head);
+		final last = seek(notes, until);
+
 		return switch (policy) {
-			case Polyphony.Strict: strict(lane);
-			case Polyphony.Stealing: stealing(lane);
-			case _: arpeggiate(lane);
+			case Polyphony.Strict: strict(notes, first, last);
+			case Polyphony.Stealing: stealing(notes, first, last);
+			case _: arpeggiate(notes, first, last, from, until);
 		}
+	}
+
+	static function seek(notes:Array<Note>, tick:Int):Int {
+		var low = 0;
+		var high = notes.length;
+
+		while (low < high) {
+			final middle = (low + high) >> 1;
+
+			if (notes[middle].at < tick) low = middle + 1;
+			else high = middle;
+		}
+
+		return low;
 	}
 
 	function hold(start:Int, ends:Int, note:Note):Void {
@@ -78,10 +100,12 @@ final class Voices {
 		count++;
 	}
 
-	function strict(lane:Lane):Int {
+	function strict(notes:Array<Note>, first:Int, last:Int):Int {
 		var sounding = -1;
 
-		for (note in lane.notes) {
+		for (index in first...last) {
+			final note = notes[index];
+
 			if (note.at < sounding) {
 				refused++;
 				continue;
@@ -94,14 +118,14 @@ final class Voices {
 		return count;
 	}
 
-	function stealing(lane:Lane):Int {
-		final notes = lane.notes;
+	function stealing(notes:Array<Note>, first:Int, last:Int):Int {
+		final many = notes.length;
 
-		for (i in 0...notes.length) {
-			final note = notes[i];
+		for (index in first...last) {
+			final note = notes[index];
 			var ends = note.ends();
 
-			for (later in (i + 1)...notes.length) {
+			for (later in (index + 1)...many) {
 				if (notes[later].at <= note.at) continue;
 				if (notes[later].at < ends) ends = notes[later].at;
 				break;
@@ -113,41 +137,51 @@ final class Voices {
 		return count;
 	}
 
-	function arpeggiate(lane:Lane):Int {
-		final notes = lane.notes;
-		if (notes.length == 0) return 0;
+	function arpeggiate(notes:Array<Note>, first:Int, last:Int, from:Int, until:Int):Int {
+		if (last <= first) return 0;
 
-		var last = 0;
-		for (note in notes) if (note.ends() > last) last = note.ends();
+		var edge = 0;
+		for (index in first...last) if (notes[index].ends() > edge) edge = notes[index].ends();
 
 		final step = arpeggio < 1 ? 1 : arpeggio;
-		var at = 0;
+		final stop = until < edge ? until : edge;
 
-		while (at < last) {
-			final until = at + step;
+		var at = Std.int(from / step) * step;
+		if (at < 0) at = 0;
+
+		while (at < stop) {
+			final ends = at + step;
 			var chosen = -1;
 			var seen = 0;
+			final sounding = held(notes, first, last, at);
 
-			for (i in 0...notes.length) {
-				final note = notes[i];
+			for (index in first...last) {
+				final note = notes[index];
 				if (note.at > at || note.ends() <= at) continue;
 
-				if (seen == Std.int(at / step) % held(notes, at)) chosen = i;
+				if (seen == Std.int(at / step) % sounding) chosen = index;
 				seen++;
 			}
 
-			if (chosen >= 0) hold(at, until > notes[chosen].ends() ? notes[chosen].ends() : until,
-				notes[chosen]);
+			if (chosen >= 0) {
+				hold(at, ends > notes[chosen].ends() ? notes[chosen].ends() : ends,
+					notes[chosen]);
+			}
 
-			at = until;
+			at = ends;
 		}
 
 		return count;
 	}
 
-	static function held(notes:Array<Note>, at:Int):Int {
+	static function held(notes:Array<Note>, first:Int, last:Int, at:Int):Int {
 		var many = 0;
-		for (note in notes) if (note.at <= at && note.ends() > at) many++;
+
+		for (index in first...last) {
+			final note = notes[index];
+			if (note.at <= at && note.ends() > at) many++;
+		}
+
 		return many < 1 ? 1 : many;
 	}
 }

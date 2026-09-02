@@ -228,14 +228,13 @@ final class PsgEditor extends Widget {
 		final small = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(small);
 
-		if (envelope == null) {
-			paint.text(session.part.name() + " " + translate(Locale.PANEL_NOT_SQUARE),
-				x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
-			return;
-		}
+		Panel.titled(paint, theme, metrics, session.part.name() + "   "
+			+ translate(envelope == null ? Locale.PANEL_NOT_SQUARE : Locale.PANEL_ENVELOPE),
+			x, y, width, metrics.whole(22));
 
-		paint.text(session.part.name() + "   " + translate(Locale.PANEL_ENVELOPE),
-			x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
+		paint.reface(small);
+
+		if (envelope == null) return;
 
 		dials(paint, theme, metrics, envelope);
 

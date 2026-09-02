@@ -7,6 +7,9 @@ final class Song {
 	public var name:String;
 	public var author:String = "";
 
+	public var lfoOn:Bool = false;
+	public var lfoRate:Int = 0;
+
 	public final tempo:Tempo;
 
 	public final patterns:Array<Pattern> = [];
@@ -109,6 +112,8 @@ final class Song {
 		final out = new Song(name, tempo.ppqn, tempo.bpm[0]);
 
 		out.author = author;
+		out.lfoOn = lfoOn;
+		out.lfoRate = lfoRate;
 		out.tempo.rate = tempo.rate;
 
 		for (i in 1...tempo.at.length) out.tempo.set(tempo.at[i], tempo.bpm[i]);

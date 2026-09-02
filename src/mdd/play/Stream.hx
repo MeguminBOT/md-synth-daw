@@ -286,8 +286,13 @@ final class Stream {
 
 		for (index in 0...6) {
 			final part:Part = index;
+			final half = halfOf(part);
+			final channel = channelOf(part);
+
+			for (group in 0...4) ym(tick, half, 0x80 + group * 4 + channel, 0x0F);
+
 			keyOff(tick, part);
-			ym(tick, halfOf(part), 0xB4 + channelOf(part), 0xC0);
+			ym(tick, half, 0xB4 + channel, 0xC0);
 		}
 
 		for (index in 6...10) attenuate(tick, index, 15);

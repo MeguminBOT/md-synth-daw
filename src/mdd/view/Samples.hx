@@ -281,8 +281,9 @@ final class Samples extends Widget {
 		painted = 0;
 
 		paint.reface(small);
-		paint.text(translate(Locale.PANEL_SAMPLES), x + metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
-			theme.dim, 0.8);
+		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_SAMPLES), x, y, width,
+			head());
+		paint.reface(small);
 		final total = held();
 		final ceiling = budget == null ? 65536 : budget.profile.sampleBytes;
 		final over = total > ceiling;

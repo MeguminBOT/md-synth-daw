@@ -44,6 +44,8 @@ class VgmCheck {
 		rated(where, files);
 		sound(where, files);
 		hushed(where, files);
+		paced(where, files);
+		covered(where, files);
 
 		final into = args.indexOf("--wav");
 
@@ -64,7 +66,11 @@ class VgmCheck {
 				if (want != null && want > 0) rate = want;
 			}
 
-			written(where, files, args[into + 1], seconds, rate);
+			final picked = args.indexOf("--only");
+			if (picked >= 0 && picked + 1 < args.length) only = args[picked + 1];
+
+			written(where, files, args[into + 1], seconds, rate,
+				args.indexOf("--raw") >= 0);
 		}
 		transported(where, files);
 
@@ -214,6 +220,235 @@ class VgmCheck {
 			+ loudest.toString() + "(" + dark + " never moved)");
 	}
 
+	static function covered(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final made = mdd.format.Transcription.of(stream, vgm.rate, name);
+
+		final span = mdd.song.Tempo.TICKS * 2;
+		final last = stream.count == 0 ? 0 : stream.tickAt(stream.count - 1);
+		final windows = Std.int(last / span) + 1;
+
+		final keyed = new haxe.ds.Vector<Int>(windows);
+		final noted = new haxe.ds.Vector<Int>(windows);
+
+		for (index in 0...windows) {
+			keyed[index] = 0;
+			noted[index] = 0;
+		}
+
+		var address = -1;
+		var half = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x28) continue;
+			if ((value & 0xF0) == 0) continue;
+
+			final at = Std.int(stream.tickAt(index) / span);
+			if (at >= 0 && at < windows) keyed[at]++;
+		}
+
+		final tempo = made.song.tempo;
+
+		for (pattern in made.song.patterns) {
+			for (part in 0...6) {
+				for (note in pattern.lane(part).notes) {
+					final at = Std.int(tempo.samplesAt(note.at) / span);
+					if (at >= 0 && at < windows) noted[at]++;
+				}
+			}
+		}
+
+		var worst = 1.0;
+		var where2 = 0;
+		var totalKeyed = 0;
+		var totalNoted = 0;
+
+		for (index in 0...windows) {
+			totalKeyed += keyed[index];
+			totalNoted += noted[index];
+
+			if (keyed[index] < 8) continue;
+
+			final part = noted[index] / keyed[index];
+			if (part >= worst) continue;
+
+			worst = part;
+			where2 = index;
+		}
+
+		final sounding = new haxe.ds.Vector<Int>(windows);
+		final wanted = new haxe.ds.Vector<Int>(windows);
+
+		for (index in 0...windows) {
+			sounding[index] = 0;
+			wanted[index] = 0;
+		}
+
+		for (pattern in made.song.patterns) {
+			for (part in 0...6) {
+				for (note in pattern.lane(part).notes) {
+					var at = tempo.samplesAt(note.at);
+					final ends = tempo.samplesAt(note.at + note.length);
+
+					while (at < ends) {
+						final slot = Std.int(at / span);
+						if (slot >= 0 && slot < windows) sounding[slot]++;
+						at += 735;
+					}
+				}
+			}
+		}
+
+		final held = new haxe.ds.Vector<Int>(6);
+		final since = new haxe.ds.Vector<Int>(6);
+		for (index in 0...6) {
+			held[index] = 0;
+			since[index] = 0;
+		}
+
+		address = -1;
+		half = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x28) continue;
+
+			final within = value & 3;
+			if (within == 3) continue;
+
+			final channel = within + ((value & 4) != 0 ? 3 : 0);
+			final on = (value & 0xF0) != 0;
+			final at = stream.tickAt(index);
+
+			if (on) {
+				if (held[channel] == 1) {
+					var walk = since[channel];
+					while (walk < at) {
+						final slot = Std.int(walk / span);
+						if (slot >= 0 && slot < windows) wanted[slot]++;
+						walk += 735;
+					}
+				}
+
+				held[channel] = 1;
+				since[channel] = at;
+				continue;
+			}
+
+			if (held[channel] == 0) continue;
+
+			var walk = since[channel];
+			while (walk < at) {
+				final slot = Std.int(walk / span);
+				if (slot >= 0 && slot < windows) wanted[slot]++;
+				walk += 735;
+			}
+
+			held[channel] = 0;
+		}
+
+		var heldSteps = 0;
+		var wantSteps = 0;
+		var apart = 0.0;
+
+		for (index in 0...windows) {
+			heldSteps += sounding[index];
+			wantSteps += wanted[index];
+
+			if (wanted[index] < 40) continue;
+
+			final away = Math.abs(sounding[index] - wanted[index]) / wanted[index];
+			if (away > apart) apart = away;
+		}
+
+		says("and a note holds as long as the key did",
+			wantSteps == 0 || Math.abs(heldSteps - wantSteps) < wantSteps * 0.02,
+			heldSteps + " frames of fm sounding against " + wantSteps + " the file keys, and no"
+			+ " two second window differs by more than " + round(apart * 100, 1) + " per cent");
+
+		says("and every fm key on becomes a note",
+			totalKeyed == 0 || totalNoted >= totalKeyed * 0.98,
+			totalNoted + " fm notes against " + totalKeyed + " key ons; the thinnest two second"
+			+ " window keeps " + round(worst * 100, 1) + " per cent of them, at "
+			+ (where2 * 2) + " s");
+	}
+
+	static function paced(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final made = mdd.format.Transcription.of(stream, vgm.rate, name);
+		final song = made.song;
+
+		var notes = 0;
+		for (pattern in song.patterns) notes += pattern.notes();
+
+		final transport = new mdd.play.Transport(song, 1 << 18);
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+
+		render.transport = transport;
+		transport.play();
+
+		final period = mdd.play.Render.BLOCK / 44100.0;
+		final blocks = Std.int(44100 * 8 / mdd.play.Render.BLOCK);
+		final times = new Array<Float>();
+
+		var worst = 0.0;
+
+		for (index in 0...blocks) {
+			final began = haxe.Timer.stamp();
+			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+
+			render.serve(transport.stream, at, mdd.play.Render.BLOCK, transport.entering);
+
+			final took = haxe.Timer.stamp() - began;
+
+			times.push(took);
+			if (took > worst) worst = took;
+		}
+
+		times.sort(function(a:Float, b:Float):Int return a < b ? -1 : (a > b ? 1 : 0));
+
+		final middle = times[Std.int(times.length / 2)];
+
+		says("and a block is built inside its own period", worst < period && blocks > 0,
+			blocks + " blocks of " + mdd.play.Render.BLOCK + " frames from " + notes
+			+ " notes: median " + round(middle * 1000, 3) + " ms, worst "
+			+ round(worst * 1000, 3) + " ms, against a block period of "
+			+ round(period * 1000, 3) + " ms");
+	}
+
 	static function tapped(render:mdd.play.Render, peaks:haxe.ds.Vector<Float>):Void {
 		final many = render.tapped < mdd.play.Render.TAPS
 			? render.tapped : mdd.play.Render.TAPS;
@@ -285,7 +520,7 @@ class VgmCheck {
 	}
 
 	static function written(where:String, files:Array<String>, into:String,
-			seconds:Int, rate:Int):Void {
+			seconds:Int, rate:Int, plain:Bool = false):Void {
 		final one = StringTools.endsWith(into.toLowerCase(), ".wav");
 
 		if (!one && !sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
@@ -302,7 +537,8 @@ class VgmCheck {
 			final where2 = one ? into
 				: into + "/" + name.substr(0, name.length - 4) + ".wav";
 
-			final much = rendered(where + "/" + name, where2, seconds, rate);
+			final much = plain ? raw(where + "/" + name, where2, seconds, rate)
+				: rendered(where + "/" + name, where2, seconds, rate);
 			if (much <= 0) continue;
 
 			wrote++;
@@ -323,6 +559,45 @@ class VgmCheck {
 		return Math.round(value * scale) / scale;
 	}
 
+	static function raw(from:String, into:String, seconds:Int, rate:Int):Float {
+		final stream = new mdd.play.Stream(1 << 23);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(from), stream);
+
+		var ticks = vgm.samples;
+
+		if (ticks <= 0 && stream.count > 0) ticks = stream.tickAt(stream.count - 1);
+		if (ticks <= 0) return 0;
+
+		ticks += rate;
+		final capped = seconds * mdd.song.Tempo.TICKS;
+		if (seconds > 0 && ticks > capped) ticks = capped;
+
+		final frames = Std.int(ticks * (rate / mdd.song.Tempo.TICKS));
+		final sound = new haxe.ds.Vector<cpp.Float32>(frames * 2);
+		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
+
+		var done = 0;
+
+		while (done < frames) {
+			final at = Std.int(done * (mdd.song.Tempo.TICKS / rate));
+			final many = render.serve(stream, at, mdd.play.Render.BLOCK, 0);
+			if (many <= 0) break;
+
+			for (i in 0...many) {
+				if ((done + i) * 2 + 1 >= sound.length) break;
+				sound[(done + i) * 2] = render.block[i * 2];
+				sound[(done + i) * 2 + 1] = render.block[i * 2 + 1];
+			}
+
+			done += many;
+		}
+
+		sys.io.File.saveBytes(into, mdd.format.Wav.write(sound, frames, 2, rate));
+		return frames / rate;
+	}
+
+	public static var only:String = "";
+
 	static function rendered(from:String, into:String, seconds:Int,
 			rate:Int):Float {
 		final stream = new mdd.play.Stream(1 << 23);
@@ -341,6 +616,15 @@ class VgmCheck {
 		final sound = new haxe.ds.Vector<cpp.Float32>(frames * 2);
 
 		final song = mdd.format.Transcription.of(stream, vgm.rate, from).song;
+
+		if (only != "") {
+			final want = only.split(",");
+
+			for (index in 0...mdd.song.Part.COUNT) {
+				song.muted[index] = want.indexOf(Std.string(index)) < 0;
+			}
+		}
+
 		final transport = new mdd.play.Transport(song, 1 << 18);
 		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
 

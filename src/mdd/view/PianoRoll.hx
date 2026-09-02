@@ -669,6 +669,8 @@ final class PianoRoll extends Widget {
 		keys(paint, theme, metrics, top);
 		heading(paint, theme, metrics, pattern.length);
 		strip(paint, theme, metrics, pattern);
+
+		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 
 	function strip(paint:Paint, theme:Theme, metrics:Metrics, pattern:Pattern):Void {
@@ -746,6 +748,9 @@ final class PianoRoll extends Widget {
 
 		note.length = want;
 		drawn = want;
+
+		final pattern = session.current();
+		if (pattern != null) pattern.lane(session.part).grow(want);
 	}
 
 	function sliced(note:Note, at:Int):Void {

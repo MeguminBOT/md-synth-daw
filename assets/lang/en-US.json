@@ -232,5 +232,6 @@
   "track.name": "Track name",
   "hardware.now": "now",
   "hardware.song": "song",
-  "psg.noLoop": "off"
+  "psg.noLoop": "off",
+  "tracker.division": "row"
 }

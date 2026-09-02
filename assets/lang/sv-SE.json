@@ -232,5 +232,6 @@
   "track.name": "Spårnamn",
   "hardware.now": "nu",
   "hardware.song": "låt",
-  "psg.noLoop": "av"
+  "psg.noLoop": "av",
+  "tracker.division": "rad"
 }

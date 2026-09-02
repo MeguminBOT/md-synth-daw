@@ -104,7 +104,10 @@ final class Sequencer {
 			final lane = pattern.lane(part);
 			if (lane.notes.length == 0) continue;
 
-			voices.resolve(lane);
+			var head = low - from;
+			if (head < 0) head = 0;
+
+			voices.resolve(lane, head, high - from + 1);
 			sound(from, until, transpose, part, fromSample, toSample);
 		}
 	}
@@ -130,7 +133,7 @@ final class Sequencer {
 			if (onSample >= fromSample && onSample < toSample) {
 				push(onSample, part, PATCH, named, velocity);
 				push(onSample, part, TUNE, pitch, 0);
-				push(onSample, part, ON, velocity, 0);
+				push(onSample, part, ON, velocity, named);
 			}
 
 			if (offSample >= fromSample && offSample < toSample) {
@@ -307,7 +310,7 @@ final class Sequencer {
 				case ON:
 					if (part.fm()) stream.keyOn(tick, part);
 					else if (part.square() || part.noise()) {
-						final instrument = instrumentOf(-1, part);
+						final instrument = instrumentOf(second, part);
 						stream.loudness(tick, part, instrument == null ? null : instrument.envelope,
 							first, 0);
 					} else if (part.sampled()) stream.sampling(tick, true);

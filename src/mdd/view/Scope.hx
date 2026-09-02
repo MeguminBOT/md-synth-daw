@@ -251,6 +251,7 @@ final class Scope extends Widget {
 		final metrics = root.metrics;
 
 		paint.rect(x, y, width, height, theme.ground);
+		Panel.band(paint, theme, metrics, x, y, width, head());
 		painted = 0;
 
 		final top = head();

@@ -350,13 +350,17 @@ final class FmEditor extends Widget {
 		paint.reface(small);
 
 		if (patch == null) {
-			paint.text(session.part.name() + " " + translate(Locale.PANEL_NOT_FM), x + metrics.inset,
-				y + metrics.inset + small.ascent, theme.dim);
+			Panel.titled(paint, theme, metrics, session.part.name(), x, y, width,
+				metrics.whole(22));
+			paint.reface(small);
+			paint.text(translate(Locale.PANEL_NOT_FM), x + metrics.inset,
+				y + metrics.whole(22) + metrics.gap + small.ascent, theme.dim);
 			return;
 		}
 
-		paint.text(session.part.name() + "   algorithm " + patch.algorithm + "   feedback "
-			+ patch.feedback, x + metrics.inset, y + metrics.gap + small.ascent, theme.dim);
+		Panel.titled(paint, theme, metrics, session.part.name(), x, y, width,
+			metrics.whole(22));
+		paint.reface(small);
 
 		routing(paint, theme, metrics, patch);
 		dials(paint, theme, metrics, patch);
@@ -397,7 +401,7 @@ final class FmEditor extends Widget {
 	}
 
 	function routing(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
-		final top = y + metrics.whole(26);
+		final top = y + metrics.whole(28);
 		final tall = dialsTop() - top - metrics.unit;
 		final box = metrics.whole(34);
 		final gap = (width - metrics.inset * 2 - box * 4) / 3;

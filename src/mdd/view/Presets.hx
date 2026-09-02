@@ -245,14 +245,13 @@ final class Presets extends Widget {
 		final top = metrics.whole(24);
 
 		paint.rect(x, y, width, height, theme.panel);
+
+		Panel.titled(paint, theme, metrics, session.part.name() + " "
+			+ translate(Locale.PANEL_PATCHES), x, y, width, top);
+
 		paint.reface(font);
-
-		paint.text(session.part.name() + " " + translate(Locale.PANEL_PATCHES),
-			x + metrics.inset,
-			y + top * 0.5 + font.ascent * 0.5, theme.dim, 0.8);
-
-		paint.textRight(listed + " / " + banks,
-			x + width - metrics.inset, y + top * 0.5 + font.ascent * 0.5, theme.dim, 0.7);
+		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
+			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
 		if (listed == 0) {
 			paint.text(translate(Locale.PANEL_NO_PATCHES), x + metrics.inset,

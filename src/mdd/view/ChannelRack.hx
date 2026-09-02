@@ -249,9 +249,8 @@ final class ChannelRack extends Widget {
 		final top = header();
 
 		paint.rect(x, y, width, height, theme.panel);
+		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_RACK), x, y, width, top);
 		paint.reface(small);
-		paint.text(translate(Locale.PANEL_RACK), x + metrics.inset, y + top * 0.5 + small.ascent * 0.5,
-			theme.dim, 0.8);
 
 		final swatch = metrics.whole(10);
 

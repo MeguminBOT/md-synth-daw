@@ -30,7 +30,7 @@ final class Tools extends Widget {
 		if (root == null) return 24;
 
 		final metrics = root.metrics;
-		final tall = height - metrics.whole(3) - metrics.unit * 2;
+		final tall = height - metrics.whole(3) - metrics.unit;
 
 		return tall < 12 ? metrics.whole(24) : tall;
 	}
@@ -136,7 +136,7 @@ final class Tools extends Widget {
 		for (index in 0...CELLS) {
 			final on = lit(index);
 
-			paint.roundedRect(pen, top, size, size, metrics.radiusSmall,
+			paint.roundedRect(pen, top, size, size, metrics.radiusRow,
 				on ? theme.accent : theme.raise1, on ? 0.9 : 1);
 
 			if (!on) {
@@ -144,7 +144,7 @@ final class Tools extends Widget {
 			}
 
 			if (index == hoverAt) {
-				paint.roundedRect(pen, top, size, size, metrics.radiusSmall, theme.accent,
+				paint.roundedRect(pen, top, size, size, metrics.radiusRow, theme.accent,
 					Theme.HOVER);
 			}
 

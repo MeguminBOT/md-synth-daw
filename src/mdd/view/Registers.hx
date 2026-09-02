@@ -235,14 +235,13 @@ final class Registers extends Scroll {
 		contentHeight = many * tall;
 
 		paint.rect(x, y, width, height, theme.panel);
+		Panel.titled(paint, theme, metrics, translate(Locale.VIEW_REGISTERS), x, y, width, head);
 		paint.reface(small);
-
-		paint.text(translate(Locale.VIEW_REGISTERS), x + metrics.inset,
-			y + head * 0.5 + small.ascent * 0.5, theme.dim, 0.75);
 
 		paint.textRight(writes + "   " + translate(following
 			? Locale.REGISTERS_FOLLOWING : Locale.REGISTERS_HELD),
-			x + width - metrics.inset, y + head * 0.5 + small.ascent * 0.5, theme.dim, 0.7);
+			x + width - metrics.inset, y + (head - small.height) * 0.5 + small.ascent,
+			theme.dim, 0.8);
 
 		if (many == 0) {
 			paint.text(translate(Locale.REGISTERS_NOTHING), x + metrics.inset,
@@ -297,5 +296,6 @@ final class Registers extends Scroll {
 		}
 
 		paint.popClip();
+		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 }

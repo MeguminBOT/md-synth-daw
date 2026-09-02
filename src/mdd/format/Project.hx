@@ -43,6 +43,9 @@ class Project {
 		out.key("author");
 		out.text(song.author);
 
+		out.key("lfo");
+		out.whole((song.lfoOn ? 8 : 0) | (song.lfoRate & 7));
+
 		out.key("tempo");
 		out.open();
 		out.key("ppqn");
@@ -321,6 +324,10 @@ class Project {
 		final song = new Song(node.get("name").saying("untitled"));
 
 		song.author = node.get("author").saying("");
+
+		final lfo = node.get("lfo").whole(0);
+		song.lfoOn = (lfo & 8) != 0;
+		song.lfoRate = lfo & 7;
 
 		final tempo = node.get("tempo");
 		song.tempo.resolve(tempo.get("ppqn").whole(96));
