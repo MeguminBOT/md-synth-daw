@@ -8,6 +8,7 @@ import mdd.ui.Widget;
 final class Inspector extends Widget {
 	public static inline final CHANNEL = 0;
 	public static inline final BANK = 1;
+	public static inline final TABS = 2;
 
 	public final session:Session;
 
@@ -43,6 +44,8 @@ final class Inspector extends Widget {
 	}
 
 	public function show(which:Int):Void {
+		if (which < 0 || which >= TABS) return;
+
 		showing = which;
 		tabs.select(which);
 		follow();

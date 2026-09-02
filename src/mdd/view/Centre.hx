@@ -11,6 +11,7 @@ final class Centre extends Widget {
 	public static inline final TRACKER = 2;
 	public static inline final SCOPE = 3;
 	public static inline final REGISTERS = 4;
+	public static inline final TABS = 5;
 
 	public final session:Session;
 
@@ -53,7 +54,7 @@ final class Centre extends Widget {
 	}
 
 	public function show(which:Int):Void {
-		if (which == showing) return;
+		if (which < 0 || which >= TABS || which == showing) return;
 
 		showing = which;
 		tabs.select(which);

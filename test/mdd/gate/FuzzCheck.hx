@@ -234,7 +234,7 @@ class FuzzCheck {
 					tree.key(false, code, Mod.None);
 
 				case 8:
-					centre.show(next(6));
+					centre.show(next(Centre.TABS));
 
 				case 9:
 					session.choose(next(Part.COUNT));

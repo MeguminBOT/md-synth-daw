@@ -11,6 +11,7 @@ final class Dock extends Widget {
 	public static inline final PATTERNS = 0;
 	public static inline final MIXER = 1;
 	public static inline final WARNINGS = 2;
+	public static inline final TABS = 3;
 
 	public final session:Session;
 
@@ -44,6 +45,8 @@ final class Dock extends Widget {
 
 	public function show(which:Int):Void {
 		if (which == showing) return;
+
+		if (which < 0 || which >= TABS) return;
 
 		showing = which;
 		tabs.select(which);
