@@ -241,7 +241,9 @@ final class Samples extends Widget {
 		final held = new Vector<Int>(until - from);
 		for (i in 0...held.length) held[i] = sample.bytes[from + i];
 
+		session.holds();
 		sample.hold(held);
+		session.frees();
 
 		start = 0;
 		ends = -1;
@@ -271,7 +273,9 @@ final class Samples extends Widget {
 			held[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
 		}
 
+		session.holds();
 		sample.hold(held);
+		session.frees();
 
 		session.changed();
 		invalidate();

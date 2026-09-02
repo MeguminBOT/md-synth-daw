@@ -213,8 +213,10 @@ final class PsgEditor extends Widget {
 		final top = y + head();
 		final tall = graphTall();
 
+		session.holds();
 		while (envelope.steps.length <= at) envelope.steps.push(0);
 		envelope.steps[at] = levelAt(event.y, top, tall);
+		session.frees();
 
 		held = at;
 		invalidate();

@@ -937,6 +937,7 @@ class App {
 
 		commands();
 
+		session.transport.silence();
 		if (render != null) render.transport = session.transport;
 
 		measured();

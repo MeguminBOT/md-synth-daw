@@ -48,6 +48,7 @@ class VgmCheck {
 		covered(where, files);
 		shadowed(where, files);
 		whole(where, files);
+		stepped(where, files);
 
 		final into = args.indexOf("--wav");
 
@@ -832,6 +833,205 @@ class VgmCheck {
 			made.count + " register writes over " + round(span / mdd.song.Tempo.TICKS, 1)
 			+ " s, " + sequencer.lost + " events and " + made.dropped
 			+ " writes dropped on the way");
+	}
+
+	public static inline final STEP = 0.05;
+
+	static function stepped(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "" && files.length > 0) name = files[0];
+		if (name == "") return;
+
+		final read = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), read);
+		final song = mdd.format.Transcription.of(read, vgm.rate, name).song;
+
+		final frames = 44100 * 12;
+
+		final fileSteps = crackles(null, read, frames);
+		final fileWorst = worstStep;
+
+		final songSteps = crackles(song, null, frames);
+		final songWorst = worstStep;
+
+		final wroteOne = new mdd.play.Stream(1 << 21);
+		final wroteTwo = new mdd.play.Stream(1 << 21);
+
+		gathered(song, 44100, 8, wroteOne);
+		gathered(song, 48000, 8, wroteTwo);
+
+		var apartAt = -1;
+		final many = wroteOne.count < wroteTwo.count ? wroteOne.count : wroteTwo.count;
+
+		for (index in 0...many) {
+			if (wroteOne.kindAt(index) == wroteTwo.kindAt(index)
+				&& wroteOne.portAt(index) == wroteTwo.portAt(index)
+				&& wroteOne.valueAt(index) == wroteTwo.valueAt(index)
+				&& wroteOne.tickAt(index) == wroteTwo.tickAt(index)) continue;
+
+			apartAt = index;
+			break;
+		}
+
+		final said = new StringBuf();
+
+		if (apartAt >= 0) {
+			final from = apartAt > 2 ? apartAt - 2 : 0;
+
+			said.add(", first apart at " + apartAt + " {");
+
+			for (index in from...(from + 6)) {
+				if (index >= many) break;
+
+				said.add(wroteOne.tickAt(index) + ":" + wroteOne.kindAt(index) + ":"
+					+ wroteOne.portAt(index) + ":"
+					+ StringTools.hex(wroteOne.valueAt(index), 2) + " ");
+			}
+
+			said.add("| ");
+
+			for (index in from...(from + 6)) {
+				if (index >= many) break;
+
+				said.add(wroteTwo.tickAt(index) + ":" + wroteTwo.kindAt(index) + ":"
+					+ wroteTwo.portAt(index) + ":"
+					+ StringTools.hex(wroteTwo.valueAt(index), 2) + " ");
+			}
+
+			said.add("}");
+		}
+
+		says("and the writes do not depend on the device rate",
+			wroteOne.count == wroteTwo.count && apartAt < 0,
+			wroteOne.count + " writes at 44100 and " + wroteTwo.count + " at 48000"
+			+ said.toString());
+
+		final one = sampled(song, 44100, 8);
+		final two = sampled(song, 48000, 8);
+		final apart = one[1] == 0 ? 1.0 : Math.abs(two[1] - one[1]) / one[1];
+
+		says("and the song sounds the same at either device rate",
+			apart < 0.03 && one[0] > 0.05 && two[0] > 0.05,
+			"eight seconds of the song at 44100 and 48000 peak at " + round(one[0], 3)
+			+ " and " + round(two[0], 3) + " and hold " + round(one[1], 4) + " and "
+			+ round(two[1], 4) + " of full scale, " + round(apart * 100, 2)
+			+ " per cent apart");
+
+		says("and no more crackle than the file", fileSteps == 0
+			|| songSteps < fileSteps * 1.5 + 200,
+			songSteps + " steps of more than " + STEP + " between neighbouring samples over"
+			+ " twelve seconds, against " + fileSteps + " in the file, worst "
+			+ round(songWorst, 3) + " against " + round(fileWorst, 3));
+	}
+
+	static function gathered(song:mdd.song.Song, rate:Int, seconds:Int,
+			into:mdd.play.Stream):Void {
+		final transport = new mdd.play.Transport(song, 1 << 18);
+
+		transport.rewind();
+		transport.play();
+
+		final span = mdd.song.Tempo.TICKS * seconds;
+
+		while (transport.position < span) {
+			transport.advance(mdd.play.Render.BLOCK, rate);
+
+			final held = transport.stream;
+
+			for (index in 0...held.count) {
+				if (held.tickAt(index) >= span) continue;
+
+				into.raw(held.tickAt(index), held.kindAt(index), held.portAt(index),
+					held.valueAt(index));
+			}
+		}
+	}
+
+	static function sampled(song:mdd.song.Song, rate:Int, seconds:Int):Array<Float> {
+		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
+		final transport = new mdd.play.Transport(song, 1 << 18);
+
+		render.transport = transport;
+		transport.rewind();
+		transport.play();
+
+		final frames = rate * seconds;
+
+		var done = 0;
+		var most = 0.0;
+		var power = 0.0;
+
+		while (done < frames) {
+			final at = transport.advance(mdd.play.Render.BLOCK, rate);
+			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+				transport.entering);
+
+			if (many <= 0) break;
+
+			for (index in 0...many) {
+				final value = render.block[index * 2];
+				final much = value < 0 ? -value : value;
+
+				if (much > most) most = much;
+				power += value * value;
+			}
+
+			done += many;
+		}
+
+		return [most, done < 1 ? 0 : Math.sqrt(power / done)];
+	}
+
+	static var worstStep:Float = 0;
+
+	static function crackles(song:Null<mdd.song.Song>, source:Null<mdd.play.Stream>,
+			frames:Int):Int {
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+		final transport = song == null ? null : new mdd.play.Transport(song, 1 << 18);
+
+		if (transport != null) {
+			render.transport = transport;
+			transport.play();
+		}
+
+		var done = 0;
+		var last = 0.0;
+		var steps = 0;
+
+		worstStep = 0;
+
+		while (done < frames) {
+			var many = 0;
+
+			if (transport != null) {
+				final at = transport.advance(mdd.play.Render.BLOCK, 44100);
+				many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
+					transport.entering);
+			} else {
+				final at = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
+				many = render.serve(source, at, mdd.play.Render.BLOCK, 0);
+			}
+
+			if (many <= 0) break;
+
+			for (index in 0...many) {
+				final value = render.block[index * 2];
+				final away = value - last;
+				final much = away < 0 ? -away : away;
+
+				if (done + index > 0) {
+					if (much > STEP) steps++;
+					if (much > worstStep) worstStep = much;
+				}
+
+				last = value;
+			}
+
+			done += many;
+		}
+
+		return steps;
 	}
 
 	static function paced(where:String, files:Array<String>):Void {

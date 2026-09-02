@@ -318,15 +318,12 @@ final class Transcription {
 		final tail = at > dacLast ? at : dacLast + 1;
 		dacHead = -1;
 
-		final wrote = dacBytes.length;
-		trimmed();
-
-		if (dacBytes.length < DAC_LEAST || tail <= head || wrote < 1) {
+		if (dacBytes.length < DAC_LEAST || tail <= head) {
 			dacBytes.resize(0);
 			return;
 		}
 
-		final which = sampleInstrument(Math.round((tail - head) / wrote * dacBytes.length));
+		final which = sampleInstrument(tail - head);
 
 		final from = ticked(head);
 		var until = ticked(tail);
@@ -337,25 +334,6 @@ final class Transcription {
 		if (which < 0) return;
 
 		placed(Part.Dac, from, until, 60, which);
-	}
-
-	function trimmed():Void {
-		var tail = dacBytes.length;
-		while (tail > 0 && quiet(dacBytes[tail - 1])) tail--;
-
-		var head = 0;
-		while (head < tail && quiet(dacBytes[head])) head++;
-
-		if (head == 0 && tail == dacBytes.length) return;
-
-		final held = dacBytes.slice(head, tail);
-		dacBytes.resize(0);
-		for (byte in held) dacBytes.push(byte);
-	}
-
-	static inline function quiet(byte:Int):Bool {
-		final away = byte - 0x80;
-		return (away < 0 ? -away : away) < 3;
 	}
 
 	function square(at:Int, value:Int):Void {

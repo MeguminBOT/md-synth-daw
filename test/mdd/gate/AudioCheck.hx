@@ -41,6 +41,7 @@ class AudioCheck {
 		shape();
 		auditioned();
 		device(Math.isNaN(live) ? LIVE : live);
+		played(8, Gate.root);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -427,6 +428,60 @@ class AudioCheck {
 
 		for (i in 0...many) sum += (held[from + i] - mean) * (held[from + i + lag] - mean);
 		return sum / many;
+	}
+
+	static function played(seconds:Float, root:String):Void {
+		final where = root + "/vendor/vgm";
+		if (!sys.FileSystem.isDirectory(where)) return;
+
+		var name = "";
+
+		for (held in sys.FileSystem.readDirectory(where)) {
+			if (held.indexOf("Green Hill") < 0) continue;
+			name = held;
+		}
+
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		final handle = Audio.open(0, Render.BLOCK);
+
+		if (handle == null) {
+			says("an imported song plays live", false, "no playback device");
+			return;
+		}
+
+		final rate = Audio.rate(handle);
+		final render = new Render(rate, Render.BLOCK);
+		final transport = new mdd.play.Transport(song, 1 << 18);
+
+		render.transport = transport;
+		transport.play();
+
+		Audio.forget(handle);
+		render.start(handle);
+
+		final began = Sdl.ticks();
+
+		while (Sdl.ticks() - began < seconds) Sdl.sleep(0.002);
+
+		final underruns = Audio.underruns(handle);
+		final taken = Audio.taken(handle);
+		final thinnest = render.leastHeld;
+		final blocks = render.blocks;
+
+		render.stop();
+		Audio.close(handle);
+
+		says("an imported song plays live", underruns == 0 && render.dropped == 0,
+			round(taken / rate, 1) + " s of Green Hill through the device in " + blocks
+			+ " blocks: " + underruns + " underruns, " + render.dropped
+			+ " frames dropped for want of room, and the ring never fell below "
+			+ round(thinnest * 1000.0 / rate, 1) + " ms of a "
+			+ round(render.cushion * 1000.0 / rate, 1) + " ms cushion");
 	}
 
 	static function device(seconds:Float):Void {

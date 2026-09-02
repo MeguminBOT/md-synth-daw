@@ -261,13 +261,15 @@ final class Render {
 	}
 
 	function deliver():Void {
-		if (transport == null) {
+		final held = transport;
+
+		if (held == null) {
 			drain();
 			fill(frames);
 		} else {
-			final from = transport.advance(frames, rate);
+			final from = held.advance(frames, rate);
 			drain();
-			serve(transport.stream, from, frames, transport.entering);
+			serve(held.stream, from, frames, held.entering);
 		}
 
 		final took = Audio.write(device, pointer(), frames);

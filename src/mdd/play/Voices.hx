@@ -63,6 +63,8 @@ final class Voices {
 		return holds[index];
 	}
 
+	public static inline final CHAIN = 64;
+
 	public function resolve(lane:Lane, from:Int = 0, until:Int = 0x3FFFFFFF):Int {
 		count = 0;
 		refused = 0;
@@ -72,7 +74,16 @@ final class Voices {
 		if (many == 0) return 0;
 
 		final head = from - lane.reach;
-		final first = seek(notes, head < 0 ? 0 : head);
+
+		var first = seek(notes, head < 0 ? 0 : head);
+		var back = 0;
+
+		while (first > 0 && first < many && back < CHAIN
+				&& notes[first - 1].ends() > notes[first].at) {
+			first--;
+			back++;
+		}
+
 		final last = seek(notes, until);
 
 		return switch (policy) {

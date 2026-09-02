@@ -281,7 +281,10 @@ final class Stream {
 			return;
 		}
 
-		if (part.sampled()) sampling(tick, false);
+		if (!part.sampled()) return;
+
+		byte(tick, 0x80);
+		sampling(tick, false);
 	}
 
 	public function sampling(tick:Int, on:Bool):Void {
