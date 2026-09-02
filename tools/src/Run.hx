@@ -5,6 +5,10 @@ class Run {
 	static inline final SDL_VERSION = "3.4.14";
 	static inline final MINIAUDIO_COMMIT = "9634bedb5b5a2ca38c1ee7108a9358a4e233f14d";
 
+	static inline final OGG_VERSION = "1.3.5";
+	static inline final VORBIS_VERSION = "1.3.7";
+	static inline final OPUS_VERSION = "1.5.2";
+
 	static final FACES:Array<String> = ["Go-Regular", "Go-Medium", "Go-Mono", "Go-Mono-Bold"];
 
 	static final PAIRINGS:Array<Array<String>> = [
@@ -126,6 +130,9 @@ class Run {
 				case "stb": stb(vendor);
 				case "fonts": fonts(vendor);
 				case "Nuked-OPN2": nuked(vendor);
+				case "libogg": xiph(vendor, "ogg", OGG_VERSION, "libogg");
+				case "libvorbis": xiph(vendor, "vorbis", VORBIS_VERSION, "libvorbis");
+				case "libopus": xiph(vendor, "opus", OPUS_VERSION, "libopus");
 				case _: false;
 			}
 
@@ -295,6 +302,24 @@ class Run {
 		return true;
 	}
 
+	static function grown(root:String, grove:Grove):Array<String> {
+		final where = root + "/" + grove.path;
+		final found:Array<String> = [];
+
+		if (!FileSystem.isDirectory(where)) return found;
+
+		final names = FileSystem.readDirectory(where);
+		names.sort(byName);
+
+		for (name in names) {
+			if (!grove.wanted(name)) continue;
+
+			found.push(native(where) + "/" + name);
+		}
+
+		return found;
+	}
+
 	static function nativeXml(root:String, project:Project):String {
 		final into = root + "/" + project.output + "/build";
 		tree(into);
@@ -314,9 +339,19 @@ class Run {
 			out.add(flags.toString());
 
 			if (id == "mdd_native") {
+				for (flag in project.nativeFlags) {
+					out.add("\t\t<compilerflag value=\"" + flag + "\" />\n");
+				}
+
 				for (file in project.nativeFiles) {
 					out.add("\t\t<file name=\"" + native(root + "/" + project.nativePath) + "/"
 						+ file + "\" />\n");
+				}
+
+				for (grove in project.nativeTrees) {
+					for (name in grown(root, grove)) {
+						out.add("\t\t<file name=\"" + name + "\" />\n");
+					}
 				}
 
 				if (script != "") out.add("\t\t<file name=\"" + script + "\" />\n");
@@ -1100,6 +1135,68 @@ class Run {
 		FileSystem.deleteFile(archive);
 		remove(staging);
 		return true;
+	}
+
+	static function xiph(vendor:String, name:String, version:String, into:String):Bool {
+		final archive = vendor + "/." + name + ".tar.gz";
+		final staging = vendor + "/." + name;
+
+		final url = "https://github.com/xiph/" + name + "/archive/refs/tags/v" + version
+			+ ".tar.gz";
+
+		if (!download(url, archive)) return false;
+
+		if (FileSystem.exists(staging)) remove(staging);
+		FileSystem.createDirectory(staging);
+		unpack(archive, staging);
+
+		final unpacked = staging + "/" + name + "-" + version;
+
+		if (!FileSystem.exists(unpacked)) {
+			remove(staging);
+			return false;
+		}
+
+		final where = vendor + "/" + into;
+		if (FileSystem.exists(where)) remove(where);
+
+		copyTree(unpacked, where);
+
+		FileSystem.deleteFile(archive);
+		remove(staging);
+
+		if (name == "ogg") typed(where);
+		return true;
+	}
+
+	static function typed(where:String):Void {
+		final out = new StringBuf();
+
+		out.add("#ifndef __CONFIG_TYPES_H__
+");
+		out.add("#define __CONFIG_TYPES_H__
+
+");
+		out.add("#include <stdint.h>
+
+");
+		out.add("typedef int16_t ogg_int16_t;
+");
+		out.add("typedef uint16_t ogg_uint16_t;
+");
+		out.add("typedef int32_t ogg_int32_t;
+");
+		out.add("typedef uint32_t ogg_uint32_t;
+");
+		out.add("typedef int64_t ogg_int64_t;
+");
+		out.add("typedef uint64_t ogg_uint64_t;
+
+");
+		out.add("#endif
+");
+
+		File.saveContent(where + "/include/ogg/config_types.h", out.toString());
 	}
 
 	static function nuked(vendor:String):Bool {

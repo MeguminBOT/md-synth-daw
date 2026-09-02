@@ -51,6 +51,8 @@ class Project {
 
 	public var nativePath(default, null):String = "native";
 	public var nativeFiles(default, null):Array<String> = [];
+	public var nativeTrees(default, null):Array<Grove> = [];
+	public var nativeFlags(default, null):Array<String> = [];
 
 	final os:String;
 	final debug:Bool;
@@ -145,8 +147,21 @@ class Project {
 
 			case "native":
 				nativePath = has(node, "path") ? node.get("path") : nativePath;
+
 				for (file in node.elements()) {
-					if (file.nodeName == "file" && allowed(file)) nativeFiles.push(file.get("name"));
+					if (!allowed(file)) continue;
+
+					switch (file.nodeName) {
+						case "file": nativeFiles.push(file.get("name"));
+
+						case "tree":
+							nativeTrees.push(new Grove(fill(file.get("path")),
+								has(file, "suffix") ? file.get("suffix") : ".c",
+								has(file, "skip") ? file.get("skip") : ""));
+
+						case "flag": nativeFlags.push(file.get("value"));
+						case _:
+					}
 				}
 
 			case _:

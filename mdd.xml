@@ -67,6 +67,13 @@
 		about="the glyph rasteriser the font atlas is baked with" />
 	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="2 MB"
 		about="Go and Go Mono, the faces the atlas is baked from" />
+	<vendor name="libogg" present="libogg/src/framing.c" size="1 MB"
+		about="the ogg container, the pages an ogg vorbis or opus file is made of" />
+	<vendor name="libvorbis" present="libvorbis/lib/vorbisenc.c" size="5 MB"
+		about="the ogg vorbis encoder" />
+	<vendor name="libopus" present="libopus/src/opus_encoder.c" size="30 MB"
+		about="the opus encoder" />
+
 	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB"
 		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
 
@@ -76,6 +83,9 @@
 	<path name="FONTPATH" value="vendor/fonts" />
 	<path name="NATIVEPATH" value="native" />
 	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
+	<path name="OGGPATH" value="vendor/libogg" />
+	<path name="VORBISPATH" value="vendor/libvorbis" />
+	<path name="OPUSPATH" value="vendor/libopus" />
 
 	<native path="native">
 		<file name="window.cpp" />
@@ -86,12 +96,36 @@
 		<file name="dialog.cpp" />
 		<file name="instance.cpp" />
 		<file name="crash.cpp" />
+		<file name="encode.cpp" />
+
+		<!-- The encoders are fetched into vendor/ and compiled from their own trees.
+		     A tree takes every file with the suffix, less the ones skip names. -->
+
+		<flag value="-DOPUS_BUILD" />
+		<flag value="-DUSE_ALLOCA" />
+		<flag value="-DOPUS_HAVE_RTCD=0" />
+		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
+
+		<tree path="vendor/libogg/src" suffix=".c" />
+		<tree path="vendor/libvorbis/lib" suffix=".c"
+			skip="barkmel,misc,psytune,tone,vorbisfile" />
+		<tree path="vendor/libopus/celt" suffix=".c" skip="opus_custom_demo" />
+		<tree path="vendor/libopus/silk" suffix=".c" />
+		<tree path="vendor/libopus/silk/float" suffix=".c" />
+		<tree path="vendor/libopus/src" suffix=".c"
+			skip="opus_compare,opus_demo,repacketizer_demo" />
 	</native>
 
 	<include value="${SDL3PATH}/include" />
 	<include value="${MINIAUDIOPATH}" />
 	<include value="${STBPATH}" />
 	<include value="${NATIVEPATH}" />
+	<include value="${OGGPATH}/include" />
+	<include value="${VORBISPATH}/include" />
+	<include value="${OPUSPATH}/include" />
+	<include value="${OPUSPATH}/celt" />
+	<include value="${OPUSPATH}/silk" />
+	<include value="${OPUSPATH}/silk/float" />
 
 	<!-- What each platform has to be told to link against. -->
 
