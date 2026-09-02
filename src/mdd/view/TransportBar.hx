@@ -361,11 +361,21 @@ final class TransportBar extends Widget {
 		final run = wide * held.length + metrics.unit * (held.length - 1);
 
 		final after = clockRight() + metrics.inset * 2;
-		final right = x + width - metrics.inset - run;
+		final room = x + width - metrics.inset - after;
 
-		var pen = after > right ? after : right;
+		var many = held.length;
 
-		for (field in held) {
+		while (many > 0 && wide * many + metrics.unit * (many - 1) > room) many--;
+
+		final shown = wide * many + metrics.unit * (many < 1 ? 0 : many - 1);
+		var pen = x + width - metrics.inset - shown;
+
+		for (index in 0...held.length) {
+			final field = held[index];
+
+			field.visible = index < many;
+			if (!field.visible) continue;
+
 			field.arrange(pen, top, wide, button);
 			pen += wide + metrics.unit;
 		}
@@ -438,7 +448,7 @@ final class TransportBar extends Widget {
 		paint.text(clock(transport.seconds()), clockAt, line, theme.ink);
 		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
 
-		for (field in held) field.paint(paint);
+		for (field in held) if (field.visible) field.paint(paint);
 	}
 
 	function mode(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {

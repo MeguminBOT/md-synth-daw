@@ -74,6 +74,8 @@ final class Centre extends Widget {
 	override function layout():Void {
 		final tall = head();
 
+		tools.room = width * 0.45;
+
 		final room = tools.wide();
 
 		tabs.arrange(x, y, width - room, tall);

@@ -19,6 +19,8 @@ final class ChannelRack extends Widget {
 
 	public final levels:Vector<Float> = new Vector<Float>(Part.COUNT);
 
+	public var offsetY:Float = 0;
+
 	var hoverAt:Int = -1;
 	var menu:Null<Menu> = null;
 	var menuFor:Int = -1;
@@ -35,12 +37,37 @@ final class ChannelRack extends Widget {
 
 	public function rowHeight():Float {
 		final root = root();
-		return root == null ? 30 : root.metrics.row;
+		if (root == null) return 34;
+
+		final metrics = root.metrics;
+		final room = (height - header()) / Part.COUNT;
+		final floor = metrics.whole(22);
+
+		if (room >= metrics.row) return metrics.row;
+
+		return room < floor ? floor : Math.ffloor(room);
 	}
 
 	public function rowAt(py:Float):Int {
-		final at = Std.int((py - y - header()) / rowHeight());
+		if (py < y + header()) return -1;
+
+		final at = Std.int((py - y - header() + offsetY) / rowHeight());
 		return at < 0 || at >= Part.COUNT ? -1 : at;
+	}
+
+	public inline function atRow(index:Int):Float {
+		return y + header() + index * rowHeight() - offsetY;
+	}
+
+	public function contentTall():Float {
+		return Part.COUNT * rowHeight();
+	}
+
+	public function scrollTo(py:Float):Void {
+		final most = contentTall() - (height - header());
+
+		offsetY = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+		invalidate();
 	}
 
 	function header():Float {
@@ -53,6 +80,10 @@ final class ChannelRack extends Widget {
 		if (root == null) return false;
 
 		switch (event.kind) {
+			case Kind.Wheel:
+				scrollTo(offsetY - event.dy * rowHeight());
+				return true;
+
 			case Kind.PointerDown:
 				final at = rowAt(event.y);
 				if (at < 0) return false;
@@ -254,9 +285,11 @@ final class ChannelRack extends Widget {
 
 		final swatch = metrics.whole(10);
 
+		paint.pushClip(x, y + top, width, height - top);
+
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			final row = y + top + index * tall;
+			final row = atRow(index);
 
 			if (session.part.index() == index) {
 				paint.roundedRect(x + metrics.unit, row + 1, width - metrics.unit * 2, tall - 2,
@@ -283,7 +316,7 @@ final class ChannelRack extends Widget {
 		paint.reface(small);
 
 		for (index in 0...Part.COUNT) {
-			final row = y + top + index * tall;
+			final row = atRow(index);
 			final line = row + (tall - small.height) * 0.5 + small.ascent;
 			final size = metrics.whole(18);
 
@@ -310,13 +343,15 @@ final class ChannelRack extends Widget {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			final row = y + top + index * tall;
+			final row = atRow(index);
 			final quiet = !session.song.audible(part);
 
 			paint.text(part.name(), x + metrics.inset + swatch + metrics.gap,
 				row + (tall - font.height) * 0.5 + font.ascent,
 				quiet ? theme.dim : theme.ink, quiet ? 0.5 : 1);
 		}
+
+		paint.popClip();
 	}
 
 	function widest(font:mdd.ui.Font):Float {

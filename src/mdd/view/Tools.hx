@@ -42,11 +42,29 @@ final class Tools extends Widget {
 		return y + root.metrics.whole(3) + root.metrics.unit;
 	}
 
+	public var room:Float = 0;
+
+	public function shown():Int {
+		final root = root();
+		if (root == null) return CELLS;
+
+		final gap = root.metrics.unit;
+		final step = cell() + gap;
+
+		if (room <= 0) return CELLS;
+
+		var many = CELLS;
+		while (many > 1 && step * many - gap > room) many--;
+
+		return many;
+	}
+
 	public function wide():Float {
 		final root = root();
 		final gap = root == null ? 4.0 : root.metrics.unit;
+		final many = shown();
 
-		return cell() * CELLS + gap * (CELLS - 1) + (root == null ? 8.0 : root.metrics.inset);
+		return cell() * many + gap * (many - 1) + (root == null ? 8.0 : root.metrics.inset);
 	}
 
 	public function cellAt(px:Float, py:Float):Int {
@@ -60,7 +78,7 @@ final class Tools extends Widget {
 
 		var pen = x;
 
-		for (index in 0...CELLS) {
+		for (index in 0...shown()) {
 			if (px >= pen && px < pen + size) return index;
 			pen += size + root.metrics.unit;
 		}
@@ -133,7 +151,7 @@ final class Tools extends Widget {
 
 		var pen = x;
 
-		for (index in 0...CELLS) {
+		for (index in 0...shown()) {
 			final on = lit(index);
 
 			paint.roundedRect(pen, top, size, size, metrics.radiusRow,
