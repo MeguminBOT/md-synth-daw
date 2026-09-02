@@ -2,6 +2,19 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "mdd display",
+			"detail": "write the completion files the language server reads",
+			"type": "shell",
+			"command": "./mdd display",
+			"problemMatcher": [],
+			"runOptions": { "runOn": "folderOpen" },
+			"presentation": {
+				"reveal": "silent",
+				"panel": "dedicated",
+				"close": true
+			}
+		},
+		{
 			"label": "mdd build -debug",
 			"type": "shell",
 			"command": "./mdd build -debug",

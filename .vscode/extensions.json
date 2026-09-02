@@ -1,0 +1,15 @@
+{
+	"recommendations": [
+		"nadako.vshaxe",
+		"vshaxe.hxcpp-debugger"
+	],
+
+	// Lime claims any workspace whose root holds project.xml, Project.xml, project.hxp or
+	// project.lime, and then answers the Haxe language server with arguments from a lime
+	// command this repository does not have. The build file is called mdd.xml so that it
+	// never does, and nothing here is built by lime.
+
+	"unwantedRecommendations": [
+		"openfl.lime-vscode-extension"
+	]
+}

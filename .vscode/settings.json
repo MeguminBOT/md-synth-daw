@@ -1,0 +1,75 @@
+{
+	// The Haxe language server reads the completion files mdd writes from mdd.xml. Run
+	// "mdd display" after changing a source path, a define or a target, or let the task
+	// that runs when this folder opens do it.
+	//
+	// A configuration is chosen by the file being edited: src is the application, test is
+	// the gate, tools is the build command itself.
+
+	"haxe.configurations": [
+		{
+			"label": "mdd",
+			"args": ["completion.hxml"],
+			"files": ["src/**/*.hx"]
+		},
+		{
+			"label": "gate",
+			"args": ["completion-gate.hxml"],
+			"files": ["test/**/*.hx"]
+		},
+		{
+			"label": "tools",
+			"args": ["completion-tools.hxml"],
+			"files": ["tools/**/*.hx"]
+		}
+	],
+
+	"haxe.enableCompilationServer": true,
+	"haxe.enableDiagnostics": true,
+	"haxe.diagnosticsForAllOpenFiles": true,
+	"haxe.exclude": [],
+
+	// This repository writes its own style down and no formatter is configured for it.
+	// Checkstyle lints "src" with its own defaults unless it is given no folder to look in.
+
+	"haxecheckstyle.sourceFolders": [],
+
+	"[haxe]": {
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+		"editor.rulers": [120],
+		"editor.formatOnSave": false,
+		"editor.formatOnPaste": false,
+		"editor.formatOnType": false
+	},
+
+	"[hxml]": {
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4
+	},
+
+	"[cpp]": {
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+		"editor.rulers": [120]
+	},
+
+	"[xml]": {
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4
+	},
+
+	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true,
+
+	"search.exclude": {
+		"export": true,
+		"vendor": true,
+		".haxelib": true
+	},
+
+	"files.watcherExclude": {
+		"**/export/**": true,
+		"**/vendor/**": true
+	}
+}

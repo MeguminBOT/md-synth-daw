@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- Everything the build reads. There is no .hxml: ./mdd builds from this file.
-	     Conditions are if="..." and unless="...", and take windows, linux, mac, debug or release. -->
+	<!-- Everything the build reads. There is no .hxml written by hand: ./mdd builds from this file
+	     and generates completion.hxml from it for the editor's language server.
+	     Conditions are if="..." and unless="...", and take windows, linux, mac, debug or release.
+
+	     The name matters. A file called project.xml, Project.xml, project.hxp or project.lime in
+	     the repository root makes the Lime editor extension claim the workspace and hand the Haxe
+	     language server arguments from a lime command that is not installed here, which leaves the
+	     editor with no completion at all. Nothing else about this file depends on what it is
+	     called, and the four names above are the whole list to stay away from. -->
 
 	<meta title="MD Synth DAW" short="mdd" version="0.1.0"
 		company="md-synth-daw"

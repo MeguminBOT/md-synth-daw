@@ -60,7 +60,7 @@ class Project {
 		this.debug = debug;
 
 		final root = Xml.parse(File.getContent(path)).firstElement();
-		if (root == null) throw "project.xml has no root element";
+		if (root == null) throw "mdd.xml has no root element";
 
 		for (node in root.elements()) read(node);
 

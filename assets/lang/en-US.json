@@ -17,7 +17,7 @@
   "edit.stop": "Stop",
   "edit.undo": "Undo",
   "file.midi": "Export a MIDI file",
-  "file.noUpdate": "no repository is configured in project.xml",
+  "file.noUpdate": "no repository is configured in mdd.xml",
   "file.open": "Open",
   "file.preferences": "Preferences",
   "file.quit": "Quit",

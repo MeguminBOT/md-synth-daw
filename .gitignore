@@ -3,6 +3,9 @@ export/
 .haxelib/
 dump/
 
+completion.hxml
+completion-*.hxml
+
 *.exe
 *.dll
 *.lib

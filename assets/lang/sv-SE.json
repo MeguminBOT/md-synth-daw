@@ -17,7 +17,7 @@
   "edit.stop": "Stoppa",
   "edit.undo": "Ångra",
   "file.midi": "Exportera en midifil",
-  "file.noUpdate": "inget arkiv är angivet i project.xml",
+  "file.noUpdate": "inget arkiv är angivet i mdd.xml",
   "file.open": "Öppna",
   "file.preferences": "Inställningar",
   "file.quit": "Avsluta",
