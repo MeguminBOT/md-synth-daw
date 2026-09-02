@@ -41,6 +41,7 @@ class StreamCheck {
 		chunks();
 		sounded();
 		raced();
+		sought(args);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -51,6 +52,89 @@ class StreamCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	static function held(stream:Stream, until:Int):haxe.ds.Vector<Int> {
+		final shadow = new haxe.ds.Vector<Int>(512 + 8);
+		for (index in 0...shadow.length) shadow[index] = -1;
+
+		var half = 0;
+		var address = -1;
+		var latched = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.tickAt(index) > until) break;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) != Stream.YM) {
+				if ((value & 0x80) != 0) {
+					latched = (value >> 4) & 7;
+					shadow[512 + latched] = (shadow[512 + latched] & 0x3F0) | (value & 0x0F);
+				} else shadow[512 + latched] = (value & 0x3F) << 4
+					| (shadow[512 + latched] & 0x0F);
+
+				continue;
+			}
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (address < 0 || address == 0x28 || address == 0x2A) continue;
+
+			shadow[(half << 8) | address] = value & 0xFF;
+		}
+
+		return shadow;
+	}
+
+	static function sought(args:Array<String>):Void {
+		final where = Gate.root + "/vendor/vgm";
+		if (!sys.FileSystem.isDirectory(where)) return;
+
+		var name = "";
+		for (found in sys.FileSystem.readDirectory(where)) {
+			if (found.indexOf("Green Hill") >= 0) name = found;
+		}
+
+		if (name == "") return;
+
+		final source = new Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+
+		final into = Tempo.TICKS * 8;
+
+		final whole = new Stream(1 << 21);
+		new Sequencer(song).spanned(whole, 0, into);
+
+		final after = new Stream(1 << 20);
+
+		after.reset(into);
+		if (args.indexOf("--raw") < 0) new Sequencer(song).prime(after, into);
+
+		final one = held(whole, into);
+		final two = held(after, into);
+
+		var apart = 0;
+		var first = -1;
+
+		for (index in 0...one.length) {
+			if (one[index] == two[index]) continue;
+			if (one[index] < 0 || two[index] < 0) continue;
+
+			apart++;
+			if (first < 0) first = index;
+		}
+
+		says("a seek leaves the chip where playing there would", apart == 0,
+			apart + " of the registers the song sets differ from what playing to eight"
+			+ " seconds would have left" + (first < 0 ? "" : ", the first being "
+			+ StringTools.hex(first, 3)));
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
