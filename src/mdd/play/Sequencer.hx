@@ -208,7 +208,9 @@ final class Sequencer {
 				if (bent == null) push(onSample, part, TUNE, pitch, 0);
 				else push(onSample, part, TUNE, bent.heldAt(start - from) & 0x3FF, 2);
 
-				if (!tied) push(onSample, part, ON, velocity, named);
+				if (!tied && !(part.sampled() && bent != null)) {
+					push(onSample, part, ON, velocity, named);
+				}
 
 				if (lines[0] != null && !part.fm()) {
 					push(onSample, part, DATA, lines[0].heldAt(start - from) & 0x0F,
@@ -216,7 +218,8 @@ final class Sequencer {
 				}
 			}
 
-			if (!held && offSample >= fromSample && offSample < toSample) {
+			if (!held && offSample >= fromSample && offSample < toSample
+					&& !(part.sampled() && bent != null)) {
 				push(offSample, part, OFF, 0, 0);
 			}
 
@@ -230,7 +233,7 @@ final class Sequencer {
 	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
 			transpose:Int, fromSample:Int, toSample:Int):Void {
 		if (lane.automation.length == 0) return;
-		if (!part.fm() && !part.square() && !part.noise()) return;
+		if (!part.fm() && !part.square() && !part.noise() && !part.sampled()) return;
 
 		final tempo = song.tempo;
 
@@ -265,6 +268,7 @@ final class Sequencer {
 					push(at, part, DATA, point.value & 0x0F, PSG_STEP);
 				}
 				else if (level) push(at, part, TWEAK, (line.slot << 8) | (point.value & 0x7F), 0);
+				else if (tune && part.sampled()) push(at, part, TUNE, point.value, 5);
 				else if (tune && part.noise()) push(at, part, TUNE, point.value & 0x0F, 4);
 				else if (tune && !part.fm()) push(at, part, TUNE, point.value & 0x3FF, 2);
 				else if (tune && line.slot > 0) {
@@ -479,7 +483,8 @@ final class Sequencer {
 					}
 
 				case TUNE:
-					if (second == 4) stream.noise(tick, first & 0x0F);
+					if (second == 5) stream.sampling(tick, first != 0);
+					else if (second == 4) stream.noise(tick, first & 0x0F);
 					else if (second == 3) {
 						stream.operatorFrequency(tick, (first >> 14) & 3, first & 0x3FFF);
 					} else if (second == 2) stream.period(tick, part, first);

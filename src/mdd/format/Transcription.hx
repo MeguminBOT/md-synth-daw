@@ -214,6 +214,7 @@ final class Transcription {
 			if (!on && dacOn) sampled(at);
 
 			dacOn = on;
+			switched(at, on);
 			return;
 		}
 
@@ -598,9 +599,14 @@ final class Transcription {
 		slid(at, channel);
 	}
 
-	function hissed(at:Int, value:Int):Void {
-		if (noiseMode == value) return;
+	function switched(at:Int, on:Bool):Void {
+		final line = lined(10, mdd.song.Automation.TUNE, 0, -1);
+		if (line == null) return;
 
+		line.add(new mdd.song.Point(ticked(at), on ? 1 : 0));
+	}
+
+	function hissed(at:Int, value:Int):Void {
 		final was = noiseMode;
 		noiseMode = value;
 
@@ -611,8 +617,6 @@ final class Transcription {
 	}
 
 	function slid(at:Int, channel:Int):Void {
-		if (psgFrom[channel] < 0 && channel != 2) return;
-
 		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, -1);
 		if (line == null) return;
 
