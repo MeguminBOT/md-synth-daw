@@ -66,6 +66,8 @@ final class Render {
 	public var blocks(default, null):Int = 0;
 	public var worstHeld(default, null):Int = 0;
 
+	public static inline final BAND = 19845.0;
+
 	public static inline final WEIGHTS = 31;
 
 	public static inline final SQUARES = 96;
@@ -97,7 +99,9 @@ final class Render {
 	function shaped():Void {
 		final chip = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
 
-		var cut = 0.45 * rate / chip;
+		final kept = 0.45 * rate < BAND ? 0.45 * rate : BAND;
+
+		var cut = kept / chip;
 		if (cut > 0.5) cut = 0.5;
 
 		final middle = (WEIGHTS - 1) * 0.5;
@@ -123,7 +127,7 @@ final class Render {
 
 		final square = Sn76489.CLOCK / Sn76489.DIVIDER;
 
-		var edge = 0.45 * rate / square;
+		var edge = kept / square;
 		if (edge > 0.5) edge = 0.5;
 
 		final centre = (SQUARES - 1) * 0.5;
