@@ -34,6 +34,7 @@ class ShotCheck {
 		var vgm = "";
 		var sheet = "";
 		var lane = 0;
+		var menu = -1;
 
 		var at = 0;
 
@@ -53,6 +54,7 @@ class ShotCheck {
 				case "--vgm": vgm = held; at++;
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
+				case "--menu": menu = whole(held, menu); at++;
 				case _:
 			}
 
@@ -120,9 +122,42 @@ class ShotCheck {
 
 		final menus = new mdd.ui.control.MenuBar();
 
-		for (title in ["File", "Edit", "Pattern", "Channels", "Instrument", "Import", "Export",
-				"View", "Help"]) {
-			menus.offer(title, new mdd.ui.control.Menu());
+		final entries:Array<Array<String>> = [
+			["Open a song|Ctrl+O", "Save|Ctrl+S", "Save as", "-", "Look for an update",
+				"-", "Preferences|Ctrl+,", "-", "Quit|Alt+F4"],
+			["Undo|Ctrl+Z", "Redo|Ctrl+Y", "-", "Play|Space", "Stop|Ctrl+Space"],
+			["Add a pattern", "Duplicate this pattern", "Rename this pattern",
+				"Put it on the playlist", "Delete this pattern", "-", "Empty this pattern",
+				"-", "Patterns"],
+			["Unmute every channel", "Unsolo every channel", "-", "Mute the rest",
+				"-", "Clear this channel"],
+			["Copy this patch", "Paste a patch", "Reset this patch", "-",
+				"Save this channel as a preset", "Bank"],
+			["Read a vgm", "Read a midi file", "Read a wav"],
+			["Write a vgm|Ctrl+E", "Render a wav", "Write a midi file"],
+			["Piano roll", "Scope", "Tracker", "Playlist", "Registers", "-", "Patterns",
+				"Mixer", "Warnings", "-", "Snap to the grid", "Show other channels"],
+			["About", "Source"]
+		];
+
+		final titles = ["File", "Edit", "Pattern", "Channels", "Instrument", "Import",
+			"Export", "View", "Help"];
+
+		for (index in 0...titles.length) {
+			final held = new mdd.ui.control.Menu();
+
+			for (line in entries[index]) {
+				if (line == "-") {
+					held.divide();
+					continue;
+				}
+
+				final split = line.split("|");
+				held.offer(new mdd.ui.control.Choice(split[0],
+					split.length > 1 ? split[1] : ""));
+			}
+
+			menus.offer(titles[index], held);
 		}
 
 		menus.trailing.push("Open");
@@ -166,11 +201,22 @@ class ShotCheck {
 		final texture = Draw.createTarget(renderer, wide, tall);
 		final paint = Paint.on(renderer, body);
 
+		if (menu >= 0) {
+			tree.frame(paint);
+			menus.open(menu);
+
+			for (step in 0...12) {
+				tree.advance(0.05);
+				tree.frame(paint);
+			}
+		}
+
 		Draw.setTarget(renderer, texture);
 
 		final ground = tree.theme.ground;
 		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
 
+		tree.reshape();
 		tree.frame(paint);
 		paint.flush();
 
