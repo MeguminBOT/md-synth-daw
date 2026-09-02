@@ -481,6 +481,8 @@ class App {
 
 		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_VGM))), function():Void
 			files.ask(window, Files.READ_VGM));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_XGM))), function():Void
+			files.ask(window, Files.READ_XGM));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_MIDI))), function():Void
 			files.ask(window, Files.READ_MIDI));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_READ_WAV))), function():Void
@@ -494,6 +496,8 @@ class App {
 
 		fired(held.offer(new Choice(root.translate(Locale.FILE_VGM), "Ctrl+E")), function():Void
 			files.ask(window, Files.VGM));
+		fired(held.offer(new Choice(root.translate(Locale.FILE_XGM))), function():Void
+			files.ask(window, Files.XGM));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_WAV))), function():Void
 			files.ask(window, Files.WAV));
 		fired(held.offer(new Choice(root.translate(Locale.FILE_MIDI))), function():Void

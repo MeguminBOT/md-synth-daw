@@ -87,7 +87,9 @@ class Locale {
 	public static inline final FILE_VGM = "file.vgm";
 	public static inline final FILE_WAV = "file.wav";
 	public static inline final FILE_MIDI = "file.midi";
+	public static inline final FILE_XGM = "file.xgm";
 	public static inline final FILE_READ_VGM = "file.readVgm";
+	public static inline final FILE_READ_XGM = "file.readXgm";
 	public static inline final FILE_READ_MIDI = "file.readMidi";
 	public static inline final FILE_READ_WAV = "file.readWav";
 	public static inline final FILE_UPDATE = "file.update";
@@ -291,8 +293,8 @@ class Locale {
 		REGISTERS_COPY, REGISTERS_AS_VGM, REGISTERS_NO_ROW, REGISTERS_HOLD,
 		REGISTERS_FOLLOW, REGISTERS_FORGET,
 		REGISTERS_LEVEL, REGISTERS_TONE,
-		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_MIDI, FILE_READ_WAV,
-		FILE_VGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
+		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_XGM, FILE_READ_MIDI,
+		FILE_READ_WAV, FILE_VGM, FILE_XGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,
 		PATTERN, PATTERN_BAR, PATTERN_BARS,

@@ -6,6 +6,7 @@ import mdd.format.Project;
 import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.format.Wav;
+import mdd.format.Xgm;
 import mdd.host.Chooser;
 import mdd.host.Dialog;
 import mdd.host.Paths;
@@ -27,6 +28,8 @@ final class Files {
 	public static inline final READ_VGM = 6;
 	public static inline final READ_MIDI = 7;
 	public static inline final READ_WAV = 8;
+	public static inline final XGM = 9;
+	public static inline final READ_XGM = 10;
 
 	public static inline final RATE = 44100;
 	public static inline final DAC_RATE = 8000;
@@ -103,9 +106,11 @@ final class Files {
 			case VGM: Dialog.save(window, "vgm", "vgm", where);
 			case WAV: Dialog.save(window, "wav", "wav", where);
 			case MIDI: Dialog.save(window, "midi", "mid", where);
+			case XGM: Dialog.save(window, "xgm", "xgm", where);
 			case READ_VGM: Dialog.open(window, "vgm", "vgm", where);
 			case READ_MIDI: Dialog.open(window, "midi", "mid", where);
 			case READ_WAV: Dialog.open(window, "wav", "wav", where);
+			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
 			case _: null;
 		}
 
@@ -142,9 +147,11 @@ final class Files {
 				case OPEN: load(where);
 				case SAVE: save(where);
 				case VGM: exportVgm(where);
+				case XGM: exportXgm(where);
 				case WAV: exportWav(where);
 				case MIDI: exportMidi(where);
 				case READ_VGM: readVgm(where);
+				case READ_XGM: readXgm(where);
 				case READ_MIDI: readMidi(where);
 				case READ_WAV: readWav(where);
 				case _:
@@ -179,6 +186,20 @@ final class Files {
 
 		session.say("read " + name(where) + ", " + made.notes + " notes on "
 			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
+	}
+
+	public function readXgm(where:String):Void {
+		final into = new Stream(1 << 22);
+		final xgm = Xgm.read(sys.io.File.getBytes(where), into);
+		final made = Transcription.of(into, xgm.rate, name(where));
+
+		path = "";
+		if (onLoad != null) onLoad(made.song);
+		forget();
+
+		session.say("read " + name(where) + ", " + made.notes + " notes on "
+			+ made.song.patterns.length + " patterns at " + Math.round(made.beats)
+			+ " bpm, " + xgm.samples + " samples and " + xgm.struck + " converter hits");
 	}
 
 	public function readWav(where:String):mdd.song.Sample {
@@ -242,6 +263,24 @@ final class Files {
 		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate));
 
 		session.say("exported " + stream.count + " register writes to " + name(named)
+			+ (sequencer.lost + stream.dropped == 0 ? ""
+			: ", " + (sequencer.lost + stream.dropped) + " dropped"));
+		return named;
+	}
+
+	public function exportXgm(where:String):String {
+		final named = suffixed(where, "xgm");
+		final span = session.song.tempo.samplesAt(session.song.ends());
+
+		final stream = new Stream(roomFor(span));
+		final sequencer = new Sequencer(session.song);
+
+		sequencer.spanned(stream, 0, span);
+
+		final made = Xgm.write(session.song, stream, 0, span, session.song.tempo.rate);
+		sys.io.File.saveBytes(named, made);
+
+		session.say("exported " + made.length + " bytes to " + name(named)
 			+ (sequencer.lost + stream.dropped == 0 ? ""
 			: ", " + (sequencer.lost + stream.dropped) + " dropped"));
 		return named;
