@@ -699,7 +699,7 @@ class SpineCheck {
 
 		while (done < want) {
 			final from = transport.advance(frames, RATE);
-			final many = render.serve(transport.stream, from, frames, transport.entering);
+			final many = render.serve(transport.stream, from, frames, transport.entering, true);
 
 			if (into != null) {
 				for (i in 0...many) {
@@ -814,7 +814,7 @@ class SpineCheck {
 
 		while (frames < limit) {
 			final at = transport.advance(Render.BLOCK, RATE);
-			render.serve(transport.stream, at, Render.BLOCK, transport.entering);
+			render.serve(transport.stream, at, Render.BLOCK, transport.entering, true);
 
 			frames += Render.BLOCK;
 			if (stopped < 0 && !transport.playing) stopped = frames;
@@ -829,7 +829,7 @@ class SpineCheck {
 
 		for (block in 0...200) {
 			final at = transport.advance(Render.BLOCK, RATE);
-			final many = render.serve(transport.stream, at, Render.BLOCK, transport.entering);
+			final many = render.serve(transport.stream, at, Render.BLOCK, transport.entering, true);
 
 			if (block < 40) continue;
 

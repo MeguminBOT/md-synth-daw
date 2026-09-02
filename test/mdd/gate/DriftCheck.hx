@@ -63,14 +63,28 @@ class DriftCheck {
 		keyed(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 60));
 		moved(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 60), 0);
 		moved(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 60), 1);
+		moved(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 60), 2);
+		moved(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 60), 3);
 
 		if (args.indexOf("--lanes") >= 0) {
 			laned(song, seconds(args, "--from", 0), seconds(args, "--to", 60),
 				seconds(args, "--channel", 3));
 		}
 
-		alike(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 30),
-			args.indexOf("--wav") >= 0 ? args[args.indexOf("--wav") + 1] : "", name);
+		final into = args.indexOf("--wav") >= 0 ? args[args.indexOf("--wav") + 1] : "";
+		final from = seconds(args, "--from", 0);
+		final to = seconds(args, "--to", 30);
+
+		alike(source, whole, from, to, into, name);
+
+		if (args.indexOf("--parts") >= 0) parted(source, whole, from, to);
+
+		if (args.indexOf("--dump") >= 0) {
+			final want = seconds(args, "--dump", 0);
+
+			shown(source, from, to, want, "file");
+			shown(whole, from, to, want, "song");
+		}
 
 		if (args.indexOf("--mix") >= 0) {
 			hissed(source, whole, seconds(args, "--from", 0), seconds(args, "--to", 45));
@@ -239,6 +253,24 @@ class DriftCheck {
 		return found;
 	}
 
+	static function sounding(held:Array<Int>, to:Int):Int {
+		var total = 0;
+		var at = 0;
+
+		while (at + 1 < held.length) {
+			if (held[at + 1] != 1) {
+				at += 2;
+				continue;
+			}
+
+			final ends = at + 2 < held.length ? held[at + 2] : to * Tempo.TICKS;
+			total += ends - held[at];
+			at += 2;
+		}
+
+		return total;
+	}
+
 	static function keyed(source:Stream, made:Stream, from:Int, to:Int):Void {
 		Sys.println("");
 		Sys.println("    every fm key edge, the file against the song, from " + from
@@ -284,8 +316,9 @@ class DriftCheck {
 				+ StringTools.lpad("" + (two.length >> 1), " ", 6) + " in the song, "
 				+ StringTools.lpad("" + wrong, " ", 5) + " the wrong way, worst "
 				+ StringTools.lpad("" + Math.round(worst * 1000.0 / Tempo.TICKS), " ", 5)
-				+ " ms out, mean "
-				+ round(many < 1 ? 0 : total / many * 1000.0 / Tempo.TICKS, 1) + " ms" + said);
+				+ " ms out, keyed "
+				+ Math.round(sounding(one, to) * 1000.0 / Tempo.TICKS) + " ms against "
+				+ Math.round(sounding(two, to) * 1000.0 / Tempo.TICKS) + " ms" + said);
 		}
 	}
 
@@ -319,7 +352,14 @@ class DriftCheck {
 
 			if (half != wanted) continue;
 
-			if (kind == 0) {
+			if (kind == 2 || kind == 3) {
+				final base = kind == 2 ? 0x80 : 0x90;
+
+				if (address < base || address >= base + 0x10) continue;
+				if ((address & 3) != within) continue;
+
+				shadow[(address - base) >> 2] = value & 0x7F;
+			} else if (kind == 0) {
 				if (address < 0x40 || address > 0x4F) continue;
 				if ((address & 3) != within) continue;
 
@@ -332,12 +372,12 @@ class DriftCheck {
 
 			var now = 0;
 
-			if (kind == 0) {
+			if (kind == 0 || kind == 2 || kind == 3) {
 				var ready = true;
 				for (slot in 0...4) if (shadow[slot] < 0) ready = false;
 				if (!ready) continue;
 
-				for (slot in 0...4) now = now * 128 + shadow[slot];
+				for (slot in 0...4) now = now * 128 + (shadow[slot] & 0x7F);
 			} else {
 				if (shadow[0] < 0 || shadow[1] < 0 || address != 0xA0 + within) continue;
 				now = (shadow[0] << 8) | shadow[1];
@@ -355,9 +395,11 @@ class DriftCheck {
 		return found;
 	}
 
+	static final SHAPED:Array<String> = ["level", "pitch", "sustain and release", "ssg"];
+
 	static function moved(source:Stream, made:Stream, from:Int, to:Int, kind:Int):Void {
 		Sys.println("");
-		Sys.println("    every " + (kind == 0 ? "level" : "pitch") + " change on an fm channel,"
+		Sys.println("    every " + SHAPED[kind] + " change on an fm channel,"
 			+ " the file against the song, from " + from + " s to " + to + " s");
 		Sys.println("");
 
@@ -523,8 +565,158 @@ class DriftCheck {
 		return done < 1 ? 0 : Math.sqrt(total / done);
 	}
 
+	static function shown(stream:Stream, from:Int, to:Int, part:Int, said:String):Void {
+		Sys.println("");
+		Sys.println("    the " + said + " on part " + part + " from " + from + " s to "
+			+ to + " s");
+		Sys.println("");
+
+		var half = 0;
+		var address = -1;
+		var many = 0;
+
+		for (index in 0...stream.count) {
+			final tick = stream.tickAt(index);
+			if (tick > to * Tempo.TICKS) break;
+			if (stream.kindAt(index) != Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (address < 0 || tick < from * Tempo.TICKS) continue;
+
+			final held = half == 0 && address == 0x28 ? Stream.keyPart(value)
+				: Stream.ymPart(half, address);
+
+			if (held != part) continue;
+			if (many++ > 400) continue;
+
+			Sys.println("      " + round(tick / Tempo.TICKS, 3) + " s   half " + half
+				+ "   " + StringTools.hex(address, 2) + " = "
+				+ StringTools.hex(value, 2));
+		}
+
+		Sys.println("      " + many + " writes in all");
+	}
+
+	static function merged(one:Stream, two:Stream):Stream {
+		final out = new Stream(one.capacity + two.capacity);
+
+		var a = 0;
+		var b = 0;
+
+		while (a < one.count || b < two.count) {
+			final takeOne = b >= two.count
+				|| (a < one.count && one.tickAt(a) <= two.tickAt(b));
+
+			if (takeOne) {
+				out.raw(one.tickAt(a), one.kindAt(a), one.portAt(a), one.valueAt(a));
+				a++;
+				continue;
+			}
+
+			out.raw(two.tickAt(b), two.kindAt(b), two.portAt(b), two.valueAt(b));
+			b++;
+		}
+
+		return out;
+	}
+
+	static function sifted(from:Stream, want:String):Stream {
+		final wanted = want.split(",");
+		final out = new Stream(from.capacity);
+
+		var address = -1;
+		var half = 0;
+		var latched = 0;
+
+		for (index in 0...from.count) {
+			final kind = from.kindAt(index);
+			final port = from.portAt(index);
+			final value = from.valueAt(index);
+			final tick = from.tickAt(index);
+
+			if (kind != Stream.YM) {
+				if ((value & 0x80) != 0) latched = (value >> 4) & 7;
+
+				final channel = 6 + (latched >> 1);
+				if (wanted.indexOf(Std.string(channel)) < 0) continue;
+
+				out.raw(tick, kind, port, value);
+				continue;
+			}
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (address < 0) continue;
+
+			final keys = half == 0 && address == 0x28;
+			final part = keys ? Stream.keyPart(value) : Stream.ymPart(half, address);
+
+			if (!(keys && wanted.indexOf("keys") >= 0)
+					&& part >= 0 && wanted.indexOf(Std.string(part)) < 0) continue;
+
+			out.raw(tick, kind, half * 2, address);
+			out.raw(tick, kind, half * 2 + 1, value);
+		}
+
+		return out;
+	}
+
+	static final NAMED:Array<String> = ["FM1", "FM2", "FM3", "FM4", "FM5", "FM6",
+		"PSG1", "PSG2", "PSG3", "NOISE", "DAC"];
+
+	static function parted(one:Stream, two:Stream, from:Int, to:Int):Void {
+		Sys.println("");
+		Sys.println("    each part on its own, from " + from + " s to " + to + " s");
+		Sys.println("");
+
+		for (part in 0...NAMED.length) {
+			final want = "" + part;
+			tied(sifted(one, want), sifted(two, want), from, to, NAMED[part]);
+		}
+
+		Sys.println("");
+		Sys.println("    and with one part taken from the file and the rest from the song");
+		Sys.println("");
+
+		for (part in 0...NAMED.length) {
+			final held:Array<String> = [];
+			for (other in 0...NAMED.length) if (other != part) held.push("" + other);
+
+			final swapped = merged(sifted(one, "" + part), sifted(two, held.join(",")));
+			tied(one, swapped, from, to, NAMED[part] + " from the file");
+		}
+
+		Sys.println("");
+		Sys.println("    and with each part taken out of both");
+		Sys.println("");
+
+		for (part in 0...NAMED.length) {
+			final held:Array<String> = [];
+			for (other in 0...NAMED.length) if (other != part) held.push("" + other);
+
+			final want = held.join(",");
+			tied(sifted(one, want), sifted(two, want), from, to, "no " + NAMED[part]);
+		}
+	}
+
+	static function tied(one:Stream, two:Stream, from:Int, to:Int, name:String):Void {
+		alike(one, two, from, to, "", name + ".vgm", true);
+	}
+
 	static function alike(one:Stream, two:Stream, from:Int, to:Int, into:String,
-			name:String):Void {
+			name:String, brief:Bool = false):Void {
 		final rate = 44100;
 		final frames = (to - from) * rate;
 		final step = 735;
@@ -543,6 +735,11 @@ class DriftCheck {
 		var oneHeld = 0.0;
 		var twoHeld = 0.0;
 		var counted = 0;
+
+		var widest = 0.0;
+		var widestAt = 0.0;
+		var widestOne = 0.0;
+		var widestTwo = 0.0;
 
 		final keeping = into != "";
 		final oneKept = new Vector<cpp.Float32>(keeping ? frames * 2 : 0);
@@ -584,6 +781,16 @@ class DriftCheck {
 				twoSquare += right * right;
 				counted++;
 
+				final away = left - right;
+				final much = away < 0 ? -away : away;
+
+				if (much > widest) {
+					widest = much;
+					widestAt = (done + index) / 44100.0 + from;
+					widestOne = left;
+					widestTwo = right;
+				}
+
 				oneHeld = 0;
 				twoHeld = 0;
 			}
@@ -594,12 +801,23 @@ class DriftCheck {
 		final root = Math.sqrt(oneSquare * twoSquare);
 		final tied = root <= 0 ? 0.0 : bothTotal / root;
 
+		if (brief) {
+			Sys.println("      " + StringTools.rpad(name.substr(0, name.length - 4), " ", 8)
+				+ "file " + round(Math.sqrt(oneTotal / (done < 1 ? 1 : done)), 4)
+				+ "   song " + round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
+				+ "   agree " + round(tied, 4)
+				+ "   worst at " + round(widestAt, 2) + " s, " + round(widestOne, 4)
+				+ " against " + round(widestTwo, 4));
+			return;
+		}
+
 		Sys.println("");
 		Sys.println("    " + round(done / 44100.0, 1) + " s rendered from each: the file holds "
 			+ round(Math.sqrt(oneTotal / (done < 1 ? 1 : done)), 4) + " and the song "
 			+ round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
 			+ ", and their envelopes agree " + round(tied, 4) + " over " + counted
-			+ " frames");
+			+ " frames, worst at " + round(widestAt, 2) + " s where the file is "
+			+ round(widestOne, 4) + " and the song " + round(widestTwo, 4));
 
 		if (!keeping) return;
 

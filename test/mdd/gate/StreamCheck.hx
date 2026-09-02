@@ -264,7 +264,7 @@ class StreamCheck {
 			while (alive.load() == 1) {
 				final from = session.transport.advance(mdd.play.Render.BLOCK, 44100);
 				render.serve(session.transport.stream, from, mdd.play.Render.BLOCK,
-					session.transport.entering);
+					session.transport.entering, true);
 				blocks.add(1);
 			}
 		});

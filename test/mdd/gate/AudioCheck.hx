@@ -217,7 +217,7 @@ class AudioCheck {
 		for (block in 0...40) {
 			final from = session.transport.advance(Render.BLOCK, RATE);
 			final many = render.serve(session.transport.stream, from, Render.BLOCK,
-				session.transport.entering);
+				session.transport.entering, true);
 
 			if (block < 30) continue;
 
@@ -235,7 +235,7 @@ class AudioCheck {
 		for (block in 0...40) {
 			final from = session.transport.advance(Render.BLOCK, RATE);
 			final many = render.serve(session.transport.stream, from, Render.BLOCK,
-				session.transport.entering);
+				session.transport.entering, true);
 
 			for (i in 0...many) {
 				final value = render.block[i * 2];
@@ -265,7 +265,7 @@ class AudioCheck {
 			}
 
 			final many = render.serve(held, from, Render.BLOCK,
-				session.transport.entering);
+				session.transport.entering, true);
 
 			for (i in 0...many) {
 				final value = render.block[i * 2];

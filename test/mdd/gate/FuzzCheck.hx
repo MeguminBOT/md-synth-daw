@@ -190,7 +190,7 @@ class FuzzCheck {
 
 				final at = session.transport.advance(mdd.play.Render.BLOCK, 44100);
 				render.serve(session.transport.stream, at, mdd.play.Render.BLOCK,
-					session.transport.entering);
+					session.transport.entering, true);
 				blocks.add(1);
 			}
 		});

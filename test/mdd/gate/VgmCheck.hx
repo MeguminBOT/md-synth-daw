@@ -183,7 +183,7 @@ class VgmCheck {
 			while (done < 44100 * 4) {
 				final from = transport.advance(mdd.play.Render.BLOCK, 44100);
 				final many = render.serve(transport.stream, from, mdd.play.Render.BLOCK,
-					transport.entering);
+					transport.entering, true);
 
 				if (many <= 0) break;
 
@@ -965,7 +965,7 @@ class VgmCheck {
 		while (done < frames) {
 			final at = transport.advance(mdd.play.Render.BLOCK, rate);
 			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-				transport.entering);
+				transport.entering, true);
 
 			if (many <= 0) break;
 
@@ -1007,7 +1007,7 @@ class VgmCheck {
 			if (transport != null) {
 				final at = transport.advance(mdd.play.Render.BLOCK, 44100);
 				many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-					transport.entering);
+					transport.entering, true);
 			} else {
 				final at = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
 				many = render.serve(source, at, mdd.play.Render.BLOCK, 0);
@@ -1064,7 +1064,7 @@ class VgmCheck {
 			final began = haxe.Timer.stamp();
 			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
 
-			render.serve(transport.stream, at, mdd.play.Render.BLOCK, transport.entering);
+			render.serve(transport.stream, at, mdd.play.Render.BLOCK, transport.entering, true);
 
 			final took = haxe.Timer.stamp() - began;
 
@@ -1147,10 +1147,21 @@ class VgmCheck {
 			if (much > worst) worst = much;
 		}
 
-		says("and the same at either device rate", worst < 0.02,
-			"four seconds at 44100 and 48000 cross zero " + zeroes[0] + " and " + zeroes[1]
-			+ " times, " + round(worst * 100, 2) + " per cent apart, peaking at "
-			+ round(peaks[0], 3) + " and " + round(peaks[1], 3));
+		var loudest = 0.0;
+
+		for (index in 1...peaks.length) {
+			final away = peaks[index] - peaks[0];
+			final much = (away < 0 ? -away : away) / (peaks[0] <= 0 ? 1 : peaks[0]);
+
+			if (much > loudest) loudest = much;
+		}
+
+		says("and the same at either device rate", loudest < 0.02,
+			"four seconds at 44100 and 48000 peak at " + round(peaks[0], 3) + " and "
+			+ round(peaks[1], 3) + ", " + round(loudest * 100, 2) + " per cent apart; they"
+			+ " cross zero " + zeroes[0] + " and " + zeroes[1] + " times, "
+			+ round(worst * 100, 2) + " per cent apart, which is the anti alias filter"
+			+ " tracking the device rate rather than the music changing");
 	}
 
 	static function written(where:String, files:Array<String>, into:String,
@@ -1315,7 +1326,7 @@ class VgmCheck {
 		while (done < frames) {
 			final at = transport.advance(mdd.play.Render.BLOCK, rate);
 			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-				transport.entering);
+				transport.entering, true);
 
 			if (many <= 0) break;
 
@@ -1457,7 +1468,7 @@ class VgmCheck {
 		while (done < frames) {
 			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
 			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-				transport.entering);
+				transport.entering, true);
 			if (many <= 0) break;
 
 			for (i in 0...many) {
@@ -1485,7 +1496,7 @@ class VgmCheck {
 		while (done < 44100 * 3) {
 			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
 			done += render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-				transport.entering);
+				transport.entering, true);
 		}
 
 		transport.stop();
@@ -1496,7 +1507,7 @@ class VgmCheck {
 		while (done < 44100) {
 			final at = transport.advance(mdd.play.Render.BLOCK, 44100);
 			final many = render.serve(transport.stream, at, mdd.play.Render.BLOCK,
-				transport.entering);
+				transport.entering, true);
 			if (many <= 0) break;
 
 			if (done > 22050) {
