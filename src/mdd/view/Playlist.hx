@@ -6,6 +6,7 @@ import mdd.song.Clip;
 import mdd.song.edit.MoveClip;
 import mdd.song.edit.RemoveClip;
 import mdd.song.edit.RemoveTrack;
+import mdd.song.edit.SizeClip;
 import mdd.ui.Colour;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
@@ -39,6 +40,9 @@ final class Playlist extends Widget {
 	var dragging:Null<Clip> = null;
 	var sizing:Bool = false;
 	var grabTick:Int = 0;
+	var grabWasAt:Int = 0;
+	var grabWasLong:Int = 0;
+	var grabFresh:Bool = false;
 	var hoverTrack:Int = -1;
 
 	public function new(session:Session) {
@@ -207,9 +211,7 @@ final class Playlist extends Widget {
 
 				if (dragging == null) return false;
 
-				dragging = null;
-				sizing = false;
-				session.changed();
+				settled();
 				return true;
 
 			case Kind.KeyDown:
@@ -254,6 +256,9 @@ final class Playlist extends Widget {
 			dragging = under;
 			sizing = onEdge(under, event.x);
 			grabTick = sizing ? 0 : tickAt(event.x) - under.at;
+			grabWasAt = under.at;
+			grabWasLong = under.length;
+			grabFresh = false;
 			invalidate();
 			return true;
 		}
@@ -273,9 +278,40 @@ final class Playlist extends Widget {
 		dragging = clip;
 		sizing = true;
 		grabTick = 0;
+		grabWasAt = clip.at;
+		grabWasLong = clip.length;
+		grabFresh = true;
 
 		invalidate();
 		return true;
+	}
+
+	function settled():Void {
+		final held = dragging;
+
+		dragging = null;
+
+		if (held == null || grabFresh) {
+			sizing = false;
+			grabFresh = false;
+			session.changed();
+			return;
+		}
+
+		if (sizing && held.length != grabWasLong) {
+			final want = held.length;
+
+			held.length = grabWasLong;
+			session.does(new SizeClip(chosenTrack, held, want));
+		} else if (!sizing && held.at != grabWasAt) {
+			final want = held.at;
+
+			held.at = grabWasAt;
+			session.does(new MoveClip(chosenTrack, held, want, held.transpose));
+		}
+
+		sizing = false;
+		session.changed();
 	}
 
 	function railed(which:Int, event:Input):Bool {

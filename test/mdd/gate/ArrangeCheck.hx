@@ -195,16 +195,17 @@ class ArrangeCheck {
 		history.does(song, new RenamePattern(0, "the verse"));
 		history.does(song, new ResizePattern(1, 768));
 		history.does(song, new MoveClip(0, song.tracks[0].clips[2], 960, 2));
+		history.does(song, new mdd.song.edit.SizeClip(0, song.tracks[0].clips[2], 240));
 
 		final after = mdd.format.Project.text(song);
 
 		var undone = 0;
 		while (history.undo(song)) undone++;
 
-		says("an arrangement edit stacks", before != after && undone == 4,
-			"four arrangement edits made and " + undone + " reverted");
+		says("an arrangement edit stacks", before != after && undone == 5,
+			undone + " arrangement edits made and " + undone + " reverted");
 
 		says("and reverts byte for byte", mdd.format.Project.text(song) == before,
-			"the song is what it was before the pattern, the rename, the resize and the move");
+			"the song is what it was before the pattern, the rename, the resize, the move and the stretch");
 	}
 }
