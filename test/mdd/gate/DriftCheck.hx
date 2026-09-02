@@ -55,6 +55,7 @@ class DriftCheck {
 
 		final whole = played(song, song.tempo.samplesAt(song.ends()));
 
+		ladder = args.indexOf("--flat") < 0;
 		trace = args.indexOf("--trace") >= 0;
 		watch = seconds(args, "--channel", 0);
 
@@ -138,6 +139,7 @@ class DriftCheck {
 		return index;
 	}
 
+	static var ladder:Bool = true;
 	static var trace:Bool = false;
 	static var watch:Int = 0;
 
@@ -743,6 +745,11 @@ class DriftCheck {
 		final oneRender = new Render(rate, Render.BLOCK);
 		final twoRender = new Render(rate, Render.BLOCK);
 
+		if (!ladder) {
+			oneRender.ym.discrete = false;
+			twoRender.ym.discrete = false;
+		}
+
 		var done = 0;
 
 		var oneTotal = 0.0;
@@ -755,6 +762,7 @@ class DriftCheck {
 		var twoHeld = 0.0;
 		var counted = 0;
 
+		var bothSamples = 0.0;
 		var widest = 0.0;
 		var widestAt = 0.0;
 		var widestOne = 0.0;
@@ -786,6 +794,7 @@ class DriftCheck {
 
 				oneTotal += a * a;
 				twoTotal += b * b;
+				bothSamples += a * b;
 
 				oneHeld += a < 0 ? -a : a;
 				twoHeld += b < 0 ? -b : b;
@@ -824,6 +833,8 @@ class DriftCheck {
 			Sys.println("      " + StringTools.rpad(name.substr(0, name.length - 4), " ", 8)
 				+ "file " + round(Math.sqrt(oneTotal / (done < 1 ? 1 : done)), 4)
 				+ "   song " + round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
+				+ "   samples " + round(oneTotal * twoTotal <= 0 ? 0
+					: bothSamples / Math.sqrt(oneTotal * twoTotal), 4)
 				+ "   agree " + round(tied, 4)
 				+ "   worst at " + round(widestAt, 2) + " s, " + round(widestOne, 4)
 				+ " against " + round(widestTwo, 4));
@@ -834,6 +845,9 @@ class DriftCheck {
 		Sys.println("    " + round(done / 44100.0, 1) + " s rendered from each: the file holds "
 			+ round(Math.sqrt(oneTotal / (done < 1 ? 1 : done)), 4) + " and the song "
 			+ round(Math.sqrt(twoTotal / (done < 1 ? 1 : done)), 4)
+			+ ", their samples agree "
+			+ round(oneTotal * twoTotal <= 0 ? 0
+				: bothSamples / Math.sqrt(oneTotal * twoTotal), 4)
 			+ ", and their envelopes agree " + round(tied, 4) + " over " + counted
 			+ " frames, worst at " + round(widestAt, 2) + " s where the file is "
 			+ round(widestOne, 4) + " and the song " + round(widestTwo, 4));
