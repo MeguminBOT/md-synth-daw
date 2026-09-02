@@ -1,5 +1,6 @@
 package mdd.gate;
 
+import mdd.chip.Sn76489;
 import mdd.chip.Ym2612;
 import mdd.host.Audio;
 import mdd.host.Device;
@@ -37,6 +38,7 @@ class AudioCheck {
 
 		queueing();
 		offline();
+		whistle();
 		pitch();
 		shape();
 		auditioned();
@@ -342,6 +344,68 @@ class AudioCheck {
 			"a single carrier at full level renders " + round(distortion * 100, 1)
 			+ " per cent of its energy away from the fundamental, at "
 			+ round(fundamental, 4) + " against " + round(total, 4) + " overall");
+	}
+
+	static function whistle():Void {
+		final render = new Render(RATE, Render.BLOCK);
+		final period = 45;
+
+		render.psg.write(0x80 | (0 << 5) | (period & 0x0F));
+		render.psg.write((period >> 4) & 0x3F);
+		render.psg.write(0x80 | (0 << 5) | 0x10 | 0x00);
+
+		final held = new haxe.ds.Vector<Float>(16384);
+		var done = 0;
+
+		while (done < held.length) {
+			final many = render.fill(Render.BLOCK);
+
+			for (i in 0...many) {
+				if (done + i >= held.length) break;
+				held[done + i] = render.block[i * 2];
+			}
+
+			done += many;
+		}
+
+		final from = 4096;
+		final window = 8192;
+		final hz = Sn76489.CLOCK / (32.0 * period);
+
+		var total = 0.0;
+		for (i in 0...window) total += held[from + i] * held[from + i];
+
+		total = Math.sqrt(total / window);
+
+		var wanted = 0.0;
+		var partials = 0;
+		var harmonic = 1;
+
+		while (hz * harmonic < RATE * 0.5) {
+			var real = 0.0;
+			var imaginary = 0.0;
+
+			for (i in 0...window) {
+				final turn = 2 * Math.PI * hz * harmonic * i / RATE;
+				real += held[from + i] * Math.cos(turn);
+				imaginary += held[from + i] * Math.sin(turn);
+			}
+
+			final much = 2 * Math.sqrt(real * real + imaginary * imaginary) / window
+				/ Math.sqrt(2);
+
+			wanted += much * much;
+			partials++;
+			harmonic += 2;
+		}
+
+		final rest = total * total - wanted;
+		final noise = total <= 0 ? 1.0 : Math.sqrt(rest < 0 ? 0 : rest) / total;
+
+		says("a square is odd harmonics and nothing else", noise < 0.35,
+			"a square at " + round(hz, 1) + " Hz renders " + round(noise * 100, 1)
+			+ " per cent of its energy away from its " + partials + " odd harmonics, at "
+			+ round(Math.sqrt(wanted), 4) + " against " + round(total, 4) + " overall");
 	}
 
 	static function pitch():Void {
