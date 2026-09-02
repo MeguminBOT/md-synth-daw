@@ -60,6 +60,9 @@ class XgmCheck {
 		agreed(made, back, span);
 		sounded(back, song, name);
 
+		final into = args.indexOf("--wav");
+		if (into >= 0 && into + 1 < args.length) heard(back, args[into + 1]);
+
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
 		if (failed > 0) {
@@ -216,6 +219,32 @@ class XgmCheck {
 		says("and an xgm becomes a song", made.notes > 0 && fm > 0,
 			made.notes + " notes across " + made.song.patterns.length + " patterns: "
 			+ fm + " on the fm parts and " + dac + " on the converter");
+	}
+
+	static function heard(back:Stream, where:String):Void {
+		final seconds = 45;
+		final frames = 44100 * seconds;
+
+		final render = new Render(44100, Render.BLOCK);
+		final held = new Vector<cpp.Float32>(frames * 2);
+
+		var done = 0;
+
+		while (done < frames) {
+			final at = Std.int(done * (Tempo.TICKS / 44100.0));
+			final many = render.serve(back, at, Render.BLOCK, 0);
+
+			if (many <= 0) break;
+
+			var take = many;
+			if (done + take > frames) take = frames - done;
+
+			for (index in 0...take * 2) held[done * 2 + index] = render.block[index];
+			done += take;
+		}
+
+		sys.io.File.saveBytes(where, mdd.format.Wav.write(held, done, 2, 44100));
+		Sys.println("    wrote " + round(done / 44100.0, 1) + " s to " + where);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
