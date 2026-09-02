@@ -6,9 +6,6 @@ class Gate {
 	public static var root(default, null):String = ".";
 
 	public static function main():Void {
-		mdd.host.Native.ready();
-		mdd.host.Crash.watch("R:/tmp/gate-fault.txt");
-
 		final args = Sys.args();
 
 		final flag = args.indexOf("--root");
@@ -16,6 +13,9 @@ class Gate {
 			root = args[flag + 1];
 			args.splice(flag, 2);
 		}
+
+		mdd.host.Native.ready();
+		mdd.host.Crash.watch(root + "/export/fault.txt");
 
 		if (args.length > 0 && (args[0] == "--list" || args[0] == "-l")) {
 			for (name in PROGRAMS) Sys.println(name);
