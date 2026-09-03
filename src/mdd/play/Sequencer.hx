@@ -322,6 +322,62 @@ final class Sequencer {
 		return held < 0 ? 0 : (held > 127 ? 127 : held);
 	}
 
+	inline function starts(tick:Int):Bool {
+		final under = sounding(tick);
+		return under >= 0 && voices.startAt(under) == tick;
+	}
+
+	var wroteValue:Int = 0;
+	var wroteUnder:Int = -2;
+
+	function put(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
+			riding:Bool, tick:Int):Void {
+		final under = riding ? sounding(tick) : -1;
+		if (under == wroteUnder && value == wroteValue) return;
+
+		wroteUnder = under;
+		wroteValue = value;
+
+		if (under < 0) lined(at, part, line, value, transpose, -1, -1, -1);
+		else {
+			lined(at, part, line, value, transpose, voices.pitchAt(under),
+				voices.velocityAt(under), voices.instrumentAt(under));
+		}
+	}
+
+	function ramped(part:Part, line:mdd.song.Automation, from:mdd.song.Point,
+			to:mdd.song.Point, base:Int, transpose:Int, riding:Bool, fromSample:Int,
+			toSample:Int):Void {
+		final tempo = song.tempo;
+		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
+		final step = Std.int(Tempo.TICKS / rate);
+		if (step < 1) return;
+
+		final head = tempo.samplesAt(base + from.at);
+		final tail = tempo.samplesAt(base + to.at);
+		if (tail <= head) return;
+
+		var when = head + step;
+		if (when < fromSample) when += Std.int((fromSample - when) / step) * step;
+
+		var was = mdd.song.Automation.between(from, to,
+			tempo.tickAt(when - step) - base);
+
+		while (when < tail && when < toSample) {
+			final value = mdd.song.Automation.between(from, to, tempo.tickAt(when) - base);
+
+			if (value != was) {
+				was = value;
+
+				if (when >= fromSample) {
+					put(when, part, line, value, transpose, riding, tempo.tickAt(when) - base);
+				}
+			}
+
+			when += step;
+		}
+	}
+
 	function sounding(tick:Int):Int {
 		var found = -1;
 
@@ -348,23 +404,26 @@ final class Sequencer {
 			var index = line.seek(head);
 			if (index > 0) index--;
 
+			wroteUnder = -2;
+
 			while (index < line.points.length) {
 				final point = line.points[index];
 				if (point.at > tail) break;
 
 				index++;
 
-				final under = riding ? sounding(point.at) : -1;
-				if (under >= 0 && voices.startAt(under) == point.at) continue;
-
 				final at = tempo.samplesAt(from + point.at);
-				if (at < fromSample || at >= toSample) continue;
 
-				if (under < 0) lined(at, part, line, point.value, transpose, -1, -1, -1);
-				else {
-					lined(at, part, line, point.value, transpose, voices.pitchAt(under),
-						voices.velocityAt(under), voices.instrumentAt(under));
+				if (at >= fromSample && at < toSample
+						&& !(riding && starts(point.at))) {
+					put(at, part, line, point.value, transpose, riding, point.at);
 				}
+
+				if (!mdd.song.Automation.moves(point.shape)) continue;
+				if (index >= line.points.length) continue;
+
+				ramped(part, line, point, line.points[index], from, transpose, riding,
+					fromSample, toSample);
 			}
 		}
 	}

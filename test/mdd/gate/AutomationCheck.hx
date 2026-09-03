@@ -28,6 +28,7 @@ class AutomationCheck {
 		middles();
 		bent();
 		repeated();
+		played();
 		kept();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -168,6 +169,81 @@ class AutomationCheck {
 
 		says("and a wave rises once a cycle", risen == 2,
 			"a two cycle wave passes the halfway value going up " + risen + " times");
+	}
+
+	static function sung(shape:Int, steps:Int):Array<Int> {
+		final song = new Song("ramp", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+		final lane = pattern.lane(Part.Psg1);
+
+		lane.add(new mdd.song.Note(0, SPAN * 2, 60, 127));
+
+		final held = new Automation(Automation.LEVEL, 0);
+		final from = new Point(0, 0);
+
+		from.shape = shape;
+		from.steps = steps;
+
+		held.add(from);
+		held.add(new Point(SPAN, 12));
+		lane.automation.push(held);
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 16);
+		final span = song.tempo.samplesAt(pattern.length);
+
+		new mdd.play.Sequencer(song).spanned(stream, 0, span);
+
+		final out:Array<Int> = [];
+		var latched = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+			if ((value & 0x80) == 0) continue;
+
+			latched = (value >> 4) & 7;
+			if ((latched & 1) == 0) continue;
+
+			out.push(value & 0x0F);
+		}
+
+		return out;
+	}
+
+	static function played():Void {
+		final held = sung(Automation.HOLD, 0);
+		final straight = sung(Automation.LINEAR, 0);
+		final stairs = sung(Automation.STAIRS, 4);
+
+		says("a hold segment writes once and no more", held.length <= 2,
+			"a held level writes the attenuation " + held.length + " times across "
+			+ SPAN + " ticks");
+
+		var rises = true;
+		for (index in 1...straight.length) if (straight[index] < straight[index - 1]) rises = false;
+
+		says("a linear segment ramps to its far value", straight.length >= 12
+			&& rises && straight[straight.length - 1] == 12,
+			"a linear level writes " + straight.length
+			+ " attenuations, each quieter than the last, ending on "
+			+ straight[straight.length - 1] + ", which is the offset the far point carries");
+
+		says("and never writes the same value twice running", rises && every(straight),
+			"no two of the " + straight.length + " writes carry the same value in a row");
+
+		says("a stairs segment writes once a step", stairs.length >= 4
+			&& stairs.length < straight.length,
+			"a four step stairs writes " + stairs.length + " attenuations against "
+			+ straight.length + " for the same span drawn linear");
+	}
+
+	static function every(held:Array<Int>):Bool {
+		for (index in 1...held.length) if (held[index] == held[index - 1]) return false;
+		return true;
 	}
 
 	static function kept():Void {
