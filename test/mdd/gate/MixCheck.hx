@@ -25,6 +25,7 @@ class MixCheck {
 		shaped();
 		written(into);
 		bounced();
+		imported();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -189,6 +190,157 @@ class MixCheck {
 			&& faster.frames > made.frames * 0,
 			faster.frames + " frames at 48000 against " + mono.frames + " at 44100, "
 			+ round(faster.seconds(), 2) + " s either way");
+	}
+
+	static function imported():Void {
+		final where = Gate.root + "/vendor/vgm";
+		if (!sys.FileSystem.isDirectory(where)) return;
+
+		var name = "";
+		for (found in sys.FileSystem.readDirectory(where)) {
+			if (found.indexOf("Green Hill") >= 0) name = found;
+		}
+
+		if (name == "") return;
+
+		final source = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = false;
+
+		final made = Mixdown.of(song, mixing);
+		final want = song.tempo.samplesAt(song.ends()) / mdd.song.Tempo.TICKS;
+
+		var loud = 0;
+		final step = made.rate;
+
+		var quiet = 0;
+		var at = 0;
+
+		while (at + step <= made.frames) {
+			var most = 0.0;
+
+			for (index in at...at + step) {
+				final value = made.samples[index * made.channels];
+				final held = value < 0 ? -value : value;
+				if (held > most) most = held;
+			}
+
+			if (most < 0.002) quiet++;
+			at += step;
+		}
+
+		final wav = Wav.write(made.samples, made.frames, made.channels, made.rate, 16,
+			false);
+
+		final flac = Flac.write(made.samples, made.frames, made.channels, made.rate, 16,
+			[]);
+
+		final ogg = Coded.vorbis(made.samples, made.frames, made.channels, made.rate,
+			0.5, []);
+
+		final wanted = made.frames * made.channels * 2 + 44;
+
+		says("and every writer takes it whole",
+			wav.length == wanted && flac.length > wanted / 4 && ogg.length > 100000,
+			"a " + round(made.seconds(), 1) + " s bounce writes " + wav.length
+			+ " bytes of wav against " + wanted + " wanted, " + flac.length
+			+ " of flac and " + ogg.length + " of ogg");
+
+		mixing.kind = Mixing.OPUS;
+
+		final over = Mixdown.of(song, mixing);
+		final opus = Coded.opus(over.samples, over.frames, over.channels, over.rate,
+			128, []);
+
+		says("and opus takes a rate it knows", over.rate == 48000 && opus.length > 100000,
+			round(over.seconds(), 1) + " s at " + over.rate + " Hz makes "
+			+ opus.length + " bytes");
+
+		final into = Gate.root + "/export/exported";
+		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
+
+		final session = new mdd.view.Session(song);
+		final files = new mdd.view.Files(session);
+
+		files.mixing.kind = Mixing.WAV;
+		files.mixing.rate = 44100;
+		files.mixing.padStart = 0;
+		files.mixing.padEnd = 0;
+		files.mixing.normalise = false;
+
+		final one = files.exportAudio(into + "/whole");
+		final two = files.exportWav(into + "/plain");
+		final three = files.exportMidi(into + "/whole");
+
+		final oneSize = one == "" ? 0 : sys.FileSystem.stat(one).size;
+		final twoSize = two == "" ? 0 : sys.FileSystem.stat(two).size;
+		final threeSize = three == "" ? 0 : sys.FileSystem.stat(three).size;
+
+		says("the export menu writes the whole song",
+			oneSize > wanted - 64 && twoSize > wanted - 64,
+			"exportAudio wrote " + Math.round(oneSize / 1024) + " kb and exportWav "
+			+ Math.round(twoSize / 1024) + " kb, against " + Math.round(wanted / 1024)
+			+ " kb of song");
+
+		final back = mdd.format.Midi.read(sys.io.File.getBytes(three), "back");
+
+		var notes = 0;
+		for (at in 0...back.patterns.length) {
+			final pattern = back.patterns[at];
+			for (index in 0...mdd.song.Part.COUNT) notes += pattern.lane(index).notes.length;
+		}
+
+		var kept = 0;
+		for (at in 0...song.patterns.length) {
+			final pattern = song.patterns[at];
+			for (index in 0...mdd.song.Part.COUNT) kept += pattern.lane(index).notes.length;
+		}
+
+		final held = sys.io.File.getBytes(three);
+		final division = (held.get(12) << 8) | held.get(13);
+
+		final spans = back.tempo.samplesAt(back.ends()) / mdd.song.Tempo.TICKS;
+
+		says("and midi carries the notes", threeSize > 1024 && notes == kept
+			&& division == mdd.format.Midi.PPQN && spans > want - 2 && spans < want + 2,
+			Math.round(threeSize / 1024) + " kb of midi at " + division
+			+ " ticks a beat, holding " + notes + " notes against " + kept
+			+ " in the song, and lasting " + round(spans, 1) + " s against "
+			+ round(want, 1) + " s");
+
+		final packed = into + "/round.mdd";
+		mdd.format.Project.save(song, packed);
+
+		final again = mdd.format.Project.open(packed);
+		final reopened = again == null ? 0.0
+			: again.tempo.samplesAt(again.ends()) / mdd.song.Tempo.TICKS;
+
+		says("a saved song still knows its length", again != null && reopened > want - 1,
+			round(reopened, 1) + " s after a save and a load, against " + round(want, 1)
+			+ " s before");
+
+		final fresh = mdd.view.Session.started().song;
+		final blank = fresh.tempo.samplesAt(fresh.ends()) / mdd.song.Tempo.TICKS;
+
+		says("a new document has somewhere to write",
+			blank > 0 && fresh.patterns.length > 0 && fresh.tracks.length > 0,
+			round(blank, 1) + " s of song in a fresh document, " + fresh.patterns.length
+			+ " patterns across " + fresh.tracks.length + " tracks");
+
+		says("an imported song bounces whole",
+			made.seconds() > want - 1 && made.seconds() < want + 1 && quiet == 0
+			&& made.lost == 0,
+			round(made.seconds(), 1) + " s bounced of " + round(want, 1)
+			+ " s of song, " + made.writes + " writes with " + made.lost
+			+ " lost, and " + quiet + " of " + Math.floor(made.frames / step)
+			+ " seconds silent");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
