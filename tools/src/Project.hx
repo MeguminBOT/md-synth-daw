@@ -18,6 +18,12 @@ typedef Named = {
 	final value:String;
 }
 
+typedef Icon = {
+	final name:String;
+	final from:String;
+	final group:String;
+}
+
 class Project {
 	public var title(default, null):String = "mdd";
 	public var short(default, null):String = "mdd";
@@ -37,7 +43,12 @@ class Project {
 	public var sources(default, null):Array<String> = [];
 	public var generated(default, null):String = "export/haxe";
 	public var languages(default, null):String = "assets/lang";
-	public var icons(default, null):String = "assets/icon";
+	public var appIcon(default, null):String = "assets/icon";
+
+	public var iconPath(default, null):String = "assets/icons";
+	public var iconSizes(default, null):Array<Int> = [];
+	public var iconFrom(default, null):Array<Named> = [];
+	public var icons(default, null):Array<Icon> = [];
 	public var output(default, null):String = "export";
 
 	public var targets(default, null):Array<Target> = [];
@@ -106,8 +117,39 @@ class Project {
 			case "languages":
 				languages = node.get("path");
 
+			case "appicon":
+				appIcon = node.get("path");
+
 			case "icons":
-				icons = node.get("path");
+				iconPath = node.get("path");
+
+				for (part in node.get("sizes").split(",")) {
+					final held = Std.parseInt(StringTools.trim(part));
+					if (held != null && held > 0) iconSizes.push(held);
+				}
+
+				for (held in node.elements()) {
+					if (!allowed(held)) continue;
+
+					switch (held.nodeName) {
+						case "from":
+							iconFrom.push({name: held.get("name"), value: held.get("path")});
+
+						case "group":
+							for (one in held.elements()) {
+								if (one.nodeName != "icon" || !allowed(one)) continue;
+
+								icons.push({name: one.get("name"), from: one.get("from"),
+									group: held.get("name")});
+							}
+
+						case "icon":
+							icons.push({name: held.get("name"), from: held.get("from"),
+								group: ""});
+
+						case _:
+					}
+				}
 
 			case "output":
 				output = node.get("path");

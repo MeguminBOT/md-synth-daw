@@ -130,6 +130,7 @@ class Run {
 				case "stb": stb(vendor);
 				case "fonts": fonts(vendor);
 				case "Nuked-OPN2": nuked(vendor);
+				case "qlementine": qlementine(vendor, project);
 				case "libogg": xiph(vendor, "ogg", OGG_VERSION, "libogg");
 				case "libvorbis": xiph(vendor, "vorbis", VORBIS_VERSION, "libvorbis");
 				case "libopus": xiph(vendor, "opus", OPUS_VERSION, "libopus");
@@ -378,7 +379,7 @@ class Run {
 	}
 
 	static function resourceScript(root:String, project:Project):String {
-		final ico = native(root + "/" + project.icons) + "/" + project.short + ".ico";
+		final ico = native(root + "/" + project.appIcon) + "/" + project.short + ".ico";
 		if (!FileSystem.exists(ico)) return "";
 
 		final into = root + "/" + project.output + "/build";
@@ -421,6 +422,7 @@ class Run {
 		final spoken = languages(root, project);
 
 		configure(root, project, spoken);
+		Icons.named(project, root + "/" + project.generated);
 		final xml = nativeXml(root, project);
 
 		for (one in project.targets) {
@@ -514,7 +516,7 @@ class Run {
 			args.push(root + "/" + project.output + "/lang/" + code + ".mdl@lang." + code);
 		}
 
-		final face = root + "/" + project.icons + "/" + project.short + "-64.rgba";
+		final face = root + "/" + project.appIcon + "/" + project.short + "-64.rgba";
 
 		if (FileSystem.exists(face)) {
 			args.push("-resource");
@@ -534,6 +536,9 @@ class Run {
 		final spoken = languages(root, project);
 
 		configure(root, project, spoken);
+		Icons.named(project, root + "/" + project.generated);
+		Icons.built(root, project, root + "/" + project.output + "/icons", false);
+
 		final xml = nativeXml(root, project);
 
 		final args = compiled(root, project, target, spoken, xml, true);
@@ -601,6 +606,16 @@ class Run {
 			final from = root + "/" + one;
 			if (FileSystem.exists(from)) {
 				copyFile(from, into + "/" + haxe.io.Path.withoutDirectory(one));
+			}
+		}
+
+		final atlases = root + "/" + project.output + "/icons";
+
+		if (FileSystem.exists(atlases)) {
+			tree(into + "/icons");
+
+			for (name in FileSystem.readDirectory(atlases)) {
+				copyFile(atlases + "/" + name, into + "/icons/" + name);
 			}
 		}
 
@@ -708,19 +723,32 @@ class Run {
 			copyFile(from, into + "/" + entry);
 		}
 
-		final icons = root + "/" + project.icons;
+		final appIcon = root + "/" + project.appIcon;
 
-		if (FileSystem.exists(icons)) {
-			tree(into + "/icons");
+		if (FileSystem.exists(appIcon)) {
+			tree(into + "/appicon");
 
-			for (entry in FileSystem.readDirectory(icons)) {
+			for (entry in FileSystem.readDirectory(appIcon)) {
 				if (entry == "sheet.png") continue;
 				if (!StringTools.endsWith(entry, ".png") && !StringTools.endsWith(entry, ".ico"))
 					continue;
 
-				copyFile(icons + "/" + entry, into + "/icons/" + entry);
+				copyFile(appIcon + "/" + entry, into + "/appicon/" + entry);
 			}
 		}
+
+		final atlases = bin + "/icons";
+
+		if (FileSystem.exists(atlases)) {
+			tree(into + "/icons");
+
+			for (entry in FileSystem.readDirectory(atlases)) {
+				copyFile(atlases + "/" + entry, into + "/icons/" + entry);
+			}
+		}
+
+		final notice = root + "/vendor/qlementine/LICENSE";
+		if (FileSystem.exists(notice)) copyFile(notice, into + "/icons/LICENSE");
 
 		final fonts = root + "/" + project.pathOf("FONTPATH");
 		tree(into + "/fonts");
@@ -844,7 +872,7 @@ class Run {
 			+ "-setup\n");
 		out.add("CloseApplications=yes\n");
 		out.add("RestartApplications=no\n");
-		final ico = native(root + "/" + project.icons) + "/" + project.short + ".ico";
+		final ico = native(root + "/" + project.appIcon) + "/" + project.short + ".ico";
 		if (FileSystem.exists(ico)) out.add("SetupIconFile=" + StringTools.replace(ico,
 			"/", "\\") + "\n");
 
@@ -1057,7 +1085,7 @@ class Run {
 		for (size in [16, 24, 32, 48, 64, 128, 256, 512]) {
 			final where = "$PREFIX/share/icons/hicolor/" + size + "x" + size + "/apps";
 			out2.add("mkdir -p \"" + where + "\"\n");
-			out2.add("cp \"$HERE/icons/" + project.short + "-" + size + ".png\" "
+			out2.add("cp \"$HERE/appicon/" + project.short + "-" + size + ".png\" "
 				+ "\"" + where + "/" + project.short + ".png\"\n");
 		}
 
@@ -1213,6 +1241,36 @@ class Run {
 
 		File.saveContent(into + "/COMMIT", sha == "" ? "master, unpinned" : sha);
 		return true;
+	}
+
+	static function qlementine(vendor:String, project:Project):Bool {
+		final into = vendor + "/qlementine/16";
+
+		final sha = resolved("oclero", "qlementine-icons", "master");
+		final base = "https://raw.githubusercontent.com/oclero/qlementine-icons/"
+			+ (sha == "" ? "master" : sha);
+
+		final art = base + "/sources/resources/icons/16/";
+		var missed = 0;
+
+		for (icon in project.icons) {
+			final at = icon.from.indexOf(":");
+			if (at < 0 || icon.from.substr(0, at) != "qlementine") continue;
+
+			final tail = icon.from.substr(at + 1);
+			final where = into + "/" + tail + ".svg";
+
+			if (FileSystem.exists(where)) continue;
+
+			tree(haxe.io.Path.directory(where));
+			if (!download(art + tail + ".svg", where)) missed++;
+		}
+
+		download(base + "/LICENSE", vendor + "/qlementine/LICENSE");
+		File.saveContent(vendor + "/qlementine/COMMIT",
+			sha == "" ? "master, unpinned" : sha);
+
+		return missed == 0;
 	}
 
 	static function miniaudio(vendor:String):Bool {
