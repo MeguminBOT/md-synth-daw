@@ -44,6 +44,8 @@ class ShotCheck {
 		var sheet = "";
 		var lane = 0;
 		var menu = -1;
+		var rows = 0;
+		var icons = false;
 
 		var at = 0;
 
@@ -64,6 +66,8 @@ class ShotCheck {
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
 				case "--menu": menu = whole(held, menu); at++;
+				case "--rows": rows = whole(held, rows); at++;
+				case "--icons": icons = true;
 				case _:
 			}
 
@@ -99,6 +103,13 @@ class ShotCheck {
 		metrics.dress(body, small, mono, mono);
 
 		final session = vgm == "" ? Session.started() : imported(root, vgm);
+
+		if (icons) {
+			for (index in 0...session.song.instruments.length) {
+				session.song.instruments[index].icon = index % mdd.ui.Glyph.COUNT;
+			}
+		}
+
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme(theme));
 
@@ -176,6 +187,7 @@ class ShotCheck {
 
 		session.choose(part);
 		centre.roll.showsLane(lane);
+		centre.playlist.rowTall = rows;
 		centre.show(centreTab);
 		editor.show(inspectorTab);
 		dock.show(dockTab);
