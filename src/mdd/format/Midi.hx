@@ -12,21 +12,25 @@ import mdd.song.Track;
 
 @:unreflective
 final class Midi {
-	public static inline final PPQN = 96;
+	public static inline final PPQN = 960;
 
 	public static function write(song:Song):Bytes {
 		final flat = song.unshared();
 		final out = new BytesOutput();
 
+		out.bigEndian = true;
+
 		out.writeString("MThd");
 		out.writeInt32(6);
 		out.writeUInt16(1);
 		out.writeUInt16(Part.COUNT + 1);
-		out.writeUInt16(song.tempo.ppqn);
+		out.writeUInt16(PPQN);
 
-		chunk(out, tempoTrack(song));
+		final scale = song.tempo.ppqn < 1 ? 1.0 : PPQN / song.tempo.ppqn;
 
-		for (index in 0...Part.COUNT) chunk(out, partTrack(flat, index));
+		chunk(out, tempoTrack(song, scale));
+
+		for (index in 0...Part.COUNT) chunk(out, partTrack(flat, index, scale));
 
 		return out.getBytes();
 	}
@@ -37,13 +41,24 @@ final class Midi {
 		out.write(body);
 	}
 
-	static function tempoTrack(song:Song):Bytes {
+	static inline function wide(bytes:Bytes, at:Int):Int {
+		return (bytes.get(at) << 8) | bytes.get(at + 1);
+	}
+
+	static inline function whole(bytes:Bytes, at:Int):Int {
+		return (bytes.get(at) << 24) | (bytes.get(at + 1) << 16)
+			| (bytes.get(at + 2) << 8) | bytes.get(at + 3);
+	}
+
+	static function tempoTrack(song:Song, scale:Float):Bytes {
 		final out = new BytesOutput();
 		var last = 0;
 
 		for (i in 0...song.tempo.at.length) {
-			variable(out, song.tempo.at[i] - last);
-			last = song.tempo.at[i];
+			final at = Math.round(song.tempo.at[i] * scale);
+
+			variable(out, at - last);
+			last = at;
 
 			final micros = Std.int(60000000 / song.tempo.bpm[i]);
 
@@ -63,7 +78,7 @@ final class Midi {
 		return out.getBytes();
 	}
 
-	static function partTrack(song:Song, index:Int):Bytes {
+	static function partTrack(song:Song, index:Int, scale:Float):Bytes {
 		final part:Part = index;
 		final out = new BytesOutput();
 
@@ -90,9 +105,15 @@ final class Midi {
 
 					if (from >= clip.ends()) continue;
 
-					events.push((from << 9) | (1 << 8) | (note.pitch & 0x7F));
-					events.push(((until > clip.ends() ? clip.ends() : until) << 9)
-						| (note.pitch & 0x7F));
+					final ends = until > clip.ends() ? clip.ends() : until;
+
+					final one = Math.round(from * scale);
+					var two = Math.round(ends * scale);
+
+					if (two <= one) two = one + 1;
+
+					events.push((one << 9) | (1 << 8) | (note.pitch & 0x7F));
+					events.push((two << 9) | (note.pitch & 0x7F));
 				}
 			}
 		}
@@ -146,8 +167,8 @@ final class Midi {
 			throw "not a midi: the header chunk is not there";
 		}
 
-		final tracks = bytes.getUInt16(10);
-		final division = bytes.getUInt16(12);
+		final tracks = wide(bytes, 10);
+		final division = wide(bytes, 12);
 		final ppqn = (division & 0x8000) != 0 ? PPQN : division;
 
 		final song = new Song(name, ppqn, 120);
@@ -159,14 +180,14 @@ final class Midi {
 			song.rack[index] = index;
 		}
 
-		var at = 8 + bytes.getInt32(4);
+		var at = 8 + whole(bytes, 4);
 		var read = 0;
 		var longest = 0;
 
 		while (read < tracks && at + 8 <= bytes.length) {
 			if (bytes.getString(at, 4) != "MTrk") break;
 
-			final length = bytes.getInt32(at + 4);
+			final length = whole(bytes, at + 4);
 			at += 8;
 
 			final ends = walk(bytes, at, at + length, song, pattern);
