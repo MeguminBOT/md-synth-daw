@@ -368,6 +368,7 @@ final class Sequencer {
 
 		for (line in lane.automation) {
 			if (!carries(part, line)) continue;
+			if (line.points.length == 0 || line.points[0].at > local) continue;
 
 			final want = line.heldAt(local);
 			if (want < 0) continue;
