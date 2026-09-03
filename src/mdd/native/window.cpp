@@ -82,6 +82,15 @@ extern "C" void mdd_window_show(SDL_Window *window) {
 	if (window != nullptr) SDL_ShowWindow(window);
 }
 
+extern "C" void mdd_window_maximise(SDL_Window *window) {
+	if (window != nullptr) SDL_MaximizeWindow(window);
+}
+
+extern "C" int mdd_window_maximised(SDL_Window *window) {
+	if (window == nullptr) return 0;
+	return (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) != 0 ? 1 : 0;
+}
+
 extern "C" float mdd_window_display_scale(SDL_Window *window) {
 	if (window == nullptr) return 1.0f;
 	const float scale = SDL_GetWindowDisplayScale(window);

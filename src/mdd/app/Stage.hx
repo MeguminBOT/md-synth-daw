@@ -1,6 +1,7 @@
 package mdd.app;
 
 import mdd.Config;
+import mdd.Typeface;
 import mdd.host.Canvas;
 import mdd.host.Event;
 import mdd.host.Paths;
@@ -21,13 +22,6 @@ final class Stage {
 	static inline final ICON = 64;
 	static inline final ROW = 16;
 
-	static final PAIRINGS:Array<Array<String>> = [
-		["Go-Regular.ttf", "Go-Mono.ttf"],
-		["IBMPlexSans.ttf", "IBMPlexMono.ttf"],
-		["Inter.ttf", "JetBrainsMono.ttf"],
-		["BarlowSemiCondensed.ttf", "IBMPlexMono.ttf"]
-	];
-
 	public var window:cpp.Star<Window> = null;
 	public var renderer:cpp.Star<Canvas> = null;
 
@@ -40,6 +34,7 @@ final class Stage {
 	public var typeface:Int = 0;
 
 	public var iconsAt(default, null):String = "";
+	public var shown(default, null):Bool = false;
 
 	var icons:Null<Icons> = null;
 
@@ -147,8 +142,20 @@ final class Stage {
 		Sdl.windowIcon(window, cpp.NativeArray.address(held.getData(), 0).constRaw, ICON, ICON);
 	}
 
-	public function show():Void {
+	public function show(maximised:Bool):Void {
 		Sdl.showWindow(window);
+		if (maximised) Sdl.maximiseWindow(window);
+
+		shown = true;
+
+		final event = new Event();
+		while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) took(event);
+
+		measured();
+	}
+
+	public function maximised():Bool {
+		return Sdl.windowMaximised(window) != 0;
 	}
 
 	public function fonts():String {
@@ -161,14 +168,13 @@ final class Stage {
 		return "";
 	}
 
-	function paired(where:String):Array<String> {
-		final held = typeface < 0 || typeface >= PAIRINGS.length ? PAIRINGS[0] : PAIRINGS[typeface];
+	function paired(where:String):Int {
+		if (typeface < 0 || typeface >= Typeface.COUNT) return 0;
 
-		for (name in held) {
-			if (!sys.FileSystem.exists(where + "/" + name)) return PAIRINGS[0];
-		}
+		if (!sys.FileSystem.exists(where + "/" + Typeface.SANS[typeface])
+			|| !sys.FileSystem.exists(where + "/" + Typeface.MONO[typeface])) return 0;
 
-		return held;
+		return typeface;
 	}
 
 	public function faces(metrics:Metrics):Bool {
@@ -182,8 +188,8 @@ final class Stage {
 		shed();
 
 		final pairing = paired(where);
-		final sans = where + "/" + pairing[0];
-		final fixed = where + "/" + pairing[1];
+		final sans = where + "/" + Typeface.SANS[pairing];
+		final fixed = where + "/" + Typeface.MONO[pairing];
 
 		body = Font.bake(renderer, sans, 15 * scale);
 		small = Font.bake(renderer, sans, 13 * scale);

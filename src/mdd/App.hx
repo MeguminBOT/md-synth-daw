@@ -115,7 +115,7 @@ class App {
 		stage.measured();
 		sound.open(session.transport);
 
-		stage.show();
+		stage.show(settings == null || settings.asFlag("maximised", true));
 		return true;
 	}
 
@@ -382,6 +382,7 @@ class App {
 		settings.whole("motion", session.motion);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("keeping", panels.preferences.keeping);
+		if (stage.shown) settings.flag("maximised", stage.maximised());
 		settings.whole("width", Sdl.windowWidth(stage.window));
 		settings.whole("height", Sdl.windowHeight(stage.window));
 		settings.put("song", files == null ? "" : files.path);
@@ -474,7 +475,8 @@ class App {
 		Sys.println("  vsync         " + Sdl.rendererVsync(stage.renderer));
 		Sys.println("  refresh       " + Sdl.displayRefresh(stage.window) + " Hz");
 		Sys.println("  window        " + Sdl.windowWidth(stage.window) + "x"
-			+ Sdl.windowHeight(stage.window) + " logical");
+			+ Sdl.windowHeight(stage.window) + " logical"
+			+ (stage.maximised() ? ", maximised" : ""));
 		Sys.println("  drawing at    " + Sdl.outputWidth(stage.renderer) + "x"
 			+ Sdl.outputHeight(stage.renderer) + " native pixels");
 		Sys.println("  pixel density " + Sdl.pixelDensity(stage.window));

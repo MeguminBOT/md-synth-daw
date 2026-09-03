@@ -77,6 +77,12 @@ extern class Sdl {
 	@:native("mdd_window_show")
 	public static function showWindow(window:cpp.Star<Window>):Void;
 
+	@:native("mdd_window_maximise")
+	public static function maximiseWindow(window:cpp.Star<Window>):Void;
+
+	@:native("mdd_window_maximised")
+	public static function windowMaximised(window:cpp.Star<Window>):Int;
+
 	@:native("mdd_window_display_scale")
 	public static function windowDisplayScale(window:cpp.Star<Window>):Single;
 

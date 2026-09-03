@@ -24,6 +24,8 @@ void mdd_window_set_size(SDL_Window *window, int width, int height);
 void mdd_window_set_minimum_size(SDL_Window *window, int width, int height);
 void mdd_window_set_fullscreen(SDL_Window *window, int on);
 void mdd_window_show(SDL_Window *window);
+void mdd_window_maximise(SDL_Window *window);
+int mdd_window_maximised(SDL_Window *window);
 float mdd_window_display_scale(SDL_Window *window);
 float mdd_display_pixel_density(SDL_Window *window);
 float mdd_display_refresh(SDL_Window *window);
