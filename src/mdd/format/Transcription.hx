@@ -59,10 +59,10 @@ final class Transcription {
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
 	static inline final STALL_REACH = 48;
-	static inline final STEADY = 24;
-	static inline final STEADY_TURN = 1.7;
+	static inline final STEADY = 32;
+	static inline final STEADY_TURN = 1.3;
 	static inline final DAC_ROOM = 1 << 22;
-	static inline final DAC_NEAR = 0;
+	static inline final DAC_RAGGED = 24;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -590,7 +590,7 @@ final class Transcription {
 
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) {
-				if (last - head >= STEADY && shifts(last)) break;
+				if (last - head >= DAC_LEAST && shifts(last)) break;
 
 				last++;
 			}
@@ -634,6 +634,16 @@ final class Transcription {
 	}
 
 	function paced(head:Int, last:Int):Int {
+		if (song.stallAt < 0) {
+			final span = dacWhen[last] - dacWhen[head];
+			final many = last - head;
+
+			if (span > 0 && many > 0) {
+				final rate = Math.round(many * (Tempo.TICKS / span));
+				return rate < 2000 ? 2000 : (rate > Tempo.TICKS ? Tempo.TICKS : rate);
+			}
+		}
+
 		final gaps:Array<Int> = [];
 
 		for (index in head + 1...last + 1) {
@@ -1052,36 +1062,18 @@ final class Transcription {
 
 		if (one < 1 || two < 1) return false;
 
-		if (one != two) return false;
+		final apart = one > two ? one - two : two - one;
+		if (apart > DAC_RAGGED) return false;
 
-		final many = one;
+		final many = one < two ? one : two;
+		if (many < DAC_LEAST) return false;
 
 		final bytes = sample.bytes;
 
-		var total = 0.0;
-		var blocks = 0;
-		var index = 0;
+		for (index in 0...many) if (bytes[index] != dacTake[index]) return false;
 
-		while (index < many) {
-			var one = 0;
-			var two = 0;
-			var counted = 0;
-
-			while (counted < DAC_BLOCK && index < many) {
-				one += bytes[index];
-				two += dacTake[index];
-				counted++;
-				index++;
-			}
-
-			final away = (one - two) / counted;
-			total += away < 0 ? -away : away;
-			blocks++;
-		}
-
-		return blocks > 0 && total <= blocks * DAC_NEAR;
+		return true;
 	}
-
 	function session():Void {
 		if (song.instruments.length == 0) return;
 
