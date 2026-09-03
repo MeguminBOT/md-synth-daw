@@ -49,7 +49,8 @@ class XgmCheck {
 
 		sequencer.spanned(made, 0, span);
 
-		final bytes = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final wrote = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final bytes = wrote.written;
 
 		shaped(bytes);
 
@@ -59,6 +60,7 @@ class XgmCheck {
 		named(read, bytes);
 		agreed(made, back, span);
 		sounded(back, song, name);
+		drawn();
 
 		final into = args.indexOf("--wav");
 		if (into >= 0 && into + 1 < args.length) heard(back, args[into + 1]);
@@ -93,9 +95,11 @@ class XgmCheck {
 			if (start + many > block || many == 0) covered = false;
 		}
 
+		final ends = 0x0108 + block + music;
+		final tagged = (bytes.get(0x0103) & 2) != 0;
+
 		says("a song writes an xgm file", bytes.getString(0, 4) == Xgm.MARK
-			&& bytes.get(0x0102) == 1 && covered
-			&& 0x0108 + block + music == bytes.length,
+			&& bytes.get(0x0102) == 1 && covered && ends <= bytes.length,
 			bytes.length + " bytes: " + slots + " samples in " + block
 			+ " bytes of pcm, " + music + " bytes of music, version "
 			+ bytes.get(0x0102) + ", " + (covered ? "every" : "not every")
@@ -104,9 +108,65 @@ class XgmCheck {
 		says("and every sample is aligned", covered && slots > 0,
 			slots + " samples, address and length both a multiple of " + Xgm.ALIGN);
 
-		says("and the music ends where it says", bytes.get(bytes.length - 1) == Xgm.END,
-			"the last byte is " + StringTools.hex(bytes.get(bytes.length - 1), 2)
+		says("and the music ends where it says", bytes.get(ends - 1) == Xgm.END,
+			"the last byte of the music is " + StringTools.hex(bytes.get(ends - 1), 2)
 			+ ", which is the end command");
+
+		says("and its tags follow the music", tagged
+			&& bytes.getString(ends, 4) == "Gd3 "
+			&& ends + 12 + bytes.getInt32(ends + 8) == bytes.length,
+			(bytes.length - ends) + " bytes of tags after the music, "
+			+ (tagged ? "with" : "without") + " the flag that says they are there");
+	}
+
+	static function hits(bytes:haxe.io.Bytes):Int {
+		final back = new Stream(1 << 18);
+		return Xgm.read(bytes, back).struck;
+	}
+
+	static function drawn():Void {
+		final song = mdd.app.Session.started().song;
+		final pattern = song.patterns[0];
+		final lane = pattern.lane(mdd.song.Part.Dac);
+
+		for (step in 0...4) lane.add(new mdd.song.Note(step * 96, 48, 60));
+
+		for (track in song.tracks) track.clips.resize(0);
+		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
+
+		final span = song.tempo.samplesAt(pattern.length);
+		final made = new Stream(1 << 20);
+
+		new Sequencer(song).spanned(made, 0, span);
+
+		final wrote = Xgm.write(song, made, 0, span, song.tempo.rate);
+
+		says("a converter note that names no instrument still exports",
+			wrote.samples == 1 && wrote.struck == 4 && hits(wrote.written) == 4,
+			"4 notes drawn on the converter with no instrument named export as "
+			+ wrote.struck + " hits from " + wrote.samples + " samples, and "
+			+ hits(wrote.written) + " come back out of the file");
+
+		song.muted[mdd.song.Part.Dac.index()] = true;
+
+		final quiet = Xgm.write(song, made, 0, span, song.tempo.rate);
+
+		says("and a muted converter exports none of them",
+			quiet.samples == 0 && quiet.struck == 0,
+			"the same song with the converter muted writes " + quiet.struck
+			+ " hits and " + quiet.samples + " samples");
+
+		song.muted[mdd.song.Part.Dac.index()] = false;
+		song.name = "a drawn song";
+		song.author = "the gate";
+
+		final tagged = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final again = new Stream(1 << 18);
+		final read = Xgm.read(tagged.written, again);
+
+		says("and the song's name and author survive the round trip",
+			read.title == song.name && read.author == song.author,
+			"the file says '" + read.title + "' by '" + read.author + "'");
 	}
 
 	static function named(read:Xgm, bytes:haxe.io.Bytes):Void {

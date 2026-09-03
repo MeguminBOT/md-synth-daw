@@ -19,6 +19,7 @@ final class Xgm {
 	public static inline final PCM_RATE = 14000;
 	public static inline final VOICES = 4;
 	public static inline final CENTRE = 0x80;
+	public static inline final READS = 1;
 
 	public static inline final WAIT = 0x00;
 	public static inline final PSG = 0x10;
@@ -41,7 +42,11 @@ final class Xgm {
 	public var struck(default, null):Int = 0;
 	public var refused(default, null):Int = 0;
 	public var unknown(default, null):Int = 0;
+	public var stopped(default, null):Int = -1;
+	public var crowded(default, null):Int = 0;
 	public var loopAt(default, null):Int = -1;
+
+	public var written(default, null):Null<Bytes> = null;
 
 	public var title(default, null):String = "";
 	public var game(default, null):String = "";
@@ -88,6 +93,11 @@ final class Xgm {
 		final held = bytes.getUInt16(0x0100);
 
 		version = bytes.get(0x0102);
+
+		if (version != READS) {
+			throw "this is an xgm of version " + version + ", and the reader knows version "
+				+ READS;
+		}
 
 		final flags = bytes.get(0x0103);
 
@@ -220,6 +230,7 @@ final class Xgm {
 
 				case _:
 					unknown++;
+					stopped = code;
 					at = ends;
 			}
 		}
@@ -297,7 +308,8 @@ final class Xgm {
 	}
 
 	public static function write(song:Song, stream:Stream, from:Int, to:Int,
-			rate:Int = 60):Bytes {
+			rate:Int = 60):Xgm {
+		final made = new Xgm();
 		final bank = new Bank(song, rate);
 		final body = new BytesOutput();
 
@@ -375,8 +387,9 @@ final class Xgm {
 
 		final music = body.getBytes();
 		final held = bank.bytes();
+		final tagged = tagging(song);
 
-		final out = Bytes.alloc(MUSIC + held.length + music.length);
+		final out = Bytes.alloc(MUSIC + held.length + music.length + tagged.length);
 
 		out.blit(0, Bytes.ofString(MARK), 0, 4);
 
@@ -395,11 +408,49 @@ final class Xgm {
 
 		out.setUInt16(0x0100, Std.int(held.length / ALIGN));
 		out.set(0x0102, 1);
-		out.set(0x0103, rate == 50 ? 1 : 0);
+		out.set(0x0103, (rate == 50 ? 1 : 0) | (tagged.length > 0 ? 2 : 0));
 
 		out.blit(0x0104, held, 0, held.length);
 		out.setInt32(0x0104 + held.length, music.length);
 		out.blit(0x0108 + held.length, music, 0, music.length);
+		out.blit(MUSIC + held.length + music.length, tagged, 0, tagged.length);
+
+		made.written = out;
+		made.title = song.name;
+		made.author = song.author;
+		made.version = 1;
+		made.pal = rate == 50;
+		made.rate = rate;
+		made.samples = bank.count;
+		made.sampleBytes = held.length;
+		made.frames = frame;
+		made.struck = bank.placed;
+		made.crowded = bank.crowded;
+		made.refused = bank.dropped;
+
+		return made;
+	}
+
+	static function tagging(song:Song):Bytes {
+		if (song.name == "" && song.author == "") return Bytes.alloc(0);
+
+		final fields:Array<String> = [song.name, "", "", "", "", "", song.author, "",
+			"", "", ""];
+
+		final body = new BytesOutput();
+
+		for (held in fields) {
+			for (index in 0...held.length) body.writeUInt16(StringTools.fastCodeAt(held, index));
+			body.writeUInt16(0);
+		}
+
+		final said = body.getBytes();
+		final out = Bytes.alloc(12 + said.length);
+
+		out.blit(0, Bytes.ofString("Gd3 "), 0, 4);
+		out.setInt32(4, 0x0100);
+		out.setInt32(8, said.length);
+		out.blit(12, said, 0, said.length);
 
 		return out;
 	}
@@ -423,6 +474,8 @@ final class Xgm {
 private class Bank {
 	public var count(default, null):Int = 0;
 	public var dropped(default, null):Int = 0;
+	public var crowded(default, null):Int = 0;
+	public var placed(default, null):Int = 0;
 
 	final held:Array<Int> = [];
 	final starts:Array<Int> = [];
@@ -432,10 +485,23 @@ private class Bank {
 	final when:Array<Int> = [];
 	final which:Array<Int> = [];
 
+	final free:Vector<Int> = new Vector<Int>(Xgm.VOICES);
+
+	final rate:Int;
 	var read:Int = 0;
 
 	public function new(song:Song, rate:Int) {
-		final step = Tempo.TICKS / rate;
+		this.rate = rate < 1 ? 1 : rate;
+
+		for (voice in 0...Xgm.VOICES) free[voice] = 0;
+
+		if (!song.audible(Part.Dac)) {
+			order();
+			return;
+		}
+
+		final step = Tempo.TICKS / this.rate;
+		final racked = song.rack[Part.Dac.index()];
 
 		for (track in song.tracks) {
 			if (track.muted) continue;
@@ -448,7 +514,7 @@ private class Bank {
 					final at = clip.at + note.at;
 					if (at >= clip.ends()) continue;
 
-					final slot = slotOf(song, note.instrument);
+					final slot = slotOf(song, note.instrument >= 0 ? note.instrument : racked);
 					if (slot < 0) continue;
 
 					when.push(Math.floor(song.tempo.samplesAt(at) / step));
@@ -530,15 +596,35 @@ private class Bank {
 		return out;
 	}
 
+	inline function busy(slot:Int):Int {
+		final many = Math.ceil(lengths[slot] * rate / Xgm.PCM_RATE);
+		return many < 1 ? 1 : many;
+	}
+
 	public function struck(body:BytesOutput, frame:Int):Void {
-		var voice = 0;
-
 		while (read < when.length && when[read] <= frame) {
-			body.writeByte(Xgm.PCM | (voice & 3));
-			body.writeByte((which[read] + 1) & 0xFF);
-
-			voice++;
+			final slot = which[read];
 			read++;
+
+			var voice = -1;
+
+			for (index in 0...Xgm.VOICES) {
+				if (free[index] > frame) continue;
+
+				voice = index;
+				break;
+			}
+
+			if (voice < 0) {
+				crowded++;
+				continue;
+			}
+
+			free[voice] = frame + busy(slot);
+			placed++;
+
+			body.writeByte(Xgm.PCM | voice);
+			body.writeByte((slot + 1) & 0xFF);
 		}
 	}
 }

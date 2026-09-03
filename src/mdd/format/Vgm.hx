@@ -228,7 +228,8 @@ final class Vgm {
 		return value;
 	}
 
-	public static function write(stream:Stream, from:Int, to:Int, rate:Int = 60):Bytes {
+	public static function write(stream:Stream, from:Int, to:Int, rate:Int = 60,
+			title:String = "", author:String = ""):Bytes {
 		final body = new BytesOutput();
 		var tick = from;
 
@@ -285,12 +286,16 @@ final class Vgm {
 		body.writeByte(END);
 
 		final made = body.getBytes();
-		final out = Bytes.alloc(HEADER + made.length);
+		final tagged = tagging(title, author);
+		final out = Bytes.alloc(HEADER + made.length + tagged.length);
 
 		out.blit(HEADER, made, 0, made.length);
+		out.blit(HEADER + made.length, tagged, 0, tagged.length);
 		out.blit(0, Bytes.ofString(MARK), 0, 4);
 
-		out.setInt32(0x04, HEADER + made.length - 4);
+		if (tagged.length > 0) out.setInt32(0x14, HEADER + made.length - 0x14);
+
+		out.setInt32(0x04, HEADER + made.length + tagged.length - 4);
 		out.setInt32(0x08, 0x150);
 		out.setInt32(0x0C, mdd.chip.Sn76489.CLOCK);
 		out.setInt32(0x18, to - from);
@@ -298,6 +303,28 @@ final class Vgm {
 		out.setInt32(0x28, 0x0009);
 		out.setInt32(0x2C, mdd.chip.Ym2612.CLOCK);
 		out.setInt32(0x34, HEADER - 0x34);
+
+		return out;
+	}
+
+	static function tagging(title:String, author:String):Bytes {
+		if (title == "" && author == "") return Bytes.alloc(0);
+
+		final fields:Array<String> = [title, "", "", "", "", "", author, "", "", "", ""];
+		final body = new BytesOutput();
+
+		for (held in fields) {
+			for (index in 0...held.length) body.writeUInt16(StringTools.fastCodeAt(held, index));
+			body.writeUInt16(0);
+		}
+
+		final said = body.getBytes();
+		final out = Bytes.alloc(12 + said.length);
+
+		out.blit(0, Bytes.ofString("Gd3 "), 0, 4);
+		out.setInt32(4, 0x0100);
+		out.setInt32(8, said.length);
+		out.blit(12, said, 0, said.length);
 
 		return out;
 	}

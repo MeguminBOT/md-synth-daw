@@ -126,6 +126,7 @@ final class Export extends Widget {
 		ordered();
 
 		if (mixing.title == "") mixing.title = session.song.name;
+		if (mixing.artist == "") mixing.artist = session.song.author;
 
 		fields[0].set(mixing.title);
 		fields[1].set(mixing.artist);

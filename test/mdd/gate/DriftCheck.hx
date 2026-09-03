@@ -948,6 +948,23 @@ class DriftCheck {
 			+ round(twoRender.peak, 4) + " and clips " + twoRender.clipped
 			+ ", against a full scale of " + Render.FULL_SCALE);
 
+		final said = new StringBuf();
+
+		for (part in 0...mdd.song.Part.COUNT) {
+			var most = 0.0;
+
+			for (slot in 0...Render.TAPS) {
+				final value = oneRender.taps[part * Render.TAPS + slot];
+				final size = value < 0 ? -value : value;
+
+				if (size > most) most = size;
+			}
+
+			said.add(" " + ((part:mdd.song.Part).name()) + " " + round(most, 2));
+		}
+
+		Sys.println("    and the meter each part feeds reads" + said.toString());
+
 		if (!keeping) return;
 
 		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);

@@ -324,6 +324,9 @@ final class Files {
 		final vgm = Vgm.read(sys.io.File.getBytes(where), into);
 		final made = Transcription.of(into, vgm.rate, name(where));
 
+		if (vgm.title != "") made.song.name = vgm.title;
+		if (vgm.author != "") made.song.author = vgm.author;
+
 		path = "";
 		if (onLoad != null) onLoad(made.song);
 		forget();
@@ -337,13 +340,18 @@ final class Files {
 		final xgm = Xgm.read(sys.io.File.getBytes(where), into);
 		final made = Transcription.of(into, xgm.rate, name(where));
 
+		if (xgm.title != "") made.song.name = xgm.title;
+		if (xgm.author != "") made.song.author = xgm.author;
+
 		path = "";
 		if (onLoad != null) onLoad(made.song);
 		forget();
 
 		session.say("read " + name(where) + ", " + made.notes + " notes on "
 			+ made.song.patterns.length + " patterns at " + Math.round(made.beats)
-			+ " bpm, " + xgm.samples + " samples and " + xgm.struck + " converter hits");
+			+ " bpm, " + xgm.samples + " samples and " + xgm.struck + " converter hits"
+			+ (xgm.unknown == 0 ? "" : ", stopped at a command it does not know, "
+			+ StringTools.hex(xgm.stopped, 2)));
 	}
 
 	public function readWav(where:String):mdd.song.Sample {
@@ -404,7 +412,8 @@ final class Files {
 		final sequencer = new Sequencer(session.song);
 
 		sequencer.spanned(stream, 0, span);
-		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate));
+		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate,
+			session.song.name, session.song.author));
 
 		session.say("exported " + stream.count + " register writes to " + name(named)
 			+ (sequencer.lost + stream.dropped == 0 ? ""
@@ -494,11 +503,15 @@ final class Files {
 		sequencer.spanned(stream, 0, span);
 
 		final made = Xgm.write(session.song, stream, 0, span, session.song.tempo.rate);
-		sys.io.File.saveBytes(named, made);
+		final body = made.written;
 
-		session.say("exported " + made.length + " bytes to " + name(named)
-			+ (sequencer.lost + stream.dropped == 0 ? ""
-			: ", " + (sequencer.lost + stream.dropped) + " dropped"));
+		sys.io.File.saveBytes(named, body);
+
+		final lost = sequencer.lost + stream.dropped + made.crowded + made.refused;
+
+		session.say("exported " + body.length + " bytes to " + name(named) + ", "
+			+ made.samples + " samples and " + made.struck + " converter hits across "
+			+ made.frames + " frames" + (lost == 0 ? "" : ", " + lost + " dropped"));
 		return named;
 	}
 
