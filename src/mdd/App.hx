@@ -960,6 +960,11 @@ class App {
 
 		commands();
 
+		if (exporting != null) exporting.session = session;
+		if (preferences != null) preferences.session = session;
+		if (notice != null) notice.session = session;
+		if (welcome != null) welcome.session = session;
+
 		session.transport.silence();
 		if (render != null) render.transport = session.transport;
 

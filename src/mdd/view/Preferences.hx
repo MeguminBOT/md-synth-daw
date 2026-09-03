@@ -38,7 +38,7 @@ final class Preferences extends Widget {
 	static final DENSITIES:Array<String> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
 		Locale.DENSITY_ROOMY];
 
-	public final session:Session;
+	public var session:Session;
 	public final languages:Array<String> = [];
 	public final spoken:Array<String> = [];
 

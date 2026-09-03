@@ -11,7 +11,7 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class Welcome extends Widget {
-	public final session:Session;
+	public var session:Session;
 	public final languages:Array<String> = Languages.shipped();
 
 	public var chosen(default, null):Int = 0;

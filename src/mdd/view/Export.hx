@@ -51,7 +51,7 @@ final class Export extends Widget {
 	static final CEILED:Array<String> = [Locale.EXPORT_OFF, "-0.1 dB", "-0.3 dB", "-1 dB",
 		"-3 dB"];
 
-	public final session:Session;
+	public var session:Session;
 	public final mixing:Mixing = new Mixing();
 
 	public final fields:Array<Field> = [];

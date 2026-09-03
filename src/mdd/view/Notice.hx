@@ -20,7 +20,7 @@ final class Notice extends Widget {
 	static final LABELS:Array<String> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,
 		Locale.UPDATE_NEVER];
 
-	public final session:Session;
+	public var session:Session;
 	public var update:Null<Update> = null;
 
 	public final rise:Motion;
