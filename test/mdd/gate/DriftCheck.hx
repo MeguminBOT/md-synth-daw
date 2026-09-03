@@ -112,6 +112,7 @@ class DriftCheck {
 
 		classes(source, made);
 		converter(source, made);
+		if (args.indexOf("--runs") >= 0) kindred(source);
 		kitted(song);
 		paced(source);
 		return 0;
@@ -1256,6 +1257,130 @@ class DriftCheck {
 		Sys.println("");
 		Sys.println("      " + many + " hits, " + seen.length + " of them naming a sample of"
 			+ " their own and " + reused + " reusing one");
+	}
+
+	static function kindred(source:Stream):Void {
+		final until = Tempo.TICKS * SECONDS;
+
+		final when:Array<Int> = [];
+		final bytes:Array<Int> = [];
+
+		var half = 0;
+		var address = -1;
+
+		for (index in 0...source.count) {
+			final at = source.tickAt(index);
+			if (at > until) break;
+			if (source.kindAt(index) != Stream.YM) continue;
+
+			final port = source.portAt(index);
+			final value = source.valueAt(index);
+
+			if ((port & 1) == 0) {
+				half = (port >> 1) & 1;
+				address = value;
+				continue;
+			}
+
+			if (half != 0 || address != 0x2A) continue;
+
+			when.push(at);
+			bytes.push(value);
+		}
+
+		if (when.length < 8) return;
+
+		final heads:Array<Int> = [];
+		final tails:Array<Int> = [];
+
+		var head = 0;
+
+		while (head < when.length) {
+			var last = head;
+			while (last + 1 < when.length && when[last + 1] - when[last] <= 256) last++;
+
+			if (last - head + 1 >= 128) {
+				heads.push(head);
+				tails.push(last);
+			}
+
+			head = last + 1;
+		}
+
+		Sys.println("");
+		Sys.println("    the file's own converter runs, byte for byte");
+		Sys.println("");
+
+		final most = heads.length < 12 ? heads.length : 12;
+
+		for (one in 0...most) {
+			var said = "      run " + StringTools.lpad("" + (one + 1), " ", 3) + "  "
+				+ StringTools.lpad("" + (tails[one] - heads[one] + 1), " ", 6)
+				+ " bytes   ";
+
+			for (two in 0...most) {
+				if (two == one) {
+					said += "    . ";
+					continue;
+				}
+
+				final wide = Std.int(Math.min(tails[one] - heads[one] + 1,
+					tails[two] - heads[two] + 1));
+
+				var total = 0;
+				for (step in 0...wide) {
+					final away = bytes[heads[one] + step] - bytes[heads[two] + step];
+					total += away < 0 ? -away : away;
+				}
+
+				said += StringTools.lpad("" + Math.round(total / wide), " ", 5) + " ";
+			}
+
+			Sys.println(said);
+		}
+
+		Sys.println("");
+		Sys.println("      the mean absolute difference between one run and another,"
+			+ " aligned at their starts");
+
+		Sys.println("");
+		Sys.println("    and how each run is paced against the one before it of its size");
+		Sys.println("");
+
+		for (one in 0...most) {
+			final wide = tails[one] - heads[one] + 1;
+
+			var twin = -1;
+			for (two in 0...one) {
+				if (tails[two] - heads[two] + 1 == wide) twin = two;
+			}
+
+			if (twin < 0) {
+				Sys.println("      run " + StringTools.lpad("" + (one + 1), " ", 3)
+					+ "  " + StringTools.lpad("" + wide, " ", 6)
+					+ " bytes   the first of its size");
+				continue;
+			}
+
+			var apart = 0;
+			var worst = 0;
+
+			for (step in 1...wide) {
+				final here = when[heads[one] + step] - when[heads[one] + step - 1];
+				final there = when[heads[twin] + step] - when[heads[twin] + step - 1];
+
+				if (here == there) continue;
+
+				apart++;
+				final away = here - there;
+				if ((away < 0 ? -away : away) > worst) worst = away < 0 ? -away : away;
+			}
+
+			Sys.println("      run " + StringTools.lpad("" + (one + 1), " ", 3) + "  "
+				+ StringTools.lpad("" + wide, " ", 6) + " bytes   against run "
+				+ (twin + 1) + ": " + apart + " of " + (wide - 1)
+				+ " gaps differ, worst by " + worst + " samples");
+		}
 	}
 
 	static function paced(source:Stream):Void {
