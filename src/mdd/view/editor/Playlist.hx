@@ -9,6 +9,7 @@ import mdd.song.edit.MoveClip;
 import mdd.song.edit.RemoveClip;
 import mdd.song.edit.RemoveTrack;
 import mdd.song.edit.SizeClip;
+import mdd.song.Part;
 import mdd.ui.Colour;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
@@ -31,6 +32,7 @@ final class Playlist extends Widget {
 	public var offsetX:Float = 0;
 	public var offsetY:Float = 0;
 
+	public var rowTall:Float = 0;
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Clip> = null;
 	public var painted(default, null):Int = 0;
@@ -39,6 +41,8 @@ final class Playlist extends Widget {
 
 	var chosenTrack:Int = -1;
 	var scrubbing:Bool = false;
+	var sizingRows:Int = -1;
+	var hoverEdge:Int = -1;
 	var dragging:Null<Clip> = null;
 	var sizing:Bool = false;
 	var grabTick:Int = 0;
@@ -55,9 +59,39 @@ final class Playlist extends Widget {
 		opaque = true;
 	}
 
+	public static inline final LEAST_ROW = 16;
+	public static inline final MOST_ROW = 180;
+
 	public function trackTall():Float {
 		final root = root();
-		return root == null ? 34 : root.metrics.row;
+		if (rowTall <= 0) return root == null ? 34 : root.metrics.row;
+
+		final least = root == null ? LEAST_ROW : root.metrics.whole(LEAST_ROW);
+		final most = root == null ? MOST_ROW : root.metrics.whole(MOST_ROW);
+
+		return rowTall < least ? least : (rowTall > most ? most : rowTall);
+	}
+
+	public function heighten(to:Float):Void {
+		final was = trackTall();
+
+		rowTall = to;
+		if (trackTall() == was) return;
+
+		scrollDown(offsetY);
+		invalidate();
+	}
+
+	public function rowEdgeAt(px:Float, py:Float):Int {
+		if (px < x || px >= x + names() || py < y + ruler()) return -1;
+
+		final tall = trackTall();
+		final which = Math.round((py - y - ruler() + offsetY) / tall) - 1;
+
+		if (which < 0 || which >= rows()) return -1;
+		if (Math.abs(atTrack(which) + tall - py) > edge() * 0.7) return -1;
+
+		return which;
 	}
 
 	public function names():Float {
@@ -188,6 +222,11 @@ final class Playlist extends Widget {
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.Wheel:
+				if ((event.ctrl() || event.alt()) && event.x < x + names()) {
+					heighten(trackTall() * (event.dy > 0 ? 1.15 : 0.87));
+					return true;
+				}
+
 				if (event.ctrl() || event.alt()) {
 					zoom(event.dy > 0 ? 1.25 : 0.8, event.x);
 					return true;
@@ -216,6 +255,13 @@ final class Playlist extends Widget {
 					return true;
 				}
 
+				final held = rowEdgeAt(event.x, event.y);
+
+				if (held >= 0 && event.button == Pointer.Left) {
+					sizingRows = held;
+					return true;
+				}
+
 				return pressed(event);
 
 			case Kind.PointerMove:
@@ -224,9 +270,21 @@ final class Playlist extends Widget {
 					return true;
 				}
 
+				if (sizingRows >= 0) {
+					heighten((event.y - y - ruler() + offsetY) / (sizingRows + 1));
+					return true;
+				}
+
 				if (scrubbing) {
 					scrubbed(event.x);
 					return true;
+				}
+
+				final edging = rowEdgeAt(event.x, event.y);
+
+				if (edging != hoverEdge) {
+					hoverEdge = edging;
+					invalidate();
 				}
 
 				final which = trackAt(event.y);
@@ -253,6 +311,11 @@ final class Playlist extends Widget {
 			case Kind.PointerUp:
 				if (reining != 0) {
 					reining = 0;
+					return true;
+				}
+
+				if (sizingRows >= 0) {
+					sizingRows = -1;
 					return true;
 				}
 
@@ -672,10 +735,74 @@ final class Playlist extends Widget {
 
 				if (wide < metrics.whole(24)) continue;
 
+				final inset = metrics.whole(2);
+				final body = tall - 5 - inset * 2;
+
 				paint.pushClip(at, row + 2, wide - metrics.unit, tall - 5);
+
+				if (pattern != null && body >= metrics.whole(4)) {
+					inked(paint, metrics, pattern, clip, colour.sink(0.5), at,
+						row + 2 + inset, wide, body);
+				}
+
 				paint.text(said + tail, at + metrics.unit,
-					row + 2 + (tall - 5 - font.height) * 0.5 + font.ascent, theme.sink);
+					row + 2 + (tall - 5 - font.height) * 0.5 + font.ascent, colour.sink(0.72));
 				paint.popClip();
+			}
+		}
+	}
+
+	static inline final MOST_NOTES = 2048;
+
+	function inked(paint:Paint, metrics:Metrics, pattern:mdd.song.Pattern, clip:Clip,
+			ink:Colour, left:Float, top:Float, wide:Float, tall:Float):Void {
+		var low = 128;
+		var high = -1;
+		var counted = 0;
+
+		for (index in 0...Part.COUNT) {
+			for (note in pattern.lanes[index].notes) {
+				if (note.at >= clip.length) continue;
+
+				if (note.pitch < low) low = note.pitch;
+				if (note.pitch > high) high = note.pitch;
+				counted++;
+			}
+		}
+
+		if (counted == 0 || high < low) return;
+
+		if (high - low < 6) {
+			final middle = (high + low) >> 1;
+			low = middle - 3;
+			high = middle + 3;
+		}
+
+		final span = high - low + 1;
+		final hair = tall / span;
+		final thick = hair < 1 ? 1 : (hair > metrics.whole(3) ? metrics.whole(3) : hair);
+		final least = metrics.whole(1);
+
+		var drawn = 0;
+
+		for (index in 0...Part.COUNT) {
+			for (note in pattern.lanes[index].notes) {
+				if (note.at >= clip.length) continue;
+				if (drawn >= MOST_NOTES) return;
+
+				var length = note.length;
+				if (note.at + length > clip.length) length = clip.length - note.at;
+
+				final from = left + note.at * perTick;
+				var run = length * perTick;
+				if (run < least) run = least;
+
+				if (from > left + wide) continue;
+
+				final seat = top + (high - note.pitch) * hair;
+
+				paint.rect(from, seat, run, thick, ink, 0.85);
+				drawn++;
 			}
 		}
 	}
@@ -704,7 +831,11 @@ final class Playlist extends Widget {
 				paint.rect(x, row, wide, tall - hair, theme.accent, Theme.HOVER);
 			}
 
-			paint.rect(x, row + tall - hair, wide, hair, theme.frame, 0.5);
+			if (which == hoverEdge || which == sizingRows) {
+				paint.rect(x, row + tall - hair * 2, wide, hair * 3, theme.accent, 0.9);
+			} else {
+				paint.rect(x, row + tall - hair, wide, hair, theme.frame, 0.5);
+			}
 
 			if (held == null) {
 				paint.reface(small);
