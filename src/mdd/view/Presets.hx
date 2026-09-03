@@ -47,13 +47,25 @@ final class Presets extends Widget {
 		final at = held.indexOf(item);
 		if (at < 0) return;
 
-		final part = session.part.index();
-		if (session.song.rack[part] == named[at]) return;
+		final which = named[at];
+		final instrument = session.song.instrumentAt(which);
+		if (instrument == null) return;
 
-		session.song.rack[part] = named[at];
-		session.say("loaded " + session.song.instruments[named[at]].name + " into "
-			+ session.part.name());
-		session.changed();
+		final part = wanted(instrument);
+
+		session.does(new mdd.song.edit.SetInstrument(part, which));
+		session.say("loaded " + instrument.name + " into " + part.name());
+	}
+
+	function wanted(instrument:Instrument):Part {
+		if (suits(instrument, session.part)) return session.part;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			if (suits(instrument, part)) return part;
+		}
+
+		return session.part;
 	}
 
 	function preset(item:Item, px:Float, py:Float):Void {
@@ -164,6 +176,8 @@ final class Presets extends Widget {
 		return at < 0 ? -1 : named[at];
 	}
 
+	static final KINDS:Array<Part> = [Part.Fm1, Part.Psg1, Part.Noise, Part.Dac];
+
 	public function fit():Void {
 		tree.clear();
 
@@ -176,34 +190,46 @@ final class Presets extends Widget {
 		banks = 0;
 
 		final song = session.song;
-		final part = session.part;
-		final chosen = song.rack[part.index()];
+		final chosen = song.rack[session.part.index()];
 		final from = translate(Locale.PANEL_FROM_IMPORT);
 		final root = root();
 		final warned = root == null ? -1 : (root.theme.warn : Int);
 
-		for (at in 0...song.banks.length) {
-			final bank = song.banks[at];
+		for (kind in KINDS) {
 			final holds:Array<Int> = [];
+			final owner:Array<Int> = [];
 
-			for (index in bank.instruments) {
-				final instrument = song.instrumentAt(index);
-				if (instrument == null || !suits(instrument, part)) continue;
+			for (at in 0...song.banks.length) {
+				for (index in song.banks[at].instruments) {
+					final instrument = song.instrumentAt(index);
+					if (instrument == null || !suits(instrument, kind)) continue;
+					if (holds.indexOf(index) >= 0) continue;
 
-				holds.push(index);
+					holds.push(index);
+					owner.push(at);
+				}
 			}
 
 			if (holds.length == 0) continue;
 
-			final badge = bank.kept || bank.name.indexOf(from) >= 0 ? "" : "   " + from;
-			final head = new Item(bank.name + badge, bank.kept ? -1 : warned);
+			var loose = false;
+			for (at in owner) if (!song.banks[at].kept) loose = true;
+
+			final head = new Item(kind.family() + "   " + holds.length,
+				loose ? warned : -1);
 
 			heads.push(head);
-			banked.push(at);
+			banked.push(owner[0]);
 
-			for (index in holds) {
-				final child = head.add(new Item(song.instruments[index].name,
-					Theme.PARTS[part.index()]));
+			for (place in 0...holds.length) {
+				final index = holds[place];
+				final bank = song.banks[owner[place]];
+
+				final badge = song.banks.length < 2 ? ""
+					: "   " + (bank.kept ? bank.name : from);
+
+				final child = head.add(new Item(song.instruments[index].name + badge,
+					Theme.PARTS[kind.index()]));
 
 				named.push(index);
 				held.push(child);
@@ -246,8 +272,8 @@ final class Presets extends Widget {
 
 		paint.rect(x, y, width, height, theme.panel);
 
-		Panel.titled(paint, theme, metrics, session.part.name() + " "
-			+ translate(Locale.PANEL_PATCHES), x, y, width, top);
+		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_PATCHES),
+			x, y, width, top);
 
 		paint.reface(font);
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,

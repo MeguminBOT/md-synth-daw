@@ -441,9 +441,11 @@ class SpineCheck {
 
 		final psgListed = editor.presets.listed;
 
-		says("the bank follows the part", fmListed == 16 && dacListed == 1 && psgListed == 6,
-			"an FM channel sees " + fmListed + " patches in " + fmBanks + " bank, the converter "
-			+ dacListed + " and a square " + psgListed + ", filtered by what the part is");
+		says("the bank holds every kind", fmListed == dacListed && fmListed == psgListed
+			&& fmBanks == 4 && fmListed > 16,
+			fmListed + " patches under " + fmBanks + " kinds, the same list whichever"
+			+ " channel is chosen: " + fmListed + " on an fm part, " + dacListed
+			+ " on the converter and " + psgListed + " on a square");
 
 		session.choose(Part.Dac);
 		editor.show(Inspector.CHANNEL);

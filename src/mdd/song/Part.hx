@@ -35,6 +35,14 @@ enum abstract Part(Int) from Int to Int {
 		return this;
 	}
 
+	public function family():String {
+		if (fm()) return "FM";
+		if (square()) return "PSG";
+		if (noise()) return "NOISE";
+
+		return "DAC";
+	}
+
 	public function name():String {
 		return switch (cast this : Part) {
 			case Fm1: "FM1";
