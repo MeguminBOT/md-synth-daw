@@ -97,6 +97,7 @@ final class Patterns extends Scroll {
 		if (from == null) return;
 
 		final made = new Pattern(from.name + " 2", from.length, from.colour);
+		made.part = from.part;
 
 		session.holds();
 
@@ -249,6 +250,7 @@ final class Patterns extends Scroll {
 
 	function colour(held:Pattern, at:Int):Int {
 		if (held.colour >= 0) return held.colour;
+		if (held.part >= 0 && held.part < Theme.PARTS.length) return Theme.PARTS[held.part];
 		return Theme.PARTS[at % Theme.PARTS.length];
 	}
 

@@ -1,8 +1,9 @@
-package mdd.host;
+package mdd.app;
 
 import haxe.atomic.AtomicInt;
 import mdd.format.Json;
 import mdd.format.Node;
+import mdd.host.Paths;
 
 @:unreflective
 final class Update {

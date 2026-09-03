@@ -700,25 +700,25 @@ class UiCheck {
 
 		for (pair in [["0.2.0", "0.1.9"], ["1.0.0", "0.9.9"], ["0.1.10", "0.1.9"],
 				["1.2.3", "1.2.2"]]) {
-			if (!mdd.host.Update.newer(pair[0], pair[1])) right = false;
+			if (!mdd.app.Update.newer(pair[0], pair[1])) right = false;
 		}
 
 		for (pair in [["0.1.0", "0.1.0"], ["0.1.0", "0.2.0"], ["0.9.9", "1.0.0"],
 				["1.2.2", "1.2.3"]]) {
-			if (mdd.host.Update.newer(pair[0], pair[1])) right = false;
+			if (mdd.app.Update.newer(pair[0], pair[1])) right = false;
 		}
 
 		says("a version is compared in parts", right,
 			"0.1.10 is newer than 0.1.9 and 0.9.9 is not newer than 1.0.0, which string order "
 			+ "gets wrong both ways");
 
-		final quiet = new mdd.host.Update("", "0.1.0", "windows");
+		final quiet = new mdd.app.Update("", "0.1.0", "windows");
 
 		says("no repository means no looking", !quiet.possible() && !quiet.look()
-			&& quiet.state() == mdd.host.Update.IDLE,
+			&& quiet.state() == mdd.app.Update.IDLE,
 			"an updater with no repository configured never reaches the network");
 
-		final held = new mdd.host.Update("MeguminBOT/md-synth-daw", "0.1.0", "windows");
+		final held = new mdd.app.Update("MeguminBOT/md-synth-daw", "0.1.0", "windows");
 
 		says("it reads github releases", held.checkAt()
 			== "https://api.github.com/repos/MeguminBOT/md-synth-daw/releases/latest",
@@ -738,7 +738,7 @@ class UiCheck {
 		says("and takes the first line of the notes", held.notes == "Faster import",
 			"the release body's first line is what the notice shows: " + held.notes);
 
-		final bare = new mdd.host.Update("owner/name", "0.1.0", "mac");
+		final bare = new mdd.app.Update("owner/name", "0.1.0", "mac");
 		bare.read('{"tag_name":"0.2.0","html_url":"https://example/page","assets":[]}');
 
 		says("and falls back to the release page", bare.offered == "0.2.0"

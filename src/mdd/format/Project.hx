@@ -271,6 +271,8 @@ class Project {
 		out.text(pattern.name);
 		out.key("colour");
 		out.whole(pattern.colour);
+		out.key("part");
+		out.whole(pattern.part);
 		out.key("length");
 		out.whole(pattern.length);
 		out.key("lanes");
@@ -499,6 +501,8 @@ class Project {
 	static function readPattern(node:Node):Pattern {
 		final pattern = new Pattern(node.get("name").saying(""), node.get("length").whole(384),
 			node.get("colour").whole(-1));
+
+		pattern.part = node.get("part").whole(-1);
 
 		final lanes = node.get("lanes");
 

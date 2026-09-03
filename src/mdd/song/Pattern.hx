@@ -7,6 +7,7 @@ final class Pattern {
 	public var name:String;
 	public var colour:Int;
 	public var length:Int;
+	public var part:Int = -1;
 
 	public final lanes:Vector<Lane> = new Vector<Lane>(Part.COUNT);
 

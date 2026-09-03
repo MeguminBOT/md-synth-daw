@@ -852,8 +852,8 @@ final class Transcription {
 			final lane = source.lane(part);
 			if (lane.notes.length == 0 && !moves(lane)) continue;
 
-			final made = song.add(new Pattern(part.name(), length,
-				mdd.ui.Theme.PARTS[index]));
+			final made = song.add(new Pattern(part.name(), length));
+			made.part = index;
 
 			for (note in lane.notes) made.lane(part).add(note);
 			for (line in lane.automation) made.lane(part).automation.push(line);

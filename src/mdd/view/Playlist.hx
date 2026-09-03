@@ -652,8 +652,9 @@ final class Playlist extends Widget {
 				painted++;
 
 				final pattern = session.song.patternAt(clip.pattern);
-				final colour = pattern != null && pattern.colour >= 0
-					? new Colour(pattern.colour)
+				final colour = pattern == null ? theme.part(clip.pattern % 11)
+					: pattern.colour >= 0 ? new Colour(pattern.colour)
+					: pattern.part >= 0 ? theme.part(pattern.part)
 					: theme.part(clip.pattern % 11);
 
 				paint.roundedRect(at, row + 2, wide, tall - 5, metrics.radiusSmall, colour,

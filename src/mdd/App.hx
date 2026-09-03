@@ -9,7 +9,7 @@ import mdd.host.Instance;
 import mdd.host.Native;
 import mdd.host.Paths;
 import mdd.host.Settings;
-import mdd.host.Update;
+import mdd.app.Update;
 import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;

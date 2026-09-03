@@ -1,6 +1,6 @@
 package mdd.view;
 
-import mdd.host.Update;
+import mdd.app.Update;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
