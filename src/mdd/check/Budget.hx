@@ -14,6 +14,8 @@ final class Budget {
 	public final found:Array<Diagnostic> = [];
 	public final troubles:Array<Note> = [];
 
+	public static inline final FRAMES = 60;
+
 	public final busy:Vector<Int> = new Vector<Int>(Part.COUNT);
 
 	public var operators(default, null):Int = 0;
@@ -163,14 +165,41 @@ final class Budget {
 	public function overStream(stream:Stream):Int {
 		clear();
 
+		final frame = Std.int(mdd.song.Tempo.TICKS / FRAMES);
+
 		var half = 0;
 		var address = -1;
+
+		var frameAt = 0;
+		var written = 0;
+		var said = false;
 
 		for (index in 0...stream.count) {
 			final kind = stream.kindAt(index);
 			final port = stream.portAt(index);
 			final value = stream.valueAt(index);
 			final at = stream.tickAt(index);
+
+			while (at >= frameAt + frame) {
+				frameAt += frame;
+				written = 0;
+				said = false;
+			}
+
+			if (kind == Stream.PSG || (port & 1) != 0) {
+				if (kind == Stream.PSG || address != 0x2A) written++;
+			}
+
+			if (profile.perFrame > 0 && written > profile.perFrame && !said
+					&& frameAt > 0) {
+				said = true;
+
+				raise(Diagnostic.WARNING, halfPart(half, address < 0 ? 0x40 : address),
+					frameAt, "a frame writes more than a driver can",
+					written + " registers in one frame, against the " + profile.perFrame
+					+ " the busiest frame of a shipped game does",
+					"thin the automation out, or spread it over more frames");
+			}
 
 			if (kind == Stream.PSG) {
 				if (profile.carries(Part.Psg1)) continue;

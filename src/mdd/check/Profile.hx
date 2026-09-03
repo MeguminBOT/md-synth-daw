@@ -15,6 +15,8 @@ final class Profile {
 	public var lowestFm:Int = 12;
 	public var highestFm:Int = 107;
 	public var sampleBytes:Int = 262144;
+	public var perFrame:Int = 0;
+	public static inline final MD_PER_FRAME = 141;
 
 	public function new(name:String) {
 		this.name = name;
@@ -40,6 +42,8 @@ final class Profile {
 	public static function megaDrive():Profile {
 		final profile = new Profile("Mega Drive");
 		for (i in 0...Part.COUNT) profile.has[i] = true;
+
+		profile.perFrame = MD_PER_FRAME;
 		return profile;
 	}
 

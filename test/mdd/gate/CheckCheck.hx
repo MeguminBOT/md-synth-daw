@@ -32,6 +32,7 @@ class CheckCheck {
 		ranges();
 		registers();
 		speed();
+		crowded();
 		scales();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -190,6 +191,113 @@ class CheckCheck {
 
 		says("a key on that is not there", keys > 0,
 			keys + " key ons name a channel it does not have");
+	}
+
+	static function crowded():Void {
+		final where = Gate.root + "/vendor/vgm";
+
+		if (!sys.FileSystem.isDirectory(where)) {
+			says("a frame holds only so many writes", true,
+				"no corpus beside the build to measure against");
+			return;
+		}
+
+		final counts = new haxe.ds.Vector<Int>(1024);
+		for (index in 0...counts.length) counts[index] = 0;
+
+		var most = 0;
+		var mostIn = "";
+		var settled = 0;
+		var settledIn = "";
+		var frames = 0;
+		var files = 0;
+
+		for (name in sys.FileSystem.readDirectory(where)) {
+			if (!StringTools.endsWith(name.toLowerCase(), ".vgm")) continue;
+
+			final stream = new mdd.play.Stream(1 << 22);
+			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+			files++;
+
+			final frame = Std.int(mdd.song.Tempo.TICKS / 60);
+			var at = 0;
+			var index = 0;
+			var address = -1;
+
+			while (index < stream.count) {
+				var many = 0;
+
+				while (index < stream.count && stream.tickAt(index) < at + frame) {
+					if (stream.kindAt(index) == mdd.play.Stream.PSG) many++;
+					else if ((stream.portAt(index) & 1) == 0) {
+						address = stream.valueAt(index);
+					} else if (address != 0x2A) many++;
+
+					index++;
+				}
+
+				frames++;
+				if (many < counts.length) counts[many]++;
+
+				if (many > most) {
+					most = many;
+					mostIn = name;
+				}
+
+				if (at >= frame * 60 && many > settled) {
+					settled = many;
+					settledIn = name;
+				}
+
+				at += frame;
+			}
+		}
+
+		var ninety = 0;
+		var seen = 0;
+
+		for (many in 0...counts.length) {
+			seen += counts[many];
+			if (seen * 1000 >= frames * 999) {
+				ninety = many;
+				break;
+			}
+		}
+
+		Sys.println("    " + files + " files, " + frames + " frames: the busiest writes "
+			+ most + " registers, in " + mostIn + "; past the first second the busiest is "
+			+ settled + ", in " + settledIn + "; 99.9 per cent of frames write "
+			+ ninety + " or fewer");
+
+		final busy = new mdd.play.Stream(1 << 14);
+		final ceiling = mdd.check.Profile.megaDrive().perFrame;
+
+		for (step in 0...ceiling * 2) {
+			busy.ym(mdd.song.Tempo.TICKS, 0, 0x40, step & 0x7F);
+		}
+
+		final loud = new Budget(mdd.check.Profile.megaDrive());
+		loud.overStream(busy);
+
+		final quiet = new mdd.play.Stream(1 << 14);
+
+		for (step in 0...Std.int(ceiling / 2)) {
+			quiet.ym(mdd.song.Tempo.TICKS, 0, 0x40, step & 0x7F);
+		}
+
+		final calm = new Budget(mdd.check.Profile.megaDrive());
+		calm.overStream(quiet);
+
+		says("and says so when one does not", loud.warnings() == 1 && calm.warnings() == 0,
+			(ceiling * 2) + " writes in one frame raises " + loud.warnings()
+			+ " warning and " + Std.int(ceiling / 2) + " raises " + calm.warnings());
+
+		says("a frame holds only so many writes",
+			mdd.check.Profile.megaDrive().perFrame == settled,
+			"the profile allows " + mdd.check.Profile.megaDrive().perFrame
+			+ " register writes a frame, which is the busiest frame any of these games"
+			+ " sustains once it is playing; the " + most + " in " + mostIn
+			+ " is its opening burst, before anything sounds");
 	}
 
 	static function scales():Void {
