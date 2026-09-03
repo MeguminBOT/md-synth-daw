@@ -29,6 +29,7 @@ class AutomationCheck {
 		bent();
 		repeated();
 		played();
+		named();
 		kept();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -244,6 +245,75 @@ class AutomationCheck {
 	static function every(held:Array<Int>):Bool {
 		for (index in 1...held.length) if (held[index] == held[index - 1]) return false;
 		return true;
+	}
+
+	static function named():Void {
+		var many = 0;
+		var packed = 0;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final held = mdd.view.Parameter.of(part);
+
+			many += held.length;
+
+			for (one in held) {
+				if (one.smooth) continue;
+				packed++;
+			}
+		}
+
+		final fm = mdd.view.Parameter.of(Part.Fm1).length;
+		final square = mdd.view.Parameter.of(Part.Psg1).length;
+		final noise = mdd.view.Parameter.of(Part.Noise).length;
+		final sampled = mdd.view.Parameter.of(Part.Dac).length;
+
+		says("every part says what can be automated on it",
+			fm == 10 && square == 2 && noise == 2 && sampled == 1 && packed == 44,
+			many + " parameters over the eleven parts: " + fm + " on an fm channel, "
+			+ square + " on a square, " + noise + " on the noise and " + sampled
+			+ " on the converter. " + packed + " of them are registers carrying more than"
+			+ " one setting, where a ramp would run one field into another, so they step");
+
+		final where = Gate.root + "/vendor/vgm";
+		if (!sys.FileSystem.isDirectory(where)) return;
+
+		var name = "";
+		for (held in sys.FileSystem.readDirectory(where)) {
+			if (held.indexOf("Green Hill") >= 0) name = held;
+		}
+
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		var lines = 0;
+		var known = 0;
+		final missing = new StringBuf();
+
+		for (pattern in song.patterns) {
+			for (index in 0...Part.COUNT) {
+				final part:Part = index;
+
+				for (line in pattern.lane(part).automation) {
+					lines++;
+
+					if (mdd.view.Parameter.found(part, line.target, line.slot) != null) {
+						known++;
+						continue;
+					}
+
+					missing.add(part.name() + " target " + line.target + "  ");
+				}
+			}
+		}
+
+		says("and covers everything an import writes", lines > 0 && known == lines,
+			known + " of " + lines + " automation lines an imported file makes have a"
+			+ " parameter that names them"
+			+ (missing.toString() == "" ? "" : ", missing " + missing.toString()));
 	}
 
 	static function kept():Void {

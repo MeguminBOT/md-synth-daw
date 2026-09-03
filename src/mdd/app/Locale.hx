@@ -74,6 +74,22 @@ class Locale {
 	public static inline final LANE_AUTOMATION = "lane.automation";
 	public static inline final LANE_EMPTY = "lane.empty";
 
+	public static inline final PARAM_LEVEL = "param.level";
+	public static inline final PARAM_ATTENUATION = "param.attenuation";
+	public static inline final PARAM_FREQUENCY = "param.frequency";
+	public static inline final PARAM_PERIOD = "param.period";
+	public static inline final PARAM_SIDES = "param.sides";
+	public static inline final PARAM_TIMBRE = "param.timbre";
+	public static inline final PARAM_ATTACK = "param.attack";
+	public static inline final PARAM_DECAY = "param.decay";
+	public static inline final PARAM_SUSTAIN = "param.sustain";
+	public static inline final PARAM_RELEASE = "param.release";
+	public static inline final PARAM_LOOP = "param.loop";
+	public static inline final PARAM_WIRING = "param.wiring";
+	public static inline final PARAM_NOISE = "param.noise";
+	public static inline final PARAM_CONVERTER = "param.converter";
+	public static inline final PARAM_PACKED = "param.packed";
+
 	public static inline final REGISTERS_NOTHING = "registers.nothing";
 	public static inline final REGISTERS_COPY = "registers.copy";
 	public static inline final REGISTERS_AS_VGM = "registers.asVgm";
@@ -342,6 +358,9 @@ class Locale {
 		PRESET_ALREADY,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		LANE_EMPTY,
+		PARAM_LEVEL, PARAM_ATTENUATION, PARAM_FREQUENCY, PARAM_PERIOD, PARAM_SIDES,
+		PARAM_TIMBRE, PARAM_ATTACK, PARAM_DECAY, PARAM_SUSTAIN, PARAM_RELEASE,
+		PARAM_LOOP, PARAM_WIRING, PARAM_NOISE, PARAM_CONVERTER, PARAM_PACKED,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
 		REGISTERS_COPY, REGISTERS_AS_VGM, REGISTERS_NO_ROW, REGISTERS_HOLD,
 		REGISTERS_FOLLOW, REGISTERS_FORGET,
