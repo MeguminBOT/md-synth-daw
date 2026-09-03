@@ -371,7 +371,7 @@ class StreamCheck {
 	}
 
 	static function raced():Void {
-		final session = mdd.view.Session.started();
+		final session = mdd.app.Session.started();
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 		render.transport = session.transport;

@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.app;
 
 import haxe.ds.Vector;
 import mdd.format.Midi;

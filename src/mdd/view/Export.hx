@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.play.Mixing;
 import mdd.ui.Input;
 import mdd.ui.Key;

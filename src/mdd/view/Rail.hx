@@ -1,5 +1,6 @@
 package mdd.view;
 
+import mdd.app.Session;
 import mdd.ui.Paint;
 import mdd.ui.Widget;
 

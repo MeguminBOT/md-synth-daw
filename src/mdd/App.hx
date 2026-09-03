@@ -32,14 +32,14 @@ import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.control.MenuBar;
 import mdd.view.Dock;
-import mdd.view.Files;
+import mdd.app.Files;
 import mdd.view.Inspector;
 import mdd.view.Notice;
 import mdd.view.Preferences;
 import mdd.view.Rail;
-import mdd.view.Session;
-import mdd.view.Locale;
-import mdd.view.Languages;
+import mdd.app.Session;
+import mdd.app.Locale;
+import mdd.app.Languages;
 import mdd.view.TransportBar;
 import mdd.view.Welcome;
 

@@ -23,7 +23,7 @@ import mdd.view.ChannelRack;
 import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.PianoRoll;
-import mdd.view.Session;
+import mdd.app.Session;
 import mdd.view.Tracker;
 import mdd.view.TransportBar;
 
@@ -57,7 +57,7 @@ class SpineCheck {
 		return 0;
 	}
 
-	static function sized(roll:mdd.view.PianoRoll, session:mdd.view.Session):Void {
+	static function sized(roll:mdd.view.PianoRoll, session:mdd.app.Session):Void {
 		final pattern = session.current();
 		if (pattern == null) return;
 
@@ -87,7 +87,7 @@ class SpineCheck {
 			"the last few pixels of a note resize it and the middle of it does not");
 	}
 
-	static function sheeted(tree:Root, session:mdd.view.Session):Void {
+	static function sheeted(tree:Root, session:mdd.app.Session):Void {
 		final held = new mdd.view.Preferences(session);
 
 		held.speaks(["en-GB", "en-US"], "en-GB");
@@ -113,10 +113,10 @@ class SpineCheck {
 			"a press on the scrim lowers the sheet");
 	}
 
-	static function dragged(tree:Root, roll:mdd.view.PianoRoll, session:mdd.view.Session,
+	static function dragged(tree:Root, roll:mdd.view.PianoRoll, session:mdd.app.Session,
 			centre:Centre, paint:Paint, renderer:cpp.Star<Canvas>):Void {
 		centre.show(Centre.ROLL);
-		session.uses(mdd.view.Session.SELECT);
+		session.uses(mdd.app.Session.SELECT);
 
 		final pattern = session.current();
 		if (pattern == null) return;
@@ -247,7 +247,7 @@ class SpineCheck {
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme());
 
-		mdd.view.Languages.speak(tree.translation, "en-GB");
+		mdd.app.Languages.speak(tree.translation, "en-GB");
 
 		tree.flow = mdd.ui.Flow.None;
 		tree.resize(1440, 900);

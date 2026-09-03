@@ -13,8 +13,8 @@ import mdd.song.Note;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
-import mdd.view.Files;
-import mdd.view.Session;
+import mdd.app.Files;
+import mdd.app.Session;
 
 @:unreflective
 class TierCheck {

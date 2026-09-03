@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.edit.AddClip;
 import mdd.song.edit.AddTrack;
 import mdd.song.Clip;

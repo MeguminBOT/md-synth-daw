@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.Tempo;
 import mdd.song.edit.SetTempo;
 import mdd.ui.Input;

@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.Instrument;
 import mdd.song.Part;
 import mdd.ui.Input;

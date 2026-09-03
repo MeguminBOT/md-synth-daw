@@ -1,6 +1,7 @@
 package mdd.view;
 
 import haxe.ds.Vector;
+import mdd.app.Session;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.ui.Colour;

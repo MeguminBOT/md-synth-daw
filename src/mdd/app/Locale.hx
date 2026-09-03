@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.app;
 
 class Locale {
 	public static inline final APP = "app";

@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.edit.AddNote;
 import mdd.song.Note;
 import mdd.song.Part;

@@ -1,5 +1,8 @@
 package mdd.view;
 
+import mdd.app.Languages;
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.ui.Flow;
 import mdd.ui.Input;
 import mdd.ui.Kind;

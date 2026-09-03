@@ -1,8 +1,8 @@
 package mdd.gate;
 
 import mdd.ui.Translation;
-import mdd.view.Languages;
-import mdd.view.Locale;
+import mdd.app.Languages;
+import mdd.app.Locale;
 
 @:unreflective
 class LangCheck {

@@ -15,7 +15,7 @@ import mdd.view.Centre;
 import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.Rail;
-import mdd.view.Session;
+import mdd.app.Session;
 import mdd.view.TransportBar;
 
 @:unreflective
@@ -93,7 +93,7 @@ class ShotCheck {
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme(theme));
 
-		mdd.view.Languages.speak(tree.translation, "en-GB");
+		mdd.app.Languages.speak(tree.translation, "en-GB");
 
 		tree.flow = Flow.None;
 		tree.resize(wide, tall);
@@ -179,7 +179,7 @@ class ShotCheck {
 		if (sheet == "preferences") {
 			final held = new mdd.view.Preferences(session);
 
-			held.speaks(mdd.view.Languages.shipped(), "en-GB");
+			held.speaks(mdd.app.Languages.shipped(), "en-GB");
 			tree.raise(held);
 			held.arrive();
 			held.rise.hold(1);

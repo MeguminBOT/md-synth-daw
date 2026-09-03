@@ -207,7 +207,7 @@ class AudioCheck {
 	}
 
 	static function auditioned():Void {
-		final session = mdd.view.Session.started();
+		final session = mdd.app.Session.started();
 		final render = new Render(RATE, Render.BLOCK);
 
 		render.transport = session.transport;

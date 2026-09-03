@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.Pattern;
 import mdd.song.Part;
 import mdd.song.edit.AddPattern;

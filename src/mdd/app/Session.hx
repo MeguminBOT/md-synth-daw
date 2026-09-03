@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.app;
 
 import mdd.check.Diagnostic;
 import mdd.play.Polyphony;

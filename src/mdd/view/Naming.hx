@@ -1,5 +1,6 @@
 package mdd.view;
 
+import mdd.app.Locale;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;

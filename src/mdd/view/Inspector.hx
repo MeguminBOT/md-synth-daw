@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Widget;

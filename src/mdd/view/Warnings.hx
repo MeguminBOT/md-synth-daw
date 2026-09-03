@@ -1,5 +1,7 @@
 package mdd.view;
 
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.check.Budget;
 import mdd.check.Diagnostic;
 import mdd.ui.Input;

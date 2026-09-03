@@ -17,7 +17,7 @@ import mdd.view.Centre;
 import mdd.view.ChannelRack;
 import mdd.view.Dock;
 import mdd.view.Inspector;
-import mdd.view.Session;
+import mdd.app.Session;
 import mdd.view.TransportBar;
 
 @:unreflective

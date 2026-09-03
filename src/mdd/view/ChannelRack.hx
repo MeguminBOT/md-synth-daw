@@ -1,6 +1,8 @@
 package mdd.view;
 
 import haxe.ds.Vector;
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.song.Part;
 import mdd.ui.control.Choice;
 import mdd.ui.Colour;

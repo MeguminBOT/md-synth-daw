@@ -266,8 +266,8 @@ class MixCheck {
 		final into = Gate.root + "/export/exported";
 		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
 
-		final session = new mdd.view.Session(song);
-		final files = new mdd.view.Files(session);
+		final session = new mdd.app.Session(song);
+		final files = new mdd.app.Files(session);
 
 		files.mixing.kind = Mixing.WAV;
 		files.mixing.rate = 44100;
@@ -326,7 +326,7 @@ class MixCheck {
 			round(reopened, 1) + " s after a save and a load, against " + round(want, 1)
 			+ " s before");
 
-		final fresh = mdd.view.Session.started().song;
+		final fresh = mdd.app.Session.started().song;
 		final blank = fresh.tempo.samplesAt(fresh.ends()) / mdd.song.Tempo.TICKS;
 
 		says("a new document has somewhere to write",

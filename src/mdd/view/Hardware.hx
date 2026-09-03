@@ -1,6 +1,8 @@
 package mdd.view;
 
 import haxe.ds.Vector;
+import mdd.app.Locale;
+import mdd.app.Session;
 import mdd.check.Budget;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
