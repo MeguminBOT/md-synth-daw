@@ -1343,6 +1343,9 @@ class DriftCheck {
 		Sys.println("      the mean absolute difference between one run and another,"
 			+ " aligned at their starts");
 
+		twinned(when, bytes, heads, tails, most);
+		stalled(when, heads, tails, most);
+
 		Sys.println("");
 		Sys.println("    and how each run is paced against the one before it of its size");
 		Sys.println("");
@@ -1381,6 +1384,215 @@ class DriftCheck {
 				+ (twin + 1) + ": " + apart + " of " + (wide - 1)
 				+ " gaps differ, worst by " + worst + " samples");
 		}
+	}
+
+	static function pealed(when:Array<Int>, bytes:Array<Int>, head:Int, last:Int,
+			rate:Int):Stream {
+		final out = new Stream(1 << 16);
+
+		out.ym(0, 0, 0x2B, 0x80);
+
+		if (rate > 0) {
+			final step = Tempo.TICKS / rate;
+
+			for (index in head...last + 1) {
+				out.ym(Math.round((index - head) * step), 0, 0x2A, bytes[index]);
+			}
+
+			return out;
+		}
+
+		for (index in head...last + 1) {
+			out.ym(when[index] - when[head], 0, 0x2A, bytes[index]);
+		}
+
+		return out;
+	}
+
+	static function rung(stream:Stream, frames:Int, into:Vector<Float>):Void {
+		final render = new Render(44100, Render.BLOCK);
+
+		var done = 0;
+
+		while (done < frames) {
+			final many = render.serve(stream, done, Render.BLOCK, 0);
+			if (many <= 0) break;
+
+			for (index in 0...many) {
+				if (done + index >= frames) break;
+				into[done + index] = render.block[index * 2];
+			}
+
+			done += many;
+		}
+	}
+
+	static function tallied(one:Vector<Float>, two:Vector<Float>, frames:Int):Float {
+		var left = 0.0;
+		var right = 0.0;
+		var both = 0.0;
+
+		for (index in 0...frames) {
+			left += one[index] * one[index];
+			right += two[index] * two[index];
+			both += one[index] * two[index];
+		}
+
+		if (left <= 0 || right <= 0) return 1;
+
+		return both / Math.sqrt(left * right);
+	}
+
+	static function stalled(when:Array<Int>, heads:Array<Int>, tails:Array<Int>,
+			most:Int):Void {
+		Sys.println("");
+		Sys.println("    where a run stops writing, and how far apart those stops are");
+		Sys.println("");
+
+		final held = most < 4 ? most : 4;
+
+		for (one in 0...held) {
+			final gaps:Array<Int> = [];
+			for (index in heads[one] + 1...tails[one] + 1) {
+				gaps.push(when[index] - when[index - 1]);
+			}
+
+			gaps.sort(function(left:Int, right:Int):Int return left - right);
+			final middle = gaps[gaps.length >> 1];
+
+			final at:Array<Int> = [];
+			for (index in heads[one] + 1...tails[one] + 1) {
+				if (when[index] - when[index - 1] <= middle * 3) continue;
+				at.push(when[index - 1]);
+			}
+
+			var said = "";
+			var counted = 0;
+
+			for (index in 1...at.length) {
+				if (counted >= 10) break;
+
+				said += (counted == 0 ? "" : " ") + (at[index] - at[index - 1]);
+				counted++;
+			}
+
+			Sys.println("      run " + StringTools.lpad("" + (one + 1), " ", 3)
+				+ "   median gap " + middle + "   " + at.length
+				+ " stops, spaced " + said);
+		}
+	}
+
+	static function swelled(from:Vector<Float>, frames:Int, into:Vector<Float>):Void {
+		final window = 44;
+		var held = 0.0;
+
+		for (index in 0...frames) {
+			final value = from[index] < 0 ? -from[index] : from[index];
+			held += (value - held) / window;
+			into[index] = held;
+		}
+	}
+
+	static function lagged(one:Vector<Float>, two:Vector<Float>, frames:Int):Float {
+		var best = 0.0;
+
+		for (shift in -64...65) {
+			var left = 0.0;
+			var right = 0.0;
+			var both = 0.0;
+
+			for (index in 0...frames) {
+				final at = index + shift;
+				if (at < 0 || at >= frames) continue;
+
+				left += one[index] * one[index];
+				right += two[at] * two[at];
+				both += one[index] * two[at];
+			}
+
+			if (left <= 0 || right <= 0) continue;
+
+			final held = both / Math.sqrt(left * right);
+			if (held > best) best = held;
+		}
+
+		return best;
+	}
+
+	static function twinned(when:Array<Int>, bytes:Array<Int>, heads:Array<Int>,
+			tails:Array<Int>, most:Int):Void {
+		var one = -1;
+		var two = -1;
+
+		for (index in 0...most) {
+			if (one >= 0) break;
+
+			final wide = tails[index] - heads[index] + 1;
+
+			for (other in index + 1...most) {
+				if (tails[other] - heads[other] + 1 != wide) continue;
+
+				var same = true;
+				for (step in 0...wide) {
+					if (bytes[heads[index] + step] == bytes[heads[other] + step]) continue;
+
+					same = false;
+					break;
+				}
+
+				if (!same) continue;
+
+				one = index;
+				two = other;
+				break;
+			}
+		}
+
+		if (one < 0) return;
+
+		final wide = tails[one] - heads[one] + 1;
+		final span = when[tails[one]] - when[heads[one]];
+		final other = when[tails[two]] - when[heads[two]];
+		final frames = (span > other ? span : other) + 4410;
+
+		final rate = Math.round(wide * (Tempo.TICKS / (span < 1 ? 1 : span)));
+
+		final first = new Vector<Float>(frames);
+		final second = new Vector<Float>(frames);
+		final even = new Vector<Float>(frames);
+
+		for (index in 0...frames) {
+			first[index] = 0;
+			second[index] = 0;
+			even[index] = 0;
+		}
+
+		rung(pealed(when, bytes, heads[one], tails[one], 0), frames, first);
+		rung(pealed(when, bytes, heads[two], tails[two], 0), frames, second);
+		rung(pealed(when, bytes, heads[one], tails[one], rate), frames, even);
+
+		Sys.println("");
+		Sys.println("    the same bytes struck twice by the file, and struck evenly");
+		Sys.println("");
+		Sys.println("      runs " + (one + 1) + " and " + (two + 1) + ", " + wide
+			+ " bytes each, spanning " + span + " and " + other + " samples");
+		final oneSwell = new Vector<Float>(frames);
+		final twoSwell = new Vector<Float>(frames);
+		final evenSwell = new Vector<Float>(frames);
+
+		swelled(first, frames, oneSwell);
+		swelled(second, frames, twoSwell);
+		swelled(even, frames, evenSwell);
+
+		Sys.println("      the file against itself      samples "
+			+ round(tallied(first, second, frames), 4) + "   best over a lag "
+			+ round(lagged(first, second, frames), 4) + "   swell "
+			+ round(tallied(oneSwell, twoSwell, frames), 4));
+
+		Sys.println("      evenly at " + StringTools.lpad("" + rate, " ", 5)
+			+ " Hz against it   samples " + round(tallied(first, even, frames), 4)
+			+ "   best over a lag " + round(lagged(first, even, frames), 4)
+			+ "   swell " + round(tallied(oneSwell, evenSwell, frames), 4));
 	}
 
 	static function paced(source:Stream):Void {
