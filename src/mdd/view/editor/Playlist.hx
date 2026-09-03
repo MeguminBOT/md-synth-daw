@@ -38,6 +38,7 @@ final class Playlist extends Widget {
 	public var painted(default, null):Int = 0;
 
 	public var onRename:Null<Int -> Void> = null;
+	public var onOpen:Null<Clip -> Void> = null;
 
 	var chosenTrack:Int = -1;
 	var scrubbing:Bool = false;
@@ -260,6 +261,18 @@ final class Playlist extends Widget {
 				if (held >= 0 && event.button == Pointer.Left) {
 					sizingRows = held;
 					return true;
+				}
+
+				if (event.clicks > 1 && event.button == Pointer.Left) {
+					final under = clipAt(event.x, event.y);
+
+					if (under != null && under.drawn() && onOpen != null) {
+						chosen = under;
+						chosenTrack = trackAt(event.y);
+
+						onOpen(under);
+						return true;
+					}
 				}
 
 				return pressed(event);

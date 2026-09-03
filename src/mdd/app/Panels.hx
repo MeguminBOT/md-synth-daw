@@ -77,6 +77,10 @@ final class Panels {
 		centre.roll.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		centre.playlist.onRename = function(which:Int):Void renamedTrack(which);
+		centre.playlist.onOpen = function(clip:mdd.song.Clip):Void {
+			centre.automation.follows(clip);
+			centre.show(Centre.AUTOMATION);
+		};
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;

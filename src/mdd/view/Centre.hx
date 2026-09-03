@@ -18,7 +18,8 @@ final class Centre extends Widget {
 	public static inline final TRACKER = 2;
 	public static inline final SCOPE = 3;
 	public static inline final REGISTERS = 4;
-	public static inline final TABS = 5;
+	public static inline final AUTOMATION = 5;
+	public static inline final TABS = 6;
 
 	public final session:Session;
 
@@ -29,6 +30,7 @@ final class Centre extends Widget {
 	public final tracker:Tracker;
 	public final playlist:Playlist;
 	public final registers:Registers;
+	public final automation:mdd.view.editor.AutomationEditor;
 
 	public var showing(default, null):Int = PLAYLIST;
 
@@ -36,13 +38,14 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", "", "", "", ""]);
+		tabs = new Tabs(["", "", "", "", "", ""]);
 		tools = new Tools(session);
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
 		tracker = new Tracker(session);
 		playlist = new Playlist(session);
 		registers = new Registers(session);
+		automation = new mdd.view.editor.AutomationEditor(session);
 
 		add(tabs);
 		add(tools);
@@ -51,11 +54,13 @@ final class Centre extends Widget {
 		add(tracker);
 		add(playlist);
 		add(registers);
+		add(automation);
 
 		scope.visible = false;
 		tracker.visible = false;
 		roll.visible = false;
 		registers.visible = false;
+		automation.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
 	}
@@ -70,6 +75,7 @@ final class Centre extends Widget {
 		scope.visible = which == SCOPE;
 		tracker.visible = which == TRACKER;
 		registers.visible = which == REGISTERS;
+		automation.visible = which == AUTOMATION;
 
 		relayout();
 	}
@@ -93,6 +99,7 @@ final class Centre extends Widget {
 		tracker.arrange(x, y + tall, width, height - tall);
 		playlist.arrange(x, y + tall, width, height - tall);
 		registers.arrange(x, y + tall, width, height - tall);
+		automation.arrange(x, y + tall, width, height - tall);
 	}
 
 	public function playhead(tick:Int):Void {
@@ -100,6 +107,7 @@ final class Centre extends Widget {
 
 		roll.playhead = tick;
 		playlist.playhead = tick;
+		automation.playhead = tick;
 
 		if (!session.transport.playing) return;
 
@@ -125,6 +133,7 @@ final class Centre extends Widget {
 		tabs.labels[2] = translate(Locale.VIEW_TRACKER);
 		tabs.labels[3] = translate(Locale.VIEW_SCOPE);
 		tabs.labels[4] = translate(Locale.VIEW_REGISTERS);
+		tabs.labels[5] = translate(Locale.VIEW_AUTOMATION);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -138,5 +147,6 @@ final class Centre extends Widget {
 		if (tracker.visible) tracker.paint(paint);
 		if (playlist.visible) playlist.paint(paint);
 		if (registers.visible) registers.paint(paint);
+		if (automation.visible) automation.paint(paint);
 	}
 }

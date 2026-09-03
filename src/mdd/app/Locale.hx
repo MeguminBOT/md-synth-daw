@@ -91,6 +91,9 @@ class Locale {
 	public static inline final PARAM_PACKED = "param.packed";
 	public static inline final LANE_DROP = "lane.drop";
 	public static inline final TRACK_AUTOMATE = "track.automate";
+	public static inline final AUTOMATION_PATTERN = "automation.pattern";
+	public static inline final AUTOMATION_CLIP = "automation.clip";
+	public static inline final VIEW_AUTOMATION = "view.automation";
 
 	public static inline final SHAPE_HOLD = "shape.hold";
 	public static inline final SHAPE_LINEAR = "shape.linear";
@@ -377,7 +380,7 @@ class Locale {
 		PARAM_LEVEL, PARAM_ATTENUATION, PARAM_FREQUENCY, PARAM_PERIOD, PARAM_SIDES,
 		PARAM_TIMBRE, PARAM_ATTACK, PARAM_DECAY, PARAM_SUSTAIN, PARAM_RELEASE,
 		PARAM_LOOP, PARAM_WIRING, PARAM_NOISE, PARAM_CONVERTER, PARAM_PACKED, LANE_DROP,
-		TRACK_AUTOMATE,
+		TRACK_AUTOMATE, AUTOMATION_PATTERN, AUTOMATION_CLIP, VIEW_AUTOMATION,
 		SHAPE_HOLD, SHAPE_LINEAR, SHAPE_CURVE, SHAPE_SMOOTH, SHAPE_STAIRS,
 		SHAPE_SMOOTH_STAIRS, SHAPE_PULSE, SHAPE_WAVE, SHAPE_HALF_SINE,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,

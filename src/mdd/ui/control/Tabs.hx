@@ -31,8 +31,17 @@ final class Tabs extends Widget {
 		return true;
 	}
 
-	function widthOf(font:Font, metrics:Metrics, which:Int):Float {
-		return font.measure(labels[which]) + metrics.inset * 2;
+	function widthOf(font:Font, metrics:Metrics, which:Int, squeeze:Float = 0):Float {
+		return squeeze > 0 ? squeeze : font.measure(labels[which]) + metrics.inset * 2;
+	}
+
+	function squeezed(font:Font, metrics:Metrics):Float {
+		if (labels.length == 0) return 0;
+
+		var total = 0.0;
+		for (i in 0...labels.length) total += widthOf(font, metrics, i);
+
+		return total <= width ? 0 : width / labels.length;
 	}
 
 	public function at(px:Float):Int {
@@ -42,10 +51,12 @@ final class Tabs extends Widget {
 		final font = root.metrics.body;
 		final metrics = root.metrics;
 
+		final squeeze = squeezed(font, metrics);
+
 		var pen = x;
 		for (i in 0...labels.length) {
-			final wide = widthOf(font, metrics, i);
-			if (pen + wide > x + width) return -1;
+			final wide = widthOf(font, metrics, i, squeeze);
+			if (pen + wide > x + width + 0.5) return -1;
 			if (px >= pen && px < pen + wide) return i;
 			pen += wide;
 		}
@@ -99,13 +110,15 @@ final class Tabs extends Widget {
 		paint.rect(x, y, width, height, theme.sink);
 		paint.reface(font);
 
+		final squeeze = squeezed(font, metrics);
+
 		var pen = x;
 		overflowed = 0;
 
 		for (i in 0...labels.length) {
-			final wide = widthOf(font, metrics, i);
+			final wide = widthOf(font, metrics, i, squeeze);
 
-			if (pen + wide > x + width) {
+			if (pen + wide > x + width + 0.5) {
 				overflowed = labels.length - i;
 				paint.text("+" + overflowed, pen + metrics.unit, y + (height - font.height) * 0.5
 					+ font.ascent, theme.dim);
@@ -136,9 +149,13 @@ final class Tabs extends Widget {
 				}
 			}
 
+			if (squeeze > 0) paint.pushClip(pen, y, wide, height);
+
 			paint.textCentred(labels[i], pen + wide * 0.5,
 				y + (height - font.height) * 0.5 + font.ascent + (on ? 0 : metrics.unit * 0.5),
 				on ? theme.ink : theme.dim);
+
+			if (squeeze > 0) paint.popClip();
 			pen += wide;
 		}
 

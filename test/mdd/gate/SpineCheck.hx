@@ -756,10 +756,11 @@ class SpineCheck {
 		}
 
 		says("a small window still holds every channel", last <= floor + 1 && strays == 0
-			&& tabs.overflowed <= 3,
+			&& tabs.overflowed == 0,
 			"at 900 by 600 the rack's last row ends at " + Math.round(last) + " against a panel"
 			+ " floor of " + Math.round(floor) + ", " + strays + " transport fields fall outside"
-			+ " the bar, and the tab strip hides " + tabs.overflowed + " of "
+			+ " the bar, and every editor is still reachable with " + tabs.overflowed
+			+ " hidden of "
 			+ tabs.labels.length);
 
 		tree.resize(1440, 900);

@@ -200,6 +200,14 @@ class ShotCheck {
 		centre.playlist.rowTall = rows;
 		if (drives) driving(session);
 
+		if (centreTab == Centre.AUTOMATION) {
+			for (track in session.song.tracks) {
+				for (found in track.clips) {
+					if (found.drawn()) centre.automation.follows(found);
+				}
+			}
+		}
+
 		centre.show(centreTab);
 		editor.show(inspectorTab);
 		dock.show(dockTab);

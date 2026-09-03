@@ -41,6 +41,7 @@ final class Lanes extends Widget {
 	public var onOffer:Null<(Lanes, Int, Float, Float) -> Void> = null;
 	public var onShape:Null<(Lanes, Int, Point, Float, Float) -> Void> = null;
 
+	public var holding:Null<mdd.song.Clip> = null;
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Point> = null;
 	public var chosenAt(default, null):Int = -1;
@@ -64,7 +65,15 @@ final class Lanes extends Widget {
 	}
 
 	public inline function rows():Int {
-		return targets.length;
+		return holding == null ? targets.length : 1;
+	}
+
+	inline function driven():Null<Automation> {
+		return holding == null ? null : holding.line;
+	}
+
+	inline function drivenPart():Part {
+		return holding == null ? session.part : (holding.part:Part);
 	}
 
 	public function rowHeight():Float {
@@ -80,6 +89,16 @@ final class Lanes extends Widget {
 
 	public inline function targetOf(row:Int):Int {
 		return targets[row] >> 8;
+	}
+
+	inline function targeted(row:Int):Int {
+		final line = driven();
+		return line == null ? targetOf(row) : line.target;
+	}
+
+	inline function slotted(row:Int):Int {
+		final line = driven();
+		return line == null ? slotOf(row) : line.slot;
 	}
 
 	public inline function slotOf(row:Int):Int {
@@ -140,10 +159,16 @@ final class Lanes extends Widget {
 
 	public function parameterOf(row:Int):Null<Parameter> {
 		if (row < 0 || row >= rows()) return null;
+
+		final line = driven();
+		if (line != null) return Parameter.found(drivenPart(), line.target, line.slot);
+
 		return Parameter.found(session.part, targetOf(row), slotOf(row));
 	}
 
 	public function lineOf(row:Int):Null<Automation> {
+		if (holding != null) return row == 0 ? holding.line : null;
+
 		final pattern = session.current();
 		if (pattern == null || row < 0 || row >= rows()) return null;
 
@@ -319,9 +344,9 @@ final class Lanes extends Widget {
 	}
 
 	function added(row:Int, px:Float, py:Float):Void {
-		final pattern = session.current();
 		final held = parameterOf(row);
-		if (pattern == null || held == null) return;
+		if (held == null) return;
+		if (holding == null && session.current() == null) return;
 
 		var tick = session.snapped(tickAt(px));
 		if (tick < 0) tick = 0;
@@ -332,8 +357,8 @@ final class Lanes extends Widget {
 		final point = new Point(tick, valueAt(row, py));
 		point.shape = held.smooth ? Automation.LINEAR : Automation.HOLD;
 
-		session.does(new AddPoint(session.pattern, session.part, targetOf(row),
-			slotOf(row), point));
+		session.does(new AddPoint(session.pattern, drivenPart(), targeted(row),
+			slotted(row), point, driven()));
 
 		chosen = point;
 		chosenAt = row;
@@ -343,15 +368,15 @@ final class Lanes extends Widget {
 		wasAt = point.at;
 		wasValue = point.value;
 
-		session.say(held.titled(slotOf(row)) + "  " + held.said(point.value));
+		session.say(held.titled(slotted(row)) + "  " + held.said(point.value));
 		invalidate();
 	}
 
 	function erased():Bool {
 		if (chosen == null || chosenAt < 0) return false;
 
-		session.does(new RemovePoint(session.pattern, session.part, targetOf(chosenAt),
-			slotOf(chosenAt), chosen));
+		session.does(new RemovePoint(session.pattern, drivenPart(), targeted(chosenAt),
+			slotted(chosenAt), chosen, driven()));
 
 		chosen = null;
 		chosenAt = -1;
@@ -376,10 +401,10 @@ final class Lanes extends Widget {
 			dragging.at = wasAt;
 			dragging.value = wasValue;
 
-			session.does(new MovePoint(session.pattern, session.part, targetOf(draggingAt),
-				slotOf(draggingAt), dragging, tick, value));
+			session.does(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
+				slotted(draggingAt), dragging, tick, value, driven()));
 
-			session.say(held.titled(slotOf(draggingAt)) + "  " + held.said(value));
+			session.say(held.titled(slotted(draggingAt)) + "  " + held.said(value));
 			invalidate();
 			return true;
 		}
@@ -439,7 +464,7 @@ final class Lanes extends Widget {
 
 		if (held == null) return;
 
-		final colour = theme.part(session.part.index());
+		final colour = theme.part(drivenPart().index());
 
 		paint.pushClip(x + left, top, width - left, tall);
 
@@ -454,7 +479,7 @@ final class Lanes extends Widget {
 		paint.pushClip(x, top, left, tall);
 		paint.reface(small);
 
-		paint.text(held.titled(slotOf(row)), x + metrics.gap,
+		paint.text(held.titled(slotted(row)), x + metrics.gap,
 			top + metrics.gap + small.ascent, theme.ink, held.smooth ? 1 : 0.7);
 
 		final line = lineOf(row);
@@ -466,6 +491,14 @@ final class Lanes extends Widget {
 			theme.dim, 0.9);
 
 		paint.popClip();
+
+		if (tall < metrics.whole(120)) return;
+
+		paint.textRight(held.said(held.high), x + width - metrics.gap,
+			top + padding() + small.ascent * 0.4, theme.dim, 0.5);
+
+		paint.textRight(held.said(held.low), x + width - metrics.gap,
+			top + tall - padding() + small.ascent * 0.4, theme.dim, 0.5);
 	}
 
 	function traced(paint:Paint, theme:Theme, metrics:Metrics, row:Int,
