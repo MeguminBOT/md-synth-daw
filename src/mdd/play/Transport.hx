@@ -25,6 +25,7 @@ final class Transport {
 	final gate:sys.thread.Mutex = new sys.thread.Mutex();
 
 	public static inline final AUDITION_BLOCKS = 90;
+	public static inline final AUDITION_VELOCITY = 100;
 
 	var heardPart:Int = -1;
 	var heardNote:Int = 0;
@@ -179,10 +180,11 @@ final class Transport {
 			heardFresh = false;
 
 			final instrument = song.instrumentAt(song.rack[heardPart]);
+			final velocity = Velocity.scaled(AUDITION_VELOCITY, song.volume[heardPart]);
 
 			if (part.fm()) {
 				if (instrument != null && instrument.patch != null) {
-					stream.patch(at, part, instrument.patch, 110);
+					stream.patch(at, part, instrument.patch, velocity);
 					stream.sides(at, part, ((song.pan[heardPart] & 3) << 6)
 						| ((instrument.patch.ams & 3) << 4) | (instrument.patch.pms & 7));
 				}
@@ -191,13 +193,15 @@ final class Transport {
 				stream.keyOn(at, part);
 			} else if (part.square()) {
 				stream.square(at, part, heardNote);
-				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);
+				stream.loudness(at, part, instrument == null ? null : instrument.envelope,
+					velocity, 0);
 			} else if (part.noise()) {
 				if (instrument != null && instrument.envelope != null) {
 					stream.noise(at, instrument.envelope.noise, false);
 				}
 
-				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);
+				stream.loudness(at, part, instrument == null ? null : instrument.envelope,
+					velocity, 0);
 			}
 		}
 

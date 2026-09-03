@@ -42,6 +42,7 @@ class AudioCheck {
 		pitch();
 		shape();
 		auditioned();
+		velocities();
 		device(Math.isNaN(live) ? LIVE : live);
 		played(8, Gate.root);
 
@@ -277,6 +278,90 @@ class AudioCheck {
 		says("and so does a sample", bytes > 100 && struck > before * 5,
 			bytes + " converter bytes reached the chip and the strike renders "
 			+ round(struck, 4));
+	}
+
+	static function level(velocity:Int):Float {
+		final render = new Render(RATE, Render.BLOCK);
+		final stream = new Stream(1024);
+		final patch = new mdd.song.Patch();
+
+		stream.patch(0, mdd.song.Part.Fm1, patch, velocity);
+		stream.sides(0, mdd.song.Part.Fm1, 0xC0);
+		stream.tune(0, mdd.song.Part.Fm1, 60);
+		stream.keyOn(0, mdd.song.Part.Fm1);
+
+		var most = 0.0;
+		var done = 0;
+
+		while (done < RATE) {
+			final many = render.serve(stream, 0, Render.BLOCK, 0, done == 0);
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > most) most = much;
+			}
+
+			done += many;
+		}
+
+		return most;
+	}
+
+	static function quiet(velocity:Int):Float {
+		final render = new Render(RATE, Render.BLOCK);
+		final stream = new Stream(1024);
+
+		stream.square(0, mdd.song.Part.Psg1, 60);
+		stream.loudness(0, mdd.song.Part.Psg1, null, velocity, 0);
+
+		var most = 0.0;
+		var done = 0;
+
+		while (done < Std.int(RATE / 4)) {
+			final many = render.serve(stream, 0, Render.BLOCK, 0, done == 0);
+
+			for (i in 0...many) {
+				final value = render.block[i * 2];
+				final much = value < 0 ? -value : value;
+				if (much > most) most = much;
+			}
+
+			done += many;
+		}
+
+		return most;
+	}
+
+	static function decibels(much:Float, than:Float):Float {
+		if (much <= 0 || than <= 0) return -99;
+		return 20 * Math.log(much / than) / Math.log(10);
+	}
+
+	static function velocities():Void {
+		final full = level(127);
+
+		for (velocity in [127, 110, 100, 80, 64, 32]) {
+			final held = level(velocity);
+			Sys.println("      fm       velocity " + StringTools.lpad("" + velocity, " ", 3)
+				+ "   peak " + round(held, 5) + "   " + round(decibels(held, full), 2) + " dB");
+		}
+
+		final loudest = quiet(127);
+
+		for (velocity in [127, 110, 100, 80, 64, 32]) {
+			final held = quiet(velocity);
+			Sys.println("      square   velocity " + StringTools.lpad("" + velocity, " ", 3)
+				+ "   peak " + round(held, 5) + "   " + round(decibels(held, loudest), 2) + " dB");
+		}
+
+		final hundred = level(100);
+
+		says("a note at velocity 100 is close to a note at 127",
+			decibels(hundred, full) > -6,
+			"velocity 100 renders " + round(decibels(hundred, full), 2)
+			+ " dB against velocity 127, where a linear reading of velocity wants "
+			+ round(20 * Math.log(100 / 127.0) / Math.log(10), 2) + " dB");
 	}
 
 	static function toned(render:Render):Void {

@@ -42,6 +42,9 @@ final class Render {
 	public var made(default, null):Int = 0;
 	public var heardAt(default, null):Int = 0;
 
+	public var peak(default, null):Float = 0;
+	public var clipped(default, null):Int = 0;
+
 	public static inline final SNAPS = 96;
 
 	public final sounding:Sounding = new Sounding();
@@ -325,8 +328,18 @@ final class Render {
 				tapping();
 			}
 
-			block[frame * 2] = clamped(heldLeft * SCALE);
-			block[frame * 2 + 1] = clamped(heldRight * SCALE);
+			final wantLeft = heldLeft * SCALE;
+			final wantRight = heldRight * SCALE;
+			final loudest = (wantLeft < 0 ? -wantLeft : wantLeft)
+				> (wantRight < 0 ? -wantRight : wantRight)
+				? (wantLeft < 0 ? -wantLeft : wantLeft)
+				: (wantRight < 0 ? -wantRight : wantRight);
+
+			if (loudest > peak) peak = loudest;
+			if (loudest > 1) clipped++;
+
+			block[frame * 2] = clamped(wantLeft);
+			block[frame * 2 + 1] = clamped(wantRight);
 
 			held += Tempo.TICKS;
 			while (held >= rate) {
@@ -407,6 +420,11 @@ final class Render {
 
 		taps[10 * TAPS + slot] = ym.dacOn ? ((ym.dac - 0x80) << 1) * PSG_TAP : 0;
 		tapped++;
+	}
+
+	public function forgetPeak():Void {
+		peak = 0;
+		clipped = 0;
 	}
 
 	static inline function clamped(value:Float):cpp.Float32 {

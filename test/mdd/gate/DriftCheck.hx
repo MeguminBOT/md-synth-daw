@@ -942,6 +942,12 @@ class DriftCheck {
 			+ " frames, worst at " + round(widestAt, 2) + " s where the file is "
 			+ round(widestOne, 4) + " and the song " + round(widestTwo, 4));
 
+		Sys.println("");
+		Sys.println("    the file peaks at " + round(oneRender.peak, 4) + " and clips "
+			+ oneRender.clipped + " of " + (done * 2) + " samples, the song peaks at "
+			+ round(twoRender.peak, 4) + " and clips " + twoRender.clipped
+			+ ", against a full scale of " + Render.FULL_SCALE);
+
 		if (!keeping) return;
 
 		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);

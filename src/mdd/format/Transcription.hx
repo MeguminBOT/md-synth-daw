@@ -787,7 +787,7 @@ final class Transcription {
 			if (until <= from) until = from + 1;
 
 			final loudest = psgHeld[channel][0];
-			final velocity = Math.round((15 - loudest) * 127 / 15);
+			final velocity = mdd.play.Velocity.loudness(loudest);
 
 			placed(6 + channel, from, until, psgNote[channel],
 				squareInstrument(channel, head, at), velocity < 1 ? 1 : velocity);

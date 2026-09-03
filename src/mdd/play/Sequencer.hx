@@ -481,9 +481,8 @@ final class Sequencer {
 			if (at >= toSample || at >= offSample) break;
 
 			if (at >= fromSample) {
-				final want = velocity < 0 ? 0 : (velocity > 127 ? 127 : velocity);
-				final quiet = 15 - Std.int(want * 15 / 127);
-				push(at, part, DATA, quiet + envelope.at(index), PSG_STEP);
+				push(at, part, DATA, Velocity.quiets(velocity) + envelope.at(index),
+					PSG_STEP);
 			}
 
 			index++;
@@ -499,11 +498,7 @@ final class Sequencer {
 	}
 
 	inline function louder(part:Part, velocity:Int):Int {
-		final held = song.volume[part.index()];
-		if (held >= Song.LOUDEST) return velocity;
-
-		final want = Std.int(velocity * held / Song.LOUDEST);
-		return want < 0 ? 0 : (want > 127 ? 127 : want);
+		return Velocity.scaled(velocity, song.volume[part.index()]);
 	}
 
 	function instrumentOf(named:Int, part:Part):Null<Instrument> {

@@ -249,9 +249,7 @@ final class Stream {
 		final total = patch.totalLevel[slot] & 0x7F;
 		if (!patch.carries(slot)) return total;
 
-		final want = velocity < 0 ? 0 : (velocity > 127 ? 127 : velocity);
-		final quieter = total + Std.int((127 - total) * (127 - want) / 127);
-
+		final quieter = total + Velocity.attenuates(velocity);
 		return quieter > 127 ? 127 : quieter;
 	}
 
@@ -329,8 +327,7 @@ final class Stream {
 
 	public function loudness(tick:Int, part:Part, envelope:Null<Envelope>, velocity:Int,
 			step:Int):Void {
-		final want = velocity < 0 ? 0 : (velocity > 127 ? 127 : velocity);
-		final quiet = 15 - Std.int(want * 15 / 127);
+		final quiet = Velocity.quiets(velocity);
 		final shaped = envelope == null || envelope.steps.length == 0 ? 0 : envelope.at(step);
 
 		attenuate(tick, part, quiet + shaped);
