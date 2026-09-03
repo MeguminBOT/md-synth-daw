@@ -15,6 +15,8 @@ final class Mixing {
 	public static final DEPTHS:Array<Int> = [16, 24, 32];
 	public static final BITRATES:Array<Int> = [96, 128, 160, 192, 256, 320];
 
+	public static final OPUS_RATES:Array<Int> = [8000, 12000, 16000, 24000, 48000];
+
 	public var kind:Int = WAV;
 	public var rate:Int = 44100;
 	public var depth:Int = 16;
@@ -54,6 +56,14 @@ final class Mixing {
 
 	public inline function named():String {
 		return kind >= 0 && kind < NAMES.length ? NAMES[kind] : "WAV";
+	}
+
+	public function worksAt():Int {
+		if (kind != OPUS) return rate;
+
+		for (held in OPUS_RATES) if (held == rate) return rate;
+
+		return 48000;
 	}
 
 	public function channels():Int {

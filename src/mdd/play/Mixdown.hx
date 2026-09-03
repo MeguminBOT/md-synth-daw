@@ -43,7 +43,7 @@ final class Mixdown {
 	}
 
 	function take(song:Song, mixing:Mixing):Void {
-		rate = mixing.rate;
+		rate = mixing.worksAt();
 		channels = mixing.channels();
 
 		final span = song.tempo.samplesAt(song.ends());
