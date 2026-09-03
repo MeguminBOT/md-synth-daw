@@ -21,6 +21,7 @@ final class Sequencer {
 
 	public static inline final ENVELOPE_TICKS = 735;
 	public static inline final GUARD = 0;
+	public static inline final PACE = 0.5;
 
 	public final song:Song;
 	public final voices:Voices;
@@ -428,7 +429,15 @@ final class Sequencer {
 		if (sample == null || sample.length() == 0) return;
 
 		final rate = sample.rate < 1 ? 1 : sample.rate;
-		final step = Tempo.TICKS / rate;
+		var step = Tempo.TICKS / rate;
+
+		final span = offSample - onSample;
+		final many = sample.length();
+
+		if (span > 0 && many > 1) {
+			final fills = span / many;
+			if (fills > step * (1 - PACE) && fills < step * (1 + PACE)) step = fills;
+		}
 
 		var index = 0;
 		if (fromSample > onSample) index = Std.int((fromSample - onSample) / step);
