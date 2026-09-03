@@ -197,6 +197,9 @@ class Project {
 		out.key("sample");
 		out.whole(instrument.sample);
 
+		out.key("icon");
+		out.whole(instrument.icon);
+
 		if (instrument.patch != null) {
 			final patch = instrument.patch;
 
@@ -447,6 +450,7 @@ class Project {
 		final instrument = new Instrument(node.get("name").saying(""), kind);
 
 		instrument.sample = node.get("sample").whole(-1);
+		instrument.icon = node.get("icon").whole(-1);
 
 		if (node.has("patch")) {
 			final held = node.get("patch");

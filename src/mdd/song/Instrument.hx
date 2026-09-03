@@ -5,6 +5,8 @@ final class Instrument {
 	public var name:String;
 	public var kind:Part;
 
+	public var icon:Int = -1;
+
 	public var patch:Null<Patch> = null;
 	public var envelope:Null<Envelope> = null;
 	public var sample:Int = -1;
@@ -19,6 +21,7 @@ final class Instrument {
 
 	public function copy():Instrument {
 		final out = new Instrument(name, kind);
+		out.icon = icon;
 		out.patch = patch == null ? null : patch.copy();
 		out.envelope = envelope == null ? null : envelope.copy();
 		out.sample = sample;
