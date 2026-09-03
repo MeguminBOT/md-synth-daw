@@ -81,13 +81,13 @@
 	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
 	<path name="STBPATH" value="vendor/stb" />
 	<path name="FONTPATH" value="vendor/fonts" />
-	<path name="NATIVEPATH" value="native" />
+	<path name="NATIVEPATH" value="src/mdd/native" />
 	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
 	<path name="OGGPATH" value="vendor/libogg" />
 	<path name="VORBISPATH" value="vendor/libvorbis" />
 	<path name="OPUSPATH" value="vendor/libopus" />
 
-	<native path="native">
+	<native path="src/mdd/native">
 		<file name="window.cpp" />
 		<file name="events.cpp" />
 		<file name="draw.cpp" />
