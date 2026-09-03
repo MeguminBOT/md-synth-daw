@@ -429,7 +429,7 @@ class SpineCheck {
 
 		centre.scope.shows(mdd.view.monitor.Scope.WAVEFORM);
 
-		editor.show(Inspector.BANK);
+		editor.show(Inspector.PRESETS);
 
 		Sdl.renderClear(renderer, 0, 0, 0, 1);
 		tree.frame(paint);

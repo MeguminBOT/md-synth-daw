@@ -63,11 +63,11 @@ class Locale {
 	public static inline final PRESET_AUDIO = "preset.audio";
 	public static inline final PRESET_INSTRUMENTS = "preset.instruments";
 
-	public static inline final BANK_EXPAND = "bank.expand";
-	public static inline final BANK_COLLAPSE = "bank.collapse";
-	public static inline final BANK_KEEP = "bank.keep";
-	public static inline final BANK_KEPT = "bank.kept";
-	public static inline final BANK_ALREADY = "bank.already";
+	public static inline final PRESET_EXPAND_ALL = "preset.expandAll";
+	public static inline final PRESET_COLLAPSE_ALL = "preset.collapseAll";
+	public static inline final PRESET_KEEP = "preset.keep";
+	public static inline final PRESET_KEPT = "preset.kept";
+	public static inline final PRESET_ALREADY = "preset.already";
 
 	public static inline final LANE_VELOCITY = "lane.velocity";
 	public static inline final LANE_PAN = "lane.pan";
@@ -235,11 +235,11 @@ class Locale {
 	public static inline final RACK_SOLO = "rack.solo";
 	public static inline final RACK_UNSOLO = "rack.unsolo";
 	public static inline final RACK_SOLO_ONLY = "rack.soloOnly";
-	public static inline final RACK_COPY_PATCH = "rack.copyPatch";
-	public static inline final RACK_PASTE_PATCH = "rack.pastePatch";
-	public static inline final RACK_RESET_PATCH = "rack.resetPatch";
+	public static inline final RACK_COPY_PRESET = "rack.copyPreset";
+	public static inline final RACK_PASTE_PRESET = "rack.pastePreset";
+	public static inline final RACK_RESET_PRESET = "rack.resetPreset";
 	public static inline final RACK_CLEAR = "rack.clear";
-	public static inline final RACK_NO_PATCH = "rack.noPatch";
+	public static inline final RACK_NO_PRESET = "rack.noPreset";
 	public static inline final RACK_NONE_COPIED = "rack.noneCopied";
 	public static inline final RACK_SOLO_CHORD = "rack.soloChord";
 
@@ -270,10 +270,9 @@ class Locale {
 	public static inline final PANEL_RACK = "panel.rack";
 	public static inline final PANEL_SAMPLES = "panel.samples";
 	public static inline final PANEL_CHANNEL = "panel.channel";
-	public static inline final PANEL_BANK = "panel.bank";
 	public static inline final PANEL_SCOPE = "panel.scope";
-	public static inline final PANEL_PATCHES = "panel.patches";
-	public static inline final PANEL_NO_PATCHES = "panel.noPatches";
+	public static inline final PANEL_PRESETS = "panel.presets";
+	public static inline final PANEL_NO_PRESETS = "panel.noPresets";
 	public static inline final PANEL_NOT_FM = "panel.notFm";
 	public static inline final PANEL_NOT_SQUARE = "panel.notSquare";
 	public static inline final PANEL_ENVELOPE = "panel.envelope";
@@ -313,8 +312,8 @@ class Locale {
 		PRESET_ICON, PRESET_NO_ICON, PRESET_KIT, PRESET_SHAPES, PRESET_AUDIO,
 		PRESET_INSTRUMENTS,
 		SAMPLE_NORMALISE, SAMPLE_CLEAR, SAMPLE_EMPTY,
-		PANEL_FROM_IMPORT, BANK_EXPAND, BANK_COLLAPSE, BANK_KEEP, BANK_KEPT,
-		BANK_ALREADY,
+		PANEL_FROM_IMPORT, PRESET_EXPAND_ALL, PRESET_COLLAPSE_ALL, PRESET_KEEP, PRESET_KEPT,
+		PRESET_ALREADY,
 		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
 		LANE_EMPTY,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,
@@ -349,8 +348,8 @@ class Locale {
 		ROLL_COPY, ROLL_CUT, ROLL_PASTE, ROLL_DELETE, ROLL_LOUDER, ROLL_QUIETER,
 		ROLL_OCTAVE_UP, ROLL_OCTAVE_DOWN, ROLL_EXPLAIN, ROLL_SCALE, ROLL_KEY, ROLL_FIT,
 		ROLL_SNAP_BEAT, ROLL_SNAP_BAR, ROLL_SNAP_NONE, ROLL_NOTHING_COPIED, ROLL_SOUNDS,
-		RACK_MUTE, RACK_UNMUTE, RACK_SOLO, RACK_UNSOLO, RACK_SOLO_ONLY, RACK_COPY_PATCH,
-		RACK_PASTE_PATCH, RACK_RESET_PATCH, RACK_CLEAR, RACK_NO_PATCH, RACK_NONE_COPIED,
+		RACK_MUTE, RACK_UNMUTE, RACK_SOLO, RACK_UNSOLO, RACK_SOLO_ONLY, RACK_COPY_PRESET,
+		RACK_PASTE_PRESET, RACK_RESET_PRESET, RACK_CLEAR, RACK_NO_PRESET, RACK_NONE_COPIED,
 		RACK_SOLO_CHORD, RACK_FM, RACK_SQUARE, RACK_NOISE, RACK_DAC,
 		TRANSPORT_PLAY, TRANSPORT_PAUSE, TRANSPORT_STOP, TRANSPORT_LOOP,
 		TRANSPORT_LOOPING, TRANSPORT_ONCE,
@@ -358,8 +357,8 @@ class Locale {
 		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
 		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,
 		TRANSPORT_BARS,
-		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_BANK, PANEL_SCOPE, PANEL_PATCHES,
-		PANEL_NO_PATCHES, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
+		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_SCOPE, PANEL_PRESETS,
+		PANEL_NO_PRESETS, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
 		PSG_NO_LOOP,
 		PSG_STEPS,
 		PANEL_WARNING, PANEL_WARNINGS,

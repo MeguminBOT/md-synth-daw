@@ -165,9 +165,9 @@ final class Menus {
 	function instrumentMenu():Menu {
 		final held = new Menu();
 
-		final copy = held.offer(new Choice(said(Locale.RACK_COPY_PATCH)));
-		final paste = held.offer(new Choice(said(Locale.RACK_PASTE_PATCH)));
-		final reset = held.offer(new Choice(said(Locale.RACK_RESET_PATCH)));
+		final copy = held.offer(new Choice(said(Locale.RACK_COPY_PRESET)));
+		final paste = held.offer(new Choice(said(Locale.RACK_PASTE_PRESET)));
+		final reset = held.offer(new Choice(said(Locale.RACK_RESET_PRESET)));
 
 		fired(copy, function():Void copiedPatch());
 		fired(paste, function():Void pastedPatch());
@@ -179,8 +179,8 @@ final class Menus {
 		held.divide();
 		fired(held.offer(new Choice(said(Locale.PRESET_SAVE))), function():Void
 			panels.savedPreset());
-		fired(held.offer(new Choice(said(Locale.PANEL_BANK))), function():Void
-			panels.inspector.show(Inspector.BANK));
+		fired(held.offer(new Choice(said(Locale.PANEL_PRESETS))), function():Void
+			panels.inspector.show(Inspector.PRESETS));
 
 		return held;
 	}
@@ -310,7 +310,7 @@ final class Menus {
 		if (held == null || held.patch == null) return;
 
 		session.copiedPatch = held.patch.copy();
-		session.say(said(Locale.RACK_COPY_PATCH));
+		session.say(said(Locale.RACK_COPY_PRESET));
 		session.changed();
 	}
 

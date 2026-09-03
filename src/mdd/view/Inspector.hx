@@ -13,7 +13,7 @@ import mdd.view.editor.Samples;
 @:unreflective
 final class Inspector extends Widget {
 	public static inline final CHANNEL = 0;
-	public static inline final BANK = 1;
+	public static inline final PRESETS = 1;
 	public static inline final TABS = 2;
 
 	public final session:Session;
@@ -65,7 +65,7 @@ final class Inspector extends Widget {
 		final wantFm = showing == CHANNEL && !square && !sampled;
 		final wantPsg = showing == CHANNEL && square;
 		final wantSamples = showing == CHANNEL && sampled;
-		final wantPresets = showing == BANK;
+		final wantPresets = showing == PRESETS;
 
 		if (wantPresets) presets.fit();
 
@@ -102,7 +102,7 @@ final class Inspector extends Widget {
 		if (root == null) return;
 
 		tabs.labels[0] = translate(Locale.PANEL_CHANNEL);
-		tabs.labels[1] = translate(Locale.PANEL_BANK);
+		tabs.labels[1] = translate(Locale.PANEL_PRESETS);
 	}
 
 	override function paint(paint:Paint):Void {

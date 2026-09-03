@@ -167,14 +167,14 @@ final class ChannelRack extends Widget {
 
 		menu.divide();
 
-		final copy = menu.offer(new Choice(translate(Locale.RACK_COPY_PATCH)));
-		final paste = menu.offer(new Choice(translate(Locale.RACK_PASTE_PATCH)));
-		final reset = menu.offer(new Choice(translate(Locale.RACK_RESET_PATCH)));
+		final copy = menu.offer(new Choice(translate(Locale.RACK_COPY_PRESET)));
+		final paste = menu.offer(new Choice(translate(Locale.RACK_PASTE_PRESET)));
+		final reset = menu.offer(new Choice(translate(Locale.RACK_RESET_PRESET)));
 
 		if (!part.fm()) {
 			for (choice in [copy, paste, reset]) {
 				choice.enabled = false;
-				choice.reason = part.name() + " " + translate(Locale.RACK_NO_PATCH);
+				choice.reason = part.name() + " " + translate(Locale.RACK_NO_PRESET);
 			}
 		} else {
 			fires(copy, function():Void {

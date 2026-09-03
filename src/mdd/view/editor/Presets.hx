@@ -264,15 +264,15 @@ final class Presets extends Widget {
 		folding(menu);
 		menu.divide();
 
-		final keep = menu.offer(new Choice(translate(Locale.BANK_KEEP)));
+		final keep = menu.offer(new Choice(translate(Locale.PRESET_KEEP)));
 
 		if (bank.kept) {
 			keep.enabled = false;
-			keep.reason = translate(Locale.BANK_ALREADY);
+			keep.reason = translate(Locale.PRESET_ALREADY);
 		} else {
 			keep.onFire = function(from:Choice):Void {
 				bank.kept = true;
-				session.say(translate(Locale.BANK_KEPT) + " " + bank.name);
+				session.say(translate(Locale.PRESET_KEPT) + " " + bank.name);
 				session.changed();
 			};
 		}
@@ -281,13 +281,13 @@ final class Presets extends Widget {
 	}
 
 	function folding(into:Menu):Void {
-		fires(into.offer(new Choice(translate(Locale.BANK_EXPAND))), function():Void {
+		fires(into.offer(new Choice(translate(Locale.PRESET_EXPAND_ALL))), function():Void {
 			shut.resize(0);
 			for (item in kinds) tree.fold(item, true);
 			for (item in groups) tree.fold(item, true);
 		});
 
-		fires(into.offer(new Choice(translate(Locale.BANK_COLLAPSE))), function():Void {
+		fires(into.offer(new Choice(translate(Locale.PRESET_COLLAPSE_ALL))), function():Void {
 			for (item in groups) {
 				tree.fold(item, false);
 				folded(item);
@@ -450,7 +450,7 @@ final class Presets extends Widget {
 
 		paint.rect(x, y, width, height, theme.panel);
 
-		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_PATCHES),
+		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_PRESETS),
 			x, y, width, top);
 
 		paint.reface(font);
@@ -458,7 +458,7 @@ final class Presets extends Widget {
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
 		if (listed == 0) {
-			paint.text(translate(Locale.PANEL_NO_PATCHES), x + metrics.inset,
+			paint.text(translate(Locale.PANEL_NO_PRESETS), x + metrics.inset,
 				y + top + metrics.gap + font.ascent, theme.dim, 0.6);
 			return;
 		}
