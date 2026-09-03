@@ -87,6 +87,7 @@
   "param.converter": "Om omvandlaren låter",
   "param.packed": "Det här registret bär mer än en inställning, så en punkt håller sitt värde till nästa",
   "lane.drop": "Ta bort det här spåret",
+  "track.automate": "Automatisera",
   "shape.hold": "Håll",
   "shape.linear": "Linjär",
   "shape.curve": "Kurva",

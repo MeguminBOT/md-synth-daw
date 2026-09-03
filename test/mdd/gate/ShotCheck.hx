@@ -36,6 +36,7 @@ class ShotCheck {
 		var wide = 1600;
 		var tall = 1000;
 		var centreTab = Centre.PLAYLIST;
+		var drives = false;
 		var dockTab = 0;
 		var inspectorTab = Inspector.CHANNEL;
 		var theme = Theme.MIDNIGHT;
@@ -63,6 +64,7 @@ class ShotCheck {
 				case "--theme": theme = whole(held, theme); at++;
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
+				case "--drives": drives = true;
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
 				case "--menu": menu = whole(held, menu); at++;
@@ -196,6 +198,8 @@ class ShotCheck {
 		}
 
 		centre.playlist.rowTall = rows;
+		if (drives) driving(session);
+
 		centre.show(centreTab);
 		editor.show(inspectorTab);
 		dock.show(dockTab);
@@ -295,6 +299,48 @@ class ShotCheck {
 		Sdl.quit();
 
 		return 0;
+	}
+
+	static function driving(session:mdd.app.Session):Void {
+		final song = session.song;
+		final bar = song.tempo.ppqn * 4;
+
+		final shapes = [mdd.song.Automation.LINEAR, mdd.song.Automation.WAVE,
+			mdd.song.Automation.STAIRS];
+
+		final drives = [mdd.song.Automation.LEVEL, mdd.song.Automation.TUNE,
+			mdd.song.Automation.LEVEL];
+
+		final parts = [mdd.song.Part.Fm1, mdd.song.Part.Psg1, mdd.song.Part.Fm3];
+
+		for (index in 0...3) {
+			final track = song.track(new mdd.song.Track("automation"));
+			final clip = mdd.song.Clip.drives(parts[index], drives[index], 0,
+				bar * (index + 1), bar * 6);
+
+			final line = clip.line;
+			if (line == null) continue;
+
+			final held = mdd.view.Parameter.found(parts[index], drives[index], 0);
+			final low = held == null ? -40 : Std.int(held.low * 0.4);
+			final high = held == null ? 40 : Std.int(held.high * 0.4);
+
+			final from = new mdd.song.Point(0, low);
+			from.shape = shapes[index];
+			from.steps = 5;
+
+			final middle = new mdd.song.Point(bar * 3, high);
+			middle.shape = shapes[index];
+			middle.steps = 5;
+
+			line.add(from);
+			line.add(middle);
+			line.add(new mdd.song.Point(bar * 6, low));
+
+			track.add(clip);
+		}
+
+		session.changed();
 	}
 
 	static function whole(said:String, fallback:Int):Int {

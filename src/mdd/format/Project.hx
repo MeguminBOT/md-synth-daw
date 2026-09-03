@@ -172,6 +172,24 @@ class Project {
 				out.whole(clip.length);
 				out.key("transpose");
 				out.whole(clip.transpose);
+
+				final line = clip.line;
+
+				if (clip.kind != Clip.PATTERN && line != null) {
+					out.key("drives");
+					out.whole(clip.part);
+					out.key("target");
+					out.whole(line.target);
+					out.key("slot");
+					out.whole(line.slot);
+					out.key("points");
+					out.list();
+
+					for (point in line.points) written(out, point);
+
+					out.ends();
+				}
+
 				out.close();
 			}
 
@@ -324,30 +342,7 @@ class Project {
 				out.key("points");
 				out.list();
 
-				for (point in line.points) {
-					out.open();
-					out.key("at");
-					out.whole(point.at);
-					out.key("value");
-					out.whole(point.value);
-
-					if (point.shape != Automation.HOLD) {
-						out.key("shape");
-						out.whole(point.shape);
-					}
-
-					if (point.tension != 0) {
-						out.key("tension");
-						out.whole(point.tension);
-					}
-
-					if (point.steps != 0) {
-						out.key("steps");
-						out.whole(point.steps);
-					}
-
-					out.close();
-				}
+				for (point in line.points) written(out, point);
 
 				out.ends();
 				out.close();
@@ -451,8 +446,25 @@ class Project {
 
 			for (at in 0...clips.length()) {
 				final clip = clips.at(at);
-				track.add(new Clip(clip.get("pattern").whole(0), clip.get("at").whole(0),
-					clip.get("length").whole(0), clip.get("transpose").whole(0)));
+				final made = new Clip(clip.get("pattern").whole(0), clip.get("at").whole(0),
+					clip.get("length").whole(0), clip.get("transpose").whole(0));
+
+				final drives = clip.get("drives").whole(-1);
+
+				if (drives >= 0) {
+					made.kind = Clip.AUTOMATION;
+					made.part = drives;
+
+					final line = new Automation(clip.get("target").whole(0),
+						clip.get("slot").whole(0));
+
+					final points = clip.get("points");
+					for (index in 0...points.length()) line.add(taken(points.at(index)));
+
+					made.line = line;
+				}
+
+				track.add(made);
 			}
 
 			song.track(track);
@@ -518,6 +530,41 @@ class Project {
 		return instrument;
 	}
 
+	static function written(out:Json, point:Point):Void {
+		out.open();
+		out.key("at");
+		out.whole(point.at);
+		out.key("value");
+		out.whole(point.value);
+
+		if (point.shape != Automation.HOLD) {
+			out.key("shape");
+			out.whole(point.shape);
+		}
+
+		if (point.tension != 0) {
+			out.key("tension");
+			out.whole(point.tension);
+		}
+
+		if (point.steps != 0) {
+			out.key("steps");
+			out.whole(point.steps);
+		}
+
+		out.close();
+	}
+
+	static function taken(node:Node):Point {
+		final made = new Point(node.get("at").whole(0), node.get("value").whole(0));
+
+		made.shape = node.get("shape").whole(Automation.HOLD);
+		made.tension = node.get("tension").whole(0);
+		made.steps = node.get("steps").whole(0);
+
+		return made;
+	}
+
 	static function readPattern(node:Node):Pattern {
 		final pattern = new Pattern(node.get("name").saying(""), node.get("length").whole(384),
 			node.get("colour").whole(-1));
@@ -554,15 +601,7 @@ class Project {
 				final points = line.get("points");
 
 				for (index in 0...points.length()) {
-					final point = points.at(index);
-					final made = new Point(point.get("at").whole(0),
-						point.get("value").whole(0));
-
-					made.shape = point.get("shape").whole(Automation.HOLD);
-					made.tension = point.get("tension").whole(0);
-					made.steps = point.get("steps").whole(0);
-
-					automation.add(made);
+					automation.add(taken(points.at(index)));
 				}
 
 				lane.automation.push(automation);

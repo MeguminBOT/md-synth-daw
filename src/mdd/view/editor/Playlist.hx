@@ -470,6 +470,25 @@ final class Playlist extends Widget {
 		});
 
 		if (held != null) {
+			final drives = new Menu();
+
+			for (one in mdd.view.Parameter.of(session.part)) {
+				if (!one.operators) {
+					driven(drives, held, one, one.target, 0, px);
+					continue;
+				}
+
+				final slots = new Menu();
+				for (slot in 0...4) driven(slots, held, one, one.target, slot, px);
+
+				drives.offer(new Choice(one.name)).submenu = slots;
+			}
+
+			menu.offer(new Choice(translate(Locale.TRACK_AUTOMATE)
+				+ "  " + session.part.name())).submenu = drives;
+
+			menu.divide();
+
 			fires(menu.offer(new Choice(translate(Locale.TRACK_RENAME))), function():Void {
 				if (onRename != null) onRename(which);
 			});
@@ -495,6 +514,38 @@ final class Playlist extends Widget {
 		}
 
 		root.pop(menu, px, py, this);
+	}
+
+	function driven(into:Menu, track:mdd.song.Track, held:mdd.view.Parameter, target:Int,
+			slot:Int, px:Float):Void {
+		final one = into.offer(new Choice(held.titled(slot)));
+		one.reason = translate(held.about);
+
+		fires(one, function():Void {
+			final bar = session.song.tempo.ppqn * 4;
+
+			var at = session.snapped(tickAt(px));
+			if (at < 0) at = 0;
+
+			final made = mdd.song.Clip.drives(session.part, target, slot, at, bar * 2);
+			final line = made.line;
+
+			if (line != null) {
+				line.add(new mdd.song.Point(0, 0));
+
+				final tail = new mdd.song.Point(bar * 2, 0);
+				line.points[0].shape = held.smooth ? mdd.song.Automation.LINEAR
+					: mdd.song.Automation.HOLD;
+
+				line.add(tail);
+			}
+
+			session.does(new mdd.song.edit.AddClip(session.song.tracks.indexOf(track), made));
+			chosen = made;
+			chosenTrack = session.song.tracks.indexOf(track);
+
+			session.say(held.titled(slot) + "  " + session.part.name());
+		});
 	}
 
 	function fires(choice:Choice, what:Void -> Void):Void {
@@ -716,6 +767,11 @@ final class Playlist extends Widget {
 
 				painted++;
 
+				if (clip.drawn()) {
+					curved(paint, theme, metrics, clip, at, row, wide, tall, track.muted);
+					continue;
+				}
+
 				final pattern = session.song.patternAt(clip.pattern);
 				final colour = pattern == null ? theme.part(clip.pattern % 11)
 					: pattern.colour >= 0 ? new Colour(pattern.colour)
@@ -750,6 +806,65 @@ final class Playlist extends Widget {
 				paint.popClip();
 			}
 		}
+	}
+
+	static inline final CURVE = 256;
+
+	final curve:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(CURVE * 2);
+
+	function curved(paint:Paint, theme:Theme, metrics:Metrics, clip:Clip, at:Float,
+			row:Float, wide:Float, tall:Float, quiet:Bool):Void {
+		final line = clip.line;
+		if (line == null) return;
+
+		final part:mdd.song.Part = clip.part;
+		final held = mdd.view.Parameter.found(part, line.target, line.slot);
+		final colour = theme.part(clip.part);
+		final font = metrics.small == null ? metrics.body : metrics.small;
+
+		paint.roundedRect(at, row + 2, wide, tall - 5, metrics.radiusSmall, theme.raise1,
+			quiet ? 0.4 : 0.9);
+
+		paint.outline(at, row + 2, wide, tall - 5, colour, metrics.whole(1),
+			clip == chosen ? 1 : 0.6);
+
+		if (clip == chosen) {
+			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));
+		}
+
+		if (wide < metrics.whole(24) || held == null) return;
+
+		final inset = metrics.whole(3);
+		final top = row + 2 + inset;
+		final room = tall - 5 - inset * 2;
+		final span = held.high - held.low;
+
+		if (room > metrics.whole(4) && span > 0 && line.points.length > 0) {
+			paint.pushClip(at, row + 2, wide, tall - 5);
+
+			var many = Std.int(wide / metrics.whole(3)) + 2;
+			if (many > CURVE) many = CURVE;
+			if (many < 2) many = 2;
+
+			for (step in 0...many) {
+				final tick = Std.int(clip.length * step / (many - 1));
+				final value = line.valueAt(tick);
+				final much = (value - held.low) / span;
+
+				curve[step * 2] = at + wide * step / (many - 1);
+				curve[step * 2 + 1] = top + room * (1 - (much < 0 ? 0 : (much > 1 ? 1 : much)));
+			}
+
+			paint.polyline(curve, many, metrics.whole(2), colour, quiet ? 0.4 : 0.95);
+			paint.popClip();
+		}
+
+		paint.pushClip(at, row + 2, wide - metrics.unit, tall - 5);
+
+		paint.text(part.name() + "  " + held.titled(line.slot), at + metrics.unit,
+			row + 2 + metrics.unit + font.ascent, colour, quiet ? 0.4 : 0.85);
+
+		paint.popClip();
 	}
 
 	static inline final MOST_NOTES = 2048;

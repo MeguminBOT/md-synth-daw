@@ -29,6 +29,7 @@ class AutomationCheck {
 		bent();
 		repeated();
 		played();
+		clipped();
 		named();
 		kept();
 
@@ -247,6 +248,72 @@ class AutomationCheck {
 		return true;
 	}
 
+	static function drove(shape:Int):Array<Int> {
+		final song = new Song("clip", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(0, SPAN * 2, 60, 127));
+
+		final notes = song.track(new mdd.song.Track("notes"));
+		notes.add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final driving = song.track(new mdd.song.Track("driving"));
+		final clip = mdd.song.Clip.drives(Part.Psg1, Automation.LEVEL, 0, 0, SPAN);
+		final line = clip.line;
+
+		if (line != null) {
+			final from = new Point(0, 0);
+			from.shape = shape;
+
+			line.add(from);
+			line.add(new Point(SPAN, 12));
+		}
+
+		driving.add(clip);
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0,
+			song.tempo.samplesAt(pattern.length));
+
+		final out:Array<Int> = [];
+		var latched = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+			if ((value & 0x80) == 0) continue;
+
+			latched = (value >> 4) & 7;
+			if ((latched & 1) == 0) continue;
+
+			out.push(value & 0x0F);
+		}
+
+		return out;
+	}
+
+	static function clipped():Void {
+		final held = drove(Automation.HOLD);
+		final straight = drove(Automation.LINEAR);
+
+		says("a clip on the playlist drives a part it does not hold",
+			held.length >= 2 && held[held.length - 1] == 12,
+			"an automation clip over a square on another track writes " + held.length
+			+ " attenuations, ending on " + held[held.length - 1]
+			+ ", which is the offset its far point carries");
+
+		var rises = true;
+		for (index in 1...straight.length) {
+			if (straight[index] < straight[index - 1]) rises = false;
+		}
+
+		says("and a shape in it ramps the same way a lane does",
+			straight.length > held.length && rises,
+			"the same clip drawn linear writes " + straight.length
+			+ " attenuations against " + held.length + " held, each quieter than the last");
+	}
+
 	static function named():Void {
 		var many = 0;
 		var packed = 0;
@@ -357,6 +424,42 @@ class AutomationCheck {
 				right++;
 			}
 		}
+
+		final driving = song.track(new mdd.song.Track("driving"));
+		final clip = mdd.song.Clip.drives(Part.Psg1, Automation.TUNE, 0, 96, SPAN);
+		final held = clip.line;
+
+		if (held != null) {
+			final from = new Point(0, -40);
+			from.shape = Automation.WAVE;
+			from.steps = 5;
+
+			held.add(from);
+			held.add(new Point(SPAN, 40));
+		}
+
+		driving.add(clip);
+
+		final twice = mdd.format.Project.read(mdd.format.Project.text(song));
+		var one:Null<mdd.song.Clip> = null;
+
+		if (twice != null) {
+			for (track in twice.tracks) {
+				for (found in track.clips) if (found.drawn()) one = found;
+			}
+		}
+
+		final line = one == null ? null : one.line;
+
+		says("and so does a clip that drives one", line != null
+			&& one.kind == mdd.song.Clip.AUTOMATION && one.part == Part.Psg1.index()
+			&& one.at == 96 && line.target == Automation.TUNE
+			&& line.points.length == 2 && line.points[0].shape == Automation.WAVE
+			&& line.points[0].steps == 5 && line.points[0].value == -40,
+			line == null ? "the clip did not come back"
+			: "the clip comes back on " + (one.part:Part).name() + " at " + one.at
+			+ " driving " + line.points.length + " points, the first a wave of "
+			+ line.points[0].steps + " cycles holding " + line.points[0].value);
 
 		says("a shape survives being written and read", right == Automation.SHAPES,
 			right + " of " + Automation.SHAPES

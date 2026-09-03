@@ -110,6 +110,7 @@ final class Sequencer {
 
 			for (clip in track.clips) {
 				if (clip.at > high || clip.ends() <= low) continue;
+				if (clip.kind == mdd.song.Clip.AUTOMATION) continue;
 
 				final pattern = song.patternAt(clip.pattern);
 				if (pattern == null) continue;
@@ -118,6 +119,137 @@ final class Sequencer {
 					toSample);
 			}
 		}
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.at > high || clip.ends() <= low) continue;
+				if (!clip.drawn()) continue;
+
+				drove(clip, low, high, fromSample, toSample);
+			}
+		}
+	}
+
+	var underTranspose:Int = 0;
+
+	function noteUnder(part:Part, tick:Int):Null<mdd.song.Note> {
+		var found:Null<mdd.song.Note> = null;
+		underTranspose = 0;
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.kind != mdd.song.Clip.PATTERN) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final pattern = song.patternAt(clip.pattern);
+				if (pattern == null) continue;
+
+				final local = tick - clip.at;
+
+				for (note in pattern.lane(part).notes) {
+					if (note.at > local) break;
+
+					found = note;
+					underTranspose = clip.transpose;
+				}
+			}
+		}
+
+		return found;
+	}
+
+	function drove(clip:mdd.song.Clip, low:Int, high:Int, fromSample:Int,
+			toSample:Int):Void {
+		final line = clip.line;
+		if (line == null || line.points.length == 0) return;
+
+		final part:Part = clip.part;
+		if (!song.audible(part)) return;
+
+		final tempo = song.tempo;
+		final riding = rides(part, line);
+
+		var head = low - clip.at;
+		if (head < 0) head = 0;
+
+		final tail = high - clip.at + 1;
+
+		var index = line.seek(head);
+		if (index > 0) index--;
+
+		wroteUnder = -2;
+
+		while (index < line.points.length) {
+			final point = line.points[index];
+			if (point.at > tail) break;
+
+			index++;
+
+			final at = tempo.samplesAt(clip.at + point.at);
+
+			if (at >= fromSample && at < toSample) {
+				drives(at, part, line, point.value, clip.at + point.at, riding);
+			}
+
+			if (!mdd.song.Automation.moves(point.shape)) continue;
+			if (index >= line.points.length) continue;
+
+			ramping(clip, part, line, point, line.points[index], riding, fromSample,
+				toSample);
+		}
+	}
+
+	function ramping(clip:mdd.song.Clip, part:Part, line:mdd.song.Automation,
+			from:mdd.song.Point, to:mdd.song.Point, riding:Bool, fromSample:Int,
+			toSample:Int):Void {
+		final tempo = song.tempo;
+		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
+		final step = Std.int(Tempo.TICKS / rate);
+		if (step < 1) return;
+
+		final head = tempo.samplesAt(clip.at + from.at);
+		final ends = tempo.samplesAt(clip.at + to.at);
+		if (ends <= head) return;
+
+		var when = head + step;
+		if (when < fromSample) when += Std.int((fromSample - when) / step) * step;
+
+		var was = mdd.song.Automation.between(from, to, tempo.tickAt(when - step) - clip.at);
+
+		while (when < ends && when < toSample) {
+			final tick = tempo.tickAt(when) - clip.at;
+			final value = mdd.song.Automation.between(from, to, tick);
+
+			if (value != was) {
+				was = value;
+				if (when >= fromSample) drives(when, part, line, value, clip.at + tick, riding);
+			}
+
+			when += step;
+		}
+	}
+
+	function drives(at:Int, part:Part, line:mdd.song.Automation, value:Int, tick:Int,
+			riding:Bool):Void {
+		final note = riding ? noteUnder(part, tick) : null;
+
+		if (note == null) {
+			if (riding) return;
+			lined(at, part, line, value, 0, -1, -1, -1);
+			return;
+		}
+
+		if (value == wroteValue && wroteUnder == note.pitch) return;
+
+		wroteValue = value;
+		wroteUnder = note.pitch;
+
+		lined(at, part, line, value, underTranspose, note.pitch, note.velocity,
+			note.instrument);
 	}
 
 	function walk(pattern:mdd.song.Pattern, from:Int, until:Int, transpose:Int, low:Int,
