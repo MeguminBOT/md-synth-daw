@@ -11,7 +11,9 @@ import mdd.song.Tempo;
 @:unreflective
 final class Render {
 	public static inline final BLOCK = 128;
-	public static inline final COUPLING = 0.9975;
+	public static inline final COUPLED = 17.569;
+
+	var coupling:Float = 0.9975;
 	public static inline final FULL_SCALE = 2560.0;
 	public static inline final SCALE = 1.0 / FULL_SCALE;
 	public static inline final PRIMED = 0.100;
@@ -78,17 +80,19 @@ final class Render {
 
 	public static inline final BAND = 19845.0;
 
-	public static inline final WEIGHTS = 31;
+	public static inline final PHASES = 32;
 
-	public static inline final SQUARES = 96;
+	public static inline final WEIGHTS = 127;
 
-	final weights:Vector<Float> = new Vector<Float>(WEIGHTS);
+	public static inline final SQUARES = 384;
+
+	final weights:Vector<Float> = new Vector<Float>(WEIGHTS * PHASES);
 	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS);
 	final pastRight:Vector<Float> = new Vector<Float>(WEIGHTS);
 
 	var pastAt:Int = 0;
 
-	final squareWeights:Vector<Float> = new Vector<Float>(SQUARES);
+	final squareWeights:Vector<Float> = new Vector<Float>(SQUARES * PHASES);
 	final squarePast:Vector<Float> = new Vector<Float>(SQUARES);
 
 	var squareAt:Int = 0;
@@ -100,6 +104,7 @@ final class Render {
 
 		block = new Vector<cpp.Float32>(this.frames * 2);
 
+		coupling = Math.exp(-2 * Math.PI * COUPLED / this.rate);
 		fmStep = Ym2612.CLOCK / (Ym2612.PER_SAMPLE * this.rate);
 		psgStep = Sn76489.CLOCK / (Sn76489.DIVIDER * this.rate);
 
@@ -115,21 +120,28 @@ final class Render {
 		if (cut > 0.5) cut = 0.5;
 
 		final middle = (WEIGHTS - 1) * 0.5;
-		var total = 0.0;
 
-		for (index in 0...WEIGHTS) {
-			final at = index - middle;
-			final sinc = at == 0 ? 2 * cut
-				: Math.sin(2 * Math.PI * cut * at) / (Math.PI * at);
+		for (phase in 0...PHASES) {
+			final shift = phase / PHASES;
+			final base = phase * WEIGHTS;
 
-			final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (WEIGHTS - 1))
-				+ 0.08 * Math.cos(4 * Math.PI * index / (WEIGHTS - 1));
+			var total = 0.0;
 
-			weights[index] = sinc * window;
-			total += weights[index];
+			for (index in 0...WEIGHTS) {
+				final at = index - middle + shift;
+				final sinc = at == 0 ? 2 * cut
+					: Math.sin(2 * Math.PI * cut * at) / (Math.PI * at);
+
+				final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (WEIGHTS - 1))
+					+ 0.08 * Math.cos(4 * Math.PI * index / (WEIGHTS - 1));
+
+				weights[base + index] = sinc * window;
+				total += weights[base + index];
+			}
+
+			for (index in 0...WEIGHTS) weights[base + index] /= total;
 		}
 
-		for (index in 0...WEIGHTS) weights[index] /= total;
 		for (index in 0...WEIGHTS) {
 			pastLeft[index] = 0;
 			pastRight[index] = 0;
@@ -141,21 +153,28 @@ final class Render {
 		if (edge > 0.5) edge = 0.5;
 
 		final centre = (SQUARES - 1) * 0.5;
-		var whole = 0.0;
 
-		for (index in 0...SQUARES) {
-			final at = index - centre;
-			final sinc = at == 0 ? 2 * edge
-				: Math.sin(2 * Math.PI * edge * at) / (Math.PI * at);
+		for (phase in 0...PHASES) {
+			final shift = phase / PHASES;
+			final base = phase * SQUARES;
 
-			final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (SQUARES - 1))
-				+ 0.08 * Math.cos(4 * Math.PI * index / (SQUARES - 1));
+			var whole = 0.0;
 
-			squareWeights[index] = sinc * window;
-			whole += squareWeights[index];
+			for (index in 0...SQUARES) {
+				final at = index - centre + shift;
+				final sinc = at == 0 ? 2 * edge
+					: Math.sin(2 * Math.PI * edge * at) / (Math.PI * at);
+
+				final window = 0.42 - 0.5 * Math.cos(2 * Math.PI * index / (SQUARES - 1))
+					+ 0.08 * Math.cos(4 * Math.PI * index / (SQUARES - 1));
+
+				squareWeights[base + index] = sinc * window;
+				whole += squareWeights[base + index];
+			}
+
+			for (index in 0...SQUARES) squareWeights[base + index] /= whole;
 		}
 
-		for (index in 0...SQUARES) squareWeights[index] /= whole;
 		for (index in 0...SQUARES) squarePast[index] = 0;
 	}
 
@@ -247,9 +266,15 @@ final class Render {
 			var gotRight = 0.0;
 			var at = pastAt;
 
+			var phase = Std.int(fmAt * PHASES);
+			if (phase < 0) phase = 0;
+			if (phase >= PHASES) phase = PHASES - 1;
+
+			final base = phase * WEIGHTS;
+
 			for (index in 0...WEIGHTS) {
-				gotLeft += pastLeft[at] * weights[index];
-				gotRight += pastRight[at] * weights[index];
+				gotLeft += pastLeft[at] * weights[base + index];
+				gotRight += pastRight[at] * weights[base + index];
 
 				at--;
 				if (at < 0) at = WEIGHTS - 1;
@@ -272,8 +297,14 @@ final class Render {
 			var other = 0.0;
 			var square = squareAt;
 
+			var turn = Std.int(psgAt * PHASES);
+			if (turn < 0) turn = 0;
+			if (turn >= PHASES) turn = PHASES - 1;
+
+			final tap = turn * SQUARES;
+
 			for (index in 0...SQUARES) {
-				other += squarePast[square] * squareWeights[index];
+				other += squarePast[square] * squareWeights[tap + index];
 
 				square--;
 				if (square < 0) square = SQUARES - 1;
@@ -282,8 +313,8 @@ final class Render {
 			final left = fmLeft + other;
 			final right = fmRight + other;
 
-			heldLeft = (left - wentLeft) + COUPLING * heldLeft;
-			heldRight = (right - wentRight) + COUPLING * heldRight;
+			heldLeft = (left - wentLeft) + coupling * heldLeft;
+			heldRight = (right - wentRight) + coupling * heldRight;
 			wentLeft = left;
 			wentRight = right;
 

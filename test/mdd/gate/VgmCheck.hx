@@ -1102,9 +1102,10 @@ class VgmCheck {
 	static function rated(where:String, files:Array<String>):Void {
 		if (files.length == 0) return;
 
-		final at = [44100, 48000];
+		final at = [22050, 44100, 48000, 96000, 192000];
 		final peaks:Array<Float> = [];
-		final zeroes:Array<Int> = [];
+		final loudness:Array<Float> = [];
+		final banded:Array<Float> = [];
 
 		for (rate in at) {
 			final stream = new mdd.play.Stream(1 << 22);
@@ -1112,11 +1113,13 @@ class VgmCheck {
 
 			final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
 			final span = rate * 4;
+			final coefficient = Math.exp(-2 * Math.PI * 8000 / rate);
 
 			var done = 0;
 			var most = 0.0;
-			var crossings = 0;
-			var last = 0.0;
+			var total = 0.0;
+			var low = 0.0;
+			var held = 0.0;
 
 			while (done < span) {
 				final from = Std.int(done * (mdd.song.Tempo.TICKS / rate));
@@ -1128,40 +1131,45 @@ class VgmCheck {
 					final much = value < 0 ? -value : value;
 
 					if (much > most) most = much;
-					if (last <= 0 && value > 0) crossings++;
-					last = value;
+
+					total += value * value;
+					held = value * (1 - coefficient) + held * coefficient;
+					low += held * held;
 				}
 
 				done += many;
 			}
 
 			peaks.push(most);
-			zeroes.push(crossings);
-		}
-
-		var worst = 0.0;
-
-		for (index in 1...zeroes.length) {
-			final away = zeroes[index] - zeroes[0];
-			final much = (away < 0 ? -away : away) / zeroes[0];
-			if (much > worst) worst = much;
+			loudness.push(done < 1 ? 0 : Math.sqrt(total / done));
+			banded.push(done < 1 ? 0 : Math.sqrt(low / done));
 		}
 
 		var loudest = 0.0;
+		var audible = 0.0;
 
-		for (index in 1...peaks.length) {
-			final away = peaks[index] - peaks[0];
-			final much = (away < 0 ? -away : away) / (peaks[0] <= 0 ? 1 : peaks[0]);
+		for (index in 1...at.length) {
+			final away = (loudness[index] - loudness[1]) / (loudness[1] <= 0 ? 1
+				: loudness[1]);
 
-			if (much > loudest) loudest = much;
+			final under = (banded[index] - banded[1]) / (banded[1] <= 0 ? 1 : banded[1]);
+
+			if ((away < 0 ? -away : away) > loudest) loudest = away < 0 ? -away : away;
+			if ((under < 0 ? -under : under) > audible) audible = under < 0 ? -under : under;
 		}
 
-		says("and the same at either device rate", loudest < 0.02 && worst < 0.01,
-			"four seconds at 44100 and 48000 peak at " + round(peaks[0], 3) + " and "
-			+ round(peaks[1], 3) + ", " + round(loudest * 100, 2) + " per cent apart; they"
-			+ " cross zero " + zeroes[0] + " and " + zeroes[1] + " times, "
-			+ round(worst * 100, 2) + " per cent apart, the band kept being the same either"
-			+ " way");
+		var said = "";
+		for (index in 0...at.length) {
+			said += (index == 0 ? "" : ", ") + at[index] + " holds "
+				+ round(loudness[index], 5) + " and " + round(banded[index], 5)
+				+ " under 8 kHz";
+		}
+
+		says("and the same at every device rate", loudest < 0.01 && audible < 0.01,
+			"four seconds where " + said + "; against 44100 the loudness is "
+			+ round(loudest * 100, 2) + " per cent apart at worst and the audible band "
+			+ round(audible * 100, 2) + " per cent, and 22050 keeps a narrower band"
+			+ " because it has to");
 	}
 
 	static function written(where:String, files:Array<String>, into:String,
