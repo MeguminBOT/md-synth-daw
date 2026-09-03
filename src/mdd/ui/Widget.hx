@@ -19,6 +19,7 @@ class Widget {
 	public var focusable:Bool = false;
 	public var opaque:Bool = false;
 	public var sealed:Bool = false;
+	public var drives:Bool = false;
 	public var typing:Bool = false;
 
 	public var parent(default, null):Null<Widget> = null;

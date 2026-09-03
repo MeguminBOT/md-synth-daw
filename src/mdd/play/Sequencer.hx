@@ -594,7 +594,7 @@ final class Sequencer {
 					}
 					if (part.noise() && second >= 0 && instrument != null
 							&& instrument.envelope != null) {
-						stream.noise(tick, instrument.envelope.noise);
+						stream.noise(tick, instrument.envelope.noise, false);
 					}
 
 				case TUNE:

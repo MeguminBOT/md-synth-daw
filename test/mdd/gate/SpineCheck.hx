@@ -87,6 +87,28 @@ class SpineCheck {
 			"the last few pixels of a note resize it and the middle of it does not");
 	}
 
+	static function menued(tree:Root):Void {
+		final one = new mdd.ui.control.Menu();
+		final two = new mdd.ui.control.Menu();
+
+		for (index in 0...3) one.offer(new mdd.ui.control.Choice("one " + index));
+		for (index in 0...3) two.offer(new mdd.ui.control.Choice("two " + index));
+
+		tree.pop(one, 100, 100);
+		says("a menu opens", tree.opened() == 1, tree.opened() + " menu up");
+
+		tree.pop(two, 300, 300);
+		says("and a second menu closes the first", tree.opened() == 1,
+			tree.opened() + " menu up after opening another, not " + tree.popups.length);
+
+		tree.pressed(900, 700, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("and a press outside closes it", tree.opened() == 0,
+			tree.opened() + " menus up after pressing away from it");
+
+		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
+	}
+
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
 		final held = new mdd.view.overlay.Preferences(session);
 
@@ -653,6 +675,7 @@ class SpineCheck {
 			+ ", " + over + " frames of " + rolls + " over 16.67, first frame "
 			+ round(first * 1000, 1));
 
+		menued(tree);
 		sheeted(tree, session);
 
 		tree.resize(900, 600);

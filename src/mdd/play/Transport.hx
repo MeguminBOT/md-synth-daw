@@ -194,7 +194,7 @@ final class Transport {
 				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);
 			} else if (part.noise()) {
 				if (instrument != null && instrument.envelope != null) {
-					stream.noise(at, instrument.envelope.noise);
+					stream.noise(at, instrument.envelope.noise, false);
 				}
 
 				stream.loudness(at, part, instrument == null ? null : instrument.envelope, 110, 0);

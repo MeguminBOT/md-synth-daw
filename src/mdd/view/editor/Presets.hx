@@ -427,7 +427,7 @@ final class Presets extends Widget {
 	static function suits(instrument:Instrument, part:Part):Bool {
 		if (part.fm()) return instrument.kind.fm();
 		if (part.square()) return instrument.kind.square();
-		if (part.noise()) return instrument.kind.noise() || instrument.kind.square();
+		if (part.noise()) return instrument.kind.noise();
 		return instrument.kind.sampled();
 	}
 

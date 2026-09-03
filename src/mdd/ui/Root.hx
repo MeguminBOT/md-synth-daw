@@ -254,9 +254,11 @@ final class Root {
 	}
 
 	public function pop(menu:Menu, px:Float, py:Float, from:Null<Widget> = null):Void {
+		if (popups.indexOf(menu) < 0 && !nested(menu)) dismiss();
+
 		@:privateAccess menu.attach(this);
 
-		if (popups.length == 0) {
+		if (opened() == 0) {
 			returnFocus = focus;
 			opener = from;
 		}
@@ -291,6 +293,19 @@ final class Root {
 	public function dismiss():Void {
 		if (popups.length == 0) return;
 		shut(popups[0]);
+	}
+
+	public function opened():Int {
+		var many = 0;
+		for (held in popups) if (!held.closing) many++;
+
+		return many;
+	}
+
+	function nested(menu:Menu):Bool {
+		for (held in popups) if (!held.closing && held.opened == menu) return true;
+
+		return false;
 	}
 
 	function leave(menu:Menu):Void {
@@ -367,6 +382,11 @@ final class Root {
 		var i = popups.length - 1;
 
 		while (i >= 0) {
+			if (popups[i].closing) {
+				i--;
+				continue;
+			}
+
 			final found = popups[i].hit(px, py);
 			if (found != null) return found;
 			i--;
@@ -381,7 +401,7 @@ final class Root {
 	}
 
 	function owns(widget:Null<Widget>):Bool {
-		if (widget == null || opener == null) return false;
+		if (widget == null || opener == null || !opener.drives) return false;
 
 		var at:Null<Widget> = widget;
 		while (at != null) {
@@ -492,7 +512,7 @@ final class Root {
 
 		final under = pick(x, y);
 
-		if (popups.length > 0 && !popped(under) && !owns(under)) {
+		if (opened() > 0 && !popped(under) && !owns(under)) {
 			dismiss();
 			return;
 		}

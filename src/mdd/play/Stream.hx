@@ -69,6 +69,7 @@ final class Stream {
 	final kinds:Vector<Int>;
 	final ports:Vector<Int>;
 	final values:Vector<Int>;
+	var noised:Int = -1;
 	final settled:Vector<Int> = new Vector<Int>(512);
 	final words:Vector<Int> = new Vector<Int>(10);
 	final whens:Vector<Int> = new Vector<Int>(10);
@@ -85,6 +86,7 @@ final class Stream {
 	}
 
 	public function forget():Void {
+		noised = -1;
 		for (index in 0...settled.length) settled[index] = -1;
 		for (index in 0...words.length) words[index] = -1;
 		for (index in 0...whens.length) whens[index] = -1;
@@ -317,8 +319,12 @@ final class Stream {
 		psg(tick, 0x80 | (channel << 5) | 0x10 | held);
 	}
 
-	public function noise(tick:Int, mode:Int):Void {
-		psg(tick, 0x80 | 0x60 | (mode & 0x0F));
+	public function noise(tick:Int, mode:Int, again:Bool = true):Void {
+		final byte = 0x80 | 0x60 | (mode & 0x0F);
+		if (!again && noised == byte) return;
+
+		noised = byte;
+		psg(tick, byte);
 	}
 
 	public function loudness(tick:Int, part:Part, envelope:Null<Envelope>, velocity:Int,

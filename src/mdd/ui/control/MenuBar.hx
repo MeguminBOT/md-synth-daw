@@ -15,6 +15,8 @@ final class MenuBar extends Widget {
 
 	public function new() {
 		super();
+
+		drives = true;
 		opaque = true;
 	}
 
