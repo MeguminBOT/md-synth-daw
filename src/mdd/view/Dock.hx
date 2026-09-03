@@ -7,6 +7,9 @@ import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.editor.Mixer;
+import mdd.view.editor.Patterns;
+import mdd.view.monitor.Warnings;
 
 @:unreflective
 final class Dock extends Widget {

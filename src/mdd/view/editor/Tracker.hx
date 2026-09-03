@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.editor;
 
 import mdd.app.Locale;
 import mdd.app.Session;

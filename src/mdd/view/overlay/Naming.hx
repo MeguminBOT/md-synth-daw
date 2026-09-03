@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.overlay;
 
 import mdd.app.Locale;
 import mdd.ui.Input;

@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.monitor;
 
 import haxe.ds.Vector;
 import mdd.app.Locale;

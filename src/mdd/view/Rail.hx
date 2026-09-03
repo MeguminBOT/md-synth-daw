@@ -3,6 +3,8 @@ package mdd.view;
 import mdd.app.Session;
 import mdd.ui.Paint;
 import mdd.ui.Widget;
+import mdd.view.editor.ChannelRack;
+import mdd.view.monitor.Hardware;
 
 @:unreflective
 final class Rail extends Widget {

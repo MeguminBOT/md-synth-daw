@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.editor;
 
 import haxe.ds.Vector;
 import mdd.app.Session;

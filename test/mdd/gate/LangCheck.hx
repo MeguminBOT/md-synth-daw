@@ -3,6 +3,7 @@ package mdd.gate;
 import mdd.ui.Translation;
 import mdd.app.Languages;
 import mdd.app.Locale;
+import mdd.view.editor.Tracker;
 
 @:unreflective
 class LangCheck {

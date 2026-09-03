@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.editor;
 
 import mdd.app.Locale;
 import mdd.app.Session;
@@ -7,6 +7,7 @@ import mdd.song.Part;
 import mdd.ui.Input;
 import mdd.ui.Item;
 import mdd.ui.Paint;
+import mdd.ui.Panel;
 import mdd.ui.Theme;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;

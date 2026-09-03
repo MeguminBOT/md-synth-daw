@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.monitor;
 
 import haxe.ds.Vector;
 import mdd.app.Locale;
@@ -7,6 +7,7 @@ import mdd.play.Stream;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Paint;
+import mdd.ui.Panel;
 import mdd.ui.Pointer;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;

@@ -40,6 +40,9 @@ import mdd.ui.control.Tooltip;
 import mdd.ui.control.Tree;
 import mdd.ui.Widget;
 import mdd.ui.Translation;
+import mdd.view.editor.Samples;
+import mdd.view.editor.Tracker;
+import mdd.view.monitor.Scope;
 
 @:unreflective
 class Marquee extends Widget {

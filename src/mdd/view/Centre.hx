@@ -5,6 +5,11 @@ import mdd.app.Session;
 import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Widget;
+import mdd.view.editor.PianoRoll;
+import mdd.view.editor.Playlist;
+import mdd.view.editor.Tracker;
+import mdd.view.monitor.Registers;
+import mdd.view.monitor.Scope;
 
 @:unreflective
 final class Centre extends Widget {

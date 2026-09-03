@@ -14,7 +14,7 @@ import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
-import mdd.view.ChannelRack;
+import mdd.view.editor.ChannelRack;
 import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.app.Session;

@@ -19,12 +19,12 @@ import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
-import mdd.view.ChannelRack;
+import mdd.view.editor.ChannelRack;
 import mdd.view.Dock;
 import mdd.view.Inspector;
-import mdd.view.PianoRoll;
+import mdd.view.editor.PianoRoll;
 import mdd.app.Session;
-import mdd.view.Tracker;
+import mdd.view.editor.Tracker;
 import mdd.view.TransportBar;
 
 @:unreflective
@@ -57,7 +57,7 @@ class SpineCheck {
 		return 0;
 	}
 
-	static function sized(roll:mdd.view.PianoRoll, session:mdd.app.Session):Void {
+	static function sized(roll:mdd.view.editor.PianoRoll, session:mdd.app.Session):Void {
 		final pattern = session.current();
 		if (pattern == null) return;
 
@@ -88,12 +88,12 @@ class SpineCheck {
 	}
 
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
-		final held = new mdd.view.Preferences(session);
+		final held = new mdd.view.overlay.Preferences(session);
 
 		held.speaks(["en-GB", "en-US"], "en-GB");
 		tree.raise(held);
 
-		final row = mdd.view.Preferences.THEME;
+		final row = mdd.view.overlay.Preferences.THEME;
 		final top = held.y + held.head() + row * held.rowTall() + held.rowTall() * 0.7;
 		final at = held.x + held.width * 0.5;
 
@@ -113,7 +113,7 @@ class SpineCheck {
 			"a press on the scrim lowers the sheet");
 	}
 
-	static function dragged(tree:Root, roll:mdd.view.PianoRoll, session:mdd.app.Session,
+	static function dragged(tree:Root, roll:mdd.view.editor.PianoRoll, session:mdd.app.Session,
 			centre:Centre, paint:Paint, renderer:cpp.Star<Canvas>):Void {
 		centre.show(Centre.ROLL);
 		session.uses(mdd.app.Session.SELECT);
@@ -355,7 +355,7 @@ class SpineCheck {
 		centre.show(Centre.SCOPE);
 
 		for (index in 0...6) {
-			for (step in 0...mdd.view.Scope.SPAN) {
+			for (step in 0...mdd.view.monitor.Scope.SPAN) {
 				centre.scope.feed(index, Math.sin(step * (index + 1) * 0.05) * (0.2 + index * 0.1));
 			}
 			centre.scope.sang(index, 48 + index * 5);
@@ -394,7 +394,7 @@ class SpineCheck {
 			+ " ms, worst " + round(scopeWorst * 1000, 3)
 			+ " ms with the scope in the centre");
 
-		centre.scope.shows(mdd.view.Scope.SPECTRUM);
+		centre.scope.shows(mdd.view.monitor.Scope.SPECTRUM);
 
 		var bandWorst = 0.0;
 		final bandTimes = new haxe.ds.Vector<Float>(120);
@@ -417,10 +417,10 @@ class SpineCheck {
 		says("and its spectrum", centre.scope.painted == 6 && bandMiddle < 16.67,
 			centre.scope.painted + " lanes transformed, median frame " + round(bandMiddle, 3)
 			+ " ms, worst " + round(bandWorst * 1000, 3)
-			+ " ms over " + mdd.view.Scope.BARS + " bands of " + mdd.view.Scope.SPAN
+			+ " ms over " + mdd.view.monitor.Scope.BARS + " bands of " + mdd.view.monitor.Scope.SPAN
 			+ " samples");
 
-		centre.scope.shows(mdd.view.Scope.WAVEFORM);
+		centre.scope.shows(mdd.view.monitor.Scope.WAVEFORM);
 
 		editor.show(Inspector.BANK);
 

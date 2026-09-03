@@ -5,6 +5,10 @@ import mdd.app.Session;
 import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Widget;
+import mdd.view.editor.FmEditor;
+import mdd.view.editor.Presets;
+import mdd.view.editor.PsgEditor;
+import mdd.view.editor.Samples;
 
 @:unreflective
 final class Inspector extends Widget {

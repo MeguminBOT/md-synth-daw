@@ -1,4 +1,4 @@
-package mdd.view;
+package mdd.view.editor;
 
 import mdd.app.Locale;
 import mdd.app.Session;
@@ -9,6 +9,7 @@ import mdd.song.Note;
 import mdd.song.Pattern;
 import mdd.song.Part;
 import mdd.song.edit.RemoveNote;
+import mdd.ui.Panel;
 import mdd.ui.control.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;

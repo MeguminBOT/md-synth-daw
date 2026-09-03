@@ -1,9 +1,10 @@
-package mdd.view;
+package mdd.view.monitor;
 
 import haxe.ds.Vector;
 import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Part;
+import mdd.ui.Panel;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.Colour;

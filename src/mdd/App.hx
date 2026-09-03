@@ -27,21 +27,21 @@ import mdd.play.Render;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.view.Centre;
-import mdd.view.ChannelRack;
+import mdd.view.editor.ChannelRack;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.control.MenuBar;
 import mdd.view.Dock;
 import mdd.app.Files;
 import mdd.view.Inspector;
-import mdd.view.Notice;
-import mdd.view.Preferences;
+import mdd.view.overlay.Notice;
+import mdd.view.overlay.Preferences;
 import mdd.view.Rail;
 import mdd.app.Session;
 import mdd.app.Locale;
 import mdd.app.Languages;
 import mdd.view.TransportBar;
-import mdd.view.Welcome;
+import mdd.view.overlay.Welcome;
 
 @:unreflective
 class App {
@@ -70,12 +70,12 @@ class App {
 	var menus:Null<MenuBar> = null;
 	var files:Null<Files> = null;
 	var preferences:Null<Preferences> = null;
-	var exporting:Null<mdd.view.Export> = null;
+	var exporting:Null<mdd.view.overlay.Export> = null;
 	var settings:Null<Settings> = null;
 	var update:Null<Update> = null;
 	var notice:Null<Notice> = null;
 	var welcome:Null<Welcome> = null;
-	var naming:Null<mdd.view.Naming> = null;
+	var naming:Null<mdd.view.overlay.Naming> = null;
 	var firstRun:Bool = false;
 	var bar:Null<TransportBar> = null;
 	var budget:Null<Budget> = null;
@@ -226,10 +226,10 @@ class App {
 		shell.zone(Shell.MENU).add(menus);
 
 
-		naming = new mdd.view.Naming();
+		naming = new mdd.view.overlay.Naming();
 		naming.onShut = function():Void root.lower();
 
-		exporting = new mdd.view.Export(session);
+		exporting = new mdd.view.overlay.Export(session);
 		exporting.onShut = function():Void root.lower();
 
 		exporting.onExport = function(mixing:mdd.play.Mixing):Void {

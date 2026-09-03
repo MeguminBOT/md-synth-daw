@@ -17,6 +17,15 @@ import mdd.view.Inspector;
 import mdd.view.Rail;
 import mdd.app.Session;
 import mdd.view.TransportBar;
+import mdd.view.editor.Mixer;
+import mdd.view.editor.Patterns;
+import mdd.view.editor.Playlist;
+import mdd.view.editor.Tracker;
+import mdd.view.monitor.Registers;
+import mdd.view.monitor.Scope;
+import mdd.view.monitor.Warnings;
+import mdd.view.overlay.Export;
+import mdd.view.overlay.Preferences;
 
 @:unreflective
 class ShotCheck {
@@ -177,7 +186,7 @@ class ShotCheck {
 		}
 
 		if (sheet == "preferences") {
-			final held = new mdd.view.Preferences(session);
+			final held = new mdd.view.overlay.Preferences(session);
 
 			held.speaks(mdd.app.Languages.shipped(), "en-GB");
 			tree.raise(held);
@@ -185,14 +194,14 @@ class ShotCheck {
 			held.rise.hold(1);
 			held.fade.hold(1);
 		} else if (sheet == "welcome") {
-			final held = new mdd.view.Welcome(session);
+			final held = new mdd.view.overlay.Welcome(session);
 
 			tree.raise(held);
 			held.arrive("en-GB");
 			held.rise.hold(1);
 			held.fade.hold(1);
 		} else if (sheet == "export" || sheet == "export-opus") {
-			final held = new mdd.view.Export(session);
+			final held = new mdd.view.overlay.Export(session);
 
 			if (sheet == "export-opus") {
 				held.mixing.kind = mdd.play.Mixing.OPUS;
@@ -208,7 +217,7 @@ class ShotCheck {
 			held.rise.hold(1);
 			held.fade.hold(1);
 		} else if (sheet == "naming") {
-			final held = new mdd.view.Naming();
+			final held = new mdd.view.overlay.Naming();
 
 			held.ask("Preset name", "Brass section");
 			tree.raise(held);

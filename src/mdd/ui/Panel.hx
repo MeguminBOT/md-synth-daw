@@ -1,8 +1,4 @@
-package mdd.view;
-
-import mdd.ui.Metrics;
-import mdd.ui.Paint;
-import mdd.ui.Theme;
+package mdd.ui;
 
 @:unreflective
 final class Panel {
