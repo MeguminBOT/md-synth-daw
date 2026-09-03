@@ -303,7 +303,7 @@ final class Export extends Widget {
 		ordered();
 
 		session.changed();
-		invalidate();
+		relayout();
 	}
 
 	public function rowAt(py:Float):Int {

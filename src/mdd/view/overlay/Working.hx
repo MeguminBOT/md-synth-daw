@@ -42,7 +42,11 @@ final class Working extends Widget {
 		swept = 0;
 		over = false;
 
-		if (root == null) return;
+		if (root == null) {
+			rise.hold(1);
+			fade.hold(1);
+			return;
+		}
 
 		rise.hold(0);
 		fade.hold(0);

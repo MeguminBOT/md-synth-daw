@@ -301,10 +301,10 @@ class App {
 		}
 
 		task.begins(Locale.WORKING_DOWNLOADING, Files.name(into));
-		panels.working.arrive(task);
-		panels.working.onCancel = null;
-
 		stage.root.raise(panels.working);
+		panels.working.arrive(task);
+
+		panels.working.onCancel = null;
 		session.changed();
 	}
 
@@ -404,8 +404,8 @@ class App {
 		if (panels.working == null) return;
 
 		task.begins(label, detail);
-		panels.working.arrive(task);
 		stage.root.raise(panels.working);
+		panels.working.arrive(task);
 
 		stage.root.soil();
 		stage.draw();
@@ -428,12 +428,13 @@ class App {
 		rendering = files.renders();
 
 		task.begins(Locale.WORKING_RENDERING, Files.name(where), true);
+		stage.root.raise(panels.working);
 		panels.working.arrive(task);
+
 		panels.working.onCancel = function():Void {
 			if (rendering != null) rendering.stops();
 		};
 
-		stage.root.raise(panels.working);
 		stage.root.soil();
 	}
 
