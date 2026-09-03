@@ -8,6 +8,7 @@ import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;
 import mdd.ui.Font;
+import mdd.ui.Icons;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Root;
@@ -18,6 +19,7 @@ import mdd.ui.Theme;
 final class Stage {
 	static inline final IDLE = 0.002;
 	static inline final ICON = 64;
+	static inline final ROW = 16;
 
 	static final PAIRINGS:Array<Array<String>> = [
 		["Go-Regular.ttf", "Go-Mono.ttf"],
@@ -36,6 +38,10 @@ final class Stage {
 	public var scale:Float = 1;
 	public var windowID:Int = 0;
 	public var typeface:Int = 0;
+
+	public var iconsAt(default, null):String = "";
+
+	var icons:Null<Icons> = null;
 
 	var body:Null<Font> = null;
 	var small:Null<Font> = null;
@@ -74,7 +80,64 @@ final class Stage {
 		if (!faces(metrics)) return false;
 
 		paint = Paint.on(renderer, body);
+		drawn();
+
 		return true;
+	}
+
+	public function drawn():Void {
+		final want = Math.round(metrics().whole(ROW));
+		if (icons != null && icons.pixels == want) return;
+
+		final where = atlases();
+		if (where == "") return;
+
+		final file = where + "/icons-" + nearest(where, want) + ".atlas";
+		final made = Icons.read(renderer, file);
+
+		if (made == null) {
+			iconsAt = "none, looked in " + where;
+			return;
+		}
+
+		iconsAt = made.count + " at " + made.pixels + " px, " + made.atlasWidth + "x"
+			+ made.atlasHeight;
+
+		if (icons != null) icons.shut();
+
+		icons = made;
+		root.icons = made;
+	}
+
+	inline function metrics():Metrics {
+		return root.metrics;
+	}
+
+	function atlases():String {
+		for (where in [Paths.beside() + "/icons", Sys.getCwd() + "/export/icons",
+				Paths.beside() + "/../../icons"]) {
+			if (sys.FileSystem.exists(where)) return haxe.io.Path.normalize(where);
+		}
+
+		return "";
+	}
+
+	function nearest(where:String, want:Int):Int {
+		var best = 0;
+
+		for (name in sys.FileSystem.readDirectory(where)) {
+			if (!StringTools.startsWith(name, "icons-")
+				|| !StringTools.endsWith(name, ".atlas")) continue;
+
+			final held = Std.parseInt(name.substring(6, name.length - 6));
+			if (held == null) continue;
+
+			if (best == 0) best = held;
+			else if (best < want) best = held > best ? held : best;
+			else if (held >= want && held < best) best = held;
+		}
+
+		return best;
 	}
 
 	function faced():Void {
@@ -157,6 +220,7 @@ final class Stage {
 	public function redressed():Void {
 		if (!faces(root.metrics)) return;
 
+		drawn();
 		measured();
 		root.reshape();
 	}
@@ -164,6 +228,7 @@ final class Stage {
 	public function densified(much:Float):Void {
 		root.rescale(scale * much);
 		faces(root.metrics);
+		drawn();
 		measured();
 	}
 
@@ -174,6 +239,7 @@ final class Stage {
 		scale = next;
 		root.rescale(scale);
 		faces(root.metrics);
+		drawn();
 		measured();
 	}
 
@@ -234,6 +300,8 @@ final class Stage {
 	}
 
 	public function shut():Void {
+		if (icons != null) icons.shut();
+
 		shed();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);

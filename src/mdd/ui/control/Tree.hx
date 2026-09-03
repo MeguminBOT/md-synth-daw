@@ -1,7 +1,6 @@
 package mdd.ui.control;
 
 import haxe.ds.Vector;
-import mdd.ui.Glyph;
 
 @:unreflective
 final class Tree extends Scroll {
@@ -16,7 +15,6 @@ final class Tree extends Scroll {
 
 	final shown:Array<Item> = [];
 	final arrow:Vector<Float> = new Vector<Float>(6);
-	final glyph:Glyph = new Glyph();
 	var hoverAt:Int = -1;
 
 	public function new() {
@@ -244,17 +242,21 @@ final class Tree extends Scroll {
 			var pen = left;
 
 			if (item.tint >= 0) {
-				final dot = metrics.whole(6);
 				final alpha = item.enabled ? 1.0 : 0.4;
 
-				if (item.icon >= 0) {
+				if (item.icon >= 0 && root.icons != null) {
 					final wide = metrics.whole(16);
-					glyph.draw(paint, item.icon, pen + wide * 0.5, top + tall * 0.5, wide,
-						item.tint, item == chosen ? theme.raise1 : theme.panel, alpha);
+
+					paint.icon(root.icons, item.icon, pen, top + (tall - wide) * 0.5, wide,
+						item.tint, alpha);
+
 					pen += wide + metrics.unit * 2;
 				} else {
+					final dot = metrics.whole(6);
+
 					paint.roundedRect(pen, top + (tall - dot) * 0.5, dot, dot, dot * 0.5,
 						item.tint, alpha);
+
 					pen += dot + metrics.unit * 2;
 				}
 			}

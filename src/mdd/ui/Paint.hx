@@ -14,6 +14,7 @@ final class Paint {
 	public var font(default, null):Font;
 
 	var renderer:cpp.Star<Canvas>;
+	var bound:cpp.Star<Texture> = null;
 
 	var batch:Vector<Single>;
 	var used:Int = 0;
@@ -51,6 +52,7 @@ final class Paint {
 		final paint = new Paint();
 		paint.renderer = renderer;
 		paint.font = font;
+		paint.bound = font.texture;
 		paint.batch = new Vector<Single>(FLOATS * 6 * 2048);
 		return paint;
 	}
@@ -101,6 +103,44 @@ final class Paint {
 	public function reface(font:Font):Void {
 		flush();
 		this.font = font;
+		bound = font.texture;
+	}
+
+	public function icon(icons:Icons, which:Int, x:Float, y:Float, size:Float, colour:Colour,
+			alpha:Float = 1):Void {
+		if (icons == null || !icons.has(which) || size <= 0) return;
+
+		binds(icons.texture);
+		room(FLOATS * 6);
+
+		final r = colour.red / 255;
+		final g = colour.green / 255;
+		final b = colour.blue / 255;
+
+		final left = at(x);
+		final top = down(y);
+		final right = at(x + size);
+		final bottom = down(y + size);
+
+		final u0 = icons.u0(which);
+		final v0 = icons.v0(which);
+		final u1 = icons.u1(which);
+		final v1 = icons.v1(which);
+
+		push(left, top, r, g, b, alpha, u0, v0);
+		push(right, top, r, g, b, alpha, u1, v0);
+		push(right, bottom, r, g, b, alpha, u1, v1);
+
+		push(left, top, r, g, b, alpha, u0, v0);
+		push(right, bottom, r, g, b, alpha, u1, v1);
+		push(left, bottom, r, g, b, alpha, u0, v1);
+	}
+
+	inline function binds(texture:cpp.Star<Texture>):Void {
+		if (texture != bound) {
+			flush();
+			bound = texture;
+		}
 	}
 
 	public inline function nesting():Int {
@@ -113,7 +153,7 @@ final class Paint {
 
 	public function flush():Void {
 		if (used == 0) return;
-		Draw.geometry(renderer, font.texture,
+		Draw.geometry(renderer, bound == null ? font.texture : bound,
 			cpp.Pointer.arrayElem(batch.toData(), 0).constRaw, Std.int(used / FLOATS));
 		used = 0;
 	}
@@ -152,6 +192,7 @@ final class Paint {
 
 	function triangle(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, colour:Colour,
 			alpha:Float):Void {
+		binds(font.texture);
 		room(FLOATS * 3);
 
 		final r = colour.red / 255;
@@ -468,6 +509,7 @@ final class Paint {
 	}
 
 	public function text(value:String, x:Float, y:Float, colour:Colour, alpha:Float = 1):Float {
+		binds(font.texture);
 		room(FLOATS * 6 * value.length);
 
 		final r = colour.red / 255;

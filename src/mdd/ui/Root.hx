@@ -10,6 +10,7 @@ final class Root {
 	public var top(default, null):Widget;
 	public var metrics(default, null):Metrics;
 	public var theme(default, null):Theme;
+	public var icons:Null<Icons> = null;
 
 	public var flow:Flow = Flow.Full;
 

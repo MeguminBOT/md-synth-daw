@@ -4,7 +4,7 @@ import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Instrument;
 import mdd.song.Part;
-import mdd.ui.Glyph;
+import mdd.ui.Icon;
 import mdd.ui.Item;
 import mdd.ui.Paint;
 import mdd.ui.Panel;
@@ -162,20 +162,34 @@ final class Presets extends Widget {
 
 		out.divide();
 
-		out.offer(new Choice(translate(Locale.PRESET_INSTRUMENTS))).submenu =
-			drawn(which, Glyph.SHAPES, Glyph.COUNT);
-		out.offer(new Choice(translate(Locale.PRESET_SHAPES))).submenu =
-			drawn(which, 0, Glyph.SHAPES);
+		final seen:Array<String> = [];
+
+		for (group in Icon.GROUPS) if (seen.indexOf(group) < 0) seen.push(group);
+
+		for (group in seen) {
+			out.offer(new Choice(titled(group))).submenu = drawn(which, group);
+		}
 
 		return out;
 	}
 
-	function drawn(which:Int, from:Int, until:Int):Menu {
+	function titled(group:String):String {
+		return switch (group) {
+			case "shape": translate(Locale.PRESET_SHAPES);
+			case "audio": translate(Locale.PRESET_AUDIO);
+			case "instrument": translate(Locale.PRESET_INSTRUMENTS);
+			case _: group;
+		}
+	}
+
+	function drawn(which:Int, group:String):Menu {
 		final out = new Menu();
 
-		for (index in from...until) {
+		for (index in 0...Icon.COUNT) {
+			if (Icon.GROUPS[index] != group) continue;
+
 			final want = index;
-			fires(out.offer(new Choice(Glyph.NAMES[want])), function():Void iconed(which, want));
+			fires(out.offer(new Choice(Icon.NAMES[want])), function():Void iconed(which, want));
 		}
 
 		return out;
@@ -359,7 +373,7 @@ final class Presets extends Widget {
 
 				final key = family + "/" + bank.name;
 
-				group.icon = kitting ? Glyph.DRUM : -1;
+				group.icon = kitting ? Icon.DRUMKIT : -1;
 				group.open = kitting ? opened.indexOf(key) >= 0 : shut.indexOf(key) < 0;
 
 				groups.push(group);

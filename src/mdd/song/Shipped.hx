@@ -141,12 +141,27 @@ final class Shipped {
 
 	static final NOISE_KINDS:Array<Int> = [4, 5, 1];
 
+	static final FM_ICONS:Array<Int> = [
+		mdd.Icon.PIANO, mdd.Icon.PIANO, mdd.Icon.BASS, mdd.Icon.BASS,
+		mdd.Icon.TRUMPET, mdd.Icon.VIOLIN, mdd.Icon.PIPE, mdd.Icon.WAVE_SQUARE,
+		mdd.Icon.BELL, mdd.Icon.IDIOPHONE, mdd.Icon.MICROPHONE, mdd.Icon.WAVE_SINE,
+		mdd.Icon.SYNTHESIZER, mdd.Icon.WAVE_TRIANGLE, mdd.Icon.TOM, mdd.Icon.CYMBAL
+	];
+
+	static final SQUARE_ICONS:Array<Int> = [
+		mdd.Icon.WAVE_SQUARE, mdd.Icon.NOTE, mdd.Icon.WAVE_SINE, mdd.Icon.BASS,
+		mdd.Icon.SPEAKER, mdd.Icon.PIPE
+	];
+
+	static final NOISE_ICONS:Array<Int> = [mdd.Icon.HI_HAT, mdd.Icon.SNARE, mdd.Icon.WAVE_NOISE];
+
 	public static function into(song:Song):Bank {
 		final bank = song.banked("Default");
 
 		for (index in 0...FM_NAMES.length) {
 			final instrument = new Instrument(FM_NAMES[index], Part.Fm1);
 			instrument.patch = patched(FM_PATCHES[index]);
+			instrument.icon = FM_ICONS[index];
 
 			song.instrument(instrument);
 			bank.add(song.instruments.length - 1);
@@ -155,6 +170,8 @@ final class Shipped {
 		for (index in 0...SQUARE_NAMES.length) {
 			final instrument = new Instrument(SQUARE_NAMES[index], Part.Psg1);
 			final envelope = instrument.envelope;
+
+			instrument.icon = SQUARE_ICONS[index];
 
 			if (envelope != null) {
 				for (step in SQUARE_SHAPES[index]) envelope.steps.push(step);
@@ -168,6 +185,8 @@ final class Shipped {
 		for (index in 0...NOISE_NAMES.length) {
 			final instrument = new Instrument(NOISE_NAMES[index], Part.Noise);
 			final envelope = instrument.envelope;
+
+			instrument.icon = NOISE_ICONS[index];
 
 			if (envelope != null) {
 				for (step in NOISE_SHAPES[index]) envelope.steps.push(step);

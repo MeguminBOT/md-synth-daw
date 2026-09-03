@@ -66,6 +66,7 @@ final class Session {
 		}
 
 		final kit = song.instrument(new mdd.song.Instrument("Kick", Part.Dac));
+		kit.icon = mdd.Icon.KICK;
 		final sample = song.sample(new mdd.song.Sample("Kick", 8000, 60));
 
 		final bytes = new haxe.ds.Vector<Int>(1200);

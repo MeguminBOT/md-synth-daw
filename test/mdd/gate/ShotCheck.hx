@@ -106,7 +106,7 @@ class ShotCheck {
 
 		if (icons) {
 			for (index in 0...session.song.instruments.length) {
-				session.song.instruments[index].icon = index % mdd.ui.Glyph.COUNT;
+				session.song.instruments[index].icon = index % mdd.Icon.COUNT;
 			}
 		}
 
@@ -114,6 +114,7 @@ class ShotCheck {
 		final tree = new Root(shell, metrics, new Theme(theme));
 
 		mdd.app.Languages.speak(tree.translation, "en-GB");
+		tree.icons = mdd.ui.Icons.read(renderer, root + "/export/icons/icons-16.atlas");
 
 		tree.flow = Flow.None;
 		tree.resize(wide, tall);

@@ -485,6 +485,7 @@ class App {
 			+ (settings.portable ? ", portable" : ""));
 		Sys.println("  audio         " + (sound.speaker == null ? "no device"
 			: Audio.name(sound.speaker) + ", " + Audio.rate(sound.speaker) + " Hz"));
+		Sys.println("  icons         " + (stage.iconsAt == "" ? "none" : stage.iconsAt));
 		Sys.println("  profile       " + panels.budget.profile.name + ", "
 			+ panels.budget.profile.counted() + " parts");
 		Sys.println("  remembered    " + settings.read + " settings from "
