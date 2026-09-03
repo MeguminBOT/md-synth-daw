@@ -353,6 +353,26 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	var framedFor:Int = -1;
+
+	public function framed():Void {
+		final pattern = session.current();
+		if (pattern == null || width <= 0) return;
+
+		final beat = session.song.tempo.ppqn;
+		if (beat < 1 || framedFor == beat) return;
+
+		framedFor = beat;
+
+		perTick = (width - gutter()) / (beat * 16);
+
+		final least = widest();
+		if (perTick < least) perTick = least;
+		if (perTick > 4) perTick = 4;
+
+		scrollTo(0, offsetY);
+	}
+
 	public function widest():Float {
 		final pattern = session.current();
 		final length = pattern == null ? 0 : pattern.length;
@@ -788,6 +808,7 @@ final class PianoRoll extends Widget {
 		final metrics = root.metrics;
 		final pattern = session.current();
 
+		framed();
 		kitted();
 
 		final named = metrics.small == null ? metrics.body : metrics.small;

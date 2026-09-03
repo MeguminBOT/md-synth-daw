@@ -135,6 +135,20 @@ final class Playlist extends Widget {
 		return null;
 	}
 
+	var framedFor:Int = -1;
+
+	public function framed():Void {
+		if (width <= 0) return;
+
+		final beat = session.song.tempo.ppqn;
+		if (beat < 1 || framedFor == beat) return;
+
+		framedFor = beat;
+		perTick = widest();
+
+		scrollTo(0);
+	}
+
 	public function widest():Float {
 		final length = session.song.ends();
 		if (length < 1) return 0.01;
@@ -462,6 +476,8 @@ final class Playlist extends Widget {
 
 		final theme = root.theme;
 		final metrics = root.metrics;
+
+		framed();
 
 		paint.rect(x, y, width, height, theme.ground);
 		painted = 0;
