@@ -1227,7 +1227,8 @@ final class PianoRoll extends Widget {
 
 			final unsound = budget != null && budget.troubled(note);
 
-			paint.roundedRect(at, row, wide, tall, radius, colour, unsound ? 0.35 : 0.9);
+			paint.roundedGradient(at, row, wide, tall, radius, colour.lift(0.22),
+				colour.sink(0.18), unsound ? 0.35 : 0.9);
 
 			if (unsound) hatch(paint, theme, metrics, at, row, wide, tall);
 

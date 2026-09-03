@@ -55,7 +55,7 @@ final class TransportBar extends Widget {
 		final song = session.song;
 
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
-		resolution = new Number("", song.tempo.ppqn, 24, 960);
+		resolution = new Number("", song.tempo.ppqn, 24, 48000);
 		length = new Number("", bars(), 1, 256);
 		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
 		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
@@ -104,7 +104,9 @@ final class TransportBar extends Widget {
 		if (settling) return;
 		settling = true;
 
-		length.label = translate(Locale.TRANSPORT_BARS);
+		final pattern = session.current();
+
+		length.label = pattern == null ? translate(Locale.TRANSPORT_BARS) : pattern.name;
 
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
 		resolution.set(session.song.tempo.ppqn);
@@ -123,7 +125,7 @@ final class TransportBar extends Widget {
 	function resolutionChanged(from:Number):Void {
 		if (settling) return;
 
-		session.song.tempo.resolve(from.value);
+		session.song.retick(from.value);
 		session.snap = Math.round(from.value * 4 / SNAPS[snap.value]);
 		session.changed();
 	}
@@ -134,8 +136,8 @@ final class TransportBar extends Widget {
 		final pattern = session.current();
 		if (pattern == null) return;
 
-		pattern.length = from.value * session.song.tempo.ppqn * 4;
-		session.changed();
+		session.does(new mdd.song.edit.ResizePattern(session.pattern,
+			from.value * session.song.tempo.ppqn * 4));
 	}
 
 	function videoChanged(from:Number):Void {
@@ -357,17 +359,23 @@ final class TransportBar extends Widget {
 		final metrics = root.metrics;
 		final button = size();
 		final top = y + (height - button) * 0.5;
-		final wide = metrics.whole(70);
-		final run = wide * held.length + metrics.unit * (held.length - 1);
 
 		final after = clockRight() + metrics.inset * 2;
 		final room = x + width - metrics.inset - after;
 
 		var many = held.length;
+		var shown = 0.0;
 
-		while (many > 0 && wide * many + metrics.unit * (many - 1) > room) many--;
+		while (many > 0) {
+			shown = 0;
+			for (index in 0...many) shown += held[index].fits() + metrics.unit;
 
-		final shown = wide * many + metrics.unit * (many < 1 ? 0 : many - 1);
+			if (shown - metrics.unit <= room) break;
+			many--;
+		}
+
+		shown = shown < metrics.unit ? 0 : shown - metrics.unit;
+
 		var pen = x + width - metrics.inset - shown;
 
 		for (index in 0...held.length) {
@@ -375,6 +383,8 @@ final class TransportBar extends Widget {
 
 			field.visible = index < many;
 			if (!field.visible) continue;
+
+			final wide = field.fits();
 
 			field.arrange(pen, top, wide, button);
 			pen += wide + metrics.unit;
@@ -418,8 +428,13 @@ final class TransportBar extends Widget {
 
 			final lit = index == RECORD ? theme.over : theme.accent;
 
-			paint.roundedRect(pen, top, button, button, metrics.radiusRow,
-				on ? lit : theme.raise2, on ? 0.85 : 1);
+			if (on) {
+				paint.roundedGradient(pen, top, button, button, metrics.radiusRow,
+					lit.lift(0.20), lit.sink(0.16), 0.92);
+			} else {
+				paint.roundedRect(pen, top, button, button, metrics.radiusRow,
+					theme.raise2);
+			}
 
 			if (index == hoverAt) {
 				paint.roundedRect(pen, top, button, button, metrics.radiusRow, theme.accent,

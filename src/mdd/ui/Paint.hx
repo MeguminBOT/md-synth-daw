@@ -177,6 +177,29 @@ final class Paint {
 		quad(x, y, x + width, y, x + width, y + height, x, y + height, colour, alpha);
 	}
 
+	public function roundedGradient(x:Float, y:Float, width:Float, height:Float,
+			radius:Float, top:Colour, bottom:Colour, alpha:Float = 1):Void {
+		if (width <= 0 || height <= 0) return;
+
+		roundedRect(x, y, width, height, radius, top, alpha);
+
+		if (height < 3) return;
+
+		final steps = 8;
+		final band = height / steps;
+
+		for (index in 1...steps) {
+			final over = index * band;
+			final inset = over < radius || over + band > height - radius ? radius : 0;
+			final room = width - inset * 2;
+
+			if (room <= 0) continue;
+
+			rect(x + inset, y + over, room, band + 0.5,
+				top.mix(bottom, index / (steps - 1)), alpha);
+		}
+	}
+
 	public function gradient(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
 			alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;

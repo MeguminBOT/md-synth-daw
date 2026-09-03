@@ -200,6 +200,48 @@ final class Song {
 		return many;
 	}
 
+	public function retick(ppqn:Int):Void {
+		final want = ppqn < 1 ? 96 : ppqn;
+		final was = tempo.ppqn;
+
+		if (want == was) return;
+
+		final scale = want / was;
+
+		for (pattern in patterns) {
+			pattern.length = scaled(pattern.length, scale);
+
+			for (index in 0...Part.COUNT) {
+				final lane = pattern.lane(index);
+
+				for (note in lane.notes) {
+					note.at = scaled(note.at, scale);
+					note.length = scaled(note.length, scale);
+				}
+
+				for (line in lane.automation) {
+					for (point in line.points) point.at = scaled(point.at, scale);
+				}
+			}
+		}
+
+		for (track in tracks) {
+			for (clip in track.clips) {
+				clip.at = scaled(clip.at, scale);
+				clip.length = scaled(clip.length, scale);
+			}
+		}
+
+		for (index in 0...tempo.at.length) tempo.at[index] = scaled(tempo.at[index], scale);
+
+		tempo.resolve(want);
+	}
+
+	static inline function scaled(value:Int, by:Float):Int {
+		final held = Math.round(value * by);
+		return held < 0 ? 0 : held;
+	}
+
 	public function ends():Int {
 		var most = 0;
 		for (track in tracks) if (track.ends() > most) most = track.ends();

@@ -59,12 +59,17 @@ final class Tools extends Widget {
 		return many;
 	}
 
+	public function lead():Float {
+		final root = root();
+		return root == null ? 8.0 : root.metrics.inset * 0.5;
+	}
+
 	public function wide():Float {
 		final root = root();
 		final gap = root == null ? 4.0 : root.metrics.unit;
 		final many = shown();
 
-		return cell() * many + gap * (many - 1) + (root == null ? 8.0 : root.metrics.inset);
+		return cell() * many + gap * (many - 1) + lead() * 2;
 	}
 
 	public function cellAt(px:Float, py:Float):Int {
@@ -76,7 +81,7 @@ final class Tools extends Widget {
 
 		if (py < top || py >= top + size) return -1;
 
-		var pen = x;
+		var pen = x + lead();
 
 		for (index in 0...shown()) {
 			if (px >= pen && px < pen + size) return index;
@@ -149,13 +154,17 @@ final class Tools extends Widget {
 		final size = cell();
 		final top = top();
 
-		var pen = x;
+		var pen = x + lead();
 
 		for (index in 0...shown()) {
 			final on = lit(index);
 
-			paint.roundedRect(pen, top, size, size, metrics.radiusRow,
-				on ? theme.accent : theme.raise1, on ? 0.9 : 1);
+			if (on) {
+				paint.roundedGradient(pen, top, size, size, metrics.radiusRow,
+					theme.accent.lift(0.20), theme.accent.sink(0.16), 0.95);
+			} else {
+				paint.roundedRect(pen, top, size, size, metrics.radiusRow, theme.raise1);
+			}
 
 			if (!on) {
 				paint.outline(pen, top, size, size, theme.frame, metrics.whole(1));

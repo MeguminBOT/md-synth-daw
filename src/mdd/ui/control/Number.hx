@@ -143,6 +143,23 @@ final class Number extends Widget implements Range {
 		return false;
 	}
 
+	public function fits():Float {
+		final root = root();
+		if (root == null) return 70;
+
+		final metrics = root.metrics;
+		final mono = metrics.mono;
+		final small = metrics.small;
+
+		if (mono == null || small == null) return 70;
+
+		final said = derived != null ? derived(value) : Std.string(value);
+		final wide = small.measure(label) + mono.measure(said) + metrics.unit * 6;
+		final least = metrics.whole(70);
+
+		return wide < least ? least : wide;
+	}
+
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null) return;
