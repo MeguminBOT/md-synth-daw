@@ -1091,7 +1091,7 @@ class VgmCheck {
 			final base = index * mdd.play.Render.TAPS;
 
 			for (slot in 0...many) {
-				final value = render.taps[base + slot] * mdd.App.METER;
+				final value = render.taps[base + slot] * mdd.app.Sound.METER;
 				final size = value < 0 ? -value : value;
 
 				if (size > peaks[index]) peaks[index] = size;
