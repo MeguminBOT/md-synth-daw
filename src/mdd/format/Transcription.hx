@@ -31,6 +31,9 @@ final class Transcription {
 	final keyed:Vector<Bool> = new Vector<Bool>(6);
 	final startedAt:Vector<Int> = new Vector<Int>(6);
 	final startedOn:Vector<Int> = new Vector<Int>(6);
+	final keyedLevel:Vector<Int> = new Vector<Int>(24);
+	final everKeyed:Vector<Bool> = new Vector<Bool>(6);
+	final everSquared:Vector<Bool> = new Vector<Bool>(4);
 	final startedWith:Vector<Int> = new Vector<Int>(6);
 	final tying:Vector<Bool> = new Vector<Bool>(6);
 	final started:Vector<Bool> = new Vector<Bool>(6);
@@ -105,6 +108,8 @@ final class Transcription {
 			keyed[i] = false;
 			startedAt[i] = 0;
 			startedOn[i] = 60;
+			everKeyed[i] = false;
+			for (slot in 0...4) keyedLevel[i * 4 + slot] = 0;
 			startedWith[i] = -1;
 			tying[i] = false;
 			started[i] = false;
@@ -122,6 +127,7 @@ final class Transcription {
 			psgLevel[i] = 15;
 			psgFrom[i] = -1;
 			psgNote[i] = 60;
+			everSquared[i] = false;
 		}
 
 
@@ -291,7 +297,7 @@ final class Transcription {
 
 		operators[slot] = word;
 
-		final line = lined(2, mdd.song.Automation.TUNE, slot, -1);
+		final line = lined(2, mdd.song.Automation.TUNE, slot, SEEDLESS);
 		if (line == null) return;
 
 		line.add(new mdd.song.Point(ticked(at), word));
@@ -301,13 +307,16 @@ final class Transcription {
 		final was = tunes[channel];
 		tunes[channel] = word;
 
-		if (was < 0) return;
+		if (was < 0 || !keyed[channel]) return;
 
-		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
+		final line = lined(channel, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
 
-		line.add(new mdd.song.Point(ticked(at), word));
+		line.add(new mdd.song.Point(ticked(at),
+			mdd.play.Tuning.offset(word, startedOn[channel])));
 	}
+
+	static inline final SEEDLESS = 0x40000000;
 
 	function lined(channel:Int, target:Int, slot:Int, first:Int):Null<mdd.song.Automation> {
 		final lane = pattern.lane(channel);
@@ -320,7 +329,7 @@ final class Transcription {
 		final made = new mdd.song.Automation(target, slot);
 
 		lane.automation.push(made);
-		if (first >= 0) made.add(new mdd.song.Point(0, first));
+		if (first != SEEDLESS) made.add(new mdd.song.Point(0, first));
 
 		return made;
 	}
@@ -378,12 +387,13 @@ final class Transcription {
 		final was = levels[which];
 		levels[which] = value;
 
-		if (was < 0) return;
+		if (was < 0 || !everKeyed[channel]) return;
 
-		final line = lined(channel, mdd.song.Automation.LEVEL, slot, was);
+		final line = lined(channel, mdd.song.Automation.LEVEL, slot,
+			was - keyedLevel[which]);
 		if (line == null) return;
 
-		line.add(new mdd.song.Point(ticked(at), value));
+		line.add(new mdd.song.Point(ticked(at), value - keyedLevel[which]));
 	}
 
 	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int,
@@ -414,10 +424,19 @@ final class Transcription {
 	}
 
 	function start(at:Int, channel:Int):Void {
+		everKeyed[channel] = true;
 		startedAt[channel] = at;
 		startedOn[channel] = pitchOf(channel);
 		startedWith[channel] = instrumentFor(channel);
 		started[channel] = tying[channel];
+
+		final half = channel >= 3 ? 1 : 0;
+		final within = channel % 3;
+
+		for (group in 0...4) {
+			keyedLevel[channel * 4 + GROUP[group]] =
+				shadow[(half << 8) | (0x40 + group * 4 + within)] & 0x7F;
+		}
 
 		exact(at, channel);
 	}
@@ -426,13 +445,23 @@ final class Transcription {
 		final word = tunes[channel];
 		if (word < 0) return;
 
-		final line = lined(channel, mdd.song.Automation.TUNE, 0, -1);
-		if (line == null) return;
-
+		final offset = mdd.play.Tuning.offset(word, startedOn[channel]);
 		final when = ticked(at);
-		if (line.heldAt(when) == word) return;
 
-		line.add(new mdd.song.Point(when, word));
+		if (offset == 0 && !tuned(channel)) return;
+
+		final line = lined(channel, mdd.song.Automation.TUNE, 0, SEEDLESS);
+		if (line == null || line.heldAt(when) == offset) return;
+
+		line.add(new mdd.song.Point(when, offset));
+	}
+
+	function tuned(channel:Int):Bool {
+		for (held in pattern.lane(channel).automation) {
+			if (held.held(mdd.song.Automation.TUNE, 0)) return true;
+		}
+
+		return false;
 	}
 
 	function finish(at:Int, channel:Int):Void {
@@ -722,7 +751,7 @@ final class Transcription {
 	}
 
 	function switched(at:Int, on:Bool):Void {
-		final line = lined(10, mdd.song.Automation.TUNE, 0, -1);
+		final line = lined(10, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
 
 		line.add(new mdd.song.Point(ticked(at), on ? 1 : 0));
@@ -732,17 +761,21 @@ final class Transcription {
 		final was = noiseMode;
 		noiseMode = value;
 
-		final line = lined(9, mdd.song.Automation.TUNE, 0, -1);
+		final line = lined(9, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
 
 		line.add(new mdd.song.Point(ticked(at), value));
 	}
 
 	function slid(at:Int, channel:Int):Void {
-		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, -1);
+		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
 
-		line.add(new mdd.song.Point(ticked(at), psgPeriod[channel]));
+		final offset = everSquared[channel]
+			? psgPeriod[channel] - mdd.play.Stream.periodOf(psgNote[channel])
+			: psgPeriod[channel];
+
+		line.add(new mdd.song.Point(ticked(at), offset));
 	}
 
 	function attenuated(at:Int, channel:Int, level:Int):Void {
@@ -752,14 +785,15 @@ final class Transcription {
 		if (level < 15 && was >= 15) {
 			psgFrom[channel] = at;
 			psgNote[channel] = channel < 3 ? squareNote(psgPeriod[channel]) : 60;
+			everSquared[channel] = true;
 
 			psgWhen[channel].resize(0);
 			psgHeld[channel].resize(0);
 			psgWhen[channel].push(at);
 			psgHeld[channel].push(level);
 
-			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, -1);
-			if (line != null) line.add(new mdd.song.Point(ticked(at), level));
+			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, SEEDLESS);
+			if (line != null) line.add(new mdd.song.Point(ticked(at), 0));
 
 			if (channel < 3) slid(at, channel);
 			return;
@@ -771,8 +805,10 @@ final class Transcription {
 			psgWhen[channel].push(at);
 			psgHeld[channel].push(level);
 
-			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, -1);
-			if (line != null) line.add(new mdd.song.Point(ticked(at), level));
+			final line = lined(6 + channel, mdd.song.Automation.LEVEL, 0, SEEDLESS);
+			if (line != null) {
+				line.add(new mdd.song.Point(ticked(at), level - psgHeld[channel][0]));
+			}
 
 			return;
 		}

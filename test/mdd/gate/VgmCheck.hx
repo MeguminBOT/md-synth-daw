@@ -76,6 +76,7 @@ class VgmCheck {
 				args.indexOf("--raw") >= 0);
 		}
 		transported(where, files);
+		edited(where, files);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -221,6 +222,115 @@ class VgmCheck {
 		says("and every part drives a meter", played == 0 || dark <= 3,
 			"the loudest tap each part reached, one being the meter's ceiling: "
 			+ loudest.toString() + "(" + dark + " never moved)");
+	}
+
+	static function frequencies(song:mdd.song.Song, part:mdd.song.Part,
+			span:Int):Array<Int> {
+		final stream = new mdd.play.Stream(1 << 22);
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+			.spanned(stream, 0, span);
+
+		final half = part.index() >= 3 ? 1 : 0;
+		final within = part.index() % 3;
+		final out:Array<Int> = [];
+
+		var index = 0;
+
+		while (index + 1 < stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM
+					|| (stream.portAt(index) & 1) != 0) {
+				index++;
+				continue;
+			}
+
+			if (stream.portAt(index) >> 1 != half) {
+				index += 2;
+				continue;
+			}
+
+			final address = stream.valueAt(index);
+
+			if (address == 0xA0 + within || address == 0xA4 + within) {
+				out.push((address << 8) | stream.valueAt(index + 1));
+			}
+
+			index += 2;
+		}
+
+		return out;
+	}
+
+	static function keys(song:mdd.song.Song, part:mdd.song.Part, span:Int):Int {
+		final stream = new mdd.play.Stream(1 << 22);
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+			.spanned(stream, 0, span);
+
+		var many = 0;
+		var index = 0;
+
+		while (index + 1 < stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM
+					|| (stream.portAt(index) & 1) != 0) {
+				index++;
+				continue;
+			}
+
+			if (stream.valueAt(index) == 0x28
+					&& (stream.valueAt(index + 1) & 7) == part.index() % 3
+					&& ((stream.valueAt(index + 1) >> 2) & 1) == (part.index() >= 3 ? 1 : 0)
+					&& (stream.valueAt(index + 1) & 0xF0) != 0) {
+				many++;
+			}
+
+			index += 2;
+		}
+
+		return many;
+	}
+
+	static function edited(where:String, files:Array<String>):Void {
+		var name = "";
+		for (held in files) if (held.indexOf("Green Hill") >= 0) name = held;
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		final part = mdd.song.Part.Fm1;
+		final span = mdd.song.Tempo.TICKS * 8;
+		final lane = song.patterns[0].lane(part);
+
+		final was = frequencies(song, part, span);
+		var moved = 0;
+
+		for (note in lane.notes) {
+			if (note.at > song.tempo.ppqn * 16) break;
+
+			note.pitch += 12;
+			moved++;
+		}
+
+		final now = frequencies(song, part, span);
+
+		var apart = 0;
+		for (index in 0...(was.length < now.length ? was.length : now.length)) {
+			if (was[index] != now[index]) apart++;
+		}
+
+		says("an edited note changes what the chip is told", moved > 0 && apart > 0,
+			moved + " notes on " + part.name() + " raised an octave changes " + apart
+			+ " of " + was.length + " frequency writes in the first eight seconds");
+
+		final keyed = keys(song, part, span);
+		while (lane.notes.length > 0) lane.notes.pop();
+
+		final quiet = keys(song, part, span);
+		final left = frequencies(song, part, span);
+
+		says("and taking the notes away silences the part", keyed > 0 && quiet == 0,
+			keyed + " key ons before the notes were removed and " + quiet + " after, with "
+			+ left.length + " frequency writes left of " + was.length);
 	}
 
 	static function covered(where:String, files:Array<String>):Void {

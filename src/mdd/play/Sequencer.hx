@@ -192,34 +192,32 @@ final class Sequencer {
 
 						for (line in lane.automation) {
 							if (!mdd.song.Automation.operates(line.target)) continue;
+							if (line.target == mdd.song.Automation.LEVEL) continue;
 
 							final want = line.heldAt(start - from);
 							if (want < 0) continue;
 
-							final level = line.target == mdd.song.Automation.LEVEL;
-
-							push(onSample, part, TWEAK,
-								(line.slot << 8) | (want & (level ? 0x7F : 0xFF)),
-								level ? 0 : 2 + line.target);
+							push(onSample, part, TWEAK, (line.slot << 8) | (want & 0xFF),
+								2 + line.target);
 						}
 					}
 				}
 
-				if (bent == null) push(onSample, part, TUNE, pitch, 0);
-				else if (part.fm()) {
-					if (bent.heldAt(start - from) < 0) push(onSample, part, TUNE, pitch, 0);
-				} else push(onSample, part, TUNE, bent.heldAt(start - from) & 0x3FF, 2);
+				if (bent == null || !rides(part, bent)) {
+					push(onSample, part, TUNE, pitch, 0);
+				} else {
+					final offset = bent.heldAt(start - from);
+					final want = voices.pitchAt(slice);
 
-				final levelled = (part.square() || part.noise()) && lines[0] != null;
+					if (part.fm()) {
+						push(onSample, part, TUNE, worded(offset, want, transpose), 1);
+					} else push(onSample, part, TUNE, periodic(offset, want, transpose), 2);
+				}
 
-				if (!tied && !levelled && !(part.sampled() && bent != null)) {
+				if (!tied && !(part.sampled() && bent != null)) {
 					push(onSample, part, ON, velocity, named);
 				}
 
-				if (lines[0] != null && !part.fm()) {
-					push(onSample, part, DATA, lines[0].heldAt(start - from) & 0x0F,
-						PSG_STEP);
-				}
 			}
 
 			if (!held && offSample >= fromSample && offSample < toSample
@@ -246,8 +244,8 @@ final class Sequencer {
 		return part.fm() || level || tune;
 	}
 
-	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int,
-			transpose:Int):Void {
+	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
+			pitch:Int, velocity:Int, named:Int):Void {
 		final level = line.target == mdd.song.Automation.LEVEL;
 		final tune = line.target == mdd.song.Automation.TUNE;
 
@@ -255,15 +253,84 @@ final class Sequencer {
 
 		if (shaping) {
 			push(at, part, TWEAK, (line.slot << 8) | (value & 0xFF), 2 + line.target);
-		} else if (level && !part.fm()) push(at, part, DATA, value & 0x0F, PSG_STEP);
-		else if (level) push(at, part, TWEAK, (line.slot << 8) | (value & 0x7F), 0);
-		else if (tune && part.sampled()) push(at, part, TUNE, value, 5);
-		else if (tune && part.noise()) push(at, part, TUNE, value & 0x0F, 4);
-		else if (tune && !part.fm()) push(at, part, TUNE, value & 0x3FF, 2);
-		else if (tune && line.slot > 0) {
+			return;
+		}
+
+		if (level) {
+			final want = attenuated(part, line.slot, value, velocity, named);
+
+			if (part.fm()) push(at, part, TWEAK, (line.slot << 8) | (want & 0x7F), 0);
+			else push(at, part, DATA, want & 0x0F, PSG_STEP);
+
+			return;
+		}
+
+		if (!tune) {
+			push(at, part, TWEAK, masked(part, value), 1);
+			return;
+		}
+
+		if (part.sampled()) push(at, part, TUNE, value, 5);
+		else if (part.noise()) push(at, part, TUNE, value & 0x0F, 4);
+		else if (!part.fm()) push(at, part, TUNE, periodic(value, pitch, transpose), 2);
+		else if (line.slot > 0) {
 			push(at, part, TUNE, (line.slot << 14) | shifted(value, transpose), 3);
-		} else if (tune) push(at, part, TUNE, shifted(value, transpose), 1);
-		else push(at, part, TWEAK, masked(part, value), 1);
+		} else push(at, part, TUNE, worded(value, pitch, transpose), 1);
+	}
+
+	inline function rides(part:Part, line:mdd.song.Automation):Bool {
+		if (line.target == mdd.song.Automation.LEVEL) return true;
+
+		return line.target == mdd.song.Automation.TUNE && line.slot == 0
+			&& (part.fm() || part.square());
+	}
+
+	inline function pitched(pitch:Int, transpose:Int):Int {
+		final want = pitch + transpose;
+		return want < 0 ? 0 : (want > 127 ? 127 : want);
+	}
+
+	function worded(offset:Int, pitch:Int, transpose:Int):Int {
+		if (pitch < 0) return offset & 0x3FFF;
+
+		return Tuning.word(offset, pitched(pitch, transpose));
+	}
+
+	function periodic(offset:Int, pitch:Int, transpose:Int):Int {
+		if (pitch < 0) return offset & 0x3FF;
+
+		final want = Stream.periodOf(pitched(pitch, transpose)) + offset;
+		return want < 0 ? 0 : (want > 0x3FF ? 0x3FF : want);
+	}
+
+	function attenuated(part:Part, slot:Int, offset:Int, velocity:Int, named:Int):Int {
+		if (velocity < 0) return part.fm() ? (offset & 0x7F) : (offset & 0x0F);
+
+		final want = louder(part, velocity);
+
+		if (!part.fm()) {
+			final held = Velocity.quiets(want) + offset;
+			return held < 0 ? 0 : (held > 15 ? 15 : held);
+		}
+
+		final instrument = instrumentOf(named, part);
+		final patch = instrument == null ? null : instrument.patch;
+
+		if (patch == null) return offset & 0x7F;
+
+		final held = Stream.levelOf(patch, slot, want) + offset;
+		return held < 0 ? 0 : (held > 127 ? 127 : held);
+	}
+
+	function sounding(tick:Int):Int {
+		var found = -1;
+
+		for (slice in 0...voices.count) {
+			if (voices.startAt(slice) > tick) break;
+			found = slice;
+		}
+
+		return found;
 	}
 
 	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
@@ -276,6 +343,8 @@ final class Sequencer {
 		for (line in lane.automation) {
 			if (!carries(part, line)) continue;
 
+			final riding = rides(part, line);
+
 			var index = line.seek(head);
 			if (index > 0) index--;
 
@@ -285,10 +354,17 @@ final class Sequencer {
 
 				index++;
 
+				final under = riding ? sounding(point.at) : -1;
+				if (under >= 0 && voices.startAt(under) == point.at) continue;
+
 				final at = tempo.samplesAt(from + point.at);
 				if (at < fromSample || at >= toSample) continue;
 
-				lined(at, part, line, point.value, transpose);
+				if (under < 0) lined(at, part, line, point.value, transpose, -1, -1, -1);
+				else {
+					lined(at, part, line, point.value, transpose, voices.pitchAt(under),
+						voices.velocityAt(under), voices.instrumentAt(under));
+				}
 			}
 		}
 	}
@@ -347,11 +423,14 @@ final class Sequencer {
 
 		var named = song.rack[part.index()];
 		var sided:Null<mdd.song.Automation> = null;
+		var under:Null<mdd.song.Note> = null;
 
 		if (lane != null) {
 			for (note in lane.notes) {
 				if (note.at > local) break;
+
 				named = note.instrument;
+				under = note;
 			}
 
 			for (line in lane.automation) {
@@ -360,7 +439,7 @@ final class Sequencer {
 		}
 
 		if (part.fm()) {
-			push(at, part, PATCH, named, 127);
+			push(at, part, PATCH, named, under == null ? 127 : louder(part, under.velocity));
 			push(at, part, TWEAK, spread(part, sided, local, named), 1);
 		}
 
@@ -371,9 +450,23 @@ final class Sequencer {
 			if (line.points.length == 0 || line.points[0].at > local) continue;
 
 			final want = line.heldAt(local);
-			if (want < 0) continue;
+			if (want < 0 && !rides(part, line)) continue;
 
-			lined(at, part, line, want, transpose);
+			if (!rides(part, line)) {
+				lined(at, part, line, want, transpose, -1, -1, -1);
+				continue;
+			}
+
+			if (under == null) {
+				lined(at, part, line, want, transpose, -1, -1, -1);
+				continue;
+			}
+
+			final held = line.seek(local + 1) - 1;
+			if (held >= 0 && line.points[held].at < under.at) continue;
+
+			lined(at, part, line, want, transpose, under.pitch, under.velocity,
+				under.instrument);
 		}
 	}
 
@@ -525,8 +618,8 @@ final class Sequencer {
 		if (ticks[left] != ticks[right]) return ticks[left] < ticks[right];
 		if (parts[left] != parts[right]) return parts[left] < parts[right];
 		if (kinds[left] != kinds[right]) return kinds[left] < kinds[right];
-		if (firsts[left] != firsts[right]) return firsts[left] < firsts[right];
 		if (seconds[left] != seconds[right]) return seconds[left] < seconds[right];
+		if (firsts[left] != firsts[right]) return firsts[left] < firsts[right];
 
 		return left < right;
 	}

@@ -44,6 +44,11 @@ final class Automation {
 		return point;
 	}
 
+	public function marks(tick:Int):Bool {
+		final at = seek(tick);
+		return at < points.length && points[at].at == tick;
+	}
+
 	public function heldAt(tick:Int):Int {
 		if (points.length == 0) return -1;
 

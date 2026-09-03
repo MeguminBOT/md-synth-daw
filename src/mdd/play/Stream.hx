@@ -184,7 +184,7 @@ final class Stream {
 			final at = group * 4 + channel;
 
 			ym(tick, half, 0x30 + at, ((patch.detune[slot] & 7) << 4) | (patch.multiple[slot] & 0x0F));
-			ym(tick, half, 0x40 + at, levelled(patch, slot, velocity));
+			ym(tick, half, 0x40 + at, levelOf(patch, slot, velocity));
 			ym(tick, half, 0x50 + at, ((patch.keyScale[slot] & 3) << 6) | (patch.attack[slot] & 0x1F));
 			ym(tick, half, 0x60 + at,
 				(patch.tremolo[slot] ? 0x80 : 0) | (patch.decay[slot] & 0x1F));
@@ -241,11 +241,11 @@ final class Stream {
 			final slot = GROUP[group];
 			if (!patch.carries(slot)) continue;
 
-			ym(tick, half, 0x40 + group * 4 + channel, levelled(patch, slot, velocity));
+			ym(tick, half, 0x40 + group * 4 + channel, levelOf(patch, slot, velocity));
 		}
 	}
 
-	static function levelled(patch:Patch, slot:Int, velocity:Int):Int {
+	public static function levelOf(patch:Patch, slot:Int, velocity:Int):Int {
 		final total = patch.totalLevel[slot] & 0x7F;
 		if (!patch.carries(slot)) return total;
 
