@@ -33,6 +33,11 @@ final class Session {
 	public var highlight:Bool = true;
 	public var theme:Int = 0;
 	public var master:Int = Song.LOUDEST;
+
+	public static inline final LANES = 0;
+	public static inline final CLIPS = 1;
+
+	public var automating:Int = LANES;
 	public var typeface:Int = 0;
 	public var motion:Int = 0;
 

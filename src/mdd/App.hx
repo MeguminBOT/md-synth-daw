@@ -165,6 +165,7 @@ class App {
 		panels.preferences.onKeep = function():Void keeps();
 		panels.preferences.onKeeping = function(every:Float):Void files.every = every;
 		panels.preferences.onBackups = function():Void backing();
+		panels.preferences.onAutomating = function(which:Int):Void keeps();
 		panels.preferences.onUpdates = function(on:Bool):Void {
 			settings.flag("update", on);
 			settings.save();
@@ -248,6 +249,7 @@ class App {
 
 	function loaded(song:Song):Void {
 		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
+		final automates = session == null ? Session.LANES : session.automating;
 
 		sound.stop();
 
@@ -259,6 +261,7 @@ class App {
 		files.onLoad = function(held:Song):Void loaded(held);
 
 		session.master = held;
+		session.automating = automates;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -395,6 +398,11 @@ class App {
 
 		welcome.onStart = function(code:String):Void {
 			settings.put("language", code);
+
+			session.automating = welcome.automating;
+			settings.whole("automating", session.automating);
+
+			panels.preferences.chose(Preferences.AUTOMATING, session.automating);
 			settings.save();
 
 			stage.root.lower();
@@ -541,6 +549,7 @@ class App {
 		final backupAge = settings.asWhole("backupAge", 2);
 		final looks = settings.asFlag("update", true);
 		final master = settings.asWhole("master", mdd.song.Song.LOUDEST);
+		final automating = settings.asWhole("automating", Session.LANES);
 
 		if (looks && update.possible()) update.look();
 
@@ -557,6 +566,7 @@ class App {
 			? mdd.song.Song.LOUDEST : master);
 
 		sound.monitors(session.master / mdd.song.Song.LOUDEST);
+		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
 
 		stage.root.theme.wear(which);
 		stage.root.flow = motion;
@@ -583,6 +593,7 @@ class App {
 		settings.whole("typeface", session.typeface);
 		settings.whole("motion", session.motion);
 		settings.whole("master", session.master);
+		settings.whole("automating", session.automating);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("keeping", panels.preferences.keeping);
 		settings.whole("backups", panels.preferences.backups);

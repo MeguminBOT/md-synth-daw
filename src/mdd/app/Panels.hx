@@ -76,6 +76,10 @@ final class Panels {
 		centre.roll.budget = budget;
 		centre.roll.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
+		centre.roll.onAutomate = function(target:Int, slot:Int):Void {
+			centre.automation.shows(target, slot);
+			centre.show(Centre.AUTOMATION);
+		};
 		centre.playlist.onRename = function(which:Int):Void renamedTrack(which);
 		centre.playlist.onOpen = function(clip:mdd.song.Clip):Void {
 			centre.automation.follows(clip);

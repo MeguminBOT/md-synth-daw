@@ -29,12 +29,17 @@ final class Preferences extends Widget {
 	public static inline final UPDATES = 8;
 	public static inline final PROJECTS = 9;
 	public static inline final PRESETS = 10;
-	public static inline final ROWS = 11;
+	public static inline final AUTOMATING = 11;
+	public static inline final ROWS = 12;
 
 	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
-		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS];
+		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
+		Locale.PREFERENCE_AUTOMATING];
+
+	public static final AUTOMATINGS:Array<String> = [Locale.AUTOMATING_LANES,
+		Locale.AUTOMATING_CLIPS];
 
 	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
@@ -84,6 +89,7 @@ final class Preferences extends Widget {
 	public var onKeeping:Null<Float -> Void> = null;
 	public var onBackups:Null<Void -> Void> = null;
 	public var onUpdates:Null<Bool -> Void> = null;
+	public var onAutomating:Null<Int -> Void> = null;
 	public var onFolder:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
@@ -165,6 +171,7 @@ final class Preferences extends Widget {
 			case BACKUPS: BACKUP_ROOMS;
 			case BACKUP_AGE: BACKUP_AGES;
 			case UPDATES: UPDATING;
+			case AUTOMATING: AUTOMATINGS;
 			case PROJECTS, PRESETS: [];
 			case _: languages;
 		}
@@ -220,6 +227,7 @@ final class Preferences extends Widget {
 			case BACKUPS: backups;
 			case BACKUP_AGE: backupAge;
 			case UPDATES: updates;
+			case AUTOMATING: session.automating;
 			case PROJECTS, PRESETS: 0;
 			case _: language;
 		}
@@ -264,6 +272,10 @@ final class Preferences extends Widget {
 			case UPDATES:
 				updates = which;
 				if (onUpdates != null) onUpdates(which != 0);
+
+			case AUTOMATING:
+				session.automating = which;
+				if (onAutomating != null) onAutomating(which);
 
 			case _:
 				language = which;

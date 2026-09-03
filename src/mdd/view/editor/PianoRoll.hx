@@ -55,6 +55,7 @@ final class PianoRoll extends Widget {
 	var litNote:Int = -1;
 	var litOn:Bool = false;
 	public final stack:Lanes;
+	public var onAutomate:Null<(Int, Int) -> Void> = null;
 
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
@@ -138,15 +139,24 @@ final class PianoRoll extends Widget {
 		final one = into.offer(new Choice(held.titled(slot)));
 		one.reason = translate(held.about);
 
-		if (row < 0 && stack.shows(target, slot)) {
+		if (row < 0 && session.automating == Session.LANES && stack.shows(target, slot)) {
 			one.enabled = false;
 			return;
 		}
 
 		fires(one, function():Void {
-			if (row < 0) stack.show(target, slot);
-			else stack.swap(row, target, slot);
+			if (row >= 0) {
+				stack.swap(row, target, slot);
+				relayout();
+				return;
+			}
 
+			if (session.automating == Session.CLIPS && onAutomate != null) {
+				onAutomate(target, slot);
+				return;
+			}
+
+			stack.show(target, slot);
 			relayout();
 		});
 	}

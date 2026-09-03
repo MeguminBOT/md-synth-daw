@@ -18,6 +18,9 @@ final class Welcome extends Widget {
 	public final languages:Array<String> = Languages.shipped();
 
 	public var chosen(default, null):Int = 0;
+	public var automating(default, null):Int = Session.LANES;
+
+	public static inline final WAYS = 2;
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -62,8 +65,9 @@ final class Welcome extends Widget {
 		final metrics = root == null ? null : root.metrics;
 
 		wantWidth = metrics == null ? 420 : metrics.whole(420);
-		wantHeight = metrics == null ? 260
-			: head() + languages.length * rowTall() + metrics.whole(60);
+		wantHeight = metrics == null ? 380
+			: head() + languages.length * rowTall() + asking() + WAYS * wayTall()
+			+ metrics.whole(60);
 	}
 
 	public function rowTall():Float {
@@ -86,6 +90,34 @@ final class Welcome extends Widget {
 		return at < 0 || at >= languages.length ? -1 : at;
 	}
 
+	public function wayTall():Float {
+		final root = root();
+		return root == null ? 48 : root.metrics.whole(48);
+	}
+
+	function asking():Float {
+		final root = root();
+		return root == null ? 34 : root.metrics.whole(34);
+	}
+
+	public function waysTop():Float {
+		return y + head() + languages.length * rowTall() + asking();
+	}
+
+	public function wayAt(py:Float):Int {
+		final at = Std.int((py - waysTop()) / wayTall());
+		return at < 0 || at >= WAYS ? -1 : at;
+	}
+
+	public function picks(which:Int):Void {
+		if (which < 0 || which >= WAYS) return;
+
+		automating = which;
+		session.automating = which;
+
+		invalidate();
+	}
+
 	public function onButton(px:Float, py:Float):Bool {
 		final root = root();
 		if (root == null) return false;
@@ -104,6 +136,13 @@ final class Welcome extends Widget {
 			case Kind.PointerDown:
 				if (onButton(event.x, event.y)) {
 					if (onStart != null) onStart(code());
+					return true;
+				}
+
+				final way = wayAt(event.y);
+
+				if (way >= 0) {
+					picks(way);
 					return true;
 				}
 
@@ -139,6 +178,66 @@ final class Welcome extends Widget {
 			hoverStart = false;
 		}
 		super.hovered(on);
+	}
+
+	static final WAYS_SAID:Array<String> = [Locale.AUTOMATING_LANES, Locale.AUTOMATING_CLIPS];
+
+	function ways(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
+		final font = metrics.body;
+		final small = metrics.small == null ? font : metrics.small;
+		final tall = wayTall();
+		final top = waysTop();
+
+		paint.reface(small);
+		paint.text(translate(Locale.AUTOMATING_ASK), x + metrics.inset,
+			top - metrics.gap - small.descent, theme.dim, alpha * 0.85);
+
+		for (way in 0...WAYS) {
+			final row = top + way * tall;
+			final picked = way == automating;
+
+			if (picked) {
+				paint.roundedRect(x + metrics.inset, row, width - metrics.inset * 2,
+					tall - 2, metrics.radiusRow, theme.accent, Theme.SELECT);
+			}
+
+			paint.outline(x + metrics.inset, row, width - metrics.inset * 2, tall - 2,
+				picked ? theme.accent : theme.frame, metrics.whole(1), alpha);
+
+			final art = x + width - metrics.inset - metrics.whole(56);
+			final middle = row + (tall - 2) * 0.5;
+			final ink = picked ? theme.accent : theme.dim;
+
+			if (way == Session.LANES) {
+				for (line in 0...3) {
+					final at = row + (tall - 2) * (line + 1) / 4;
+					paint.rect(art, at - metrics.whole(1), metrics.whole(44),
+						metrics.whole(2), ink, alpha * (line == 1 ? 0.9 : 0.45));
+				}
+			} else {
+				final deep = metrics.whole(20);
+				final wide = metrics.whole(44);
+
+				paint.outline(art, middle - deep * 0.5, wide, deep, ink, metrics.whole(1),
+					alpha * 0.6);
+
+				final low = middle + deep * 0.25;
+				final high = middle - deep * 0.25;
+				final step = wide / 3;
+
+				paint.line(art + metrics.whole(3), low, art + step, low, metrics.whole(2),
+					ink, alpha * 0.9);
+				paint.line(art + step, low, art + step * 2, high, metrics.whole(2), ink,
+					alpha * 0.9);
+				paint.line(art + step * 2, high, art + wide - metrics.whole(3), high,
+					metrics.whole(2), ink, alpha * 0.9);
+			}
+
+			paint.reface(font);
+			paint.text(translate(WAYS_SAID[way]), x + metrics.inset * 2,
+				row + (tall - 2 - font.height) * 0.5 + font.ascent,
+				picked ? theme.ink : theme.dim, alpha);
+		}
 	}
 
 	override function paint(paint:Paint):Void {
@@ -188,6 +287,7 @@ final class Welcome extends Widget {
 				top + (tall - font.height) * 0.5 + font.ascent,
 				at == chosen ? theme.ink : theme.dim, alpha);
 
+
 			paint.reface(small);
 			paint.textRight(languages[at], x + width - metrics.inset * 2,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.6);
@@ -204,6 +304,8 @@ final class Welcome extends Widget {
 		paint.reface(font);
 		paint.textCentred(translate(Locale.WELCOME_START), left + wide * 0.5,
 			top + (button - font.height) * 0.5 + font.ascent, theme.ink, alpha);
+
+		ways(paint, theme, metrics, alpha);
 
 		paint.popTransform();
 	}
