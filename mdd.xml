@@ -14,6 +14,12 @@
 		company="md-synth-daw"
 		description="A hardware-aware DAW for the Sega Mega Drive" />
 
+	<!-- The project file: the suffix it takes, what a file browser calls it, and the media
+	     type it registers under. The suffix is checked against the common extension registers
+	     before it is chosen, so that a project is never mistaken for somebody else's format. -->
+
+	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn" />
+
 	<!-- The repository the updater reads releases from. Empty means it never looks. -->
 
 	<update github="MeguminBOT/md-synth-daw" />

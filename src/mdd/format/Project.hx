@@ -682,8 +682,11 @@ class Project {
 	}
 
 	public static function save(song:Song, into:String):Void {
-		if (StringTools.endsWith(into.toLowerCase(), ".mdd")) savePacked(song, into);
-		else saveFolder(song, into);
+		if (StringTools.endsWith(into.toLowerCase(), "." + mdd.Config.SUFFIX)) {
+			savePacked(song, into);
+		} else {
+			saveFolder(song, into);
+		}
 	}
 
 	public static function open(from:String):Song {

@@ -168,6 +168,21 @@ class Locale {
 	public static inline final PREFERENCE_LANGUAGE = "preference.language";
 	public static inline final PREFERENCE_DENSITY = "preference.density";
 	public static inline final PREFERENCE_KEEPING = "preference.keeping";
+	public static inline final PREFERENCE_BACKUPS = "preference.backups";
+	public static inline final PREFERENCE_BACKUP_AGE = "preference.backupAge";
+	public static inline final PREFERENCE_UPDATES = "preference.updates";
+	public static inline final PREFERENCE_PROJECTS = "preference.projects";
+	public static inline final PREFERENCE_PRESETS = "preference.presets";
+
+	public static inline final BACKUPS_OFF = "backups.off";
+	public static inline final BACKUPS_ANY = "backups.any";
+	public static inline final BACKUP_AGE_ANY = "backupAge.any";
+	public static inline final BACKUP_AGE_WEEK = "backupAge.week";
+	public static inline final BACKUP_AGE_MONTH = "backupAge.month";
+	public static inline final BACKUP_AGE_QUARTER = "backupAge.quarter";
+	public static inline final UPDATES_NEVER = "updates.never";
+	public static inline final UPDATES_LAUNCH = "updates.launch";
+	public static inline final FOLDER_DEFAULT = "folder.default";
 
 	public static inline final THEME_MIDNIGHT = "theme.midnight";
 	public static inline final THEME_RACK = "theme.rack";
@@ -333,7 +348,10 @@ class Locale {
 		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
 		TRACK_ADD, TRACK_RENAME, TRACK_DELETE, TRACK_MUTE, TRACK_UNMUTE, TRACK_LAST, TRACK_NAME,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
-		PREFERENCE_MOTION,
+		PREFERENCE_MOTION, PREFERENCE_BACKUPS, PREFERENCE_BACKUP_AGE, PREFERENCE_UPDATES,
+		PREFERENCE_PROJECTS, PREFERENCE_PRESETS,
+		BACKUPS_OFF, BACKUPS_ANY, BACKUP_AGE_ANY, BACKUP_AGE_WEEK, BACKUP_AGE_MONTH,
+		BACKUP_AGE_QUARTER, UPDATES_NEVER, UPDATES_LAUNCH, FOLDER_DEFAULT,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,
 		MOTION_FULL, MOTION_REDUCED, MOTION_NONE,

@@ -18,6 +18,7 @@ MddDialog *mdd_dialog_open(SDL_Window *window, const char *label, const char *su
 	const char *where);
 MddDialog *mdd_dialog_save(SDL_Window *window, const char *label, const char *suffix,
 	const char *where);
+MddDialog *mdd_dialog_folder(SDL_Window *window, const char *where);
 
 int mdd_dialog_state(MddDialog *dialog);
 const char *mdd_dialog_path(MddDialog *dialog);

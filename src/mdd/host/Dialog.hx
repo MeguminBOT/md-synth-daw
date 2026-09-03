@@ -15,6 +15,10 @@ extern class Dialog {
 	public static function save(window:cpp.Star<Window>, label:cpp.ConstCharStar,
 		suffix:cpp.ConstCharStar, where:cpp.ConstCharStar):cpp.Star<Chooser>;
 
+	@:native("mdd_dialog_folder")
+	public static function folder(window:cpp.Star<Window>,
+		where:cpp.ConstCharStar):cpp.Star<Chooser>;
+
 	@:native("mdd_dialog_state")
 	public static function state(dialog:cpp.Star<Chooser>):Int;
 

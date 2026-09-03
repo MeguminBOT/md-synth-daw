@@ -19,6 +19,7 @@ import mdd.play.Mixing;
 import mdd.play.Sequencer;
 import mdd.play.Stream;
 import mdd.song.Song;
+import sys.FileSystem;
 import mdd.song.Tempo;
 
 @:unreflective
@@ -46,6 +47,12 @@ final class Files {
 	public var since(default, null):Float = 0;
 	public var kept(default, null):Int = 0;
 	public var recovered(default, null):String = "";
+
+	public var backupRoom:Float = 250 * 1024 * 1024;
+	public var backupDays:Int = 30;
+
+	public var projectsAt:String = "";
+	public var presetsAt:String = "";
 
 	var edits:Int = -1;
 
@@ -85,12 +92,119 @@ final class Files {
 		kept++;
 		recovered = path != "" ? "" : where;
 
+		backed(where);
+
 		session.say(path != "" ? "saved on its own" : "kept a recovery beside the settings");
 		return true;
 	}
 
 	public function recovery():String {
-		return Paths.within("projects") + "/recovered.mdd";
+		return within("projects") + "/recovered." + mdd.Config.SUFFIX;
+	}
+
+	public function within(what:String):String {
+		final held = what == "projects" ? projectsAt : (what == "presets" ? presetsAt : "");
+
+		if (held == "") return Paths.within(what);
+
+		Paths.make(held);
+		return held;
+	}
+
+	public function backups():String {
+		return Paths.within("backups");
+	}
+
+	function backed(from:String):Void {
+		if (backupRoom <= 0 || !FileSystem.exists(from)) return;
+
+		final stamp = DateTools.format(Date.now(), "%Y%m%d-%H%M%S");
+		final named = haxe.io.Path.withoutDirectory(from);
+		final at = named.lastIndexOf(".");
+		final stem = at <= 0 ? named : named.substr(0, at);
+
+		try {
+			Paths.make(backups());
+			sys.io.File.copy(from, backups() + "/" + stem + "-" + stamp + "."
+				+ mdd.Config.SUFFIX);
+		} catch (e:Dynamic) {
+			return;
+		}
+
+		pruned();
+	}
+
+	public function pruned():Int {
+		final where = backups();
+		if (!FileSystem.exists(where)) return 0;
+
+		final names:Array<String> = [];
+		final stamps:Array<Float> = [];
+		final sizes:Array<Float> = [];
+
+		for (name in FileSystem.readDirectory(where)) {
+			if (!StringTools.endsWith(name.toLowerCase(), "." + mdd.Config.SUFFIX)) continue;
+
+			final held = FileSystem.stat(where + "/" + name);
+
+			names.push(name);
+			stamps.push(held.mtime.getTime());
+			sizes.push(held.size);
+		}
+
+		for (index in 1...names.length) {
+			final name = names[index];
+			final stamp = stamps[index];
+			final size = sizes[index];
+			var at = index - 1;
+
+			while (at >= 0 && stamps[at] < stamp) {
+				names[at + 1] = names[at];
+				stamps[at + 1] = stamps[at];
+				sizes[at + 1] = sizes[at];
+				at--;
+			}
+
+			names[at + 1] = name;
+			stamps[at + 1] = stamp;
+			sizes[at + 1] = size;
+		}
+
+		final oldest = backupDays <= 0 ? 0.0
+			: Date.now().getTime() - backupDays * 24.0 * 3600.0 * 1000.0;
+
+		var held = 0.0;
+		var gone = 0;
+
+		for (index in 0...names.length) {
+			held += sizes[index];
+
+			final stale = oldest > 0 && stamps[index] < oldest;
+			final full = backupRoom > 0 && held > backupRoom;
+
+			if (!stale && !full) continue;
+
+			try {
+				FileSystem.deleteFile(where + "/" + names[index]);
+				gone++;
+			} catch (e:Dynamic) {}
+		}
+
+		return gone;
+	}
+
+	public function backedUp():Float {
+		final where = backups();
+		if (!FileSystem.exists(where)) return 0;
+
+		var held = 0.0;
+
+		for (name in FileSystem.readDirectory(where)) {
+			if (!StringTools.endsWith(name.toLowerCase(), "." + mdd.Config.SUFFIX)) continue;
+			held += FileSystem.stat(where + "/" + name).size;
+		}
+
+		return held;
 	}
 
 	public function forget():Void {
@@ -106,8 +220,8 @@ final class Files {
 		asking = what;
 
 		chooser = switch (what) {
-			case OPEN: Dialog.open(window, "mdd project", "mdd", where);
-			case SAVE: Dialog.save(window, "mdd project", "mdd", where);
+			case OPEN: Dialog.open(window, mdd.Config.FORMAT, mdd.Config.SUFFIX, where);
+			case SAVE: Dialog.save(window, mdd.Config.FORMAT, mdd.Config.SUFFIX, where);
 			case VGM: Dialog.save(window, "vgm", "vgm", where);
 			case WAV: Dialog.save(window, "wav", "wav", where);
 			case MIDI: Dialog.save(window, "midi", "mid", where);
@@ -238,7 +352,7 @@ final class Files {
 	}
 
 	public function save(where:String):String {
-		final named = suffixed(where, "mdd");
+		final named = suffixed(where, mdd.Config.SUFFIX);
 
 		Project.save(session.song, named);
 		path = named;

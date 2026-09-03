@@ -43,6 +43,10 @@ class Project {
 	public var version(default, null):String = "0.0.0";
 	public var description(default, null):String = "";
 
+	public var formatSuffix(default, null):String = "";
+	public var formatName(default, null):String = "";
+	public var formatMime(default, null):String = "";
+
 	public var windowWidth(default, null):Int = 1280;
 	public var windowHeight(default, null):Int = 800;
 	public var leastWidth(default, null):Int = 640;
@@ -110,6 +114,11 @@ class Project {
 				company = has(node, "company") ? node.get("company") : company;
 				version = has(node, "version") ? node.get("version") : version;
 				description = has(node, "description") ? node.get("description") : description;
+
+			case "format":
+				formatSuffix = node.get("suffix");
+				formatName = node.get("name");
+				formatMime = node.get("mime");
 
 			case "update":
 				github = has(node, "github") ? node.get("github") : github;

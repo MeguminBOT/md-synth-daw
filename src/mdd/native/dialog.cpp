@@ -69,6 +69,14 @@ extern "C" MddDialog *mdd_dialog_save(SDL_Window *window, const char *label, con
 	return self;
 }
 
+extern "C" MddDialog *mdd_dialog_folder(SDL_Window *window, const char *where) {
+	MddDialog *self = mdd_dialog_make("", "*");
+	if (self == nullptr) return nullptr;
+
+	SDL_ShowOpenFolderDialog(mdd_dialog_chose, self, window, where, false);
+	return self;
+}
+
 extern "C" int mdd_dialog_state(MddDialog *dialog) {
 	return dialog == nullptr ? MDD_DIALOG_FAILED : dialog->state.load(std::memory_order_acquire);
 }

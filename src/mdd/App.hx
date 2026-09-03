@@ -45,6 +45,8 @@ class App {
 	var update:Null<Update> = null;
 
 	var firstRun:Bool = false;
+	var asking:cpp.Star<mdd.host.Chooser> = null;
+	var asked:Int = -1;
 	var running:Bool = true;
 	var last:Float = 0;
 
@@ -145,6 +147,13 @@ class App {
 		panels.preferences.onTypeface = function(which:Int):Void redressed();
 		panels.preferences.onKeep = function():Void keeps();
 		panels.preferences.onKeeping = function(every:Float):Void files.every = every;
+		panels.preferences.onBackups = function():Void backing();
+		panels.preferences.onUpdates = function(on:Bool):Void {
+			settings.flag("update", on);
+			settings.save();
+		};
+
+		panels.preferences.onFolder = function(row:Int):Void folder(row);
 
 		panels.preferences.onSpeak = function(code:String):Void {
 			Languages.speak(stage.root.translation, code);
@@ -347,13 +356,71 @@ class App {
 		menus.dress(session);
 	}
 
+	function backing():Void {
+		final held = panels.preferences;
+
+		files.backupRoom = Preferences.ROOMS[held.backups] * 1024 * 1024;
+		files.backupDays = Preferences.DAYS[held.backupAge];
+
+		final gone = files.pruned();
+		if (gone > 0) session.say("removed " + gone + " older backups");
+
+		session.changed();
+	}
+
+	function folder(row:Int):Void {
+		if (asking != null) return;
+
+		asked = row;
+		asking = mdd.host.Dialog.folder(stage.window,
+			row == Preferences.PROJECTS ? files.within("projects") : files.within("presets"));
+	}
+
+	function folded():Void {
+		if (asking == null) return;
+
+		final state = mdd.host.Dialog.state(asking);
+		if (state == mdd.host.Dialog.WAITING) return;
+
+		if (state == mdd.host.Dialog.CHOSEN) {
+			final where = haxe.io.Path.normalize((mdd.host.Dialog.path(asking) : String));
+
+			if (asked == Preferences.PROJECTS) {
+				files.projectsAt = where;
+				panels.preferences.projectsAt = where;
+				settings.put("projects", where);
+			} else {
+				files.presetsAt = where;
+				panels.preferences.presetsAt = where;
+				settings.put("presets", where);
+			}
+
+			settings.save();
+			session.say(where);
+			session.changed();
+		}
+
+		mdd.host.Dialog.close(asking);
+		asking = null;
+	}
+
 	function remembered():Void {
 		final which = settings.asWhole("theme", 0);
 		final typeface = settings.asWhole("typeface", 0);
 		final motion = settings.asWhole("motion", stage.root.flow);
 		final density = settings.asWhole("density", 1);
 		final keeping = settings.asWhole("keeping", 2);
-		if (settings.asFlag("update", true) && update.possible()) update.look();
+		final backups = settings.asWhole("backups", 3);
+		final backupAge = settings.asWhole("backupAge", 2);
+		final looks = settings.asFlag("update", true);
+
+		if (looks && update.possible()) update.look();
+
+		files.projectsAt = settings.of("projects", "");
+		files.presetsAt = settings.of("presets", "");
+
+		panels.preferences.projectsAt = files.projectsAt;
+		panels.preferences.presetsAt = files.presetsAt;
 
 		session.theme = which;
 		session.motion = motion;
@@ -366,6 +433,9 @@ class App {
 
 		panels.preferences.chose(Preferences.DENSITY, density);
 		panels.preferences.chose(Preferences.KEEPING, keeping);
+		panels.preferences.chose(Preferences.BACKUPS, backups);
+		panels.preferences.chose(Preferences.BACKUP_AGE, backupAge);
+		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
 		stage.root.reshape();
 	}
 
@@ -382,6 +452,8 @@ class App {
 		settings.whole("motion", session.motion);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("keeping", panels.preferences.keeping);
+		settings.whole("backups", panels.preferences.backups);
+		settings.whole("backupAge", panels.preferences.backupAge);
 		if (stage.shown) settings.flag("maximised", stage.maximised());
 		settings.whole("width", Sdl.windowWidth(stage.window));
 		settings.whole("height", Sdl.windowHeight(stage.window));
@@ -519,6 +591,7 @@ class App {
 
 			stage.root.advance(since);
 			if (files != null && files.poll()) stage.root.soil();
+			folded();
 			if (files != null && files.tick(since)) stage.root.soil();
 			if (watched()) stage.root.soil();
 			watch();

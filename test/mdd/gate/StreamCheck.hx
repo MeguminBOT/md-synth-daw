@@ -533,7 +533,7 @@ class StreamCheck {
 
 		final root = Gate.root + "/export/project";
 		final folder = root + "/exploded";
-		final packed = root + "/packed.mdd";
+		final packed = root + "/packed." + mdd.Config.SUFFIX;
 
 		if (sys.FileSystem.exists(folder)) wipe(folder);
 		if (sys.FileSystem.exists(packed)) sys.FileSystem.deleteFile(packed);

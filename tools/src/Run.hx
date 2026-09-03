@@ -228,6 +228,12 @@ class Run {
 		out.add("\tpublic static inline final RESIZABLE = " + project.resizable + ";\n");
 		out.add("\tpublic static inline final HIGH_DPI = " + project.highDpi + ";\n");
 		out.add("\tpublic static inline final SPOKEN = \"" + spoken.join(",") + "\";\n");
+		out.add("	public static inline final SUFFIX = \"" + project.formatSuffix + "\";
+");
+		out.add("	public static inline final FORMAT = \"" + project.formatName + "\";
+");
+		out.add("	public static inline final MIME = \"" + project.formatMime + "\";
+");
 		out.add("}\n");
 
 		File.saveContent(into + "/Config.hx", out.toString());
@@ -887,18 +893,37 @@ class Run {
 		out.add("[Tasks]\n");
 		out.add("Name: \"desktopicon\"; Description: \"Create a desktop shortcut\"\n\n");
 
+		final progid = project.short + ".project";
+		final classes = "Software\\Classes\\";
+		final suffix = "." + project.formatSuffix;
+
 		out.add("[Registry]\n");
-		out.add("Root: HKA; Subkey: \"Software\\Classes\\.mdd\"; ValueType: string; "
-			+ "ValueData: \"" + project.short + ".project\"; Flags: uninsdeletevalue uninsdeletekeyifempty\n");
-		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
-			+ ".project\"; ValueType: string; ValueData: \"" + project.title
-			+ " project\"; Flags: uninsdeletekey\n");
-		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
-			+ ".project\\DefaultIcon\"; ValueType: string; ValueData: \"{app}\\"
-			+ project.short + ".exe,0\"\n");
-		out.add("Root: HKA; Subkey: \"Software\\Classes\\" + project.short
-			+ ".project\\shell\\open\\command\"; ValueType: string; "
-			+ "ValueData: \"\"\"{app}\\" + project.short + ".exe\"\" \"\"%1\"\"\"\n\n");
+
+		out.add("Root: HKA; Subkey: \"" + classes + suffix + "\"; ValueType: string; "
+			+ "ValueData: \"" + progid
+			+ "\"; Flags: uninsdeletevalue uninsdeletekeyifempty\n");
+		out.add("Root: HKA; Subkey: \"" + classes + suffix + "\"; ValueType: string; "
+			+ "ValueName: \"Content Type\"; ValueData: \"" + project.formatMime
+			+ "\"; Flags: uninsdeletevalue\n");
+		out.add("Root: HKA; Subkey: \"" + classes + suffix + "\"; ValueType: string; "
+			+ "ValueName: \"PerceivedType\"; ValueData: \"audio\"; Flags: uninsdeletevalue\n");
+		out.add("Root: HKA; Subkey: \"" + classes + suffix + "\\OpenWithProgids\"; "
+			+ "ValueType: string; ValueName: \"" + progid + "\"; ValueData: \"\"; "
+			+ "Flags: uninsdeletevalue uninsdeletekeyifempty\n");
+
+		out.add("Root: HKA; Subkey: \"" + classes + progid + "\"; ValueType: string; "
+			+ "ValueData: \"" + project.formatName + "\"; Flags: uninsdeletekey\n");
+		out.add("Root: HKA; Subkey: \"" + classes + progid + "\"; ValueType: string; "
+			+ "ValueName: \"FriendlyTypeName\"; ValueData: \"" + project.formatName + "\"\n");
+		out.add("Root: HKA; Subkey: \"" + classes + progid + "\\DefaultIcon\"; "
+			+ "ValueType: string; ValueData: \"{app}\\" + project.short + ".exe,0\"\n");
+		out.add("Root: HKA; Subkey: \"" + classes + progid + "\\shell\\open\\command\"; "
+			+ "ValueType: string; ValueData: \"\"\"{app}\\" + project.short
+			+ ".exe\"\" \"\"%1\"\"\"\n");
+
+		out.add("Root: HKA; Subkey: \"" + classes + "Applications\\" + project.short
+			+ ".exe\\SupportedTypes\"; ValueType: string; ValueName: \"" + suffix
+			+ "\"; ValueData: \"\"; Flags: uninsdeletekey\n\n");
 
 		out.add("[Run]\n");
 		out.add("Filename: \"{app}\\" + project.short
@@ -1023,6 +1048,33 @@ class Run {
 		out.add("\t<key>CFBundleIconFile</key><string>" + project.short + "</string>\n");
 		out.add("\t<key>CFBundlePackageType</key><string>APPL</string>\n");
 		out.add("\t<key>NSHighResolutionCapable</key><true/>\n");
+
+		out.add("\t<key>CFBundleDocumentTypes</key>\n\t<array>\n\t\t<dict>\n");
+		out.add("\t\t\t<key>CFBundleTypeName</key><string>" + project.formatName
+			+ "</string>\n");
+		out.add("\t\t\t<key>CFBundleTypeRole</key><string>Editor</string>\n");
+		out.add("\t\t\t<key>LSHandlerRank</key><string>Owner</string>\n");
+		out.add("\t\t\t<key>CFBundleTypeIconFile</key><string>" + project.short
+			+ "</string>\n");
+		out.add("\t\t\t<key>LSItemContentTypes</key>\n\t\t\t<array><string>com."
+			+ project.company + "." + project.short + "." + project.formatSuffix
+			+ "</string></array>\n");
+		out.add("\t\t</dict>\n\t</array>\n");
+
+		out.add("\t<key>UTExportedTypeDeclarations</key>\n\t<array>\n\t\t<dict>\n");
+		out.add("\t\t\t<key>UTTypeIdentifier</key><string>com." + project.company + "."
+			+ project.short + "." + project.formatSuffix + "</string>\n");
+		out.add("\t\t\t<key>UTTypeDescription</key><string>" + project.formatName
+			+ "</string>\n");
+		out.add("\t\t\t<key>UTTypeConformsTo</key>\n\t\t\t<array>"
+			+ "<string>public.data</string><string>public.zip-archive</string></array>\n");
+		out.add("\t\t\t<key>UTTypeTagSpecification</key>\n\t\t\t<dict>\n");
+		out.add("\t\t\t\t<key>public.filename-extension</key>\n\t\t\t\t<array><string>"
+			+ project.formatSuffix + "</string></array>\n");
+		out.add("\t\t\t\t<key>public.mime-type</key>\n\t\t\t\t<array><string>"
+			+ project.formatMime + "</string></array>\n");
+		out.add("\t\t\t</dict>\n\t\t</dict>\n\t</array>\n");
+
 		out.add("</dict>\n</plist>\n");
 
 		File.saveContent(inside + "/Info.plist", out.toString());
@@ -1060,8 +1112,21 @@ class Run {
 		out.add("Terminal=false\n");
 		out.add("Icon=" + project.short + "\n");
 		out.add("Categories=AudioVideo;Audio;Music;\n");
+		out.add("MimeType=" + project.formatMime + ";\n");
 
 		File.saveContent(into + "/" + project.short + ".desktop", out.toString());
+
+		final mime = new StringBuf();
+		mime.add("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		mime.add("<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n");
+		mime.add("\t<mime-type type=\"" + project.formatMime + "\">\n");
+		mime.add("\t\t<comment>" + project.formatName + "</comment>\n");
+		mime.add("\t\t<glob pattern=\"*." + project.formatSuffix + "\"/>\n");
+		mime.add("\t\t<icon name=\"" + project.short + "\"/>\n");
+		mime.add("\t</mime-type>\n");
+		mime.add("</mime-info>\n");
+
+		File.saveContent(into + "/" + project.short + ".xml", mime.toString());
 
 		final out2 = new StringBuf();
 		out2.add("#!/usr/bin/env sh\n");
@@ -1082,6 +1147,12 @@ class Run {
 				+ "\"" + where + "/" + project.short + ".png\"\n");
 		}
 
+		out2.add("mkdir -p \"$PREFIX/share/mime/packages\"\n");
+		out2.add("cp \"$HERE/" + project.short + ".xml\" \"$PREFIX/share/mime/packages/\"\n");
+		out2.add("command -v update-mime-database >/dev/null 2>&1 && "
+			+ "update-mime-database \"$PREFIX/share/mime\" || true\n");
+		out2.add("command -v update-desktop-database >/dev/null 2>&1 && "
+			+ "update-desktop-database \"$PREFIX/share/applications\" || true\n");
 		out2.add("echo \"installed to $PREFIX\"\n");
 
 		File.saveContent(into + "/install.sh", out2.toString());
@@ -1095,6 +1166,9 @@ class Run {
 		out3.add("rm -rf \"$PREFIX/lib/" + project.short + "\"\n");
 		out3.add("rm -f \"$PREFIX/bin/" + project.short + "\"\n");
 		out3.add("rm -f \"$PREFIX/share/applications/" + project.short + ".desktop\"\n");
+		out3.add("rm -f \"$PREFIX/share/mime/packages/" + project.short + ".xml\"\n");
+		out3.add("command -v update-mime-database >/dev/null 2>&1 && "
+			+ "update-mime-database \"$PREFIX/share/mime\" || true\n");
 		out3.add("case \"$KEEP\" in\n");
 		out3.add("  [Nn]*) rm -rf \"$HOME/Documents/" + project.title + "\" ;;\n");
 		out3.add("  *) echo \"kept $HOME/Documents/" + project.title + "\" ;;\n");

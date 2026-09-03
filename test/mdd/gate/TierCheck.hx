@@ -169,10 +169,14 @@ class TierCheck {
 		wipe(into);
 		sys.FileSystem.createDirectory(into);
 
-		says("a suffix is added once", Files.suffixed("song", "mdd") == "song.mdd"
-			&& Files.suffixed("song.mdd", "mdd") == "song.mdd"
-			&& Files.suffixed("song.MDD", "mdd") == "song.MDD"
-			&& Files.suffixed("song.vgm", "mdd") == "song.vgm.mdd",
+		final suffix = mdd.Config.SUFFIX;
+
+		says("a suffix is added once",
+			Files.suffixed("song", suffix) == "song." + suffix
+			&& Files.suffixed("song." + suffix, suffix) == "song." + suffix
+			&& Files.suffixed("song." + suffix.toUpperCase(), suffix)
+				== "song." + suffix.toUpperCase()
+			&& Files.suffixed("song.vgm", suffix) == "song.vgm." + suffix,
 			"a name without one gets it, a name with it keeps it, and a different one is kept "
 			+ "and added to");
 
@@ -194,7 +198,7 @@ class TierCheck {
 		final wav = files.exportWav(into + "/song");
 		final mid = files.exportMidi(into + "/song");
 
-		says("every export names itself", StringTools.endsWith(saved, ".mdd")
+		says("every export names itself", StringTools.endsWith(saved, "." + suffix)
 			&& StringTools.endsWith(vgm, ".vgm") && StringTools.endsWith(wav, ".wav")
 			&& StringTools.endsWith(mid, ".mid"),
 			"the project, the vgm, the wav and the midi file all took their own suffix");

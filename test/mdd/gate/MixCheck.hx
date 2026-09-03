@@ -315,7 +315,7 @@ class MixCheck {
 			+ " in the song, and lasting " + round(spans, 1) + " s against "
 			+ round(want, 1) + " s");
 
-		final packed = into + "/round.mdd";
+		final packed = into + "/round." + mdd.Config.SUFFIX;
 		mdd.format.Project.save(song, packed);
 
 		final again = mdd.format.Project.open(packed);

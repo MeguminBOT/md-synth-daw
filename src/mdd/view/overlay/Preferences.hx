@@ -24,16 +24,34 @@ final class Preferences extends Widget {
 	public static inline final LANGUAGE = 3;
 	public static inline final DENSITY = 4;
 	public static inline final KEEPING = 5;
-	public static inline final ROWS = 6;
+	public static inline final BACKUPS = 6;
+	public static inline final BACKUP_AGE = 7;
+	public static inline final UPDATES = 8;
+	public static inline final PROJECTS = 9;
+	public static inline final PRESETS = 10;
+	public static inline final ROWS = 11;
 
 	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
-		Locale.PREFERENCE_KEEPING];
+		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
+		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS];
 
 	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
 
 	public static final MINUTES:Array<Float> = [0, 60, 300, 600];
+
+	static final BACKUP_ROOMS:Array<String> = [Locale.BACKUPS_OFF, "50 MB", "100 MB", "250 MB",
+		"500 MB", "1 GB", Locale.BACKUPS_ANY];
+
+	public static final ROOMS:Array<Float> = [0, 50, 100, 250, 500, 1024, 1024 * 64];
+
+	static final BACKUP_AGES:Array<String> = [Locale.BACKUP_AGE_ANY, Locale.BACKUP_AGE_WEEK,
+		Locale.BACKUP_AGE_MONTH, Locale.BACKUP_AGE_QUARTER];
+
+	public static final DAYS:Array<Int> = [0, 7, 30, 90];
+
+	static final UPDATING:Array<String> = [Locale.UPDATES_NEVER, Locale.UPDATES_LAUNCH];
 
 	static final THEMES:Array<String> = [Locale.THEME_MIDNIGHT, Locale.THEME_RACK,
 		Locale.THEME_SLATE];
@@ -50,6 +68,12 @@ final class Preferences extends Widget {
 	public var density(default, null):Int = 1;
 	public var language(default, null):Int = 0;
 	public var keeping(default, null):Int = 2;
+	public var backups(default, null):Int = 3;
+	public var backupAge(default, null):Int = 2;
+	public var updates(default, null):Int = 1;
+
+	public var projectsAt:String = "";
+	public var presetsAt:String = "";
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -58,6 +82,9 @@ final class Preferences extends Widget {
 	public var onTypeface:Null<Int -> Void> = null;
 	public var onKeep:Null<Void -> Void> = null;
 	public var onKeeping:Null<Float -> Void> = null;
+	public var onBackups:Null<Void -> Void> = null;
+	public var onUpdates:Null<Bool -> Void> = null;
+	public var onFolder:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var menu:Null<Menu> = null;
@@ -135,15 +162,31 @@ final class Preferences extends Widget {
 			case MOTION: MOTIONS;
 			case DENSITY: DENSITIES;
 			case KEEPING: KEEPINGS;
+			case BACKUPS: BACKUP_ROOMS;
+			case BACKUP_AGE: BACKUP_AGES;
+			case UPDATES: UPDATING;
+			case PROJECTS, PRESETS: [];
 			case _: languages;
 		}
 	}
 
+	public inline function folded(row:Int):Bool {
+		return row == PROJECTS || row == PRESETS;
+	}
+
 	public function said(row:Int, which:Int):String {
+		if (folded(row)) {
+			final held = row == PROJECTS ? projectsAt : presetsAt;
+			return held == "" ? translate(Locale.FOLDER_DEFAULT) : held;
+		}
+
 		final held = choices(row);
 		if (which < 0 || which >= held.length) return "";
 
-		return row == LANGUAGE || row == TYPEFACE ? held[which] : translate(held[which]);
+		if (row == LANGUAGE || row == TYPEFACE) return held[which];
+		if (row == BACKUPS && which > 0 && which < BACKUP_ROOMS.length - 1) return held[which];
+
+		return translate(held[which]);
 	}
 
 	public function fieldLeft():Float {
@@ -174,6 +217,10 @@ final class Preferences extends Widget {
 			case MOTION: session.motion;
 			case DENSITY: density;
 			case KEEPING: keeping;
+			case BACKUPS: backups;
+			case BACKUP_AGE: backupAge;
+			case UPDATES: updates;
+			case PROJECTS, PRESETS: 0;
 			case _: language;
 		}
 	}
@@ -206,6 +253,18 @@ final class Preferences extends Widget {
 				session.say(which == 0 ? "no saving on its own"
 					: "saving on its own every " + Std.int(MINUTES[which] / 60) + " minutes");
 
+			case BACKUPS:
+				backups = which;
+				if (onBackups != null) onBackups();
+
+			case BACKUP_AGE:
+				backupAge = which;
+				if (onBackups != null) onBackups();
+
+			case UPDATES:
+				updates = which;
+				if (onUpdates != null) onUpdates(which != 0);
+
 			case _:
 				language = which;
 
@@ -224,6 +283,11 @@ final class Preferences extends Widget {
 	public function opens(row:Int):Void {
 		final root = root();
 		if (root == null || row < 0 || row >= ROWS) return;
+
+		if (folded(row)) {
+			if (onFolder != null) onFolder(row);
+			return;
+		}
 
 		final held = choices(row);
 		if (held.length == 0) return;
@@ -332,7 +396,12 @@ final class Preferences extends Widget {
 				at + (deep - small.height) * 0.5 + small.ascent, theme.ink, alpha);
 			paint.popClip();
 
-			chevron(paint, theme, metrics, left + wide - arrow, at + deep * 0.5, alpha);
+			if (folded(row)) {
+				paint.textRight("...", left + wide - metrics.gap,
+					at + (deep - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.9);
+			} else {
+				chevron(paint, theme, metrics, left + wide - arrow, at + deep * 0.5, alpha);
+			}
 		}
 
 		paint.popTransform();
