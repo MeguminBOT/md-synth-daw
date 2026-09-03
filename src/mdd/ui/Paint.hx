@@ -222,36 +222,83 @@ final class Paint {
 			radius:Float, top:Colour, bottom:Colour, alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
 
-		roundedRect(x, y, width, height, radius, top, alpha);
+		var r = radius;
+		final half = (width < height ? width : height) * 0.5;
+		if (r > half) r = half;
 
-		if (height < 3) return;
-
-		final steps = 8;
-		final band = height / steps;
-
-		for (index in 1...steps) {
-			final over = index * band;
-			final inset = over < radius || over + band > height - radius ? radius : 0;
-			final room = width - inset * 2;
-
-			if (room <= 0) continue;
-
-			rect(x + inset, y + over, room, band + 0.5,
-				top.mix(bottom, index / (steps - 1)), alpha);
+		if (r <= 0.5) {
+			gradient(x, y, width, height, top, bottom, alpha);
+			return;
 		}
+
+		shaded(x + r, y, width - r * 2, height, top, bottom, y, height, alpha);
+		shaded(x, y + r, r, height - r * 2, top, bottom, y, height, alpha);
+		shaded(x + width - r, y + r, r, height - r * 2, top, bottom, y, height, alpha);
+
+		bend(x + r, y + r, r, 180, 270, top, bottom, y, height, alpha);
+		bend(x + width - r, y + r, r, 270, 360, top, bottom, y, height, alpha);
+		bend(x + width - r, y + height - r, r, 0, 90, top, bottom, y, height, alpha);
+		bend(x + r, y + height - r, r, 90, 180, top, bottom, y, height, alpha);
 	}
 
 	public function gradient(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
 			alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
+		shaded(x, y, width, height, top, bottom, y, height, alpha);
+	}
 
-		final steps = 12;
-		final band = height / steps;
+	inline function tone(top:Colour, bottom:Colour, from:Float, span:Float, y:Float):Colour {
+		if (span <= 0) return top;
 
-		for (i in 0...steps) {
-			rect(x, y + i * band, width, band + 0.5, top.mix(bottom, (i + 0.5) / steps),
-				alpha);
+		final t = (y - from) / span;
+		return top.mix(bottom, t < 0 ? 0 : (t > 1 ? 1 : t));
+	}
+
+	function shaded(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
+			from:Float, span:Float, alpha:Float):Void {
+		if (width <= 0 || height <= 0) return;
+
+		final above = tone(top, bottom, from, span, y);
+		final below = tone(top, bottom, from, span, y + height);
+
+		wedge(x, y, above, x + width, y, above, x + width, y + height, below, alpha);
+		wedge(x, y, above, x + width, y + height, below, x, y + height, below, alpha);
+	}
+
+	function bend(cx:Float, cy:Float, r:Float, starts:Float, ends:Float, top:Colour,
+			bottom:Colour, from:Float, span:Float, alpha:Float):Void {
+		var count = segments(r) >> 2;
+		if (count < 2) count = 2;
+
+		final step = (ends - starts) * Math.PI / 180 / count;
+		var angle = starts * Math.PI / 180;
+
+		final middle = tone(top, bottom, from, span, cy);
+
+		for (index in 0...count) {
+			final ax = cx + Math.cos(angle) * r;
+			final ay = cy + Math.sin(angle) * r;
+			final bx = cx + Math.cos(angle + step) * r;
+			final by = cy + Math.sin(angle + step) * r;
+
+			wedge(cx, cy, middle, ax, ay, tone(top, bottom, from, span, ay),
+				bx, by, tone(top, bottom, from, span, by), alpha);
+
+			angle += step;
 		}
+	}
+
+	function wedge(x0:Float, y0:Float, c0:Colour, x1:Float, y1:Float, c1:Colour, x2:Float,
+			y2:Float, c2:Colour, alpha:Float):Void {
+		binds(font.texture);
+		room(FLOATS * 3);
+
+		final u = font.solidU;
+		final v = font.solidV;
+
+		push(at(x0), down(y0), c0.red / 255, c0.green / 255, c0.blue / 255, alpha, u, v);
+		push(at(x1), down(y1), c1.red / 255, c1.green / 255, c1.blue / 255, alpha, u, v);
+		push(at(x2), down(y2), c2.red / 255, c2.green / 255, c2.blue / 255, alpha, u, v);
 	}
 
 	public function outline(x:Float, y:Float, width:Float, height:Float, colour:Colour,
