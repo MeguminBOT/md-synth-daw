@@ -187,7 +187,14 @@ class ShotCheck {
 		shell.zone(Shell.MENU).add(menus);
 
 		session.choose(part);
-		centre.roll.showsLane(lane);
+
+		for (index in 0...lane) {
+			final held = mdd.view.Parameter.of(session.part);
+			if (index >= held.length) break;
+
+			centre.roll.stack.show(held[index].target, 0);
+		}
+
 		centre.playlist.rowTall = rows;
 		centre.show(centreTab);
 		editor.show(inspectorTab);

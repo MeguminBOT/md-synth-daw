@@ -67,6 +67,44 @@ final class Automation {
 		return point;
 	}
 
+	public function remove(point:Point):Bool {
+		return points.remove(point);
+	}
+
+	public function sort():Void {
+		for (index in 1...points.length) {
+			final point = points[index];
+			var at = index;
+
+			while (at > 0 && points[at - 1].at > point.at) {
+				points[at] = points[at - 1];
+				at--;
+			}
+
+			points[at] = point;
+		}
+	}
+
+	public function nearest(tick:Int):Null<Point> {
+		if (points.length == 0) return null;
+
+		var found = points[0];
+		var least = tick - found.at;
+		if (least < 0) least = -least;
+
+		for (point in points) {
+			var away = tick - point.at;
+			if (away < 0) away = -away;
+
+			if (away >= least) continue;
+
+			least = away;
+			found = point;
+		}
+
+		return found;
+	}
+
 	public function marks(tick:Int):Bool {
 		final at = seek(tick);
 		return at < points.length && points[at].at == tick;

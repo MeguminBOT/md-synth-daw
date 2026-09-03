@@ -109,6 +109,62 @@ class SpineCheck {
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 	}
 
+	static function laned(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+
+		stack.show(mdd.song.Automation.LEVEL, 0);
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final before = stack.lineOf(0);
+
+		says("a lane can be shown", stack.rows() == 1 && stack.wants() > 0
+			&& before == null,
+			"one lane on " + session.part.name() + ", " + Std.int(stack.wants())
+			+ " px tall, with no line behind it yet");
+
+		final at = stack.atTick(session.song.tempo.ppqn * 2);
+		final top = stack.rowTop(0) + stack.rowHeight() * 0.25;
+
+		stack.took(pressAt(at, top));
+
+		final line = stack.lineOf(0);
+		final many = line == null ? 0 : line.points.length;
+
+		says("and a press in it puts a point down", many == 1 && stack.chosen != null,
+			many + " point after one press, holding " + (stack.chosen == null ? "nothing"
+			: "" + stack.chosen.value));
+
+		final was = stack.chosen == null ? 0 : stack.chosen.value;
+
+		final move = new mdd.ui.Input();
+		move.pointer(mdd.ui.Kind.PointerMove, at, stack.rowTop(0) + stack.rowHeight() * 0.75,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(move);
+
+		final now = stack.chosen == null ? was : stack.chosen.value;
+
+		says("and dragging it changes what it holds", now != was,
+			"the point read " + was + " and reads " + now + " after being dragged down");
+
+		session.undo();
+		session.undo();
+
+		final after = stack.lineOf(0);
+
+		says("and both undo", after == null || after.points.length == 0,
+			"the lane is back to " + (after == null ? "no line at all"
+			: after.points.length + " points"));
+
+		stack.hide(0);
+
+		tree.reshape();
+		tree.top.arrange(0, 0, tree.width, tree.height);
+	}
+
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
 		final held = new mdd.view.overlay.Preferences(session);
 
@@ -676,6 +732,7 @@ class SpineCheck {
 			+ round(first * 1000, 1));
 
 		menued(tree);
+		laned(tree, session, centre.roll);
 		sheeted(tree, session);
 
 		tree.resize(900, 600);

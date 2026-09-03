@@ -22,13 +22,11 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.Parameter;
 
 @:unreflective
 final class PianoRoll extends Widget {
-	public static inline final VELOCITY = 0;
-	public static inline final PAN = 1;
-	public static inline final AUTOMATION = 2;
-	public static inline final LANES = 3;
+
 
 	public static inline final LOWEST = 12;
 	public static inline final HIGHEST = 108;
@@ -56,7 +54,7 @@ final class PianoRoll extends Widget {
 	var stalking:Null<Note> = null;
 	var litNote:Int = -1;
 	var litOn:Bool = false;
-	public var lane(default, null):Int = VELOCITY;
+	public final stack:Lanes;
 
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
@@ -86,6 +84,106 @@ final class PianoRoll extends Widget {
 
 		focusable = true;
 		opaque = true;
+
+		stack = new Lanes(session);
+		stack.onOffer = function(from:Lanes, row:Int, px:Float, py:Float):Void
+			offered(px, py, row);
+		stack.onShape = function(from:Lanes, row:Int, point:mdd.song.Point, px:Float,
+			py:Float):Void shaped(point, px, py);
+
+		add(stack);
+	}
+
+	override function layout():Void {
+		final tall = stack.wants();
+
+		stack.perTick = perTick;
+		stack.offsetX = offsetX;
+		stack.left = gutter();
+		stack.playhead = playhead;
+		stack.visible = showLanes && tall > 0;
+
+		stack.arrange(x, y + height - tall, width, tall);
+	}
+
+	function offered(px:Float, py:Float, row:Int):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		for (held in Parameter.of(session.part)) {
+			if (!held.operators) {
+				choice(menu, held, held.target, 0, row);
+				continue;
+			}
+
+			final slots = new Menu();
+			for (slot in 0...4) choice(slots, held, held.target, slot, row);
+
+			menu.offer(new Choice(held.name)).submenu = slots;
+		}
+
+		if (row >= 0) {
+			menu.divide();
+
+			fires(menu.offer(new Choice(translate(Locale.LANE_DROP))), function():Void
+				stack.hide(row));
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
+	function choice(into:Menu, held:Parameter, target:Int, slot:Int, row:Int):Void {
+		final one = into.offer(new Choice(held.titled(slot)));
+		one.reason = translate(held.about);
+
+		if (row < 0 && stack.shows(target, slot)) {
+			one.enabled = false;
+			return;
+		}
+
+		fires(one, function():Void {
+			if (row < 0) stack.show(target, slot);
+			else stack.swap(row, target, slot);
+
+			relayout();
+		});
+	}
+
+	function shaped(point:mdd.song.Point, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		for (shape in 0...mdd.song.Automation.SHAPES) {
+			final one = menu.offer(new Choice(translate(Locale.SHAPES[shape])));
+
+			if (shape == point.shape) one.enabled = false;
+			else fires(one, function():Void {
+				session.does(new mdd.song.edit.ShapePoint(point, shape, point.tension,
+					point.steps));
+				stack.invalidate();
+			});
+		}
+
+		if (mdd.song.Automation.stepped(point.shape)) {
+			menu.divide();
+
+			for (many in [2, 3, 4, 6, 8, 12, 16]) {
+				final one = menu.offer(new Choice("" + many));
+
+				if (many == point.repeats()) one.enabled = false;
+				else fires(one, function():Void {
+					session.does(new mdd.song.edit.ShapePoint(point, point.shape,
+						point.tension, many));
+					stack.invalidate();
+				});
+			}
+		}
+
+		root.pop(menu, px, py, this);
 	}
 
 	public inline function kitting():Bool {
@@ -199,11 +297,16 @@ final class PianoRoll extends Widget {
 		return root == null ? 22 : root.metrics.whole(22);
 	}
 
-	public function lanes():Float {
+	public function velocityTall():Float {
 		if (!showLanes) return 0;
 
 		final root = root();
 		return root == null ? 80 : root.metrics.whole(80);
+	}
+
+	public function lanes():Float {
+		if (!showLanes) return 0;
+		return velocityTall() + stack.wants();
 	}
 
 	public inline function grid():Float {
@@ -434,9 +537,9 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				if (onStrip(event.y)) {
+				if (onVelocity(event.y)) {
 					if (event.x < x + gutter()) {
-						showsLane((lane + 1) % LANES);
+						offered(event.x, event.y, -1);
 						return true;
 					}
 
@@ -444,6 +547,8 @@ final class PianoRoll extends Widget {
 					if (stalking != null) leaned(event.y);
 					return true;
 				}
+
+				if (onStrip(event.y)) return false;
 
 				if (event.x < x + gutter()) {
 					final pitch = pitchAt(event.y);
@@ -853,6 +958,8 @@ final class PianoRoll extends Widget {
 		strip(paint, theme, metrics, pattern);
 		reins(paint, theme, metrics, left, top);
 
+		super.paint(paint);
+
 		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 
@@ -937,10 +1044,10 @@ final class PianoRoll extends Widget {
 	}
 
 	function strip(paint:Paint, theme:Theme, metrics:Metrics, pattern:Pattern):Void {
-		final tall = lanes();
+		final tall = velocityTall();
 		if (tall <= 0) return;
 
-		final top = y + height - tall;
+		final top = y + height - lanes();
 		final left = x + gutter();
 		final font = metrics.small == null ? metrics.body : metrics.small;
 
@@ -948,30 +1055,26 @@ final class PianoRoll extends Widget {
 		paint.rect(x, top, width, metrics.whole(1), theme.frame);
 
 		paint.reface(font);
-		paint.text(translate(laneName()), x + metrics.gap, top + metrics.gap + font.ascent,
-			theme.dim, 0.7);
+		paint.text(translate(Locale.LANE_VELOCITY), x + metrics.gap,
+			top + metrics.gap + font.ascent, theme.dim, 0.7);
+
+		paint.text("+", x + gutter() - metrics.gap * 2,
+			top + tall - metrics.gap - font.descent, theme.accent, 0.9);
 
 		paint.pushClip(left, top, width - gutter(), tall);
 
-		final floor = y + height - metrics.gap;
+		final floor = top + tall - metrics.gap;
 		final room = tall - metrics.gap * 2 - font.height;
 		final held = pattern.lane(session.part);
 		final stalk = metrics.whole(3);
 
 		paint.rect(left, floor, width - gutter(), metrics.whole(1), theme.frame);
 
-		if (lane != VELOCITY) {
-			laned(paint, theme, metrics, held, left, floor, room);
-			paint.popClip();
-			return;
-		}
-
 		for (note in held.notes) {
 			final at = atTick(note.at);
 			if (at < left - stalk || at > x + width) continue;
 
-			final part = share(note);
-			final reach = room * part;
+			final reach = room * note.velocity / 127.0;
 			final colour = note == chosen ? theme.ink : theme.part(session.part.index());
 
 			paint.rect(at, floor - reach, stalk, reach, colour, note == chosen ? 1 : 0.8);
@@ -980,79 +1083,7 @@ final class PianoRoll extends Widget {
 		paint.popClip();
 	}
 
-	function laned(paint:Paint, theme:Theme, metrics:Metrics, held:mdd.song.Lane, left:Float,
-			floor:Float, room:Float):Void {
-		final want = lane == PAN ? mdd.song.Automation.SIDES : mdd.song.Automation.LEVEL;
-		final colour = theme.part(session.part.index());
-		final hair = metrics.whole(2);
 
-		var lines = 0;
-
-		for (line in held.automation) {
-			if (line.target != want || line.points.length == 0) continue;
-
-			lines++;
-
-			var last = -1.0;
-			var lastAt = 0.0;
-
-			for (point in line.points) {
-				final at = atTick(point.at);
-				if (at > x + width) break;
-
-				final part = want == mdd.song.Automation.SIDES
-					? sided(point.value) : 1 - (point.value & 0x7F) / 127.0;
-				final level = floor - room * part;
-
-				if (last >= 0 && at >= left) {
-					paint.rect(lastAt < left ? left : lastAt, last, at - lastAt, hair,
-						colour, 0.8);
-					paint.rect(at, level < last ? level : last, hair,
-						(level < last ? last - level : level - last) + hair, colour, 0.8);
-				}
-
-				last = level;
-				lastAt = at;
-			}
-
-			if (last >= 0 && lastAt < x + width) {
-				paint.rect(lastAt < left ? left : lastAt, last, x + width - lastAt, hair,
-					colour, 0.8);
-			}
-		}
-
-		if (lines > 0) return;
-
-		final font = metrics.small == null ? metrics.body : metrics.small;
-
-		paint.reface(font);
-		paint.text(translate(Locale.LANE_EMPTY), left + metrics.gap,
-			floor - room * 0.5 + font.ascent * 0.5, theme.dim, 0.6);
-	}
-
-	static function sided(value:Int):Float {
-		return switch ((value >> 6) & 3) {
-			case 1: 0.15;
-			case 2: 0.85;
-			case _: 0.5;
-		}
-	}
-
-	function share(note:Note):Float {
-		return switch (lane) {
-			case PAN: 0.5;
-			case AUTOMATION: 0;
-			case _: note.velocity / 127.0;
-		}
-	}
-
-	function laneName():String {
-		return switch (lane) {
-			case PAN: Locale.LANE_PAN;
-			case AUTOMATION: Locale.LANE_AUTOMATION;
-			case _: Locale.LANE_VELOCITY;
-		}
-	}
 
 	public function edge():Float {
 		final root = root();
@@ -1095,6 +1126,11 @@ final class PianoRoll extends Widget {
 		return lanes() > 0 && py >= y + height - lanes();
 	}
 
+	public inline function onVelocity(py:Float):Bool {
+		final top = y + height - lanes();
+		return lanes() > 0 && py >= top && py < top + velocityTall();
+	}
+
 	function stalkAt(px:Float):Null<Note> {
 		final pattern = session.current();
 		if (pattern == null) return null;
@@ -1116,7 +1152,7 @@ final class PianoRoll extends Widget {
 	}
 
 	function leaned(py:Float):Void {
-		if (stalking == null || lane != VELOCITY) return;
+		if (stalking == null) return;
 
 		final root = root();
 		final metrics = root == null ? null : root.metrics;
@@ -1142,12 +1178,7 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
-	public function showsLane(which:Int):Void {
-		if (which < 0 || which >= LANES || which == lane) return;
 
-		lane = which;
-		invalidate();
-	}
 
 	function rows(paint:Paint, theme:Theme, left:Float, top:Float):Void {
 		final floor = lowest();
@@ -1304,6 +1335,7 @@ final class PianoRoll extends Widget {
 		final wide = gutter();
 
 		paint.rect(x, top, wide, grid(), theme.panel);
+		paint.pushClip(x, top, wide, grid());
 		paint.reface(metrics.small == null ? metrics.body : metrics.small);
 
 		final font = metrics.small == null ? metrics.body : metrics.small;
@@ -1343,6 +1375,8 @@ final class PianoRoll extends Widget {
 
 			pitch--;
 		}
+
+		paint.popClip();
 
 		paint.rect(x + wide - metrics.whole(1), top, metrics.whole(1), grid(),
 			theme.frame);
