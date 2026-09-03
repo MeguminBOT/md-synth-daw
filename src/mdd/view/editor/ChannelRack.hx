@@ -5,6 +5,7 @@ import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Part;
 import mdd.ui.Panel;
+import mdd.view.Kits;
 import mdd.ui.control.Choice;
 import mdd.ui.Colour;
 import mdd.ui.Input;
@@ -330,8 +331,9 @@ final class ChannelRack extends Widget {
 			paint.textCentred("S", x + width - metrics.whole(72) + size * 0.5, line,
 				session.song.soloed[index] ? theme.ink : theme.dim);
 
-			final instrument = session.song.instrumentAt(session.song.rack[index]);
-			if (instrument == null) continue;
+			final part:Part = index;
+			final said = Kits.named(session.song, part, session.song.rack[index]);
+			if (said == "") continue;
 
 			final left = names + metrics.gap;
 			final room = x + width - metrics.whole(104) - left;
@@ -339,7 +341,7 @@ final class ChannelRack extends Widget {
 			if (room < metrics.whole(24)) continue;
 
 			paint.pushClip(left, row, room, tall);
-			paint.text(instrument.name, left, line, theme.dim, 0.95);
+			paint.text(said, left, line, theme.dim, 0.95);
 			paint.popClip();
 		}
 

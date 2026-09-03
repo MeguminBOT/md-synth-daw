@@ -110,10 +110,13 @@ final class PianoRoll extends Widget {
 		if (wasTall <= 0) wasTall = rowTall;
 
 		final song = session.song;
+		final at = song.bankOf(song.rack[session.part.index()]);
+		final bank = at < 0 ? null : song.banks[at];
 
 		for (index in 0...song.instruments.length) {
 			final held = song.instruments[index];
 			if (held.sample < 0 || song.sampleAt(held.sample) == null) continue;
+			if (bank != null && !bank.holds(index)) continue;
 
 			kit.push(index);
 		}
