@@ -94,18 +94,25 @@ class SpineCheck {
 		tree.raise(held);
 
 		final row = mdd.view.overlay.Preferences.THEME;
-		final top = held.y + held.head() + row * held.rowTall() + held.rowTall() * 0.7;
-		final at = held.x + held.width * 0.5;
+		final top = held.rowTop(row) + held.fieldTall() * 0.5;
+		final at = held.fieldLeft() + held.fieldWide() * 0.5;
 
 		final was = held.showing(row);
 
 		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
-		says("a press inside a sheet reaches it", tree.sheet == held
-			&& held.showing(row) != was,
-			"the theme moved from " + was + " to " + held.showing(row)
-			+ " and the sheet is still up");
+		says("a press inside a sheet reaches it", tree.sheet == held && tree.popups.length == 1
+			&& tree.popups[0].commands() == held.choices(row).length,
+			"the sheet is still up and its dropdown offers "
+			+ (tree.popups.length == 0 ? 0 : tree.popups[0].commands()) + " themes");
+
+		if (tree.popups.length == 1) tree.popups[0].fire(was == 0 ? 1 : 0);
+
+		says("and picking from it takes", held.showing(row) != was,
+			"the theme moved from " + was + " to " + held.showing(row));
+
+		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 
 		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
