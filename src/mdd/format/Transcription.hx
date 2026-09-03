@@ -59,8 +59,7 @@ final class Transcription {
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
 	static inline final DAC_ROOM = 1 << 22;
-	static inline final DAC_NEAR = 2;
-	static inline final DAC_STRETCH = 64;
+	static inline final DAC_NEAR = 0;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -480,14 +479,12 @@ final class Transcription {
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
 
-			final gap = paces(head, last);
-
-			hit(head, last, dacWhen[last] + gap, Std.int(Tempo.TICKS / gap));
+			hit(head, last, dacWhen[last] + spacing(), paced(head, last));
 			head = last + 1;
 		}
 	}
 
-	function paces(head:Int, last:Int):Int {
+	function paced(head:Int, last:Int):Int {
 		final gaps:Array<Int> = [];
 
 		for (index in head + 1...last + 1) {
@@ -495,7 +492,7 @@ final class Transcription {
 			if (apart >= 0 && apart <= DAC_GAP) gaps.push(apart);
 		}
 
-		if (gaps.length < 4) return spacing();
+		if (gaps.length < 4) return Std.int(Tempo.TICKS / spacing());
 
 		gaps.sort(function(one:Int, two:Int):Int return one - two);
 
@@ -512,12 +509,11 @@ final class Transcription {
 			counted++;
 		}
 
-		if (counted < 1 || total < 1) return spacing();
+		if (counted < 1 || total < 1) return Std.int(Tempo.TICKS / spacing());
 
-		final gap = Math.round(total / counted);
-		return gap < 1 ? 1 : (gap > 22 ? 22 : gap);
+		final rate = Math.round(counted * (Tempo.TICKS / total));
+		return rate < 2000 ? 2000 : (rate > Tempo.TICKS ? Tempo.TICKS : rate);
 	}
-
 	function hit(head:Int, last:Int, ends:Int, rate:Int):Void {
 		if (last - head + 1 < DAC_LEAST) return;
 
@@ -525,7 +521,7 @@ final class Transcription {
 		var until = ticked(ends);
 		if (until <= from) until = from + 1;
 
-		evened(head, last, Math.round(from * perTick), Math.round(until * perTick), rate);
+		evened(head, last);
 		if (dacTake.length < DAC_LEAST) return;
 
 		final which = sampleInstrument(rate);
@@ -534,21 +530,9 @@ final class Transcription {
 		placed(Part.Dac, from, until, 60, which);
 	}
 
-	function evened(head:Int, last:Int, from:Int, until:Int, rate:Int):Void {
+	function evened(head:Int, last:Int):Void {
 		dacTake.resize(0);
-
-		final many = Math.round((until - from) * (rate / Tempo.TICKS));
-		if (many < 1) return;
-
-		final step = Tempo.TICKS / rate;
-		var cursor = head;
-
-		for (index in 0...many) {
-			final want = from + index * step;
-			while (cursor < last && dacWhen[cursor + 1] <= want) cursor++;
-
-			dacTake.push(dacBytes[cursor]);
-		}
+		for (index in head...last + 1) dacTake.push(dacBytes[index]);
 	}
 
 	function square(at:Int, value:Int):Void {
@@ -891,9 +875,7 @@ final class Transcription {
 		final many = dacTake.length;
 
 		for (index in 0...song.samples.length) {
-			if (song.samples[index].rate == rate && alike(song.samples[index])) {
-				return kits[index];
-			}
+			if (alike(song.samples[index])) return kits[index];
 		}
 
 		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
@@ -921,10 +903,9 @@ final class Transcription {
 
 		if (one < 1 || two < 1) return false;
 
-		final many = one < two ? one : two;
-		final apart = one > two ? one - two : two - one;
+		if (one != two) return false;
 
-		if (apart * DAC_STRETCH > many) return false;
+		final many = one;
 
 		final bytes = sample.bytes;
 
