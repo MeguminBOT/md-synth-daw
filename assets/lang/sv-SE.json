@@ -266,6 +266,8 @@
   "updates.launch": "Vid start",
   "updates.never": "Aldrig",
   "view.mixer": "Mixer",
+  "mixer.master": "Master",
+  "mixer.output": "Nivån programmet spelar upp med. Den följer inte med i en export.",
   "view.patterns": "Mönster",
   "view.playlist": "Spellista",
   "view.registers": "Register",

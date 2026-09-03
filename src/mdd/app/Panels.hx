@@ -23,6 +23,7 @@ final class Panels {
 		Shell.DOCK];
 
 	public var session:Null<Session> = null;
+	public var onMaster:Null<Int -> Void> = null;
 	public var budget:Null<Budget> = null;
 
 	public var bar:Null<TransportBar> = null;
@@ -85,6 +86,7 @@ final class Panels {
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();
 		dock.warnings.budget = budget;
+		dock.mixer.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
 
 		follows(session);
 	}

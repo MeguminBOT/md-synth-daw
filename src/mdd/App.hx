@@ -142,6 +142,11 @@ class App {
 
 		panels.working = new Working();
 
+		panels.onMaster = function(much:Int):Void {
+			sound.monitors(much / mdd.song.Song.LOUDEST);
+			keeps();
+		};
+
 		files.onBusy = function(label:String, detail:String):Void busy(label, detail);
 		files.onIdle = function():Void idle();
 		files.onRender = function(where:String):Void renders(where);
@@ -242,6 +247,8 @@ class App {
 	}
 
 	function loaded(song:Song):Void {
+		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
+
 		sound.stop();
 
 		session = new Session(song);
@@ -250,6 +257,8 @@ class App {
 
 		files = new Files(session);
 		files.onLoad = function(held:Song):Void loaded(held);
+
+		session.master = held;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -531,6 +540,7 @@ class App {
 		final backups = settings.asWhole("backups", 3);
 		final backupAge = settings.asWhole("backupAge", 2);
 		final looks = settings.asFlag("update", true);
+		final master = settings.asWhole("master", mdd.song.Song.LOUDEST);
 
 		if (looks && update.possible()) update.look();
 
@@ -543,6 +553,10 @@ class App {
 		session.theme = which;
 		session.motion = motion;
 		session.typeface = typeface;
+		session.master = master < 0 ? 0 : (master > mdd.song.Song.LOUDEST
+			? mdd.song.Song.LOUDEST : master);
+
+		sound.monitors(session.master / mdd.song.Song.LOUDEST);
 
 		stage.root.theme.wear(which);
 		stage.root.flow = motion;
@@ -568,6 +582,7 @@ class App {
 		settings.whole("theme", session.theme);
 		settings.whole("typeface", session.typeface);
 		settings.whole("motion", session.motion);
+		settings.whole("master", session.master);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("keeping", panels.preferences.keeping);
 		settings.whole("backups", panels.preferences.backups);
@@ -751,6 +766,9 @@ class App {
 		if (dock != null && dock.mixer.visible) {
 			for (index in 0...Part.COUNT) dock.mixer.levels[index] = rack.levels[index];
 			if (moved) dock.mixer.invalidate();
+
+			dock.mixer.metered(sound.render.peak);
+			sound.render.forgetPeak();
 		}
 
 		sound.lit(session.transport.stream);

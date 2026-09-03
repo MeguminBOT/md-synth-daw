@@ -266,6 +266,8 @@
   "updates.launch": "On launch",
   "updates.never": "Never",
   "view.mixer": "Mixer",
+  "mixer.master": "Master",
+  "mixer.output": "The level this machine plays at. It does not reach an export.",
   "view.patterns": "Patterns",
   "view.playlist": "Playlist",
   "view.registers": "Registers",

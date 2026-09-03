@@ -32,6 +32,7 @@ final class Session {
 	public final scale:mdd.song.Scale = new mdd.song.Scale();
 	public var highlight:Bool = true;
 	public var theme:Int = 0;
+	public var master:Int = Song.LOUDEST;
 	public var typeface:Int = 0;
 	public var motion:Int = 0;
 

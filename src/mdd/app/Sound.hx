@@ -40,6 +40,10 @@ final class Sound {
 		if (render != null) render.transport = transport;
 	}
 
+	public function monitors(much:Float):Void {
+		if (render != null) render.monitor = much < 0 ? 0 : (much > 1 ? 1 : much);
+	}
+
 	public function stop():Void {
 		if (render != null) render.transport.stop();
 	}

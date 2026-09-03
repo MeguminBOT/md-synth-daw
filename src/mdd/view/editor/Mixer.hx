@@ -17,10 +17,17 @@ import mdd.ui.Widget;
 final class Mixer extends Widget {
 	public final session:Session;
 
+	public static inline final MASTER = 0;
+	public static inline final FIRST = 1;
+	public static inline final STRIPS = Part.COUNT + 1;
+
 	public final levels:Vector<Float> = new Vector<Float>(Part.COUNT);
+
+	public var onMaster:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var sliding:Int = -1;
+	var output:Float = 0;
 
 	public function new(session:Session) {
 		super();
@@ -33,12 +40,23 @@ final class Mixer extends Widget {
 	}
 
 	public function stripWide():Float {
-		return width / Part.COUNT;
+		return width / STRIPS;
 	}
 
 	public function stripAt(px:Float):Int {
 		final at = Std.int((px - x) / stripWide());
-		return at < 0 || at >= Part.COUNT ? -1 : at;
+		return at < 0 || at >= STRIPS ? -1 : at;
+	}
+
+	public inline function stripLeft(strip:Int):Float {
+		return x + strip * stripWide();
+	}
+
+	public function metered(much:Float):Void {
+		if (Math.abs(much - output) < 0.01) return;
+
+		output = much;
+		invalidate();
 	}
 
 	public function panTall():Float {
@@ -87,10 +105,18 @@ final class Mixer extends Widget {
 
 				final root = root();
 				final metrics = root == null ? null : root.metrics;
-				final part:Part = at;
+
+				if (at == MASTER) {
+					sliding = at;
+					leaned(at, event.y);
+					return true;
+				}
+
+				final which = at - FIRST;
+				final part:Part = which;
 
 				if (metrics != null && event.y > y + height - metrics.row) {
-					session.song.muted[at] = !session.song.muted[at];
+					session.song.muted[which] = !session.song.muted[which];
 					session.changed();
 					invalidate();
 					return true;
@@ -98,7 +124,7 @@ final class Mixer extends Widget {
 
 				if (onPan(event.y)) {
 					session.choose(part);
-					turned(at);
+					turned(which);
 					return true;
 				}
 
@@ -150,10 +176,25 @@ final class Mixer extends Widget {
 
 	function leaned(at:Int, py:Float):Void {
 		final want = Math.round(throwAt(py) * Song.LOUDEST);
-		if (session.song.volume[at] == want) return;
 
-		session.song.volume[at] = want;
-		final part:Part = at;
+		if (at == MASTER) {
+			if (session.master == want) return;
+
+			session.master = want;
+			if (onMaster != null) onMaster(want);
+
+			session.say(translate(mdd.app.Locale.MIXER_MASTER) + " "
+				+ Math.round(want * 100 / Song.LOUDEST) + "%");
+			session.changed();
+			invalidate();
+			return;
+		}
+
+		final which = at - FIRST;
+		if (session.song.volume[which] == want) return;
+
+		session.song.volume[which] = want;
+		final part:Part = which;
 		session.say(part.name() + " " + Math.round(want * 100 / Song.LOUDEST) + "%");
 		session.changed();
 		invalidate();
@@ -181,13 +222,13 @@ final class Mixer extends Widget {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			final left = x + index * wide;
+			final left = stripLeft(FIRST + index);
 			final colour = theme.part(index);
 			final quiet = !session.song.audible(part);
 
 			if (session.part.index() == index) {
 				paint.rect(left, y, wide, height, theme.accent, Theme.SELECT);
-			} else if (index == hoverAt) {
+			} else if (index + FIRST == hoverAt) {
 				paint.rect(left, y, wide, height, theme.accent, Theme.HOVER);
 			}
 
@@ -206,7 +247,8 @@ final class Mixer extends Widget {
 			final at = top + tall * (1 - want);
 
 			paint.roundedRect(middle - track, at - knob * 0.5, track * 2, knob,
-				metrics.radiusSmall, quiet ? theme.dim : theme.ink, index == sliding ? 1 : 0.85);
+				metrics.radiusSmall, quiet ? theme.dim : theme.ink,
+				index + FIRST == sliding ? 1 : 0.85);
 
 			final level = levels[index];
 			final high = tall * (level > 1 ? 1 : level);
@@ -221,11 +263,13 @@ final class Mixer extends Widget {
 				quiet ? theme.raise1 : colour, quiet ? 1 : 0.35);
 		}
 
+		mastered(paint, metrics, theme, wide, head, top, tall);
+
 		paint.reface(small);
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			final left = x + index * wide;
+			final left = stripLeft(FIRST + index);
 			final quiet = !session.song.audible(part);
 
 			paint.textCentred(part.name(), left + wide * 0.5,
@@ -238,5 +282,42 @@ final class Mixer extends Widget {
 				head + (panTall() - small.height) * 0.5 + small.ascent,
 				session.song.pan[index] == Song.BOTH ? theme.dim : theme.accent, 0.95);
 		}
+
+		paint.textCentred(translate(mdd.app.Locale.MIXER_MASTER), stripLeft(MASTER) + wide * 0.5,
+			y + height - metrics.row + (metrics.row - small.height) * 0.5 + small.ascent,
+			theme.ink);
+	}
+
+	function mastered(paint:Paint, metrics:Metrics, theme:Theme, wide:Float, head:Float,
+			top:Float, tall:Float):Void {
+		final left = stripLeft(MASTER);
+		final middle = left + wide * 0.5;
+		final track = metrics.whole(10);
+
+		paint.rect(left + wide - metrics.whole(1), y, metrics.whole(1), height, theme.frame, 0.6);
+
+		if (hoverAt == MASTER) {
+			paint.rect(left, y, wide, height, theme.accent, Theme.HOVER);
+		}
+
+		paint.roundedRect(middle - track * 0.5, top, track, tall, track * 0.5, theme.sink);
+
+		final want = session.master / Song.LOUDEST;
+		final knob = metrics.whole(4);
+		final at = top + tall * (1 - want);
+
+		paint.roundedRect(middle - track, at - knob * 0.5, track * 2, knob,
+			metrics.radiusSmall, theme.ink, sliding == MASTER ? 1 : 0.85);
+
+		final high = tall * (output > 1 ? 1 : output);
+
+		if (high > 1) {
+			paint.roundedRect(middle - track * 0.5, top + tall - high, track, high,
+				track * 0.5, theme.accent);
+		}
+
+		paint.roundedRect(left + metrics.unit, y + height - metrics.row + metrics.unit,
+			wide - metrics.unit * 2, metrics.row - metrics.unit * 2, metrics.radiusSmall,
+			theme.accent, 0.35);
 	}
 }

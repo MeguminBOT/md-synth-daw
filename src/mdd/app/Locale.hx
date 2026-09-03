@@ -151,6 +151,8 @@ class Locale {
 	public static inline final VIEW_REGISTERS = "view.registers";
 	public static inline final VIEW_PATTERNS = "view.patterns";
 	public static inline final VIEW_MIXER = "view.mixer";
+	public static inline final MIXER_MASTER = "mixer.master";
+	public static inline final MIXER_OUTPUT = "mixer.output";
 	public static inline final VIEW_WARNINGS = "view.warnings";
 	public static inline final TRACK_ADD = "track.add";
 	public static inline final TRACK_RENAME = "track.rename";
@@ -354,7 +356,7 @@ class Locale {
 		HARDWARE_NOW, HARDWARE_SONG,
 		VIEW_ROLL, VIEW_SCOPE, VIEW_TRACKER, VIEW_PLAYLIST,
 		TRACKER_DIVISION,
-		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS,
+		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS, MIXER_MASTER, MIXER_OUTPUT,
 		TRACK_ADD, TRACK_RENAME, TRACK_DELETE, TRACK_MUTE, TRACK_UNMUTE, TRACK_LAST, TRACK_NAME,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
 		PREFERENCE_MOTION, PREFERENCE_BACKUPS, PREFERENCE_BACKUP_AGE, PREFERENCE_UPDATES,

@@ -44,6 +44,7 @@ final class Render {
 
 	public var peak(default, null):Float = 0;
 	public var clipped(default, null):Int = 0;
+	public var monitor:Float = 1;
 
 	public static inline final SNAPS = 96;
 
@@ -338,8 +339,8 @@ final class Render {
 			if (loudest > peak) peak = loudest;
 			if (loudest > 1) clipped++;
 
-			block[frame * 2] = clamped(wantLeft);
-			block[frame * 2 + 1] = clamped(wantRight);
+			block[frame * 2] = clamped(wantLeft * monitor);
+			block[frame * 2 + 1] = clamped(wantRight * monitor);
 
 			held += Tempo.TICKS;
 			while (held >= rate) {
