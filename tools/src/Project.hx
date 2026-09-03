@@ -24,6 +24,17 @@ typedef Icon = {
 	final group:String;
 }
 
+typedef Face = {
+	final name:String;
+	final from:String;
+}
+
+typedef Typeface = {
+	final name:String;
+	final sans:String;
+	final mono:String;
+}
+
 class Project {
 	public var title(default, null):String = "mdd";
 	public var short(default, null):String = "mdd";
@@ -44,6 +55,10 @@ class Project {
 	public var generated(default, null):String = "export/haxe";
 	public var languages(default, null):String = "assets/lang";
 	public var appIcon(default, null):String = "assets/icon";
+
+	public var typefacePath(default, null):String = "vendor/fonts";
+	public var faces(default, null):Array<Face> = [];
+	public var typefaces(default, null):Array<Typeface> = [];
 
 	public var iconPath(default, null):String = "assets/icons";
 	public var iconSizes(default, null):Array<Int> = [];
@@ -119,6 +134,24 @@ class Project {
 
 			case "appicon":
 				appIcon = node.get("path");
+
+			case "typefaces":
+				typefacePath = node.get("path");
+
+				for (held in node.elements()) {
+					if (!allowed(held)) continue;
+
+					switch (held.nodeName) {
+						case "face":
+							faces.push({name: held.get("name"), from: held.get("from")});
+
+						case "typeface":
+							typefaces.push({name: held.get("name"), sans: held.get("sans"),
+								mono: held.get("mono")});
+
+						case _:
+					}
+				}
 
 			case "icons":
 				iconPath = node.get("path");

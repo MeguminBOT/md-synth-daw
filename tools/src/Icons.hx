@@ -167,6 +167,58 @@ class Icons {
 		File.saveContent(into + "/mdd/Icon.hx", out.toString());
 	}
 
+	public static function typefaces(project:Project, into:String):Void {
+		final out = new StringBuf();
+
+		out.add("package mdd;
+
+");
+		out.add("class Typeface {
+");
+		out.add("	public static inline final COUNT = " + project.typefaces.length + ";
+
+");
+
+		out.add(listed("NAMES", [for (held in project.typefaces) held.name]));
+		out.add("
+");
+		out.add(listed("SANS", [for (held in project.typefaces) held.sans]));
+		out.add("
+");
+		out.add(listed("MONO", [for (held in project.typefaces) held.mono]));
+		out.add("}
+");
+
+		tree(into + "/mdd");
+		File.saveContent(into + "/mdd/Typeface.hx", out.toString());
+	}
+
+	static function listed(name:String, held:Array<String>):String {
+		final out = new StringBuf();
+
+		out.add("	public static final " + name + ":Array<String> = [
+");
+
+		var line = "		";
+
+		for (index in 0...held.length) {
+			final said = "\"" + held[index] + "\"" + (index == held.length - 1 ? "" : ",");
+
+			if (line.length + said.length > 100) {
+				out.add(line + "
+");
+				line = "		";
+			}
+
+			line += (line.length > 2 ? " " : "") + said;
+		}
+
+		out.add(line + "
+	];
+");
+		return out.toString();
+	}
+
 	static function constant(name:String):String {
 		final out = new StringBuf();
 

@@ -115,6 +115,40 @@
 	<!-- A debug build carries the hxcpp debug server, so a debugger can attach to it on
 	     port 6972. A release build does not. -->
 
+	<!-- The typefaces one of which is chosen in preferences. A face says where it is
+	     fetched from, "go:" from the Go image repository and "ofl:" from google/fonts,
+	     and a typeface pairs a sans with a mono. The names are what preferences shows,
+	     and they are family names rather than anything to translate. -->
+
+	<typefaces path="vendor/fonts">
+		<face name="Go-Regular.ttf" from="go:Go-Regular.ttf" />
+		<face name="Go-Mono.ttf" from="go:Go-Mono.ttf" />
+		<face name="IBMPlexSans.ttf" from="ofl:ibmplexsans/IBMPlexSans[wdth,wght].ttf" />
+		<face name="IBMPlexMono.ttf" from="ofl:ibmplexmono/IBMPlexMono-Regular.ttf" />
+		<face name="Inter.ttf" from="ofl:inter/Inter[opsz,wght].ttf" />
+		<face name="JetBrainsMono.ttf" from="ofl:jetbrainsmono/JetBrainsMono[wght].ttf" />
+		<face name="BarlowSemiCondensed.ttf" from="ofl:barlowsemicondensed/BarlowSemiCondensed-Regular.ttf" />
+		<face name="SourceSans3.ttf" from="ofl:sourcesans3/SourceSans3[wght].ttf" />
+		<face name="SourceCodePro.ttf" from="ofl:sourcecodepro/SourceCodePro[wght].ttf" />
+		<face name="NotoSans.ttf" from="ofl:notosans/NotoSans[wdth,wght].ttf" />
+		<face name="NotoSansMono.ttf" from="ofl:notosansmono/NotoSansMono[wdth,wght].ttf" />
+		<face name="FiraSans.ttf" from="ofl:firasans/FiraSans-Regular.ttf" />
+		<face name="FiraCode.ttf" from="ofl:firacode/FiraCode[wght].ttf" />
+		<face name="WorkSans.ttf" from="ofl:worksans/WorkSans[wght].ttf" />
+		<face name="RobotoMono.ttf" from="ofl:robotomono/RobotoMono[wght].ttf" />
+		<face name="OpenSans.ttf" from="ofl:opensans/OpenSans[wdth,wght].ttf" />
+
+		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
+		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
+		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />
+		<typeface name="Barlow" sans="BarlowSemiCondensed.ttf" mono="IBMPlexMono.ttf" />
+		<typeface name="Source" sans="SourceSans3.ttf" mono="SourceCodePro.ttf" />
+		<typeface name="Noto" sans="NotoSans.ttf" mono="NotoSansMono.ttf" />
+		<typeface name="Fira" sans="FiraSans.ttf" mono="FiraCode.ttf" />
+		<typeface name="Work Sans" sans="WorkSans.ttf" mono="RobotoMono.ttf" />
+		<typeface name="Open Sans" sans="OpenSans.ttf" mono="RobotoMono.ttf" />
+	</typefaces>
+
 	<library name="hxcpp-debug-server" if="debug" />
 	<output path="export" />
 

@@ -9,15 +9,6 @@ class Run {
 	static inline final VORBIS_VERSION = "1.3.7";
 	static inline final OPUS_VERSION = "1.5.2";
 
-	static final FACES:Array<String> = ["Go-Regular", "Go-Medium", "Go-Mono", "Go-Mono-Bold"];
-
-	static final PAIRINGS:Array<Array<String>> = [
-		["ibmplexsans", "IBMPlexSans[wdth,wght].ttf", "IBMPlexSans.ttf"],
-		["ibmplexmono", "IBMPlexMono-Regular.ttf", "IBMPlexMono.ttf"],
-		["inter", "Inter[opsz,wght].ttf", "Inter.ttf"],
-		["jetbrainsmono", "JetBrainsMono[wght].ttf", "JetBrainsMono.ttf"],
-		["barlowsemicondensed", "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed.ttf"]
-	];
 
 	public static function main():Void {
 		final args = Sys.args();
@@ -128,7 +119,7 @@ class Run {
 				case "SDL3": sdl(vendor);
 				case "miniaudio": miniaudio(vendor);
 				case "stb": stb(vendor);
-				case "fonts": fonts(vendor);
+				case "fonts": fonts(root, project);
 				case "Nuked-OPN2": nuked(vendor);
 				case "qlementine": qlementine(vendor, project);
 				case "libogg": xiph(vendor, "ogg", OGG_VERSION, "libogg");
@@ -145,7 +136,7 @@ class Run {
 			}
 		}
 
-		if (FileSystem.exists(vendor + "/fonts")) pairings(vendor + "/fonts");
+		if (FileSystem.exists(vendor + "/fonts")) pairings(root, project);
 
 		Sys.println("");
 		check(root, project);
@@ -423,6 +414,7 @@ class Run {
 
 		configure(root, project, spoken);
 		Icons.named(project, root + "/" + project.generated);
+		Icons.typefaces(project, root + "/" + project.generated);
 		final xml = nativeXml(root, project);
 
 		for (one in project.targets) {
@@ -537,6 +529,7 @@ class Run {
 
 		configure(root, project, spoken);
 		Icons.named(project, root + "/" + project.generated);
+		Icons.typefaces(project, root + "/" + project.generated);
 		Icons.built(root, project, root + "/" + project.output + "/icons", false);
 
 		final xml = nativeXml(root, project);
@@ -1301,50 +1294,59 @@ class Run {
 		return true;
 	}
 
-	static function fonts(vendor:String):Bool {
-		final into = vendor + "/fonts";
+	static function fonts(root:String, project:Project):Bool {
+		final into = root + "/" + project.typefacePath;
 		tree(into);
 
-		final base = "https://go.googlesource.com/image/+/master/font/gofont/ttfs/";
-
-		for (face in FACES) {
-			final coded = into + "/." + face + ".b64";
-			if (!download(base + face + ".ttf?format=TEXT", coded)) return false;
-
-			File.saveBytes(into + "/" + face + ".ttf", decode(coded));
-			FileSystem.deleteFile(coded);
-		}
-
 		final licence = into + "/.LICENSE.b64";
+
 		if (download("https://go.googlesource.com/image/+/master/LICENSE?format=TEXT", licence)) {
 			File.saveBytes(into + "/LICENSE", decode(licence));
 			FileSystem.deleteFile(licence);
 		}
 
-		for (face in FACES) {
-			if (!FileSystem.exists(into + "/" + face + ".ttf")) return false;
-		}
-
-		return pairings(into);
+		return pairings(root, project);
 	}
 
-	static function pairings(into:String):Bool {
-		final base = "https://raw.githubusercontent.com/google/fonts/main/ofl/";
+	static function pairings(root:String, project:Project):Bool {
+		final into = root + "/" + project.typefacePath;
+		final ofl = "https://raw.githubusercontent.com/google/fonts/main/ofl/";
+		final go = "https://go.googlesource.com/image/+/master/font/gofont/ttfs/";
+
 		var every = true;
 
-		for (pairing in PAIRINGS) {
-			final family = pairing[0];
-			final held = into + "/" + pairing[2];
+		for (face in project.faces) {
+			final held = into + "/" + face.name;
+			if (FileSystem.exists(held)) continue;
 
-			if (!FileSystem.exists(held)) {
-				if (!download(base + family + "/" + encoded(pairing[1]), held)) {
+			final at = face.from.indexOf(":");
+			if (at < 0) continue;
+
+			final kind = face.from.substr(0, at);
+			final tail = face.from.substr(at + 1);
+
+			if (kind == "go") {
+				final coded = into + "/." + face.name + ".b64";
+
+				if (!download(go + tail + "?format=TEXT", coded)) {
 					every = false;
 					continue;
 				}
+
+				File.saveBytes(held, decode(coded));
+				FileSystem.deleteFile(coded);
+				continue;
 			}
 
-			final licence = into + "/OFL-" + family + ".txt";
-			if (!FileSystem.exists(licence)) download(base + family + "/OFL.txt", licence);
+			if (!download(ofl + encoded(tail), held)) {
+				every = false;
+				continue;
+			}
+
+			final family = tail.split("/")[0];
+			final notice = into + "/OFL-" + family + ".txt";
+
+			if (!FileSystem.exists(notice)) download(ofl + family + "/OFL.txt", notice);
 		}
 
 		return every;
