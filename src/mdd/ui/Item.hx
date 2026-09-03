@@ -4,6 +4,7 @@ package mdd.ui;
 class Item {
 	public var label:String;
 	public var tint:Int = -1;
+	public var icon:Int = -1;
 	public var open:Bool = true;
 	public var enabled:Bool = true;
 
