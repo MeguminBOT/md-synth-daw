@@ -229,6 +229,17 @@ class ShotCheck {
 			held.ask();
 			held.rise.hold(1);
 			held.fade.hold(1);
+		} else if (sheet == "working" || sheet == "working-bar") {
+			final held = new mdd.view.overlay.Working();
+			final task = new mdd.app.Task();
+
+			task.begins(mdd.app.Locale.WORKING_RENDERING, "green hill zone.wav", true);
+			if (sheet == "working-bar") task.holds(0.42);
+
+			tree.raise(held);
+			held.arrive(task);
+			held.fade.hold(1);
+			held.rise.hold(1);
 		} else if (sheet == "naming") {
 			final held = new mdd.view.overlay.Naming();
 

@@ -275,5 +275,13 @@
   "view.warnings": "Warnings",
   "welcome": "Welcome",
   "welcome.language": "Choose a language",
-  "welcome.start": "Start"
+  "welcome.start": "Start",
+  "working.cancel": "Cancel",
+  "working.downloading": "Downloading the update",
+  "working.exporting": "Exporting",
+  "working.importing": "Importing",
+  "working.opening": "Opening",
+  "working.rendering": "Rendering audio",
+  "working.saving": "Saving",
+  "working.stopping": "Stopping"
 }

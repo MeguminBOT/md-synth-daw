@@ -6,6 +6,7 @@ import mdd.app.Locale;
 import mdd.app.Menus;
 import mdd.app.Panels;
 import mdd.app.Session;
+import mdd.app.Task;
 import mdd.app.Sound;
 import mdd.app.Stage;
 import mdd.app.Update;
@@ -28,6 +29,7 @@ import mdd.view.overlay.Naming;
 import mdd.view.overlay.Notice;
 import mdd.view.overlay.Preferences;
 import mdd.view.overlay.Welcome;
+import mdd.view.overlay.Working;
 
 @:unreflective
 class App {
@@ -47,6 +49,10 @@ class App {
 	var firstRun:Bool = false;
 	var asking:cpp.Star<mdd.host.Chooser> = null;
 	var asked:Int = -1;
+
+	final task:Task = new Task();
+	var rendering:Null<mdd.play.Mixdown> = null;
+	var rendersInto:String = "";
 	var running:Bool = true;
 	var last:Float = 0;
 
@@ -133,6 +139,12 @@ class App {
 
 		panels.naming = new Naming();
 		panels.naming.onShut = function():Void stage.root.lower();
+
+		panels.working = new Working();
+
+		files.onBusy = function(label:String, detail:String):Void busy(label, detail);
+		files.onIdle = function():Void idle();
+		files.onRender = function(where:String):Void renders(where);
 
 		panels.exporting = new Export(session);
 		panels.exporting.onShut = function():Void stage.root.lower();
@@ -276,10 +288,40 @@ class App {
 		final into = Paths.within("updates") + "/" + Config.SHORT + "-" + update.offered
 			+ Paths.suffix();
 
-		if (update.take(into)) session.say("downloading to " + into);
-		else session.say("that update cannot be downloaded");
+		if (!update.take(into)) {
+			session.say("that update cannot be downloaded");
+			session.changed();
+			return;
+		}
 
+		if (panels.working == null) {
+			session.say("downloading to " + into);
+			session.changed();
+			return;
+		}
+
+		task.begins(Locale.WORKING_DOWNLOADING, Files.name(into));
+		panels.working.arrive(task);
+		panels.working.onCancel = null;
+
+		stage.root.raise(panels.working);
 		session.changed();
+	}
+
+	function settled():Void {
+		if (panels.working == null || stage.root.sheet != panels.working) return;
+
+		task.ends(true);
+		stage.root.lower();
+	}
+
+	function pulling(since:Float):Bool {
+		if (update == null || update.state() != Update.FETCHING) return false;
+
+		task.holds(update.pulling());
+		if (panels.working != null) panels.working.advance(since);
+
+		return true;
 	}
 
 	function watched():Bool {
@@ -303,12 +345,14 @@ class App {
 
 			case Update.UNREACHABLE:
 				update.forget();
+				settled();
 				session.say(stage.root.translate(Locale.UPDATE_UNREACHABLE));
 				session.changed();
 				return true;
 
 			case Update.FETCHED:
 				update.forget();
+				settled();
 				session.say(stage.root.translate(Locale.UPDATE_FETCHED) + " " + update.into);
 				session.changed();
 				return true;
@@ -354,6 +398,79 @@ class App {
 
 	function relabel():Void {
 		menus.dress(session);
+	}
+
+	function busy(label:String, detail:String):Void {
+		if (panels.working == null) return;
+
+		task.begins(label, detail);
+		panels.working.arrive(task);
+		stage.root.raise(panels.working);
+
+		stage.root.soil();
+		stage.draw();
+	}
+
+	function idle():Void {
+		task.ends(true);
+
+		if (stage.root.sheet == panels.working) stage.root.lower();
+		stage.root.soil();
+	}
+
+	function renders(where:String):Void {
+		if (panels.working == null) {
+			files.exportAudio(where);
+			return;
+		}
+
+		rendersInto = where;
+		rendering = files.renders();
+
+		task.begins(Locale.WORKING_RENDERING, Files.name(where), true);
+		panels.working.arrive(task);
+		panels.working.onCancel = function():Void {
+			if (rendering != null) rendering.stops();
+		};
+
+		stage.root.raise(panels.working);
+		stage.root.soil();
+	}
+
+	function rendered(since:Float):Bool {
+		if (rendering == null) return false;
+
+		final held = rendering;
+		task.holds(held.reach());
+
+		if (panels.working != null) panels.working.advance(since);
+
+		if (held.stopped()) {
+			rendering = null;
+			task.ends(false);
+
+			if (stage.root.sheet == panels.working) stage.root.lower();
+			session.say("stopped rendering");
+			session.changed();
+
+			return true;
+		}
+
+		if (held.reach() < 1) return true;
+
+		rendering = null;
+
+		try {
+			files.wrote(rendersInto, held);
+		} catch (e:Dynamic) {
+			session.say("that would not work: " + e);
+		}
+
+		task.ends(true);
+		if (stage.root.sheet == panels.working) stage.root.lower();
+
+		session.changed();
+		return true;
 	}
 
 	function backing():Void {
@@ -592,6 +709,7 @@ class App {
 			stage.root.advance(since);
 			if (files != null && files.poll()) stage.root.soil();
 			folded();
+			if (rendered(since) || pulling(since)) stage.root.soil();
 			if (files != null && files.tick(since)) stage.root.soil();
 			if (watched()) stage.root.soil();
 			watch();

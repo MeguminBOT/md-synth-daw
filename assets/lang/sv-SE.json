@@ -275,5 +275,13 @@
   "view.warnings": "Varningar",
   "welcome": "Välkommen",
   "welcome.language": "Välj ett språk",
-  "welcome.start": "Kom igång"
+  "welcome.start": "Kom igång",
+  "working.cancel": "Avbryt",
+  "working.downloading": "Laddar ner uppdateringen",
+  "working.exporting": "Exporterar",
+  "working.importing": "Importerar",
+  "working.opening": "Öppnar",
+  "working.rendering": "Renderar ljud",
+  "working.saving": "Sparar",
+  "working.stopping": "Avbryter"
 }

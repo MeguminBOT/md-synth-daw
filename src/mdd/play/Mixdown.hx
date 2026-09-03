@@ -1,5 +1,6 @@
 package mdd.play;
 
+import haxe.atomic.AtomicInt;
 import haxe.ds.Vector;
 import mdd.song.Song;
 import mdd.song.Tempo;
@@ -20,6 +21,11 @@ final class Mixdown {
 	public var writes(default, null):Int = 0;
 	public var lost(default, null):Int = 0;
 
+	public static inline final WHOLE = 1000;
+
+	public final reached:AtomicInt = new AtomicInt(0);
+	public final stopping:AtomicInt = new AtomicInt(0);
+
 	function new() {
 		samples = new Vector<cpp.Float32>(0);
 	}
@@ -37,12 +43,28 @@ final class Mixdown {
 
 	public static function of(song:Song, mixing:Mixing):Mixdown {
 		final made = new Mixdown();
-		made.take(song, mixing);
+		made.runs(song, mixing);
 
 		return made;
 	}
 
-	function take(song:Song, mixing:Mixing):Void {
+	public static function made():Mixdown {
+		return new Mixdown();
+	}
+
+	public inline function reach():Float {
+		return reached.load() / WHOLE;
+	}
+
+	public inline function stops():Void {
+		stopping.store(1);
+	}
+
+	public inline function stopped():Bool {
+		return stopping.load() != 0;
+	}
+
+	public function runs(song:Song, mixing:Mixing):Void {
 		rate = mixing.worksAt();
 		channels = mixing.channels();
 
@@ -75,8 +97,11 @@ final class Mixdown {
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
 		final render = new Render(rate, Render.BLOCK);
 		var done = 0;
+		var told = 0;
 
 		while (done < many) {
+			if (stopped()) return;
+
 			final from = Std.int(done * (Tempo.TICKS / rate));
 			final took = render.serve(stream, from, Render.BLOCK, 0);
 
@@ -99,7 +124,16 @@ final class Mixdown {
 			}
 
 			done += took;
+
+			final held = Std.int(done * WHOLE / many);
+
+			if (held != told) {
+				told = held;
+				reached.store(held);
+			}
 		}
+
+		reached.store(WHOLE);
 	}
 
 	function faded(mixing:Mixing, ahead:Int):Void {

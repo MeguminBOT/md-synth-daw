@@ -27,6 +27,7 @@ final class Update {
 	public var notes(default, null):String = "";
 	public var into(default, null):String = "";
 	public var assets(default, null):Int = 0;
+	public var weighs(default, null):Int = 0;
 
 	final held:AtomicInt = new AtomicInt(IDLE);
 
@@ -91,6 +92,7 @@ final class Update {
 		saidAt = "";
 		notes = "";
 		assets = 0;
+		weighs = 0;
 
 		final node = Json.parse(said);
 
@@ -116,6 +118,7 @@ final class Update {
 
 			best = score;
 			saidAt = url;
+			weighs = asset.get("size").whole(0);
 		}
 
 		if (saidAt == "") saidAt = fallback;
@@ -165,6 +168,13 @@ final class Update {
 	function pulled():Void {
 		final code = Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]);
 		held.store(code == 0 ? FETCHED : UNREACHABLE);
+	}
+
+	public function pulling():Float {
+		if (weighs <= 0 || into == "" || !sys.FileSystem.exists(into)) return -1;
+
+		final held = sys.FileSystem.stat(into).size / weighs;
+		return held < 0 ? 0 : (held > 1 ? 1 : held);
 	}
 
 	public function refuse():Void {

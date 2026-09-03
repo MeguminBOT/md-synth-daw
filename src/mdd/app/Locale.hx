@@ -184,6 +184,15 @@ class Locale {
 	public static inline final UPDATES_LAUNCH = "updates.launch";
 	public static inline final FOLDER_DEFAULT = "folder.default";
 
+	public static inline final WORKING_CANCEL = "working.cancel";
+	public static inline final WORKING_STOPPING = "working.stopping";
+	public static inline final WORKING_OPENING = "working.opening";
+	public static inline final WORKING_SAVING = "working.saving";
+	public static inline final WORKING_IMPORTING = "working.importing";
+	public static inline final WORKING_EXPORTING = "working.exporting";
+	public static inline final WORKING_RENDERING = "working.rendering";
+	public static inline final WORKING_DOWNLOADING = "working.downloading";
+
 	public static inline final THEME_MIDNIGHT = "theme.midnight";
 	public static inline final THEME_RACK = "theme.rack";
 	public static inline final THEME_SLATE = "theme.slate";
@@ -352,6 +361,8 @@ class Locale {
 		PREFERENCE_PROJECTS, PREFERENCE_PRESETS,
 		BACKUPS_OFF, BACKUPS_ANY, BACKUP_AGE_ANY, BACKUP_AGE_WEEK, BACKUP_AGE_MONTH,
 		BACKUP_AGE_QUARTER, UPDATES_NEVER, UPDATES_LAUNCH, FOLDER_DEFAULT,
+		WORKING_CANCEL, WORKING_STOPPING, WORKING_OPENING, WORKING_SAVING,
+		WORKING_IMPORTING, WORKING_EXPORTING, WORKING_RENDERING, WORKING_DOWNLOADING,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,
 		MOTION_FULL, MOTION_REDUCED, MOTION_NONE,

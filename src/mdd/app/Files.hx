@@ -57,6 +57,9 @@ final class Files {
 	var edits:Int = -1;
 
 	public var onLoad:Null<Song -> Void> = null;
+	public var onBusy:Null<(String, String) -> Void> = null;
+	public var onIdle:Null<Void -> Void> = null;
+	public var onRender:Null<String -> Void> = null;
 
 	public final session:Session;
 	var chooser:cpp.Star<Chooser> = null;
@@ -257,8 +260,28 @@ final class Files {
 			return true;
 		}
 
+		if (what == AUDIO) {
+			if (onRender != null) onRender(where);
+			else took(what, where);
+
+			return true;
+		}
+
+		if (onBusy != null) onBusy(labelled(what), name(where));
+
 		took(what, where);
+
+		if (onIdle != null) onIdle();
 		return true;
+	}
+
+	public static function labelled(what:Int):String {
+		return switch (what) {
+			case OPEN: Locale.WORKING_OPENING;
+			case SAVE: Locale.WORKING_SAVING;
+			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV: Locale.WORKING_IMPORTING;
+			case _: Locale.WORKING_EXPORTING;
+		}
 	}
 
 	function took(what:Int, where:String):Void {
@@ -391,9 +414,29 @@ final class Files {
 
 	public var mixing:Mixing = new Mixing();
 
+	public var mixdown:Null<Mixdown> = null;
+
+	public function renders():Mixdown {
+		final made = Mixdown.made();
+
+		mixdown = made;
+		sys.thread.Thread.create(function():Void {
+			try {
+				made.runs(session.song, mixing);
+			} catch (e:Dynamic) {
+				made.stops();
+			}
+		});
+
+		return made;
+	}
+
 	public function exportAudio(where:String):String {
+		return wrote(where, Mixdown.of(session.song, mixing));
+	}
+
+	public function wrote(where:String, made:Mixdown):String {
 		final named = suffixed(where, mixing.suffix());
-		final made = Mixdown.of(session.song, mixing);
 
 		if (made.frames <= 0) {
 			session.say("there is nothing to render");

@@ -497,7 +497,7 @@ final class Root {
 			return;
 		}
 
-		if (sheet != null && !sheet.accepts(x, y)) {
+		if (sheet != null && !sheet.sealed && !sheet.accepts(x, y)) {
 			lower();
 			return;
 		}
@@ -553,7 +553,7 @@ final class Root {
 		}
 
 		if (down && code == Key.Escape && popups.length == 0 && sheet != null) {
-			lower();
+			if (!sheet.sealed) lower();
 			return true;
 		}
 

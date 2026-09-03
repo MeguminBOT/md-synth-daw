@@ -15,6 +15,7 @@ import mdd.view.overlay.Naming;
 import mdd.view.overlay.Notice;
 import mdd.view.overlay.Preferences;
 import mdd.view.overlay.Welcome;
+import mdd.view.overlay.Working;
 
 @:unreflective
 final class Panels {
@@ -36,6 +37,7 @@ final class Panels {
 	public var notice:Null<Notice> = null;
 	public var welcome:Null<Welcome> = null;
 	public var naming:Null<Naming> = null;
+	public var working:Null<Working> = null;
 
 	public var onImportSample:Null<Void -> Void> = null;
 
