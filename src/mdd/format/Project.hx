@@ -49,6 +49,13 @@ class Project {
 		out.key("mode");
 		out.whole(song.mode);
 
+		out.key("stall");
+		out.list();
+		out.whole(song.stallAt);
+		out.whole(song.stallFor);
+		out.number(song.stallEvery);
+		out.ends();
+
 		out.key("pan");
 		out.list();
 		for (i in 0...Part.COUNT) out.whole(song.pan[i]);
@@ -343,6 +350,11 @@ class Project {
 		song.lfoOn = (lfo & 8) != 0;
 		song.lfoRate = lfo & 7;
 		song.mode = node.get("mode").whole(0);
+
+		final stall = node.get("stall");
+		song.stallAt = stall.at(0).whole(-1);
+		song.stallFor = stall.at(1).whole(0);
+		song.stallEvery = stall.at(2).real(735);
 
 		final sides = node.get("pan");
 

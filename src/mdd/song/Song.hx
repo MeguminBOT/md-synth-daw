@@ -11,6 +11,10 @@ final class Song {
 	public var lfoRate:Int = 0;
 	public var mode:Int = 0;
 
+	public var stallAt:Int = -1;
+	public var stallFor:Int = 0;
+	public var stallEvery:Float = 735;
+
 	public final tempo:Tempo;
 
 	public final patterns:Array<Pattern> = [];
@@ -120,6 +124,9 @@ final class Song {
 
 		out.author = author;
 		out.lfoOn = lfoOn;
+		out.stallAt = stallAt;
+		out.stallFor = stallFor;
+		out.stallEvery = stallEvery;
 		out.lfoRate = lfoRate;
 		out.mode = mode;
 		out.tempo.rate = tempo.rate;

@@ -1255,6 +1255,10 @@ class DriftCheck {
 		}
 
 		Sys.println("");
+		Sys.println("      the converter stalls at frame phase " + song.stallAt
+			+ " for " + song.stallFor + " samples every " + round(song.stallEvery, 2));
+		Sys.println("");
+
 		Sys.println("      " + many + " hits, " + seen.length + " of them naming a sample of"
 			+ " their own and " + reused + " reusing one");
 	}
@@ -1476,9 +1480,30 @@ class DriftCheck {
 				counted++;
 			}
 
+			var wide = 0;
+			for (index in heads[one] + 1...tails[one] + 1) {
+				final apart = when[index] - when[index - 1];
+				if (apart > middle * 3) wide += apart - middle;
+			}
+
+			var said2 = "";
+			var shown = 0;
+
+			for (index in 0...at.length) {
+				if (shown >= 10) break;
+
+				said2 += (shown == 0 ? "" : " ")
+					+ StringTools.lpad("" + (at[index] % 735), " ", 3);
+
+				shown++;
+			}
+
 			Sys.println("      run " + StringTools.lpad("" + (one + 1), " ", 3)
 				+ "   median gap " + middle + "   " + at.length
-				+ " stops, spaced " + said);
+				+ " stops holding " + wide + " samples in all");
+
+			Sys.println("             spaced " + said);
+			Sys.println("             at frame phase " + said2);
 		}
 	}
 

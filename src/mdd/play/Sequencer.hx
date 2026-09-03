@@ -431,23 +431,43 @@ final class Sequencer {
 		final rate = sample.rate < 1 ? 1 : sample.rate;
 		var step = Tempo.TICKS / rate;
 
-		final span = offSample - onSample;
-		final many = sample.length();
 
-		if (span > 0 && many > 1) {
-			final fills = span / many;
-			if (fills > step * (1 - PACE) && fills < step * (1 + PACE)) step = fills;
+		final frame = song.stallEvery < 8 ? 735.0 : song.stallEvery;
+		final stalls = song.stallAt >= 0 && song.stallFor > 0;
+
+		if (!stalls) {
+			final span = offSample - onSample;
+			final many = sample.length();
+
+			if (span > 0 && many > 1) {
+				final fills = span / many;
+				if (fills > step * (1 - PACE) && fills < step * (1 + PACE)) step = fills;
+			}
 		}
 
+		var when = onSample + 0.0;
+
+		var next = stalls
+			? Math.floor(onSample / frame) * frame + song.stallAt : 0.0;
+
+		if (stalls) while (next < onSample) next += frame;
+
 		var index = 0;
-		if (fromSample > onSample) index = Std.int((fromSample - onSample) / step);
 
 		while (index < sample.length()) {
-			final at = onSample + Math.round(index * step);
+			if (stalls && when >= next) {
+				when += song.stallFor;
+				next += frame;
+				continue;
+			}
+
+			final at = Math.round(when);
 			if (at >= toSample || at >= offSample) break;
 
 			if (at >= fromSample) push(at, Part.Dac, DATA, quieter(sample.bytes[index]),
 				DAC_BYTE);
+
+			when += step;
 			index++;
 		}
 	}

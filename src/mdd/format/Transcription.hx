@@ -58,6 +58,9 @@ final class Transcription {
 	static inline final DAC_GAP = 2205;
 	static inline final DAC_PAUSE = 256;
 	static inline final DAC_LEAST = 128;
+	static inline final STALL_REACH = 48;
+	static inline final STEADY = 24;
+	static inline final STEADY_TURN = 1.7;
 	static inline final DAC_ROOM = 1 << 22;
 	static inline final DAC_NEAR = 0;
 	static inline final DAC_BLOCK = 32;
@@ -449,7 +452,10 @@ final class Transcription {
 		final ends = at > dacLast ? at : dacLast + 1;
 		dacHead = -1;
 
-		if (dacBytes.length >= DAC_LEAST && ends > dacWhen[0]) split();
+		if (dacBytes.length >= DAC_LEAST && ends > dacWhen[0]) {
+			stalled();
+			split();
+		}
 
 		dacBytes.resize(0);
 		dacWhen.resize(0);
@@ -467,6 +473,112 @@ final class Transcription {
 		return middle < 1 ? 1 : middle;
 	}
 
+	function stalled():Void {
+		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
+		final seed = Tempo.TICKS / rate;
+
+		if (seed < 8 || dacWhen.length < 64) return;
+
+		final middle = spacing();
+
+		final at:Array<Int> = [];
+		final much:Array<Int> = [];
+
+		var wide = 0;
+		var span = 0;
+
+		for (index in 1...dacWhen.length) {
+			final apart = dacWhen[index] - dacWhen[index - 1];
+			if (apart < 1 || apart > DAC_GAP) continue;
+
+			span += apart;
+			if (apart <= middle * 3) continue;
+
+			at.push(dacWhen[index - 1]);
+			much.push(apart - middle);
+			wide += apart - middle;
+		}
+
+		if (at.length < 16 || wide < seed || span < seed * 8) return;
+
+		final room = Math.ceil(seed) + 8;
+		final held = new Vector<Int>(room);
+
+		var bestEvery = seed;
+		var bestAt = 0;
+		var bestMass = 0;
+
+		var every = seed - 3;
+
+		while (every <= seed + 3) {
+			final wraps = Math.ceil(every);
+			for (index in 0...wraps) held[index] = 0;
+
+			for (index in 0...at.length) {
+				var phase = Std.int(at[index] - Math.floor(at[index] / every) * every);
+				if (phase < 0) phase = 0;
+				if (phase >= wraps) phase = wraps - 1;
+
+				held[phase] += much[index];
+			}
+
+			for (start in 0...wraps) {
+				var total = 0;
+				for (step in 0...STALL_REACH) total += held[(start + step) % wraps];
+
+				if (total <= bestMass) continue;
+
+				bestMass = total;
+				bestAt = start;
+				bestEvery = every;
+			}
+
+			every += 0.05;
+		}
+
+		if (bestMass * 2 < wide) return;
+
+		final each = borne(bestEvery);
+		if (each < 2) return;
+
+		song.stallAt = bestAt;
+		song.stallFor = each;
+		song.stallEvery = bestEvery;
+	}
+
+	function borne(every:Float):Int {
+		final middle = spacing();
+		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
+		final each:Array<Float> = [];
+
+		var head = 0;
+
+		while (head < dacWhen.length) {
+			var last = head;
+
+			while (last + 1 < dacWhen.length
+					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
+
+			final span = dacWhen[last] - dacWhen[head];
+			final many = last - head;
+
+			if (many >= DAC_LEAST && span > every * 2) {
+				final rate = paced(head, last);
+				final took = many * (Tempo.TICKS / rate);
+
+				if (took > 0 && span > took) each.push((span - took) / (span / every));
+			}
+
+			head = last + 1;
+		}
+
+		if (each.length < 2) return 0;
+
+		each.sort(function(one:Float, two:Float):Int
+			return one < two ? -1 : (one > two ? 1 : 0));
+
+		return Math.round(each[each.length >> 1]);
+	}
 	function split():Void {
 		final middle = spacing();
 		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
@@ -477,11 +589,48 @@ final class Transcription {
 			var last = head;
 
 			while (last + 1 < dacWhen.length
-					&& dacWhen[last + 1] - dacWhen[last] <= most) last++;
+					&& dacWhen[last + 1] - dacWhen[last] <= most) {
+				if (last - head >= STEADY && shifts(last)) break;
+
+				last++;
+			}
 
 			hit(head, last, dacWhen[last] + spacing(), paced(head, last));
 			head = last + 1;
 		}
+	}
+
+	function shifts(at:Int):Bool {
+		if (at + STEADY >= dacWhen.length) return false;
+
+		final was = steady(at - STEADY, STEADY);
+		final now = steady(at + 1, STEADY);
+
+		if (was < 0.5 || now < 0.5) return false;
+
+		return now > was * STEADY_TURN || now * STEADY_TURN < was;
+	}
+
+	function steady(from:Int, many:Int):Float {
+		final gaps:Array<Int> = [];
+
+		for (index in from + 1...from + many) {
+			if (index < 1 || index >= dacWhen.length) continue;
+
+			final apart = dacWhen[index] - dacWhen[index - 1];
+			if (apart > 0 && apart <= DAC_GAP) gaps.push(apart);
+		}
+
+		if (gaps.length < 4) return -1;
+
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+
+		var total = 0;
+		final kept = gaps.length * 3 >> 2;
+
+		for (index in 0...kept) total += gaps[index];
+
+		return kept < 1 ? -1 : total / kept;
 	}
 
 	function paced(head:Int, last:Int):Int {
