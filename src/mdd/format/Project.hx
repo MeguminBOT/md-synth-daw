@@ -330,6 +330,22 @@ class Project {
 					out.whole(point.at);
 					out.key("value");
 					out.whole(point.value);
+
+					if (point.shape != Automation.HOLD) {
+						out.key("shape");
+						out.whole(point.shape);
+					}
+
+					if (point.tension != 0) {
+						out.key("tension");
+						out.whole(point.tension);
+					}
+
+					if (point.steps != 0) {
+						out.key("steps");
+						out.whole(point.steps);
+					}
+
 					out.close();
 				}
 
@@ -539,8 +555,14 @@ class Project {
 
 				for (index in 0...points.length()) {
 					final point = points.at(index);
-					automation.add(new Point(point.get("at").whole(0),
-						point.get("value").whole(0)));
+					final made = new Point(point.get("at").whole(0),
+						point.get("value").whole(0));
+
+					made.shape = point.get("shape").whole(Automation.HOLD);
+					made.tension = point.get("tension").whole(0);
+					made.steps = point.get("steps").whole(0);
+
+					automation.add(made);
 				}
 
 				lane.automation.push(automation);
