@@ -134,6 +134,39 @@ class StreamCheck {
 				+ one[index] + "  seeking " + two[index]);
 		}
 
+		final fresh = new Stream(1 << 18);
+
+		fresh.reset(0);
+		new Sequencer(song).prime(fresh, 0);
+
+		var latched = 0;
+		var loud = 0;
+		var keys = 0;
+
+		for (index in 0...fresh.count) {
+			final value = fresh.valueAt(index);
+
+			if (fresh.kindAt(index) != Stream.YM) {
+				if ((value & 0x80) == 0) continue;
+
+				latched = (value >> 4) & 7;
+				if ((latched & 1) != 0 && (value & 0x0F) != 0x0F) loud++;
+
+				continue;
+			}
+
+			if ((fresh.portAt(index) & 1) == 0) {
+				latched = value == 0x28 ? 1 : 0;
+				continue;
+			}
+
+			if (latched == 1 && (value & 0xF0) != 0) keys++;
+		}
+
+		says("starting at the top sounds nothing", loud == 0 && keys == 0,
+			fresh.count + " writes prime the chip at the first tick, " + loud
+			+ " of them a square away from silence and " + keys + " a key on");
+
 		says("a seek leaves the chip where playing there would", apart == 0,
 			apart + " of the registers the song sets differ from what playing to eight"
 			+ " seconds would have left" + (first < 0 ? "" : ", the first being "
