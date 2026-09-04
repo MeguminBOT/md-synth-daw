@@ -20,7 +20,7 @@ import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
 import mdd.view.editor.ChannelRack;
-import mdd.view.Dock;
+import mdd.view.Status;
 import mdd.view.Inspector;
 import mdd.view.editor.PianoRoll;
 import mdd.app.Session;
@@ -590,11 +590,11 @@ class SpineCheck {
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(editor);
 
-		final dock = new Dock(session);
+		final dock = new Status(session, centre.warnings);
 		final budget = new mdd.check.Budget(mdd.check.Profile.megaDrive());
 
-		dock.warnings.budget = budget;
-		shell.zone(Shell.DOCK).add(dock);
+		centre.warnings.budget = budget;
+		shell.zone(Shell.STATUS).add(dock);
 
 		session.onReveal = function(found:mdd.check.Diagnostic):Void {
 			if (found.note == null) return;
@@ -946,8 +946,8 @@ class SpineCheck {
 		pattern.lane(Part.Psg1).add(new Note(0, 96, 20, 100));
 
 		budget.overSong(session.song);
-		dock.warnings.fit();
-		dock.show(Dock.WARNINGS);
+		centre.warnings.fit();
+		centre.show(mdd.view.Centre.WARNINGS);
 
 		Sdl.renderClear(renderer, 0, 0, 0, 1);
 		tree.frame(paint);
@@ -956,12 +956,12 @@ class SpineCheck {
 		final warned = budget.warnings();
 		final linked = warned > 0 && budget.found[0].linked();
 
-		dock.warnings.took(pressAt(dock.warnings.x + 10, dock.warnings.y + 10));
+		centre.warnings.took(pressAt(centre.warnings.x + 10, centre.warnings.y + 10));
 
 		says("a warning is a link", warned > 0 && linked
 			&& session.part == budget.found[0].part
 			&& roll.chosen == budget.found[0].note,
-			warned + " warnings in the dock, and clicking the first one selected "
+			warned + " warnings in the centre, and clicking the first one selected "
 			+ session.part.name() + " and the note it names");
 
 		final middle = median(times, rolls) * 1000;

@@ -7,20 +7,17 @@ final class Shell extends Widget {
 	public static inline final RAIL = 2;
 	public static inline final CENTRE = 3;
 	public static inline final INSPECTOR = 4;
-	public static inline final DOCK = 5;
+	public static inline final STATUS = 5;
 	public static inline final ZONES = 6;
 
 	public var railWide:Float = 0;
 	public var inspectorWide:Float = 0;
-	public var dockTall:Float = 0;
 
 	public var railOpen:Bool = true;
 	public var inspectorOpen:Bool = true;
-	public var dockOpen:Bool = true;
 
 	public final railSize:Motion;
 	public final inspectorSize:Motion;
-	public final dockSize:Motion;
 
 	final zones:Array<Widget> = [];
 
@@ -34,7 +31,6 @@ final class Shell extends Widget {
 
 		railSize = new Motion(this, 0, true, true);
 		inspectorSize = new Motion(this, 0, true, true);
-		dockSize = new Motion(this, 0, true, true);
 
 		for (i in 0...ZONES) {
 			final zone = new Widget();
@@ -50,11 +46,9 @@ final class Shell extends Widget {
 	public function fit(metrics:Metrics):Void {
 		railWide = metrics.rail;
 		inspectorWide = metrics.inspector;
-		dockTall = metrics.dock;
 
 		railSize.hold(railOpen ? railWide : strip(metrics));
 		inspectorSize.hold(inspectorOpen ? inspectorWide : strip(metrics));
-		dockSize.hold(dockOpen ? dockTall : metrics.bar);
 	}
 
 	static inline function strip(metrics:Metrics):Float {
@@ -65,7 +59,6 @@ final class Shell extends Widget {
 		return switch (which) {
 			case RAIL: railOpen;
 			case INSPECTOR: inspectorOpen;
-			case DOCK: dockOpen;
 			case _: true;
 		}
 	}
@@ -86,10 +79,6 @@ final class Shell extends Widget {
 				inspectorOpen = on;
 				root.start(inspectorSize, on ? inspectorWide : strip(metrics), Motion.ENTER);
 
-			case DOCK:
-				dockOpen = on;
-				root.start(dockSize, on ? dockTall : metrics.bar, Motion.ENTER);
-
 			case _:
 				return;
 		}
@@ -106,7 +95,6 @@ final class Shell extends Widget {
 		return switch (which) {
 			case RAIL: reach(railSize.value, least, railWide);
 			case INSPECTOR: reach(inspectorSize.value, least, inspectorWide);
-			case DOCK: reach(dockSize.value, root.metrics.bar, dockTall);
 			case _: 1;
 		}
 	}
@@ -130,7 +118,7 @@ final class Shell extends Widget {
 
 		final rail = railSize.value;
 		final inspector = inspectorSize.value;
-		final dock = dockSize.value;
+		final dock = metrics.status;
 
 		final hair = metrics.whole(1);
 
@@ -147,7 +135,7 @@ final class Shell extends Widget {
 		zones[CENTRE].arrange(x + rail + hair, bodyTop, centreWide, bodyTall);
 		zones[INSPECTOR].arrange(x + rail + hair + centreWide + hair, bodyTop, inspector,
 			bodyTall);
-		zones[DOCK].arrange(x, bodyTop + bodyTall + hair, width, dock);
+		zones[STATUS].arrange(x, bodyTop + bodyTall + hair, width, dock);
 	}
 
 	public function divider(which:Int):Float {
@@ -156,12 +144,12 @@ final class Shell extends Widget {
 
 		final rail = zones[RAIL];
 		final inspector = zones[INSPECTOR];
-		final dock = zones[DOCK];
+		final dock = zones[STATUS];
 
 		return switch (which) {
 			case RAIL: rail.x + rail.width;
 			case INSPECTOR: inspector.x - hair;
-			case DOCK: dock.y - hair;
+			case STATUS: dock.y - hair;
 			case _: -1;
 		}
 	}
@@ -178,7 +166,6 @@ final class Shell extends Widget {
 			if (inspectorOpen && Math.abs(px - divider(INSPECTOR)) <= reach) return INSPECTOR;
 		}
 
-		if (dockOpen && Math.abs(py - divider(DOCK)) <= reach) return DOCK;
 		return -1;
 	}
 
@@ -189,13 +176,20 @@ final class Shell extends Widget {
 				if (which < 0) return false;
 
 				dragging = which;
-				grabAt = which == DOCK ? event.y : event.x;
-				grabSize = which == RAIL ? railWide
-					: (which == INSPECTOR ? inspectorWide : dockTall);
+				grabAt = event.x;
+				grabSize = which == RAIL ? railWide : inspectorWide;
 				return true;
 
 			case Kind.PointerMove:
-				if (dragging < 0) return false;
+				if (dragging < 0) {
+					final near = nearDivider(event.x, event.y);
+					if (near == overDivider) return false;
+
+					overDivider = near;
+					invalidate();
+
+					return near >= 0;
+				}
 
 				final root = root();
 				if (root == null) return true;
@@ -210,9 +204,6 @@ final class Shell extends Widget {
 					case INSPECTOR:
 						inspectorWide = hold(grabSize - (event.x - grabAt), least, width * 0.5);
 						inspectorSize.hold(inspectorWide);
-					case DOCK:
-						dockTall = hold(grabSize - (event.y - grabAt), metrics.bar, height * 0.6);
-						dockSize.hold(dockTall);
 					case _:
 				}
 
@@ -221,12 +212,36 @@ final class Shell extends Widget {
 
 			case Kind.PointerUp:
 				if (dragging < 0) return false;
+
 				dragging = -1;
+				invalidate();
 				return true;
 
 			case _:
 		}
 		return false;
+	}
+
+	var overDivider:Int = -1;
+
+	override function hovered(on:Bool):Void {
+		if (!on && overDivider >= 0) {
+			overDivider = -1;
+			invalidate();
+		}
+
+		super.hovered(on);
+	}
+
+	function seam(paint:Paint, theme:Theme, which:Int, at:Float, from:Float, span:Float,
+			hair:Float, upright:Bool):Void {
+		final lit = dragging == which || (dragging < 0 && overDivider == which);
+		final colour = lit ? theme.accent : theme.frame;
+		final thick = lit ? hair * 3 : hair;
+		final back = lit ? at - hair : at;
+
+		if (upright) paint.rect(back, from, thick, span, colour, lit ? 0.9 : 1);
+		else paint.rect(from, back, span, thick, colour, lit ? 0.9 : 1);
 	}
 
 	static inline function hold(value:Float, least:Float, most:Float):Float {
@@ -249,14 +264,15 @@ final class Shell extends Widget {
 			theme.panel);
 		paint.rect(zones[INSPECTOR].x, zones[INSPECTOR].y, zones[INSPECTOR].width,
 			zones[INSPECTOR].height, theme.panel);
-		paint.rect(zones[DOCK].x, zones[DOCK].y, zones[DOCK].width, zones[DOCK].height,
+		paint.rect(zones[STATUS].x, zones[STATUS].y, zones[STATUS].width, zones[STATUS].height,
 			theme.panel);
 
 		paint.rect(x, zones[TRANSPORT].y - hair, width, hair, theme.frame);
 		paint.rect(x, zones[RAIL].y - hair, width, hair, theme.frame);
-		paint.rect(divider(RAIL), zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
-		paint.rect(divider(INSPECTOR), zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
-		paint.rect(x, divider(DOCK), width, hair, theme.frame);
+		seam(paint, theme, RAIL, divider(RAIL), zones[RAIL].y, zones[RAIL].height, hair, true);
+		seam(paint, theme, INSPECTOR, divider(INSPECTOR), zones[RAIL].y, zones[RAIL].height,
+			hair, true);
+		paint.rect(x, divider(STATUS), width, hair, theme.frame);
 
 		for (which in 0...ZONES) {
 			final zone = zones[which];

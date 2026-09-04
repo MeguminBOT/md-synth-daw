@@ -7,7 +7,6 @@ import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.control.MenuBar;
 import mdd.view.Centre;
-import mdd.view.Dock;
 import mdd.view.Inspector;
 import mdd.view.Tools;
 import mdd.view.TransportBar;
@@ -116,21 +115,18 @@ final class Menus {
 		final held = new Menu();
 
 		fired(held.offer(new Choice(said(Locale.PATTERN_ADD))), function():Void
-			panels.dock.patterns.added());
+			panels.patterns.added(panels.namedPattern()));
 		fired(held.offer(new Choice(said(Locale.PATTERN_DUPLICATE))), function():Void
-			panels.dock.patterns.duplicated(session.pattern));
+			panels.patterns.duplicated(session.pattern));
 		fired(held.offer(new Choice(said(Locale.PATTERN_RENAME))), function():Void
-			panels.dock.patterns.renamed(session.pattern));
+			panels.renamedPattern(session.pattern));
 		fired(held.offer(new Choice(said(Locale.PATTERN_INSERT))), function():Void
-			panels.dock.patterns.inserted(session.pattern));
+			panels.patterns.inserted(session.pattern));
 		fired(held.offer(new Choice(said(Locale.PATTERN_DELETE))), function():Void
-			panels.dock.patterns.dropped(session.pattern));
+			panels.patterns.dropped(session.pattern));
 		held.divide();
 		fired(held.offer(new Choice(said(Locale.PATTERN_CLEAR))), function():Void
 			emptied());
-		held.divide();
-		fired(held.offer(new Choice(said(Locale.VIEW_PATTERNS))), function():Void
-			panels.dock.show(Dock.PATTERNS));
 
 		return held;
 	}
@@ -231,11 +227,8 @@ final class Menus {
 			panels.centre.show(Centre.PLAYLIST));
 		fired(held.offer(new Choice(said(Locale.VIEW_REGISTERS))), function():Void
 			panels.centre.show(Centre.REGISTERS));
-		held.divide();
-		fired(held.offer(new Choice(said(Locale.VIEW_PATTERNS))), function():Void
-			panels.dock.show(Dock.PATTERNS));
 		fired(held.offer(new Choice(said(Locale.VIEW_WARNINGS))), function():Void
-			panels.dock.show(Dock.WARNINGS));
+			panels.centre.show(Centre.WARNINGS));
 
 		held.divide();
 

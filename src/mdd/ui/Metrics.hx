@@ -21,7 +21,7 @@ final class Metrics {
 
 	public var rail(default, null):Float;
 	public var inspector(default, null):Float;
-	public var dock(default, null):Float;
+	public var status(default, null):Float;
 	public var menu(default, null):Float;
 	public var transport(default, null):Float;
 
@@ -54,7 +54,7 @@ final class Metrics {
 
 		rail = whole(268);
 		inspector = whole(332);
-		dock = whole(116);
+		status = whole(26);
 		menu = whole(34);
 		transport = whole(58);
 	}

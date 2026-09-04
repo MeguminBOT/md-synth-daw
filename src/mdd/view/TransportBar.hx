@@ -394,6 +394,13 @@ final class TransportBar extends Widget {
 		return false;
 	}
 
+	public var onPatterns:Null<Int -> Void> = null;
+
+	public static inline final ADD = 0;
+	public static inline final DUPLICATE = 1;
+	public static inline final RENAME = 2;
+	public static inline final DELETE = 3;
+
 	function popped(px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
@@ -403,12 +410,36 @@ final class TransportBar extends Widget {
 		for (index in 0...session.song.patterns.length) {
 			final which = index;
 			final pattern = session.song.patterns[index];
-			final choice = menu.offer(new Choice((index + 1) + "  " + pattern.name));
+
+			final choice = menu.offer(new Choice((index + 1) + "  " + pattern.name,
+				pattern.notes() == 0 ? "" : "" + pattern.notes()));
 
 			choice.onFire = function(from:Choice):Void session.chooses(which);
 		}
 
+		menu.divide();
+
+		commands(menu, Locale.PATTERN_ADD, ADD);
+		commands(menu, Locale.PATTERN_DUPLICATE, DUPLICATE);
+		commands(menu, Locale.PATTERN_RENAME, RENAME);
+
+		final drop = commands(menu, Locale.PATTERN_DELETE, DELETE);
+
+		if (session.song.patterns.length <= 1) {
+			drop.enabled = false;
+			drop.reason = translate(Locale.PATTERN_LAST);
+		}
+
 		root.pop(menu, px, py, this);
+	}
+
+	function commands(into:Menu, key:String, which:Int):Choice {
+		final choice = into.offer(new Choice(translate(key)));
+
+		choice.onFire = function(from:Choice):Void
+			if (onPatterns != null) onPatterns(which);
+
+		return choice;
 	}
 
 	public function press(which:Int):Void {

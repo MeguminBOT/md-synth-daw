@@ -485,7 +485,7 @@ class UiCheck {
 			final rail = shell.zone(Shell.RAIL);
 			final centre = shell.zone(Shell.CENTRE);
 			final inspector = shell.zone(Shell.INSPECTOR);
-			final dock = shell.zone(Shell.DOCK);
+			final dock = shell.zone(Shell.STATUS);
 
 			final hair = metrics.whole(1);
 
@@ -499,7 +499,7 @@ class UiCheck {
 			}
 			if (Math.abs(dock.y - (rail.y + rail.height) - hair) > 0.51) {
 				sane = false;
-				said = "the body and the dock do not leave one seam";
+				said = "the body and the status strip do not leave one seam";
 			}
 			if (Math.abs((inspector.x + inspector.width) - root.width) > 0.51) {
 				sane = false;
@@ -508,7 +508,7 @@ class UiCheck {
 
 			says("shell at " + scale, sane, said != "" ? said
 				: "rail " + rail.width + ", centre " + centre.width + ", inspector "
-				+ inspector.width + ", dock " + dock.height);
+				+ inspector.width + ", status " + dock.height);
 		}
 
 		final metrics = new Metrics(1);

@@ -282,10 +282,10 @@ class App {
 		if (panels.centre != null) panels.centre.roll.invalidate();
 		if (panels.inspector != null) panels.inspector.follow();
 
-		if (panels.dock != null) {
-			panels.dock.warnings.fit();
-			panels.dock.said = session.said;
-			panels.dock.invalidate();
+		if (panels.status != null) {
+			panels.centre.warnings.fit();
+			panels.status.said = session.said;
+			panels.status.invalidate();
 		}
 	}
 

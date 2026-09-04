@@ -12,12 +12,11 @@ import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
-import mdd.view.Dock;
+import mdd.view.Status;
 import mdd.view.Inspector;
 import mdd.view.Rail;
 import mdd.app.Session;
 import mdd.view.TransportBar;
-import mdd.view.editor.Patterns;
 import mdd.view.editor.Playlist;
 import mdd.view.editor.Tracker;
 import mdd.view.monitor.Registers;
@@ -127,7 +126,7 @@ class ShotCheck {
 		final rail = new Rail(session);
 		final centre = new Centre(session);
 		final editor = new Inspector(session);
-		final dock = new Dock(session);
+		final dock = new Status(session, centre.warnings);
 		final budget = new mdd.check.Budget(mdd.check.Profile.megaDrive());
 
 		budget.overSong(session.song);
@@ -136,13 +135,13 @@ class ShotCheck {
 		rail.hardware.budget = budget;
 		rail.hardware.levels = rail.rack.levels;
 		editor.samples.budget = budget;
-		dock.warnings.budget = budget;
+		centre.warnings.budget = budget;
 
 		shell.zone(Shell.TRANSPORT).add(bar);
 		shell.zone(Shell.RAIL).add(rail);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(editor);
-		shell.zone(Shell.DOCK).add(dock);
+		shell.zone(Shell.STATUS).add(dock);
 
 		final menus = new mdd.ui.control.MenuBar();
 
@@ -212,7 +211,7 @@ class ShotCheck {
 
 		centre.show(centreTab);
 		editor.show(inspectorTab);
-		dock.show(dockTab);
+		if (dockTab > 0) centre.show(mdd.view.Centre.WARNINGS);
 		dock.said = "ready";
 
 		for (index in 0...mdd.song.Part.COUNT) {

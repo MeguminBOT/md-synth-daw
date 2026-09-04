@@ -15,7 +15,7 @@ import mdd.ui.Shell;
 import mdd.ui.Theme;
 import mdd.view.Centre;
 import mdd.view.editor.ChannelRack;
-import mdd.view.Dock;
+import mdd.view.Status;
 import mdd.view.Inspector;
 import mdd.app.Session;
 import mdd.view.TransportBar;
@@ -138,7 +138,7 @@ class FuzzCheck {
 		shell.zone(Shell.RAIL).add(new ChannelRack(session));
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(new Inspector(session));
-		shell.zone(Shell.DOCK).add(new Dock(session));
+		shell.zone(Shell.STATUS).add(new Status(session, centre.warnings));
 
 		final menus = new mdd.ui.control.MenuBar();
 		final file = new mdd.ui.control.Menu();

@@ -19,7 +19,8 @@ final class Centre extends Widget {
 	public static inline final SCOPE = 3;
 	public static inline final REGISTERS = 4;
 	public static inline final AUTOMATION = 5;
-	public static inline final TABS = 6;
+	public static inline final WARNINGS = 6;
+	public static inline final TABS = 7;
 
 	public final session:Session;
 
@@ -31,6 +32,7 @@ final class Centre extends Widget {
 	public final playlist:Playlist;
 	public final registers:Registers;
 	public final automation:mdd.view.editor.AutomationEditor;
+	public final warnings:mdd.view.monitor.Warnings;
 
 	public var showing(default, null):Int = PLAYLIST;
 
@@ -38,7 +40,7 @@ final class Centre extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", "", "", "", "", ""]);
+		tabs = new Tabs(["", "", "", "", "", "", ""]);
 		tools = new Tools(session);
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
@@ -46,6 +48,7 @@ final class Centre extends Widget {
 		playlist = new Playlist(session);
 		registers = new Registers(session);
 		automation = new mdd.view.editor.AutomationEditor(session);
+		warnings = new mdd.view.monitor.Warnings(session);
 
 		add(tabs);
 		add(tools);
@@ -55,12 +58,14 @@ final class Centre extends Widget {
 		add(playlist);
 		add(registers);
 		add(automation);
+		add(warnings);
 
 		scope.visible = false;
 		tracker.visible = false;
 		roll.visible = false;
 		registers.visible = false;
 		automation.visible = false;
+		warnings.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
 	}
@@ -76,6 +81,7 @@ final class Centre extends Widget {
 		tracker.visible = which == TRACKER;
 		registers.visible = which == REGISTERS;
 		automation.visible = which == AUTOMATION;
+		warnings.visible = which == WARNINGS;
 
 		relayout();
 	}
@@ -100,6 +106,7 @@ final class Centre extends Widget {
 		playlist.arrange(x, y + tall, width, height - tall);
 		registers.arrange(x, y + tall, width, height - tall);
 		automation.arrange(x, y + tall, width, height - tall);
+		warnings.arrange(x, y + tall, width, height - tall);
 	}
 
 	public function playhead(tick:Int):Void {
@@ -134,6 +141,7 @@ final class Centre extends Widget {
 		tabs.labels[3] = translate(Locale.VIEW_SCOPE);
 		tabs.labels[4] = translate(Locale.VIEW_REGISTERS);
 		tabs.labels[5] = translate(Locale.VIEW_AUTOMATION);
+		tabs.labels[6] = translate(Locale.VIEW_WARNINGS);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -148,5 +156,6 @@ final class Centre extends Widget {
 		if (playlist.visible) playlist.paint(paint);
 		if (registers.visible) registers.paint(paint);
 		if (automation.visible) automation.paint(paint);
+		if (warnings.visible) warnings.paint(paint);
 	}
 }

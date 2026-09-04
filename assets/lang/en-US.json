@@ -131,7 +131,7 @@
   "motion.none": "None",
   "motion.reduced": "Reduced",
   "naming.hint": "Enter to confirm, Esc to cancel",
-  "panel.channel": "Channel",
+  "panel.channel": "Instrument",
   "panel.envelope": "attenuation over time, loudest at the top",
   "panel.fromImport": "from the import",
   "panel.noPresets": "no presets for this part",

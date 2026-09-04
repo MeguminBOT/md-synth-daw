@@ -46,6 +46,8 @@ final class FmEditor extends Widget {
 	public static inline final DIALS = 4;
 
 	static final DIAL_NAMES:Array<String> = ["ALG", "FB", "AMS", "PMS"];
+
+	static final DIAL_SPELT:Array<String> = ["Algorithm", "Feedback", "Tremolo", "Vibrato"];
 	static final DIAL_MOST:Array<Int> = [7, 7, 3, 7];
 
 	public final session:Session;
@@ -403,7 +405,11 @@ final class FmEditor extends Widget {
 
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 
-			paint.text(DIAL_NAMES[which], left + metrics.unit, line, theme.dim, 0.85);
+			final room = wide - metrics.unit * 2 - font.measure("0") - metrics.gap;
+			final named = font.measure(DIAL_SPELT[which]) <= room ? DIAL_SPELT[which]
+				: DIAL_NAMES[which];
+
+			paint.text(named, left + metrics.unit, line, theme.dim, 0.85);
 			paint.textRight(Std.string(value), left + wide - metrics.unit, line, theme.ink);
 		}
 	}
@@ -560,6 +566,8 @@ final class FmEditor extends Widget {
 
 		paint.reface(small);
 
+		final room = wide - metrics.unit * 4 - font.measure("000") - metrics.gap;
+
 		for (slot in 0...Patch.SLOTS) {
 			final left = x + slot * wide;
 
@@ -567,7 +575,9 @@ final class FmEditor extends Widget {
 				final at = top + row * tall;
 				if (at > y + height) break;
 
-				paint.text(NAMES[row], left + metrics.unit * 2,
+				final said = small.measure(SPELT[row]) <= room ? SPELT[row] : NAMES[row];
+
+				paint.text(said, left + metrics.unit * 2,
 					at + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.8);
 			}
 		}

@@ -5,7 +5,7 @@ import mdd.check.Profile;
 import mdd.song.Part;
 import mdd.ui.Shell;
 import mdd.view.Centre;
-import mdd.view.Dock;
+import mdd.view.Status;
 import mdd.view.Inspector;
 import mdd.view.Rail;
 import mdd.view.TransportBar;
@@ -20,7 +20,7 @@ import mdd.view.overlay.Working;
 @:unreflective
 final class Panels {
 	static final ZONES:Array<Int> = [Shell.TRANSPORT, Shell.RAIL, Shell.CENTRE, Shell.INSPECTOR,
-		Shell.DOCK];
+		Shell.STATUS];
 
 	public var session:Null<Session> = null;
 	public var onMaster:Null<Int -> Void> = null;
@@ -31,7 +31,8 @@ final class Panels {
 	public var rack:Null<ChannelRack> = null;
 	public var centre:Null<Centre> = null;
 	public var inspector:Null<Inspector> = null;
-	public var dock:Null<Dock> = null;
+	public var status:Null<Status> = null;
+	public var patterns:Patterns = null;
 
 	public var preferences:Null<Preferences> = null;
 	public var exporting:Null<Export> = null;
@@ -56,7 +57,8 @@ final class Panels {
 		rack = rail.rack;
 		centre = new Centre(session);
 		inspector = new Inspector(session);
-		dock = new Dock(session);
+		status = new Status(session, centre.warnings);
+		patterns = new Patterns(session);
 
 		final shell = stage.shell;
 
@@ -69,7 +71,7 @@ final class Panels {
 		shell.zone(Shell.RAIL).add(rail);
 		shell.zone(Shell.CENTRE).add(centre);
 		shell.zone(Shell.INSPECTOR).add(inspector);
-		shell.zone(Shell.DOCK).add(dock);
+		shell.zone(Shell.STATUS).add(status);
 
 		if (budget == null) budget = new Budget(Profile.megaDrive());
 
@@ -93,8 +95,9 @@ final class Panels {
 		inspector.samples.budget = budget;
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();
-		dock.warnings.budget = budget;
+		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
+		bar.onPatterns = function(which:Int):Void commanded(which);
 
 		follows(session);
 	}
@@ -114,6 +117,30 @@ final class Panels {
 	public function sounded():Void {
 		stage.root.raise(exporting);
 		exporting.ask();
+	}
+
+	function commanded(which:Int):Void {
+		switch (which) {
+			case TransportBar.ADD: patterns.added(namedPattern());
+			case TransportBar.DUPLICATE: patterns.duplicated(session.pattern);
+			case TransportBar.RENAME: renamedPattern(session.pattern);
+			case TransportBar.DELETE: patterns.dropped(session.pattern);
+			case _:
+		}
+	}
+
+	public function namedPattern():String {
+		return stage.root.translate(Locale.PATTERN) + " " + (session.song.patterns.length + 1);
+	}
+
+	public function renamedPattern(which:Int):Void {
+		final held = session.song.patternAt(which);
+		if (held == null || naming == null) return;
+
+		naming.ask(stage.root.translate(Locale.TRACK_NAME), held.name);
+		naming.onName = function(said:String):Void patterns.renamed(which, said);
+
+		stage.root.raise(naming);
 	}
 
 	public function renamedPreset(which:Int):Void {
