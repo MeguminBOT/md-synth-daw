@@ -196,9 +196,6 @@ class Locale {
 	public static inline final VIEW_PLAYLIST = "view.playlist";
 	public static inline final VIEW_REGISTERS = "view.registers";
 	public static inline final VIEW_PATTERNS = "view.patterns";
-	public static inline final VIEW_MIXER = "view.mixer";
-	public static inline final MIXER_MASTER = "mixer.master";
-	public static inline final MIXER_OUTPUT = "mixer.output";
 	public static inline final VIEW_WARNINGS = "view.warnings";
 	public static inline final TRACK_ADD = "track.add";
 	public static inline final TRACK_RENAME = "track.rename";
@@ -314,6 +311,7 @@ class Locale {
 	public static inline final RACK_NO_PRESET = "rack.noPreset";
 	public static inline final RACK_NONE_COPIED = "rack.noneCopied";
 	public static inline final RACK_SOLO_CHORD = "rack.soloChord";
+	public static inline final RACK_PAN = "rack.pan";
 
 	public static inline final RACK_FM = "rack.fm";
 	public static inline final RACK_SQUARE = "rack.square";
@@ -326,6 +324,7 @@ class Locale {
 	public static inline final TRANSPORT_LOOP = "transport.loop";
 	public static inline final TRANSPORT_LOOPING = "transport.looping";
 	public static inline final TRANSPORT_ONCE = "transport.once";
+	public static inline final TRANSPORT_VOLUME = "transport.volume";
 	public static inline final TRANSPORT_RECORD = "transport.record";
 	public static inline final TRANSPORT_ARMED = "transport.armed";
 	public static inline final TRANSPORT_DISARMED = "transport.disarmed";
@@ -411,7 +410,7 @@ class Locale {
 		HARDWARE_NOW, HARDWARE_SONG,
 		VIEW_ROLL, VIEW_SCOPE, VIEW_TRACKER, VIEW_PLAYLIST,
 		TRACKER_DIVISION,
-		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_MIXER, VIEW_WARNINGS, MIXER_MASTER, MIXER_OUTPUT,
+		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_WARNINGS,
 		TRACK_ADD, TRACK_RENAME, TRACK_DELETE, TRACK_MUTE, TRACK_UNMUTE, TRACK_LAST, TRACK_NAME,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,
 		PREFERENCE_MOTION, PREFERENCE_BACKUPS, PREFERENCE_BACKUP_AGE, PREFERENCE_UPDATES,
@@ -436,9 +435,9 @@ class Locale {
 		ROLL_SNAP_BEAT, ROLL_SNAP_BAR, ROLL_SNAP_NONE, ROLL_NOTHING_COPIED, ROLL_SOUNDS,
 		RACK_MUTE, RACK_UNMUTE, RACK_SOLO, RACK_UNSOLO, RACK_SOLO_ONLY, RACK_COPY_PRESET,
 		RACK_PASTE_PRESET, RACK_RESET_PRESET, RACK_CLEAR, RACK_NO_PRESET, RACK_NONE_COPIED,
-		RACK_SOLO_CHORD, RACK_FM, RACK_SQUARE, RACK_NOISE, RACK_DAC,
+		RACK_SOLO_CHORD, RACK_PAN, RACK_FM, RACK_SQUARE, RACK_NOISE, RACK_DAC,
 		TRANSPORT_PLAY, TRANSPORT_PAUSE, TRANSPORT_STOP, TRANSPORT_LOOP,
-		TRANSPORT_LOOPING, TRANSPORT_ONCE,
+		TRANSPORT_LOOPING, TRANSPORT_ONCE, TRANSPORT_VOLUME,
 		TRANSPORT_RECORD, TRANSPORT_ARMED, TRANSPORT_DISARMED,
 		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
 		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,

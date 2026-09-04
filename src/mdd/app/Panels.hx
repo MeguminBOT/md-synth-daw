@@ -94,7 +94,7 @@ final class Panels {
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();
 		dock.warnings.budget = budget;
-		dock.mixer.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
+		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
 
 		follows(session);
 	}

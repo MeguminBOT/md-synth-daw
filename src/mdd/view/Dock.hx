@@ -7,22 +7,19 @@ import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
-import mdd.view.editor.Mixer;
 import mdd.view.editor.Patterns;
 import mdd.view.monitor.Warnings;
 
 @:unreflective
 final class Dock extends Widget {
 	public static inline final PATTERNS = 0;
-	public static inline final MIXER = 1;
-	public static inline final WARNINGS = 2;
-	public static inline final TABS = 3;
+	public static inline final WARNINGS = 1;
+	public static inline final TABS = 2;
 
 	public final session:Session;
 
 	public final tabs:Tabs;
 	public final patterns:Patterns;
-	public final mixer:Mixer;
 	public final warnings:Warnings;
 
 	public var said:String = "";
@@ -32,17 +29,14 @@ final class Dock extends Widget {
 		super();
 		this.session = session;
 
-		tabs = new Tabs(["", "", ""]);
+		tabs = new Tabs(["", ""]);
 		patterns = new Patterns(session);
-		mixer = new Mixer(session);
 		warnings = new Warnings(session);
 
 		add(tabs);
 		add(patterns);
-		add(mixer);
 		add(warnings);
 
-		mixer.visible = false;
 		warnings.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
@@ -56,7 +50,6 @@ final class Dock extends Widget {
 		showing = which;
 		tabs.select(which);
 		patterns.visible = which == PATTERNS;
-		mixer.visible = which == MIXER;
 		warnings.visible = which == WARNINGS;
 
 		relayout();
@@ -79,7 +72,6 @@ final class Dock extends Widget {
 
 		tabs.arrange(x, y, width, top);
 		patterns.arrange(x, y + top, width, tall);
-		mixer.arrange(x, y + top, width, tall);
 		warnings.arrange(x, y + top, width, tall);
 	}
 
@@ -88,8 +80,7 @@ final class Dock extends Widget {
 		if (root == null) return;
 
 		tabs.labels[0] = translate(Locale.VIEW_PATTERNS);
-		tabs.labels[1] = translate(Locale.VIEW_MIXER);
-		tabs.labels[2] = translate(Locale.VIEW_WARNINGS);
+		tabs.labels[1] = translate(Locale.VIEW_WARNINGS);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -104,7 +95,6 @@ final class Dock extends Widget {
 		tabs.paint(paint);
 
 		if (patterns.visible) patterns.paint(paint);
-		if (mixer.visible) mixer.paint(paint);
 		if (warnings.visible) warnings.paint(paint);
 
 		final bottom = foot();

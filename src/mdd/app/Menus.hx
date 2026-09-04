@@ -234,8 +234,6 @@ final class Menus {
 		held.divide();
 		fired(held.offer(new Choice(said(Locale.VIEW_PATTERNS))), function():Void
 			panels.dock.show(Dock.PATTERNS));
-		fired(held.offer(new Choice(said(Locale.VIEW_MIXER))), function():Void
-			panels.dock.show(Dock.MIXER));
 		fired(held.offer(new Choice(said(Locale.VIEW_WARNINGS))), function():Void
 			panels.dock.show(Dock.WARNINGS));
 

@@ -54,7 +54,7 @@ final class Metrics {
 
 		rail = whole(268);
 		inspector = whole(332);
-		dock = whole(150);
+		dock = whole(116);
 		menu = whole(34);
 		transport = whole(58);
 	}

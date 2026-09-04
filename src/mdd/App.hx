@@ -773,13 +773,8 @@ class App {
 			if (panels.rail != null) panels.rail.hardware.invalidate();
 		}
 
-		final dock = panels.dock;
-
-		if (dock != null && dock.mixer.visible) {
-			for (index in 0...Part.COUNT) dock.mixer.levels[index] = rack.levels[index];
-			if (moved) dock.mixer.invalidate();
-
-			dock.mixer.metered(sound.render.peak);
+		if (panels.bar != null) {
+			panels.bar.metered(sound.render.peak);
 			sound.render.forgetPeak();
 		}
 

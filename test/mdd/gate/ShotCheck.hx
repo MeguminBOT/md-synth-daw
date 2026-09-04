@@ -17,7 +17,6 @@ import mdd.view.Inspector;
 import mdd.view.Rail;
 import mdd.app.Session;
 import mdd.view.TransportBar;
-import mdd.view.editor.Mixer;
 import mdd.view.editor.Patterns;
 import mdd.view.editor.Playlist;
 import mdd.view.editor.Tracker;
@@ -159,7 +158,7 @@ class ShotCheck {
 			["Read a vgm", "Read a midi file", "Read a wav"],
 			["Write a vgm|Ctrl+E", "Render a wav", "Write a midi file"],
 			["Piano roll", "Scope", "Tracker", "Playlist", "Registers", "-", "Patterns",
-				"Mixer", "Warnings", "-", "Snap to the grid", "Show other channels"],
+				"Warnings", "-", "Snap to the grid", "Show other channels"],
 			["About", "Source"]
 		];
 

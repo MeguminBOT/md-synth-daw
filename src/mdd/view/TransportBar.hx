@@ -2,6 +2,7 @@ package mdd.view;
 
 import mdd.app.Locale;
 import mdd.app.Session;
+import mdd.song.Song;
 import mdd.song.Tempo;
 import mdd.song.edit.SetTempo;
 import mdd.ui.Input;
@@ -41,9 +42,13 @@ final class TransportBar extends Widget {
 
 	final held:Array<Number>;
 
+	public var onMaster:Null<Int -> Void> = null;
+
 	var hoverAt:Int = -1;
 	var overMode:Int = -1;
 	var overPicker:Bool = false;
+	var overVolume:Bool = false;
+	var sliding:Bool = false;
 	var menu:Null<Menu> = null;
 	var settling:Bool = false;
 
@@ -243,6 +248,67 @@ final class TransportBar extends Widget {
 		return root == null ? 150 : root.metrics.whole(150);
 	}
 
+	public var peak(default, null):Float = 0;
+
+	public function metered(much:Float):Void {
+		if (Math.abs(much - peak) < 0.01) return;
+
+		peak = much;
+		invalidate();
+	}
+
+	function volumeLeft():Float {
+		final root = root();
+		return root == null ? x : clockRight() + root.metrics.inset;
+	}
+
+	function volumeWide():Float {
+		final root = root();
+		return root == null ? 132 : root.metrics.whole(132);
+	}
+
+	function speakerWide():Float {
+		final root = root();
+		return root == null ? 16 : root.metrics.whole(16);
+	}
+
+	function trackLeft():Float {
+		final root = root();
+		return volumeLeft() + speakerWide() + (root == null ? 8 : root.metrics.gap);
+	}
+
+	function trackWide():Float {
+		return volumeLeft() + volumeWide() - trackLeft();
+	}
+
+	public function onVolume(px:Float, py:Float):Bool {
+		final button = size();
+		final top = y + (height - button) * 0.5;
+
+		return px >= volumeLeft() && px < volumeLeft() + volumeWide()
+			&& py >= top && py < top + button;
+	}
+
+	function leaned(px:Float):Void {
+		final room = trackWide();
+		if (room <= 0) return;
+
+		var part = (px - trackLeft()) / room;
+		if (part < 0) part = 0;
+		if (part > 1) part = 1;
+
+		final want = Math.round(part * Song.LOUDEST);
+		if (session.master == want) return;
+
+		session.master = want;
+		if (onMaster != null) onMaster(want);
+
+		session.say(translate(Locale.TRANSPORT_VOLUME) + "  "
+			+ Math.round(want * 100 / Song.LOUDEST) + "%");
+
+		invalidate();
+	}
+
 	public function onPicker(px:Float, py:Float):Bool {
 		final button = size();
 		final top = y + (height - button) * 0.5;
@@ -279,19 +345,47 @@ final class TransportBar extends Widget {
 					return true;
 				}
 
+				if (onVolume(event.x, event.y)) {
+					sliding = true;
+					leaned(event.x);
+					return true;
+				}
+
 			case Kind.PointerMove:
+				if (sliding) {
+					leaned(event.x);
+					return true;
+				}
+
 				final which = buttonAt(event.x, event.y);
 				final mode = modeAt(event.x, event.y);
 				final picker = onPicker(event.x, event.y);
+				final volume = onVolume(event.x, event.y);
 
 				described(which);
 
-				if (which == hoverAt && mode == overMode && picker == overPicker) return false;
+				if (which == hoverAt && mode == overMode && picker == overPicker
+					&& volume == overVolume) return false;
 
 				hoverAt = which;
 				overMode = mode;
 				overPicker = picker;
+				overVolume = volume;
 				invalidate();
+				return true;
+
+			case Kind.PointerUp:
+				if (!sliding) return false;
+
+				sliding = false;
+				return true;
+
+			case Kind.Wheel:
+				if (!onVolume(event.x, event.y)) return false;
+
+				leaned(trackLeft() + trackWide() * session.master / Song.LOUDEST
+					+ event.dy * trackWide() / 20);
+
 				return true;
 
 			case _:
@@ -353,6 +447,7 @@ final class TransportBar extends Widget {
 			hoverAt = -1;
 			overMode = -1;
 			overPicker = false;
+			overVolume = false;
 		}
 
 		super.hovered(on);
@@ -368,7 +463,7 @@ final class TransportBar extends Widget {
 		final button = size();
 		final top = y + (height - button) * 0.5;
 
-		final after = clockRight() + metrics.inset * 2;
+		final after = volumeLeft() + volumeWide() + metrics.inset;
 		final room = x + width - metrics.inset - after;
 
 		var many = held.length;
@@ -455,6 +550,7 @@ final class TransportBar extends Widget {
 
 		mode(paint, theme, metrics, top, button);
 		picker(paint, theme, metrics, top, button);
+		volume(paint, theme, metrics, top, button);
 
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
 
@@ -497,6 +593,72 @@ final class TransportBar extends Widget {
 			on == 0 ? theme.ink : theme.dim, 0.75);
 		paint.textCentred(translate(Locale.TRANSPORT_SONG), left + wide * 1.5, line,
 			on == 1 ? theme.ink : theme.dim, 0.75);
+	}
+
+	function volume(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {
+		final middle = top + button * 0.5;
+
+		speaker(paint, theme, metrics, volumeLeft(), middle, speakerWide());
+
+		final left = trackLeft();
+		final room = trackWide();
+		if (room <= 0) return;
+
+		final track = metrics.whole(6);
+		final line = middle - track * 0.5;
+		final want = session.master / Song.LOUDEST;
+
+		paint.roundedRect(left, line, room, track, track * 0.5, theme.sink);
+
+		if (peak > 0.004) {
+			paint.roundedGradient(left, line, room, track, track * 0.5,
+				theme.accent.lift(0.24), theme.accent.sink(0.2), 0.5,
+				peak > 1 ? 1 : peak);
+		}
+
+		paint.roundedRect(left, line, room, track, track * 0.5, theme.ink, 0.55, want);
+
+		final grip = metrics.whole(12);
+		final at = left + room * want;
+
+		paint.roundedRect(at - grip * 0.5, middle - grip * 0.5, grip, grip, grip * 0.5,
+			theme.ink, sliding || overVolume ? 1 : 0.85);
+	}
+
+	function speaker(paint:Paint, theme:Theme, metrics:Metrics, at:Float, middle:Float,
+			size:Float):Void {
+		final ink = overVolume || sliding ? theme.ink : theme.dim;
+		final reach = size * 0.5;
+		final quiet = session.master <= 0;
+
+		paint.rect(at, middle - reach * 0.35, reach * 0.5, reach * 0.7, ink);
+
+		final points = new haxe.ds.Vector<Float>(6);
+
+		points[0] = at + reach * 0.85;
+		points[1] = middle - reach * 0.85;
+		points[2] = at + reach * 0.85;
+		points[3] = middle + reach * 0.85;
+		points[4] = at;
+		points[5] = middle;
+
+		paint.polygon(points, 3, ink);
+
+		if (quiet) {
+			paint.line(at + reach, middle - reach * 0.7, at + size, middle + reach * 0.7,
+				metrics.whole(2), theme.over);
+
+			return;
+		}
+
+		final weight = metrics.whole(2);
+		final much = session.master / Song.LOUDEST;
+
+		paint.arc(at + reach * 0.7, middle, reach * 0.7, -0.9, 0.9, weight, ink, 0.9);
+
+		if (much > 0.55) {
+			paint.arc(at + reach * 0.7, middle, reach * 1.15, -0.8, 0.8, weight, ink, 0.7);
+		}
 	}
 
 	function picker(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {

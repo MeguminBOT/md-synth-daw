@@ -4,6 +4,7 @@ import haxe.ds.Vector;
 import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Part;
+import mdd.song.Song;
 import mdd.ui.Panel;
 import mdd.view.Kits;
 import mdd.ui.control.Choice;
@@ -25,6 +26,12 @@ final class ChannelRack extends Widget {
 
 	public var offsetY:Float = 0;
 
+	static inline final PAN = 120;
+	static inline final MUTE = 96;
+	static inline final SOLO = 72;
+	static inline final METER = 44;
+	static inline final MARK = 18;
+
 	var hoverAt:Int = -1;
 	var menu:Null<Menu> = null;
 	var menuFor:Int = -1;
@@ -37,6 +44,38 @@ final class ChannelRack extends Widget {
 		opaque = true;
 
 		for (i in 0...Part.COUNT) levels[i] = 0;
+	}
+
+	inline function slotAt(metrics:Metrics, from:Int):Float {
+		return x + width - metrics.whole(from);
+	}
+
+	function slotHolds(metrics:Metrics, from:Int, px:Float):Bool {
+		final left = slotAt(metrics, from);
+		return px >= left && px < left + metrics.whole(MARK);
+	}
+
+	public function turned(at:Int):Void {
+		final part:Part = at;
+		if (!part.fm()) return;
+
+		session.song.pan[at] = switch (session.song.pan[at]) {
+			case Song.BOTH: Song.LEFT;
+			case Song.LEFT: Song.RIGHT;
+			case _: Song.BOTH;
+		}
+
+		session.say(part.name() + "  " + sided(session.song.pan[at]));
+		session.changed();
+		invalidate();
+	}
+
+	public static function sided(pan:Int):String {
+		return switch (pan) {
+			case Song.LEFT: "L";
+			case Song.RIGHT: "R";
+			case _: "L R";
+		}
 	}
 
 	public function rowHeight():Float {
@@ -101,16 +140,27 @@ final class ChannelRack extends Widget {
 					return true;
 				}
 
-				if (event.x >= x + width - metrics.whole(96)
-						&& event.x < x + width - metrics.whole(72)) {
+				if (event.x >= slotAt(metrics, METER)) {
+					session.choose(part);
+					sliding = at;
+					leaned(at, metrics, event.x);
+					return true;
+				}
+
+				if (slotHolds(metrics, PAN, event.x)) {
+					session.choose(part);
+					turned(at);
+					return true;
+				}
+
+				if (slotHolds(metrics, MUTE, event.x)) {
 					session.song.muted[at] = !session.song.muted[at];
 					session.changed();
 					invalidate();
 					return true;
 				}
 
-				if (event.x >= x + width - metrics.whole(72)
-						&& event.x < x + width - metrics.whole(48)) {
+				if (slotHolds(metrics, SOLO, event.x)) {
 					session.song.soloed[at] = !session.song.soloed[at];
 					session.changed();
 					invalidate();
@@ -122,12 +172,24 @@ final class ChannelRack extends Widget {
 				return true;
 
 			case Kind.PointerMove:
+				if (sliding >= 0) {
+					leaned(sliding, root.metrics, event.x);
+					return true;
+				}
+
 				final at = rowAt(event.y);
 				described(at, event.x, root.metrics);
 
 				if (at == hoverAt) return false;
 
 				hoverAt = at;
+				invalidate();
+				return true;
+
+			case Kind.PointerUp:
+				if (sliding < 0) return false;
+
+				sliding = -1;
 				invalidate();
 				return true;
 
@@ -244,14 +306,21 @@ final class ChannelRack extends Widget {
 		final muted = session.song.muted[at];
 		final soloed = session.song.soloed[at];
 
-		if (px >= x + width - metrics.whole(96) && px < x + width - metrics.whole(72)) {
+		if (part.fm() && slotHolds(metrics, PAN, px)) {
+			tip = translate(Locale.RACK_PAN) + " " + part.name();
+			chord = "";
+			detail = sided(session.song.pan[at]);
+			return;
+		}
+
+		if (slotHolds(metrics, MUTE, px)) {
 			tip = translate(muted ? Locale.RACK_UNMUTE : Locale.RACK_MUTE) + " " + part.name();
 			chord = "";
 			detail = "";
 			return;
 		}
 
-		if (px >= x + width - metrics.whole(72) && px < x + width - metrics.whole(48)) {
+		if (slotHolds(metrics, SOLO, px)) {
 			tip = translate(soloed ? Locale.RACK_UNSOLO : Locale.RACK_SOLO) + " " + part.name();
 			chord = translate(Locale.RACK_SOLO_CHORD);
 			detail = "";
@@ -308,12 +377,17 @@ final class ChannelRack extends Widget {
 			paint.roundedRect(x + metrics.inset, row + (tall - swatch) * 0.5, swatch, swatch,
 				metrics.radiusSmall, theme.part(index), quiet ? 0.25 : 1);
 
-			mark(paint, theme, metrics, x + width - metrics.whole(96), row, tall,
+			if (part.fm()) {
+				sides(paint, theme, metrics, slotAt(metrics, PAN), row, tall,
+					session.song.pan[index], theme.part(index), quiet);
+			}
+
+			mark(paint, theme, metrics, slotAt(metrics, MUTE), row, tall,
 				session.song.muted[index]);
-			mark(paint, theme, metrics, x + width - metrics.whole(72), row, tall,
+			mark(paint, theme, metrics, slotAt(metrics, SOLO), row, tall,
 				session.song.soloed[index]);
 
-			meter(paint, theme, metrics, x + width - metrics.whole(44), row, tall, index,
+			meter(paint, theme, metrics, slotAt(metrics, METER), row, tall, index,
 				theme.part(index));
 		}
 
@@ -326,9 +400,9 @@ final class ChannelRack extends Widget {
 			final line = row + (tall - small.height) * 0.5 + small.ascent;
 			final size = metrics.whole(18);
 
-			paint.textCentred("M", x + width - metrics.whole(96) + size * 0.5, line,
+			paint.textCentred("M", slotAt(metrics, MUTE) + size * 0.5, line,
 				session.song.muted[index] ? theme.ink : theme.dim);
-			paint.textCentred("S", x + width - metrics.whole(72) + size * 0.5, line,
+			paint.textCentred("S", slotAt(metrics, SOLO) + size * 0.5, line,
 				session.song.soloed[index] ? theme.ink : theme.dim);
 
 			final part:Part = index;
@@ -336,13 +410,11 @@ final class ChannelRack extends Widget {
 			if (said == "") continue;
 
 			final left = names + metrics.gap;
-			final room = x + width - metrics.whole(104) - left;
+			final room = slotAt(metrics, PAN) - metrics.gap - left;
 
 			if (room < metrics.whole(24)) continue;
 
-			paint.pushClip(left, row, room, tall);
-			paint.text(said, left, line, theme.dim, 0.95);
-			paint.popClip();
+			paint.text(shortened(paint, said, room), left, line, theme.dim, 0.95);
 		}
 
 		paint.reface(font);
@@ -381,6 +453,39 @@ final class ChannelRack extends Widget {
 		return most;
 	}
 
+	function sides(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
+			pan:Int, colour:Colour, quiet:Bool):Void {
+		final size = metrics.whole(MARK);
+		final top = row + (tall - size) * 0.5;
+
+		paint.roundedRect(at, top, size, size, metrics.radiusSmall, theme.raise1);
+
+		final pip = metrics.whole(4);
+		final deep = metrics.whole(10);
+		final gap = metrics.whole(3);
+		final middle = top + (size - deep) * 0.5;
+		final from = at + (size - pip * 2 - gap) * 0.5;
+
+		paint.roundedRect(from, middle, pip, deep, metrics.whole(2),
+			(pan & Song.LEFT) != 0 ? colour : theme.frame, quiet ? 0.4 : 1);
+
+		paint.roundedRect(from + pip + gap, middle, pip, deep, metrics.whole(2),
+			(pan & Song.RIGHT) != 0 ? colour : theme.frame, quiet ? 0.4 : 1);
+	}
+
+	static function shortened(paint:Paint, said:String, room:Float):String {
+		if (paint.measure(said) <= room) return said;
+
+		var held = said;
+
+		while (held.length > 0) {
+			held = held.substring(0, held.length - 1);
+			if (paint.measure(held + "...") <= room) return held + "...";
+		}
+
+		return "";
+	}
+
 	function mark(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
 			on:Bool):Void {
 		final size = metrics.whole(18);
@@ -394,16 +499,54 @@ final class ChannelRack extends Widget {
 
 	function meter(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
 			index:Int, colour:Colour):Void {
-		final wide = metrics.whole(32);
-		final high = metrics.whole(6);
+		final wide = faderWide(metrics);
+		final high = metrics.whole(10);
 		final top = row + (tall - high) * 0.5;
 
 		paint.roundedRect(at, top, wide, high, high * 0.5, theme.sink);
 
-		final level = levels[index];
-		if (level <= 0.002) return;
+		final want = session.song.volume[index] / Song.LOUDEST;
 
-		paint.roundedRect(at, top, wide, high, high * 0.5, colour, 1,
-			level > 1 ? 1 : level);
+		paint.roundedRect(at, top, wide, high, high * 0.5, colour,
+			session.song.audible(index) ? 0.4 : 0.15, want);
+
+		final level = levels[index];
+		final inset = metrics.whole(3);
+
+		if (level > 0.002) {
+			paint.roundedRect(at, top + inset, wide, high - inset * 2,
+				(high - inset * 2) * 0.5, colour, 1, level > 1 ? 1 : level);
+		}
+
+		final grip = metrics.whole(2);
+		final line = at + wide * want;
+
+		paint.rect(line - grip * 0.5, top, grip, high, theme.ink,
+			sliding == index ? 1 : 0.7);
+	}
+
+	inline function faderWide(metrics:Metrics):Float {
+		return metrics.whole(METER) - metrics.inset;
+	}
+
+	var sliding:Int = -1;
+
+	function leaned(index:Int, metrics:Metrics, px:Float):Void {
+		final room = faderWide(metrics);
+		if (room <= 0) return;
+
+		var much = (px - slotAt(metrics, METER)) / room;
+		if (much < 0) much = 0;
+		if (much > 1) much = 1;
+
+		final want = Math.round(much * Song.LOUDEST);
+		if (session.song.volume[index] == want) return;
+
+		session.song.volume[index] = want;
+
+		final part:Part = index;
+		session.say(part.name() + "  " + Math.round(want * 100 / Song.LOUDEST) + "%");
+		session.changed();
+		invalidate();
 	}
 }
