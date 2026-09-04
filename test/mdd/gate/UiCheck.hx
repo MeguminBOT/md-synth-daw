@@ -111,6 +111,7 @@ class UiCheck {
 		routing();
 		focusOrder();
 		capture();
+		asked();
 		editing();
 		numbers();
 		gestures();
@@ -234,6 +235,48 @@ class UiCheck {
 		final let = root.capture == null;
 
 		says("capture", took && held && let, "held across a drag that left the widget");
+	}
+
+	static function asked():Void {
+		final field = new Field("");
+		final number = new mdd.ui.control.Number("BPM", 120, 20, 400);
+
+		final root = shaped();
+
+		root.top.add(field);
+		root.top.add(number);
+
+		root.resize(400, 300);
+
+		var told:Array<Bool> = [];
+		root.onTyping = function(on:Bool):Void told.push(on);
+
+		root.focusOn(field);
+		field.typing = true;
+		root.advance(0.016);
+
+		final started = told.length == 1 && told[0];
+
+		field.typing = false;
+		root.focusOn(null);
+		root.advance(0.016);
+
+		final stopped = told.length == 2 && !told[1];
+
+		number.arrange(0, 0, 80, 30);
+		root.focusOn(number);
+
+		final press = new mdd.ui.Input();
+		press.pointer(Kind.PointerDown, 40, 15, Pointer.Left, Mod.None, 2);
+		number.took(press);
+
+		root.advance(0.016);
+
+		final again = told.length == 3 && told[2];
+
+		says("the host is told when a widget wants characters", started && stopped && again,
+			"a field asked for text and gave it back, and a double click on a number asked "
+			+ "again, " + told.length + " changes in all");
 	}
 
 	static function editing():Void {

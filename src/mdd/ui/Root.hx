@@ -15,6 +15,9 @@ final class Root {
 	public var flow:Flow = Flow.Full;
 
 	public var onChord:Null<(Key, Mod) -> Bool> = null;
+	public var onTyping:Null<Bool -> Void> = null;
+
+	var typingNow:Bool = false;
 
 	public var focus(default, null):Null<Widget> = null;
 	public var capture(default, null):Null<Widget> = null;
@@ -102,6 +105,8 @@ final class Root {
 
 	public function advance(seconds:Float):Bool {
 		var moved = false;
+
+		reports();
 
 		if (running.length > 0) {
 			final many = running.length;
@@ -594,6 +599,14 @@ final class Root {
 		if (typed() && (mods & (Mod.Ctrl | Mod.Alt)) == 0) return false;
 
 		return onChord(code, mods);
+	}
+
+	public function reports():Void {
+		final want = typed();
+		if (want == typingNow) return;
+
+		typingNow = want;
+		if (onTyping != null) onTyping(want);
 	}
 
 	public inline function typed():Bool {

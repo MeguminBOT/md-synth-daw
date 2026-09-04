@@ -210,6 +210,11 @@ class App {
 
 		stage.root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
 
+		stage.root.onTyping = function(on:Bool):Void {
+			if (on) Sdl.startTextInput(stage.window);
+			else Sdl.stopTextInput(stage.window);
+		};
+
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
 		session.say(stage.root.translate(Locale.READY));
 
