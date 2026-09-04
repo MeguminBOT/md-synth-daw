@@ -491,6 +491,23 @@ class AutomationCheck {
 		final noise = mdd.view.Parameter.of(Part.Noise).length;
 		final sampled = mdd.view.Parameter.of(Part.Dac).length;
 
+		var lanes = 0;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+
+			for (one in mdd.view.Parameter.of(part)) {
+				if (!one.smooth) continue;
+				lanes += one.operators ? 4 : 1;
+			}
+		}
+
+		says("and only so many of them can ramp at once",
+			lanes < mdd.play.Driver.PER_FRAME,
+			lanes + " lanes across the whole machine can carry a shape, so continuous"
+			+ " automation costs at most " + lanes + " register writes a frame, against the "
+			+ mdd.play.Driver.PER_FRAME + " a driver has");
+
 		says("every part says what can be automated on it",
 			fm == 10 && square == 2 && noise == 2 && sampled == 1 && packed == 44,
 			many + " parameters over the eleven parts: " + fm + " on an fm channel, "
