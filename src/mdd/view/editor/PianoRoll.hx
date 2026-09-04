@@ -96,6 +96,8 @@ final class PianoRoll extends Widget {
 	}
 
 	override function layout():Void {
+		stack.settles();
+
 		final tall = stack.wants();
 
 		stack.perTick = perTick;
@@ -128,6 +130,13 @@ final class PianoRoll extends Widget {
 		if (row >= 0) {
 			menu.divide();
 
+			final lift = menu.offer(new Choice(translate(Locale.LANE_LIFT)));
+
+			lift.enabled = stack.carries(stack.targetOf(row), stack.slotOf(row)) > 0;
+			if (!lift.enabled) lift.reason = translate(Locale.LANE_EMPTY);
+
+			fires(lift, function():Void lifted(row));
+
 			fires(menu.offer(new Choice(translate(Locale.LANE_DROP))), function():Void
 				stack.hide(row));
 		}
@@ -136,7 +145,11 @@ final class PianoRoll extends Widget {
 	}
 
 	function choice(into:Menu, held:Parameter, target:Int, slot:Int, row:Int):Void {
-		final one = into.offer(new Choice(held.titled(slot)));
+		final many = stack.carries(target, slot);
+
+		final one = into.offer(new Choice(held.titled(slot),
+			many == 0 ? "" : "" + many));
+
 		one.reason = translate(held.about);
 
 		if (row < 0 && session.automating == Session.LANES && stack.shows(target, slot)) {
@@ -159,6 +172,20 @@ final class PianoRoll extends Widget {
 			stack.show(target, slot);
 			relayout();
 		});
+	}
+
+	function lifted(row:Int):Void {
+		final target = stack.targetOf(row);
+		final slot = stack.slotOf(row);
+
+		session.does(new mdd.song.edit.LiftAutomation(session.pattern, session.part,
+			target, slot));
+
+		stack.hide(row);
+
+		final held = Parameter.found(session.part, target, slot);
+		session.say(translate(Locale.LANE_LIFTED) + "  "
+			+ (held == null ? "" : held.titled(slot)));
 	}
 
 	function shaped(point:mdd.song.Point, px:Float, py:Float):Void {

@@ -137,6 +137,67 @@ final class Lanes extends Widget {
 		invalidate();
 	}
 
+	public static inline final OPENS = 3;
+
+	var filledFor:Int = -1;
+
+	public function settles():Void {
+		if (holding != null) return;
+
+		final key = session.part.index() * 4096 + session.pattern;
+		if (key == filledFor) return;
+
+		filledFor = key;
+		fills(false);
+	}
+
+	public function fills(again:Bool = true):Void {
+		if (holding != null) return;
+
+		final pattern = session.current();
+
+		targets.resize(0);
+		chosen = null;
+		chosenAt = -1;
+
+		if (pattern == null) {
+			if (again) relayout();
+			return;
+		}
+
+		final lane = pattern.lane(session.part);
+
+		while (targets.length < OPENS) {
+			var best:Null<Automation> = null;
+			var most = 0;
+
+			for (line in lane.automation) {
+				if (line.points.length <= most) continue;
+				if (Parameter.found(session.part, line.target, line.slot) == null) continue;
+				if (shows(line.target, line.slot)) continue;
+
+				best = line;
+				most = line.points.length;
+			}
+
+			if (best == null) break;
+			targets.push((best.target << 8) | best.slot);
+		}
+
+		if (again) relayout();
+	}
+
+	public function carries(target:Int, slot:Int):Int {
+		final pattern = session.current();
+		if (pattern == null) return 0;
+
+		for (line in pattern.lane(session.part).automation) {
+			if (line.held(target, slot)) return line.points.length;
+		}
+
+		return 0;
+	}
+
 	public function rowAt(py:Float):Int {
 		final tall = rowHeight();
 		if (tall <= 0) return -1;

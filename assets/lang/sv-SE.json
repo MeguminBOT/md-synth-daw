@@ -87,6 +87,8 @@
   "param.converter": "Om omvandlaren låter",
   "param.packed": "Det här registret bär mer än en inställning, så en punkt håller sitt värde till nästa",
   "lane.drop": "Ta bort det här spåret",
+  "lane.lift": "Flytta till spellistan",
+  "lane.lifted": "flyttad till spellistan",
   "track.automate": "Automatisera",
   "automation.pattern": "i det här mönstret",
   "automation.clip": "ett klipp i spellistan",

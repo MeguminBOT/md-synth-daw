@@ -550,10 +550,80 @@ class AutomationCheck {
 			}
 		}
 
+		lifted();
+
 		says("and covers everything an import writes", lines > 0 && known == lines,
 			known + " of " + lines + " automation lines an imported file makes have a"
 			+ " parameter that names them"
 			+ (missing.toString() == "" ? "" : ", missing " + missing.toString()));
+	}
+
+	static function lifted():Void {
+		final where = Gate.root + "/vendor/vgm";
+		if (!sys.FileSystem.isDirectory(where)) return;
+
+		var name = "";
+		for (held in sys.FileSystem.readDirectory(where)) {
+			if (held.indexOf("Green Hill") >= 0) name = held;
+		}
+
+		if (name == "") return;
+
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		var which = -1;
+		var found:Null<Automation> = null;
+
+		for (index in 0...song.patterns.length) {
+			if (found != null) break;
+
+			for (line in song.patterns[index].lane(Part.Fm1).automation) {
+				if (line.target != Automation.LEVEL || line.points.length < 4) continue;
+
+				which = index;
+				found = line;
+				break;
+			}
+		}
+
+		if (found == null || which < 0) return;
+
+		final span = mdd.song.Tempo.TICKS * 8;
+
+		final before = new mdd.play.Stream(1 << 22);
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+			.spanned(before, 0, span);
+
+		final tracks = song.tracks.length;
+		final many = found.points.length;
+
+		final lift = new mdd.song.edit.LiftAutomation(which, Part.Fm1, found.target,
+			found.slot);
+
+		lift.apply(song);
+
+		final after = new mdd.play.Stream(1 << 22);
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+			.spanned(after, 0, span);
+
+		says("an imported curve can move to the playlist and sound the same",
+			song.tracks.length == tracks + 1 && after.count == before.count,
+			"a level curve of " + many + " points moved off pattern " + which
+			+ " onto a track of its own, and eight seconds writes " + after.count
+			+ " registers against " + before.count + " before it moved");
+
+		lift.revert(song);
+
+		final back = new mdd.play.Stream(1 << 22);
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+			.spanned(back, 0, span);
+
+		says("and moving it back undoes cleanly",
+			song.tracks.length == tracks && back.count == before.count,
+			song.tracks.length + " tracks again and " + back.count
+			+ " registers, which is where it started");
 	}
 
 	static function kept():Void {
