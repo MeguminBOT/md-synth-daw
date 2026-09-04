@@ -101,7 +101,7 @@ final class Inspector extends Widget {
 		final root = root();
 		if (root == null) return;
 
-		tabs.labels[0] = translate(Locale.PANEL_CHANNEL);
+		tabs.labels[0] = translate(Locale.PANEL_SYNTH);
 		tabs.labels[1] = translate(Locale.PANEL_PRESETS);
 	}
 

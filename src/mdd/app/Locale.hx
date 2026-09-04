@@ -355,7 +355,7 @@ class Locale {
 
 	public static inline final PANEL_RACK = "panel.rack";
 	public static inline final PANEL_SAMPLES = "panel.samples";
-	public static inline final PANEL_CHANNEL = "panel.channel";
+	public static inline final PANEL_SYNTH = "panel.synth";
 	public static inline final PANEL_SCOPE = "panel.scope";
 	public static inline final PANEL_PRESETS = "panel.presets";
 	public static inline final PANEL_NO_PRESETS = "panel.noPresets";
@@ -459,7 +459,7 @@ class Locale {
 		TRANSPORT_REWIND, TRANSPORT_PATTERN, TRANSPORT_SONG, TRANSPORT_TEMPO,
 		TRANSPORT_RESOLUTION, TRANSPORT_LENGTH, TRANSPORT_VIDEO, TRANSPORT_SNAP,
 		TRANSPORT_BARS,
-		PANEL_RACK, PANEL_SAMPLES, PANEL_CHANNEL, PANEL_SCOPE, PANEL_PRESETS,
+		PANEL_RACK, PANEL_SAMPLES, PANEL_SYNTH, PANEL_SCOPE, PANEL_PRESETS,
 		PANEL_NO_PRESETS, PANEL_NOT_FM, PANEL_NOT_SQUARE, PANEL_ENVELOPE, PANEL_NO_WARNINGS,
 		PSG_NO_LOOP,
 		PSG_STEPS,
