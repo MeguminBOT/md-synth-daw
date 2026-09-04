@@ -255,6 +255,54 @@ class SpineCheck {
 		tree.top.arrange(0, 0, tree.width, tree.height);
 	}
 
+	static function leaned(stack:mdd.view.editor.Lanes, from:Float, to:Float,
+			fine:Bool):Int {
+		final at = stack.atTick(0) + stack.width * 0.25;
+		final mods = fine ? mdd.ui.Mod.Ctrl : mdd.ui.Mod.None;
+
+		final press = new mdd.ui.Input();
+		press.pointer(mdd.ui.Kind.PointerDown, at, from, mdd.ui.Pointer.Left, mods);
+		stack.took(press);
+
+		final was = stack.chosen == null ? 0 : stack.chosen.value;
+
+		final move = new mdd.ui.Input();
+		move.pointer(mdd.ui.Kind.PointerMove, at, to, mdd.ui.Pointer.Left, mods);
+		stack.took(move);
+
+		final now = stack.chosen == null ? was : stack.chosen.value;
+
+		final lift = new mdd.ui.Input();
+		lift.pointer(mdd.ui.Kind.PointerUp, at, to, mdd.ui.Pointer.Left, mods);
+		stack.took(lift);
+
+		return now - was;
+	}
+
+	static function fined(tree:Root, roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+
+		laid(tree);
+
+		final top = stack.plotTop(0) + stack.plotTall(0) * 0.2;
+		final coarse = leaned(stack, top, top + 40, false);
+
+		roll.session.undo();
+		laid(tree);
+
+		final fine = leaned(stack, top, top + 40, true);
+
+		roll.session.undo();
+		laid(tree);
+
+		final want = Math.abs(coarse) * 0.125;
+		final off = Math.abs(Math.abs(fine) - want);
+
+		says("holding ctrl moves a point finely", coarse != 0 && off <= 2,
+			"40 px moved the value " + coarse + " normally and " + fine
+			+ " with ctrl held, against an eighth of " + Math.round(want));
+	}
+
 	static function pointed(tree:Root, session:mdd.app.Session,
 			roll:mdd.view.editor.PianoRoll):Void {
 		final stack = roll.stack;
@@ -336,6 +384,8 @@ class SpineCheck {
 			"dragging the stack up 30 made the lane " + Math.round(now) + " px from "
 			+ Math.round(was) + ", and the roll " + Math.round(after) + " from "
 			+ Math.round(grid));
+
+		fined(tree, roll);
 
 		final back = new mdd.ui.Input();
 		back.pointer(mdd.ui.Kind.PointerDown, stack.x + stack.width * 0.5, stack.y,

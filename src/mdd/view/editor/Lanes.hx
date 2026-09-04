@@ -27,8 +27,11 @@ final class Lanes extends Widget {
 	public static inline final MOST_ROW = 220;
 	public static inline final ROW = 92;
 
-	public static inline final REACH = 5;
+	public static inline final REACH = 8;
+	public static inline final KNOB = 5;
 	public static inline final TRACE = 512;
+
+	static inline final FINE = 0.125;
 
 	public final session:Session;
 
@@ -68,6 +71,15 @@ final class Lanes extends Widget {
 	var bentWas:Int = 0;
 	var wasAt:Int = 0;
 	var wasValue:Int = 0;
+
+	var fining:Bool = false;
+	var fineX:Float = 0;
+	var fineY:Float = 0;
+	var fineAt:Int = 0;
+	var fineValue:Int = 0;
+
+	var overSegment:Int = -1;
+	var overSegmentAt:Int = -1;
 
 	final trace:Vector<Float> = new Vector<Float>(TRACE * 2);
 
@@ -578,6 +590,20 @@ final class Lanes extends Widget {
 		return found;
 	}
 
+	public function segmentAt(row:Int, px:Float):Int {
+		final line = lineOf(row);
+		if (line == null || line.points.length < 2) return -1;
+
+		for (index in 0...line.points.length - 1) {
+			if (!Automation.moves(line.points[index].shape)) continue;
+
+			if (px >= atTick(line.points[index].at)
+				&& px < atTick(line.points[index + 1].at)) return index;
+		}
+
+		return -1;
+	}
+
 	public function bendAt(row:Int, px:Float, py:Float):Int {
 		final line = lineOf(row);
 		if (line == null || line.points.length < 2) return -1;
@@ -617,6 +643,7 @@ final class Lanes extends Widget {
 				dragging = null;
 				bending = -1;
 				sizing = -1;
+				fining = false;
 				return true;
 
 			case Kind.KeyDown:
@@ -681,6 +708,8 @@ final class Lanes extends Widget {
 			wasAt = point.at;
 			wasValue = point.value;
 
+			anchors(event, point);
+
 			relayout();
 			return true;
 		}
@@ -701,11 +730,11 @@ final class Lanes extends Widget {
 			return true;
 		}
 
-		added(row, event.x, event.y);
+		added(event, row, event.x, event.y);
 		return true;
 	}
 
-	function added(row:Int, px:Float, py:Float):Void {
+	function added(event:Input, row:Int, px:Float, py:Float):Void {
 		final held = parameterOf(row);
 		if (held == null) return;
 		if (holding == null && session.current() == null) return;
@@ -731,7 +760,17 @@ final class Lanes extends Widget {
 		wasValue = point.value;
 
 		session.say(held.titled(slotted(row)) + "  " + held.said(point.value));
+
+		anchors(event, point);
 		relayout();
+	}
+
+	function anchors(event:Input, point:Point):Void {
+		fining = event.ctrl();
+		fineX = event.x;
+		fineY = event.y;
+		fineAt = point.at;
+		fineValue = point.value;
 	}
 
 	function erased():Bool {
@@ -759,10 +798,26 @@ final class Lanes extends Widget {
 			final held = parameterOf(draggingAt);
 			if (held == null) return true;
 
-			var tick = session.snapped(tickAt(event.x));
+			final fine = event.ctrl();
+
+			if (fine != fining) {
+				fining = fine;
+				fineX = event.x;
+				fineY = event.y;
+				fineAt = dragging.at;
+				fineValue = dragging.value;
+			}
+
+			var tick = fine
+				? tickAt(atTick(fineAt) + (event.x - fineX) * FINE)
+				: session.snapped(tickAt(event.x));
+
 			if (tick < 0) tick = 0;
 
-			final value = valueAt(draggingAt, event.y);
+			final value = fine
+				? valueAt(draggingAt, atValue(draggingAt, fineValue) + (event.y - fineY) * FINE)
+				: valueAt(draggingAt, event.y);
+
 			if (tick == dragging.at && value == dragging.value) return true;
 
 			dragging.at = wasAt;
@@ -780,6 +835,9 @@ final class Lanes extends Widget {
 		final foot = onFoot(event.x, event.y);
 		final grip = edgeAt(event.x, event.y);
 
+		final segment = row < 0 || event.y < rowTop(row) + headTall() ? -1
+			: segmentAt(row, event.x);
+
 		final name = row >= 0 && event.y < rowTop(row) + headTall()
 			&& onName(row, event.x);
 
@@ -787,7 +845,11 @@ final class Lanes extends Widget {
 			&& onShed(row, event.x);
 
 		if (row == hoverRow && name == hoverName && shed == hoverShed
-			&& foot == hoverFoot && grip == hoverEdge) return false;
+			&& foot == hoverFoot && grip == hoverEdge && segment == overSegment
+			&& row == overSegmentAt) return false;
+
+		overSegment = segment;
+		overSegmentAt = row;
 
 		hoverRow = row;
 		hoverName = name;
@@ -826,6 +888,8 @@ final class Lanes extends Widget {
 			hoverShed = false;
 			hoverFoot = false;
 			hoverEdge = -1;
+			overSegment = -1;
+			overSegmentAt = -1;
 		}
 
 		super.hovered(on);
@@ -1083,7 +1147,7 @@ final class Lanes extends Widget {
 		if (line == null || line.points.length == 0) return;
 
 		final hair = metrics.whole(2);
-		final knob = metrics.whole(4);
+		final knob = metrics.whole(KNOB);
 
 		for (index in 0...line.points.length - 1) {
 			final from = line.points[index];
@@ -1115,12 +1179,18 @@ final class Lanes extends Widget {
 				trace[step * 2 + 1] = atValue(row, Automation.between(from, to, tick));
 			}
 
-			paint.polyline(trace, many, hair, colour, 0.9);
+			final lit = row == overSegmentAt && index == overSegment;
+
+			paint.polyline(trace, many, lit ? hair + metrics.whole(1) : hair, colour,
+				lit ? 1 : 0.9);
+
+			if (!lit) continue;
 
 			final middle = Std.int((from.at + to.at) / 2);
+			final level = atValue(row, Automation.between(from, to, middle));
 
-			paint.ring(atTick(middle), atValue(row, Automation.between(from, to, middle)),
-				knob * 0.6, metrics.whole(1), colour, 0.55);
+			paint.circle(atTick(middle), level, knob * 0.8, theme.bar);
+			paint.ring(atTick(middle), level, knob * 0.8, metrics.whole(2), colour, 0.95);
 		}
 
 		final last = line.points[line.points.length - 1];
