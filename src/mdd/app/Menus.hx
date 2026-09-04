@@ -22,6 +22,7 @@ final class Menus {
 	public var onQuit:Null<Void -> Void> = null;
 	public var onUndo:Null<Void -> Void> = null;
 	public var onRedo:Null<Void -> Void> = null;
+	public var onRelabel:Null<Void -> Void> = null;
 
 	final stage:Stage;
 	final panels:Panels;
@@ -244,6 +245,24 @@ final class Menus {
 			panels.centre.tools.press(Tools.SNAP));
 		fired(held.offer(new Choice(said(Locale.TOOL_GHOSTS))), function():Void
 			panels.centre.tools.press(Tools.GHOSTS));
+
+		held.divide();
+
+		final driving = held.offer(new Choice(said(session.song.driving
+			? Locale.VIEW_UNDRIVEN : Locale.VIEW_DRIVEN)));
+
+		driving.reason = said(Locale.VIEW_DRIVEN_WHY);
+
+		fired(driving, function():Void {
+			session.song.driving = !session.song.driving;
+			session.transport.silence();
+
+			session.say(said(session.song.driving ? Locale.VIEW_DRIVEN_ON
+				: Locale.VIEW_DRIVEN_OFF));
+
+			session.changed();
+			if (onRelabel != null) onRelabel();
+		});
 
 		return held;
 	}

@@ -73,6 +73,10 @@ final class Sequencer {
 		return made;
 	}
 
+	public final driver:Driver = new Driver();
+
+	var paced:Null<Stream> = null;
+
 	public function emit(stream:Stream, fromSample:Int, toSample:Int):Int {
 		count = 0;
 		dropped = 0;
@@ -83,7 +87,22 @@ final class Sequencer {
 
 		gather(fromSample, toSample);
 		sort();
-		play(stream);
+
+		driver.on = song.driving;
+		driver.rate = song.tempo.rate;
+
+		if (!driver.on) {
+			play(stream);
+			return count;
+		}
+
+		if (paced == null) paced = new Stream(capacity * 4);
+
+		final scratch = paced;
+		scratch.clear();
+
+		play(scratch);
+		driver.paces(scratch, stream, toSample);
 
 		return count;
 	}
@@ -563,6 +582,9 @@ final class Sequencer {
 	public function prime(stream:Stream, fromSample:Int):Void {
 		count = 0;
 		dropped = 0;
+
+		driver.forget();
+		if (paced != null) paced.forget();
 
 		push(fromSample, Part.Fm1, SETUP,
 			(song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);

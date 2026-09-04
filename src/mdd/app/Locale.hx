@@ -98,6 +98,11 @@ class Locale {
 	public static inline final AUTOMATING_LANES = "automating.lanes";
 	public static inline final AUTOMATING_CLIPS = "automating.clips";
 	public static inline final AUTOMATING_ASK = "automating.ask";
+	public static inline final VIEW_DRIVEN = "view.driven";
+	public static inline final VIEW_UNDRIVEN = "view.undriven";
+	public static inline final VIEW_DRIVEN_WHY = "view.drivenWhy";
+	public static inline final VIEW_DRIVEN_ON = "view.drivenOn";
+	public static inline final VIEW_DRIVEN_OFF = "view.drivenOff";
 
 	public static inline final SHAPE_HOLD = "shape.hold";
 	public static inline final SHAPE_LINEAR = "shape.linear";
@@ -386,6 +391,7 @@ class Locale {
 		PARAM_LOOP, PARAM_WIRING, PARAM_NOISE, PARAM_CONVERTER, PARAM_PACKED, LANE_DROP,
 		TRACK_AUTOMATE, AUTOMATION_PATTERN, AUTOMATION_CLIP, VIEW_AUTOMATION,
 		PREFERENCE_AUTOMATING, AUTOMATING_LANES, AUTOMATING_CLIPS, AUTOMATING_ASK,
+		VIEW_DRIVEN, VIEW_UNDRIVEN, VIEW_DRIVEN_WHY, VIEW_DRIVEN_ON, VIEW_DRIVEN_OFF,
 		SHAPE_HOLD, SHAPE_LINEAR, SHAPE_CURVE, SHAPE_SMOOTH, SHAPE_STAIRS,
 		SHAPE_SMOOTH_STAIRS, SHAPE_PULSE, SHAPE_WAVE, SHAPE_HALF_SINE,
 		REGISTERS_NOTHING, REGISTERS_FOLLOWING, REGISTERS_HELD, REGISTERS_DATA,

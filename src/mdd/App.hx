@@ -203,6 +203,7 @@ class App {
 		menus.onAsk = function(which:Int):Void files.ask(stage.window, which);
 		menus.onSave = function():Void keeping();
 		menus.onQuit = function():Void running = false;
+		menus.onRelabel = function():Void relabel();
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
 		menus.dress(session);

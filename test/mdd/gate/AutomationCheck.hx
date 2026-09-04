@@ -30,6 +30,7 @@ class AutomationCheck {
 		repeated();
 		played();
 		clipped();
+		driven();
 		named();
 		kept();
 
@@ -312,6 +313,161 @@ class AutomationCheck {
 			straight.length > held.length && rises,
 			"the same clip drawn linear writes " + straight.length
 			+ " attenuations against " + held.length + " held, each quieter than the last");
+	}
+
+	static function busy(driving:Bool, ceiling:Int = 0):mdd.play.Stream {
+		final song = new Song("busy", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 4));
+
+		song.driving = driving;
+
+		for (index in 0...6) {
+			final part:Part = index;
+			final lane = pattern.lane(part);
+
+			var at = 0;
+
+			while (at < SPAN * 4) {
+				lane.add(new mdd.song.Note(at, 6, 60 + (at % 12), 100));
+				at += 6;
+			}
+
+			for (slot in 0...4) {
+				final line = new Automation(Automation.LEVEL, slot);
+				final from = new Point(0, 0);
+
+				from.shape = Automation.WAVE;
+				from.steps = 200;
+
+				line.add(from);
+				line.add(new Point(SPAN * 4, 60));
+				lane.automation.push(line);
+			}
+		}
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 20);
+		final sequencer = new mdd.play.Sequencer(song);
+
+		if (ceiling > 0) sequencer.driver.perFrame = ceiling;
+
+		sequencer.spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		lastDriver = sequencer.driver;
+		return stream;
+	}
+
+	static var lastDriver:Null<mdd.play.Driver> = null;
+
+	static function busiest(stream:mdd.play.Stream):Int {
+		final frame = Std.int(mdd.song.Tempo.TICKS / 60);
+
+		var most = 0;
+		var at = 0;
+		var index = 0;
+		var which = 0;
+
+		while (index < stream.count) {
+			var many = 0;
+
+			while (index < stream.count && stream.tickAt(index) < at + frame) {
+				if ((stream.portAt(index) & 1) != 0
+					|| stream.kindAt(index) == mdd.play.Stream.PSG) many++;
+
+				index++;
+			}
+
+			if (many > most && which > 0) most = many;
+
+			at += frame;
+			which++;
+		}
+
+		return most;
+	}
+
+	static inline final TIGHT = 24;
+
+	static function driven():Void {
+		final loose = busy(false);
+		final held = busy(true);
+
+		final quiet = lastDriver;
+		final wasSpilled = quiet == null ? -1 : quiet.spilled;
+		final wasLost = quiet == null ? -1 : quiet.lost;
+
+		final tight = busy(true, TIGHT);
+		final pressed = lastDriver;
+
+		final was = busiest(loose);
+		final kept = busiest(held);
+		final now = busiest(tight);
+
+		says("the driver is inert until a frame is too busy",
+			held.count == loose.count && kept == was && wasSpilled == 0 && wasLost == 0,
+			"a song with a note every six ticks on all six fm channels and a wave over"
+			+ " every operator writes " + loose.count + " registers, busiest frame " + was
+			+ ", and the driver at its own ceiling of " + mdd.play.Driver.PER_FRAME
+			+ " moves " + wasSpilled + " of them and loses " + wasLost);
+
+		says("and holds a frame to its ceiling when one is",
+			now <= TIGHT && was > TIGHT && ordered(tight),
+			"the same song against a ceiling of " + TIGHT + " writes at most " + now
+			+ " in a frame where it wanted " + was + ", counting past the opening frame a"
+			+ " driver has to itself, and still in the order the chip has to see them in");
+
+		final where = Gate.root + "/vendor/vgm";
+
+		if (sys.FileSystem.isDirectory(where)) {
+			var name = "";
+			for (found in sys.FileSystem.readDirectory(where)) {
+				if (found.indexOf("Green Hill") >= 0) name = found;
+			}
+
+			if (name != "") {
+				final source = new mdd.play.Stream(1 << 22);
+				final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+					source);
+
+				final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+				final span = mdd.song.Tempo.TICKS * 30;
+
+				final off = new mdd.play.Stream(1 << 22);
+				new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2)
+					.spanned(off, 0, span);
+
+				song.driving = true;
+
+				final led = new mdd.play.Stream(1 << 22);
+				final one = new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK * 2);
+				one.spanned(led, 0, span);
+
+				says("and a real file is unchanged by it",
+					off.count == led.count && one.driver.spilled == 0
+					&& one.driver.lost == 0,
+					"thirty seconds of " + name + " writes " + off.count
+					+ " registers without the driver and " + led.count + " with it, "
+					+ one.driver.spilled + " of them late and " + one.driver.lost
+					+ " lost, because a real driver made the file in the first place");
+			}
+		}
+
+		says("and says what a driver could not keep up with",
+			pressed != null && pressed.spilled > 0 && pressed.lost > 0,
+			"at a ceiling a quarter of what the song asks for, "
+			+ (pressed == null ? 0 : pressed.spilled) + " writes arrive late and "
+			+ (pressed == null ? 0 : pressed.lost)
+			+ " never arrive, which is counted rather than passed over quietly");
+	}
+
+	static function ordered(stream:mdd.play.Stream):Bool {
+		for (index in 1...stream.count) {
+			if (stream.tickAt(index) < stream.tickAt(index - 1)) return false;
+		}
+
+		return true;
 	}
 
 	static function named():Void {

@@ -49,6 +49,9 @@ class Project {
 		out.key("mode");
 		out.whole(song.mode);
 
+		out.key("driving");
+		out.flag(song.driving);
+
 		out.key("stall");
 		out.list();
 		out.whole(song.stallAt);
@@ -368,6 +371,7 @@ class Project {
 		song.mode = node.get("mode").whole(0);
 
 		final stall = node.get("stall");
+		song.driving = node.get("driving").truth(false);
 		song.stallAt = stall.at(0).whole(-1);
 		song.stallFor = stall.at(1).whole(0);
 		song.stallEvery = stall.at(2).real(735);

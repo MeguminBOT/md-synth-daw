@@ -10,6 +10,7 @@ final class Song {
 	public var lfoOn:Bool = false;
 	public var lfoRate:Int = 0;
 	public var mode:Int = 0;
+	public var driving:Bool = false;
 
 	public var stallAt:Int = -1;
 	public var stallFor:Int = 0;
@@ -129,6 +130,7 @@ final class Song {
 		out.stallEvery = stallEvery;
 		out.lfoRate = lfoRate;
 		out.mode = mode;
+		out.driving = driving;
 		out.tempo.rate = tempo.rate;
 
 		for (i in 1...tempo.at.length) out.tempo.set(tempo.at[i], tempo.bpm[i]);
