@@ -263,7 +263,45 @@ final class AutomationEditor extends Widget {
 		relayout();
 	}
 
+	public inline function tickAt(px:Float):Int {
+		return Math.round((px - x - gutter() + offsetX) / perTick);
+	}
+
+	public function scrubbed(px:Float):Void {
+		final tick = session.snapped(tickAt(px));
+		final want = tick < 0 ? 0 : tick;
+
+		final at = holding == null ? want : holding.at + want;
+
+		session.transport.seek(session.song.tempo.samplesAt(at));
+		playhead = at;
+
+		invalidate();
+	}
+
+	function onRuler(px:Float, py:Float):Bool {
+		return py >= y + head() && py < y + head() + ruler() && px >= x + gutter();
+	}
+
+	var scrubbing:Bool = false;
+
 	override function took(event:Input):Bool {
+		if (event.kind == Kind.PointerMove && scrubbing) {
+			scrubbed(event.x);
+			return true;
+		}
+
+		if (event.kind == Kind.PointerUp && scrubbing) {
+			scrubbing = false;
+			return true;
+		}
+
+		if (event.kind == Kind.PointerDown && onRuler(event.x, event.y)) {
+			scrubbing = true;
+			scrubbed(event.x);
+			return true;
+		}
+
 		if (event.kind == Kind.Wheel) {
 			if (event.ctrl() || event.alt()) {
 				zoom(event.dy > 0 ? 1.25 : 0.8, event.x);

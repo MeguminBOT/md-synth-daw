@@ -2,6 +2,7 @@ package mdd.view;
 
 import mdd.app.Locale;
 import mdd.app.Session;
+import mdd.view.Tools;
 import mdd.ui.Paint;
 import mdd.ui.control.Tabs;
 import mdd.ui.Widget;
@@ -42,6 +43,7 @@ final class Centre extends Widget {
 
 		tabs = new Tabs(["", "", "", "", "", "", ""]);
 		tools = new Tools(session);
+		tools.allowed = ALLOWS[PLAYLIST];
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
 		tracker = new Tracker(session);
@@ -70,10 +72,23 @@ final class Centre extends Widget {
 		tabs.onChoose = function(which:Int):Void show(which);
 	}
 
+	static final ALLOWS:Array<Int> = [
+		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
+			| (1 << Session.SLICE) | (1 << Session.PAN) | (1 << Tools.SNAP),
+		Tools.EVERY,
+		1 << Tools.SNAP,
+		0,
+		0,
+		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
+			| (1 << Session.PAN) | (1 << Tools.SNAP),
+		0
+	];
+
 	public function show(which:Int):Void {
 		if (which < 0 || which >= TABS || which == showing) return;
 
 		showing = which;
+		tools.allowed = ALLOWS[which];
 		tabs.select(which);
 		playlist.visible = which == PLAYLIST;
 		roll.visible = which == ROLL;
@@ -97,6 +112,8 @@ final class Centre extends Widget {
 		tools.room = width * 0.45;
 
 		final room = tools.wide();
+
+		tools.visible = room > 0;
 
 		tabs.arrange(x, y, width - room, tall);
 		tools.arrange(x + width - room, y, room, tall);
@@ -148,7 +165,7 @@ final class Centre extends Widget {
 		named();
 
 		tabs.paint(paint);
-		tools.paint(paint);
+		if (tools.visible) tools.paint(paint);
 
 		if (roll.visible) roll.paint(paint);
 		if (scope.visible) scope.paint(paint);

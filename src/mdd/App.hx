@@ -649,6 +649,22 @@ class App {
 			return true;
 		}
 
+		if (!ctrl && !shift && (mods & Mod.Alt) == 0) {
+			final tools = panels.centre == null ? null : panels.centre.tools;
+
+			if (tools != null && tools.visible) {
+				for (index in 0...mdd.view.Tools.KEYS.length) {
+					if (code != mdd.view.Tools.KEYS[index]) continue;
+					if ((tools.allowed & (1 << index)) == 0) continue;
+
+					tools.press(index);
+					tools.invalidate();
+
+					return true;
+				}
+			}
+		}
+
 		if (!ctrl) return false;
 
 		switch (code) {

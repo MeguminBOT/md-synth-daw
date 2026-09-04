@@ -158,8 +158,7 @@ class ShotCheck {
 				"Save this channel as a preset", "Bank"],
 			["Read a vgm", "Read a midi file", "Read a wav"],
 			["Write a vgm|Ctrl+E", "Render a wav", "Write a midi file"],
-			["Piano roll", "Scope", "Tracker", "Playlist", "Registers", "-", "Patterns",
-				"Warnings", "-", "Snap to the grid", "Show other channels"],
+			["Play through a driver"],
 			["About", "Source"]
 		];
 

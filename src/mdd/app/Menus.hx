@@ -217,28 +217,6 @@ final class Menus {
 	function viewMenu():Menu {
 		final held = new Menu();
 
-		fired(held.offer(new Choice(said(Locale.VIEW_ROLL))), function():Void
-			panels.centre.show(Centre.ROLL));
-		fired(held.offer(new Choice(said(Locale.VIEW_SCOPE))), function():Void
-			panels.centre.show(Centre.SCOPE));
-		fired(held.offer(new Choice(said(Locale.VIEW_TRACKER))), function():Void
-			panels.centre.show(Centre.TRACKER));
-		fired(held.offer(new Choice(said(Locale.VIEW_PLAYLIST))), function():Void
-			panels.centre.show(Centre.PLAYLIST));
-		fired(held.offer(new Choice(said(Locale.VIEW_REGISTERS))), function():Void
-			panels.centre.show(Centre.REGISTERS));
-		fired(held.offer(new Choice(said(Locale.VIEW_WARNINGS))), function():Void
-			panels.centre.show(Centre.WARNINGS));
-
-		held.divide();
-
-		fired(held.offer(new Choice(said(Locale.TOOL_SNAP))), function():Void
-			panels.centre.tools.press(Tools.SNAP));
-		fired(held.offer(new Choice(said(Locale.TOOL_GHOSTS))), function():Void
-			panels.centre.tools.press(Tools.GHOSTS));
-
-		held.divide();
-
 		final driving = held.offer(new Choice(said(session.song.driving
 			? Locale.VIEW_UNDRIVEN : Locale.VIEW_DRIVEN)));
 

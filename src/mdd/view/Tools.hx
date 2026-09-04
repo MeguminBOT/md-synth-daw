@@ -15,6 +15,11 @@ final class Tools extends Widget {
 	public static inline final GHOSTS = Session.TOOLS + 1;
 	public static inline final CELLS = Session.TOOLS + 2;
 
+	public static final CHORDS:Array<String> = ["E", "P", "D", "C", "H", "", ""];
+
+	public static final KEYS:Array<mdd.ui.Key> = [mdd.ui.Key.E, mdd.ui.Key.P, mdd.ui.Key.D,
+		mdd.ui.Key.C, mdd.ui.Key.H];
+
 	static final TIPS:Array<String> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
 		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS];
 
@@ -46,19 +51,38 @@ final class Tools extends Widget {
 
 	public var room:Float = 0;
 
+	public static inline final EVERY = (1 << (Session.TOOLS + 3)) - 1;
+
+	public var allowed:Int = EVERY;
+
+	final order:Array<Int> = [];
+
+	public function orders():Array<Int> {
+		order.resize(0);
+		for (index in 0...CELLS) if (allowed & (1 << index) != 0) order.push(index);
+
+		return order;
+	}
+
 	public function shown():Int {
+		final many = orders().length;
+		if (many == 0) return 0;
+
 		final root = root();
-		if (root == null) return CELLS;
+		if (root == null || room <= 0) return many;
 
 		final gap = root.metrics.unit;
 		final step = cell() + gap;
 
-		if (room <= 0) return CELLS;
+		var fits = many;
+		while (fits > 1 && step * fits - gap > room) fits--;
 
-		var many = CELLS;
-		while (many > 1 && step * many - gap > room) many--;
+		return fits;
+	}
 
-		return many;
+	public function toolAt(which:Int):Int {
+		final held = orders();
+		return which < 0 || which >= held.length ? -1 : held[which];
 	}
 
 	public function lead():Float {
@@ -67,9 +91,11 @@ final class Tools extends Widget {
 	}
 
 	public function wide():Float {
+		final many = shown();
+		if (many == 0) return 0;
+
 		final root = root();
 		final gap = root == null ? 4.0 : root.metrics.unit;
-		final many = shown();
 
 		return cell() * many + gap * (many - 1) + lead() * 2;
 	}
@@ -85,8 +111,8 @@ final class Tools extends Widget {
 
 		var pen = x + lead();
 
-		for (index in 0...shown()) {
-			if (px >= pen && px < pen + size) return index;
+		for (which in 0...shown()) {
+			if (px >= pen && px < pen + size) return toolAt(which);
 			pen += size + root.metrics.unit;
 		}
 
@@ -129,6 +155,7 @@ final class Tools extends Widget {
 			case Kind.PointerMove:
 				final index = cellAt(event.x, event.y);
 				tip = index < 0 ? "" : translate(TIPS[index]);
+				chord = index < 0 || index >= CHORDS.length ? "" : CHORDS[index];
 
 				if (index == hoverAt) return false;
 
@@ -160,7 +187,8 @@ final class Tools extends Widget {
 
 		var pen = x + lead();
 
-		for (index in 0...shown()) {
+		for (which in 0...shown()) {
+			final index = toolAt(which);
 			final on = lit(index);
 
 			if (on) {
@@ -195,22 +223,85 @@ final class Tools extends Widget {
 
 		switch (index) {
 			case Session.SELECT:
-				paint.outline(middle - reach, centre - reach * 0.7, reach * 2, reach * 1.4,
-					ink, hair);
+				final arrow = new haxe.ds.Vector<Float>(14);
+				final left = middle - reach * 0.5;
+				final head = centre - reach;
+
+				arrow[0] = left;
+				arrow[1] = head;
+				arrow[2] = left;
+				arrow[3] = head + reach * 1.62;
+				arrow[4] = left + reach * 0.42;
+				arrow[5] = head + reach * 1.22;
+				arrow[6] = left + reach * 0.7;
+				arrow[7] = head + reach * 1.86;
+				arrow[8] = left + reach * 1.02;
+				arrow[9] = head + reach * 1.74;
+				arrow[10] = left + reach * 0.74;
+				arrow[11] = head + reach * 1.12;
+				arrow[12] = left + reach * 1.2;
+				arrow[13] = head + reach * 1.06;
+
+				paint.polygon(arrow, 7, ink);
 
 			case Session.DRAW:
-				paint.rect(middle - reach, centre - hair * 0.5, reach * 1.4, hair, ink);
-				paint.rect(middle + reach * 0.4, centre - reach * 0.5, hair, reach, ink);
+				paint.line(middle - reach * 0.8, centre + reach * 0.8,
+					middle + reach * 0.55, centre - reach * 0.55, hair * 1.4, ink);
+
+				final nib = new haxe.ds.Vector<Float>(6);
+
+				nib[0] = middle - reach;
+				nib[1] = centre + reach;
+				nib[2] = middle - reach * 0.9;
+				nib[3] = centre + reach * 0.35;
+				nib[4] = middle - reach * 0.35;
+				nib[5] = centre + reach * 0.9;
+
+				paint.polygon(nib, 3, ink);
 
 			case Session.ERASE:
-				paint.rect(middle - reach, centre - hair * 0.5, reach * 2, hair, ink);
+				final block = new haxe.ds.Vector<Float>(8);
+
+				block[0] = middle - reach * 0.2;
+				block[1] = centre - reach * 0.9;
+				block[2] = middle + reach;
+				block[3] = centre + reach * 0.1;
+				block[4] = middle + reach * 0.4;
+				block[5] = centre + reach * 0.75;
+				block[6] = middle - reach * 0.8;
+				block[7] = centre - reach * 0.25;
+
+				paint.polygon(block, 4, ink);
+
+				paint.line(middle - reach, centre + reach * 0.85,
+					middle + reach, centre + reach * 0.85, hair, ink, 0.7);
 
 			case Session.SLICE:
-				paint.rect(middle - hair * 0.5, centre - reach, hair, reach * 2, ink);
-				paint.rect(middle - reach, centre - hair * 0.5, reach * 2, hair, ink, 0.35);
+				paint.line(middle - reach * 0.7, centre - reach,
+					middle + reach * 0.5, centre + reach * 0.5, hair, ink);
+
+				paint.line(middle + reach * 0.7, centre - reach,
+					middle - reach * 0.5, centre + reach * 0.5, hair, ink);
+
+				paint.circle(middle - reach * 0.6, centre + reach * 0.7, hair * 0.9, ink);
+				paint.circle(middle + reach * 0.6, centre + reach * 0.7, hair * 0.9, ink);
 
 			case Session.PAN:
-				paint.ring(middle, centre, reach * 0.8, hair, ink);
+				final palm = reach * 1.3;
+
+				paint.roundedRect(middle - palm * 0.5, centre - reach * 0.2, palm,
+					reach * 1.1, hair, ink);
+
+				for (finger in 0...3) {
+					final tall = reach * (finger == 1 ? 0.95 : 0.75);
+
+					paint.roundedRect(middle - palm * 0.5 + finger * reach * 0.45,
+						centre - reach * 0.2 - tall, reach * 0.34, tall + hair, hair * 0.6,
+						ink);
+				}
+
+				paint.roundedRect(middle - palm * 0.5 - reach * 0.34,
+					centre + reach * 0.1, reach * 0.4, reach * 0.55, hair * 0.6, ink);
 
 			case SNAP:
 				for (step in 0...3) {
