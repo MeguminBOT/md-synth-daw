@@ -302,12 +302,33 @@ final class Paint {
 	}
 
 	public function outline(x:Float, y:Float, width:Float, height:Float, colour:Colour,
-			weight:Float = 1, alpha:Float = 1):Void {
+			weight:Float = 1, alpha:Float = 1, radius:Float = 0):Void {
 		if (width <= 0 || height <= 0) return;
-		rect(x, y, width, weight, colour, alpha);
-		rect(x, y + height - weight, width, weight, colour, alpha);
-		rect(x, y + weight, weight, height - weight * 2, colour, alpha);
-		rect(x + width - weight, y + weight, weight, height - weight * 2, colour, alpha);
+
+		var r = radius;
+		final half = (width < height ? width : height) * 0.5;
+		if (r > half) r = half;
+
+		if (r <= 0.5) {
+			rect(x, y, width, weight, colour, alpha);
+			rect(x, y + height - weight, width, weight, colour, alpha);
+			rect(x, y + weight, weight, height - weight * 2, colour, alpha);
+			rect(x + width - weight, y + weight, weight, height - weight * 2, colour, alpha);
+
+			return;
+		}
+
+		rect(x + r, y, width - r * 2, weight, colour, alpha);
+		rect(x + r, y + height - weight, width - r * 2, weight, colour, alpha);
+		rect(x, y + r, weight, height - r * 2, colour, alpha);
+		rect(x + width - weight, y + r, weight, height - r * 2, colour, alpha);
+
+		final half = Math.PI * 0.5;
+
+		arc(x + r, y + r, r, Math.PI, Math.PI + half, weight, colour, alpha);
+		arc(x + width - r, y + r, r, Math.PI + half, Math.PI * 2, weight, colour, alpha);
+		arc(x + width - r, y + height - r, r, 0, half, weight, colour, alpha);
+		arc(x + r, y + height - r, r, half, Math.PI, weight, colour, alpha);
 	}
 
 	public function roundedRect(x:Float, y:Float, width:Float, height:Float, radius:Float,
@@ -335,8 +356,9 @@ final class Paint {
 
 	function corner(cx:Float, cy:Float, r:Float, from:Float, to:Float, colour:Colour,
 			alpha:Float):Void {
-		var count = segments(r) >> 2;
-		if (count < 2) count = 2;
+		var count = Math.ceil(r * 1.2);
+		if (count < 3) count = 3;
+		if (count > 24) count = 24;
 
 		final step = (to - from) * Math.PI / 180 / count;
 		var angle = from * Math.PI / 180;
@@ -349,8 +371,8 @@ final class Paint {
 	}
 
 	static inline function segments(radius:Float):Int {
-		final want = Std.int(radius * 1.6);
-		return want < 8 ? 8 : (want > 64 ? 64 : want);
+		final want = Math.ceil(radius * 3);
+		return want < 12 ? 12 : (want > 128 ? 128 : want);
 	}
 
 	public function circle(cx:Float, cy:Float, radius:Float, colour:Colour, alpha:Float = 1):Void {

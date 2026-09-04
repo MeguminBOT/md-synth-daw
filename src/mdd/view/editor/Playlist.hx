@@ -795,7 +795,8 @@ final class Playlist extends Widget {
 					colour.lift(0.22), colour.sink(0.18), track.muted ? 0.3 : 0.75);
 
 				if (clip == chosen) {
-					paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));
+					paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1), 1,
+						metrics.radiusSmall);
 				}
 
 				final said = pattern == null ? "?" : pattern.name;
@@ -839,7 +840,7 @@ final class Playlist extends Widget {
 			quiet ? 0.4 : 0.9);
 
 		paint.outline(at, row + 2, wide, tall - 5, colour, metrics.whole(1),
-			clip == chosen ? 1 : 0.6);
+			clip == chosen ? 1 : 0.6, metrics.radiusSmall);
 
 		if (clip == chosen) {
 			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));

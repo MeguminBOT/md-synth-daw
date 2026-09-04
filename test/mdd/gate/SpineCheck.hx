@@ -109,6 +109,45 @@ class SpineCheck {
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 	}
 
+	static var strayed:String = "";
+
+	static function inside(held:mdd.ui.Widget, said:String):Int {
+		var out = 0;
+
+		for (child in held.children) {
+			if (!child.visible) continue;
+			if (child.width <= 0 || child.height <= 0) continue;
+
+			final name = said + " > " + Type.getClassName(Type.getClass(child)).split(".").pop();
+
+			final over = Math.max(Math.max(held.x - child.x, held.y - child.y),
+				Math.max(child.x + child.width - held.x - held.width,
+					child.y + child.height - held.y - held.height));
+
+			if (over > 0.51) {
+				out++;
+
+				if (strayed == "") {
+					strayed = name + " by " + Math.round(over * 10) / 10 + " px";
+				}
+			}
+
+			out += inside(child, name);
+		}
+
+		return out;
+	}
+
+	static function fitted(tree:Root):Void {
+		strayed = "";
+
+		final out = inside(tree.top, "shell");
+
+		says("nothing is drawn outside what holds it", out == 0,
+			out + " widgets reach past the one that holds them"
+			+ (strayed == "" ? "" : ", the first being " + strayed));
+	}
+
 	static function laned(tree:Root, session:mdd.app.Session,
 			roll:mdd.view.editor.PianoRoll):Void {
 		final stack = roll.stack;
@@ -732,6 +771,7 @@ class SpineCheck {
 			+ round(first * 1000, 1));
 
 		menued(tree);
+		fitted(tree);
 		laned(tree, session, centre.roll);
 		sheeted(tree, session);
 

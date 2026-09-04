@@ -1328,7 +1328,7 @@ final class PianoRoll extends Widget {
 			if (unsound) hatch(paint, theme, metrics, at, row, wide, tall);
 
 			if (note == chosen) {
-				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1), 0.9);
+				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1), 0.9, radius);
 			}
 		}
 	}

@@ -240,9 +240,11 @@ final class Field extends Widget {
 		if (root.focus == this) {
 			final at = left + font.measure(value.substring(0, caret));
 			paint.rect(at, y + metrics.unit, metrics.whole(1), height - metrics.unit * 2, theme.ink);
-			paint.outline(x, y, width, height, theme.accent, metrics.whole(1));
+			paint.outline(x, y, width, height, theme.accent, metrics.whole(1), 1,
+				metrics.radiusRow);
 		} else {
-			paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
+			paint.outline(x, y, width, height, theme.frame, metrics.whole(1), 1,
+				metrics.radiusRow);
 		}
 	}
 }

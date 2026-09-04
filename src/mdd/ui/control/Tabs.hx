@@ -139,13 +139,15 @@ final class Tabs extends Widget {
 				paint.gradient(left, y + height - bar, room, bar,
 					theme.accent.lift(0.20), theme.accent.sink(0.16));
 			} else {
-				paint.roundedRect(left, top + gap, room, tall - gap, metrics.radiusRow,
+				final deep = tall - gap * 2;
+
+				paint.roundedRect(left, top + gap, room, deep, metrics.radiusRow,
 					theme.raise1);
-				paint.outline(left, top + gap, room, tall - gap, theme.frame,
-					metrics.whole(1));
+				paint.outline(left, top + gap, room, deep, theme.frame,
+					metrics.whole(1), 1, metrics.radiusRow);
 
 				if (i == hoverAt) {
-					paint.roundedRect(left, top + gap, room, tall - gap, metrics.radiusRow,
+					paint.roundedRect(left, top + gap, room, deep, metrics.radiusRow,
 						theme.accent, Theme.HOVER);
 				}
 			}

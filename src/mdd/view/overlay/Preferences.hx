@@ -365,7 +365,8 @@ final class Preferences extends Widget {
 		paint.pushTransform(0, lift);
 
 		paint.roundedRect(x, y, width, height, metrics.radiusPanel, theme.raise1, alpha);
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha);
+		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha,
+			metrics.radiusPanel);
 
 		final font = metrics.body;
 		final small = metrics.small == null ? font : metrics.small;
@@ -399,7 +400,8 @@ final class Preferences extends Widget {
 					alpha * Theme.HOVER);
 			}
 
-			paint.outline(left, at, wide, deep, theme.frame, metrics.whole(1), alpha * 0.8);
+			paint.outline(left, at, wide, deep, theme.frame, metrics.whole(1), alpha * 0.8,
+				metrics.radiusSmall);
 
 			final arrow = metrics.whole(16);
 

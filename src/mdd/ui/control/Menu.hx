@@ -291,7 +291,8 @@ final class Menu extends Widget {
 		paint.roundedRect(x + lift, y + lift, width, height, metrics.radiusWindow, theme.sink,
 			alpha * 0.45);
 		paint.roundedRect(x, y, width, height, metrics.radiusWindow, theme.raise1, alpha);
-		paint.outline(x, y, width, height, theme.raise2, metrics.whole(1), alpha);
+		paint.outline(x, y, width, height, theme.raise2, metrics.whole(1), alpha,
+			metrics.radiusWindow);
 
 		var top = y + metrics.unit;
 

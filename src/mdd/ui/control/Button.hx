@@ -91,7 +91,7 @@ final class Button extends Widget {
 		}
 
 		paint.outline(x, y, width, height, root.focus == this ? theme.accent : theme.frame,
-			metrics.whole(1));
+			metrics.whole(1), 1, metrics.radiusRow);
 
 		paint.reface(font);
 		final ink = enabled ? (on ? theme.ink : theme.dim) : theme.dim;

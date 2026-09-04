@@ -202,7 +202,8 @@ final class Welcome extends Widget {
 			}
 
 			paint.outline(x + metrics.inset, row, width - metrics.inset * 2, tall - 2,
-				picked ? theme.accent : theme.frame, metrics.whole(1), alpha);
+				picked ? theme.accent : theme.frame, metrics.whole(1), alpha,
+				metrics.radiusRow);
 
 			final art = x + width - metrics.inset - metrics.whole(56);
 			final middle = row + (tall - 2) * 0.5;
@@ -254,7 +255,8 @@ final class Welcome extends Widget {
 		paint.pushTransform(0, lift);
 
 		paint.roundedRect(x, y, width, height, metrics.radiusPanel, theme.raise1, alpha);
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha);
+		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha,
+			metrics.radiusPanel);
 
 		final large = metrics.large == null ? metrics.body : metrics.large;
 		final font = metrics.body;

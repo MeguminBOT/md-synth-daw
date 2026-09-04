@@ -88,7 +88,8 @@ final class Naming extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.roundedRect(x, y, width, height, metrics.radiusPanel, theme.panel);
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
+		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), 1,
+			metrics.radiusPanel);
 
 		paint.reface(font);
 		paint.text(asking, x + metrics.inset, y + metrics.inset + font.ascent, theme.ink);

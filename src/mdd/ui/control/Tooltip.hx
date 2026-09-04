@@ -66,7 +66,8 @@ final class Tooltip extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.roundedRect(x, y, width, height, metrics.radiusSmall, theme.raise2, alpha);
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha);
+		paint.outline(x, y, width, height, theme.frame, metrics.whole(1), alpha,
+			metrics.radiusSmall);
 
 		paint.reface(font);
 		final line = y + metrics.gap + font.ascent;

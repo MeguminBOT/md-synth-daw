@@ -54,7 +54,7 @@ final class Toggle extends Widget {
 				theme.accent.lift(0.20), theme.accent.sink(0.16));
 		} else paint.roundedRect(x, top, box, box, metrics.radiusSmall, theme.sink);
 		paint.outline(x, top, box, box, root.focus == this ? theme.accent : theme.frame,
-			metrics.whole(1));
+			metrics.whole(1), 1, metrics.radiusSmall);
 
 		if (on) {
 			final inset = metrics.whole(4);

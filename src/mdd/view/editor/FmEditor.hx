@@ -401,7 +401,7 @@ final class FmEditor extends Widget {
 			}
 
 			paint.outline(left, top, wide, tall, which == dial ? theme.accent : theme.frame,
-				metrics.whole(1));
+				metrics.whole(1), 1, metrics.radiusSmall);
 
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 
@@ -445,7 +445,7 @@ final class FmEditor extends Widget {
 			paint.roundedRect(at, top, box, tall, metrics.radiusSmall,
 				carrier ? colour : theme.raise1, carrier ? 0.35 : 1);
 			paint.outline(at, top, box, tall, slot == this.slot ? theme.accent : theme.frame,
-				metrics.whole(1));
+				metrics.whole(1), 1, metrics.radiusSmall);
 
 			paint.textCentred("OP" + (slot + 1), at + box * 0.5,
 				top + tall * 0.5 - font.height * 0.5 + font.ascent,

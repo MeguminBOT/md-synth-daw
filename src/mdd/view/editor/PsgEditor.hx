@@ -315,7 +315,7 @@ final class PsgEditor extends Widget {
 			}
 
 			paint.outline(left, top, wide, tall, which == dial ? theme.accent : theme.frame,
-				metrics.whole(1));
+				metrics.whole(1), 1, metrics.radiusSmall);
 
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 			final said = which == LOOP && value < 0 ? translate(Locale.PSG_NO_LOOP)

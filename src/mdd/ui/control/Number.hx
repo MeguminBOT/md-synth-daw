@@ -177,7 +177,8 @@ final class Number extends Widget implements Range {
 		}
 
 		paint.outline(x, y, width, height,
-			root.focus == this || dragging ? theme.accent : theme.frame, metrics.whole(1));
+			root.focus == this || dragging ? theme.accent : theme.frame, metrics.whole(1), 1,
+			metrics.radiusRow);
 
 		final stacked = height >= small.height + mono.height + metrics.unit * 3;
 		final said = typing ? entry + "_"
