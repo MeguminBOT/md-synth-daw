@@ -791,8 +791,8 @@ final class Playlist extends Widget {
 					: pattern.part >= 0 ? theme.part(pattern.part)
 					: theme.part(clip.pattern % 11);
 
-				paint.roundedRect(at, row + 2, wide, tall - 5, metrics.radiusSmall, colour,
-					track.muted ? 0.3 : 0.75);
+				paint.roundedGradient(at, row + 2, wide, tall - 5, metrics.radiusSmall,
+					colour.lift(0.22), colour.sink(0.18), track.muted ? 0.3 : 0.75);
 
 				if (clip == chosen) {
 					paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));
@@ -978,8 +978,14 @@ final class Playlist extends Widget {
 			final box = metrics.whole(18);
 			final at = x + wide - metrics.whole(26);
 
-			paint.roundedRect(at, row + (tall - box) * 0.5, box, box, metrics.radiusSmall,
-				held.muted ? theme.accent : theme.raise1, held.muted ? 0.8 : 1);
+			if (held.muted) {
+				paint.roundedGradient(at, row + (tall - box) * 0.5, box, box,
+					metrics.radiusSmall, theme.accent.lift(0.20), theme.accent.sink(0.16),
+					0.8);
+			} else {
+				paint.roundedRect(at, row + (tall - box) * 0.5, box, box,
+					metrics.radiusSmall, theme.raise1);
+			}
 
 			paint.reface(font);
 			paint.text(held.name, x + metrics.inset + metrics.gap,

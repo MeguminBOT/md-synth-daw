@@ -178,8 +178,10 @@ final class Hardware extends Widget {
 
 			paint.roundedRect(left, line, wide, barTall, barTall * 0.5, theme.sink);
 			if (full > 0) {
-				paint.roundedRect(left, line, wide * full, barTall, barTall * 0.5,
-					part > 1 ? theme.over : theme.accent);
+				final ink = part > 1 ? theme.over : theme.accent;
+
+				paint.roundedGradient(left, line, wide * full, barTall, barTall * 0.5,
+					ink.lift(0.20), ink.sink(0.16));
 			}
 		}
 	}

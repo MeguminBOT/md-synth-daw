@@ -112,13 +112,15 @@ final class Slider extends Widget implements Range {
 
 			final travel = height - grip;
 			final at = y + travel * (1 - share());
-			paint.roundedRect(trackX, at, thick, height - (at - y), thick * 0.5, theme.accent);
+			paint.roundedGradient(trackX, at, thick, height - (at - y), thick * 0.5,
+				theme.accent.lift(0.20), theme.accent.sink(0.16));
 			paint.roundedRect(x, at, width, grip, metrics.radiusSmall, theme.raise2);
 			paint.outline(x, at, width, grip, theme.frame, metrics.whole(1));
 		} else {
 			final trackY = y + (height - thick) * 0.5;
 			paint.roundedRect(x, trackY, width, thick, thick * 0.5, theme.sink);
-			paint.roundedRect(x, trackY, width * share(), thick, thick * 0.5, theme.accent);
+			paint.roundedGradient(x, trackY, width * share(), thick, thick * 0.5,
+				theme.accent.lift(0.20), theme.accent.sink(0.16));
 
 			final at = x + (width - grip) * share();
 			paint.roundedRect(at, y, grip, height, metrics.radiusSmall, theme.raise2);

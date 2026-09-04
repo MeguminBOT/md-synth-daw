@@ -254,13 +254,20 @@ final class Mixer extends Widget {
 			final high = tall * (level > 1 ? 1 : level);
 
 			if (high > 1) {
-				paint.roundedRect(middle - track * 0.5, top + tall - high, track, high,
-					track * 0.5, colour, quiet ? 0.3 : 1);
+				paint.roundedGradient(middle - track * 0.5, top + tall - high, track, high,
+					track * 0.5, colour.lift(0.24), colour.sink(0.2), quiet ? 0.3 : 1);
 			}
 
-			paint.roundedRect(left + metrics.unit, y + height - metrics.row + metrics.unit,
-				wide - metrics.unit * 2, metrics.row - metrics.unit * 2, metrics.radiusSmall,
-				quiet ? theme.raise1 : colour, quiet ? 1 : 0.35);
+			if (quiet) {
+				paint.roundedRect(left + metrics.unit, y + height - metrics.row + metrics.unit,
+					wide - metrics.unit * 2, metrics.row - metrics.unit * 2,
+					metrics.radiusSmall, theme.raise1);
+			} else {
+				paint.roundedGradient(left + metrics.unit,
+					y + height - metrics.row + metrics.unit, wide - metrics.unit * 2,
+					metrics.row - metrics.unit * 2, metrics.radiusSmall,
+					colour.lift(0.22), colour.sink(0.18), 0.35);
+			}
 		}
 
 		mastered(paint, metrics, theme, wide, head, top, tall);
@@ -312,12 +319,12 @@ final class Mixer extends Widget {
 		final high = tall * (output > 1 ? 1 : output);
 
 		if (high > 1) {
-			paint.roundedRect(middle - track * 0.5, top + tall - high, track, high,
-				track * 0.5, theme.accent);
+			paint.roundedGradient(middle - track * 0.5, top + tall - high, track, high,
+				track * 0.5, theme.accent.lift(0.24), theme.accent.sink(0.2));
 		}
 
-		paint.roundedRect(left + metrics.unit, y + height - metrics.row + metrics.unit,
+		paint.roundedGradient(left + metrics.unit, y + height - metrics.row + metrics.unit,
 			wide - metrics.unit * 2, metrics.row - metrics.unit * 2, metrics.radiusSmall,
-			theme.accent, 0.35);
+			theme.accent.lift(0.22), theme.accent.sink(0.18), 0.35);
 	}
 }

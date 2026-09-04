@@ -477,8 +477,8 @@ final class TransportBar extends Widget {
 
 		paint.reface(font);
 		paint.roundedRect(left, top, wide * 2, button, metrics.radiusRow, theme.raise2);
-		paint.roundedRect(left + wide * on, top, wide, button, metrics.radiusRow, theme.accent,
-			0.85);
+		paint.roundedGradient(left + wide * on, top, wide, button, metrics.radiusRow,
+			theme.accent.lift(0.20), theme.accent.sink(0.16), 0.85);
 
 		if (overMode >= 0) {
 			paint.roundedRect(left + wide * overMode, top, wide, button, metrics.radiusRow,

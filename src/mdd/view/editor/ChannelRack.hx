@@ -386,8 +386,10 @@ final class ChannelRack extends Widget {
 		final size = metrics.whole(18);
 		final top = row + (tall - size) * 0.5;
 
-		paint.roundedRect(at, top, size, size, metrics.radiusSmall,
-			on ? theme.accent : theme.raise1, on ? 0.8 : 1);
+		if (on) {
+			paint.roundedGradient(at, top, size, size, metrics.radiusSmall,
+				theme.accent.lift(0.20), theme.accent.sink(0.16), 0.8);
+		} else paint.roundedRect(at, top, size, size, metrics.radiusSmall, theme.raise1);
 	}
 
 	function meter(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,

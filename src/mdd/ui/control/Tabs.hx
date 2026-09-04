@@ -136,7 +136,8 @@ final class Tabs extends Widget {
 			if (on) {
 				paint.roundedRect(left, top, room, tall + metrics.radiusRow,
 					metrics.radiusRow, theme.panel);
-				paint.rect(left, y + height - bar, room, bar, theme.accent);
+				paint.gradient(left, y + height - bar, room, bar,
+					theme.accent.lift(0.20), theme.accent.sink(0.16));
 			} else {
 				paint.roundedRect(left, top + gap, room, tall - gap, metrics.radiusRow,
 					theme.raise1);

@@ -298,8 +298,8 @@ final class Welcome extends Widget {
 		final wide = metrics.whole(120);
 		final left = x + width - metrics.inset - wide;
 
-		paint.roundedRect(left, top, wide, button, metrics.radiusRow, theme.accent,
-			hoverStart ? 1 : 0.85);
+		paint.roundedGradient(left, top, wide, button, metrics.radiusRow,
+			theme.accent.lift(0.20), theme.accent.sink(0.16), hoverStart ? 1 : 0.85);
 
 		paint.reface(font);
 		paint.textCentred(translate(Locale.WELCOME_START), left + wide * 0.5,

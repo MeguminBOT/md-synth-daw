@@ -49,7 +49,10 @@ final class Toggle extends Widget {
 		final box = metrics.whole(14);
 		final top = y + (height - box) * 0.5;
 
-		paint.roundedRect(x, top, box, box, metrics.radiusSmall, on ? theme.accent : theme.sink);
+		if (on) {
+			paint.roundedGradient(x, top, box, box, metrics.radiusSmall,
+				theme.accent.lift(0.20), theme.accent.sink(0.16));
+		} else paint.roundedRect(x, top, box, box, metrics.radiusSmall, theme.sink);
 		paint.outline(x, top, box, box, root.focus == this ? theme.accent : theme.frame,
 			metrics.whole(1));
 
