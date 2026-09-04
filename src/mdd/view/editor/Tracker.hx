@@ -63,7 +63,7 @@ final class Tracker extends Widget {
 
 	public function head():Float {
 		final root = root();
-		return root == null ? 26 : root.metrics.whole(26);
+		return root == null ? 26 : root.metrics.head;
 	}
 
 	public function columnWide():Float {
@@ -650,7 +650,6 @@ final class Tracker extends Widget {
 		paint.popClip();
 
 		paint.rect(x + numbers() - hair, top, hair, height - head(), theme.frame);
-		paint.outline(x, y, width, height, theme.frame, hair);
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, wide:Float):Void {
@@ -683,6 +682,6 @@ final class Tracker extends Widget {
 		paint.text("1/" + division + "  oct " + octave, x + metrics.gap,
 			y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.85);
 
-		paint.rect(x, y + tall - hair, width, hair, theme.frame);
+		paint.rect(x, y + tall - hair, width, hair, theme.frame, 0.7);
 	}
 }

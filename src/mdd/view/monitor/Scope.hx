@@ -102,7 +102,7 @@ final class Scope extends Widget {
 
 	public function head():Float {
 		final root = root();
-		return root == null ? 26 : root.metrics.whole(26);
+		return root == null ? 26 : root.metrics.head;
 	}
 
 	public function laneAt(px:Float, py:Float):Int {
@@ -300,9 +300,10 @@ final class Scope extends Widget {
 		final inset = metrics.unit;
 		final box = metrics.whole(1);
 
-		paint.rect(left + inset, top + inset, wide - inset * 2, tall - inset * 2, theme.panel);
+		paint.roundedRect(left + inset, top + inset, wide - inset * 2, tall - inset * 2,
+			metrics.radiusSmall, theme.panel);
 		paint.outline(left + inset, top + inset, wide - inset * 2, tall - inset * 2, theme.frame,
-			box);
+			box, 1, metrics.radiusSmall);
 
 		final middle = top + tall * 0.5;
 		final from = left + inset + metrics.unit;

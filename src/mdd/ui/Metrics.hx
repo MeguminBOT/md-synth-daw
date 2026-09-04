@@ -11,6 +11,8 @@ final class Metrics {
 	public var control(default, null):Float;
 	public var bar(default, null):Float;
 	public var tab(default, null):Float;
+	public var head(default, null):Float;
+	public var ruler(default, null):Float;
 
 	public var radiusSmall(default, null):Float;
 	public var radiusWindow(default, null):Float;
@@ -42,6 +44,8 @@ final class Metrics {
 		control = whole(32);
 		bar = whole(32);
 		tab = whole(34);
+		head = whole(26);
+		ruler = whole(24);
 
 		radiusSmall = whole(4);
 		radiusWindow = whole(6);

@@ -52,12 +52,12 @@ final class AutomationEditor extends Widget {
 
 	public function head():Float {
 		final root = root();
-		return root == null ? 30 : root.metrics.whole(30);
+		return root == null ? 26 : root.metrics.head;
 	}
 
 	public function ruler():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 24 : root.metrics.ruler;
 	}
 
 	public function gutter():Float {
@@ -254,7 +254,6 @@ final class AutomationEditor extends Widget {
 			}
 		}
 
-		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics):Void {
@@ -264,8 +263,8 @@ final class AutomationEditor extends Widget {
 		final one = held();
 		final part = drivenPart();
 
-		paint.rect(x, y, width, tall, theme.panel);
-		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame);
+		paint.rect(x, y, width, tall, theme.bar);
+		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame, 0.7);
 
 		paint.reface(font);
 
@@ -298,14 +297,22 @@ final class AutomationEditor extends Widget {
 		final reach = span();
 
 		var tick = 0;
+		var written = left - metrics.gap;
 
 		while (tick <= reach) {
 			final at = atTick(tick);
 
 			if (at >= left && at < x + width) {
 				paint.rect(at, top, metrics.whole(1), tall, theme.frame, 0.8);
-				paint.text("" + (Std.int(tick / bar) + 1), at + metrics.unit,
-					top + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
+
+				if (at >= written) {
+					final said = "" + (Std.int(tick / bar) + 1);
+
+					paint.text(said, at + metrics.unit,
+						top + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
+
+					written = at + metrics.unit + paint.measure(said) + metrics.gap;
+				}
 			}
 
 			tick += bar;

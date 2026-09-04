@@ -156,6 +156,8 @@ final class Tools extends Widget {
 		final size = cell();
 		final top = top();
 
+		paint.rect(x, y, width, height, theme.sink);
+
 		var pen = x + lead();
 
 		for (index in 0...shown()) {

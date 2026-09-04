@@ -49,7 +49,11 @@ final class Mixer extends Widget {
 	}
 
 	public inline function stripLeft(strip:Int):Float {
-		return x + strip * stripWide();
+		return x + Math.round(strip * stripWide());
+	}
+
+	public inline function stripRoom(strip:Int):Float {
+		return stripLeft(strip + 1) - stripLeft(strip);
 	}
 
 	public function metered(much:Float):Void {
@@ -211,7 +215,6 @@ final class Mixer extends Widget {
 
 		final theme = root.theme;
 		final metrics = root.metrics;
-		final wide = stripWide();
 		final small = metrics.small == null ? metrics.body : metrics.small;
 
 		paint.rect(x, y, width, height, theme.panel);
@@ -223,6 +226,7 @@ final class Mixer extends Widget {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			final left = stripLeft(FIRST + index);
+			final wide = stripRoom(FIRST + index);
 			final colour = theme.part(index);
 			final quiet = !session.song.audible(part);
 
@@ -270,13 +274,14 @@ final class Mixer extends Widget {
 			}
 		}
 
-		mastered(paint, metrics, theme, wide, head, top, tall);
+		mastered(paint, metrics, theme, stripRoom(MASTER), head, top, tall);
 
 		paint.reface(small);
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			final left = stripLeft(FIRST + index);
+			final wide = stripRoom(FIRST + index);
 			final quiet = !session.song.audible(part);
 
 			paint.textCentred(part.name(), left + wide * 0.5,
@@ -290,7 +295,8 @@ final class Mixer extends Widget {
 				session.song.pan[index] == Song.BOTH ? theme.dim : theme.accent, 0.95);
 		}
 
-		paint.textCentred(translate(mdd.app.Locale.MIXER_MASTER), stripLeft(MASTER) + wide * 0.5,
+		paint.textCentred(translate(mdd.app.Locale.MIXER_MASTER),
+			stripLeft(MASTER) + stripRoom(MASTER) * 0.5,
 			y + height - metrics.row + (metrics.row - small.height) * 0.5 + small.ascent,
 			theme.ink);
 	}

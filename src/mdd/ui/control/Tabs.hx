@@ -135,7 +135,7 @@ final class Tabs extends Widget {
 
 			if (on) {
 				paint.roundedRect(left, top, room, tall + metrics.radiusRow,
-					metrics.radiusRow, theme.panel);
+					metrics.radiusRow, theme.bar);
 				paint.gradient(left, y + height - bar, room, bar,
 					theme.accent.lift(0.20), theme.accent.sink(0.16));
 			} else {
@@ -155,7 +155,7 @@ final class Tabs extends Widget {
 			if (squeeze > 0) paint.pushClip(pen, y, wide, height);
 
 			paint.textCentred(labels[i], pen + wide * 0.5,
-				y + (height - font.height) * 0.5 + font.ascent + (on ? 0 : metrics.unit * 0.5),
+				y + (height + metrics.whole(3) - font.height) * 0.5 + font.ascent,
 				on ? theme.ink : theme.dim);
 
 			if (squeeze > 0) paint.popClip();

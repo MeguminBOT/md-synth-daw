@@ -32,7 +32,7 @@ final class Hardware extends Widget {
 
 	public function head():Float {
 		final root = root();
-		return root == null ? 24 : root.metrics.whole(24);
+		return root == null ? 26 : root.metrics.head;
 	}
 
 	public function tall():Float {
@@ -150,7 +150,7 @@ final class Hardware extends Widget {
 		paint.rect(x, y, width, height, theme.panel);
 		paint.rect(x, y, width, head(), theme.bar);
 		paint.rect(x, y, width, hair, theme.frame);
-		paint.rect(x, y + head() - hair, width, hair, theme.frame, 0.6);
+		paint.rect(x, y + head() - hair, width, hair, theme.frame, 0.7);
 
 		paint.reface(font);
 
@@ -180,8 +180,8 @@ final class Hardware extends Widget {
 			if (full > 0) {
 				final ink = part > 1 ? theme.over : theme.accent;
 
-				paint.roundedGradient(left, line, wide * full, barTall, barTall * 0.5,
-					ink.lift(0.20), ink.sink(0.16));
+				paint.roundedGradient(left, line, wide, barTall, barTall * 0.5,
+					ink.lift(0.20), ink.sink(0.16), 1, full);
 			}
 		}
 	}

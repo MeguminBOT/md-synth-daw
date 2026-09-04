@@ -132,30 +132,36 @@ final class Shell extends Widget {
 		final inspector = inspectorSize.value;
 		final dock = dockSize.value;
 
-		final bodyTop = y + menuTall + transportTall;
-		var bodyTall = height - menuTall - transportTall - dock;
+		final hair = metrics.whole(1);
+
+		final bodyTop = y + menuTall + hair + transportTall + hair;
+		var bodyTall = height - menuTall - transportTall - dock - hair * 3;
 		if (bodyTall < 0) bodyTall = 0;
 
-		var centreWide = width - rail - inspector;
+		var centreWide = width - rail - inspector - hair * 2;
 		if (centreWide < 0) centreWide = 0;
 
 		zones[MENU].arrange(x, y, width, menuTall);
-		zones[TRANSPORT].arrange(x, y + menuTall, width, transportTall);
+		zones[TRANSPORT].arrange(x, y + menuTall + hair, width, transportTall);
 		zones[RAIL].arrange(x, bodyTop, rail, bodyTall);
-		zones[CENTRE].arrange(x + rail, bodyTop, centreWide, bodyTall);
-		zones[INSPECTOR].arrange(x + rail + centreWide, bodyTop, inspector, bodyTall);
-		zones[DOCK].arrange(x, bodyTop + bodyTall, width, dock);
+		zones[CENTRE].arrange(x + rail + hair, bodyTop, centreWide, bodyTall);
+		zones[INSPECTOR].arrange(x + rail + hair + centreWide + hair, bodyTop, inspector,
+			bodyTall);
+		zones[DOCK].arrange(x, bodyTop + bodyTall + hair, width, dock);
 	}
 
 	public function divider(which:Int):Float {
+		final root = root();
+		final hair = root == null ? 1 : root.metrics.whole(1);
+
 		final rail = zones[RAIL];
 		final inspector = zones[INSPECTOR];
 		final dock = zones[DOCK];
 
 		return switch (which) {
 			case RAIL: rail.x + rail.width;
-			case INSPECTOR: inspector.x;
-			case DOCK: dock.y;
+			case INSPECTOR: inspector.x - hair;
+			case DOCK: dock.y - hair;
 			case _: -1;
 		}
 	}
@@ -246,9 +252,9 @@ final class Shell extends Widget {
 		paint.rect(zones[DOCK].x, zones[DOCK].y, zones[DOCK].width, zones[DOCK].height,
 			theme.panel);
 
-		paint.rect(x, zones[TRANSPORT].y, width, hair, theme.frame);
-		paint.rect(x, zones[RAIL].y, width, hair, theme.frame);
-		paint.rect(divider(RAIL) - hair, zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
+		paint.rect(x, zones[TRANSPORT].y - hair, width, hair, theme.frame);
+		paint.rect(x, zones[RAIL].y - hair, width, hair, theme.frame);
+		paint.rect(divider(RAIL), zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
 		paint.rect(divider(INSPECTOR), zones[RAIL].y, hair, zones[RAIL].height, theme.frame);
 		paint.rect(x, divider(DOCK), width, hair, theme.frame);
 

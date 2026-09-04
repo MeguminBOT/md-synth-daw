@@ -154,7 +154,8 @@ final class Number extends Widget implements Range {
 		if (mono == null || small == null) return 70;
 
 		final said = derived != null ? derived(value) : Std.string(value);
-		final wide = small.measure(label) + mono.measure(said) + metrics.unit * 6;
+		final wide = small.measure(label) + mono.measure(said) + metrics.unit * 4
+			+ metrics.inset;
 		final least = metrics.whole(70);
 
 		return wide < least ? least : wide;

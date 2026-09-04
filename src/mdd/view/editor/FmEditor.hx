@@ -360,16 +360,14 @@ final class FmEditor extends Widget {
 		paint.reface(small);
 
 		if (patch == null) {
-			Panel.titled(paint, theme, metrics, session.part.name(), x, y, width,
-				metrics.whole(22));
+			Panel.titled(paint, theme, metrics, session.part.name(), x, y, width, metrics.head);
 			paint.reface(small);
 			paint.text(translate(Locale.PANEL_NOT_FM), x + metrics.inset,
-				y + metrics.whole(22) + metrics.gap + small.ascent, theme.dim);
+				y + metrics.head + metrics.gap + small.ascent, theme.dim);
 			return;
 		}
 
-		Panel.titled(paint, theme, metrics, session.part.name(), x, y, width,
-			metrics.whole(22));
+		Panel.titled(paint, theme, metrics, session.part.name(), x, y, width, metrics.head);
 		paint.reface(small);
 
 		routing(paint, theme, metrics, patch);
@@ -396,8 +394,8 @@ final class FmEditor extends Widget {
 			paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, theme.raise1);
 
 			if (part > 0) {
-				paint.roundedRect(left, top, wide * part, tall, metrics.radiusSmall, colour,
-					0.45);
+				paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, colour, 0.45,
+					part);
 			}
 
 			paint.outline(left, top, wide, tall, which == dial ? theme.accent : theme.frame,

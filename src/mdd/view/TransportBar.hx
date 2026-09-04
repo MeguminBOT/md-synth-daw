@@ -107,8 +107,12 @@ final class TransportBar extends Widget {
 		settling = true;
 
 		final pattern = session.current();
+		final named = pattern == null ? translate(Locale.TRANSPORT_BARS) : pattern.name;
 
-		length.label = pattern == null ? translate(Locale.TRANSPORT_BARS) : pattern.name;
+		if (named != length.label) {
+			length.label = named;
+			relayout();
+		}
 
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
 		resolution.set(session.song.tempo.ppqn);
@@ -358,6 +362,8 @@ final class TransportBar extends Widget {
 		final root = root();
 		if (root == null) return;
 
+		settles();
+
 		final metrics = root.metrics;
 		final button = size();
 		final top = y + (height - button) * 0.5;
@@ -477,6 +483,8 @@ final class TransportBar extends Widget {
 
 		paint.reface(font);
 		paint.roundedRect(left, top, wide * 2, button, metrics.radiusRow, theme.raise2);
+		paint.outline(left, top, wide * 2, button, theme.frame, metrics.whole(1), 1,
+			metrics.radiusRow);
 		paint.roundedGradient(left + wide * on, top, wide, button, metrics.radiusRow,
 			theme.accent.lift(0.20), theme.accent.sink(0.16), 0.85);
 
@@ -507,8 +515,8 @@ final class TransportBar extends Widget {
 
 		final swatch = metrics.whole(10);
 
-		paint.rect(left + metrics.gap, top + (button - swatch) * 0.5, swatch, swatch,
-			Theme.PARTS[session.pattern % Theme.PARTS.length]);
+		paint.roundedRect(left + metrics.gap, top + (button - swatch) * 0.5, swatch, swatch,
+			metrics.radiusSmall, Theme.PARTS[session.pattern % Theme.PARTS.length]);
 
 		final arrow = metrics.whole(4);
 		final textAt = left + metrics.gap * 2 + swatch;

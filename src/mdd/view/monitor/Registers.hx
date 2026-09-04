@@ -231,7 +231,7 @@ final class Registers extends Scroll {
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
 		final small = metrics.small == null ? metrics.body : metrics.small;
 		final tall = rowTall();
-		final head = metrics.whole(24);
+		final head = metrics.head;
 		final many = rows();
 
 		contentHeight = many * tall;
@@ -298,6 +298,5 @@ final class Registers extends Scroll {
 		}
 
 		paint.popClip();
-		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 }

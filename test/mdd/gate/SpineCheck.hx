@@ -148,6 +148,48 @@ class SpineCheck {
 			+ (strayed == "" ? "" : ", the first being " + strayed));
 	}
 
+	static var blurred:String = "";
+	static var counted:Int = 0;
+
+	static function between(held:mdd.ui.Widget, said:String):Void {
+		for (child in held.children) {
+			if (!child.visible) continue;
+			if (child.width <= 0 || child.height <= 0) continue;
+
+			final name = said + " > " + Type.getClassName(Type.getClass(child)).split(".").pop();
+
+			final off = Math.max(Math.max(fraction(child.x), fraction(child.y)),
+				Math.max(fraction(child.width), fraction(child.height)));
+
+			if (off > 0.001) {
+				counted++;
+
+				if (blurred == "") {
+					blurred = name + " at " + round(child.x, 2) + ", " + round(child.y, 2)
+						+ " by " + round(child.width, 2) + " by " + round(child.height, 2);
+				}
+			}
+
+			between(child, name);
+		}
+	}
+
+	static inline function fraction(value:Float):Float {
+		final part = value - Math.ffloor(value);
+		return part > 0.5 ? 1 - part : part;
+	}
+
+	static function aligned(tree:Root):Void {
+		blurred = "";
+		counted = 0;
+
+		between(tree.top, "shell");
+
+		says("every widget lands on a pixel", counted == 0,
+			counted + " widgets sit between pixels"
+			+ (blurred == "" ? "" : ", the first being " + blurred));
+	}
+
 	static function laned(tree:Root, session:mdd.app.Session,
 			roll:mdd.view.editor.PianoRoll):Void {
 		final stack = roll.stack;
@@ -772,6 +814,7 @@ class SpineCheck {
 
 		menued(tree);
 		fitted(tree);
+		aligned(tree);
 		laned(tree, session, centre.roll);
 		sheeted(tree, session);
 

@@ -487,17 +487,19 @@ class UiCheck {
 			final inspector = shell.zone(Shell.INSPECTOR);
 			final dock = shell.zone(Shell.DOCK);
 
-			if (Math.abs((rail.x + rail.width) - centre.x) > 0.51) {
+			final hair = metrics.whole(1);
+
+			if (Math.abs(centre.x - (rail.x + rail.width) - hair) > 0.51) {
 				sane = false;
-				said = "rail and centre overlap";
+				said = "the rail and the centre do not leave one seam";
 			}
-			if (Math.abs((centre.x + centre.width) - inspector.x) > 0.51) {
+			if (Math.abs(inspector.x - (centre.x + centre.width) - hair) > 0.51) {
 				sane = false;
-				said = "centre and inspector overlap";
+				said = "the centre and the inspector do not leave one seam";
 			}
-			if (Math.abs((rail.y + rail.height) - dock.y) > 0.51) {
+			if (Math.abs(dock.y - (rail.y + rail.height) - hair) > 0.51) {
 				sane = false;
-				said = "body and dock overlap";
+				said = "the body and the dock do not leave one seam";
 			}
 			if (Math.abs((inspector.x + inspector.width) - root.width) > 0.51) {
 				sane = false;

@@ -215,12 +215,31 @@ final class Paint {
 	public function rect(x:Float, y:Float, width:Float, height:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
-		quad(x, y, x + width, y, x + width, y + height, x, y + height, colour, alpha);
+
+		final left = Math.round(x);
+		final top = Math.round(y);
+
+		var right = Math.round(x + width);
+		var bottom = Math.round(y + height);
+
+		if (right <= left) right = left + 1;
+		if (bottom <= top) bottom = top + 1;
+
+		quad(left, top, right, top, right, bottom, left, bottom, colour, alpha);
 	}
 
 	public function roundedGradient(x:Float, y:Float, width:Float, height:Float,
-			radius:Float, top:Colour, bottom:Colour, alpha:Float = 1):Void {
+			radius:Float, top:Colour, bottom:Colour, alpha:Float = 1, share:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
+
+		if (share < 1) {
+			if (share <= 0) return;
+
+			pushClip(x, y, width * share, height);
+			roundedGradient(x, y, width, height, radius, top, bottom, alpha);
+			popClip();
+			return;
+		}
 
 		var r = radius;
 		final half = (width < height ? width : height) * 0.5;
@@ -258,17 +277,27 @@ final class Paint {
 			from:Float, span:Float, alpha:Float):Void {
 		if (width <= 0 || height <= 0) return;
 
-		final above = tone(top, bottom, from, span, y);
-		final below = tone(top, bottom, from, span, y + height);
+		final left = Math.round(x);
+		final upper = Math.round(y);
 
-		wedge(x, y, above, x + width, y, above, x + width, y + height, below, alpha);
-		wedge(x, y, above, x + width, y + height, below, x, y + height, below, alpha);
+		var right = Math.round(x + width);
+		var lower = Math.round(y + height);
+
+		if (right <= left) right = left + 1;
+		if (lower <= upper) lower = upper + 1;
+
+		final above = tone(top, bottom, from, span, upper);
+		final below = tone(top, bottom, from, span, lower);
+
+		wedge(left, upper, above, right, upper, above, right, lower, below, alpha);
+		wedge(left, upper, above, right, lower, below, left, lower, below, alpha);
 	}
 
 	function bend(cx:Float, cy:Float, r:Float, starts:Float, ends:Float, top:Colour,
 			bottom:Colour, from:Float, span:Float, alpha:Float):Void {
-		var count = segments(r) >> 2;
-		if (count < 2) count = 2;
+		var count = Math.ceil(r * 1.2);
+		if (count < 3) count = 3;
+		if (count > 24) count = 24;
 
 		final step = (ends - starts) * Math.PI / 180 / count;
 		var angle = starts * Math.PI / 180;
@@ -287,6 +316,45 @@ final class Paint {
 			angle += step;
 		}
 	}
+
+	function faded(x0:Float, y0:Float, a0:Float, x1:Float, y1:Float, a1:Float, x2:Float,
+			y2:Float, a2:Float, colour:Colour):Void {
+		binds(font.texture);
+		room(FLOATS * 3);
+
+		final r = colour.red / 255;
+		final g = colour.green / 255;
+		final b = colour.blue / 255;
+		final u = font.solidU;
+		final v = font.solidV;
+
+		push(at(x0), down(y0), r, g, b, a0, u, v);
+		push(at(x1), down(y1), r, g, b, a1, u, v);
+		push(at(x2), down(y2), r, g, b, a2, u, v);
+	}
+
+	function band(cx:Float, cy:Float, inner:Float, outer:Float, from:Float, to:Float,
+			count:Int, colour:Colour, alpha:Float):Void {
+		final step = (to - from) / count;
+
+		var angle = from;
+
+		for (index in 0...count) {
+			final ax = Math.cos(angle);
+			final ay = Math.sin(angle);
+			final bx = Math.cos(angle + step);
+			final by = Math.sin(angle + step);
+
+			faded(cx + ax * inner, cy + ay * inner, alpha, cx + ax * outer, cy + ay * outer, 0,
+				cx + bx * outer, cy + by * outer, 0, colour);
+			faded(cx + ax * inner, cy + ay * inner, alpha, cx + bx * outer, cy + by * outer, 0,
+				cx + bx * inner, cy + by * inner, alpha, colour);
+
+			angle += step;
+		}
+	}
+
+	static inline final FEATHER = 0.5;
 
 	function wedge(x0:Float, y0:Float, c0:Colour, x1:Float, y1:Float, c1:Colour, x2:Float,
 			y2:Float, c2:Colour, alpha:Float):Void {
@@ -332,8 +400,17 @@ final class Paint {
 	}
 
 	public function roundedRect(x:Float, y:Float, width:Float, height:Float, radius:Float,
-			colour:Colour, alpha:Float = 1):Void {
+			colour:Colour, alpha:Float = 1, share:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
+
+		if (share < 1) {
+			if (share <= 0) return;
+
+			pushClip(x, y, width * share, height);
+			roundedRect(x, y, width, height, radius, colour, alpha);
+			popClip();
+			return;
+		}
 
 		var r = radius;
 		final half = (width < height ? width : height) * 0.5;
@@ -356,16 +433,23 @@ final class Paint {
 
 	function corner(cx:Float, cy:Float, r:Float, from:Float, to:Float, colour:Colour,
 			alpha:Float):Void {
-		var count = Math.ceil(r * 1.2);
-		if (count < 3) count = 3;
-		if (count > 24) count = 24;
+		var count = Math.ceil(r * 2);
+		if (count < 4) count = 4;
+		if (count > 48) count = 48;
 
-		final step = (to - from) * Math.PI / 180 / count;
-		var angle = from * Math.PI / 180;
+		final solid = r - FEATHER;
+		final starts = from * Math.PI / 180;
+		final ends = to * Math.PI / 180;
+		final step = (ends - starts) / count;
+
+		band(cx, cy, solid, r + FEATHER, starts, ends, count, colour, alpha);
+
+		var angle = starts;
 
 		for (i in 0...count) {
-			triangle(cx, cy, cx + Math.cos(angle) * r, cy + Math.sin(angle) * r,
-				cx + Math.cos(angle + step) * r, cy + Math.sin(angle + step) * r, colour, alpha);
+			triangle(cx, cy, cx + Math.cos(angle) * solid, cy + Math.sin(angle) * solid,
+				cx + Math.cos(angle + step) * solid, cy + Math.sin(angle + step) * solid,
+				colour, alpha);
 			angle += step;
 		}
 	}
@@ -380,11 +464,15 @@ final class Paint {
 
 		final count = segments(radius);
 		final step = Math.PI * 2 / count;
+		final solid = radius - FEATHER;
+
+		band(cx, cy, solid, radius + FEATHER, 0, Math.PI * 2, count, colour, alpha);
+
 		var angle = 0.0;
 
 		for (i in 0...count) {
-			triangle(cx, cy, cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius,
-				cx + Math.cos(angle + step) * radius, cy + Math.sin(angle + step) * radius,
+			triangle(cx, cy, cx + Math.cos(angle) * solid, cy + Math.sin(angle) * solid,
+				cx + Math.cos(angle + step) * solid, cy + Math.sin(angle + step) * solid,
 				colour, alpha);
 			angle += step;
 		}
@@ -396,7 +484,14 @@ final class Paint {
 
 		final count = segments(radius);
 		final step = (to - from) / count;
-		final inner = radius - weight;
+
+		final outer = radius - FEATHER;
+		var inner = radius - weight + FEATHER;
+		if (inner > outer) inner = outer;
+
+		band(cx, cy, outer, radius + FEATHER, from, to, count, colour, alpha);
+		band(cx, cy, inner, radius - weight - FEATHER, from, to, count, colour, alpha);
+
 		var angle = from;
 
 		for (i in 0...count) {
@@ -405,8 +500,8 @@ final class Paint {
 			final bx = Math.cos(angle + step);
 			final by = Math.sin(angle + step);
 
-			quad(cx + ax * inner, cy + ay * inner, cx + ax * radius, cy + ay * radius,
-				cx + bx * radius, cy + by * radius, cx + bx * inner, cy + by * inner, colour,
+			quad(cx + ax * inner, cy + ay * inner, cx + ax * outer, cy + ay * outer,
+				cx + bx * outer, cy + by * outer, cx + bx * inner, cy + by * inner, colour,
 				alpha);
 			angle += step;
 		}

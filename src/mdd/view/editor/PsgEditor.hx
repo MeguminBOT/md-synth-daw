@@ -245,7 +245,7 @@ final class PsgEditor extends Widget {
 
 		Panel.titled(paint, theme, metrics, session.part.name() + "   "
 			+ translate(envelope == null ? Locale.PANEL_NOT_SQUARE : Locale.PANEL_ENVELOPE),
-			x, y, width, metrics.whole(22));
+			x, y, width, metrics.head);
 
 		paint.reface(small);
 
@@ -310,8 +310,8 @@ final class PsgEditor extends Widget {
 			paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, theme.raise1);
 
 			if (part > 0) {
-				paint.roundedRect(left, top, wide * part, tall, metrics.radiusSmall, colour,
-					0.45);
+				paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, colour, 0.45,
+					part);
 			}
 
 			paint.outline(left, top, wide, tall, which == dial ? theme.accent : theme.frame,

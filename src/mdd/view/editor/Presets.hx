@@ -433,7 +433,7 @@ final class Presets extends Widget {
 
 	override function layout():Void {
 		final root = root();
-		final top = root == null ? 24 : root.metrics.whole(24);
+		final top = root == null ? 26 : root.metrics.head;
 
 		tree.arrange(x, y + top, width, height - top);
 		reveals();
@@ -446,7 +446,7 @@ final class Presets extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final font = metrics.small == null ? metrics.body : metrics.small;
-		final top = metrics.whole(24);
+		final top = metrics.head;
 
 		paint.rect(x, y, width, height, theme.panel);
 

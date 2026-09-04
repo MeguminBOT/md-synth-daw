@@ -284,6 +284,10 @@ final class Welcome extends Widget {
 					metrics.radiusRow, theme.accent, Theme.HOVER);
 			}
 
+			paint.outline(x + metrics.inset, top, width - metrics.inset * 2, tall - 2,
+				at == chosen ? theme.accent : theme.frame, metrics.whole(1), alpha,
+				metrics.radiusRow);
+
 			paint.reface(font);
 			paint.text(Languages.named(languages[at]), x + metrics.inset * 2,
 				top + (tall - font.height) * 0.5 + font.ascent,

@@ -22,8 +22,4 @@ final class Panel {
 			theme.dim, 0.85);
 	}
 
-	public static function edge(paint:Paint, theme:Theme, metrics:Metrics, x:Float, y:Float,
-			width:Float, height:Float):Void {
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
-	}
 }

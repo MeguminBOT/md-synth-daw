@@ -331,7 +331,7 @@ final class PianoRoll extends Widget {
 
 	public function ruler():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 24 : root.metrics.ruler;
 	}
 
 	public function velocityTall():Float {
@@ -996,8 +996,6 @@ final class PianoRoll extends Widget {
 		reins(paint, theme, metrics, left, top);
 
 		super.paint(paint);
-
-		Panel.edge(paint, theme, metrics, x, y, width, height);
 	}
 
 	var reining:Int = 0;
@@ -1275,7 +1273,7 @@ final class PianoRoll extends Widget {
 			final at = atTick(tick);
 			if (at > x + width) break;
 
-			if (at >= left) {
+			if (at > left) {
 				final major = tick % bar == 0;
 				paint.rect(at, top, hair, grid(), theme.frame, major ? 0.9 : 0.35);
 			}
@@ -1433,19 +1431,25 @@ final class PianoRoll extends Widget {
 		var tick = Std.int(tickAt(left) / bar) * bar;
 		if (tick < 0) tick = 0;
 
+		var written = left - metrics.gap;
+
 		while (tick <= length) {
 			final at = atTick(tick);
 			if (at > x + width) break;
 
-			if (at >= left) {
-				paint.text(Std.string(Std.int(tick / bar) + 1), at + metrics.unit,
+			if (at >= left && at >= written) {
+				final said = Std.string(Std.int(tick / bar) + 1);
+
+				paint.text(said, at + metrics.unit,
 					y + (tall - font.height) * 0.5 + font.ascent, theme.dim);
+
+				written = at + metrics.unit + paint.measure(said) + metrics.gap;
 			}
 
 			tick += bar;
 		}
 
 		paint.popClip();
-		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame);
+		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame, 0.7);
 	}
 }

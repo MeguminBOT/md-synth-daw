@@ -512,6 +512,11 @@ final class Lanes extends Widget {
 		final metrics = root.metrics;
 
 		for (row in 0...rows()) drawn(paint, theme, metrics, row);
+
+		if (left > 0) {
+			final hair = metrics.whole(1);
+			paint.rect(x + left - hair, y, hair, height, theme.frame);
+		}
 	}
 
 	function drawn(paint:Paint, theme:Theme, metrics:Metrics, row:Int):Void {

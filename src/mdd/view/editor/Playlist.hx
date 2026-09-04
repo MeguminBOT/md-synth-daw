@@ -102,7 +102,7 @@ final class Playlist extends Widget {
 
 	public function ruler():Float {
 		final root = root();
-		return root == null ? 24 : root.metrics.whole(24);
+		return root == null ? 24 : root.metrics.ruler;
 	}
 
 	public function rows():Int {
@@ -631,8 +631,6 @@ final class Playlist extends Widget {
 		rails(paint, theme, metrics, top);
 		heading(paint, theme, metrics, left);
 		reins(paint, theme, metrics, left, top);
-
-		paint.outline(x, y, width, height, theme.frame, metrics.whole(1));
 	}
 
 	var reining:Int = 0;
@@ -735,7 +733,7 @@ final class Playlist extends Widget {
 			final at = atTick(tick);
 			if (at > x + width) break;
 
-			if (at >= left) {
+			if (at > left) {
 				paint.rect(at, top, hair, height - ruler(), theme.frame,
 					tick % (bar * 4) == 0 ? 0.8 : 0.3);
 			}
@@ -843,7 +841,8 @@ final class Playlist extends Widget {
 			clip == chosen ? 1 : 0.6, metrics.radiusSmall);
 
 		if (clip == chosen) {
-			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1));
+			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1), 1,
+				metrics.radiusSmall);
 		}
 
 		if (wide < metrics.whole(24) || held == null) return;
@@ -1018,19 +1017,25 @@ final class Playlist extends Widget {
 		var tick = Std.int(tickAt(left) / (bar * 4)) * bar * 4;
 		if (tick < 0) tick = 0;
 
+		var written = left - metrics.gap;
+
 		while (tick <= length) {
 			final at = atTick(tick);
 			if (at > x + width) break;
 
-			if (at >= left) {
-				paint.text(Std.string(Std.int(tick / bar) + 1), at + metrics.unit,
+			if (at >= left && at >= written) {
+				final said = Std.string(Std.int(tick / bar) + 1);
+
+				paint.text(said, at + metrics.unit,
 					y + (tall - font.height) * 0.5 + font.ascent, theme.dim);
+
+				written = at + metrics.unit + paint.measure(said) + metrics.gap;
 			}
 
 			tick += bar * 4;
 		}
 
 		paint.popClip();
-		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame);
+		paint.rect(x, y + tall - metrics.whole(1), width, metrics.whole(1), theme.frame, 0.7);
 	}
 }

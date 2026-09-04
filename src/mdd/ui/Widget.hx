@@ -81,10 +81,15 @@ class Widget {
 	}
 
 	public function arrange(x:Float, y:Float, width:Float, height:Float):Void {
-		this.x = x;
-		this.y = y;
-		this.width = width < 0 ? 0 : width;
-		this.height = height < 0 ? 0 : height;
+		final left = Math.round(x);
+		final top = Math.round(y);
+		final right = Math.round(x + (width < 0 ? 0 : width));
+		final bottom = Math.round(y + (height < 0 ? 0 : height));
+
+		this.x = left;
+		this.y = top;
+		this.width = right < left ? 0 : right - left;
+		this.height = bottom < top ? 0 : bottom - top;
 
 		layout();
 	}

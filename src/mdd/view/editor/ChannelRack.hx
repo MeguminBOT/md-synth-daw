@@ -76,7 +76,7 @@ final class ChannelRack extends Widget {
 
 	function header():Float {
 		final root = root();
-		return root == null ? 26 : root.metrics.whole(26);
+		return root == null ? 34 : root.metrics.tab;
 	}
 
 	override function took(event:Input):Bool {
@@ -403,7 +403,7 @@ final class ChannelRack extends Widget {
 		final level = levels[index];
 		if (level <= 0.002) return;
 
-		final filled = wide * (level > 1 ? 1 : level);
-		paint.roundedRect(at, top, filled, high, high * 0.5, colour);
+		paint.roundedRect(at, top, wide, high, high * 0.5, colour, 1,
+			level > 1 ? 1 : level);
 	}
 }
