@@ -545,6 +545,7 @@ class App {
 		final typeface = settings.asWhole("typeface", 0);
 		final motion = settings.asWhole("motion", stage.root.flow);
 		final density = settings.asWhole("density", 1);
+		final tail = settings.asWhole("tail", 1);
 		final keeping = settings.asWhole("keeping", 2);
 		final backups = settings.asWhole("backups", 3);
 		final backupAge = settings.asWhole("backupAge", 2);
@@ -575,6 +576,7 @@ class App {
 		if (typeface != 0) redressed();
 
 		panels.preferences.chose(Preferences.DENSITY, density);
+		panels.preferences.chose(Preferences.TAIL, tail);
 		panels.preferences.chose(Preferences.KEEPING, keeping);
 		panels.preferences.chose(Preferences.BACKUPS, backups);
 		panels.preferences.chose(Preferences.BACKUP_AGE, backupAge);
@@ -596,6 +598,7 @@ class App {
 		settings.whole("master", session.master);
 		settings.whole("automating", session.automating);
 		settings.whole("density", panels.preferences.density);
+		settings.whole("tail", panels.preferences.tail);
 		settings.whole("keeping", panels.preferences.keeping);
 		settings.whole("backups", panels.preferences.backups);
 		settings.whole("backupAge", panels.preferences.backupAge);

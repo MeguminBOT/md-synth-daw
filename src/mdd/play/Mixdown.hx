@@ -71,7 +71,10 @@ final class Mixdown {
 		final span = song.tempo.samplesAt(song.ends());
 		final sounding = Std.int(span * (rate / Tempo.TICKS));
 
-		if (sounding <= 0) return;
+		if (sounding <= 0) {
+			reached.store(WHOLE);
+			return;
+		}
 
 		final ahead = Math.round(mixing.padStart * rate);
 		final behind = Math.round(mixing.padEnd * rate);
@@ -99,8 +102,10 @@ final class Mixdown {
 		var done = 0;
 		var told = 0;
 
+		cpp.vm.Gc.enterGCFreeZone();
+
 		while (done < many) {
-			if (stopped()) return;
+			if (stopped()) break;
 
 			final from = Std.int(done * (Tempo.TICKS / rate));
 			final took = render.serve(stream, from, Render.BLOCK, 0);
@@ -132,6 +137,8 @@ final class Mixdown {
 				reached.store(held);
 			}
 		}
+
+		cpp.vm.Gc.exitGCFreeZone();
 
 		reached.store(WHOLE);
 	}

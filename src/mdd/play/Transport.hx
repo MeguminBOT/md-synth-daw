@@ -14,6 +14,7 @@ final class Transport {
 	public var position(default, null):Int = 0;
 
 	public var looping:Bool = false;
+	public var tail:Int = 1;
 	public var loopFrom:Int = 0;
 	public var loopTo:Int = 0;
 
@@ -152,7 +153,7 @@ final class Transport {
 		final last = song.ends();
 		if (last <= 0) return 0;
 
-		return song.tempo.samplesAt(last + song.tempo.ppqn * 4);
+		return song.tempo.samplesAt(last + song.tempo.ppqn * tail);
 	}
 
 	public function auditions(part:Part, note:Int):Void {

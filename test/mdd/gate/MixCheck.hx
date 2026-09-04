@@ -25,6 +25,7 @@ class MixCheck {
 		shaped();
 		written(into);
 		bounced();
+		threaded();
 		imported();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -190,6 +191,58 @@ class MixCheck {
 			&& faster.frames > made.frames * 0,
 			faster.frames + " frames at 48000 against " + mono.frames + " at 44100, "
 			+ round(faster.seconds(), 2) + " s either way");
+	}
+
+	static function threaded():Void {
+		final song = new Song("a bounce", 96, 150);
+		final pattern = song.add(new mdd.song.Pattern("one", 384 * 16));
+
+		final track = song.track(new mdd.song.Track("fm"));
+		track.add(new mdd.song.Clip(0, 0, 384 * 16));
+
+		mdd.song.Shipped.into(song);
+
+		for (bar in 0...16) {
+			pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(bar * 384, 96, 60, 127,
+				song.rack[0]));
+		}
+
+		final mixing = new Mixing();
+		mixing.rate = 44100;
+
+		final made = Mixdown.made();
+
+		sys.thread.Thread.create(function():Void {
+			try {
+				made.runs(song, mixing);
+			} catch (e:Dynamic) {
+				made.stops();
+			}
+		});
+
+		final began = haxe.Timer.stamp();
+
+		var worst = 0.0;
+		var spins = 0;
+
+		while (made.reach() < 1 && haxe.Timer.stamp() - began < 30) {
+			final at = haxe.Timer.stamp();
+			final held:Array<mdd.song.Point> = [];
+
+			for (index in 0...4000) held.push(new mdd.song.Point(index, index));
+
+			final took = haxe.Timer.stamp() - at;
+			if (took > worst) worst = took;
+
+			spins++;
+		}
+
+		final over = haxe.Timer.stamp() - began;
+
+		says("a bounce leaves the main thread running", worst < 0.2 && spins > 20
+			&& made.reach() >= 1,
+			spins + " rounds of allocation while it rendered, worst stall "
+			+ round(worst * 1000, 1) + " ms across " + round(over, 2) + " s");
 	}
 
 	static function imported():Void {

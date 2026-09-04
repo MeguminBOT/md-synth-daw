@@ -30,16 +30,22 @@ final class Preferences extends Widget {
 	public static inline final PROJECTS = 9;
 	public static inline final PRESETS = 10;
 	public static inline final AUTOMATING = 11;
-	public static inline final ROWS = 12;
+	public static inline final TAIL = 12;
+	public static inline final ROWS = 13;
 
 	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
-		Locale.PREFERENCE_AUTOMATING];
+		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL];
 
 	public static final AUTOMATINGS:Array<String> = [Locale.AUTOMATING_LANES,
 		Locale.AUTOMATING_CLIPS];
+
+	static final TAILS:Array<String> = [Locale.TAIL_NONE, Locale.TAIL_BEAT, Locale.TAIL_TWO,
+		Locale.TAIL_BAR, Locale.TAIL_TWO_BARS];
+
+	public static final BEATS:Array<Int> = [0, 1, 2, 4, 8];
 
 	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
@@ -76,6 +82,7 @@ final class Preferences extends Widget {
 	public var backups(default, null):Int = 3;
 	public var backupAge(default, null):Int = 2;
 	public var updates(default, null):Int = 1;
+	public var tail(default, null):Int = 1;
 
 	public var projectsAt:String = "";
 	public var presetsAt:String = "";
@@ -172,6 +179,7 @@ final class Preferences extends Widget {
 			case BACKUP_AGE: BACKUP_AGES;
 			case UPDATES: UPDATING;
 			case AUTOMATING: AUTOMATINGS;
+			case TAIL: TAILS;
 			case PROJECTS, PRESETS: [];
 			case _: languages;
 		}
@@ -228,6 +236,7 @@ final class Preferences extends Widget {
 			case BACKUP_AGE: backupAge;
 			case UPDATES: updates;
 			case AUTOMATING: session.automating;
+			case TAIL: tail;
 			case PROJECTS, PRESETS: 0;
 			case _: language;
 		}
@@ -276,6 +285,13 @@ final class Preferences extends Widget {
 			case AUTOMATING:
 				session.automating = which;
 				if (onAutomating != null) onAutomating(which);
+
+			case TAIL:
+				tail = which;
+				session.transport.tail = BEATS[which];
+
+				session.say(which == 0 ? translate(Locale.TAIL_NONE)
+					: translate(Locale.PREFERENCE_TAIL) + "  " + translate(TAILS[which]));
 
 			case _:
 				language = which;

@@ -221,6 +221,12 @@ class Locale {
 	public static inline final PREFERENCE_MOTION = "preference.motion";
 	public static inline final PREFERENCE_LANGUAGE = "preference.language";
 	public static inline final PREFERENCE_DENSITY = "preference.density";
+	public static inline final PREFERENCE_TAIL = "preference.tail";
+	public static inline final TAIL_NONE = "tail.none";
+	public static inline final TAIL_BEAT = "tail.beat";
+	public static inline final TAIL_TWO = "tail.two";
+	public static inline final TAIL_BAR = "tail.bar";
+	public static inline final TAIL_TWO_BARS = "tail.twoBars";
 	public static inline final PREFERENCE_KEEPING = "preference.keeping";
 	public static inline final PREFERENCE_BACKUPS = "preference.backups";
 	public static inline final PREFERENCE_BACKUP_AGE = "preference.backupAge";
@@ -429,7 +435,8 @@ class Locale {
 		BACKUP_AGE_QUARTER, UPDATES_NEVER, UPDATES_LAUNCH, FOLDER_DEFAULT,
 		WORKING_CANCEL, WORKING_STOPPING, WORKING_OPENING, WORKING_SAVING,
 		WORKING_IMPORTING, WORKING_EXPORTING, WORKING_RENDERING, WORKING_DOWNLOADING,
-		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_KEEPING,
+		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
+		TAIL_TWO, TAIL_BAR, TAIL_TWO_BARS, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,
 		MOTION_FULL, MOTION_REDUCED, MOTION_NONE,
 		DENSITY_CLOSE, DENSITY_USUAL, DENSITY_ROOMY,
