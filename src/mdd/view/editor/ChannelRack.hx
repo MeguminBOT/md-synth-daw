@@ -26,7 +26,8 @@ final class ChannelRack extends Widget {
 
 	public var offsetY:Float = 0;
 
-	static inline final PAN = 120;
+	static inline final PAN = 128;
+	static inline final PAN_WIDE = 30;
 	static inline final MUTE = 96;
 	static inline final SOLO = 72;
 	static inline final METER = 44;
@@ -52,7 +53,7 @@ final class ChannelRack extends Widget {
 
 	function slotHolds(metrics:Metrics, from:Int, px:Float):Bool {
 		final left = slotAt(metrics, from);
-		return px >= left && px < left + metrics.whole(MARK);
+		return px >= left && px < left + metrics.whole(from == PAN ? PAN_WIDE : MARK);
 	}
 
 	public function turned(at:Int):Void {
@@ -458,19 +459,46 @@ final class ChannelRack extends Widget {
 		final size = metrics.whole(MARK);
 		final top = row + (tall - size) * 0.5;
 
-		paint.roundedRect(at, top, size, size, metrics.radiusSmall, theme.raise1);
+		paint.roundedRect(at, top, metrics.whole(PAN_WIDE), size, metrics.radiusSmall,
+			theme.raise1);
 
-		final pip = metrics.whole(4);
-		final deep = metrics.whole(10);
-		final gap = metrics.whole(3);
-		final middle = top + (size - deep) * 0.5;
-		final from = at + (size - pip * 2 - gap) * 0.5;
+		final wide = metrics.whole(9);
+		final gap = metrics.whole(9);
+		final middle = top + size * 0.5;
+		final from = at + (metrics.whole(PAN_WIDE) - wide * 2 - gap) * 0.5;
 
-		paint.roundedRect(from, middle, pip, deep, metrics.whole(2),
-			(pan & Song.LEFT) != 0 ? colour : theme.frame, quiet ? 0.4 : 1);
+		speaker(paint, metrics, from, middle, wide, -1,
+			(pan & Song.LEFT) != 0 ? colour : theme.frame, quiet ? 0.35 : 1);
 
-		paint.roundedRect(from + pip + gap, middle, pip, deep, metrics.whole(2),
-			(pan & Song.RIGHT) != 0 ? colour : theme.frame, quiet ? 0.4 : 1);
+		speaker(paint, metrics, from + wide + gap, middle, wide, 1,
+			(pan & Song.RIGHT) != 0 ? colour : theme.frame, quiet ? 0.35 : 1);
+	}
+
+	function speaker(paint:Paint, metrics:Metrics, at:Float, middle:Float, wide:Float,
+			facing:Int, colour:Colour, alpha:Float):Void {
+		final reach = wide * 0.62;
+		final near = reach * 0.34;
+
+		final back = facing > 0 ? at : at + wide;
+		final neck = back + facing * wide * 0.42;
+		final mouth = back + facing * wide;
+
+		final shape = new haxe.ds.Vector<Float>(12);
+
+		shape[0] = back;
+		shape[1] = middle - near;
+		shape[2] = neck;
+		shape[3] = middle - near;
+		shape[4] = mouth;
+		shape[5] = middle - reach;
+		shape[6] = mouth;
+		shape[7] = middle + reach;
+		shape[8] = neck;
+		shape[9] = middle + near;
+		shape[10] = back;
+		shape[11] = middle + near;
+
+		paint.polygon(shape, 6, colour, alpha);
 	}
 
 	static function shortened(paint:Paint, said:String, room:Float):String {

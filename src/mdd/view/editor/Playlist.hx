@@ -801,11 +801,26 @@ final class Playlist extends Widget {
 					: pattern.part >= 0 ? theme.part(pattern.part)
 					: theme.part(clip.pattern % 11);
 
-				paint.roundedGradient(at, row + 2, wide, tall - 5, metrics.radiusSmall,
-					colour.lift(0.22), colour.sink(0.18), track.muted ? 0.3 : 0.75);
+				final deep = tall - 5;
+				final quiet = track.muted;
+
+				var strip = Math.ffloor(deep * 0.28);
+				if (strip < metrics.whole(6)) strip = metrics.whole(6);
+				if (strip > deep) strip = deep;
+
+				paint.roundedRect(at, row + 2, wide, deep, metrics.radiusSmall, colour,
+					quiet ? 0.10 : 0.20);
+
+				paint.pushClip(at, row + 2, wide, strip);
+				paint.roundedGradient(at, row + 2, wide, deep, metrics.radiusSmall,
+					colour.lift(0.22), colour.sink(0.18), quiet ? 0.35 : 0.95);
+				paint.popClip();
+
+				paint.outline(at, row + 2, wide, deep, colour, metrics.whole(1),
+					quiet ? 0.3 : 0.55, metrics.radiusSmall);
 
 				if (clip == chosen) {
-					paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1), 1,
+					paint.outline(at, row + 2, wide, deep, theme.ink, metrics.whole(1), 1,
 						metrics.radiusSmall);
 				}
 
@@ -815,18 +830,22 @@ final class Playlist extends Widget {
 
 				if (wide < metrics.whole(24)) continue;
 
-				final inset = metrics.whole(2);
-				final body = tall - 5 - inset * 2;
+				final inset = metrics.whole(1);
+				final body = deep - strip - inset * 2;
 
-				paint.pushClip(at, row + 2, wide - metrics.unit, tall - 5);
+				paint.pushClip(at, row + 2, wide - metrics.unit, deep);
 
 				if (pattern != null && body >= metrics.whole(4)) {
-					inked(paint, metrics, pattern, clip, colour.sink(0.5), at,
-						row + 2 + inset, wide, body);
+					inked(paint, metrics, pattern, clip, quiet ? colour.sink(0.4) : colour, at,
+						row + 2 + strip + inset, wide, body);
 				}
 
-				paint.text(said + tail, at + metrics.unit,
-					row + 2 + (tall - 5 - font.height) * 0.5 + font.ascent, colour.sink(0.72));
+				if (strip >= font.height * 0.9) {
+					paint.text(said + tail, at + metrics.unit,
+						row + 2 + (strip - font.height) * 0.5 + font.ascent,
+						colour.sink(0.74));
+				}
+
 				paint.popClip();
 			}
 		}
