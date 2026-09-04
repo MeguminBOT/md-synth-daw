@@ -190,12 +190,7 @@ class ShotCheck {
 
 		session.choose(part);
 
-		for (index in 0...lane) {
-			final held = mdd.view.Parameter.of(session.part);
-			if (index >= held.length) break;
-
-			centre.roll.stack.show(held[index].target, 0);
-		}
+		if (lane > 0) centre.roll.shows(lane);
 
 		centre.playlist.rowTall = rows;
 		if (drives) driving(session);

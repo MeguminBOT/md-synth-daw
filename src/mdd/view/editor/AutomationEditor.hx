@@ -122,7 +122,7 @@ final class AutomationEditor extends Widget {
 		framedFor = room;
 		framedSpan = reach;
 
-		perTick = room / reach;
+		perTick = widest();
 		offsetX = 0;
 	}
 
@@ -239,7 +239,41 @@ final class AutomationEditor extends Widget {
 		return x + gutter() - offsetX + tick * perTick;
 	}
 
+	public function widest():Float {
+		final reach = span();
+		final room = width - gutter();
+
+		if (reach < 1 || room <= 0) return 0.01;
+		return room / reach;
+	}
+
+	public function zoom(by:Float, around:Float):Void {
+		final tick = Math.round((around - x - gutter() + offsetX) / perTick);
+		final want = perTick * by;
+		final least = widest();
+
+		perTick = want < least ? least : (want > 4 ? 4 : want);
+		scrollTo(tick * perTick - (around - x - gutter()));
+	}
+
+	public function scrollTo(px:Float):Void {
+		final most = span() * perTick - (width - gutter());
+
+		offsetX = px < 0 ? 0 : (px > most ? (most < 0 ? 0 : most) : px);
+		relayout();
+	}
+
 	override function took(event:Input):Bool {
+		if (event.kind == Kind.Wheel) {
+			if (event.ctrl() || event.alt()) {
+				zoom(event.dy > 0 ? 1.25 : 0.8, event.x);
+				return true;
+			}
+
+			scrollTo(offsetX - event.dy * (width - gutter()) * 0.12);
+			return true;
+		}
+
 		if (event.kind != Kind.PointerDown) return false;
 		if (event.y >= y + head() + ruler()) return false;
 		if (event.x >= x + gutter()) return false;

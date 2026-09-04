@@ -186,12 +186,16 @@ final class Playlist extends Widget {
 		scrollTo(0);
 	}
 
-	public function widest():Float {
+	public function reach():Int {
+		final bar = session.song.tempo.ppqn * 4;
 		final length = session.song.ends();
-		if (length < 1) return 0.01;
 
-		final fits = (width - names()) / length;
-		return fits < 0.01 ? fits : 0.01;
+		return (length < bar ? bar : length) + bar * SPARE;
+	}
+
+	public function widest():Float {
+		final fits = (width - names()) / reach();
+		return fits > 0.01 ? 0.01 : fits;
 	}
 
 	public function zoom(by:Float, around:Float):Void {
@@ -209,7 +213,7 @@ final class Playlist extends Widget {
 	}
 
 	public function scrollTo(px:Float):Void {
-		final most = session.song.ends() * perTick - (width - names());
+		final most = reach() * perTick - (width - names());
 		offsetX = px < 0 ? 0 : (px > most ? (most < 0 ? 0 : most) : px);
 		invalidate();
 	}
@@ -724,9 +728,15 @@ final class Playlist extends Widget {
 		final bar = session.song.tempo.ppqn * 4;
 		final hair = metrics.whole(1);
 		final tall = trackTall();
-		final length = session.song.ends() + bar * 4;
+		final length = reach();
 
-		var tick = Std.int(tickAt(left) / bar) * bar;
+		final beat = session.song.tempo.ppqn;
+		final step = session.snap < 1 ? beat : session.snap;
+
+		var fine = step;
+		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;
+
+		var tick = Std.int(tickAt(left) / fine) * fine;
 		if (tick < 0) tick = 0;
 
 		while (tick <= length) {
@@ -734,11 +744,13 @@ final class Playlist extends Widget {
 			if (at > x + width) break;
 
 			if (at > left) {
-				paint.rect(at, top, hair, height - ruler(), theme.frame,
-					tick % (bar * 4) == 0 ? 0.8 : 0.3);
+				final much = tick % (bar * 4) == 0 ? 0.8
+					: (tick % bar == 0 ? 0.45 : (tick % beat == 0 ? 0.22 : 0.11));
+
+				paint.rect(at, top, hair, height - ruler(), theme.frame, much);
 			}
 
-			tick += bar;
+			tick += fine;
 		}
 
 		for (which in 0...rows()) {

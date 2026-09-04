@@ -51,6 +51,7 @@ final class PianoRoll extends Widget {
 
 	public var onAudition:Null<(Part, Int) -> Void> = null;
 	public var showLanes:Bool = true;
+	public var showing:Int = 0;
 	var stalking:Null<Note> = null;
 	var litNote:Int = -1;
 	var litOn:Bool = false;
@@ -96,15 +97,22 @@ final class PianoRoll extends Widget {
 	}
 
 	override function layout():Void {
-		stack.settles();
+		stack.adding = false;
 
-		final tall = stack.wants();
+		if (showing > 0 && stack.rows() == 0) {
+			final held = Parameter.of(session.part);
+			if (showing - 1 < held.length) {
+				stack.show(held[showing - 1].target, held[showing - 1].slot);
+			}
+		}
+
+		final tall = showing == 0 ? 0.0 : stack.wants();
 
 		stack.perTick = perTick;
 		stack.offsetX = offsetX;
 		stack.left = gutter();
 		stack.playhead = playhead;
-		stack.visible = showLanes && tall > 0;
+		stack.visible = showLanes && showing > 0 && tall > 0;
 
 		stack.arrange(x, y + height - tall, width, tall);
 	}
@@ -115,63 +123,49 @@ final class PianoRoll extends Widget {
 
 		menu = new Menu();
 
-		for (held in Parameter.of(session.part)) {
-			if (!held.operators) {
-				choice(menu, held, held.target, 0, row);
-				continue;
-			}
+		final velocity = menu.offer(new Choice(translate(Locale.LANE_VELOCITY)));
 
-			final slots = new Menu();
-			for (slot in 0...4) choice(slots, held, held.target, slot, row);
+		if (showing == 0) velocity.enabled = false;
+		else fires(velocity, function():Void shows(0));
 
-			menu.offer(new Choice(held.name)).submenu = slots;
+		menu.divide();
+
+		final held = Parameter.of(session.part);
+
+		for (index in 0...held.length) {
+			final one = held[index];
+			final which = index + 1;
+
+			final many = stack.carries(one.target, one.slot);
+			final choice = menu.offer(new Choice(one.titled(one.slot),
+				many == 0 ? "" : "" + many));
+
+			choice.reason = translate(one.about);
+
+			if (which == showing) choice.enabled = false;
+			else fires(choice, function():Void {
+				if (session.automating == Session.CLIPS && onAutomate != null) {
+					onAutomate(one.target, one.slot);
+					return;
+				}
+
+				shows(which);
+			});
 		}
 
-		if (row >= 0) {
+		if (showing > 0) {
 			menu.divide();
 
 			final lift = menu.offer(new Choice(translate(Locale.LANE_LIFT)));
 
-			lift.enabled = stack.carries(stack.targetOf(row), stack.slotOf(row)) > 0;
+			lift.enabled = stack.rows() > 0
+				&& stack.carries(stack.targetOf(0), stack.slotOf(0)) > 0;
+
 			if (!lift.enabled) lift.reason = translate(Locale.LANE_EMPTY);
-
-			fires(lift, function():Void lifted(row));
-
-			fires(menu.offer(new Choice(translate(Locale.LANE_DROP))), function():Void
-				stack.hide(row));
+			fires(lift, function():Void lifted(0));
 		}
 
 		root.pop(menu, px, py, this);
-	}
-
-	function choice(into:Menu, held:Parameter, target:Int, slot:Int, row:Int):Void {
-		final many = stack.carries(target, slot);
-
-		final one = into.offer(new Choice(held.titled(slot),
-			many == 0 ? "" : "" + many));
-
-		one.reason = translate(held.about);
-
-		if (row < 0 && session.automating == Session.LANES && stack.shows(target, slot)) {
-			one.enabled = false;
-			return;
-		}
-
-		fires(one, function():Void {
-			if (row >= 0) {
-				stack.swap(row, target, slot);
-				relayout();
-				return;
-			}
-
-			if (session.automating == Session.CLIPS && onAutomate != null) {
-				onAutomate(target, slot);
-				return;
-			}
-
-			stack.show(target, slot);
-			relayout();
-		});
 	}
 
 	function lifted(row:Int):Void {
@@ -335,15 +329,52 @@ final class PianoRoll extends Widget {
 	}
 
 	public function velocityTall():Float {
-		if (!showLanes) return 0;
+		if (!showLanes || showing != 0) return 0;
 
 		final root = root();
-		return root == null ? 80 : root.metrics.whole(80);
+		return root == null ? 108 : root.metrics.whole(108);
 	}
 
 	public function lanes():Float {
 		if (!showLanes) return 0;
-		return velocityTall() + stack.wants();
+		return showing == 0 ? velocityTall() : stack.wants();
+	}
+
+	public function choices():Int {
+		return Parameter.of(session.part).length + 1;
+	}
+
+	public function cycles(by:Int):Void {
+		final many = choices();
+		var want = (showing + by) % many;
+
+		if (want < 0) want += many;
+		shows(want);
+	}
+
+	public function shows(want:Int):Void {
+		if (want == showing || want < 0 || want >= choices()) return;
+
+		showing = want;
+		stack.targets.resize(0);
+
+		if (want > 0) {
+			final one = Parameter.of(session.part)[want - 1];
+			stack.show(one.target, one.slot);
+		}
+
+		final said = want == 0 ? translate(Locale.LANE_VELOCITY)
+			: Parameter.of(session.part)[want - 1].titled(0);
+
+		session.say(said);
+		relayout();
+	}
+
+	public function onLaneHead(py:Float):Bool {
+		if (!showLanes || lanes() <= 0) return false;
+
+		final top = y + height - lanes();
+		return py >= top && py < top + stripHead();
 	}
 
 	public inline function grid():Float {
@@ -546,6 +577,11 @@ final class PianoRoll extends Widget {
 
 		switch (event.kind) {
 			case Kind.Wheel:
+				if (onLaneHead(event.y)) {
+					cycles(event.dy > 0 ? -1 : 1);
+					return true;
+				}
+
 				if (event.ctrl() || event.alt()) {
 					zoom(event.dy > 0 ? 1.25 : 0.8, event.x);
 					return true;
@@ -571,6 +607,11 @@ final class PianoRoll extends Widget {
 				if (event.y < y + ruler() && event.x >= x + gutter()) {
 					scrubbing = true;
 					scrubbed(event.x);
+					return true;
+				}
+
+				if (onLaneHead(event.y)) {
+					offered(event.x, y + height - lanes() + stripHead(), 0);
 					return true;
 				}
 
@@ -1097,11 +1138,28 @@ final class PianoRoll extends Widget {
 
 		paint.reface(font);
 
-		paint.text(translate(Locale.LANE_VELOCITY), x + metrics.gap,
-			top + (head - font.height) * 0.5 + font.ascent, theme.ink, 0.95);
+		final said = translate(Locale.LANE_VELOCITY);
+		final line = top + (head - font.height) * 0.5 + font.ascent;
 
-		paint.textRight(translate(Locale.LANE_PER_NOTE), x + width - metrics.gap,
-			top + (head - font.height) * 0.5 + font.ascent, theme.dim, 0.55);
+		paint.text(said, x + metrics.gap, line, theme.ink, 0.95);
+
+		final reach = metrics.whole(3);
+		final at = x + metrics.gap + font.measure(said) + metrics.unit + reach;
+		final middle = top + head * 0.5;
+
+		final points = new haxe.ds.Vector<Float>(6);
+
+		points[0] = at - reach;
+		points[1] = middle - reach * 0.5;
+		points[2] = at + reach;
+		points[3] = middle - reach * 0.5;
+		points[4] = at;
+		points[5] = middle + reach * 0.7;
+
+		paint.polygon(points, 3, theme.dim, 0.9);
+
+		paint.textRight(translate(Locale.LANE_PER_NOTE), x + width - metrics.gap, line,
+			theme.dim, 0.55);
 
 		final floor = top + tall - metrics.gap;
 		final room = tall - head - metrics.gap * 2;

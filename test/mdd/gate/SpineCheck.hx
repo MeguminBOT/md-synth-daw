@@ -193,8 +193,14 @@ class SpineCheck {
 	static function laned(tree:Root, session:mdd.app.Session,
 			roll:mdd.view.editor.PianoRoll):Void {
 		final stack = roll.stack;
+		final held = mdd.view.Parameter.of(session.part);
 
-		stack.show(mdd.song.Automation.LEVEL, 0);
+		for (index in 0...held.length) {
+			if (held[index].target != mdd.song.Automation.LEVEL) continue;
+
+			roll.shows(index + 1);
+			break;
+		}
 
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);

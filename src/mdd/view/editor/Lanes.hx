@@ -41,6 +41,7 @@ final class Lanes extends Widget {
 	public var offsetX:Float = 0;
 	public var left:Float = 0;
 	public var rowTall:Float = 0;
+	public var adding:Bool = true;
 
 	final heights:Array<Float> = [];
 	final remembered:Map<Int, Float> = new Map<Int, Float>();
@@ -956,7 +957,7 @@ final class Lanes extends Widget {
 	}
 
 	public function onFoot(px:Float, py:Float):Bool {
-		if (holding != null) return false;
+		if (holding != null || !adding) return false;
 
 		final top = footTop();
 		return py >= top && py < top + footTall() && px >= x && px < x + addWide();
@@ -964,7 +965,7 @@ final class Lanes extends Widget {
 
 	function addWide():Float {
 		final root = root();
-		if (root == null || root.metrics.small == null) return 90;
+		if (root == null || root.metrics.small == null || !adding) return 0;
 
 		final metrics = root.metrics;
 		return metrics.gap + metrics.whole(9)
@@ -978,6 +979,8 @@ final class Lanes extends Widget {
 
 		paint.rect(x, top, width, tall, theme.sink);
 		paint.rect(x, top, width, metrics.whole(1), theme.frame, 0.7);
+
+		if (!adding) return;
 
 		final wide = addWide();
 		final box = top + metrics.whole(3);
@@ -1020,6 +1023,8 @@ final class Lanes extends Widget {
 
 		paint.pushClip(x + left, plotTop(row), width - left, plotTall(row));
 
+		gridded(paint, theme, metrics, row);
+
 		if (held.offset) {
 			final zero = atValue(row, 0);
 			paint.rect(x + left, zero, width - left, metrics.whole(1), theme.frame, 0.8);
@@ -1046,6 +1051,46 @@ final class Lanes extends Widget {
 			atValue(row, 0) + small.ascent * 0.5, theme.dim, 0.55);
 	}
 
+	function gridded(paint:Paint, theme:Theme, metrics:Metrics, row:Int):Void {
+		final beat = session.song.tempo.ppqn;
+		if (beat < 1 || perTick <= 0) return;
+
+		final bar = beat * 4;
+		final step = session.snap < 1 ? beat : session.snap;
+		final hair = metrics.whole(1);
+
+		final top = plotTop(row);
+		final tall = plotTall(row);
+		final from = x + left;
+
+		var fine = step;
+		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;
+
+		var tick = Std.int(tickAt(from) / fine) * fine;
+		if (tick < 0) tick = 0;
+
+		final reach = holding != null ? holding.length : span();
+
+		while (tick <= reach) {
+			final at = atTick(tick);
+			if (at > x + width) break;
+
+			if (at > from) {
+				final much = tick % (bar * 4) == 0 ? 0.55
+					: (tick % bar == 0 ? 0.35 : (tick % beat == 0 ? 0.18 : 0.09));
+
+				paint.rect(at, top, hair, tall, theme.frame, much);
+			}
+
+			tick += fine;
+		}
+	}
+
+	public function span():Int {
+		final pattern = session.current();
+		return pattern == null ? session.song.tempo.ppqn * 16 : pattern.length;
+	}
+
 	public function nameWide(row:Int):Float {
 		final root = root();
 		final held = parameterOf(row);
@@ -1065,7 +1110,7 @@ final class Lanes extends Widget {
 
 	public function onShed(row:Int, px:Float):Bool {
 		final root = root();
-		if (root == null || holding != null) return false;
+		if (root == null || holding != null || !adding) return false;
 
 		final metrics = root.metrics;
 		return px >= x + width - metrics.whole(20) && px < x + width;
@@ -1102,8 +1147,8 @@ final class Lanes extends Widget {
 		chevron(paint, theme, metrics, x + metrics.gap + small.measure(said) + metrics.unit
 			+ metrics.whole(3), top + tall * 0.5);
 
-		if (holding == null) shed(paint, theme, metrics, x + width - metrics.whole(20),
-			top, tall, lit && hoverShed);
+		if (holding == null && adding) shed(paint, theme, metrics,
+			x + width - metrics.whole(20), top, tall, lit && hoverShed);
 
 		final says = held.offset ? translate(Locale.LANE_RIDES) : "";
 		final wide = says == "" ? 0.0 : small.measure(says);
@@ -1112,7 +1157,7 @@ final class Lanes extends Widget {
 		final now = value == null || value.points.length == 0 ? ""
 			: held.said(value.valueAt(playhead < 0 ? 0 : playhead));
 
-		final right = x + width - (holding == null ? metrics.whole(22) : metrics.gap);
+		final right = x + width - (holding == null && adding ? metrics.whole(22) : metrics.gap);
 
 		if (now != "") {
 			paint.textRight(now, right, line, theme.ink, 0.8);
