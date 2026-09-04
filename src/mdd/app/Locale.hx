@@ -222,6 +222,10 @@ class Locale {
 	public static inline final PREFERENCE_LANGUAGE = "preference.language";
 	public static inline final PREFERENCE_DENSITY = "preference.density";
 	public static inline final PREFERENCE_TAIL = "preference.tail";
+	public static inline final GROUP_LOOK = "group.look";
+	public static inline final GROUP_EDITING = "group.editing";
+	public static inline final GROUP_FILES = "group.files";
+	public static inline final GROUP_UPDATES = "group.updates";
 	public static inline final TAIL_NONE = "tail.none";
 	public static inline final TAIL_BEAT = "tail.beat";
 	public static inline final TAIL_TWO = "tail.two";
@@ -435,6 +439,7 @@ class Locale {
 		BACKUP_AGE_QUARTER, UPDATES_NEVER, UPDATES_LAUNCH, FOLDER_DEFAULT,
 		WORKING_CANCEL, WORKING_STOPPING, WORKING_OPENING, WORKING_SAVING,
 		WORKING_IMPORTING, WORKING_EXPORTING, WORKING_RENDERING, WORKING_DOWNLOADING,
+		GROUP_LOOK, GROUP_EDITING, GROUP_FILES, GROUP_UPDATES,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
 		TAIL_TWO, TAIL_BAR, TAIL_TWO_BARS, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,

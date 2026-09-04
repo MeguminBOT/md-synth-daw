@@ -172,6 +172,7 @@ class App {
 		};
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
+		panels.preferences.onShut = function():Void stage.root.lower();
 
 		panels.preferences.onSpeak = function(code:String):Void {
 			Languages.speak(stage.root.translation, code);

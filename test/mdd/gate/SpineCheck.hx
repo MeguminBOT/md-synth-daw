@@ -417,6 +417,7 @@ class SpineCheck {
 
 		held.speaks(["en-GB", "en-US"], "en-GB");
 		tree.raise(held);
+		held.arrive();
 
 		final row = mdd.view.overlay.Preferences.THEME;
 		final top = held.rowTop(row) + held.fieldTall() * 0.5;
@@ -436,6 +437,22 @@ class SpineCheck {
 
 		says("and picking from it takes", held.showing(row) != was,
 			"the theme moved from " + was + " to " + held.showing(row));
+
+		final moved = held.showing(row);
+
+		held.cancels();
+
+		says("and cancel puts it back", held.showing(row) == was,
+			"the theme was " + was + ", became " + moved + ", and reads " + held.showing(row)
+			+ " after cancelling");
+
+		held.shows(mdd.view.overlay.Preferences.FILES);
+
+		says("a category shows its own rows", held.rowsIn().length == 5
+			&& held.rowsIn()[0] == mdd.view.overlay.Preferences.KEEPING,
+			"Files carries " + held.rowsIn().length + " rows, the first being autosave");
+
+		held.shows(mdd.view.overlay.Preferences.LOOK);
 
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 

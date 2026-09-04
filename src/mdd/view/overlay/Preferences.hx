@@ -33,6 +33,32 @@ final class Preferences extends Widget {
 	public static inline final TAIL = 12;
 	public static inline final ROWS = 13;
 
+	public static inline final LOOK = 0;
+	public static inline final EDITING = 1;
+	public static inline final FILES = 2;
+	public static inline final CHECKING = 3;
+	public static inline final GROUPS = 4;
+
+	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
+		Locale.GROUP_FILES, Locale.GROUP_UPDATES];
+
+	static final GROUPED:Array<Array<Int>> = [
+		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
+		[AUTOMATING, TAIL],
+		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
+		[UPDATES]
+	];
+
+	public var group(default, null):Int = LOOK;
+
+	public var onShut:Null<Void -> Void> = null;
+
+	final was:Array<Int> = [];
+
+	var wasProjects:String = "";
+	var wasPresets:String = "";
+	var offsetY:Float = 0;
+
 	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
@@ -100,6 +126,8 @@ final class Preferences extends Widget {
 	public var onFolder:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
+	var hoverButton:Int = -1;
+	var hoverGroup:Int = -1;
 	var menu:Null<Menu> = null;
 
 	public function new(session:Session) {
@@ -132,6 +160,14 @@ final class Preferences extends Widget {
 
 	public function arrive():Void {
 		final root = root();
+
+		was.resize(0);
+		for (row in 0...ROWS) was.push(holding(row));
+
+		wasProjects = projectsAt;
+		wasPresets = presetsAt;
+
+		offsetY = 0;
 		if (root == null) return;
 
 		rise.hold(0);
@@ -141,12 +177,73 @@ final class Preferences extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	public function saves():Void {
+		if (onKeep != null) onKeep();
+		if (onShut != null) onShut();
+	}
+
+	public function cancels():Void {
+		for (row in 0...ROWS) {
+			if (row >= was.length || folded(row)) continue;
+			if (holding(row) == was[row]) continue;
+
+			chose(row, was[row]);
+		}
+
+		projectsAt = wasProjects;
+		presetsAt = wasPresets;
+
+		if (onShut != null) onShut();
+	}
+
+	public function shows(which:Int):Void {
+		if (which < 0 || which >= GROUPS || which == group) return;
+
+		group = which;
+		offsetY = 0;
+
+		invalidate();
+	}
+
+	public inline function rowsIn():Array<Int> {
+		return GROUPED[group];
+	}
+
+	public function sidebar():Float {
+		final root = root();
+		return root == null ? 150 : root.metrics.whole(150);
+	}
+
+	public function foot():Float {
+		final root = root();
+		return root == null ? 56 : root.metrics.whole(56);
+	}
+
+	public function room():Float {
+		return height - head() - foot();
+	}
+
+	public function content():Float {
+		return rowsIn().length * rowTall();
+	}
+
+	public function scrollTo(py:Float):Void {
+		final most = content() - room();
+
+		offsetY = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+		invalidate();
+	}
+
 	override function measure(availableWidth:Float, availableHeight:Float):Void {
 		final root = root();
 		final metrics = root == null ? null : root.metrics;
 
-		wantWidth = metrics == null ? 560 : metrics.whole(560);
-		wantHeight = metrics == null ? 300 : head() + ROWS * rowTall() + metrics.inset;
+		wantWidth = metrics == null ? 640 : metrics.whole(640);
+
+		var most = 0;
+		for (held in GROUPED) if (held.length > most) most = held.length;
+
+		wantHeight = metrics == null ? 300 : head() + most * rowTall() + foot();
 	}
 
 	public function rowTall():Float {
@@ -164,8 +261,52 @@ final class Preferences extends Widget {
 	}
 
 	public function rowAt(py:Float):Int {
+		if (py < y + head() || py >= y + head() + room()) return -1;
+
+		final held = rowsIn();
+		final at = Std.int((py - y - head() + offsetY) / rowTall());
+
+		return at < 0 || at >= held.length ? -1 : held[at];
+	}
+
+	public function groupAt(py:Float):Int {
+		if (py < y + head() || py >= y + head() + room()) return -1;
+
 		final at = Std.int((py - y - head()) / rowTall());
-		return at < 0 || at >= ROWS ? -1 : at;
+		return at < 0 || at >= GROUPS ? -1 : at;
+	}
+
+	public function buttonWide():Float {
+		final root = root();
+		return root == null ? 110 : root.metrics.whole(110);
+	}
+
+	public function buttonTall():Float {
+		final root = root();
+		return root == null ? 32 : root.metrics.control;
+	}
+
+	public function buttonTop():Float {
+		return y + height - foot() + (foot() - buttonTall()) * 0.5;
+	}
+
+	public function buttonAt(px:Float, py:Float):Int {
+		final root = root();
+		if (root == null) return -1;
+
+		final top = buttonTop();
+		if (py < top || py >= top + buttonTall()) return -1;
+
+		final inset = root.metrics.inset;
+		final wide = buttonWide();
+		final right = x + width - inset;
+
+		if (px >= right - wide && px < right) return 1;
+		if (px >= right - wide * 2 - root.metrics.gap && px < right - wide - root.metrics.gap) {
+			return 0;
+		}
+
+		return -1;
 	}
 
 	public function choices(row:Int):Array<String> {
@@ -209,7 +350,7 @@ final class Preferences extends Widget {
 		final metrics = root == null ? null : root.metrics;
 		final inset = metrics == null ? 12 : metrics.inset;
 
-		return x + width * 0.42 + inset;
+		return x + sidebar() + (width - sidebar()) * 0.42 + inset;
 	}
 
 	public function fieldWide():Float {
@@ -335,12 +476,38 @@ final class Preferences extends Widget {
 	}
 
 	public function rowTop(row:Int):Float {
-		return y + head() + row * rowTall() + (rowTall() - fieldTall()) * 0.5;
+		final at = rowsIn().indexOf(row);
+		final which = at < 0 ? 0 : at;
+
+		return y + head() - offsetY + which * rowTall() + (rowTall() - fieldTall()) * 0.5;
 	}
 
 	override function took(event:Input):Bool {
 		switch (event.kind) {
+			case Kind.Wheel:
+				if (event.x >= x + sidebar()) scrollTo(offsetY - event.dy * rowTall());
+				return true;
+
 			case Kind.PointerDown:
+				final button = buttonAt(event.x, event.y);
+
+				if (button == 0) {
+					cancels();
+					return true;
+				}
+
+				if (button == 1) {
+					saves();
+					return true;
+				}
+
+				if (event.x < x + sidebar()) {
+					final which = groupAt(event.y);
+					if (which >= 0) shows(which);
+
+					return true;
+				}
+
 				final row = rowAt(event.y);
 				if (row < 0) return true;
 
@@ -348,11 +515,16 @@ final class Preferences extends Widget {
 				return true;
 
 			case Kind.PointerMove:
-				final row = rowAt(event.y);
+				final row = event.x < x + sidebar() ? -1 : rowAt(event.y);
+				final button = buttonAt(event.x, event.y);
+				final which = event.x < x + sidebar() ? groupAt(event.y) : -1;
 
-				if (row == hoverAt) return true;
+				if (row == hoverAt && button == hoverButton && which == hoverGroup) return true;
 
 				hoverAt = row;
+				hoverButton = button;
+				hoverGroup = which;
+
 				invalidate();
 				return true;
 
@@ -363,7 +535,12 @@ final class Preferences extends Widget {
 	}
 
 	override function hovered(on:Bool):Void {
-		if (!on) hoverAt = -1;
+		if (!on) {
+			hoverAt = -1;
+			hoverButton = -1;
+			hoverGroup = -1;
+		}
+
 		super.hovered(on);
 	}
 
@@ -397,11 +574,17 @@ final class Preferences extends Widget {
 
 		final tall = rowTall();
 
-		for (row in 0...ROWS) {
-			final top = y + head() + row * tall;
+		sided(paint, theme, metrics, small, alpha);
+		footed(paint, theme, metrics, small, alpha);
+
+		paint.pushClip(x + sidebar(), y + head(), width - sidebar(), room());
+
+		for (which in 0...rowsIn().length) {
+			final row = rowsIn()[which];
+			final top = y + head() - offsetY + which * tall;
 
 			paint.reface(small);
-			paint.text(translate(NAMES[row]), x + metrics.inset,
+			paint.text(translate(NAMES[row]), x + sidebar() + metrics.inset,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.9);
 
 			final left = fieldLeft();
@@ -434,7 +617,81 @@ final class Preferences extends Widget {
 			}
 		}
 
+		paint.popClip();
 		paint.popTransform();
+	}
+
+	function sided(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			alpha:Float):Void {
+		final wide = sidebar();
+		final tall = rowTall();
+		final hair = metrics.whole(1);
+
+		paint.rect(x, y + head(), wide, room(), theme.panel, alpha);
+		paint.rect(x + wide - hair, y + head(), hair, room(), theme.frame, alpha * 0.7);
+
+		paint.reface(font);
+
+		for (which in 0...GROUPS) {
+			final top = y + head() + which * tall;
+			final on = which == group;
+
+			if (on) {
+				paint.roundedRect(x + metrics.unit, top + metrics.unit,
+					wide - metrics.unit * 2 - hair, tall - metrics.unit * 2,
+					metrics.radiusSmall, theme.accent, alpha * Theme.SELECT);
+			} else if (which == hoverGroup) {
+				paint.roundedRect(x + metrics.unit, top + metrics.unit,
+					wide - metrics.unit * 2 - hair, tall - metrics.unit * 2,
+					metrics.radiusSmall, theme.accent, alpha * Theme.HOVER);
+			}
+
+			paint.text(translate(GROUP_NAMES[which]), x + metrics.inset,
+				top + (tall - font.height) * 0.5 + font.ascent,
+				on ? theme.ink : theme.dim, alpha * (on ? 1 : 0.85));
+		}
+	}
+
+	function footed(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			alpha:Float):Void {
+		final top = y + height - foot();
+		final hair = metrics.whole(1);
+
+		paint.rect(x, top, width, hair, theme.frame, alpha * 0.7);
+
+		final wide = buttonWide();
+		final deep = buttonTall();
+		final at = buttonTop();
+		final right = x + width - metrics.inset;
+
+		button(paint, theme, metrics, font, right - wide * 2 - metrics.gap, at, wide, deep,
+			translate(Locale.EXPORT_CANCEL), false, hoverButton == 0, alpha);
+
+		button(paint, theme, metrics, font, right - wide, at, wide, deep,
+			translate(Locale.FILE_SAVE), true, hoverButton == 1, alpha);
+	}
+
+	function button(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font, at:Float,
+			top:Float, wide:Float, deep:Float, said:String, lit:Bool, over:Bool,
+			alpha:Float):Void {
+		if (lit) {
+			paint.roundedGradient(at, top, wide, deep, metrics.radiusRow,
+				theme.accent.lift(0.20), theme.accent.sink(0.16), alpha * 0.95);
+		} else {
+			paint.roundedRect(at, top, wide, deep, metrics.radiusRow, theme.raise2, alpha);
+		}
+
+		if (over) {
+			paint.roundedRect(at, top, wide, deep, metrics.radiusRow, theme.accent,
+				alpha * Theme.HOVER);
+		}
+
+		paint.outline(at, top, wide, deep, theme.frame, metrics.whole(1), alpha * 0.8,
+			metrics.radiusRow);
+
+		paint.reface(font);
+		paint.textCentred(said, at + wide * 0.5, top + (deep - font.height) * 0.5 + font.ascent,
+			theme.ink, alpha);
 	}
 
 	function chevron(paint:Paint, theme:Theme, metrics:Metrics, cx:Float, cy:Float,
