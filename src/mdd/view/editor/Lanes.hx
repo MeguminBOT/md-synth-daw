@@ -24,7 +24,7 @@ import mdd.view.Parameter;
 final class Lanes extends Widget {
 	public static inline final LEAST_ROW = 40;
 	public static inline final MOST_ROW = 220;
-	public static inline final ROW = 74;
+	public static inline final ROW = 92;
 
 	public static inline final REACH = 5;
 	public static inline final TRACE = 512;
@@ -47,6 +47,9 @@ final class Lanes extends Widget {
 	public var chosenAt(default, null):Int = -1;
 
 	var hoverRow:Int = -1;
+	var hoverName:Bool = false;
+	var hoverShed:Bool = false;
+	var hoverFoot:Bool = false;
 	var dragging:Null<Point> = null;
 	var draggingAt:Int = -1;
 	var bending:Int = -1;
@@ -83,8 +86,30 @@ final class Lanes extends Widget {
 		return root == null ? ROW : root.metrics.whole(ROW);
 	}
 
+	public function headTall():Float {
+		final root = root();
+		return root == null ? 17 : root.metrics.whole(17);
+	}
+
+	public function footTall():Float {
+		final root = root();
+		return root == null ? 22 : root.metrics.whole(22);
+	}
+
 	public function wants():Float {
-		return rows() * rowHeight();
+		return rows() * rowHeight() + (holding == null ? footTall() : 0);
+	}
+
+	public inline function plotTop(row:Int):Float {
+		return rowTop(row) + headTall();
+	}
+
+	public inline function plotTall():Float {
+		return rowHeight() - headTall();
+	}
+
+	public function footTop():Float {
+		return y + rows() * rowHeight();
 	}
 
 	public inline function targetOf(row:Int):Int {
@@ -245,16 +270,17 @@ final class Lanes extends Widget {
 
 	function atValue(row:Int, value:Int):Float {
 		final held = parameterOf(row);
-		if (held == null) return rowTop(row);
+		if (held == null) return plotTop(row);
 
 		final span = held.high - held.low;
-		if (span <= 0) return rowTop(row);
+		if (span <= 0) return plotTop(row);
 
 		final inset = padding();
-		final room = rowHeight() - inset * 2;
+		final room = plotTall() - inset * 2;
 		final part = (value - held.low) / span;
+		final up = held.attenuates() ? 1 - part : part;
 
-		return rowTop(row) + inset + room * (1 - part);
+		return plotTop(row) + inset + room * (1 - up);
 	}
 
 	function valueAt(row:Int, py:Float):Int {
@@ -262,19 +288,21 @@ final class Lanes extends Widget {
 		if (held == null) return 0;
 
 		final inset = padding();
-		final room = rowHeight() - inset * 2;
+		final room = plotTall() - inset * 2;
 		if (room <= 0) return held.low;
 
-		var part = 1 - (py - rowTop(row) - inset) / room;
-		if (part < 0) part = 0;
-		if (part > 1) part = 1;
+		var up = 1 - (py - plotTop(row) - inset) / room;
+		if (up < 0) up = 0;
+		if (up > 1) up = 1;
+
+		final part = held.attenuates() ? 1 - up : up;
 
 		return held.holds(held.low + Math.round((held.high - held.low) * part));
 	}
 
 	function padding():Float {
 		final root = root();
-		return root == null ? 12 : root.metrics.whole(12);
+		return root == null ? 9 : root.metrics.whole(9);
 	}
 
 	public function pointAt(row:Int, px:Float, py:Float):Null<Point> {
@@ -352,11 +380,24 @@ final class Lanes extends Widget {
 	}
 
 	function pressed(event:Input):Bool {
+		if (onFoot(event.x, event.y)) {
+			if (onOffer != null) onOffer(this, -1, event.x, event.y);
+			return true;
+		}
+
 		final row = rowAt(event.y);
 		if (row < 0) return false;
 
-		if (event.x < x + left) {
-			if (onOffer != null) onOffer(this, row, event.x, event.y);
+		if (event.y < rowTop(row) + headTall()) {
+			if (onShed(row, event.x)) {
+				hide(row);
+				return true;
+			}
+
+			if (onName(row, event.x) && onOffer != null) {
+				onOffer(this, row, event.x, rowTop(row) + headTall());
+			}
+
 			return true;
 		}
 
@@ -471,11 +512,23 @@ final class Lanes extends Widget {
 		}
 
 		final row = rowAt(event.y);
-		if (row == hoverRow) return false;
+		final foot = onFoot(event.x, event.y);
+
+		final name = row >= 0 && event.y < rowTop(row) + headTall()
+			&& onName(row, event.x);
+
+		final shed = row >= 0 && event.y < rowTop(row) + headTall()
+			&& onShed(row, event.x);
+
+		if (row == hoverRow && name == hoverName && shed == hoverShed
+			&& foot == hoverFoot) return false;
 
 		hoverRow = row;
-		invalidate();
+		hoverName = name;
+		hoverShed = shed;
+		hoverFoot = foot;
 
+		invalidate();
 		return true;
 	}
 
@@ -500,7 +553,13 @@ final class Lanes extends Widget {
 	}
 
 	override function hovered(on:Bool):Void {
-		if (!on) hoverRow = -1;
+		if (!on) {
+			hoverRow = -1;
+			hoverName = false;
+			hoverShed = false;
+			hoverFoot = false;
+		}
+
 		super.hovered(on);
 	}
 
@@ -517,6 +576,56 @@ final class Lanes extends Widget {
 			final hair = metrics.whole(1);
 			paint.rect(x + left - hair, y, hair, height, theme.frame);
 		}
+
+		if (holding == null) footed(paint, theme, metrics);
+	}
+
+	public function onFoot(px:Float, py:Float):Bool {
+		if (holding != null) return false;
+
+		final top = footTop();
+		return py >= top && py < top + footTall() && px >= x && px < x + addWide();
+	}
+
+	function addWide():Float {
+		final root = root();
+		if (root == null || root.metrics.small == null) return 90;
+
+		final metrics = root.metrics;
+		return metrics.gap + metrics.whole(9)
+			+ metrics.small.measure(translate(Locale.LANE_ADD)) + metrics.inset;
+	}
+
+	function footed(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		final small = metrics.small == null ? metrics.body : metrics.small;
+		final top = footTop();
+		final tall = footTall();
+
+		paint.rect(x, top, width, tall, theme.sink);
+		paint.rect(x, top, width, metrics.whole(1), theme.frame, 0.7);
+
+		final wide = addWide();
+		final box = top + metrics.whole(3);
+		final deep = tall - metrics.whole(6);
+
+		paint.roundedRect(x + metrics.unit, box, wide - metrics.unit * 2, deep,
+			metrics.radiusSmall, hoverFoot ? theme.raise2 : theme.raise1);
+
+		paint.outline(x + metrics.unit, box, wide - metrics.unit * 2, deep, theme.frame,
+			metrics.whole(1), 1, metrics.radiusSmall);
+
+		final ink = hoverFoot ? theme.ink : theme.dim;
+		final middle = box + deep * 0.5;
+		final at = x + metrics.gap + metrics.whole(4);
+		final reach = metrics.whole(4);
+		final hair = metrics.whole(1);
+
+		paint.rect(at - reach, middle - hair * 0.5, reach * 2, hair, ink);
+		paint.rect(at - hair * 0.5, middle - reach, hair, reach * 2, ink);
+
+		paint.reface(small);
+		paint.text(translate(Locale.LANE_ADD), at + reach + metrics.gap,
+			middle - small.height * 0.5 + small.ascent, ink, 0.9);
 	}
 
 	function drawn(paint:Paint, theme:Theme, metrics:Metrics, row:Int):Void {
@@ -528,11 +637,13 @@ final class Lanes extends Widget {
 		paint.rect(x, top, width, tall, row % 2 == 0 ? theme.panel : theme.raise1);
 		paint.rect(x, top, width, metrics.whole(1), theme.frame, 0.7);
 
+		heading(paint, theme, metrics, row, held);
+
 		if (held == null) return;
 
 		final colour = theme.part(drivenPart().index());
 
-		paint.pushClip(x + left, top, width - left, tall);
+		paint.pushClip(x + left, plotTop(row), width - left, plotTall());
 
 		if (held.offset) {
 			final zero = atValue(row, 0);
@@ -542,29 +653,139 @@ final class Lanes extends Widget {
 		traced(paint, theme, metrics, row, colour);
 		paint.popClip();
 
-		paint.pushClip(x, top, left, tall);
 		paint.reface(small);
 
-		paint.text(held.titled(slotted(row)), x + metrics.gap,
-			top + metrics.gap + small.ascent, theme.ink, held.smooth ? 1 : 0.7);
+		final ceiling = plotTop(row) + padding();
+		final floor = plotTop(row) + plotTall() - padding();
+		final upper = held.attenuates() ? held.low : held.high;
 
-		final line = lineOf(row);
-		final says = chosenAt == row && chosen != null ? held.said(chosen.value)
-			: (line == null || line.points.length == 0 ? translate(Locale.LANE_EMPTY)
-				: held.said(line.valueAt(playhead < 0 ? 0 : playhead)));
+		paint.textRight(held.said(upper), x + left - metrics.unit,
+			ceiling + small.ascent * 0.5, theme.dim, 0.45);
 
-		paint.text(says, x + metrics.gap, top + tall - metrics.gap - small.descent,
-			theme.dim, 0.9);
+		paint.textRight(held.said(held.attenuates() ? held.high : held.low),
+			x + left - metrics.unit, floor + small.ascent * 0.5, theme.dim, 0.45);
 
-		paint.popClip();
+		if (!held.offset) return;
 
-		if (tall < metrics.whole(120)) return;
+		paint.textRight("0", x + left - metrics.unit,
+			atValue(row, 0) + small.ascent * 0.5, theme.dim, 0.55);
+	}
 
-		paint.textRight(held.said(held.high), x + width - metrics.gap,
-			top + padding() + small.ascent * 0.4, theme.dim, 0.5);
+	public function nameWide(row:Int):Float {
+		final root = root();
+		final held = parameterOf(row);
 
-		paint.textRight(held.said(held.low), x + width - metrics.gap,
-			top + tall - padding() + small.ascent * 0.4, theme.dim, 0.5);
+		if (root == null || held == null) return 0;
+
+		final metrics = root.metrics;
+		final small = metrics.small == null ? metrics.body : metrics.small;
+
+		return metrics.gap + small.measure(held.titled(slotted(row))) + metrics.unit
+			+ metrics.whole(7) + metrics.gap;
+	}
+
+	public function onName(row:Int, px:Float):Bool {
+		return px >= x && px < x + nameWide(row);
+	}
+
+	public function onShed(row:Int, px:Float):Bool {
+		final root = root();
+		if (root == null || holding != null) return false;
+
+		final metrics = root.metrics;
+		return px >= x + width - metrics.whole(20) && px < x + width;
+	}
+
+	function heading(paint:Paint, theme:Theme, metrics:Metrics, row:Int,
+			held:Null<Parameter>):Void {
+		final small = metrics.small == null ? metrics.body : metrics.small;
+		final top = rowTop(row);
+		final tall = headTall();
+		final line = top + (tall - small.height) * 0.5 + small.ascent;
+		final lit = hoverRow == row;
+
+		paint.rect(x, top, width, tall, theme.bar, lit ? 1 : 0.75);
+		paint.rect(x, top + tall - metrics.whole(1), width, metrics.whole(1), theme.frame, 0.5);
+
+		paint.reface(small);
+
+		if (held == null) {
+			paint.text(translate(Locale.LANE_EMPTY), x + metrics.gap, line, theme.dim, 0.8);
+			return;
+		}
+
+		final said = held.titled(slotted(row));
+
+		if (lit && hoverName) {
+			paint.roundedRect(x + metrics.unit, top + metrics.whole(2),
+				nameWide(row) - metrics.unit * 2, tall - metrics.whole(4), metrics.radiusSmall,
+				theme.accent, Theme.HOVER);
+		}
+
+		paint.text(said, x + metrics.gap, line, theme.ink, 0.95);
+
+		chevron(paint, theme, metrics, x + metrics.gap + small.measure(said) + metrics.unit
+			+ metrics.whole(3), top + tall * 0.5);
+
+		if (holding == null) shed(paint, theme, metrics, x + width - metrics.whole(20),
+			top, tall, lit && hoverShed);
+
+		final says = held.offset ? translate(Locale.LANE_RIDES) : "";
+		final wide = says == "" ? 0.0 : small.measure(says);
+
+		final value = lineOf(row);
+		final now = value == null || value.points.length == 0 ? ""
+			: held.said(value.valueAt(playhead < 0 ? 0 : playhead));
+
+		final right = x + width - (holding == null ? metrics.whole(22) : metrics.gap);
+
+		if (now != "") {
+			paint.textRight(now, right, line, theme.ink, 0.8);
+
+			if (says != "" && nameWide(row) + wide + small.measure(now)
+				+ metrics.whole(48) < width) {
+				paint.textRight(says, right - small.measure(now) - metrics.inset, line,
+					theme.dim, 0.55);
+			}
+
+			return;
+		}
+
+		if (says != "") paint.textRight(says, right, line, theme.dim, 0.55);
+	}
+
+	function chevron(paint:Paint, theme:Theme, metrics:Metrics, at:Float, middle:Float):Void {
+		final reach = metrics.whole(3);
+		final points = new Vector<Float>(6);
+
+		points[0] = at - reach;
+		points[1] = middle - reach * 0.5;
+		points[2] = at + reach;
+		points[3] = middle - reach * 0.5;
+		points[4] = at;
+		points[5] = middle + reach * 0.7;
+
+		paint.polygon(points, 3, theme.dim, 0.9);
+	}
+
+	function shed(paint:Paint, theme:Theme, metrics:Metrics, at:Float, top:Float, tall:Float,
+			lit:Bool):Void {
+		final size = metrics.whole(16);
+		final box = top + (tall - size) * 0.5;
+
+		if (lit) {
+			paint.roundedRect(at, box, size, size, metrics.radiusSmall, theme.over,
+				Theme.HOVER);
+		}
+
+		final reach = metrics.whole(3);
+		final middle = at + size * 0.5;
+		final centre = box + size * 0.5;
+		final weight = metrics.whole(1);
+		final ink = lit ? theme.over : theme.dim;
+
+		paint.line(middle - reach, centre - reach, middle + reach, centre + reach, weight, ink);
+		paint.line(middle - reach, centre + reach, middle + reach, centre - reach, weight, ink);
 	}
 
 	function traced(paint:Paint, theme:Theme, metrics:Metrics, row:Int,

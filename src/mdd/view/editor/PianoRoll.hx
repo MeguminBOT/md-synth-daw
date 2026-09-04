@@ -575,10 +575,7 @@ final class PianoRoll extends Widget {
 				}
 
 				if (onVelocity(event.y)) {
-					if (event.x < x + gutter()) {
-						offered(event.x, event.y, -1);
-						return true;
-					}
+					if (event.x < x + gutter()) return true;
 
 					stalking = stalkAt(event.x);
 					if (stalking != null) leaned(event.y);
@@ -1078,6 +1075,11 @@ final class PianoRoll extends Widget {
 		scrollTo(offsetX, want * (contentHeight() - tall));
 	}
 
+	public function stripHead():Float {
+		final root = root();
+		return root == null ? 17 : root.metrics.whole(17);
+	}
+
 	function strip(paint:Paint, theme:Theme, metrics:Metrics, pattern:Pattern):Void {
 		final tall = velocityTall();
 		if (tall <= 0) return;
@@ -1085,24 +1087,34 @@ final class PianoRoll extends Widget {
 		final top = y + height - lanes();
 		final left = x + gutter();
 		final font = metrics.small == null ? metrics.body : metrics.small;
+		final head = stripHead();
 
 		paint.rect(x, top, width, tall, theme.panel);
 		paint.rect(x, top, width, metrics.whole(1), theme.frame);
 
+		paint.rect(x, top, width, head, theme.bar, 0.75);
+		paint.rect(x, top + head - metrics.whole(1), width, metrics.whole(1), theme.frame, 0.5);
+
 		paint.reface(font);
+
 		paint.text(translate(Locale.LANE_VELOCITY), x + metrics.gap,
-			top + metrics.gap + font.ascent, theme.dim, 0.7);
+			top + (head - font.height) * 0.5 + font.ascent, theme.ink, 0.95);
 
-		paint.text("+", x + gutter() - metrics.gap * 2,
-			top + tall - metrics.gap - font.descent, theme.accent, 0.9);
-
-		paint.pushClip(left, top, width - gutter(), tall);
+		paint.textRight(translate(Locale.LANE_PER_NOTE), x + width - metrics.gap,
+			top + (head - font.height) * 0.5 + font.ascent, theme.dim, 0.55);
 
 		final floor = top + tall - metrics.gap;
-		final room = tall - metrics.gap * 2 - font.height;
+		final room = tall - head - metrics.gap * 2;
 		final held = pattern.lane(session.part);
 		final stalk = metrics.whole(3);
 
+		paint.textRight("127", x + gutter() - metrics.unit,
+			floor - room + font.ascent * 0.5, theme.dim, 0.45);
+
+		paint.textRight("1", x + gutter() - metrics.unit, floor + font.ascent * 0.5,
+			theme.dim, 0.45);
+
+		paint.pushClip(left, top + head, width - gutter(), tall - head);
 		paint.rect(left, floor, width - gutter(), metrics.whole(1), theme.frame);
 
 		for (note in held.notes) {
@@ -1190,14 +1202,11 @@ final class PianoRoll extends Widget {
 		if (stalking == null) return;
 
 		final root = root();
-		final metrics = root == null ? null : root.metrics;
-		final gap = metrics == null ? 6.0 : metrics.gap;
-		final font = metrics == null ? null : (metrics.small == null ? metrics.body
-			: metrics.small);
-		final head = font == null ? 11.0 : font.height;
+		final gap = root == null ? 6.0 : root.metrics.gap;
 
-		final floor = y + height - gap;
-		final room = lanes() - gap * 2 - head;
+		final tall = velocityTall();
+		final floor = y + height - lanes() + tall - gap;
+		final room = tall - stripHead() - gap * 2;
 		if (room <= 0) return;
 
 		var part = (floor - py) / room;

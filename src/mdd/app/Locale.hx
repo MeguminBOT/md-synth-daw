@@ -70,6 +70,7 @@ class Locale {
 	public static inline final PRESET_ALREADY = "preset.already";
 
 	public static inline final LANE_VELOCITY = "lane.velocity";
+	public static inline final LANE_PER_NOTE = "lane.perNote";
 	public static inline final LANE_PAN = "lane.pan";
 	public static inline final LANE_AUTOMATION = "lane.automation";
 	public static inline final LANE_EMPTY = "lane.empty";
@@ -92,6 +93,8 @@ class Locale {
 	public static inline final LANE_DROP = "lane.drop";
 	public static inline final LANE_LIFT = "lane.lift";
 	public static inline final LANE_LIFTED = "lane.lifted";
+	public static inline final LANE_RIDES = "lane.rides";
+	public static inline final LANE_ADD = "lane.add";
 	public static inline final TRACK_AUTOMATE = "track.automate";
 	public static inline final AUTOMATION_PATTERN = "automation.pattern";
 	public static inline final AUTOMATION_CLIP = "automation.clip";
@@ -385,12 +388,12 @@ class Locale {
 		SAMPLE_NORMALISE, SAMPLE_CLEAR, SAMPLE_EMPTY,
 		PANEL_FROM_IMPORT, PRESET_EXPAND_ALL, PRESET_COLLAPSE_ALL, PRESET_KEEP, PRESET_KEPT,
 		PRESET_ALREADY,
-		LANE_VELOCITY, LANE_PAN, LANE_AUTOMATION,
+		LANE_VELOCITY, LANE_PER_NOTE, LANE_PAN, LANE_AUTOMATION,
 		LANE_EMPTY,
 		PARAM_LEVEL, PARAM_ATTENUATION, PARAM_FREQUENCY, PARAM_PERIOD, PARAM_SIDES,
 		PARAM_TIMBRE, PARAM_ATTACK, PARAM_DECAY, PARAM_SUSTAIN, PARAM_RELEASE,
 		PARAM_LOOP, PARAM_WIRING, PARAM_NOISE, PARAM_CONVERTER, PARAM_PACKED, LANE_DROP,
-		TRACK_AUTOMATE, LANE_LIFT, LANE_LIFTED,
+		TRACK_AUTOMATE, LANE_LIFT, LANE_LIFTED, LANE_RIDES, LANE_ADD,
 		AUTOMATION_PATTERN, AUTOMATION_CLIP, VIEW_AUTOMATION,
 		PREFERENCE_AUTOMATING, AUTOMATING_LANES, AUTOMATING_CLIPS, AUTOMATING_ASK,
 		VIEW_DRIVEN, VIEW_UNDRIVEN, VIEW_DRIVEN_WHY, VIEW_DRIVEN_ON, VIEW_DRIVEN_OFF,

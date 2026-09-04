@@ -64,6 +64,10 @@ final class Parameter {
 		return operators ? name + " " + (slot + 1) : name;
 	}
 
+	public function attenuates():Bool {
+		return decibels != 0;
+	}
+
 	public function holds(value:Int):Int {
 		return value < low ? low : (value > high ? high : value);
 	}
