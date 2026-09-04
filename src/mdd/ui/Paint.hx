@@ -241,23 +241,33 @@ final class Paint {
 			return;
 		}
 
-		var r = radius;
-		final half = (width < height ? width : height) * 0.5;
-		if (r > half) r = half;
+		final left = Math.round(x);
+		final upper = Math.round(y);
 
-		if (r <= 0.5) {
-			gradient(x, y, width, height, top, bottom, alpha);
+		var right = Math.round(x + width);
+		var lower = Math.round(y + height);
+
+		if (right <= left) right = left + 1;
+		if (lower <= upper) lower = upper + 1;
+
+		final wide = right - left;
+		final tall = lower - upper;
+
+		final r = rounding(radius, wide, tall);
+
+		if (r <= 0) {
+			gradient(left, upper, wide, tall, top, bottom, alpha);
 			return;
 		}
 
-		shaded(x + r, y, width - r * 2, height, top, bottom, y, height, alpha);
-		shaded(x, y + r, r, height - r * 2, top, bottom, y, height, alpha);
-		shaded(x + width - r, y + r, r, height - r * 2, top, bottom, y, height, alpha);
+		shaded(left + r, upper, wide - r * 2, tall, top, bottom, upper, tall, alpha);
+		shaded(left, upper + r, r, tall - r * 2, top, bottom, upper, tall, alpha);
+		shaded(right - r, upper + r, r, tall - r * 2, top, bottom, upper, tall, alpha);
 
-		bend(x + r, y + r, r, 180, 270, top, bottom, y, height, alpha);
-		bend(x + width - r, y + r, r, 270, 360, top, bottom, y, height, alpha);
-		bend(x + width - r, y + height - r, r, 0, 90, top, bottom, y, height, alpha);
-		bend(x + r, y + height - r, r, 90, 180, top, bottom, y, height, alpha);
+		bend(left + r, upper + r, r, 180, 270, top, bottom, upper, tall, alpha);
+		bend(right - r, upper + r, r, 270, 360, top, bottom, upper, tall, alpha);
+		bend(right - r, lower - r, r, 0, 90, top, bottom, upper, tall, alpha);
+		bend(left + r, lower - r, r, 90, 180, top, bottom, upper, tall, alpha);
 	}
 
 	public function gradient(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
@@ -356,6 +366,13 @@ final class Paint {
 
 	static inline final FEATHER = 0.5;
 
+	static inline function rounding(radius:Float, wide:Float, tall:Float):Float {
+		final half = Math.ffloor((wide < tall ? wide : tall) * 0.5);
+		final want = Math.ffloor(radius);
+
+		return want > half ? half : (want < 1 ? 0 : want);
+	}
+
 	function wedge(x0:Float, y0:Float, c0:Colour, x1:Float, y1:Float, c1:Colour, x2:Float,
 			y2:Float, c2:Colour, alpha:Float):Void {
 		binds(font.texture);
@@ -412,23 +429,33 @@ final class Paint {
 			return;
 		}
 
-		var r = radius;
-		final half = (width < height ? width : height) * 0.5;
-		if (r > half) r = half;
+		final left = Math.round(x);
+		final top = Math.round(y);
 
-		if (r <= 0.5) {
-			rect(x, y, width, height, colour, alpha);
+		var right = Math.round(x + width);
+		var bottom = Math.round(y + height);
+
+		if (right <= left) right = left + 1;
+		if (bottom <= top) bottom = top + 1;
+
+		final wide = right - left;
+		final tall = bottom - top;
+
+		final r = rounding(radius, wide, tall);
+
+		if (r <= 0) {
+			rect(left, top, wide, tall, colour, alpha);
 			return;
 		}
 
-		rect(x + r, y, width - r * 2, height, colour, alpha);
-		rect(x, y + r, r, height - r * 2, colour, alpha);
-		rect(x + width - r, y + r, r, height - r * 2, colour, alpha);
+		rect(left + r, top, wide - r * 2, tall, colour, alpha);
+		rect(left, top + r, r, tall - r * 2, colour, alpha);
+		rect(right - r, top + r, r, tall - r * 2, colour, alpha);
 
-		corner(x + r, y + r, r, 180, 270, colour, alpha);
-		corner(x + width - r, y + r, r, 270, 360, colour, alpha);
-		corner(x + width - r, y + height - r, r, 0, 90, colour, alpha);
-		corner(x + r, y + height - r, r, 90, 180, colour, alpha);
+		corner(left + r, top + r, r, 180, 270, colour, alpha);
+		corner(right - r, top + r, r, 270, 360, colour, alpha);
+		corner(right - r, bottom - r, r, 0, 90, colour, alpha);
+		corner(left + r, bottom - r, r, 90, 180, colour, alpha);
 	}
 
 	function corner(cx:Float, cy:Float, r:Float, from:Float, to:Float, colour:Colour,
