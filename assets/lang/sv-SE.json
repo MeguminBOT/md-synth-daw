@@ -90,6 +90,8 @@
   "lane.lift": "Flytta till spellistan",
   "lane.rides": "foljer tonen",
   "lane.add": "Lagg till ett spar",
+  "lane.one": "spar",
+  "lane.many": "spar",
   "lane.lifted": "flyttad till spellistan",
   "track.automate": "Automatisera",
   "automation.pattern": "i det här mönstret",

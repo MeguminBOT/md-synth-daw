@@ -43,9 +43,9 @@ final class AutomationEditor extends Widget {
 
 		stack = new Lanes(session);
 		stack.onOffer = function(from:Lanes, row:Int, px:Float, py:Float):Void
-			offered(px, py);
+			offered(px, py, row);
 		stack.onShape = function(from:Lanes, row:Int, point:Point, px:Float,
-			py:Float):Void shaped(point, px, py);
+			py:Float):Void shaped(row, point, px, py);
 
 		add(stack);
 	}
@@ -79,6 +79,9 @@ final class AutomationEditor extends Widget {
 		this.target = target;
 		this.slot = slot;
 
+		stack.holding = null;
+		stack.show(target, slot);
+
 		framedSpan = -1;
 		framed();
 		relayout();
@@ -102,6 +105,10 @@ final class AutomationEditor extends Widget {
 		return line == null ? null : Parameter.found(drivenPart(), line.target, line.slot);
 	}
 
+	public function heldAt(row:Int):Null<Parameter> {
+		return holding == null ? stack.parameterOf(row) : held();
+	}
+
 	var framedFor:Float = -1;
 	var framedSpan:Int = -1;
 
@@ -123,21 +130,23 @@ final class AutomationEditor extends Widget {
 		framed();
 
 		final top = y + head() + ruler();
+		final room = height - head() - ruler();
+
+		stack.holding = holding;
+		stack.rowTall = holding == null ? 0 : room;
+
+		if (holding == null) stack.settles();
 
 		stack.perTick = perTick;
 		stack.offsetX = offsetX;
 		stack.left = gutter();
 		stack.playhead = playhead;
-		stack.holding = holding;
-		stack.rowTall = height - head() - ruler();
 
-		stack.targets.resize(0);
-		if (holding == null) stack.targets.push((target << 8) | slot);
-
-		stack.arrange(x, top, width, height - head() - ruler());
+		stack.spreads(room);
+		stack.arrange(x, top, width, room);
 	}
 
-	function offered(px:Float, py:Float):Void {
+	function offered(px:Float, py:Float, row:Int):Void {
 		final root = root();
 		if (root == null || holding != null) return;
 
@@ -145,12 +154,12 @@ final class AutomationEditor extends Widget {
 
 		for (one in Parameter.of(session.part)) {
 			if (!one.operators) {
-				choice(menu, one, one.target, 0);
+				choice(menu, one, one.target, 0, row);
 				continue;
 			}
 
 			final slots = new Menu();
-			for (which in 0...4) choice(slots, one, one.target, which);
+			for (which in 0...4) choice(slots, one, one.target, which, row);
 
 			menu.offer(new Choice(one.name)).submenu = slots;
 		}
@@ -158,28 +167,35 @@ final class AutomationEditor extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function choice(into:Menu, one:Parameter, want:Int, which:Int):Void {
-		final held = into.offer(new Choice(one.titled(which)));
+	function choice(into:Menu, one:Parameter, want:Int, which:Int, row:Int):Void {
+		final many = stack.carries(want, which);
+
+		final held = into.offer(new Choice(one.titled(which), many == 0 ? "" : "" + many));
 		held.reason = translate(one.about);
 
-		if (want == target && which == slot) {
+		if (row < 0 && stack.shows(want, which)) {
 			held.enabled = false;
 			return;
 		}
 
 		fires(held, function():Void {
+			if (row >= 0) {
+				stack.swap(row, want, which);
+				relayout();
+				return;
+			}
+
 			shows(want, which);
-			relayout();
 		});
 	}
 
-	function shaped(point:Point, px:Float, py:Float):Void {
+	function shaped(row:Int, point:Point, px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
 
 		menu = new Menu();
 
-		final one = held();
+		final one = heldAt(row);
 
 		for (shape in 0...Automation.SHAPES) {
 			final choice = menu.offer(new Choice(translate(Locale.SHAPES[shape])));
@@ -228,7 +244,7 @@ final class AutomationEditor extends Widget {
 		if (event.y >= y + head() + ruler()) return false;
 		if (event.x >= x + gutter()) return false;
 
-		offered(event.x, event.y);
+		offered(event.x, event.y, -1);
 		return true;
 	}
 
@@ -268,12 +284,24 @@ final class AutomationEditor extends Widget {
 
 		paint.reface(font);
 
-		final said = one == null ? translate(Locale.LANE_EMPTY)
-			: part.name() + "   " + one.titled(holding == null ? slot
-				: (holding.line == null ? 0 : holding.line.slot));
+		final said = holding != null
+			? (one == null ? translate(Locale.LANE_EMPTY) : part.name() + "   "
+				+ one.titled(holding.line == null ? 0 : holding.line.slot))
+			: part.name();
 
 		paint.text(said, x + metrics.inset, y + (tall - font.height) * 0.5 + font.ascent,
 			theme.part(part.index()));
+
+		if (holding == null && stack.rows() > 0) {
+			paint.reface(small);
+
+			paint.text(stack.rows() + " " + translate(stack.rows() == 1
+				? Locale.LANE_ONE : Locale.LANE_MANY),
+				x + metrics.inset + font.measure(said) + metrics.inset,
+				y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.7);
+
+			paint.reface(font);
+		}
 
 		paint.reface(small);
 

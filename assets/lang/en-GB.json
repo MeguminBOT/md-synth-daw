@@ -90,6 +90,8 @@
   "lane.lift": "Move to the playlist",
   "lane.rides": "rides the note",
   "lane.add": "Add a lane",
+  "lane.one": "lane",
+  "lane.many": "lanes",
   "lane.lifted": "moved to the playlist",
   "track.automate": "Automate",
   "automation.pattern": "in this pattern",

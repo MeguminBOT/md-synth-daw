@@ -273,6 +273,28 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
+	var spreadFor:Int = -1;
+
+	public function spreads(room:Float):Void {
+		if (rowTall > 0) return;
+
+		final many = rows();
+		if (many == 0) return;
+
+		if (many == spreadFor) return;
+		spreadFor = many;
+
+		final want = room - (holding == null ? footTall() : 0);
+		if (want <= 0) return;
+
+		final each = want / many;
+
+		for (row in 0...many) {
+			while (heights.length <= row) heights.push(0);
+			heights[row] = each;
+		}
+	}
+
 	function recalls(row:Int):Void {
 		while (heights.length <= row) heights.push(0);
 
