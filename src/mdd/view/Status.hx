@@ -11,6 +11,7 @@ final class Status extends Widget {
 	public final warnings:mdd.view.monitor.Warnings;
 
 	public var said:String = "";
+	public var usage:String = "";
 
 	public function new(session:Session, warnings:mdd.view.monitor.Warnings) {
 		super();
@@ -33,12 +34,24 @@ final class Status extends Widget {
 		paint.text(said, x + metrics.inset, y + (height - font.height) * 0.5 + font.ascent,
 			theme.dim, 0.8);
 
-		final count = warnings.found();
-		if (count <= 0) return;
+		final line = y + (height - font.height) * 0.5 + font.ascent;
+		var right = x + width - metrics.inset;
 
-		paint.textRight(count + " " + translate(count == 1
-			? Locale.PANEL_WARNING : Locale.PANEL_WARNINGS),
-			x + width - metrics.inset, y + (height - font.height) * 0.5 + font.ascent,
-			theme.warn, 0.9);
+		final count = warnings.found();
+
+		if (count > 0) {
+			final much = count + " " + translate(count == 1
+				? Locale.PANEL_WARNING : Locale.PANEL_WARNINGS);
+
+			paint.textRight(much, right, line, theme.warn, 0.9);
+			right -= paint.measure(much) + metrics.inset * 2;
+		}
+
+		if (usage == "") return;
+
+		final small = metrics.small == null ? font : metrics.small;
+
+		paint.reface(small);
+		paint.textRight(usage, right, line, theme.dim, 0.55);
 	}
 }

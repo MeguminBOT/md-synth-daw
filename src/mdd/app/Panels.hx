@@ -39,11 +39,12 @@ final class Panels {
 	public var notice:Null<Notice> = null;
 	public var welcome:Null<Welcome> = null;
 	public var naming:Null<Naming> = null;
+	public var about:Null<mdd.view.overlay.About> = null;
 	public var working:Null<Working> = null;
 
 	public var onImportSample:Null<Void -> Void> = null;
 
-	final stage:Stage;
+	public final stage:Stage;
 
 	public function new(stage:Stage) {
 		this.stage = stage;

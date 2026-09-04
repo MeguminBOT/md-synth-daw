@@ -112,6 +112,7 @@ class UiCheck {
 		focusOrder();
 		capture();
 		asked();
+		used();
 		editing();
 		numbers();
 		gestures();
@@ -235,6 +236,23 @@ class UiCheck {
 		final let = root.capture == null;
 
 		says("capture", took && held && let, "held across a drag that left the widget");
+	}
+
+	static function used():Void {
+		mdd.host.Usage.start();
+
+		final cpu = mdd.host.Usage.cpu();
+		final ram = mdd.host.Usage.ram();
+		final gpu = mdd.host.Usage.gpu();
+
+		mdd.host.Usage.stop();
+
+		final sane = cpu >= 0 && cpu <= 100 && ram > 0 && ram < 65536 && gpu >= -1
+			&& gpu <= 100;
+
+		says("the host reports its own usage", sane,
+			"cpu " + round(cpu, 1) + " per cent, ram " + Math.round(ram) + " MB, gpu "
+			+ (gpu < 0 ? "not counted" : round(gpu, 1) + " per cent"));
 	}
 
 	static function asked():Void {

@@ -207,6 +207,7 @@ class ShotCheck {
 		editor.show(inspectorTab);
 		if (dockTab > 0) centre.show(mdd.view.Centre.WARNINGS);
 		dock.said = "ready";
+		dock.usage = "cpu 4%   ram 182 MB   gpu 2%   ring 69 ms";
 
 		for (index in 0...mdd.song.Part.COUNT) {
 			rail.rack.levels[index] = 0.15 + (index % 5) * 0.17;
@@ -254,6 +255,13 @@ class ShotCheck {
 			held.arrive(task);
 			held.fade.hold(1);
 			held.rise.hold(1);
+		} else if (sheet == "about") {
+			final held = new mdd.view.overlay.About();
+
+			tree.raise(held);
+			held.arrive();
+			held.rise.hold(1);
+			held.fade.hold(1);
 		} else if (sheet == "naming") {
 			final held = new mdd.view.overlay.Naming();
 

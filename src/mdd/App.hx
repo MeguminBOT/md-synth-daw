@@ -17,6 +17,7 @@ import mdd.host.Instance;
 import mdd.host.Native;
 import mdd.host.Paths;
 import mdd.host.Sdl;
+import mdd.host.Usage;
 import mdd.host.Settings;
 import mdd.ui.Flow;
 import mdd.ui.Key;
@@ -60,6 +61,7 @@ class App {
 
 	public static function main():Void {
 		Native.ready();
+		Usage.start();
 
 		if (Sdl.init() == 0) {
 			Sys.println("mdd: SDL would not start: " + Sdl.error());
@@ -95,6 +97,7 @@ class App {
 			Sys.exit(2);
 		}
 
+		Usage.stop();
 		Instance.release();
 		Sdl.quit();
 	}
@@ -141,6 +144,9 @@ class App {
 		panels.naming.onShut = function():Void stage.root.lower();
 
 		panels.working = new Working();
+
+		panels.about = new mdd.view.overlay.About();
+		panels.about.onShut = function():Void stage.root.lower();
 
 		panels.onMaster = function(much:Int):Void {
 			sound.monitors(much / mdd.song.Song.LOUDEST);
@@ -291,6 +297,7 @@ class App {
 		if (panels.status != null) {
 			panels.centre.warnings.fit();
 			panels.status.said = session.said;
+			panels.status.usage = measured();
 			panels.status.invalidate();
 		}
 	}
@@ -496,6 +503,39 @@ class App {
 
 		session.changed();
 		return true;
+	}
+
+	static inline final USAGE_EVERY = 0.5;
+
+	var usageAt:Float = 0;
+	var usageSaid:String = "";
+
+	function measured():String {
+		final now = Sdl.ticks();
+		if (now - usageAt < USAGE_EVERY) return usageSaid;
+
+		usageAt = now;
+
+		final cpu = Usage.cpu();
+		final ram = Usage.ram();
+		final gpu = Usage.gpu();
+
+		if (cpu < 0 && ram < 0) {
+			usageSaid = "";
+			return usageSaid;
+		}
+
+		var held = "cpu " + Math.round(cpu) + "%   ram " + Math.round(ram) + " MB";
+		if (gpu >= 0) held += "   gpu " + Math.round(gpu) + "%";
+
+		final render = sound.render;
+
+		if (render != null && render.rate > 0 && render.leastHeld > 0) {
+			held += "   ring " + Math.round(render.leastHeld * 1000.0 / render.rate) + " ms";
+		}
+
+		usageSaid = held;
+		return usageSaid;
 	}
 
 	function backing():Void {

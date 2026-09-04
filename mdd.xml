@@ -222,6 +222,7 @@
 		<file name="dialog.cpp" />
 		<file name="instance.cpp" />
 		<file name="crash.cpp" />
+		<file name="usage.cpp" />
 		<file name="encode.cpp" />
 
 		<!-- The encoders are fetched into vendor/ and compiled from their own trees.

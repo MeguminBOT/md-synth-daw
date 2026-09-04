@@ -236,12 +236,17 @@ final class Menus {
 		return held;
 	}
 
+	function shows():Void {
+		if (panels.about == null || panels.stage == null) return;
+
+		panels.stage.root.raise(panels.about);
+		panels.about.arrive();
+	}
+
 	function helpMenu():Menu {
 		final held = new Menu();
 
-		fired(held.offer(new Choice(said(Locale.HELP_ABOUT))), function():Void
-			session.say(Config.TITLE + " " + Config.VERSION + ", "
-				+ session.song.patterns.length + " patterns"));
+		fired(held.offer(new Choice(said(Locale.HELP_ABOUT))), function():Void shows());
 
 		final source = held.offer(new Choice(said(Locale.HELP_SOURCE)));
 
