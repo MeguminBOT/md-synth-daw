@@ -237,6 +237,7 @@ class SpineCheck {
 		final after = stack.lineOf(0);
 
 		traded(tree, roll);
+		pointed(tree, session, roll);
 
 		says("and both undo", after == null || after.points.length == 0,
 			"the lane is back to " + (after == null ? "no line at all"
@@ -252,6 +253,54 @@ class SpineCheck {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
 		tree.top.arrange(0, 0, tree.width, tree.height);
+	}
+
+	static function pointed(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+
+		laid(tree);
+
+		final shown = stack.position.visible && stack.amount.visible;
+		final one = mdd.view.Parameter.found(session.part, mdd.song.Automation.LEVEL, 0);
+
+		says("a point brings up its own fields", shown && stack.chosen != null,
+			shown ? "position, value, shape, bend and steps for "
+				+ (one == null ? "?" : one.name) : "no fields for the selected point");
+
+		if (stack.chosen == null || one == null) return;
+
+		final snap = session.snap;
+		final want = snap * 3 + 7;
+
+		stack.position.set(want);
+		laid(tree);
+
+		says("a typed position ignores the grid", stack.chosen.at == want,
+			"asked for tick " + want + " against a snap of " + snap + " and the point sits at "
+			+ stack.chosen.at);
+
+		stack.amount.set(one.low + 3);
+		laid(tree);
+
+		says("and a typed value is the register step", stack.chosen.value == one.low + 3,
+			"asked for " + (one.low + 3) + " and the point reads " + stack.chosen.value
+			+ ", which is " + one.said(stack.chosen.value));
+
+		stack.shape.set(mdd.song.Automation.CURVE);
+		stack.bend.set(40);
+		laid(tree);
+
+		says("and the shape is reachable without a menu",
+			stack.chosen.shape == mdd.song.Automation.CURVE && stack.chosen.tension == 40,
+			"shape " + stack.chosen.shape + " with a bend of " + stack.chosen.tension);
+
+		session.undo();
+		session.undo();
+		session.undo();
+		session.undo();
+
+		laid(tree);
 	}
 
 	static function traded(tree:Root, roll:mdd.view.editor.PianoRoll):Void {

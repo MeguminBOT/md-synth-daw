@@ -46,6 +46,7 @@ class ShotCheck {
 		var menu = -1;
 		var rows = 0;
 		var icons = false;
+		var point = false;
 
 		var at = 0;
 
@@ -69,6 +70,7 @@ class ShotCheck {
 				case "--menu": menu = whole(held, menu); at++;
 				case "--rows": rows = whole(held, rows); at++;
 				case "--icons": icons = true;
+				case "--point": point = true;
 				case _:
 			}
 
@@ -199,6 +201,7 @@ class ShotCheck {
 		centre.playlist.rowTall = rows;
 		if (drives) driving(session);
 
+
 		if (centreTab == Centre.AUTOMATION) {
 			for (track in session.song.tracks) {
 				for (found in track.clips) {
@@ -275,6 +278,22 @@ class ShotCheck {
 			for (step in 0...12) {
 				tree.advance(0.05);
 				tree.frame(paint);
+			}
+		}
+
+		if (point) {
+			tree.reshape();
+			tree.top.measure(tree.width, tree.height);
+			tree.top.arrange(0, 0, tree.width, tree.height);
+
+			final stack = centre.roll.stack;
+
+			for (row in 0...stack.rows()) {
+				final line = stack.lineOf(row);
+				if (line == null || line.points.length < 1) continue;
+
+				stack.picks(line.points[line.points.length > 1 ? 1 : 0], row);
+				break;
 			}
 		}
 

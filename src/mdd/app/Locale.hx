@@ -95,6 +95,10 @@ class Locale {
 	public static inline final LANE_LIFTED = "lane.lifted";
 	public static inline final LANE_RIDES = "lane.rides";
 	public static inline final LANE_ADD = "lane.add";
+	public static inline final POINT_AT = "point.at";
+	public static inline final POINT_SHAPE = "point.shape";
+	public static inline final POINT_BEND = "point.bend";
+	public static inline final POINT_STEPS = "point.steps";
 	public static inline final TRACK_AUTOMATE = "track.automate";
 	public static inline final AUTOMATION_PATTERN = "automation.pattern";
 	public static inline final AUTOMATION_CLIP = "automation.clip";
@@ -394,6 +398,7 @@ class Locale {
 		PARAM_TIMBRE, PARAM_ATTACK, PARAM_DECAY, PARAM_SUSTAIN, PARAM_RELEASE,
 		PARAM_LOOP, PARAM_WIRING, PARAM_NOISE, PARAM_CONVERTER, PARAM_PACKED, LANE_DROP,
 		TRACK_AUTOMATE, LANE_LIFT, LANE_LIFTED, LANE_RIDES, LANE_ADD,
+		POINT_AT, POINT_SHAPE, POINT_BEND, POINT_STEPS,
 		AUTOMATION_PATTERN, AUTOMATION_CLIP, VIEW_AUTOMATION,
 		PREFERENCE_AUTOMATING, AUTOMATING_LANES, AUTOMATING_CLIPS, AUTOMATING_ASK,
 		VIEW_DRIVEN, VIEW_UNDRIVEN, VIEW_DRIVEN_WHY, VIEW_DRIVEN_ON, VIEW_DRIVEN_OFF,

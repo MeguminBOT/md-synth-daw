@@ -31,6 +31,16 @@ final class Number extends Widget implements Range {
 		set(value);
 	}
 
+	public function spans(least:Int, most:Int):Void {
+		if (this.least == least && this.most == most) return;
+
+		this.least = least;
+		this.most = most;
+
+		set(carried);
+		invalidate();
+	}
+
 	public inline function span():Int {
 		return most - least;
 	}

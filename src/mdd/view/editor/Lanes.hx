@@ -18,6 +18,7 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.ui.control.Number;
 import mdd.view.Parameter;
 
 @:unreflective
@@ -70,11 +71,152 @@ final class Lanes extends Widget {
 
 	final trace:Vector<Float> = new Vector<Float>(TRACE * 2);
 
+	public final position:Number;
+	public final amount:Number;
+	public final shape:Number;
+	public final bend:Number;
+	public final steps:Number;
+
+	final fields:Array<Number>;
+
+	var settling:Bool = false;
+
 	public function new(session:Session) {
 		super();
 		this.session = session;
 
 		focusable = true;
+
+		position = new Number("", 0, 0, 1 << 24);
+		amount = new Number("", 0, -4096, 4096);
+		shape = new Number("", 0, 0, Automation.SHAPES - 1);
+		bend = new Number("", 0, -Automation.MOST_TENSION, Automation.MOST_TENSION);
+		steps = new Number("", Automation.REPEATS, 2, Automation.MOST_REPEATS);
+
+		fields = [position, amount, shape, bend, steps];
+
+		for (one in fields) {
+			one.visible = false;
+			add(one);
+		}
+
+		position.derived = function(value:Int):String return spelt(value);
+		shape.derived = function(value:Int):String
+			return translate(Locale.SHAPES[value]);
+
+		position.onChange = function(from:Number):Void placed();
+		amount.onChange = function(from:Number):Void placed();
+
+		shape.onChange = function(from:Number):Void shaped();
+		bend.onChange = function(from:Number):Void shaped();
+		steps.onChange = function(from:Number):Void shaped();
+	}
+
+	function spelt(tick:Int):String {
+		final beat = session.song.tempo.ppqn;
+		if (beat < 1) return "" + tick;
+
+		final bar = beat * 4;
+
+		return (Std.int(tick / bar) + 1) + "." + (Std.int((tick % bar) / beat) + 1)
+			+ "." + (tick % beat);
+	}
+
+	function placed():Void {
+		if (settling || chosen == null || chosenAt < 0) return;
+
+		if (chosen.at == position.value && chosen.value == amount.value) return;
+
+		final was = chosen;
+
+		session.does(new MovePoint(session.pattern, drivenPart(), targeted(chosenAt),
+			slotted(chosenAt), was, position.value, amount.value, driven()));
+
+		invalidate();
+	}
+
+	function shaped():Void {
+		if (settling || chosen == null) return;
+
+		if (chosen.shape == shape.value && chosen.tension == bend.value
+			&& chosen.repeats() == steps.value) return;
+
+		session.does(new ShapePoint(chosen, shape.value, bend.value, steps.value));
+		relayout();
+	}
+
+	function dressed():Void {
+		final one = chosenAt < 0 ? null : parameterOf(chosenAt);
+		final on = chosen != null && one != null && holding == null;
+
+		settling = true;
+
+		for (field in fields) field.visible = on;
+
+		if (!on) {
+			settling = false;
+			return;
+		}
+
+		final pattern = session.current();
+
+		position.spans(0, pattern == null ? 1 << 24 : pattern.length);
+		amount.spans(one.low, one.high);
+
+		position.label = translate(Locale.POINT_AT);
+		amount.label = one.titled(slotted(chosenAt));
+		shape.label = translate(Locale.POINT_SHAPE);
+		bend.label = translate(Locale.POINT_BEND);
+		steps.label = translate(Locale.POINT_STEPS);
+
+		amount.derived = function(value:Int):String return one.said(value);
+
+		position.set(chosen.at);
+		amount.set(chosen.value);
+		shape.set(chosen.shape);
+		bend.set(chosen.tension);
+		steps.set(chosen.repeats());
+
+		final moves = Automation.moves(chosen.shape) && one.smooth;
+
+		bend.visible = moves;
+		steps.visible = Automation.stepped(chosen.shape);
+		shape.visible = one.smooth || !Automation.moves(chosen.shape);
+
+		settling = false;
+	}
+
+	override function layout():Void {
+		dressed();
+
+		final root = root();
+		if (root == null || holding != null) return;
+
+		final metrics = root.metrics;
+		final tall = metrics.whole(24);
+		final top = footTop() + (footTall() - tall) * 0.5;
+
+		var pen = x + width - metrics.gap;
+
+		var index = fields.length - 1;
+
+		while (index >= 0) {
+			final field = fields[index];
+			index--;
+
+			if (!field.visible) continue;
+
+			final wide = field.fits();
+
+			if (pen - wide < x + addWide() + metrics.gap) {
+				field.visible = false;
+				continue;
+			}
+
+			pen -= wide;
+			field.arrange(pen, top, wide, tall);
+			pen -= metrics.unit;
+		}
 	}
 
 	public inline function rows():Int {
@@ -133,7 +275,7 @@ final class Lanes extends Widget {
 
 	public function footTall():Float {
 		final root = root();
-		return root == null ? 22 : root.metrics.whole(22);
+		return root == null ? 32 : root.metrics.whole(32);
 	}
 
 	public function wants():Float {
@@ -277,6 +419,13 @@ final class Lanes extends Widget {
 		}
 
 		return 0;
+	}
+
+	public function picks(point:Point, row:Int):Void {
+		chosen = point;
+		chosenAt = row;
+
+		relayout();
 	}
 
 	public function edge():Float {
@@ -532,7 +681,7 @@ final class Lanes extends Widget {
 			wasAt = point.at;
 			wasValue = point.value;
 
-			invalidate();
+			relayout();
 			return true;
 		}
 
@@ -582,7 +731,7 @@ final class Lanes extends Widget {
 		wasValue = point.value;
 
 		session.say(held.titled(slotted(row)) + "  " + held.said(point.value));
-		invalidate();
+		relayout();
 	}
 
 	function erased():Bool {
@@ -594,7 +743,7 @@ final class Lanes extends Widget {
 		chosen = null;
 		chosenAt = -1;
 
-		invalidate();
+		relayout();
 		return true;
 	}
 
@@ -696,7 +845,10 @@ final class Lanes extends Widget {
 			paint.rect(x + left - hair, y, hair, height, theme.frame);
 		}
 
-		if (holding == null) footed(paint, theme, metrics);
+		if (holding == null) {
+			footed(paint, theme, metrics);
+			for (field in fields) if (field.visible) field.paint(paint);
+		}
 
 		gripped(paint, theme, metrics);
 	}
