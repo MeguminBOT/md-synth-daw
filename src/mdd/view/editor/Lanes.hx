@@ -43,8 +43,11 @@ final class Lanes extends Widget {
 	public var rowTall:Float = 0;
 	public var adding:Bool = true;
 
+	public var offsetY:Float = 0;
+
 	final heights:Array<Float> = [];
 	final remembered:Map<Int, Float> = new Map<Int, Float>();
+	final shut:Map<Int, Bool> = new Map<Int, Bool>();
 
 	public var onOffer:Null<(Lanes, Int, Float, Float) -> Void> = null;
 	public var onShape:Null<(Lanes, Int, Point, Float, Float) -> Void> = null;
@@ -64,6 +67,7 @@ final class Lanes extends Widget {
 	var hoverRow:Int = -1;
 	var hoverName:Bool = false;
 	var hoverShed:Bool = false;
+	var hoverFold:Bool = false;
 	var hoverFoot:Bool = false;
 	var dragging:Null<Point> = null;
 	var draggingAt:Int = -1;
@@ -249,12 +253,27 @@ final class Lanes extends Widget {
 	}
 
 	public function heightOf(row:Int):Float {
+		if (folded(row)) return headTall();
 		if (rowTall > 0) return rowTall;
 
 		if (row >= 0 && row < heights.length && heights[row] > 0) return heights[row];
 
 		final root = root();
 		return root == null ? ROW : root.metrics.whole(ROW);
+	}
+
+	public function folded(row:Int):Bool {
+		if (row < 0 || row >= targets.length) return false;
+		return shut.exists(targets[row]) && shut.get(targets[row]);
+	}
+
+	public function folds(row:Int):Void {
+		if (row < 0 || row >= targets.length) return;
+
+		shut.set(targets[row], !folded(row));
+		spreadFor = -1;
+
+		relayout();
 	}
 
 	function raised(row:Int, to:Float):Void {
@@ -288,11 +307,22 @@ final class Lanes extends Widget {
 		final want = room - (holding == null ? footTall() : 0);
 		if (want <= 0) return;
 
-		final each = want / many;
+		final root = root();
+		final least = root == null ? LEAST_ROW : root.metrics.whole(LEAST_ROW);
+
+		var open = 0;
+		var shutRoom = 0.0;
+
+		for (row in 0...many) {
+			if (folded(row)) shutRoom += headTall();
+			else open++;
+		}
+
+		final each = open < 1 ? 0 : (want - shutRoom) / open;
 
 		for (row in 0...many) {
 			while (heights.length <= row) heights.push(0);
-			heights[row] = each;
+			heights[row] = each < least ? 0 : each;
 		}
 	}
 
@@ -329,7 +359,7 @@ final class Lanes extends Widget {
 	}
 
 	public function footTop():Float {
-		var much = y;
+		var much = y - offsetY;
 		for (row in 0...rows()) much += heightOf(row);
 
 		return much;
@@ -391,7 +421,7 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
-	public static inline final OPENS = 3;
+	public var opens:Int = 64;
 
 	var filledFor:Int = -1;
 
@@ -423,7 +453,7 @@ final class Lanes extends Widget {
 
 		final lane = pattern.lane(session.part);
 
-		while (targets.length < OPENS) {
+		while (targets.length < opens) {
 			var best:Null<Automation> = null;
 			var most = 0;
 
@@ -500,7 +530,7 @@ final class Lanes extends Widget {
 	}
 
 	public function rowAt(py:Float):Int {
-		var top = y;
+		var top = y - offsetY;
 
 		for (row in 0...rows()) {
 			final tall = heightOf(row);
@@ -513,7 +543,7 @@ final class Lanes extends Widget {
 	}
 
 	public function rowTop(row:Int):Float {
-		var top = y;
+		var top = y - offsetY;
 		for (before in 0...row) top += heightOf(before);
 
 		return top;
@@ -704,6 +734,11 @@ final class Lanes extends Widget {
 				return true;
 			}
 
+			if (onFold(row, event.x)) {
+				folds(row);
+				return true;
+			}
+
 			if (onName(row, event.x) && onOffer != null) {
 				onOffer(this, row, event.x, rowTop(row) + headTall());
 			}
@@ -867,9 +902,14 @@ final class Lanes extends Widget {
 		final shed = row >= 0 && event.y < rowTop(row) + headTall()
 			&& onShed(row, event.x);
 
-		if (row == hoverRow && name == hoverName && shed == hoverShed
+		final fold = row >= 0 && event.y < rowTop(row) + headTall()
+			&& onFold(row, event.x);
+
+		if (row == hoverRow && name == hoverName && shed == hoverShed && fold == hoverFold
 			&& foot == hoverFoot && grip == hoverEdge && segment == overSegment
 			&& row == overSegmentAt) return false;
+
+		hoverFold = fold;
 
 		overSegment = segment;
 		overSegmentAt = row;
@@ -909,6 +949,7 @@ final class Lanes extends Widget {
 			hoverRow = -1;
 			hoverName = false;
 			hoverShed = false;
+			hoverFold = false;
 			hoverFoot = false;
 			hoverEdge = -1;
 			overSegment = -1;
@@ -925,6 +966,8 @@ final class Lanes extends Widget {
 		final theme = root.theme;
 		final metrics = root.metrics;
 
+		paint.pushClip(x, y, width, height);
+
 		for (row in 0...rows()) drawn(paint, theme, metrics, row);
 
 		if (left > 0) {
@@ -932,8 +975,11 @@ final class Lanes extends Widget {
 			paint.rect(x + left - hair, y, hair, height, theme.frame);
 		}
 
+		if (holding == null) footed(paint, theme, metrics);
+
+		paint.popClip();
+
 		if (holding == null) {
-			footed(paint, theme, metrics);
 			for (field in fields) if (field.visible) field.paint(paint);
 		}
 
@@ -1116,6 +1162,16 @@ final class Lanes extends Widget {
 		return px >= x + width - metrics.whole(20) && px < x + width;
 	}
 
+	public function onFold(row:Int, px:Float):Bool {
+		final root = root();
+		if (root == null || holding != null || !adding) return false;
+
+		final metrics = root.metrics;
+		final at = x + width - metrics.whole(40);
+
+		return px >= at && px < at + metrics.whole(18);
+	}
+
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, row:Int,
 			held:Null<Parameter>):Void {
 		final small = metrics.small == null ? metrics.body : metrics.small;
@@ -1147,8 +1203,13 @@ final class Lanes extends Widget {
 		chevron(paint, theme, metrics, x + metrics.gap + small.measure(said) + metrics.unit
 			+ metrics.whole(3), top + tall * 0.5);
 
-		if (holding == null && adding) shed(paint, theme, metrics,
-			x + width - metrics.whole(20), top, tall, lit && hoverShed);
+		if (holding == null && adding) {
+			shed(paint, theme, metrics, x + width - metrics.whole(20), top, tall,
+				lit && hoverShed);
+
+			fold(paint, theme, metrics, x + width - metrics.whole(40), top, tall,
+				folded(row), lit && hoverFold);
+		}
 
 		final says = held.offset ? translate(Locale.LANE_RIDES) : "";
 		final wide = says == "" ? 0.0 : small.measure(says);
@@ -1157,7 +1218,7 @@ final class Lanes extends Widget {
 		final now = value == null || value.points.length == 0 ? ""
 			: held.said(value.valueAt(playhead < 0 ? 0 : playhead));
 
-		final right = x + width - (holding == null && adding ? metrics.whole(22) : metrics.gap);
+		final right = x + width - (holding == null && adding ? metrics.whole(42) : metrics.gap);
 
 		if (now != "") {
 			paint.textRight(now, right, line, theme.ink, 0.8);
@@ -1186,6 +1247,42 @@ final class Lanes extends Widget {
 		points[5] = middle + reach * 0.7;
 
 		paint.polygon(points, 3, theme.dim, 0.9);
+	}
+
+	function fold(paint:Paint, theme:Theme, metrics:Metrics, at:Float, top:Float, tall:Float,
+			shut:Bool, lit:Bool):Void {
+		final size = metrics.whole(16);
+		final box = top + (tall - size) * 0.5;
+
+		if (lit) {
+			paint.roundedRect(at, box, size, size, metrics.radiusSmall, theme.accent,
+				Theme.HOVER);
+		}
+
+		final reach = metrics.whole(3);
+		final middle = at + size * 0.5;
+		final centre = box + size * 0.5;
+		final ink = lit ? theme.ink : theme.dim;
+
+		final arrow = new Vector<Float>(6);
+
+		if (shut) {
+			arrow[0] = middle - reach * 0.6;
+			arrow[1] = centre - reach;
+			arrow[2] = middle + reach * 0.8;
+			arrow[3] = centre;
+			arrow[4] = middle - reach * 0.6;
+			arrow[5] = centre + reach;
+		} else {
+			arrow[0] = middle - reach;
+			arrow[1] = centre - reach * 0.6;
+			arrow[2] = middle + reach;
+			arrow[3] = centre - reach * 0.6;
+			arrow[4] = middle;
+			arrow[5] = centre + reach * 0.8;
+		}
+
+		paint.polygon(arrow, 3, ink, 0.9);
 	}
 
 	function shed(paint:Paint, theme:Theme, metrics:Metrics, at:Float, top:Float, tall:Float,

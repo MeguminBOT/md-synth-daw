@@ -255,6 +255,74 @@ class SpineCheck {
 		tree.top.arrange(0, 0, tree.width, tree.height);
 	}
 
+	static function tabbed(tree:Root, centre:mdd.view.Centre):Void {
+		final session = centre.session;
+		final pattern = session.current();
+
+		if (pattern != null) {
+			final lane = pattern.lane(session.part);
+
+			for (target in [mdd.song.Automation.LEVEL, mdd.song.Automation.TUNE,
+					mdd.song.Automation.SIDES, mdd.song.Automation.TIMBRE,
+					mdd.song.Automation.ATTACK, mdd.song.Automation.DECAY,
+					mdd.song.Automation.RELEASE]) {
+				for (slot in 0...4) {
+					final line = new mdd.song.Automation(target, slot);
+
+					line.add(new mdd.song.Point(0, 0));
+					line.add(new mdd.song.Point(session.song.tempo.ppqn, 12));
+
+					lane.automation.push(line);
+				}
+			}
+		}
+
+		centre.show(mdd.view.Centre.AUTOMATION);
+		centre.automation.stack.fills();
+
+		laid(tree);
+
+		final tab = centre.automation;
+		final stack = tab.stack;
+		final many = stack.rows();
+
+		says("the automation tab opens every lane", many > 0,
+			many + " lanes for " + tab.drivenPart().name() + ", "
+			+ Math.round(stack.wants()) + " px of stack in " + Math.round(tab.height) + " px");
+
+		final was = stack.heightOf(0);
+
+		stack.folds(0);
+		laid(tree);
+
+		final shut = stack.heightOf(0);
+
+		stack.folds(0);
+		laid(tree);
+
+		says("and a lane folds to its header", shut == stack.headTall()
+			&& stack.heightOf(0) == was,
+			"folded to " + Math.round(shut) + " px from " + Math.round(was)
+			+ ", and back again");
+
+		tab.scrollDown(10000);
+		laid(tree);
+
+		final most = stack.wants() - tab.height + tab.head() + tab.ruler();
+		final held = tab.offsetDown;
+
+		tab.scrollDown(0);
+		laid(tree);
+
+		says("and the stack scrolls when it overflows",
+			most <= 0 || Math.abs(held - most) < 1.5,
+			most <= 0 ? "every lane fits, so there is nothing to scroll"
+				: "scrolled to " + Math.round(held) + " of " + Math.round(most));
+
+		centre.show(mdd.view.Centre.ROLL);
+		laid(tree);
+	}
+
 	static function laid(tree:Root):Void {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
@@ -999,6 +1067,7 @@ class SpineCheck {
 		fitted(tree);
 		aligned(tree);
 		laned(tree, session, centre.roll);
+		tabbed(tree, centre);
 		sheeted(tree, session);
 
 		tree.resize(900, 600);

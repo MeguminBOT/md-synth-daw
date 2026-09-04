@@ -143,6 +143,17 @@ final class AutomationEditor extends Widget {
 		stack.playhead = playhead;
 
 		stack.spreads(room);
+		stack.offsetY = 0;
+
+		final wants = stack.wants();
+
+		if (wants > room) {
+			if (offsetDown > wants - room) offsetDown = wants - room;
+			if (offsetDown < 0) offsetDown = 0;
+
+			stack.offsetY = offsetDown;
+		} else offsetDown = 0;
+
 		stack.arrange(x, top, width, room);
 	}
 
@@ -256,6 +267,15 @@ final class AutomationEditor extends Widget {
 		scrollTo(tick * perTick - (around - x - gutter()));
 	}
 
+	public var offsetDown:Float = 0;
+
+	public function scrollDown(py:Float):Void {
+		final most = stack.wants() - (height - head() - ruler());
+
+		offsetDown = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+		relayout();
+	}
+
 	public function scrollTo(px:Float):Void {
 		final most = span() * perTick - (width - gutter());
 
@@ -308,7 +328,12 @@ final class AutomationEditor extends Widget {
 				return true;
 			}
 
-			scrollTo(offsetX - event.dy * (width - gutter()) * 0.12);
+			if (event.shift()) {
+				scrollTo(offsetX - event.dy * (width - gutter()) * 0.12);
+				return true;
+			}
+
+			scrollDown(offsetDown - event.dy * stack.headTall() * 3);
 			return true;
 		}
 
