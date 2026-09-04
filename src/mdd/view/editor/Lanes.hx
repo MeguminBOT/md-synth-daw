@@ -38,6 +38,9 @@ final class Lanes extends Widget {
 	public var left:Float = 0;
 	public var rowTall:Float = 0;
 
+	final heights:Array<Float> = [];
+	final remembered:Map<Int, Float> = new Map<Int, Float>();
+
 	public var onOffer:Null<(Lanes, Int, Float, Float) -> Void> = null;
 	public var onShape:Null<(Lanes, Int, Point, Float, Float) -> Void> = null;
 
@@ -46,6 +49,13 @@ final class Lanes extends Widget {
 	public var chosen(default, null):Null<Point> = null;
 	public var chosenAt(default, null):Int = -1;
 
+	public static inline final STACK = -2;
+
+	var sizing:Int = -1;
+	var grabY:Float = 0;
+	var grabTall:Float = 0;
+
+	var hoverEdge:Int = -1;
 	var hoverRow:Int = -1;
 	var hoverName:Bool = false;
 	var hoverShed:Bool = false;
@@ -80,10 +90,40 @@ final class Lanes extends Widget {
 	}
 
 	public function rowHeight():Float {
+		return heightOf(0);
+	}
+
+	public function heightOf(row:Int):Float {
 		if (rowTall > 0) return rowTall;
+
+		if (row >= 0 && row < heights.length && heights[row] > 0) return heights[row];
 
 		final root = root();
 		return root == null ? ROW : root.metrics.whole(ROW);
+	}
+
+	function raised(row:Int, to:Float):Void {
+		final root = root();
+
+		final least = root == null ? LEAST_ROW : root.metrics.whole(LEAST_ROW);
+		final most = root == null ? MOST_ROW : root.metrics.whole(MOST_ROW);
+
+		final want = to < least ? least : (to > most ? most : to);
+
+		while (heights.length <= row) heights.push(0);
+		if (heights[row] == want) return;
+
+		heights[row] = want;
+		if (row < targets.length) remembered.set(targets[row], want);
+
+		relayout();
+	}
+
+	function recalls(row:Int):Void {
+		while (heights.length <= row) heights.push(0);
+
+		final want = row < targets.length ? targets[row] : -1;
+		heights[row] = want >= 0 && remembered.exists(want) ? remembered.get(want) : 0;
 	}
 
 	public function headTall():Float {
@@ -97,19 +137,25 @@ final class Lanes extends Widget {
 	}
 
 	public function wants():Float {
-		return rows() * rowHeight() + (holding == null ? footTall() : 0);
+		var much = holding == null ? footTall() : 0.0;
+		for (row in 0...rows()) much += heightOf(row);
+
+		return much;
 	}
 
 	public inline function plotTop(row:Int):Float {
 		return rowTop(row) + headTall();
 	}
 
-	public inline function plotTall():Float {
-		return rowHeight() - headTall();
+	public inline function plotTall(row:Int):Float {
+		return heightOf(row) - headTall();
 	}
 
 	public function footTop():Float {
-		return y + rows() * rowHeight();
+		var much = y;
+		for (row in 0...rows()) much += heightOf(row);
+
+		return much;
 	}
 
 	public inline function targetOf(row:Int):Int {
@@ -139,6 +185,8 @@ final class Lanes extends Widget {
 		if (targets.indexOf(want) >= 0) return;
 
 		targets.push(want);
+		recalls(targets.length - 1);
+
 		relayout();
 	}
 
@@ -146,6 +194,8 @@ final class Lanes extends Widget {
 		if (row < 0 || row >= targets.length) return;
 
 		targets.splice(row, 1);
+		if (row < heights.length) heights.splice(row, 1);
+
 		chosen = null;
 		chosenAt = -1;
 
@@ -156,10 +206,12 @@ final class Lanes extends Widget {
 		if (row < 0 || row >= targets.length) return;
 
 		targets[row] = (target << 8) | slot;
+		recalls(row);
+
 		chosen = null;
 		chosenAt = -1;
 
-		invalidate();
+		relayout();
 	}
 
 	public static inline final OPENS = 3;
@@ -182,6 +234,8 @@ final class Lanes extends Widget {
 		final pattern = session.current();
 
 		targets.resize(0);
+		heights.resize(0);
+
 		chosen = null;
 		chosenAt = -1;
 
@@ -206,7 +260,9 @@ final class Lanes extends Widget {
 			}
 
 			if (best == null) break;
+
 			targets.push((best.target << 8) | best.slot);
+			recalls(targets.length - 1);
 		}
 
 		if (again) relayout();
@@ -223,16 +279,60 @@ final class Lanes extends Widget {
 		return 0;
 	}
 
-	public function rowAt(py:Float):Int {
-		final tall = rowHeight();
-		if (tall <= 0) return -1;
-
-		final at = Std.int((py - y) / tall);
-		return at < 0 || at >= rows() ? -1 : at;
+	public function edge():Float {
+		final root = root();
+		return root == null ? 5 : root.metrics.whole(5);
 	}
 
-	public inline function rowTop(row:Int):Float {
-		return y + row * rowHeight();
+	public function edgeAt(px:Float, py:Float):Int {
+		if (rowTall > 0 || rows() == 0) return -1;
+		if (px < x || px >= x + width) return -1;
+
+		final reach = edge();
+		if (Math.abs(py - y) <= reach) return STACK;
+
+		var top = y;
+
+		for (row in 0...rows()) {
+			top += heightOf(row);
+			if (Math.abs(py - top) <= reach) return row;
+		}
+
+		return -1;
+	}
+
+	function sized(py:Float):Void {
+		if (sizing == STACK) {
+			final many = rows();
+			if (many < 1) return;
+
+			final want = (grabTall + grabY - py) / many;
+			for (row in 0...many) raised(row, want);
+
+			return;
+		}
+
+		raised(sizing, grabTall + py - grabY);
+	}
+
+	public function rowAt(py:Float):Int {
+		var top = y;
+
+		for (row in 0...rows()) {
+			final tall = heightOf(row);
+			if (py >= top && py < top + tall) return row;
+
+			top += tall;
+		}
+
+		return -1;
+	}
+
+	public function rowTop(row:Int):Float {
+		var top = y;
+		for (before in 0...row) top += heightOf(before);
+
+		return top;
 	}
 
 	public inline function tickAt(px:Float):Int {
@@ -276,7 +376,7 @@ final class Lanes extends Widget {
 		if (span <= 0) return plotTop(row);
 
 		final inset = padding();
-		final room = plotTall() - inset * 2;
+		final room = plotTall(row) - inset * 2;
 		final part = (value - held.low) / span;
 		final up = held.attenuates() ? 1 - part : part;
 
@@ -288,7 +388,7 @@ final class Lanes extends Widget {
 		if (held == null) return 0;
 
 		final inset = padding();
-		final room = plotTall() - inset * 2;
+		final room = plotTall(row) - inset * 2;
 		if (room <= 0) return held.low;
 
 		var up = 1 - (py - plotTop(row) - inset) / room;
@@ -367,6 +467,7 @@ final class Lanes extends Widget {
 			case Kind.PointerUp:
 				dragging = null;
 				bending = -1;
+				sizing = -1;
 				return true;
 
 			case Kind.KeyDown:
@@ -380,6 +481,16 @@ final class Lanes extends Widget {
 	}
 
 	function pressed(event:Input):Bool {
+		final held = edgeAt(event.x, event.y);
+
+		if (held != -1 && event.button == Pointer.Left) {
+			sizing = held;
+			grabY = event.y;
+
+			grabTall = held == STACK ? wants() - footTall() : heightOf(held);
+			return true;
+		}
+
 		if (onFoot(event.x, event.y)) {
 			if (onOffer != null) onOffer(this, -1, event.x, event.y);
 			return true;
@@ -488,6 +599,11 @@ final class Lanes extends Widget {
 	}
 
 	function moved(event:Input):Bool {
+		if (sizing != -1) {
+			sized(event.y);
+			return true;
+		}
+
 		if (bending >= 0) return bent(event);
 
 		if (dragging != null) {
@@ -513,6 +629,7 @@ final class Lanes extends Widget {
 
 		final row = rowAt(event.y);
 		final foot = onFoot(event.x, event.y);
+		final grip = edgeAt(event.x, event.y);
 
 		final name = row >= 0 && event.y < rowTop(row) + headTall()
 			&& onName(row, event.x);
@@ -521,12 +638,13 @@ final class Lanes extends Widget {
 			&& onShed(row, event.x);
 
 		if (row == hoverRow && name == hoverName && shed == hoverShed
-			&& foot == hoverFoot) return false;
+			&& foot == hoverFoot && grip == hoverEdge) return false;
 
 		hoverRow = row;
 		hoverName = name;
 		hoverShed = shed;
 		hoverFoot = foot;
+		hoverEdge = grip;
 
 		invalidate();
 		return true;
@@ -558,6 +676,7 @@ final class Lanes extends Widget {
 			hoverName = false;
 			hoverShed = false;
 			hoverFoot = false;
+			hoverEdge = -1;
 		}
 
 		super.hovered(on);
@@ -578,6 +697,24 @@ final class Lanes extends Widget {
 		}
 
 		if (holding == null) footed(paint, theme, metrics);
+
+		gripped(paint, theme, metrics);
+	}
+
+	function gripped(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		final held = sizing != -1 ? sizing : hoverEdge;
+		if (held == -1 || rowTall > 0) return;
+
+		final at = held == STACK ? y : rowTop(held) + heightOf(held);
+		final thick = metrics.whole(2);
+
+		paint.rect(x, at - thick * 0.5, width, thick, theme.accent, 0.8);
+
+		final wide = metrics.whole(24);
+		final middle = x + left + (width - left) * 0.5;
+
+		paint.roundedRect(middle - wide * 0.5, at - thick * 1.5, wide, thick * 3,
+			thick, theme.accent, 0.9);
 	}
 
 	public function onFoot(px:Float, py:Float):Bool {
@@ -643,7 +780,7 @@ final class Lanes extends Widget {
 
 		final colour = theme.part(drivenPart().index());
 
-		paint.pushClip(x + left, plotTop(row), width - left, plotTall());
+		paint.pushClip(x + left, plotTop(row), width - left, plotTall(row));
 
 		if (held.offset) {
 			final zero = atValue(row, 0);
@@ -656,7 +793,7 @@ final class Lanes extends Widget {
 		paint.reface(small);
 
 		final ceiling = plotTop(row) + padding();
-		final floor = plotTop(row) + plotTall() - padding();
+		final floor = plotTop(row) + plotTall(row) - padding();
 		final upper = held.attenuates() ? held.low : held.high;
 
 		paint.textRight(held.said(upper), x + left - metrics.unit,

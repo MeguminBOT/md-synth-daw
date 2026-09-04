@@ -236,6 +236,8 @@ class SpineCheck {
 
 		final after = stack.lineOf(0);
 
+		traded(tree, roll);
+
 		says("and both undo", after == null || after.points.length == 0,
 			"the lane is back to " + (after == null ? "no line at all"
 			: after.points.length + " points"));
@@ -244,6 +246,65 @@ class SpineCheck {
 
 		tree.reshape();
 		tree.top.arrange(0, 0, tree.width, tree.height);
+	}
+
+	static function laid(tree:Root):Void {
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+	}
+
+	static function traded(tree:Root, roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+
+		laid(tree);
+
+		final was = stack.heightOf(0);
+		final grid = roll.grid();
+
+		final press = new mdd.ui.Input();
+		press.pointer(mdd.ui.Kind.PointerDown, stack.x + stack.width * 0.5, stack.y,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(press);
+
+		final drag = new mdd.ui.Input();
+		drag.pointer(mdd.ui.Kind.PointerMove, stack.x + stack.width * 0.5, stack.y - 30,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(drag);
+
+		final lift = new mdd.ui.Input();
+		lift.pointer(mdd.ui.Kind.PointerUp, stack.x + stack.width * 0.5, stack.y - 30,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(lift);
+
+		laid(tree);
+
+		final now = stack.heightOf(0);
+		final after = roll.grid();
+
+		says("a lane takes room from the roll", Math.abs(now - was - 30) < 1.5
+			&& Math.abs(grid - after - 30) < 1.5,
+			"dragging the stack up 30 made the lane " + Math.round(now) + " px from "
+			+ Math.round(was) + ", and the roll " + Math.round(after) + " from "
+			+ Math.round(grid));
+
+		final back = new mdd.ui.Input();
+		back.pointer(mdd.ui.Kind.PointerDown, stack.x + stack.width * 0.5, stack.y,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(back);
+
+		final down = new mdd.ui.Input();
+		down.pointer(mdd.ui.Kind.PointerMove, stack.x + stack.width * 0.5, stack.y + 300,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(down);
+		stack.took(lift);
+
+		laid(tree);
+
+		says("and it stops at a floor", stack.heightOf(0) == mdd.view.editor.Lanes.LEAST_ROW
+			&& roll.grid() > 0,
+			"dragged far down the lane holds at " + Math.round(stack.heightOf(0))
+			+ " px and the roll keeps " + Math.round(roll.grid()));
 	}
 
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
