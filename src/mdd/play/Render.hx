@@ -18,12 +18,20 @@ final class Render {
 	public static inline final MODEL_TWO = 2;
 	public static inline final CONSOLES = 3;
 
-	static final CORNERS:Array<Float> = [0, 2840.0, 7100.0];
+	static final CORNERS:Array<Float> = [0, 3300.0, 7100.0];
+
+	public static inline final MATCHED = 0.8;
 
 	var coupling:Float = 0.9975;
-	var rolling:Float = 1.0;
+
+	var rollPole:Float = 0;
+	var rollZero:Float = 0;
+	var rollGain:Float = 1;
+
 	var rolledLeft:Float = 0;
 	var rolledRight:Float = 0;
+	var rawLeft:Float = 0;
+	var rawRight:Float = 0;
 
 	public var console(default, set):Int = MODEL_ONE;
 
@@ -35,10 +43,43 @@ final class Render {
 	}
 
 	function rolled():Void {
+		if (rate <= 0) return;
+
 		final corner = CORNERS[console];
 
-		rolling = corner <= 0 || corner >= rate * 0.5 ? 1.0
-			: 1.0 - Math.exp(-2 * Math.PI * corner / rate);
+		rollPole = 0;
+		rollZero = 0;
+		rollGain = 1;
+
+		if (corner <= 0 || corner >= rate * 0.5) return;
+
+		final pole = Math.exp(-2 * Math.PI * corner / rate);
+
+		final at = MATCHED * rate * 0.5;
+		final cosine = Math.cos(2 * Math.PI * at / rate);
+
+		final want = 1 / Math.sqrt(1 + (at / corner) * (at / corner));
+		final under = Math.sqrt(1 - 2 * pole * cosine + pole * pole);
+		final ratio = want * under / (1 - pole);
+
+		final spread = 1 - ratio * ratio;
+		final middle = 2 * (ratio * ratio - cosine);
+		final root = middle * middle - 4 * spread * spread;
+
+		var zero = 0.0;
+
+		if (root >= 0 && spread != 0) {
+			final held = Math.sqrt(root);
+
+			final one = (-middle + held) / (2 * spread);
+			final two = (-middle - held) / (2 * spread);
+
+			zero = (one < 0 ? -one : one) < (two < 0 ? -two : two) ? one : two;
+		}
+
+		rollPole = pole;
+		rollZero = zero;
+		rollGain = (1 - pole) / (1 - zero);
 	}
 	public static inline final FULL_SCALE = 2560.0;
 	public static inline final SCALE = 1.0 / FULL_SCALE;
@@ -356,8 +397,14 @@ final class Render {
 				tapping();
 			}
 
-			rolledLeft += rolling * (heldLeft - rolledLeft);
-			rolledRight += rolling * (heldRight - rolledRight);
+			final wasLeft = rawLeft;
+			final wasRight = rawRight;
+
+			rawLeft = heldLeft;
+			rawRight = heldRight;
+
+			rolledLeft = rollGain * (heldLeft - rollZero * wasLeft) + rollPole * rolledLeft;
+			rolledRight = rollGain * (heldRight - rollZero * wasRight) + rollPole * rolledRight;
 
 			final wantLeft = rolledLeft * SCALE;
 			final wantRight = rolledRight * SCALE;
