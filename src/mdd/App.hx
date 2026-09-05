@@ -252,6 +252,11 @@ class App {
 		menus.onRedo = function():Void redone();
 		menus.onLift = function():Int return files.liftsPatches();
 		menus.onNew = function():Void fresh();
+
+		menus.onNudge = function(way:Int):Void {
+			session.does(new mdd.song.edit.ShiftSong(way * session.snap));
+			session.say(stage.root.translate(way < 0 ? Locale.EDIT_EARLIER : Locale.EDIT_LATER));
+		};
 		menus.dress(session);
 
 		stage.root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);

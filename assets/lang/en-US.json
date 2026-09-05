@@ -22,6 +22,8 @@
   "density.close": "Compact",
   "density.roomy": "Roomy",
   "density.usual": "Normal",
+  "edit.earlier": "Nudge everything earlier",
+  "edit.later": "Nudge everything later",
   "edit.play": "Play or pause",
   "edit.redo": "Redo",
   "edit.stop": "Stop",

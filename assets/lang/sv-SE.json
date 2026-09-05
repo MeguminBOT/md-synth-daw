@@ -22,6 +22,8 @@
   "density.close": "Kompakt",
   "density.roomy": "Rymlig",
   "density.usual": "Normal",
+  "edit.earlier": "Flytta allt tidigare",
+  "edit.later": "Flytta allt senare",
   "edit.play": "Spela upp eller pausa",
   "edit.redo": "Gör om",
   "edit.stop": "Stoppa",

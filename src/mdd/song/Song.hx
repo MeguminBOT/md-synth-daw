@@ -234,6 +234,38 @@ final class Song {
 		tempo.resolve(tempo.ppqn);
 	}
 
+	public function shift(by:Int):Void {
+		if (by == 0) return;
+
+		for (pattern in patterns) {
+			if (by > 0) pattern.length += by;
+
+			for (index in 0...Part.COUNT) {
+				final lane = pattern.lane(index);
+
+				for (note in lane.notes) note.at = moved(note.at, by);
+				for (line in lane.automation) {
+					for (point in line.points) point.at = moved(point.at, by);
+				}
+			}
+		}
+
+		for (track in tracks) {
+			for (clip in track.clips) clip.at = moved(clip.at, by);
+		}
+
+		for (index in 0...tempo.at.length) {
+			if (tempo.at[index] > 0) tempo.at[index] = moved(tempo.at[index], by);
+		}
+
+		tempo.resolve(tempo.ppqn);
+	}
+
+	static inline function moved(value:Int, by:Int):Int {
+		final held = value + by;
+		return held < 0 ? 0 : held;
+	}
+
 	public function stretch(by:Float):Void {
 		if (by <= 0) return;
 

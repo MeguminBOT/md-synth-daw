@@ -238,6 +238,8 @@ class Locale {
 	public static inline final GROUP_UPDATES = "group.updates";
 	public static inline final GROUP_MIDI = "group.midi";
 	public static inline final GROUP_SOUND = "group.sound";
+	public static inline final EDIT_EARLIER = "edit.earlier";
+	public static inline final EDIT_LATER = "edit.later";
 	public static inline final PREFERENCE_TEMPO = "preference.tempo";
 	public static inline final TEMPO_SPEED = "tempo.speed";
 	public static inline final TEMPO_GRID = "tempo.grid";
@@ -469,6 +471,7 @@ class Locale {
 		WORKING_IMPORTING, WORKING_EXPORTING, WORKING_RENDERING, WORKING_DOWNLOADING,
 		ABOUT_BUILT, GROUP_LOOK, GROUP_EDITING, GROUP_FILES, GROUP_UPDATES,
 		PREFERENCE_TEMPO, TEMPO_SPEED, TEMPO_GRID,
+		EDIT_EARLIER, EDIT_LATER,
 		GROUP_SOUND, PREFERENCE_CONSOLE, CONSOLE_CHIP, CONSOLE_ONE, CONSOLE_TWO,
 		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,

@@ -84,6 +84,13 @@ final class Menus {
 		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), "Ctrl+Y")), function():Void
 			redoes());
 		edit.divide();
+		edit.divide();
+		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), "Ctrl+Left")),
+			function():Void nudges(-1));
+		fired(edit.offer(new Choice(said(Locale.EDIT_LATER), "Ctrl+Right")),
+			function():Void nudges(1));
+		edit.divide();
+
 		fired(edit.offer(new Choice(said(Locale.EDIT_PLAY), "Space")), function():Void
 			panels.bar.press(TransportBar.PLAY));
 		fired(edit.offer(new Choice(said(Locale.EDIT_STOP), "Ctrl+Space")),
@@ -208,6 +215,7 @@ final class Menus {
 
 	public var onLift:Null<Void -> Int> = null;
 	public var onNew:Null<Void -> Void> = null;
+	public var onNudge:Null<Int -> Void> = null;
 
 	function lifted():Void {
 		final many = onLift == null ? 0 : onLift();
@@ -347,6 +355,10 @@ final class Menus {
 
 		held.patch = new mdd.song.Patch();
 		session.changed();
+	}
+
+	inline function nudges(way:Int):Void {
+		if (onNudge != null) onNudge(way);
 	}
 
 	inline function asks(which:Int):Void {

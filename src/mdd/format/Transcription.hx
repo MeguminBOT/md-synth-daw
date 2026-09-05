@@ -166,6 +166,7 @@ final class Transcription {
 		parted();
 		session();
 		mdd.song.Shipped.into(song);
+
 		settle();
 	}
 

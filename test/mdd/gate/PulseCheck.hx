@@ -24,6 +24,9 @@ class PulseCheck {
 		final deep = args.indexOf("--dsp") >= 0;
 
 		if (deep) return weighed(args);
+		if (args.indexOf("--offset") >= 0) return shifted();
+
+		landed();
 		final files = Fixtures.corpus();
 
 		if (files.length == 0) {
@@ -152,6 +155,150 @@ class PulseCheck {
 			"a cosine at bin " + bin + " reads " + Math.round(loudest) + " there and "
 			+ round(others, 6) + " across the rest, and the energy comes back as "
 			+ Math.round(kept) + " against " + Math.round(energy));
+	}
+
+	static function landed():Void {
+		final files = Fixtures.corpus();
+
+		var read = 0;
+		var on = 0;
+		var all = 0;
+
+		for (name in files) {
+			if (name.toLowerCase().indexOf(".vgm") < 0) continue;
+			if (read >= 32) break;
+
+			final stream = new Stream(1 << 22);
+			final vgm = Vgm.read(sys.io.File.getBytes(name), stream);
+			final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+			final grid = song.tempo.ppqn / 4.0;
+			if (grid <= 0) continue;
+
+			var held = 0;
+			var count = 0;
+
+			for (pattern in song.patterns) {
+				for (index in 0...mdd.song.Part.COUNT) {
+					for (note in pattern.lane(index).notes) {
+						final away = note.at / grid;
+						final gap = away - Math.round(away);
+
+						count++;
+						if ((gap < 0 ? -gap : gap) <= Pulse.TOLERANCE) held++;
+					}
+				}
+			}
+
+			if (count == 0) continue;
+
+			read++;
+			on += held;
+			all += count;
+		}
+
+		if (all == 0) return;
+
+		says("an imported note sits on the grid", on * 10 >= all * 7,
+			Math.round(on * 1000.0 / all) / 10 + " per cent of " + all
+			+ " notes across " + read + " files land within a tenth of a sixteenth");
+	}
+
+	static inline final OFFSETS = 400;
+
+	static function best(onsets:Array<Int>, beats:Float):Float {
+		if (beats <= 0 || onsets.length == 0) return 0;
+
+		final grid = 60.0 * Pulse.TICKS / (beats * Pulse.DIVISION);
+		if (grid <= 0) return 0;
+
+		var most = 0;
+
+		for (step in 0...OFFSETS) {
+			final shift = grid * step / OFFSETS;
+			var near = 0;
+
+			for (at in onsets) {
+				final away = (at - shift) / grid;
+				final gap = away - Math.round(away);
+
+				if ((gap < 0 ? -gap : gap) <= Pulse.TOLERANCE) near++;
+			}
+
+			if (near > most) most = near;
+		}
+
+		return most / onsets.length;
+	}
+
+	static function shifted():Int {
+		final files = Fixtures.corpus();
+
+		var read = 0;
+		var plain = 0.0;
+		var shiftedOnly = 0.0;
+		var paced = 0.0;
+		var both = 0.0;
+		var enough = 0;
+
+		for (name in files) {
+			if (name.toLowerCase().indexOf(".vgm") < 0) continue;
+
+			final stream = new Stream(1 << 22);
+			final vgm = Vgm.read(sys.io.File.getBytes(name), stream);
+
+			final onsets = Pulse.struck(stream, vgm.rate);
+			if (onsets.length < 32) continue;
+
+			final fallback = vgm.rate == 50 ? 125.0 : 150.0;
+			final beats = Pulse.from(onsets, fallback);
+
+			read++;
+
+			final flat = zeroed(onsets, fallback);
+			final slid = best(onsets, fallback);
+			final quick = zeroed(onsets, beats);
+			final all = best(onsets, beats);
+
+			plain += flat;
+			shiftedOnly += slid;
+			paced += quick;
+			both += all;
+
+			if (slid >= all - 0.02) enough++;
+		}
+
+		if (read == 0) return 0;
+
+		Sys.println("    across " + read + " files, the share of onsets on a sixteenth");
+		Sys.println("      the rate it was logged at, no shift   "
+			+ Math.round(plain / read * 1000) / 10 + " per cent");
+		Sys.println("      the rate it was logged at, best shift "
+			+ Math.round(shiftedOnly / read * 1000) / 10);
+		Sys.println("      the tempo it was read as, no shift    "
+			+ Math.round(paced / read * 1000) / 10);
+		Sys.println("      the tempo it was read as, best shift  "
+			+ Math.round(both / read * 1000) / 10);
+		Sys.println("    a shift alone is within two points of both on " + enough
+			+ " of " + read);
+
+		return 0;
+	}
+
+	static function zeroed(onsets:Array<Int>, beats:Float):Float {
+		if (beats <= 0 || onsets.length == 0) return 0;
+
+		final grid = 60.0 * Pulse.TICKS / (beats * Pulse.DIVISION);
+		var near = 0;
+
+		for (at in onsets) {
+			final away = at / grid;
+			final gap = away - Math.round(away);
+
+			if ((gap < 0 ? -gap : gap) <= Pulse.TOLERANCE) near++;
+		}
+
+		return near / onsets.length;
 	}
 
 	static function weighed(args:Array<String>):Int {

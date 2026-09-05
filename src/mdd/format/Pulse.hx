@@ -98,6 +98,37 @@ final class Pulse {
 		return fits(onsets, beats) > fits(onsets, fallback) ? round(beats) : fallback;
 	}
 
+	public static inline final OFFSETS = 400;
+
+	public static function phase(onsets:Array<Int>, beats:Float):Float {
+		if (beats <= 0 || onsets.length == 0) return 0;
+
+		final grid = 60.0 * TICKS / (beats * DIVISION);
+		if (grid <= 0) return 0;
+
+		var best = 0.0;
+		var most = -1;
+
+		for (step in 0...OFFSETS) {
+			final shift = grid * step / OFFSETS;
+			var near = 0;
+
+			for (at in onsets) {
+				final away = (at - shift) / grid;
+				final gap = away - Math.round(away);
+
+				if ((gap < 0 ? -gap : gap) <= TOLERANCE) near++;
+			}
+
+			if (near > most) {
+				most = near;
+				best = shift;
+			}
+		}
+
+		return best;
+	}
+
 	public static function fits(onsets:Array<Int>, beats:Float):Float {
 		if (beats <= 0 || onsets.length == 0) return 0;
 
