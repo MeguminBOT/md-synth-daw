@@ -441,7 +441,8 @@ class SpineCheck {
 		return one.tags.length == 2 && one.tags[0] == "brass" && one.tags[1] == "lead";
 	}
 
-	static function tabbed(tree:Root, centre:mdd.view.Centre):Void {
+	static function tabbed(tree:Root, centre:mdd.view.Centre, paint:Paint,
+			renderer:cpp.Star<Canvas>):Void {
 		final session = centre.session;
 		final pattern = session.current();
 
@@ -475,6 +476,28 @@ class SpineCheck {
 		says("the automation tab opens every lane", many > 0,
 			many + " lanes for " + tab.drivenPart().name() + ", "
 			+ Math.round(stack.wants()) + " px of stack in " + Math.round(tab.height) + " px");
+
+		var worst = 0.0;
+		final times = new haxe.ds.Vector<Float>(120);
+
+		for (frame in 0...120) {
+			stack.invalidate();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			final began = Sdl.ticks();
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+			final took = Sdl.ticks() - began;
+
+			times[frame] = took;
+			if (took > worst) worst = took;
+		}
+
+		final middle = median(times, 120) * 1000;
+
+		says("and it draws every one of them inside a frame", middle < 16.67,
+			many + " lanes traced, median frame " + round(middle, 3) + " ms, worst "
+			+ round(worst * 1000, 3) + " ms");
 
 		final was = stack.heightOf(0);
 
@@ -1816,7 +1839,7 @@ class SpineCheck {
 		laned(tree, session, centre.roll);
 		grouped(tree, session, centre, paint, renderer);
 		tagged(tree, editor.presets, session);
-		tabbed(tree, centre);
+		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
 
 		tree.resize(900, 600);
