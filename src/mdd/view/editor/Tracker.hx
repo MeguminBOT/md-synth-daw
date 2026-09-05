@@ -326,6 +326,56 @@ final class Tracker extends Widget {
 		return note;
 	}
 
+	override function edited(what:Int):Bool {
+		switch (what) {
+			case mdd.ui.Edit.COPY:
+				return copies();
+
+			case mdd.ui.Edit.CUT:
+				if (!copies()) return false;
+
+				erase();
+				return true;
+
+			case mdd.ui.Edit.PASTE:
+				return pasted();
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function copies():Bool {
+		final held = noteAt(row, column);
+		if (held == null) return false;
+
+		final made = held.copy();
+		made.at = 0;
+
+		session.copiedNotes.resize(0);
+		session.copiedNotes.push(made);
+
+		session.say("copied " + spelt(held.pitch));
+		session.changed();
+
+		return true;
+	}
+
+	function pasted():Bool {
+		if (session.copiedNotes.length == 0) return false;
+
+		final one = session.copiedNotes[0];
+		final made = place(one.pitch);
+
+		if (made == null) return false;
+
+		made.velocity = one.velocity;
+		session.changed();
+
+		return true;
+	}
+
 	public function opens():Void {
 		if (entering) return;
 

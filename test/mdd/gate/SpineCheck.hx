@@ -928,6 +928,25 @@ class SpineCheck {
 			tracker.noteAt(2, part.index()) == null && lane.notes.length == 0,
 			lane.notes.length + " notes left in the lane");
 
+		tracker.at(2, part.index());
+		tracker.opens();
+
+		wrote(tree, tracker, "D-4 20");
+		tree.key(true, mdd.ui.Key.Return, mdd.ui.Mod.None);
+
+		tracker.at(2, part.index());
+		final copied = tracker.edited(mdd.ui.Edit.COPY);
+
+		tracker.at(6, part.index());
+		final put = tracker.edited(mdd.ui.Edit.PASTE);
+
+		final over = tracker.noteAt(6, part.index());
+
+		says("a cell copies and pastes", copied && put && over != null
+			&& over.pitch == 62 && over.velocity == 64,
+			"a cell holding " + (over == null ? "nothing" : Tracker.spelt(over.pitch)
+			+ " at a velocity of " + over.velocity) + " came from a copy of D-4 20");
+
 		lane.notes.resize(0);
 	}
 
