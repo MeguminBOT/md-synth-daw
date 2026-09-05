@@ -81,9 +81,12 @@ final class Scope extends Widget {
 		final from = written[part];
 
 		var last = traces[base + from];
+		var at = from;
 
 		for (step in 1...SPAN) {
-			final at = (from + step) % SPAN;
+			at++;
+			if (at >= SPAN) at = 0;
+
 			final now = traces[base + at];
 
 			if (last < 0 && now >= 0) return at;
@@ -214,9 +217,13 @@ final class Scope extends Widget {
 			var sinNow = 0.0;
 			var real = 0.0;
 			var imaginary = 0.0;
+			var at = from;
 
 			for (step in 0...SPAN) {
-				final value = traces[base + (from + step) % SPAN];
+				final value = traces[base + at];
+
+				at++;
+				if (at >= SPAN) at = 0;
 
 				real += value * cosNow;
 				imaginary += value * sinNow;
@@ -239,7 +246,9 @@ final class Scope extends Widget {
 		var most = 0.0;
 
 		for (i in 0...SPAN) {
-			final value = traces[base + i] < 0 ? -traces[base + i] : traces[base + i];
+			final held = traces[base + i];
+			final value = held < 0 ? -held : held;
+
 			if (value > most) most = value;
 		}
 
@@ -349,10 +358,16 @@ final class Scope extends Widget {
 		final steps = Std.int(across);
 		final many = steps > SPAN ? SPAN : steps;
 
-		for (i in 0...many) {
-			final value = traces[base + (at + i) % SPAN];
+		final step = across / many;
+		var read = at;
 
-			line[i * 2] = from + i * across / many;
+		for (i in 0...many) {
+			final value = traces[base + read];
+
+			read++;
+			if (read >= SPAN) read = 0;
+
+			line[i * 2] = from + i * step;
 			line[i * 2 + 1] = middle - value * gain;
 		}
 
