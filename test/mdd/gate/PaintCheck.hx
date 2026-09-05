@@ -78,6 +78,7 @@ class PaintCheck {
 		scales(root);
 		clipping(paint);
 		opacities(paint);
+		speckled(paint);
 
 		font.shut();
 		shut();
@@ -115,6 +116,96 @@ class PaintCheck {
 				|| pixels[i * 4 + 2] > 8)) lit++;
 		}
 		return lit;
+	}
+
+	static function speckled(paint:Paint):Void {
+		var worst = 0;
+		var worstAt = "";
+		var many = 0;
+		var drawn = 0;
+
+		for (step in 0...9) {
+			final wide = 24 + step * 34;
+			final tall = 15 + step * 19;
+			final radius = 2 + step * 2;
+
+			final colour = Theme.PARTS[step % Theme.PARTS.length];
+
+			begin();
+			paint.roundedGradient(11, 9, wide, tall, radius, colour.lift(0.22),
+				colour.sink(0.18), 1);
+			paint.flush();
+
+			drawn++;
+
+			final found = specks(11, 9, wide, tall);
+			many += found;
+
+			if (found > worst) {
+				worst = found;
+				worstAt = wide + "x" + tall + " at a radius of " + radius;
+			}
+
+			begin();
+			paint.roundedRect(11, 9, wide, tall, radius, colour, 1);
+			paint.flush();
+
+			drawn++;
+
+			final held = specks(11, 9, wide, tall);
+			many += held;
+
+			if (held > worst) {
+				worst = held;
+				worstAt = wide + "x" + tall + " at a radius of " + radius + ", flat";
+			}
+		}
+
+		says("no specks", many == 0, many + " pixels darker than every neighbour across "
+			+ drawn + " filled shapes" + (worst == 0 ? "" : ", worst " + worst + " on "
+			+ worstAt));
+	}
+
+	static function specks(left:Float, top:Float, wide:Float, tall:Float):Int {
+		Draw.readPixels(renderer, 0, 0, SIDE, SIDE,
+			cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+		Draw.setTarget(renderer, null);
+
+		final from = Std.int(left) + 1;
+		final until = Std.int(left + wide) - 1;
+		final head = Std.int(top) + 1;
+		final floor = Std.int(top + tall) - 1;
+
+		var found = 0;
+
+		for (py in head...floor) {
+			for (px in from...until) {
+				final here = light(px, py);
+				if (here > 40) {
+					var darkest = 255;
+
+					for (dy in -1...2) {
+						for (dx in -1...2) {
+							if (dx == 0 && dy == 0) continue;
+
+							final near = light(px + dx, py + dy);
+							if (near < darkest) darkest = near;
+						}
+					}
+
+					if (darkest - here >= 24) found++;
+				}
+			}
+		}
+
+		return found;
+	}
+
+	static function light(px:Int, py:Int):Int {
+		final at = (py * SIDE + px) * 4;
+
+		return Std.int((pixels[at] * 299 + pixels[at + 1] * 587 + pixels[at + 2] * 114)
+			/ 1000);
 	}
 
 	static function within(name:String, got:Float, want:Float, slack:Float):Void {
