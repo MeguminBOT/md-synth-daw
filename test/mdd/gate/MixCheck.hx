@@ -32,6 +32,7 @@ class MixCheck {
 		ceilinged();
 		gridded();
 		nudged();
+		parted();
 		singly();
 		furnished();
 		threaded();
@@ -586,6 +587,38 @@ class MixCheck {
 	static function away(at:Int, grid:Int):Int {
 		final over = at % grid;
 		return over > grid - over ? grid - over : over;
+	}
+
+	static function parted():Void {
+		final song = new Song("part", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		mdd.song.Shipped.into(song);
+
+		pattern.part = mdd.song.Part.Fm1.index();
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 96, 60, 127, 0));
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(96, 96, 64, 127, 0));
+
+		final want = mdd.song.Part.Psg2.index();
+		final held = new mdd.song.edit.MovePattern(0, want);
+
+		held.apply(song);
+
+		final moved = pattern.lane(want).notes.length;
+		final left = pattern.lane(mdd.song.Part.Fm1).notes.length;
+
+		says("a pattern can be played on another channel", moved == 2 && left == 0
+			&& pattern.part == want,
+			"two notes moved off " + mdd.song.Part.Fm1.name() + " onto "
+			+ ((want : mdd.song.Part).name()) + ", which the pattern now says it belongs to");
+
+		held.revert(song);
+
+		says("and it goes back to the one it was on",
+			pattern.lane(mdd.song.Part.Fm1).notes.length == 2
+			&& pattern.lane(want).notes.length == 0
+			&& pattern.part == mdd.song.Part.Fm1.index(),
+			"both notes are on " + mdd.song.Part.Fm1.name() + " again");
 	}
 
 	static function consoled(into:String):Void {

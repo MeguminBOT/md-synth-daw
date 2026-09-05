@@ -134,10 +134,34 @@ final class Menus {
 		fired(held.offer(new Choice(said(Locale.PATTERN_DELETE))), function():Void
 			panels.patterns.dropped(session.pattern));
 		held.divide();
+		held.offer(new Choice(said(Locale.PATTERN_PART))).submenu = parted();
+		held.divide();
 		fired(held.offer(new Choice(said(Locale.PATTERN_CLEAR))), function():Void
 			emptied());
 
 		return held;
+	}
+
+	function parted():Menu {
+		final out = new Menu();
+
+		final now = session.song.patterns[session.pattern];
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			final choice = out.offer(new Choice(part.name()));
+
+			choice.enabled = now == null || now.part != index;
+			fires(choice, index);
+		}
+
+		return out;
+	}
+
+	function fires(choice:Choice, part:Int):Void {
+		choice.onFire = function(from:Choice):Void {
+			if (onPart != null) onPart(part);
+		};
 	}
 
 	function channelsMenu():Menu {
@@ -216,6 +240,7 @@ final class Menus {
 	public var onLift:Null<Void -> Int> = null;
 	public var onNew:Null<Void -> Void> = null;
 	public var onNudge:Null<Int -> Void> = null;
+	public var onPart:Null<Int -> Void> = null;
 
 	function lifted():Void {
 		final many = onLift == null ? 0 : onLift();

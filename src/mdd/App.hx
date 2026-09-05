@@ -253,6 +253,13 @@ class App {
 		menus.onLift = function():Int return files.liftsPatches();
 		menus.onNew = function():Void fresh();
 
+		menus.onPart = function(part:Int):Void {
+			session.does(new mdd.song.edit.MovePattern(session.pattern, part));
+
+			final held:mdd.song.Part = part;
+			session.say(stage.root.translate(Locale.PATTERN_PART) + " " + held.name());
+		};
+
 		menus.onNudge = function(way:Int):Void {
 			session.does(new mdd.song.edit.ShiftSong(way));
 			session.say(stage.root.translate(way < 0 ? Locale.EDIT_EARLIER : Locale.EDIT_LATER));
