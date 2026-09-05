@@ -236,6 +236,49 @@ final class Song {
 
 	public var offset(default, null):Int = 0;
 
+	public function split(source:Pattern):Bool {
+		final length = source.length;
+
+		var used = 0;
+		for (index in 0...Part.COUNT) if (holds(source.lane(index))) used++;
+
+		if (used < 2) return false;
+
+		patterns.remove(source);
+		while (tracks.length > 0) tracks.remove(tracks[0]);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final lane = source.lane(part);
+
+			if (!holds(lane)) continue;
+
+			final made = add(new Pattern(part.name(), length));
+			made.part = index;
+
+			for (note in lane.notes) made.lane(part).add(note);
+			for (line in lane.automation) made.lane(part).automation.push(line);
+
+			final track = this.track(new Track(part.name()));
+			track.add(new Clip(patterns.length - 1, 0, length));
+		}
+
+		return true;
+	}
+
+	static function holds(lane:Lane):Bool {
+		if (lane.notes.length > 0) return true;
+
+		for (line in lane.automation) {
+			if (line.points.length < 2) continue;
+
+			final first = line.points[0].value;
+			for (point in line.points) if (point.value != first) return true;
+		}
+
+		return false;
+	}
+
 	public function shift(by:Int):Void {
 		if (by == 0) return;
 

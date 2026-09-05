@@ -885,6 +885,25 @@ class MixCheck {
 			+ " in the song, and lasting " + round(spans, 1) + " s against "
 			+ round(want, 1) + " s");
 
+		var lanes = 0;
+		var single = 0;
+
+		for (pattern in back.patterns) {
+			var carries = 0;
+
+			for (index in 0...mdd.song.Part.COUNT) {
+				if (pattern.lane(index).notes.length > 0) carries++;
+			}
+
+			if (carries > 0) lanes++;
+			if (carries == 1) single++;
+		}
+
+		says("and a midi comes back as a pattern for each part",
+			back.patterns.length > 1 && single == lanes && back.tracks.length == lanes,
+			back.patterns.length + " patterns hold notes on one part each, laid out over "
+			+ back.tracks.length + " tracks, against the one pattern a midi used to become");
+
 		final packed = into + "/round." + mdd.Config.SUFFIX;
 		mdd.format.Project.save(song, packed);
 

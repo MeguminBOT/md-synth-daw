@@ -873,31 +873,7 @@ final class Transcription {
 	}
 
 	function parted():Void {
-		final source = pattern;
-		final length = source.length;
-
-		var used = 0;
-		for (index in 0...Part.COUNT) if (source.lane(index).notes.length > 0) used++;
-
-		if (used < 2) return;
-
-		song.patterns.remove(source);
-		while (song.tracks.length > 0) song.tracks.remove(song.tracks[0]);
-
-		for (index in 0...Part.COUNT) {
-			final part:Part = index;
-			final lane = source.lane(part);
-			if (lane.notes.length == 0 && !moves(lane)) continue;
-
-			final made = song.add(new Pattern(part.name(), length));
-			made.part = index;
-
-			for (note in lane.notes) made.lane(part).add(note);
-			for (line in lane.automation) made.lane(part).automation.push(line);
-
-			final track = song.track(new Track(part.name()));
-			track.add(new Clip(song.patterns.length - 1, 0, length));
-		}
+		song.split(pattern);
 	}
 
 	function close(at:Int):Void {

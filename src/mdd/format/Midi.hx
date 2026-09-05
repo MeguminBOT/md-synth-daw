@@ -199,8 +199,10 @@ final class Midi {
 
 		pattern.length = longest + ppqn;
 
-		final track = song.track(new Track("imported"));
-		track.add(new Clip(0, 0, pattern.length));
+		if (!song.split(pattern)) {
+			final track = song.track(new Track("imported"));
+			track.add(new Clip(0, 0, pattern.length));
+		}
 
 		return song;
 	}
