@@ -253,12 +253,10 @@ class App {
 		menus.onRedo = function():Void redone();
 		menus.onLift = function():Int return files.liftsPatches();
 		menus.bindings = bindings;
-
-		if (panels.centre != null && panels.centre.tools != null) {
-			panels.centre.tools.bindings = bindings;
-		}
+		bound();
 
 		menus.onNew = function():Void fresh();
+		menus.onEdit = function(what:Int):Void edited(what);
 
 		menus.onPart = function(part:Int):Void {
 			session.does(new mdd.song.edit.MovePattern(session.pattern, part));
@@ -348,6 +346,7 @@ class App {
 
 		panels.dress(session);
 		menus.dress(session);
+		bound();
 
 		session.transport.silence();
 		sound.follows(session.transport);
@@ -801,7 +800,9 @@ class App {
 		final action = bindings.actionFor(code, mods);
 		if (action == Bindings.NONE) return false;
 
-		if (action >= Bindings.SELECT) return tooled(action - Bindings.SELECT);
+		if (action >= Bindings.SELECT && action <= Bindings.PAN) {
+			return tooled(action - Bindings.SELECT);
+		}
 
 		switch (action) {
 			case Bindings.UNDO: undone();
@@ -817,10 +818,34 @@ class App {
 			case Bindings.WRITE_AUDIO: panels.sounded();
 			case Bindings.EARLIER: nudged(-1);
 			case Bindings.LATER: nudged(1);
+			case Bindings.ALL: return edited(mdd.ui.Edit.ALL);
+			case Bindings.COPY: return edited(mdd.ui.Edit.COPY);
+			case Bindings.CUT: return edited(mdd.ui.Edit.CUT);
+			case Bindings.PASTE: return edited(mdd.ui.Edit.PASTE);
 			case _: return false;
 		}
 
 		return true;
+	}
+
+	function bound():Void {
+		if (panels == null || panels.centre == null) return;
+
+		if (panels.centre.tools != null) panels.centre.tools.bindings = bindings;
+
+		panels.centre.roll.bindings = bindings;
+		panels.centre.playlist.bindings = bindings;
+	}
+
+	function edited(what:Int):Bool {
+		var at = stage.root.acting();
+
+		while (at != null) {
+			if (at.enabled && at.edited(what)) return true;
+			at = at.parent;
+		}
+
+		return false;
 	}
 
 	function nudged(way:Int):Void {

@@ -90,6 +90,14 @@ final class Menus {
 		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), chord(Bindings.REDO))), function():Void
 			redoes());
 		edit.divide();
+		fired(edit.offer(new Choice(said(Locale.BIND_ALL), chord(Bindings.ALL))),
+			function():Void edits(mdd.ui.Edit.ALL));
+		fired(edit.offer(new Choice(said(Locale.BIND_COPY), chord(Bindings.COPY))),
+			function():Void edits(mdd.ui.Edit.COPY));
+		fired(edit.offer(new Choice(said(Locale.BIND_CUT), chord(Bindings.CUT))),
+			function():Void edits(mdd.ui.Edit.CUT));
+		fired(edit.offer(new Choice(said(Locale.BIND_PASTE), chord(Bindings.PASTE))),
+			function():Void edits(mdd.ui.Edit.PASTE));
 		edit.divide();
 		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), chord(Bindings.EARLIER))),
 			function():Void nudges(-1));
@@ -246,6 +254,7 @@ final class Menus {
 	public var onLift:Null<Void -> Int> = null;
 	public var onNew:Null<Void -> Void> = null;
 	public var onNudge:Null<Int -> Void> = null;
+	public var onEdit:Null<Int -> Void> = null;
 	public var onPart:Null<Int -> Void> = null;
 
 	function lifted():Void {
@@ -390,6 +399,10 @@ final class Menus {
 
 	inline function nudges(way:Int):Void {
 		if (onNudge != null) onNudge(way);
+	}
+
+	inline function edits(what:Int):Void {
+		if (onEdit != null) onEdit(what);
 	}
 
 	inline function asks(which:Int):Void {

@@ -25,20 +25,26 @@ final class Bindings {
 	public static inline final ERASE = 15;
 	public static inline final SLICE = 16;
 	public static inline final PAN = 17;
-	public static inline final COUNT = 18;
+	public static inline final ALL = 18;
+	public static inline final COPY = 19;
+	public static inline final CUT = 20;
+	public static inline final PASTE = 21;
+	public static inline final COUNT = 22;
 
 	static final KEYS:Array<Key> = [
 		Key.Z, Key.Y, Key.N, Key.O, Key.S, Key.Comma,
 		Key.Space, Key.Space, Key.L, Key.E, Key.E,
 		Key.Left, Key.Right,
-		Key.E, Key.P, Key.D, Key.C, Key.H
+		Key.E, Key.P, Key.D, Key.C, Key.H,
+		Key.A, Key.C, Key.X, Key.V
 	];
 
 	static final MODS:Array<Int> = [
 		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl,
 		Mod.None, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl | Mod.Shift,
 		Mod.Ctrl, Mod.Ctrl,
-		Mod.None, Mod.None, Mod.None, Mod.None, Mod.None
+		Mod.None, Mod.None, Mod.None, Mod.None, Mod.None,
+		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl
 	];
 
 	public static final NAMES:Array<String> = [
@@ -47,7 +53,8 @@ final class Bindings {
 		Locale.BIND_LOOP, Locale.BIND_WRITE_VGM, Locale.BIND_WRITE_AUDIO,
 		Locale.BIND_EARLIER, Locale.BIND_LATER,
 		Locale.BIND_SELECT, Locale.BIND_DRAW, Locale.BIND_ERASE, Locale.BIND_SLICE,
-		Locale.BIND_PAN
+		Locale.BIND_PAN,
+		Locale.BIND_ALL, Locale.BIND_COPY, Locale.BIND_CUT, Locale.BIND_PASTE
 	];
 
 	final keys:Array<Key> = [];

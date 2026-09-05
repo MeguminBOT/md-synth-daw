@@ -195,6 +195,8 @@ class SpineCheck {
 		final stack = roll.stack;
 		final held = mdd.view.Parameter.of(session.part);
 
+		session.uses(mdd.app.Session.DRAW);
+
 		for (index in 0...held.length) {
 			if (held[index].target != mdd.song.Automation.LEVEL) continue;
 
@@ -768,6 +770,261 @@ class SpineCheck {
 		return event;
 	}
 
+	static function keyAt(code:mdd.ui.Key):mdd.ui.Input {
+		final event = new mdd.ui.Input();
+		event.keyed(mdd.ui.Kind.KeyDown, code, mdd.ui.Mod.None, false);
+		return event;
+	}
+
+	static function banded(tree:Root, widget:mdd.ui.Widget, fromX:Float, fromY:Float,
+			toX:Float, toY:Float, mods:mdd.ui.Mod):Void {
+		final press = new mdd.ui.Input();
+		press.pointer(mdd.ui.Kind.PointerDown, fromX, fromY, mdd.ui.Pointer.Left, mods);
+		widget.took(press);
+
+		final move = new mdd.ui.Input();
+		move.pointer(mdd.ui.Kind.PointerMove, toX, toY, mdd.ui.Pointer.Left, mods);
+		widget.took(move);
+
+		final lift = new mdd.ui.Input();
+		lift.pointer(mdd.ui.Kind.PointerUp, toX, toY, mdd.ui.Pointer.Left, mods);
+		widget.took(lift);
+	}
+
+	static function grouped(tree:Root, session:mdd.app.Session, centre:Centre, paint:Paint,
+			renderer:cpp.Star<Canvas>):Void {
+		centre.show(Centre.ROLL);
+
+		final roll = centre.roll;
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final beat = session.song.tempo.ppqn;
+		final lane = pattern.lane(session.part);
+
+		lane.notes.resize(0);
+		for (step in 0...4) lane.add(new Note(beat * (step + 1), Std.int(beat / 2), 60, 100));
+
+		session.history.clear();
+		roll.choose(null);
+		roll.reveal(0, 60);
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		says("everything in a lane can be selected at once",
+			roll.edited(mdd.ui.Edit.ALL) && roll.picked.count == 4,
+			roll.picked.count + " of " + lane.notes.length + " notes selected by one chord");
+
+		session.uses(mdd.app.Session.SELECT);
+
+		banded(tree, roll, roll.atTick(Std.int(beat / 4)), roll.atPitch(61),
+			roll.atTick(Std.int(beat * 2.25)), roll.atPitch(59), mdd.ui.Mod.None);
+
+		final two = roll.picked.count == 2 && roll.picked.holds(lane.notes[0])
+			&& roll.picked.holds(lane.notes[1]);
+
+		says("and a band takes only what it covers", two,
+			roll.picked.count + " notes under a band across two beats of four, holding the "
+			+ "first " + (two ? "two" : "of something else"));
+
+		final third = lane.notes[2];
+		final shift = new mdd.ui.Input();
+
+		shift.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2,
+			roll.atPitch(60) + roll.rowTall * 0.5, mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
+		roll.took(shift);
+
+		final grew = roll.picked.count == 3 && roll.picked.holds(third);
+
+		shift.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2,
+			roll.atPitch(60) + roll.rowTall * 0.5, mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
+		roll.took(shift);
+
+		says("and shift adds one and takes it away again",
+			grew && roll.picked.count == 2 && !roll.picked.holds(third),
+			"three after shift on a third note, " + roll.picked.count + " after shift on it "
+			+ "again");
+
+		roll.edited(mdd.ui.Edit.ALL);
+
+		final were:Array<Int> = [];
+		for (note in lane.notes) were.push(note.at);
+
+		final depth = session.history.depth();
+		final grab = roll.atTick(lane.notes[0].at) + 2;
+		final row = roll.atPitch(60) + roll.rowTall * 0.5;
+
+		session.uses(mdd.app.Session.DRAW);
+		banded(tree, roll, grab, row, grab + beat * roll.perTick, row, mdd.ui.Mod.None);
+
+		var moved = 0;
+		for (index in 0...lane.notes.length) {
+			if (lane.notes[index].at == were[index] + beat) moved++;
+		}
+
+		says("and dragging one of them carries the rest",
+			moved == 4 && session.history.depth() == depth + 1,
+			moved + " of 4 notes moved a beat later, in "
+			+ (session.history.depth() - depth) + " step of history");
+
+		session.undo();
+
+		var back = 0;
+		for (index in 0...lane.notes.length) if (lane.notes[index].at == were[index]) back++;
+
+		says("and one undo puts them all back", back == 4 && session.history.depth() == depth,
+			back + " of 4 notes at the tick they started from after a single undo");
+
+		roll.edited(mdd.ui.Edit.ALL);
+		roll.edited(mdd.ui.Edit.COPY);
+
+		final was = lane.notes.length;
+		roll.edited(mdd.ui.Edit.PASTE);
+
+		final gap = lane.notes.length >= was + 4
+			? lane.notes[1].at - lane.notes[0].at : -1;
+
+		says("and a copy keeps the spacing when it is pasted",
+			lane.notes.length == was + 4 && gap == beat,
+			lane.notes.length + " notes after pasting four, the first two " + gap
+			+ " ticks apart against " + beat);
+
+		session.undo();
+
+		says("and that paste undoes in one step", lane.notes.length == was,
+			lane.notes.length + " notes after one undo, from " + (was + 4));
+
+		roll.edited(mdd.ui.Edit.ALL);
+		roll.took(keyAt(mdd.ui.Key.Delete));
+
+		says("and delete clears the whole selection", lane.notes.length == 0
+			&& roll.picked.count == 0,
+			lane.notes.length + " notes left and " + roll.picked.count + " still selected");
+
+		session.undo();
+
+		says("and one undo brings every one of them back", lane.notes.length == was,
+			lane.notes.length + " notes back from a single undo");
+
+		clipped(session, centre);
+		gathered(tree, session, centre.roll);
+	}
+
+	static function clipped(session:mdd.app.Session, centre:Centre):Void {
+		final playlist = centre.playlist;
+		final tracks = session.song.tracks;
+
+		for (track in tracks) track.clips.resize(0);
+
+		final beat = session.song.tempo.ppqn;
+
+		for (index in 0...3) {
+			tracks[index % tracks.length].add(new mdd.song.Clip(session.pattern,
+				beat * 4 * index, beat * 4));
+		}
+
+		session.history.clear();
+
+		says("every clip on the playlist selects at once",
+			playlist.edited(mdd.ui.Edit.ALL) && playlist.picked.count == 3,
+			playlist.picked.count + " of 3 clips selected by one chord");
+
+		final depth = session.history.depth();
+		playlist.took(keyAt(mdd.ui.Key.Delete));
+
+		var left = 0;
+		for (track in tracks) left += track.clips.length;
+
+		says("and they delete in one step", left == 0
+			&& session.history.depth() == depth + 1,
+			left + " clips left in " + (session.history.depth() - depth) + " step");
+
+		session.undo();
+
+		var again = 0;
+		for (track in tracks) again += track.clips.length;
+
+		says("and one undo restores all three", again == 3,
+			again + " clips back from a single undo");
+
+		for (track in tracks) track.clips.resize(0);
+	}
+
+	static function gathered(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+		final held = mdd.view.Parameter.of(session.part);
+
+		session.uses(mdd.app.Session.DRAW);
+
+		for (index in 0...held.length) {
+			if (held[index].target != mdd.song.Automation.LEVEL) continue;
+
+			roll.shows(index + 1);
+			break;
+		}
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		if (stack.rows() == 0) return;
+
+		final beat = session.song.tempo.ppqn;
+		final one = stack.parameterOf(0);
+		if (one == null) return;
+
+		session.history.clear();
+
+		final started = stack.lineOf(0);
+		final before = started == null ? 0 : started.points.length;
+
+		for (step in 0...3) {
+			session.does(new mdd.song.edit.AddPoint(session.pattern, session.part,
+				stack.targetOf(0), stack.slotOf(0),
+				new mdd.song.Point(beat * (step + 1) + 3, one.low + step)));
+		}
+
+		final line = stack.lineOf(0);
+		final many = line == null ? 0 : line.points.length;
+
+		if (line != null && many > 0) stack.picks(line.points[0], 0);
+
+		final took = stack.edited(mdd.ui.Edit.ALL);
+
+		says("every point in a lane selects at once", many == before + 3 && took
+			&& stack.picked.count == many,
+			stack.picked.count + " of " + many + " points selected by one chord");
+
+		final depth = session.history.depth();
+		stack.took(keyAt(mdd.ui.Key.Delete));
+
+		final after = stack.lineOf(0);
+		final rest = after == null ? 0 : after.points.length;
+
+		says("and they delete in one step", rest == 0
+			&& session.history.depth() == depth + 1,
+			rest + " points left in " + (session.history.depth() - depth) + " step");
+
+		session.undo();
+
+		final again = stack.lineOf(0);
+
+		says("and one undo restores every one of them",
+			again != null && again.points.length == many,
+			(again == null ? 0 : again.points.length) + " of " + many
+			+ " points back from a single undo");
+
+		while (session.history.depth() > 0) session.undo();
+		roll.shows(0);
+	}
+
 	static function drawn(root:String):Void {
 		Native.ready();
 
@@ -1214,6 +1471,7 @@ class SpineCheck {
 		fitted(tree);
 		aligned(tree);
 		laned(tree, session, centre.roll);
+		grouped(tree, session, centre, paint, renderer);
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre);
 		sheeted(tree, session);

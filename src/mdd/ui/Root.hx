@@ -613,6 +613,10 @@ final class Root {
 		return focus != null && focus.typing;
 	}
 
+	public function acting():Null<Widget> {
+		return popups.length > 0 && returnFocus != null ? returnFocus : focus;
+	}
+
 	public function said(text:String, mods:Mod):Bool {
 		if (focus == null) return false;
 

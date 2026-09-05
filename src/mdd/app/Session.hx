@@ -48,6 +48,9 @@ final class Session {
 
 	public var copiedPatch:Null<mdd.song.Patch> = null;
 	public final copiedNotes:Array<mdd.song.Note> = [];
+	public final copiedClips:Array<mdd.song.Clip> = [];
+	public final copiedRows:Array<Int> = [];
+	public final copiedPoints:Array<mdd.song.Point> = [];
 
 	public function new(song:Song) {
 		this.song = song;

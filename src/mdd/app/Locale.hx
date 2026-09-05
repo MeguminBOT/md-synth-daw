@@ -252,6 +252,9 @@ class Locale {
 	public static inline final BIND_EARLIER = "bind.earlier";
 	public static inline final BIND_LATER = "bind.later";
 	public static inline final BIND_ALL = "bind.all";
+	public static inline final BIND_COPY = "bind.copy";
+	public static inline final BIND_CUT = "bind.cut";
+	public static inline final BIND_PASTE = "bind.paste";
 	public static inline final BIND_SELECT = "bind.select";
 	public static inline final BIND_DRAW = "bind.draw";
 	public static inline final BIND_ERASE = "bind.erase";
@@ -495,7 +498,7 @@ class Locale {
 		EDIT_EARLIER, EDIT_LATER,
 		PATTERN_PART,
 		BIND_UNDO, BIND_REDO, BIND_NEW, BIND_OPEN, BIND_SAVE, BIND_PREFERENCES, BIND_PLAY, BIND_STOP, BIND_LOOP, BIND_WRITE_VGM,
-		BIND_WRITE_AUDIO, BIND_EARLIER, BIND_LATER, BIND_ALL, BIND_SELECT, BIND_DRAW, BIND_ERASE, BIND_SLICE, BIND_PAN, GROUP_KEYBOARD,
+		BIND_WRITE_AUDIO, BIND_EARLIER, BIND_LATER, BIND_ALL, BIND_COPY, BIND_CUT, BIND_PASTE, BIND_SELECT, BIND_DRAW, BIND_ERASE, BIND_SLICE, BIND_PAN, GROUP_KEYBOARD,
 		GROUP_SOUND, PREFERENCE_CONSOLE, CONSOLE_CHIP, CONSOLE_ONE, CONSOLE_TWO,
 		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,

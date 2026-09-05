@@ -21,6 +21,7 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.Picked;
 
 @:unreflective
 final class Playlist extends Widget {
@@ -35,7 +36,9 @@ final class Playlist extends Widget {
 	public var rowTall:Float = 0;
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Clip> = null;
+	public final picked:Picked<Clip> = new Picked<Clip>();
 	public var painted(default, null):Int = 0;
+	public var bindings:Null<mdd.app.Bindings> = null;
 
 	public var onRename:Null<Int -> Void> = null;
 	public var onOpen:Null<Clip -> Void> = null;
@@ -48,9 +51,20 @@ final class Playlist extends Widget {
 	var sizing:Bool = false;
 	var grabTick:Int = 0;
 	var grabWasAt:Int = 0;
-	var grabWasLong:Int = 0;
 	var grabFresh:Bool = false;
 	var hoverTrack:Int = -1;
+
+	var banding:Bool = false;
+	var bandFromX:Float = 0;
+	var bandFromY:Float = 0;
+	var bandToX:Float = 0;
+	var bandToY:Float = 0;
+
+	final moving:Array<Clip> = [];
+	final movingRows:Array<Int> = [];
+	final wereAt:Array<Int> = [];
+	final wereLong:Array<Int> = [];
+	var leastAt:Int = 0;
 
 	public function new(session:Session) {
 		super();
@@ -311,6 +325,13 @@ final class Playlist extends Widget {
 					invalidate();
 				}
 
+				if (banding) {
+					bandToX = event.x;
+					bandToY = event.y;
+					invalidate();
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				if (sizing) {
@@ -319,8 +340,7 @@ final class Playlist extends Widget {
 					return true;
 				}
 
-				final at = session.snapped(tickAt(event.x) - grabTick);
-				dragging.at = at < 0 ? 0 : at;
+				hauled(session.snapped(tickAt(event.x) - grabTick));
 
 				invalidate();
 				return true;
@@ -338,6 +358,11 @@ final class Playlist extends Widget {
 
 				if (scrubbing) {
 					scrubbing = false;
+					return true;
+				}
+
+				if (banding) {
+					banded();
 					return true;
 				}
 
@@ -375,23 +400,36 @@ final class Playlist extends Widget {
 
 		if (event.button == Pointer.Right) {
 			if (under != null) {
+				picked.drops(under);
+				if (chosen == under) chosen = picked.lead();
+
 				session.does(new RemoveClip(which, under));
-				chosen = null;
 				invalidate();
 			}
 			return true;
 		}
 
 		if (under != null) {
-			chosen = under;
-			chosenTrack = which;
+			final adding = event.shift() || event.ctrl();
+			alters(under, which, adding);
+
+			if (adding) {
+				invalidate();
+				return true;
+			}
+
 			dragging = under;
 			sizing = onEdge(under, event.x);
 			grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 			grabWasAt = under.at;
-			grabWasLong = under.length;
 			grabFresh = false;
+			grabs(under);
 			invalidate();
+			return true;
+		}
+
+		if (session.tool != Session.DRAW || event.shift() || event.ctrl()) {
+			bands(event);
 			return true;
 		}
 
@@ -405,17 +443,279 @@ final class Playlist extends Widget {
 
 		session.does(new AddClip(which, clip));
 
+		picked.only(clip);
 		chosen = clip;
 		chosenTrack = which;
 		dragging = clip;
 		sizing = true;
 		grabTick = 0;
 		grabWasAt = clip.at;
-		grabWasLong = clip.length;
 		grabFresh = true;
+		grabs(clip);
 
 		invalidate();
 		return true;
+	}
+
+	public function trackOf(clip:Clip):Int {
+		final tracks = session.song.tracks;
+
+		for (index in 0...tracks.length) {
+			if (tracks[index].clips.indexOf(clip) >= 0) return index;
+		}
+
+		return -1;
+	}
+
+	static function counted(many:Int):String {
+		return many + (many == 1 ? " clip" : " clips");
+	}
+
+	function alters(lead:Clip, which:Int, shift:Bool):Void {
+		if (shift) {
+			picked.toggles(lead);
+
+			final on = picked.holds(lead);
+			chosen = on ? lead : picked.lead();
+			chosenTrack = chosen == null ? -1 : (on ? which : trackOf(chosen));
+
+			return;
+		}
+
+		if (!picked.holds(lead)) picked.only(lead);
+
+		chosen = lead;
+		chosenTrack = which;
+	}
+
+	public function picksAll():Bool {
+		var many = 0;
+
+		picked.clear();
+
+		for (track in session.song.tracks) {
+			for (clip in track.clips) {
+				picked.adds(clip);
+				many++;
+			}
+		}
+
+		if (many == 0) return false;
+
+		chosen = picked.lead();
+		chosenTrack = chosen == null ? -1 : trackOf(chosen);
+
+		session.say(counted(many) + " selected");
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	override function edited(what:Int):Bool {
+		switch (what) {
+			case mdd.ui.Edit.ALL:
+				return picksAll();
+
+			case mdd.ui.Edit.COPY:
+				return copies();
+
+			case mdd.ui.Edit.CUT:
+				if (!copies()) return false;
+				erased();
+				return true;
+
+			case mdd.ui.Edit.PASTE:
+				if (session.copiedClips.length == 0) return false;
+
+				pasted(session.snapped(playhead < 0 ? 0 : playhead),
+					chosenTrack < 0 ? 0 : chosenTrack);
+				return true;
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function copies():Bool {
+		final held = picked.taken();
+		if (held.length == 0) return false;
+
+		var least = held[0].at;
+		var top = trackOf(held[0]);
+
+		for (clip in held) {
+			final row = trackOf(clip);
+
+			if (clip.at < least) least = clip.at;
+			if (row >= 0 && row < top) top = row;
+		}
+
+		session.copiedClips.resize(0);
+		session.copiedRows.resize(0);
+
+		for (clip in held) {
+			final row = trackOf(clip);
+			final made = clip.copy();
+
+			made.at -= least;
+
+			session.copiedClips.push(made);
+			session.copiedRows.push(row < 0 ? 0 : row - top);
+		}
+
+		session.say("copied " + counted(held.length));
+		session.changed();
+
+		return true;
+	}
+
+	function pasted(at:Int, onto:Int):Void {
+		final copied = session.copiedClips;
+		if (copied.length == 0) return;
+
+		final where = at < 0 ? 0 : at;
+		final made:Array<Clip> = [];
+		final rows:Array<Int> = [];
+
+		for (index in 0...copied.length) {
+			final clip = copied[index].copy();
+			clip.at = where + clip.at;
+
+			made.push(clip);
+			rows.push(onto + session.copiedRows[index]);
+		}
+
+		final group = new mdd.song.edit.Together("paste " + counted(made.length));
+
+		for (index in 0...made.length) {
+			var row = rows[index];
+			if (row < 0) row = 0;
+
+			if (row >= session.song.tracks.length) group.also(new AddTrack(row));
+			group.also(new AddClip(row, made[index]));
+		}
+
+		session.does(group);
+
+		picked.clear();
+		for (clip in made) picked.adds(clip);
+
+		chosen = picked.lead();
+		chosenTrack = chosen == null ? -1 : trackOf(chosen);
+
+		session.say("pasted " + counted(made.length));
+		invalidate();
+	}
+
+	function erased():Void {
+		final held = picked.taken();
+		if (held.length == 0) return;
+
+		final group = new mdd.song.edit.Together("remove " + counted(held.length));
+		var many = 0;
+
+		for (clip in held) {
+			final row = trackOf(clip);
+			if (row < 0) continue;
+
+			group.also(new RemoveClip(row, clip));
+			many++;
+		}
+
+		if (many == 0) return;
+		session.does(group);
+
+		picked.clear();
+		chosen = null;
+
+		invalidate();
+	}
+
+	function grabs(lead:Clip):Void {
+		moving.resize(0);
+		movingRows.resize(0);
+		wereAt.resize(0);
+		wereLong.resize(0);
+
+		if (picked.count > 1 && picked.holds(lead)) {
+			for (index in 0...picked.count) moving.push(picked.at(index));
+		} else {
+			moving.push(lead);
+		}
+
+		leastAt = moving[0].at;
+
+		for (clip in moving) {
+			movingRows.push(trackOf(clip));
+			wereAt.push(clip.at);
+			wereLong.push(clip.length);
+
+			if (clip.at < leastAt) leastAt = clip.at;
+		}
+	}
+
+	function hauled(at:Int):Void {
+		var by = at - grabWasAt;
+		if (leastAt + by < 0) by = -leastAt;
+
+		for (index in 0...moving.length) moving[index].at = wereAt[index] + by;
+	}
+
+	function bands(event:Input):Void {
+		banding = true;
+		bandFromX = event.x;
+		bandFromY = event.y;
+		bandToX = event.x;
+		bandToY = event.y;
+
+		if (!event.shift() && !event.ctrl()) {
+			picked.clear();
+			chosen = null;
+		}
+
+		invalidate();
+	}
+
+	function banded():Void {
+		banding = false;
+
+		final left = bandFromX < bandToX ? bandFromX : bandToX;
+		final right = bandFromX < bandToX ? bandToX : bandFromX;
+		final top = bandFromY < bandToY ? bandFromY : bandToY;
+		final floor = bandFromY < bandToY ? bandToY : bandFromY;
+
+		if (right - left < 2 && floor - top < 2) {
+			invalidate();
+			return;
+		}
+
+		final from = tickAt(left);
+		final to = tickAt(right);
+		final first = trackAt(top);
+		final last = trackAt(floor);
+
+		final tracks = session.song.tracks;
+		final head = first < 0 ? 0 : first;
+		final tail = last < 0 ? tracks.length - 1 : last;
+
+		for (which in head...tail + 1) {
+			if (which >= tracks.length) break;
+
+			for (clip in tracks[which].clips) {
+				if (clip.ends() <= from || clip.at >= to) continue;
+				picked.adds(clip);
+			}
+		}
+
+		chosen = picked.lead();
+		chosenTrack = chosen == null ? -1 : trackOf(chosen);
+
+		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		session.changed();
+
+		invalidate();
 	}
 
 	function settled():Void {
@@ -430,20 +730,63 @@ final class Playlist extends Widget {
 			return;
 		}
 
-		if (sizing && held.length != grabWasLong) {
-			final want = held.length;
-
-			held.length = grabWasLong;
-			session.does(new SizeClip(chosenTrack, held, want));
-		} else if (!sizing && held.at != grabWasAt) {
-			final want = held.at;
-
-			held.at = grabWasAt;
-			session.does(new MoveClip(chosenTrack, held, want, held.transpose));
-		}
+		if (sizing) sized();
+		else hauledDone();
 
 		sizing = false;
 		session.changed();
+	}
+
+	function sized():Void {
+		var many = 0;
+		for (index in 0...moving.length) if (moving[index].length != wereLong[index]) many++;
+		if (many == 0) return;
+
+		final wants:Array<Int> = [];
+		for (clip in moving) wants.push(clip.length);
+
+		for (index in 0...moving.length) moving[index].length = wereLong[index];
+
+		if (moving.length == 1) {
+			session.does(new SizeClip(rowOf(0), moving[0], wants[0]));
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("resize " + counted(moving.length));
+		for (index in 0...moving.length) {
+			group.also(new SizeClip(rowOf(index), moving[index], wants[index]));
+		}
+
+		session.does(group);
+	}
+
+	function hauledDone():Void {
+		var many = 0;
+		for (index in 0...moving.length) if (moving[index].at != wereAt[index]) many++;
+		if (many == 0) return;
+
+		final wants:Array<Int> = [];
+		for (clip in moving) wants.push(clip.at);
+
+		for (index in 0...moving.length) moving[index].at = wereAt[index];
+
+		if (moving.length == 1) {
+			session.does(new MoveClip(rowOf(0), moving[0], wants[0], moving[0].transpose));
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("move " + counted(moving.length));
+		for (index in 0...moving.length) {
+			group.also(new MoveClip(rowOf(index), moving[index], wants[index],
+				moving[index].transpose));
+		}
+
+		session.does(group);
+	}
+
+	inline function rowOf(index:Int):Int {
+		final held = movingRows[index];
+		return held < 0 ? chosenTrack : held;
 	}
 
 	function railed(which:Int, event:Input):Bool {
@@ -525,6 +868,8 @@ final class Playlist extends Widget {
 
 			fires(drop, function():Void {
 				session.does(new RemoveTrack(which));
+
+				picked.clear();
 				chosen = null;
 				chosenTrack = -1;
 			});
@@ -558,6 +903,8 @@ final class Playlist extends Widget {
 			}
 
 			session.does(new mdd.song.edit.AddClip(session.song.tracks.indexOf(track), made));
+
+			picked.only(made);
 			chosen = made;
 			chosenTrack = session.song.tracks.indexOf(track);
 
@@ -573,29 +920,59 @@ final class Playlist extends Widget {
 	}
 
 	function steered(event:Input):Bool {
-		if (chosen == null || chosenTrack < 0) return false;
+		if (event.code == Key.Escape && picked.count > 0) {
+			picked.clear();
+			chosen = null;
+			invalidate();
+			return true;
+		}
+
+		if (picked.count == 0) return false;
 
 		switch (event.code) {
 			case Key.Delete, Key.Backspace:
-				session.does(new RemoveClip(chosenTrack, chosen));
-				chosen = null;
-				invalidate();
+				erased();
 				return true;
 
 			case Key.Up:
-				session.does(new MoveClip(chosenTrack, chosen, chosen.at, chosen.transpose + 1));
-				invalidate();
+				transposed(1);
 				return true;
 
 			case Key.Down:
-				session.does(new MoveClip(chosenTrack, chosen, chosen.at, chosen.transpose - 1));
-				invalidate();
+				transposed(-1);
 				return true;
 
 			case _:
 		}
 
 		return false;
+	}
+
+	function transposed(by:Int):Void {
+		final held = picked.taken();
+		if (held.length == 0) return;
+
+		if (held.length == 1) {
+			final row = trackOf(held[0]);
+			if (row < 0) return;
+
+			session.does(new MoveClip(row, held[0], held[0].at, held[0].transpose + by));
+			invalidate();
+			return;
+		}
+
+		final group = new mdd.song.edit.Together((by > 0 ? "raise " : "lower ")
+			+ counted(held.length));
+
+		for (clip in held) {
+			final row = trackOf(clip);
+			if (row < 0) continue;
+
+			group.also(new MoveClip(row, clip, clip.at, clip.transpose + by));
+		}
+
+		session.does(group);
+		invalidate();
 	}
 
 	override function hovered(on:Bool):Void {
@@ -819,9 +1196,9 @@ final class Playlist extends Widget {
 				paint.outline(at, row + 2, wide, deep, colour, metrics.whole(1),
 					quiet ? 0.3 : 0.55, metrics.radiusSmall);
 
-				if (clip == chosen) {
-					paint.outline(at, row + 2, wide, deep, theme.ink, metrics.whole(1), 1,
-						metrics.radiusSmall);
+				if (picked.holds(clip)) {
+					paint.outline(at, row + 2, wide, deep, theme.ink, metrics.whole(1),
+						clip == chosen ? 1 : 0.65, metrics.radiusSmall);
 				}
 
 				final said = pattern == null ? "?" : pattern.name;
@@ -871,9 +1248,9 @@ final class Playlist extends Widget {
 		paint.outline(at, row + 2, wide, tall - 5, colour, metrics.whole(1),
 			clip == chosen ? 1 : 0.6, metrics.radiusSmall);
 
-		if (clip == chosen) {
-			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1), 1,
-				metrics.radiusSmall);
+		if (picked.holds(clip)) {
+			paint.outline(at, row + 2, wide, tall - 5, theme.ink, metrics.whole(1),
+				clip == chosen ? 1 : 0.65, metrics.radiusSmall);
 		}
 
 		if (wide < metrics.whole(24) || held == null) return;

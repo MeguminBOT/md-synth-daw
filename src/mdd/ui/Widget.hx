@@ -139,6 +139,10 @@ class Widget {
 		return false;
 	}
 
+	public function edited(what:Int):Bool {
+		return false;
+	}
+
 	public function tick(seconds:Float):Void {}
 
 	public function translate(key:String):String {

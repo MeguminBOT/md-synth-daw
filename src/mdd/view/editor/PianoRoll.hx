@@ -23,6 +23,7 @@ import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.view.Parameter;
+import mdd.view.Picked;
 
 @:unreflective
 final class PianoRoll extends Widget {
@@ -48,6 +49,7 @@ final class PianoRoll extends Widget {
 
 	public var painted(default, null):Int = 0;
 	public var chosen(default, null):Null<Note> = null;
+	public final picked:Picked<Note> = new Picked<Note>();
 
 	public var onAudition:Null<(Part, Int) -> Void> = null;
 	public var showLanes:Bool = true;
@@ -58,13 +60,27 @@ final class PianoRoll extends Widget {
 	public final stack:Lanes;
 	public var onAutomate:Null<(Int, Int) -> Void> = null;
 
+	var banding:Bool = false;
+	var bandFromX:Float = 0;
+	var bandFromY:Float = 0;
+	var bandToX:Float = 0;
+	var bandToY:Float = 0;
+
+	final moving:Array<Note> = [];
+	final wereAt:Array<Int> = [];
+	final werePitch:Array<Int> = [];
+	final wereSeat:Array<Int> = [];
+	final wereHeld:Array<Int> = [];
+	final wereLong:Array<Int> = [];
+
 	var dragging:Null<Note> = null;
 	var grabTick:Int = 0;
 	var grabPitch:Int = 0;
 	var grabWasAt:Int = 0;
-	var grabWasPitch:Int = 0;
-	var grabWasHeld:Int = 0;
-	var grabWasLong:Int = 0;
+	var grabWasSeat:Int = 0;
+	var leastAt:Int = 0;
+	var leastSeat:Int = 0;
+	var mostSeat:Int = 0;
 	var grabFresh:Bool = false;
 	var sizing:Bool = false;
 	var drawn:Int = 0;
@@ -432,6 +448,9 @@ final class PianoRoll extends Widget {
 		settledOn = session.pattern;
 		settledPart = part;
 
+		picked.clear();
+		chosen = null;
+
 		final pattern = session.current();
 		if (pattern == null) return;
 
@@ -451,6 +470,55 @@ final class PianoRoll extends Widget {
 		}
 
 		reveal(first.at, Math.round((low + high) * 0.5));
+	}
+
+	function grabs(lead:Note):Void {
+		moving.resize(0);
+		wereAt.resize(0);
+		werePitch.resize(0);
+		wereSeat.resize(0);
+		wereHeld.resize(0);
+		wereLong.resize(0);
+
+		if (picked.count > 1 && picked.holds(lead)) {
+			for (index in 0...picked.count) moving.push(picked.at(index));
+		} else {
+			moving.push(lead);
+		}
+
+		leastAt = moving[0].at;
+		leastSeat = seatOf(moving[0]);
+		mostSeat = leastSeat;
+
+		for (note in moving) {
+			final seat = seatOf(note);
+
+			wereAt.push(note.at);
+			werePitch.push(note.pitch);
+			wereSeat.push(seat);
+			wereHeld.push(note.instrument);
+			wereLong.push(note.length);
+
+			if (note.at < leastAt) leastAt = note.at;
+			if (seat < leastSeat) leastSeat = seat;
+			if (seat > mostSeat) mostSeat = seat;
+		}
+	}
+
+	function hauled(at:Int, seat:Int):Void {
+		var byTick = at - grabWasAt;
+		var bySeat = seat - grabWasSeat;
+
+		if (leastAt + byTick < 0) byTick = -leastAt;
+		if (leastSeat + bySeat < lowest()) bySeat = lowest() - leastSeat;
+		if (mostSeat + bySeat > highest()) bySeat = highest() - mostSeat;
+
+		for (index in 0...moving.length) {
+			final note = moving[index];
+
+			note.at = wereAt[index] + byTick;
+			seated(note, wereSeat[index] + bySeat);
+		}
 	}
 
 	function settled():Void {
@@ -474,28 +542,133 @@ final class PianoRoll extends Widget {
 			return;
 		}
 
-		if (sizing && held.length != grabWasLong) {
-			final want = held.length;
-
-			held.length = grabWasLong;
-			session.does(new mdd.song.edit.SizeNote(session.pattern, session.part, held,
-				want));
-		} else if (!sizing && (held.at != grabWasAt || held.pitch != grabWasPitch
-				|| held.instrument != grabWasHeld)) {
-			final at = held.at;
-			final pitch = held.pitch;
-			final want = held.instrument;
-
-			held.at = grabWasAt;
-			held.pitch = grabWasPitch;
-			held.instrument = grabWasHeld;
-
-			session.does(new mdd.song.edit.MoveNote(session.pattern, session.part, held, at,
-				pitch, want));
-		}
+		if (sizing) sized();
+		else hauledDone();
 
 		sizing = false;
 		session.changed();
+	}
+
+	function sized():Void {
+		var many = 0;
+		for (index in 0...moving.length) if (moving[index].length != wereLong[index]) many++;
+		if (many == 0) return;
+
+		final wants:Array<Int> = [];
+		for (note in moving) wants.push(note.length);
+
+		for (index in 0...moving.length) moving[index].length = wereLong[index];
+
+		if (moving.length == 1) {
+			session.does(new mdd.song.edit.SizeNote(session.pattern, session.part,
+				moving[0], wants[0]));
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("resize " + counted(moving.length));
+
+		for (index in 0...moving.length) {
+			group.also(new mdd.song.edit.SizeNote(session.pattern, session.part,
+				moving[index], wants[index]));
+		}
+
+		session.does(group);
+	}
+
+	function hauledDone():Void {
+		var many = 0;
+
+		for (index in 0...moving.length) {
+			final note = moving[index];
+			if (note.at != wereAt[index] || note.pitch != werePitch[index]
+				|| note.instrument != wereHeld[index]) many++;
+		}
+
+		if (many == 0) return;
+
+		final wantAt:Array<Int> = [];
+		final wantPitch:Array<Int> = [];
+		final wantHeld:Array<Int> = [];
+
+		for (note in moving) {
+			wantAt.push(note.at);
+			wantPitch.push(note.pitch);
+			wantHeld.push(note.instrument);
+		}
+
+		for (index in 0...moving.length) {
+			final note = moving[index];
+
+			note.at = wereAt[index];
+			note.pitch = werePitch[index];
+			note.instrument = wereHeld[index];
+		}
+
+		if (moving.length == 1) {
+			session.does(new mdd.song.edit.MoveNote(session.pattern, session.part,
+				moving[0], wantAt[0], wantPitch[0], wantHeld[0]));
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("move " + counted(moving.length));
+
+		for (index in 0...moving.length) {
+			group.also(new mdd.song.edit.MoveNote(session.pattern, session.part,
+				moving[index], wantAt[index], wantPitch[index], wantHeld[index]));
+		}
+
+		session.does(group);
+	}
+
+	function bands(event:Input):Void {
+		banding = true;
+		bandFromX = event.x;
+		bandFromY = event.y;
+		bandToX = event.x;
+		bandToY = event.y;
+
+		if (!event.shift() && !event.ctrl()) {
+			picked.clear();
+			chosen = null;
+		}
+
+		invalidate();
+	}
+
+	function banded():Void {
+		banding = false;
+
+		final pattern = session.current();
+		final left = bandFromX < bandToX ? bandFromX : bandToX;
+		final right = bandFromX < bandToX ? bandToX : bandFromX;
+		final top = bandFromY < bandToY ? bandFromY : bandToY;
+		final floor = bandFromY < bandToY ? bandToY : bandFromY;
+
+		if (pattern == null || (right - left < 2 && floor - top < 2)) {
+			invalidate();
+			return;
+		}
+
+		final from = tickAt(left);
+		final to = tickAt(right);
+		final high = pitchAt(top);
+		final low = pitchAt(floor);
+
+		for (note in pattern.lane(session.part).notes) {
+			final seat = seatOf(note);
+
+			if (seat < low || seat > high) continue;
+			if (note.ends() <= from || note.at >= to) continue;
+
+			picked.adds(note);
+		}
+
+		chosen = picked.lead();
+
+		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		session.changed();
+
+		invalidate();
 	}
 
 	public function scrubbed(px:Float):Void {
@@ -517,7 +690,68 @@ final class PianoRoll extends Widget {
 
 	public function choose(note:Null<Note>):Void {
 		chosen = note;
+
+		if (note == null) picked.clear();
+		else picked.only(note);
+
 		invalidate();
+	}
+
+	public function picksAll():Bool {
+		final pattern = session.current();
+		if (pattern == null) return false;
+
+		final lane = pattern.lane(session.part);
+		if (lane.notes.length == 0) return false;
+
+		picked.clear();
+		for (note in lane.notes) picked.adds(note);
+
+		chosen = picked.lead();
+		session.say(counted(picked.count) + " selected");
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	override function edited(what:Int):Bool {
+		switch (what) {
+			case mdd.ui.Edit.ALL:
+				return picksAll();
+
+			case mdd.ui.Edit.COPY:
+				return copies();
+
+			case mdd.ui.Edit.CUT:
+				if (!copies()) return false;
+				erased();
+				return true;
+
+			case mdd.ui.Edit.PASTE:
+				if (session.copiedNotes.length == 0) return false;
+				pasted(session.snapped(playhead < 0 ? 0 : playhead));
+				return true;
+
+			case _:
+		}
+
+		return false;
+	}
+
+	static function counted(many:Int):String {
+		return many + (many == 1 ? " note" : " notes");
+	}
+
+	function alters(lead:Note, shift:Bool):Void {
+		if (shift) {
+			picked.toggles(lead);
+			chosen = picked.holds(lead) ? lead : picked.lead();
+			return;
+		}
+
+		if (!picked.holds(lead)) picked.only(lead);
+		chosen = lead;
 	}
 
 	public function scrollTo(px:Float, py:Float):Void {
@@ -649,7 +883,7 @@ final class PianoRoll extends Widget {
 				final under = noteAt(event.x, event.y);
 
 				if (event.button == Pointer.Right) {
-					if (under != null) chosen = under;
+					if (under != null) alters(under, false);
 					popped(under, event.x, event.y);
 					invalidate();
 					return true;
@@ -657,7 +891,9 @@ final class PianoRoll extends Widget {
 
 				if (under != null) {
 					if (session.tool == Session.ERASE) {
-						if (chosen == under) chosen = null;
+						picked.drops(under);
+						if (chosen == under) chosen = picked.lead();
+
 						session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part, under));
 						invalidate();
 						return true;
@@ -668,23 +904,28 @@ final class PianoRoll extends Widget {
 						return true;
 					}
 
-					chosen = under;
+					final adding = event.shift() || event.ctrl();
+					alters(under, adding);
+
+					if (adding) {
+						invalidate();
+						return true;
+					}
+
 					dragging = under;
 					sizing = onEdge(under, event.x);
 					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 					grabPitch = sizing ? 0 : pitchAt(event.y) - seatOf(under);
 					grabWasAt = under.at;
-					grabWasPitch = under.pitch;
-					grabWasHeld = under.instrument;
-					grabWasLong = under.length;
+					grabWasSeat = seatOf(under);
 					grabFresh = false;
+					grabs(under);
 					invalidate();
 					return true;
 				}
 
-				if (session.tool != Session.DRAW) {
-					chosen = null;
-					invalidate();
+				if (session.tool != Session.DRAW || event.shift() || event.ctrl()) {
+					bands(event);
 					return true;
 				}
 
@@ -698,16 +939,16 @@ final class PianoRoll extends Widget {
 				seated(note, pitch);
 				session.does(new AddNote(session.pattern, session.part, note));
 
+				picked.only(note);
 				chosen = note;
 				dragging = note;
 				sizing = true;
 				grabTick = 0;
 				grabPitch = 0;
 				grabWasAt = note.at;
-				grabWasPitch = note.pitch;
-				grabWasHeld = note.instrument;
-				grabWasLong = note.length;
+				grabWasSeat = seatOf(note);
 				grabFresh = true;
+				grabs(note);
 
 				if (onAudition != null) onAudition(session.part, pitch);
 
@@ -735,6 +976,13 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
+				if (banding) {
+					bandToX = event.x;
+					bandToY = event.y;
+					invalidate();
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				if (sizing) {
@@ -743,13 +991,8 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				final at = session.snapped(tickAt(event.x) - grabTick);
-				final pitch = pitchAt(event.y) - grabPitch;
-				final floor = lowest();
-				final ceiling = highest();
-
-				dragging.at = at < 0 ? 0 : at;
-				seated(dragging, pitch < floor ? floor : (pitch > ceiling ? ceiling : pitch));
+				hauled(session.snapped(tickAt(event.x) - grabTick),
+					pitchAt(event.y) - grabPitch);
 
 				invalidate();
 				return true;
@@ -775,6 +1018,11 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
+				if (banding) {
+					banded();
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				settled();
@@ -796,31 +1044,27 @@ final class PianoRoll extends Widget {
 		menu = new Menu();
 
 		if (under != null) {
-			fires(menu.offer(new Choice(translate(Locale.ROLL_COPY), "Ctrl+C")), function():Void copy(under));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_CUT), "Ctrl+X")), function():Void {
-				copy(under);
-				session.does(new RemoveNote(session.pattern, session.part, under));
-				chosen = null;
+			fires(menu.offer(new Choice(translate(Locale.ROLL_COPY),
+				chordFor(mdd.app.Bindings.COPY))), function():Void copies());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_CUT),
+				chordFor(mdd.app.Bindings.CUT))), function():Void {
+				copies();
+				erased();
 			});
 			fires(menu.offer(new Choice(translate(Locale.ROLL_DELETE), "Del")), function():Void {
-				session.does(new RemoveNote(session.pattern, session.part, under));
-				chosen = null;
+				erased();
 			});
 
 			menu.divide();
 
-			fires(menu.offer(new Choice(translate(Locale.ROLL_LOUDER))), function():Void {
-				under.velocity = under.velocity > 111 ? 127 : under.velocity + 16;
-				session.say("velocity " + under.velocity);
-				session.changed();
-			});
-			fires(menu.offer(new Choice(translate(Locale.ROLL_QUIETER))), function():Void {
-				under.velocity = under.velocity < 16 ? 0 : under.velocity - 16;
-				session.say("velocity " + under.velocity);
-				session.changed();
-			});
-			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_UP))), function():Void shifted(under, 12));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_DOWN))), function():Void shifted(under, -12));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_LOUDER))), function():Void
+				leant(16));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_QUIETER))), function():Void
+				leant(-16));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_UP))), function():Void
+				nudges(0, 12));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_DOWN))), function():Void
+				nudges(0, -12));
 
 			menu.divide();
 
@@ -837,7 +1081,8 @@ final class PianoRoll extends Widget {
 				});
 			}
 		} else {
-			final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE), "Ctrl+V"));
+			final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE),
+				chordFor(mdd.app.Bindings.PASTE)));
 			paste.enabled = session.copiedNotes.length > 0;
 			if (!paste.enabled) paste.reason = translate(Locale.ROLL_NOTHING_COPIED);
 
@@ -886,34 +1131,76 @@ final class PianoRoll extends Widget {
 		return null;
 	}
 
-	function copy(note:Note):Void {
-		session.copiedNotes.resize(0);
-		session.copiedNotes.push(note.copy());
+	public var bindings:Null<mdd.app.Bindings> = null;
 
-		session.say("copied a note");
+	function chordFor(action:Int):String {
+		return bindings == null ? "" : bindings.chordOf(action);
+	}
+
+	function copies():Bool {
+		final held = picked.taken();
+		if (held.length == 0) return false;
+
+		var least = held[0].at;
+		for (note in held) if (note.at < least) least = note.at;
+
+		session.copiedNotes.resize(0);
+
+		for (note in held) {
+			final made = note.copy();
+			made.at -= least;
+
+			session.copiedNotes.push(made);
+		}
+
+		session.say("copied " + counted(held.length));
 		session.changed();
+
+		return true;
 	}
 
 	function pasted(at:Int):Void {
 		if (session.copiedNotes.length == 0) return;
 
-		final held = session.copiedNotes[0].copy();
-		held.at = at < 0 ? 0 : at;
+		final where = at < 0 ? 0 : at;
+		final made:Array<Note> = [];
 
-		session.does(new AddNote(session.pattern, session.part, held));
-		chosen = held;
+		for (one in session.copiedNotes) {
+			final held = one.copy();
+			held.at = where + held.at;
 
-		session.say("pasted a note");
+			made.push(held);
+		}
+
+		if (made.length == 1) {
+			session.does(new AddNote(session.pattern, session.part, made[0]));
+		} else {
+			final group = new mdd.song.edit.Together("paste " + counted(made.length));
+			for (note in made) group.also(new AddNote(session.pattern, session.part, note));
+
+			session.does(group);
+		}
+
+		picked.clear();
+		for (note in made) picked.adds(note);
+		chosen = picked.lead();
+
+		session.say("pasted " + counted(made.length));
 		invalidate();
 	}
 
-	function shifted(note:Note, by:Int):Void {
-		final floor = lowest();
-		final ceiling = highest();
-		final want = seatOf(note) + by;
+	function leant(by:Int):Void {
+		final held = picked.taken();
+		if (held.length == 0) return;
 
-		seated(note, want < floor ? floor : (want > ceiling ? ceiling : want));
-		session.say("moved to " + seatName(seatOf(note)));
+		for (note in held) {
+			final want = note.velocity + by;
+			note.velocity = want < 1 ? 1 : (want > 127 ? 127 : want);
+		}
+
+		session.say(held.length == 1 ? "velocity " + held[0].velocity
+			: counted(held.length) + " leaned " + (by > 0 ? "louder" : "quieter"));
+
 		session.changed();
 		invalidate();
 	}
@@ -951,39 +1238,93 @@ final class PianoRoll extends Widget {
 	}
 
 	function steered(event:Input):Bool {
-		if (chosen == null) return false;
+		if (event.code == Key.Escape && picked.count > 0) {
+			picked.clear();
+			chosen = null;
+			invalidate();
+			return true;
+		}
+
+		if (picked.count == 0) return false;
 
 		switch (event.code) {
 			case Key.Delete, Key.Backspace:
-				session.does(new RemoveNote(session.pattern, session.part, chosen));
-				chosen = null;
-				invalidate();
+				erased();
 				return true;
 
 			case Key.Up:
-				if (seatOf(chosen) < highest()) seated(chosen, seatOf(chosen) + 1);
-				invalidate();
+				nudges(0, 1);
 				return true;
 
 			case Key.Down:
-				if (seatOf(chosen) > lowest()) seated(chosen, seatOf(chosen) - 1);
-				invalidate();
+				nudges(0, -1);
 				return true;
 
 			case Key.Left:
-				chosen.at = chosen.at > session.snap ? chosen.at - session.snap : 0;
-				invalidate();
+				nudges(-session.snap, 0);
 				return true;
 
 			case Key.Right:
-				chosen.at += session.snap;
-				invalidate();
+				nudges(session.snap, 0);
 				return true;
 
 			case _:
 		}
 
 		return false;
+	}
+
+	function erased():Void {
+		final held = picked.taken();
+		if (held.length == 0) return;
+
+		if (held.length == 1) {
+			session.does(new RemoveNote(session.pattern, session.part, held[0]));
+		} else {
+			final group = new mdd.song.edit.Together("remove " + counted(held.length));
+			for (note in held) {
+				group.also(new RemoveNote(session.pattern, session.part, note));
+			}
+
+			session.does(group);
+		}
+
+		picked.clear();
+		chosen = null;
+		invalidate();
+	}
+
+	function nudges(byTick:Int, bySeat:Int):Void {
+		final held = picked.taken();
+		if (held.length == 0) return;
+
+		var tick = byTick;
+		var seat = bySeat;
+
+		var least = held[0].at;
+		var low = seatOf(held[0]);
+		var high = low;
+
+		for (note in held) {
+			final row = seatOf(note);
+
+			if (note.at < least) least = note.at;
+			if (row < low) low = row;
+			if (row > high) high = row;
+		}
+
+		if (least + tick < 0) tick = -least;
+		if (low + seat < lowest()) seat = lowest() - low;
+		if (high + seat > highest()) seat = highest() - high;
+
+		if (tick == 0 && seat == 0) return;
+
+		for (note in held) {
+			if (tick != 0) note.at += tick;
+			if (seat != 0) seated(note, seatOf(note) + seat);
+		}
+
+		invalidate();
 	}
 
 	override function paint(paint:Paint):Void {
@@ -1019,6 +1360,8 @@ final class PianoRoll extends Widget {
 		if (session.ghosts) notes(paint, theme, metrics, pattern, true);
 		notes(paint, theme, metrics, pattern, false);
 
+		if (banding) band(paint, theme, metrics);
+
 		if (playhead >= 0) {
 			final at = atTick(playhead);
 			if (at >= left && at < x + width) {
@@ -1034,6 +1377,18 @@ final class PianoRoll extends Widget {
 		reins(paint, theme, metrics, left, top);
 
 		super.paint(paint);
+	}
+
+	function band(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		final left = bandFromX < bandToX ? bandFromX : bandToX;
+		final top = bandFromY < bandToY ? bandFromY : bandToY;
+		final wide = bandToX > bandFromX ? bandToX - bandFromX : bandFromX - bandToX;
+		final tall = bandToY > bandFromY ? bandToY - bandFromY : bandFromY - bandToY;
+
+		if (wide < 1 || tall < 1) return;
+
+		paint.rect(left, top, wide, tall, theme.ink, 0.1);
+		paint.outline(left, top, wide, tall, theme.ink, metrics.whole(1), 0.6);
 	}
 
 	var reining:Int = 0;
@@ -1179,10 +1534,11 @@ final class PianoRoll extends Widget {
 			final at = atTick(note.at);
 			if (at < left - stalk || at > x + width) continue;
 
+			final on = picked.holds(note);
 			final reach = room * note.velocity / 127.0;
-			final colour = note == chosen ? theme.ink : theme.part(session.part.index());
+			final colour = on ? theme.ink : theme.part(session.part.index());
 
-			paint.rect(at, floor - reach, stalk, reach, colour, note == chosen ? 1 : 0.8);
+			paint.rect(at, floor - reach, stalk, reach, colour, on ? 1 : 0.8);
 		}
 
 		paint.popClip();
@@ -1209,11 +1565,26 @@ final class PianoRoll extends Widget {
 		if (want < least) want = least;
 		if (want == note.length) return;
 
+		final by = want - note.length;
+
 		note.length = want;
 		drawn = want;
 
 		final pattern = session.current();
 		if (pattern != null) pattern.lane(session.part).grow(want);
+
+		if (moving.length < 2 || !picked.holds(note)) return;
+
+		for (index in 0...moving.length) {
+			final other = moving[index];
+			if (other == note) continue;
+
+			var held = other.length + by;
+			if (held < least) held = least;
+
+			other.length = held;
+			if (pattern != null) pattern.lane(session.part).grow(held);
+		}
 	}
 
 	function sliced(note:Note, at:Int):Void {
@@ -1274,7 +1645,20 @@ final class PianoRoll extends Widget {
 		final want = Math.round(part * 127);
 		if (want == stalking.velocity) return;
 
-		stalking.velocity = want < 1 ? 1 : want;
+		final by = want - stalking.velocity;
+
+		if (picked.count > 1 && picked.holds(stalking)) {
+			for (index in 0...picked.count) {
+				final note = picked.at(index);
+				final held = note.velocity + by;
+
+				note.velocity = held < 1 ? 1 : (held > 127 ? 127 : held);
+			}
+		} else {
+			stalking.velocity = want < 1 ? 1 : want;
+			picked.only(stalking);
+		}
+
 		chosen = stalking;
 		session.changed();
 		invalidate();
@@ -1392,8 +1776,9 @@ final class PianoRoll extends Widget {
 
 			if (unsound) hatch(paint, theme, metrics, at, row, wide, tall);
 
-			if (note == chosen) {
-				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1), 0.9, radius);
+			if (picked.holds(note)) {
+				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1),
+					note == chosen ? 1 : 0.65, radius);
 			}
 		}
 	}

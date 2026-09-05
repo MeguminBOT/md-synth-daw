@@ -20,6 +20,7 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Number;
 import mdd.view.Parameter;
+import mdd.view.Picked;
 
 @:unreflective
 final class Lanes extends Widget {
@@ -56,6 +57,7 @@ final class Lanes extends Widget {
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Point> = null;
 	public var chosenAt(default, null):Int = -1;
+	public final picked:Picked<Point> = new Picked<Point>();
 
 	public static inline final STACK = -2;
 
@@ -71,6 +73,20 @@ final class Lanes extends Widget {
 	var hoverFoot:Bool = false;
 	var dragging:Null<Point> = null;
 	var draggingAt:Int = -1;
+
+	var banding:Bool = false;
+	var bandRow:Int = -1;
+	var bandFromX:Float = 0;
+	var bandFromY:Float = 0;
+	var bandToX:Float = 0;
+	var bandToY:Float = 0;
+
+	final moving:Array<Point> = [];
+	final movingAt:Array<Int> = [];
+	final movingValue:Array<Int> = [];
+	var leastAt:Int = 0;
+	var leastValue:Int = 0;
+	var mostValue:Int = 0;
 	var bending:Int = -1;
 	var bentFrom:Float = 0;
 	var bentWas:Int = 0;
@@ -403,8 +419,7 @@ final class Lanes extends Widget {
 		targets.splice(row, 1);
 		if (row < heights.length) heights.splice(row, 1);
 
-		chosen = null;
-		chosenAt = -1;
+		forgets();
 
 		relayout();
 	}
@@ -415,8 +430,7 @@ final class Lanes extends Widget {
 		targets[row] = (target << 8) | slot;
 		recalls(row);
 
-		chosen = null;
-		chosenAt = -1;
+		forgets();
 
 		relayout();
 	}
@@ -443,8 +457,7 @@ final class Lanes extends Widget {
 		targets.resize(0);
 		heights.resize(0);
 
-		chosen = null;
-		chosenAt = -1;
+		forgets();
 
 		if (pattern == null) {
 			if (again) relayout();
@@ -489,8 +502,139 @@ final class Lanes extends Widget {
 	public function picks(point:Point, row:Int):Void {
 		chosen = point;
 		chosenAt = row;
+		picked.only(point);
 
 		relayout();
+	}
+
+	static function counted(many:Int):String {
+		return many + (many == 1 ? " point" : " points");
+	}
+
+	function alters(point:Point, row:Int, shift:Bool):Void {
+		if (row != chosenAt) picked.clear();
+
+		if (shift) {
+			picked.toggles(point);
+
+			chosen = picked.holds(point) ? point : picked.lead();
+			chosenAt = picked.count == 0 ? -1 : row;
+
+			return;
+		}
+
+		if (!picked.holds(point)) picked.only(point);
+
+		chosen = point;
+		chosenAt = row;
+	}
+
+	function forgets():Void {
+		picked.clear();
+
+		chosen = null;
+		chosenAt = -1;
+	}
+
+	public function picksAll():Bool {
+		final row = chosenAt < 0 ? 0 : chosenAt;
+		final line = lineOf(row);
+
+		if (line == null || line.points.length == 0) return false;
+
+		picked.clear();
+		for (point in line.points) picked.adds(point);
+
+		chosen = picked.lead();
+		chosenAt = row;
+
+		session.say(counted(picked.count) + " selected");
+		session.changed();
+
+		relayout();
+		return true;
+	}
+
+	override function edited(what:Int):Bool {
+		switch (what) {
+			case mdd.ui.Edit.ALL:
+				return picksAll();
+
+			case mdd.ui.Edit.COPY:
+				return copies();
+
+			case mdd.ui.Edit.CUT:
+				if (!copies()) return false;
+				return erased();
+
+			case mdd.ui.Edit.PASTE:
+				if (session.copiedPoints.length == 0) return false;
+				return pasted(chosenAt < 0 ? 0 : chosenAt);
+
+			case _:
+		}
+
+		return false;
+	}
+
+	function copies():Bool {
+		final held = picked.taken();
+		if (held.length == 0) return false;
+
+		var least = held[0].at;
+		for (point in held) if (point.at < least) least = point.at;
+
+		session.copiedPoints.resize(0);
+
+		for (point in held) {
+			final made = point.copy();
+			made.at -= least;
+
+			session.copiedPoints.push(made);
+		}
+
+		session.say("copied " + counted(held.length));
+		session.changed();
+
+		return true;
+	}
+
+	function pasted(row:Int):Bool {
+		final copied = session.copiedPoints;
+		final line = lineOf(row);
+
+		if (copied.length == 0) return false;
+
+		var where = session.snapped(playhead < 0 ? 0 : playhead);
+		if (where < 0) where = 0;
+
+		final group = new mdd.song.edit.Together("paste " + counted(copied.length));
+		final made:Array<Point> = [];
+
+		for (one in copied) {
+			final point = one.copy();
+			point.at = where + point.at;
+
+			if (line != null && line.marks(point.at)) continue;
+
+			made.push(point);
+			group.also(new AddPoint(session.pattern, drivenPart(), targeted(row),
+				slotted(row), point, driven()));
+		}
+
+		if (made.length == 0) return false;
+		session.does(group);
+
+		picked.clear();
+		for (point in made) picked.adds(point);
+
+		chosen = picked.lead();
+		chosenAt = row;
+
+		session.say("pasted " + counted(made.length));
+		relayout();
+
+		return true;
 	}
 
 	public function edge():Float {
@@ -693,6 +837,8 @@ final class Lanes extends Widget {
 				return moved(event);
 
 			case Kind.PointerUp:
+				if (banding) banded();
+
 				dragging = null;
 				bending = -1;
 				sizing = -1;
@@ -700,6 +846,12 @@ final class Lanes extends Widget {
 				return true;
 
 			case Kind.KeyDown:
+				if (event.code == Key.Escape && picked.count > 0) {
+					forgets();
+					relayout();
+					return true;
+				}
+
 				if (event.code != Key.Delete && event.code != Key.Backspace) return false;
 				return erased();
 
@@ -751,24 +903,35 @@ final class Lanes extends Widget {
 		if (event.button == Pointer.Right) {
 			if (point == null || onShape == null) return true;
 
-			chosen = point;
-			chosenAt = row;
+			alters(point, row, false);
 			onShape(this, row, point, event.x, event.y);
 
 			return true;
 		}
 
 		if (point != null) {
-			chosen = point;
-			chosenAt = row;
+			final adding = event.shift();
+			alters(point, row, adding);
+
+			if (adding) {
+				relayout();
+				return true;
+			}
+
 			dragging = point;
 			draggingAt = row;
 			wasAt = point.at;
 			wasValue = point.value;
 
+			grabs(point, row);
 			anchors(event, point);
 
 			relayout();
+			return true;
+		}
+
+		if (session.tool == Session.SELECT || event.shift()) {
+			bands(event, row);
 			return true;
 		}
 
@@ -781,8 +944,7 @@ final class Lanes extends Widget {
 			bending = row;
 			bentFrom = event.y;
 			bentWas = line.points[bend].tension;
-			chosen = line.points[bend];
-			chosenAt = row;
+			alters(line.points[bend], row, false);
 
 			invalidate();
 			return true;
@@ -790,6 +952,77 @@ final class Lanes extends Widget {
 
 		added(event, row, event.x, event.y);
 		return true;
+	}
+
+	function bands(event:Input, row:Int):Void {
+		banding = true;
+		bandRow = row;
+		bandFromX = event.x;
+		bandFromY = event.y;
+		bandToX = event.x;
+		bandToY = event.y;
+
+		if (!event.shift()) forgets();
+
+		invalidate();
+	}
+
+	function banded():Void {
+		banding = false;
+
+		final line = lineOf(bandRow);
+		final left = bandFromX < bandToX ? bandFromX : bandToX;
+		final right = bandFromX < bandToX ? bandToX : bandFromX;
+		final top = bandFromY < bandToY ? bandFromY : bandToY;
+		final floor = bandFromY < bandToY ? bandToY : bandFromY;
+
+		if (line == null || (right - left < 2 && floor - top < 2)) {
+			invalidate();
+			return;
+		}
+
+		if (bandRow != chosenAt) picked.clear();
+
+		for (point in line.points) {
+			final at = atTick(point.at);
+			final up = atValue(bandRow, point.value);
+
+			if (at < left || at > right || up < top || up > floor) continue;
+			picked.adds(point);
+		}
+
+		chosen = picked.lead();
+		chosenAt = picked.count == 0 ? -1 : bandRow;
+
+		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		session.changed();
+
+		relayout();
+	}
+
+	function grabs(lead:Point, row:Int):Void {
+		moving.resize(0);
+		movingAt.resize(0);
+		movingValue.resize(0);
+
+		if (picked.count > 1 && picked.holds(lead) && row == chosenAt) {
+			for (index in 0...picked.count) moving.push(picked.at(index));
+		} else {
+			moving.push(lead);
+		}
+
+		leastAt = moving[0].at;
+		leastValue = moving[0].value;
+		mostValue = leastValue;
+
+		for (point in moving) {
+			movingAt.push(point.at);
+			movingValue.push(point.value);
+
+			if (point.at < leastAt) leastAt = point.at;
+			if (point.value < leastValue) leastValue = point.value;
+			if (point.value > mostValue) mostValue = point.value;
+		}
 	}
 
 	function added(event:Input, row:Int, px:Float, py:Float):Void {
@@ -809,6 +1042,8 @@ final class Lanes extends Widget {
 		session.does(new AddPoint(session.pattern, drivenPart(), targeted(row),
 			slotted(row), point, driven()));
 
+		picked.only(point);
+
 		chosen = point;
 		chosenAt = row;
 
@@ -817,10 +1052,38 @@ final class Lanes extends Widget {
 		wasAt = point.at;
 		wasValue = point.value;
 
+		grabs(point, row);
+
 		session.say(held.titled(slotted(row)) + "  " + held.said(point.value));
 
 		anchors(event, point);
 		relayout();
+	}
+
+	function hauled(byTick:Int, byValue:Int, held:Parameter):Void {
+		var tick = byTick;
+		var value = byValue;
+
+		if (leastAt + tick < 0) tick = -leastAt;
+		if (leastValue + value < held.low) value = held.low - leastValue;
+		if (mostValue + value > held.high) value = held.high - mostValue;
+
+		for (index in 0...moving.length) {
+			moving[index].at = movingAt[index];
+			moving[index].value = movingValue[index];
+		}
+
+		if (tick == 0 && value == 0) return;
+
+		final group = new mdd.song.edit.Together("move " + counted(moving.length));
+
+		for (index in 0...moving.length) {
+			group.also(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
+				slotted(draggingAt), moving[index], movingAt[index] + tick,
+				held.holds(movingValue[index] + value), driven()));
+		}
+
+		session.does(group);
 	}
 
 	function anchors(event:Input, point:Point):Void {
@@ -832,13 +1095,26 @@ final class Lanes extends Widget {
 	}
 
 	function erased():Bool {
-		if (chosen == null || chosenAt < 0) return false;
+		if (chosenAt < 0 || picked.count == 0) return false;
 
-		session.does(new RemovePoint(session.pattern, drivenPart(), targeted(chosenAt),
-			slotted(chosenAt), chosen, driven()));
+		final held = picked.taken();
+		final row = chosenAt;
 
-		chosen = null;
-		chosenAt = -1;
+		if (held.length == 1) {
+			session.does(new RemovePoint(session.pattern, drivenPart(), targeted(row),
+				slotted(row), held[0], driven()));
+		} else {
+			final group = new mdd.song.edit.Together("remove " + counted(held.length));
+
+			for (point in held) {
+				group.also(new RemovePoint(session.pattern, drivenPart(), targeted(row),
+					slotted(row), point, driven()));
+			}
+
+			session.does(group);
+		}
+
+		forgets();
 
 		relayout();
 		return true;
@@ -847,6 +1123,13 @@ final class Lanes extends Widget {
 	function moved(event:Input):Bool {
 		if (sizing != -1) {
 			sized(event.y);
+			return true;
+		}
+
+		if (banding) {
+			bandToX = event.x;
+			bandToY = event.y;
+			invalidate();
 			return true;
 		}
 
@@ -878,11 +1161,16 @@ final class Lanes extends Widget {
 
 			if (tick == dragging.at && value == dragging.value) return true;
 
-			dragging.at = wasAt;
-			dragging.value = wasValue;
+			if (moving.length > 1) {
+				hauled(tick - wasAt, value - wasValue, held);
+			} else {
+				dragging.at = wasAt;
+				dragging.value = wasValue;
 
-			session.does(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
-				slotted(draggingAt), dragging, tick, value, driven()));
+				session.does(new MovePoint(session.pattern, drivenPart(),
+					targeted(draggingAt), slotted(draggingAt), dragging, tick, value,
+					driven()));
+			}
 
 			session.say(held.titled(slotted(draggingAt)) + "  " + held.said(value));
 			invalidate();
@@ -969,6 +1257,8 @@ final class Lanes extends Widget {
 		paint.pushClip(x, y, width, height);
 
 		for (row in 0...rows()) drawn(paint, theme, metrics, row);
+
+		if (banding) band(paint, theme, metrics);
 
 		if (left > 0) {
 			final hair = metrics.whole(1);
@@ -1367,12 +1657,24 @@ final class Lanes extends Widget {
 			if (at < x + left - knob || at > x + width + knob) continue;
 
 			final level = atValue(row, point.value);
-			final picked = point == chosen && chosenAt == row;
+			final on = chosenAt == row && picked.holds(point);
 
-			paint.circle(at, level, knob, picked ? theme.ink : colour);
+			paint.circle(at, level, knob, on ? theme.ink : colour);
 
-			if (picked) paint.ring(at, level, knob + metrics.whole(2), metrics.whole(1),
-				theme.accent);
+			if (on) paint.ring(at, level, knob + metrics.whole(2), metrics.whole(1),
+				theme.accent, point == chosen ? 1 : 0.6);
 		}
+	}
+
+	function band(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		final left = bandFromX < bandToX ? bandFromX : bandToX;
+		final top = bandFromY < bandToY ? bandFromY : bandToY;
+		final wide = bandToX > bandFromX ? bandToX - bandFromX : bandFromX - bandToX;
+		final tall = bandToY > bandFromY ? bandToY - bandFromY : bandFromY - bandToY;
+
+		if (wide < 1 || tall < 1) return;
+
+		paint.rect(left, top, wide, tall, theme.ink, 0.1);
+		paint.outline(left, top, wide, tall, theme.ink, metrics.whole(1), 0.6);
 	}
 }
