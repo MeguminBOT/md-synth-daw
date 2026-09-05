@@ -1725,12 +1725,12 @@ class SpineCheck {
 		tracker.at(4, Part.Fm3.index());
 		tree.key(true, mdd.ui.Key.X, mdd.ui.Mod.None);
 
-		final over = tracker.noteAt(4, Part.Fm3.index());
+		final stacked = tracker.noteAt(4, Part.Fm3.index());
 
-		says("and a cell holds one note", third.notes.length == 2 && over != null
-			&& over.pitch == 62,
+		says("and a cell holds one note", third.notes.length == 2 && stacked != null
+			&& stacked.pitch == 62,
 			"typing into a row that already sounds replaced it with "
-			+ Tracker.spelt(over.pitch) + " rather than stacking on it");
+			+ Tracker.spelt(stacked.pitch) + " rather than stacking on it");
 
 		tracker.at(4, Part.Fm3.index());
 		tree.key(true, mdd.ui.Key.Delete, mdd.ui.Mod.None);

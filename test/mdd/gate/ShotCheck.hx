@@ -48,6 +48,7 @@ class ShotCheck {
 		var icons = false;
 		var point = false;
 		var typing = false;
+		var traced = false;
 
 		var at = 0;
 
@@ -74,6 +75,7 @@ class ShotCheck {
 				case "--icons": icons = true;
 				case "--point": point = true;
 				case "--typing": typing = true;
+				case "--traced": traced = true;
 				case _:
 			}
 
@@ -292,6 +294,17 @@ class ShotCheck {
 			for (step in 0...12) {
 				tree.advance(0.05);
 				tree.frame(paint);
+			}
+		}
+
+		if (traced && centreTab == Centre.SCOPE) {
+			for (index in 0...6) {
+				for (step in 0...mdd.view.monitor.Scope.SPAN) {
+					centre.scope.feed(index, Math.sin(step * (index + 1) * 0.05)
+						* (0.2 + index * 0.1));
+				}
+
+				centre.scope.sang(index, 48 + index * 5);
 			}
 		}
 
