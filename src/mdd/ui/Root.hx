@@ -617,6 +617,19 @@ final class Root {
 		return popups.length > 0 && returnFocus != null ? returnFocus : focus;
 	}
 
+	public function edits(what:Int):Bool {
+		if (typed()) return false;
+
+		var at = acting();
+
+		while (at != null) {
+			if (at.enabled && at.edited(what)) return true;
+			at = at.parent;
+		}
+
+		return false;
+	}
+
 	public function said(text:String, mods:Mod):Bool {
 		if (focus == null) return false;
 

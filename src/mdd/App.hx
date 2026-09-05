@@ -845,14 +845,7 @@ class App {
 	}
 
 	function edited(what:Int):Bool {
-		var at = stage.root.acting();
-
-		while (at != null) {
-			if (at.enabled && at.edited(what)) return true;
-			at = at.parent;
-		}
-
-		return false;
+		return stage.root.edits(what);
 	}
 
 	function nudged(way:Int):Void {

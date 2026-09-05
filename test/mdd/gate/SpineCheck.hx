@@ -1055,9 +1055,30 @@ class SpineCheck {
 		tree.frame(paint);
 		Sdl.renderPresent(renderer);
 
+		tree.focusOn(roll);
+
 		says("everything in a lane can be selected at once",
-			roll.edited(mdd.ui.Edit.ALL) && roll.picked.count == 4,
+			tree.edits(mdd.ui.Edit.ALL) && roll.picked.count == 4,
 			roll.picked.count + " of " + lane.notes.length + " notes selected by one chord");
+
+		final field = new mdd.ui.control.Field("120");
+
+		roll.add(field);
+		tree.focusOn(field);
+
+		roll.choose(null);
+
+		final blocked = tree.edits(mdd.ui.Edit.ALL);
+
+		tree.focusOn(roll);
+		roll.remove(field);
+
+		says("and a chord that would edit leaves a field alone",
+			!blocked && roll.picked.count == 0,
+			"select everything reached " + roll.picked.count + " notes while a field was"
+			+ " being typed into");
+
+		tree.edits(mdd.ui.Edit.ALL);
 
 		session.uses(mdd.app.Session.SELECT);
 
