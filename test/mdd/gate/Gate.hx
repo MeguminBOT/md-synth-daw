@@ -67,6 +67,7 @@ class Gate {
 			case "tier": TierCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "fault": FaultCheck.run(args);
+			case "lift": LiftCheck.run(args);
 			case "drift": DriftCheck.run(args);
 			case _:
 				Sys.println("mdd gate: no program called '" + name + "'");
