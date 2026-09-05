@@ -318,7 +318,15 @@ extern "C" int mdd_encode_opus(const float *samples, int frames, int channels, i
 		const int wrote = opus_encode_float(encoder, block, span, coded, 4096);
 		at += take;
 
-		if (wrote < 0) break;
+		if (wrote < 0) {
+			free(block);
+			free(coded);
+
+			ogg_stream_clear(&stream);
+			opus_encoder_destroy(encoder);
+
+			return -100 + wrote;
+		}
 
 		granule += span;
 
