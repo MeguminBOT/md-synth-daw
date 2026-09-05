@@ -397,6 +397,10 @@ final class PianoRoll extends Widget {
 		return height - ruler() - lanes();
 	}
 
+	public inline function freely(tick:Int, free:Bool):Int {
+		return free ? tick : session.snapped(tick);
+	}
+
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - gutter() + offsetX) / perTick);
 	}
@@ -929,7 +933,7 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				final at = session.snapped(tickAt(event.x));
+				final at = freely(tickAt(event.x), event.alt());
 				final pitch = pitchAt(event.y);
 				if (pitch < lowest() || pitch > highest()) return true;
 
@@ -986,12 +990,12 @@ final class PianoRoll extends Widget {
 				if (dragging == null) return false;
 
 				if (sizing) {
-					resized(dragging, tickAt(event.x));
+					resized(dragging, tickAt(event.x), event.alt());
 					invalidate();
 					return true;
 				}
 
-				hauled(session.snapped(tickAt(event.x) - grabTick),
+				hauled(freely(tickAt(event.x) - grabTick, event.alt()),
 					pitchAt(event.y) - grabPitch);
 
 				invalidate();
@@ -1558,9 +1562,9 @@ final class PianoRoll extends Widget {
 		return px >= right - reach && px <= right + reach;
 	}
 
-	public function resized(note:Note, to:Int):Void {
-		final least = session.snap < 1 ? 1 : session.snap;
-		var want = session.snapped(to) - note.at;
+	public function resized(note:Note, to:Int, free:Bool = false):Void {
+		final least = free || session.snap < 1 ? 1 : session.snap;
+		var want = freely(to, free) - note.at;
 
 		if (want < least) want = least;
 		if (want == note.length) return;

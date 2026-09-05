@@ -1063,8 +1063,49 @@ class SpineCheck {
 		says("and one undo brings every one of them back", lane.notes.length == was,
 			lane.notes.length + " notes back from a single undo");
 
+		freed(tree, session, roll, beat);
 		clipped(session, centre);
 		gathered(tree, session, centre.roll);
+	}
+
+	static function freed(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll, beat:Int):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+
+		lane.notes.resize(0);
+		lane.add(new Note(beat, Std.int(beat / 2), 60, 100));
+
+		roll.choose(null);
+		session.snap = 24;
+		session.uses(mdd.app.Session.DRAW);
+
+		final note = lane.notes[0];
+		final row = roll.atPitch(60) + roll.rowTall * 0.5;
+		final by = roll.perTick * 7;
+
+		banded(tree, roll, roll.atTick(note.at) + 2, row, roll.atTick(note.at) + 2 + by, row,
+			mdd.ui.Mod.None);
+
+		final snapped = note.at;
+
+		session.undo();
+
+		banded(tree, roll, roll.atTick(note.at) + 2, row, roll.atTick(note.at) + 2 + by, row,
+			mdd.ui.Mod.Alt);
+
+		final free = note.at;
+		session.undo();
+
+		says("alt drops the grid while dragging",
+			snapped % session.snap == 0 && free % session.snap != 0
+			&& free != snapped,
+			"a drag of 7 ticks landed on " + snapped + ", a multiple of " + session.snap
+			+ ", and on " + free + " with alt held");
+
+		lane.notes.resize(0);
 	}
 
 	static function clipped(session:mdd.app.Session, centre:Centre):Void {

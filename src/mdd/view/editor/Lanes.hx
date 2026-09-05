@@ -693,6 +693,10 @@ final class Lanes extends Widget {
 		return top;
 	}
 
+	public inline function freely(tick:Int, free:Bool):Int {
+		return free ? tick : session.snapped(tick);
+	}
+
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - left + offsetX) / perTick);
 	}
@@ -1030,7 +1034,7 @@ final class Lanes extends Widget {
 		if (held == null) return;
 		if (holding == null && session.current() == null) return;
 
-		var tick = session.snapped(tickAt(px));
+		var tick = freely(tickAt(px), event.alt());
 		if (tick < 0) tick = 0;
 
 		final line = lineOf(row);
@@ -1151,7 +1155,7 @@ final class Lanes extends Widget {
 
 			var tick = fine
 				? tickAt(atTick(fineAt) + (event.x - fineX) * FINE)
-				: session.snapped(tickAt(event.x));
+				: freely(tickAt(event.x), event.alt());
 
 			if (tick < 0) tick = 0;
 

@@ -123,6 +123,10 @@ final class Playlist extends Widget {
 		return session.song.tracks.length + SPARE;
 	}
 
+	public inline function freely(tick:Int, free:Bool):Int {
+		return free ? tick : session.snapped(tick);
+	}
+
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - names() + offsetX) / perTick);
 	}
@@ -162,9 +166,9 @@ final class Playlist extends Widget {
 		return px >= right - reach && px <= right + reach;
 	}
 
-	public function resized(clip:Clip, to:Int):Void {
-		final least = session.snap < 1 ? 1 : session.snap;
-		var want = session.snapped(to) - clip.at;
+	public function resized(clip:Clip, to:Int, free:Bool = false):Void {
+		final least = free || session.snap < 1 ? 1 : session.snap;
+		var want = freely(to, free) - clip.at;
 
 		if (want < least) want = least;
 		if (want == clip.length) return;
@@ -335,12 +339,12 @@ final class Playlist extends Widget {
 				if (dragging == null) return false;
 
 				if (sizing) {
-					resized(dragging, tickAt(event.x));
+					resized(dragging, tickAt(event.x), event.alt());
 					invalidate();
 					return true;
 				}
 
-				hauled(session.snapped(tickAt(event.x) - grabTick));
+				hauled(freely(tickAt(event.x) - grabTick, event.alt()));
 
 				invalidate();
 				return true;
@@ -438,7 +442,7 @@ final class Playlist extends Widget {
 
 		if (which >= session.song.tracks.length) session.does(new AddTrack(which));
 
-		final at = session.snapped(tickAt(event.x));
+		final at = freely(tickAt(event.x), event.alt());
 		final clip = new Clip(session.pattern, at < 0 ? 0 : at, pattern.length);
 
 		session.does(new AddClip(which, clip));
