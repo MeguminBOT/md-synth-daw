@@ -14,6 +14,24 @@ final class Wav {
 
 	public function new() {}
 
+	public static inline function scale(depth:Int):Float {
+		return depth == 24 ? 8388608.0 : 32768.0;
+	}
+
+	public static inline function floated(value:Int, depth:Int):Float {
+		return value / scale(depth);
+	}
+
+	public static inline function whole(value:Float, depth:Int):Int {
+		final ceiling = scale(depth);
+		final held = Math.round(value * ceiling);
+
+		final most = Std.int(ceiling) - 1;
+		final least = -Std.int(ceiling);
+
+		return held > most ? most : (held < least ? least : held);
+	}
+
 	public static function read(bytes:Bytes):Wav {
 		final wav = new Wav();
 		wav.take(bytes);
@@ -76,7 +94,7 @@ final class Wav {
 
 			if (wide == 2) {
 				final value = bytes.getUInt16(where);
-				samples[i] = (value >= 0x8000 ? value - 0x10000 : value) / 32768.0;
+				samples[i] = floated(value >= 0x8000 ? value - 0x10000 : value, 16);
 				continue;
 			}
 
@@ -147,8 +165,7 @@ final class Wav {
 				continue;
 			}
 
-			final ceiling = depth == 24 ? 8388607.0 : 32767.0;
-			var scaled = value * ceiling;
+			var scaled = value;
 
 			if (dither) {
 				seed = seed * 1103515245 + 12345;
@@ -157,13 +174,10 @@ final class Wav {
 				seed = seed * 1103515245 + 12345;
 				final two = ((seed >>> 16) & 0x7FFF) / 32767.0;
 
-				scaled += one - two;
+				scaled += (one - two) / scale(depth);
 			}
 
-			var held = Math.round(scaled);
-
-			if (held > ceiling) held = Std.int(ceiling);
-			if (held < -ceiling - 1) held = Std.int(-ceiling - 1);
+			final held = whole(scaled, depth);
 
 			if (depth == 24) {
 				out.writeByte(held & 0xFF);

@@ -139,7 +139,7 @@ private class Reader {
 
 	function skip():Void {
 		while (at < said.length) {
-			final code = said.charCodeAt(at);
+			final code = StringTools.fastCodeAt(said, at);
 			if (code == 32 || code == 9 || code == 10 || code == 13) at++;
 			else break;
 		}
@@ -149,7 +149,7 @@ private class Reader {
 		skip();
 		if (at >= said.length) return Node.EMPTY;
 
-		return switch (said.charCodeAt(at)) {
+		return switch (StringTools.fastCodeAt(said, at)) {
 			case 123: table();
 			case 91: list();
 			case 34: Node.words(string());
@@ -173,19 +173,19 @@ private class Reader {
 			skip();
 			if (at >= said.length) break;
 
-			if (said.charCodeAt(at) == 125) {
+			if (StringTools.fastCodeAt(said, at) == 125) {
 				at++;
 				break;
 			}
 
-			if (said.charCodeAt(at) == 44) {
+			if (StringTools.fastCodeAt(said, at) == 44) {
 				at++;
 				continue;
 			}
 
 			final key = string();
 			skip();
-			if (at < said.length && said.charCodeAt(at) == 58) at++;
+			if (at < said.length && StringTools.fastCodeAt(said, at) == 58) at++;
 
 			node.put(key, value());
 		}
@@ -201,12 +201,12 @@ private class Reader {
 			skip();
 			if (at >= said.length) break;
 
-			if (said.charCodeAt(at) == 93) {
+			if (StringTools.fastCodeAt(said, at) == 93) {
 				at++;
 				break;
 			}
 
-			if (said.charCodeAt(at) == 44) {
+			if (StringTools.fastCodeAt(said, at) == 44) {
 				at++;
 				continue;
 			}
@@ -219,13 +219,32 @@ private class Reader {
 
 	function string():String {
 		skip();
-		if (at >= said.length || said.charCodeAt(at) != 34) return "";
+		if (at >= said.length || StringTools.fastCodeAt(said, at) != 34) return "";
 
 		at++;
-		final out = new StringBuf();
+
+		final from = at;
 
 		while (at < said.length) {
-			final code = said.charCodeAt(at);
+			final code = StringTools.fastCodeAt(said, at);
+
+			if (code == 34) {
+				final plain = said.substr(from, at - from);
+				at++;
+
+				return plain;
+			}
+
+			if (code == 92) break;
+
+			at++;
+		}
+
+		final out = new StringBuf();
+		out.addSub(said, from, at - from);
+
+		while (at < said.length) {
+			final code = StringTools.fastCodeAt(said, at);
 
 			if (code == 34) {
 				at++;
@@ -239,7 +258,7 @@ private class Reader {
 			}
 
 			at++;
-			final marked = said.charCodeAt(at);
+			final marked = StringTools.fastCodeAt(said, at);
 			at++;
 
 			switch (marked) {
@@ -269,7 +288,7 @@ private class Reader {
 		final from = at;
 
 		while (at < said.length) {
-			final code = said.charCodeAt(at);
+			final code = StringTools.fastCodeAt(said, at);
 			final part = (code >= 48 && code <= 57) || code == 45 || code == 43 || code == 46
 				|| code == 101 || code == 69;
 

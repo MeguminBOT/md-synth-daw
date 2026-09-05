@@ -133,27 +133,37 @@ final class Flac {
 		streaminfo(frames, channels, rate, depth);
 		comments(tags);
 
-		final ceiling = depth == 24 ? 8388607.0 : 32767.0;
+		final ceiling = Wav.scale(depth) - 1;
 		final floor = -ceiling - 1;
 
 		final one = new Vector<Int>(BLOCK);
 		final two = new Vector<Int>(BLOCK);
 
+		final wide = depth >> 3;
+		final raw = Bytes.alloc(frames * channels * wide);
+
 		var at = 0;
 		var number = 0;
+		var written = 0;
 
 		while (at < frames) {
 			final many = frames - at < BLOCK ? frames - at : BLOCK;
 
 			for (index in 0...many) {
 				for (side in 0...channels) {
-					var value = Math.round(samples[(at + index) * channels + side] * ceiling);
+					var value = Wav.whole(samples[(at + index) * channels + side], depth);
 
 					if (value > ceiling) value = Std.int(ceiling);
 					if (value < floor) value = Std.int(floor);
 
 					if (side == 0) one[index] = value;
 					else two[index] = value;
+
+					raw.set(written, value & 0xFF);
+					raw.set(written + 1, (value >> 8) & 0xFF);
+					if (wide == 3) raw.set(written + 2, (value >> 16) & 0xFF);
+
+					written += wide;
 				}
 			}
 
@@ -163,8 +173,15 @@ final class Flac {
 			number++;
 		}
 
-		return out.getBytes();
+		final made = out.getBytes();
+		final signature = haxe.crypto.Md5.make(raw);
+
+		made.blit(SIGNED, signature, 0, signature.length);
+
+		return made;
 	}
+
+	public static inline final SIGNED = 26;
 
 	function streaminfo(frames:Int, channels:Int, rate:Int, depth:Int):Void {
 		out.writeByte(0x00);
