@@ -22,6 +22,21 @@ class LiftCheck {
 
 	static final STEP:Array<Int> = [9, 11, 0, 2, 4, 5, 7];
 
+	static final KINDS:Array<String> = ["Bass", "Pad", "Organ", "Bell", "Brass", "Chime",
+		"Lead", "Voice", "Strings", "Flute", "Guitar", "Piano", "Marimba"];
+
+	static final MARKS:Array<String> = ["bass", "wave-sine", "pipe", "bell", "trumpet",
+		"idiophone", "synthesizer", "microphone", "violin", "woodwind", "guitar", "piano",
+		"idiophone"];
+
+	static final HITS:Array<String> = ["Kick", "Snare", "Tom", "Timpani", "Bongo", "Clap",
+		"Scratch", "Sega"];
+
+	static final STRUCK:Array<String> = ["kick", "snare", "tom", "tom", "bongos", "clap",
+		"drum-brushes", "microphone"];
+
+	static inline final AUDIBLE = 40;
+
 	public static function run(args:Array<String>):Int {
 		final root = Gate.root;
 		final where = root + "/vendor/smps";
@@ -89,6 +104,7 @@ class LiftCheck {
 		final middle = across.length == 0 ? 0 : across[across.length >> 1];
 
 		final names:Array<String> = [];
+		final marks:Array<String> = [];
 		final kinds:Array<String> = [];
 		final counts:Array<Int> = [];
 
@@ -102,15 +118,17 @@ class LiftCheck {
 			} else counts[at]++;
 
 			names.push(kind + " " + (at < 0 ? 1 : counts[at]));
+			marks.push(marked(kind));
 		}
 
 		final samples:Array<Sample> = [];
 		final struck:Array<Array<String>> = [];
+		final beaten:Array<String> = [];
 
-		sampled(where + "/dac", samples, struck);
+		sampled(where + "/dac", samples, struck, beaten);
 
 		sys.io.File.saveContent(into + "/" + filed(game),
-			written(game, names, tagged, patches, samples, struck));
+			written(game, names, marks, tagged, patches, samples, struck, beaten));
 
 		Sys.println("  lift          " + game + ": " + seen + " voices, " + patches.length
 			+ " kept, " + samples.length + " samples, median note " + middle);
@@ -118,7 +136,8 @@ class LiftCheck {
 		return patches.length + samples.length;
 	}
 
-	static function sampled(where:String, into:Array<Sample>, tags:Array<Array<String>>):Void {
+	static function sampled(where:String, into:Array<Sample>, tags:Array<Array<String>>,
+			marks:Array<String>):Void {
 		if (!sys.FileSystem.isDirectory(where)) return;
 
 		final files = sys.FileSystem.readDirectory(where);
@@ -135,6 +154,7 @@ class LiftCheck {
 
 			into.push(sample);
 			tags.push(sample.length() > 12000 ? ["Voice"] : ["Drums", "Percussion"]);
+			marks.push(hit(sample.name));
 		}
 	}
 
@@ -217,15 +237,15 @@ class LiftCheck {
 		switch (field) {
 			case "Algorithm": patch.algorithm = held[0] & 7;
 			case "Feedback": patch.feedback = held[0] & 7;
-			case "Detune": spread(patch.detune, held);
-			case "CoarseFreq": spread(patch.multiple, held);
-			case "RateScale": spread(patch.keyScale, held);
-			case "AttackRate": spread(patch.attack, held);
-			case "DecayRate1": spread(patch.decay, held);
-			case "DecayRate2": spread(patch.sustain, held);
-			case "DecayLevel": spread(patch.sustainLevel, held);
-			case "ReleaseRate": spread(patch.release, held);
-			case "TotalLevel": spread(patch.totalLevel, held);
+			case "Detune": spread(patch.detune, held, 7);
+			case "CoarseFreq": spread(patch.multiple, held, 15);
+			case "RateScale": spread(patch.keyScale, held, 3);
+			case "AttackRate": spread(patch.attack, held, 31);
+			case "DecayRate1": spread(patch.decay, held, 31);
+			case "DecayRate2": spread(patch.sustain, held, 31);
+			case "DecayLevel": spread(patch.sustainLevel, held, 15);
+			case "ReleaseRate": spread(patch.release, held, 15);
+			case "TotalLevel": spread(patch.totalLevel, held, 127);
 			case "AmpMod":
 				for (slot in 0...Patch.SLOTS) {
 					patch.tremolo[slot] = slot < held.length && held[slot] != 0;
@@ -234,13 +254,15 @@ class LiftCheck {
 		}
 	}
 
-	static inline function spread(into:haxe.ds.Vector<Int>, held:Array<Int>):Void {
-		for (slot in 0...Patch.SLOTS) if (slot < held.length) into[slot] = held[slot];
+	static inline function spread(into:haxe.ds.Vector<Int>, held:Array<Int>, mask:Int):Void {
+		for (slot in 0...Patch.SLOTS) if (slot < held.length) into[slot] = held[slot] & mask;
 	}
 
 	static function charactered(patch:Patch, pitch:Int, middle:Int):String {
 		var attack = 0;
 		var sustainLevel = 0;
+		var decay = 0;
+		var sustain = 0;
 		var carriers = 0;
 
 		for (slot in 0...Patch.SLOTS) {
@@ -248,6 +270,8 @@ class LiftCheck {
 
 			attack += patch.attack[slot];
 			sustainLevel += patch.sustainLevel[slot];
+			decay += patch.decay[slot];
+			sustain += patch.sustain[slot];
 
 			carriers++;
 		}
@@ -256,23 +280,47 @@ class LiftCheck {
 
 		attack = Std.int(attack / carriers);
 		sustainLevel = Std.int(sustainLevel / carriers);
+		decay = Std.int(decay / carriers);
+		sustain = Std.int(sustain / carriers);
 
 		var ringing = 0;
+		var quietest = 127;
 
 		for (slot in 0...Patch.SLOTS) {
 			if (patch.carries(slot)) continue;
-			if (patch.multiple[slot] > ringing) ringing = patch.multiple[slot];
+
+			if (patch.totalLevel[slot] < quietest) quietest = patch.totalLevel[slot];
+
+			if (patch.totalLevel[slot] < AUDIBLE && patch.multiple[slot] > ringing) {
+				ringing = patch.multiple[slot];
+			}
 		}
 
-		if (pitch >= 0 && pitch < middle - 12) return "Bass";
-		if (attack < 14) return "Pad";
+		final dies = sustainLevel >= 4 || sustain >= 6;
+
+		if (pitch >= 0 && pitch < middle - 10) return "Bass";
 		if (patch.algorithm == 7) return "Organ";
-		if (ringing >= 8) return "Bell";
+		if (attack < 12) return "Pad";
+		if (!dies && quietest >= 20 && ringing <= 2) return "Flute";
+		if (attack < 18 && !dies) return "Strings";
+		if (dies && ringing >= 4) return "Bell";
+		if (dies && decay >= 16 && pitch >= middle + 4) return "Marimba";
+		if (dies && patch.feedback >= 6) return "Guitar";
+		if (dies) return "Piano";
 		if (patch.algorithm == 5 || patch.algorithm == 6) return "Brass";
-		if (sustainLevel >= 8) return "Pluck";
 		if (pitch >= 0 && pitch > middle + 12) return "Chime";
 
 		return "Lead";
+	}
+
+	static function marked(kind:String):String {
+		final at = KINDS.indexOf(kind);
+		return at < 0 ? "" : MARKS[at];
+	}
+
+	static function hit(named:String):String {
+		final at = HITS.indexOf(named);
+		return at < 0 ? "drumkit" : STRUCK[at];
 	}
 
 	static function noted(line:String, into:Array<Int>):Void {
@@ -455,14 +503,16 @@ class LiftCheck {
 		return out + ".json";
 	}
 
-	static function written(game:String, names:Array<String>, tags:Array<Array<String>>,
-			patches:Array<Patch>, samples:Array<Sample>, struck:Array<Array<String>>):String {
+	static function written(game:String, names:Array<String>, marks:Array<String>,
+			tags:Array<Array<String>>, patches:Array<Patch>, samples:Array<Sample>,
+			struck:Array<Array<String>>, beaten:Array<String>):String {
 		final out = new StringBuf();
 
 		out.add("{\n  \"name\": \"" + game + "\",\n  \"presets\": [\n");
 
 		for (index in 0...patches.length) {
-			out.add("    { \"name\": \"" + names[index] + "\", \"tags\": [");
+			out.add("    { \"name\": \"" + names[index] + "\", \"icon\": \"" + marks[index]
+				+ "\", \"tags\": [");
 			out.add(listed(tags[index]));
 			out.add("], \"tfi\": \"");
 
@@ -478,7 +528,8 @@ class LiftCheck {
 		for (index in 0...samples.length) {
 			final sample = samples[index];
 
-			out.add("    { \"name\": \"" + sample.name + "\", \"tags\": [");
+			out.add("    { \"name\": \"" + sample.name + "\", \"icon\": \"" + beaten[index]
+				+ "\", \"tags\": [");
 			out.add(listed(struck[index]));
 			out.add("], \"rate\": " + sample.rate + ", \"root\": " + sample.root + ", \"pcm\": \"");
 
