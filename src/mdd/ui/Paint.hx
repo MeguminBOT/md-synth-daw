@@ -553,6 +553,8 @@ final class Paint {
 		quad(x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny, colour, alpha);
 	}
 
+	public static inline final JOIN = 0.35;
+
 	public function polyline(points:Vector<Float>, count:Int, weight:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		if (count < 2) return;
@@ -562,10 +564,26 @@ final class Paint {
 				colour, alpha);
 		}
 
-		if (weight > 1.5) {
-			for (i in 1...count - 1) {
-				circle(points[i * 2], points[i * 2 + 1], weight * 0.5, colour, alpha);
+		if (weight <= 1.5) return;
+
+		final half = weight * 0.5;
+		final least = JOIN / half;
+		final square = least * least;
+
+		for (i in 1...count - 1) {
+			final ax = points[i * 2] - points[i * 2 - 2];
+			final ay = points[i * 2 + 1] - points[i * 2 - 1];
+			final bx = points[i * 2 + 2] - points[i * 2];
+			final by = points[i * 2 + 3] - points[i * 2 + 1];
+
+			final dot = ax * bx + ay * by;
+
+			if (dot > 0) {
+				final cross = ax * by - ay * bx;
+				if (cross * cross <= square * dot * dot) continue;
 			}
+
+			circle(points[i * 2], points[i * 2 + 1], half, colour, alpha);
 		}
 	}
 

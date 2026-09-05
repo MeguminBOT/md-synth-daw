@@ -79,6 +79,7 @@ class PaintCheck {
 		clipping(paint);
 		opacities(paint);
 		speckled(paint);
+		joined(paint);
 
 		font.shut();
 		shut();
@@ -116,6 +117,50 @@ class PaintCheck {
 				|| pixels[i * 4 + 2] > 8)) lit++;
 		}
 		return lit;
+	}
+
+	static function joined(paint:Paint):Void {
+		final held = new Vector<Float>(6);
+		final weight = 8.0;
+		final middle = SIDE * 0.5;
+		final arm = 120.0;
+
+		var worst = 0;
+		var worstAt = 0;
+
+		for (step in 0...17) {
+			final turn = (10 + step * 10) * Math.PI / 180;
+
+			held[0] = middle - arm;
+			held[1] = middle;
+			held[2] = middle;
+			held[3] = middle;
+			held[4] = middle + Math.cos(turn) * arm;
+			held[5] = middle - Math.sin(turn) * arm;
+
+			begin();
+			paint.polyline(held, 3, weight, Theme.FM1);
+			paint.flush();
+
+			final bare = read();
+
+			begin();
+			paint.polyline(held, 3, weight, Theme.FM1);
+			paint.circle(middle, middle, weight * 0.5, Theme.FM1);
+			paint.flush();
+
+			final capped = read();
+			final missing = capped - bare;
+
+			if (missing > worst) {
+				worst = missing;
+				worstAt = 10 + step * 10;
+			}
+		}
+
+		says("joins", worst <= 4, "across 17 turns from 10 to 170 degrees a corner is at"
+			+ " most " + worst + " pixels short of the same corner with a join drawn over it"
+			+ (worst == 0 ? "" : ", at " + worstAt + " degrees"));
 	}
 
 	static function speckled(paint:Paint):Void {
