@@ -221,6 +221,14 @@ class Project {
 		out.key("icon");
 		out.whole(instrument.icon);
 
+		if (instrument.tags.length > 0) {
+			out.key("tags");
+			out.list();
+
+			for (tag in instrument.tags) out.text(tag);
+			out.ends();
+		}
+
 		if (instrument.patch != null) {
 			final patch = instrument.patch;
 
@@ -483,6 +491,14 @@ class Project {
 
 		instrument.sample = node.get("sample").whole(-1);
 		instrument.icon = node.get("icon").whole(-1);
+
+		final tagged = node.get("tags");
+
+		for (index in 0...tagged.length()) {
+			final said = tagged.at(index).saying("");
+			if (said != "") instrument.tags.push(said);
+		}
+
 
 		if (node.has("patch")) {
 			final held = node.get("patch");

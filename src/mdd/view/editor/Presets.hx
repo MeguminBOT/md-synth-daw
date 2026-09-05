@@ -19,11 +19,13 @@ import mdd.view.Kits;
 final class Presets extends Widget {
 	public final session:Session;
 	public final tree:Tree;
+	public final search:mdd.ui.control.Field;
 
 	public var listed(default, null):Int = 0;
 	public var banks(default, null):Int = 0;
 
 	public var onRename:Null<Int -> Void> = null;
+	public var onTags:Null<Int -> Void> = null;
 	public var onSave:Null<Void -> Void> = null;
 
 	var menu:Null<Menu> = null;
@@ -43,6 +45,7 @@ final class Presets extends Widget {
 	final opened:Array<String> = [];
 
 	var sighted:Int = -2;
+	var sought:String = "";
 	var pending:Bool = false;
 
 	public function new(session:Session) {
@@ -53,6 +56,11 @@ final class Presets extends Widget {
 
 		tree = new Tree();
 		add(tree);
+
+		search = new mdd.ui.control.Field("");
+		add(search);
+
+		search.onChange = function(said:String):Void relayout();
 
 		tree.onChoose = function(item:Item):Void picked(item);
 		tree.onOpen = function(item:Item):Void folded(item);
@@ -142,6 +150,11 @@ final class Presets extends Widget {
 		});
 
 		menu.offer(new Choice(translate(Locale.PRESET_ICON))).submenu = icons(which);
+
+		final tagging = menu.offer(new Choice(translate(Locale.PRESET_TAGS),
+			instrument.tags.length == 0 ? "" : "" + instrument.tags.length));
+
+		fires(tagging, function():Void if (onTags != null) onTags(which));
 
 		fires(menu.offer(new Choice(translate(Locale.PRESET_DUPLICATE))), function():Void
 			duplicated(which));
@@ -424,19 +437,45 @@ final class Presets extends Widget {
 		pending = false;
 	}
 
-	static function suits(instrument:Instrument, part:Part):Bool {
+	function suits(instrument:Instrument, part:Part):Bool {
+		final want = seeking();
+		if (want != "" && !instrument.tagged(want)) return false;
+
 		if (part.fm()) return instrument.kind.fm();
 		if (part.square()) return instrument.kind.square();
 		if (part.noise()) return instrument.kind.noise();
 		return instrument.kind.sampled();
 	}
 
+	public function searchTall():Float {
+		final root = root();
+		return root == null ? 28 : root.metrics.whole(28);
+	}
+
 	override function layout():Void {
+		if (seeking() != sought) {
+			sought = seeking();
+			fit();
+		}
+
 		final root = root();
 		final top = root == null ? 26 : root.metrics.head;
+		final deep = searchTall();
 
-		tree.arrange(x, y + top, width, height - top);
+		final metrics = root == null ? null : root.metrics;
+		final inset = metrics == null ? 12 : metrics.inset;
+		final gap = metrics == null ? 8 : metrics.gap;
+
+		search.arrange(x + gap, y + top + gap * 0.5, width - gap * 2, deep);
+
+		final under = top + deep + gap;
+
+		tree.arrange(x, y + under, width, height - under);
 		reveals();
+	}
+
+	public inline function seeking():String {
+		return StringTools.trim(search.value);
 	}
 
 	override function paint(paint:Paint):Void {
@@ -452,6 +491,9 @@ final class Presets extends Widget {
 
 		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_PRESETS),
 			x, y, width, top);
+
+		search.hint = translate(Locale.PRESET_SEARCH);
+		search.paint(paint);
 
 		paint.reface(font);
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,

@@ -4,6 +4,7 @@ package mdd.ui.control;
 final class Field extends Widget {
 	public var value(default, null):String = "";
 	public var caret(default, null):Int = 0;
+	public var hint:String = "";
 	public var mark(default, null):Int = 0;
 
 	public var onChange:Null<String -> Void> = null;
@@ -235,7 +236,9 @@ final class Field extends Widget {
 				theme.accent, Theme.SELECT);
 		}
 
-		paint.text(value, left, baseline, theme.ink);
+		if (value == "" && hint != "" && root.focus != this) {
+			paint.text(hint, left, baseline, theme.dim, 0.5);
+		} else paint.text(value, left, baseline, theme.ink);
 
 		if (root.focus == this) {
 			final at = left + font.measure(value.substring(0, caret));

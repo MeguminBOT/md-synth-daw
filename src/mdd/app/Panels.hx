@@ -95,6 +95,7 @@ final class Panels {
 		inspector.samples.onImport = function():Void if (onImportSample != null) onImportSample();
 		inspector.samples.budget = budget;
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
+		inspector.presets.onTags = function(which:Int):Void taggedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();
 		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
@@ -140,6 +141,26 @@ final class Panels {
 
 		naming.ask(stage.root.translate(Locale.TRACK_NAME), held.name);
 		naming.onName = function(said:String):Void patterns.renamed(which, said);
+
+		stage.root.raise(naming);
+	}
+
+	public function taggedPreset(which:Int):Void {
+		final held = session.song.instrumentAt(which);
+		if (held == null || naming == null) return;
+
+		naming.ask(stage.root.translate(Locale.PRESET_TAGS), held.tags.join(", "));
+
+		naming.onName = function(said:String):Void {
+			held.tags.resize(0);
+
+			for (one in said.split(",")) {
+				final tag = StringTools.trim(one);
+				if (tag != "" && held.tags.indexOf(tag) < 0) held.tags.push(tag);
+			}
+
+			session.changed();
+		};
 
 		stage.root.raise(naming);
 	}
