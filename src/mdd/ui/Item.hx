@@ -6,6 +6,8 @@ class Item {
 	public var tint:Int = -1;
 	public var icon:Int = -1;
 	public var open:Bool = true;
+	public var note:String = "";
+	public var says:String = "";
 	public var enabled:Bool = true;
 
 	public var depth(default, null):Int = 0;

@@ -241,6 +241,41 @@ final class Presets extends Widget {
 		session.changed();
 	}
 
+	static inline final SHOWN = 4;
+
+	static function shortened(tag:String):Bool {
+		if (tag.length < 2 || tag.length > 5) return false;
+
+		for (index in 0...tag.length) {
+			final code = tag.charCodeAt(index);
+			if (code == null) return false;
+
+			final letter = code >= 65 && code <= 90;
+			final digit = code >= 48 && code <= 57;
+
+			if (!letter && !digit) return false;
+		}
+
+		return true;
+	}
+
+	public static function briefly(tags:Array<String>):String {
+		final held:Array<String> = [];
+
+		for (tag in tags) if (shortened(tag) && held.indexOf(tag) < 0) held.push(tag);
+
+		if (held.length > SHOWN) {
+			return held.slice(0, SHOWN).join(" ") + "  +" + (held.length - SHOWN);
+		}
+
+		if (held.length > 0) return held.join(" ");
+
+		if (tags.length == 0) return "";
+		if (tags.length <= 2) return tags.join(", ");
+
+		return tags[0] + ", " + tags[1] + "  +" + (tags.length - 2);
+	}
+
 	function fires(choice:Choice, what:Void -> Void):Void {
 		choice.onFire = function(from:Choice):Void what();
 	}
@@ -400,6 +435,9 @@ final class Presets extends Widget {
 						Theme.PARTS[kind.index()]));
 
 					child.icon = instrument.icon;
+					child.note = briefly(instrument.tags);
+					child.says = instrument.tags.length == 0 ? ""
+						: instrument.tags.join(", ");
 
 					named.push(index);
 					held.push(child);

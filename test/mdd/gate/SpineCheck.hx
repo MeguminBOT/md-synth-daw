@@ -284,6 +284,51 @@ class SpineCheck {
 			every + " presets listed, " + some + " matching the tag brass, " + none
 			+ " matching nothing, and " + presets.listed + " again when the box is cleared");
 
+		var noted = "";
+		var said = "";
+		var tags = 0;
+
+		var down = presets.tree.y + 2;
+
+		while (down < presets.tree.y + presets.tree.height) {
+			final index = presets.tree.rowAt(down);
+			final row = index < 0 ? null : presets.tree.shownAt(index);
+
+			if (row != null && row.note != "") {
+				noted = row.note;
+				said = row.says;
+
+				final move = new mdd.ui.Input();
+
+				move.pointer(mdd.ui.Kind.PointerMove,
+					presets.tree.x + presets.tree.width * 0.5, down,
+					mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+				presets.tree.took(move);
+				tags = said.split(", ").length;
+
+				break;
+			}
+
+			down += 2;
+		}
+
+		says("a preset shows its tags and names them all", noted != "" && said != ""
+			&& said.length >= noted.length && presets.tree.tip == said,
+			"the row reads '" + noted + "' beside its name and the pointer over it offers "
+			+ tags + " tags, '" + said + "'");
+
+		final zones = mdd.view.editor.Presets.briefly(["Green Hill Zone", "GHZ",
+			"Scrap Brain Zone", "SBZ", "Boss", "Credits"]);
+
+		final plain = mdd.view.editor.Presets.briefly(["Boss", "Credits", "Title Screen"]);
+		final none = mdd.view.editor.Presets.briefly([]);
+
+		says("a game preset shows its zones and nothing else",
+			zones == "GHZ SBZ" && plain == "Boss, Credits  +1" && none == "",
+			"six tags across two zones read '" + zones + "', three with no zone read '"
+			+ plain + "', and none reads nothing");
+
 		says("and a tag survives a project", tagsKeep(session),
 			"written and read back with " + held.tags.length + " tags");
 

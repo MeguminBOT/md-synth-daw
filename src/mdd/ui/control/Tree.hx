@@ -129,6 +129,7 @@ final class Tree extends Scroll {
 				final at = rowAt(event.y);
 				if (at == hoverAt) return false;
 				hoverAt = at;
+				tip = at >= 0 && at < shown.length ? shown[at].says : "";
 				invalidate();
 				return true;
 
@@ -197,7 +198,10 @@ final class Tree extends Scroll {
 	}
 
 	override function hovered(on:Bool):Void {
-		if (!on) hoverAt = -1;
+		if (!on) {
+			hoverAt = -1;
+			tip = "";
+		}
 		super.hovered(on);
 	}
 
@@ -262,8 +266,20 @@ final class Tree extends Scroll {
 			}
 
 			final ink = item == chosen || header ? theme.ink : theme.dim;
-			paint.text(item.label, pen, top + (tall - font.height) * 0.5 + font.ascent, ink,
-				item.enabled ? 1 : 0.45);
+			final line = top + (tall - font.height) * 0.5 + font.ascent;
+
+			pen = paint.text(item.label, pen, line, ink, item.enabled ? 1 : 0.45);
+
+			if (item.note == "") continue;
+
+			final gap = metrics.unit * 3;
+			final room = x + width - metrics.unit * 2 - (pen + gap);
+
+			if (room < metrics.whole(18)) continue;
+
+			paint.pushClip(pen + gap, top, room, tall);
+			paint.text(item.note, pen + gap, line, theme.dim, 0.55);
+			paint.popClip();
 		}
 
 		paint.popClip();
