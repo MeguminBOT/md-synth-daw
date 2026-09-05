@@ -213,6 +213,7 @@ class App {
 		menus.onRelabel = function():Void relabel();
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
+		menus.onLift = function():Int return files.liftsPatches();
 		menus.dress(session);
 
 		stage.root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);

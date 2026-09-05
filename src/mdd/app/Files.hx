@@ -36,6 +36,8 @@ final class Files {
 	public static inline final XGM = 9;
 	public static inline final READ_XGM = 10;
 	public static inline final AUDIO = 11;
+	public static inline final TFI = 12;
+	public static inline final READ_TFI = 13;
 
 	public static inline final RATE = 44100;
 	public static inline final DAC_RATE = 8000;
@@ -234,6 +236,8 @@ final class Files {
 			case READ_MIDI: Dialog.open(window, "midi", "mid", where);
 			case READ_WAV: Dialog.open(window, "wav", "wav", where);
 			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
+			case TFI: Dialog.save(window, "tfi", "tfi", where);
+			case READ_TFI: Dialog.open(window, "tfi", "tfi", where);
 			case _: null;
 		}
 
@@ -298,6 +302,8 @@ final class Files {
 				case READ_XGM: readXgm(where);
 				case READ_MIDI: readMidi(where);
 				case READ_WAV: readWav(where);
+				case TFI: writeTfi(where);
+				case READ_TFI: readTfi(where);
 				case _:
 			}
 		} catch (e:Dynamic) {
@@ -438,6 +444,99 @@ final class Files {
 		});
 
 		return made;
+	}
+
+	public function readTfi(where:String):Void {
+		final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
+
+		if (held == null) {
+			session.say("that is not a tfi");
+			return;
+		}
+
+		final made = new mdd.song.Instrument(name(where), mdd.song.Part.Fm1);
+		made.patch = held;
+
+		session.song.instrument(made);
+		session.song.rack[session.part.index()] = session.song.instruments.length - 1;
+
+		session.say(name(where));
+	}
+
+	public function writeTfi(where:String):String {
+		final at = session.song.rack[session.part.index()];
+		final held = session.song.instrumentAt(at);
+
+		if (held == null || held.patch == null) {
+			session.say("this channel has no patch");
+			return "";
+		}
+
+		final named = suffixed(where, "tfi");
+		sys.io.File.saveBytes(named, mdd.format.Tfi.write(held.patch));
+
+		session.say(name(named));
+		return named;
+	}
+
+	public function liftsPatches():Int {
+		final where = within("presets");
+		final song = session.song;
+
+		var many = 0;
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instruments[index];
+
+			final patch = held.patch;
+			if (patch == null || held.sample >= 0) continue;
+
+			final named = where + "/" + safely(held.name) + ".tfi";
+			if (FileSystem.exists(named) && sameTfi(named, patch)) continue;
+
+			if (FileSystem.exists(named)) {
+				var at = 2;
+				var tried = where + "/" + safely(held.name) + " " + at + ".tfi";
+
+				while (FileSystem.exists(tried) && !sameTfi(tried, patch)) {
+					at++;
+					tried = where + "/" + safely(held.name) + " " + at + ".tfi";
+				}
+
+				if (FileSystem.exists(tried)) continue;
+				sys.io.File.saveBytes(tried, mdd.format.Tfi.write(patch));
+			} else sys.io.File.saveBytes(named, mdd.format.Tfi.write(patch));
+
+			many++;
+		}
+
+		return many;
+	}
+
+	function sameTfi(where:String, patch:mdd.song.Patch):Bool {
+		try {
+			final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
+			return held != null && mdd.format.Tfi.same(held, patch);
+		} catch (e:Dynamic) {
+			return false;
+		}
+	}
+
+	public static function safely(said:String):String {
+		var out = "";
+
+		for (index in 0...said.length) {
+			final code = said.charCodeAt(index);
+			final one = said.charAt(index);
+
+			if (code == null) continue;
+
+			out += (one == "/" || one == "\\" || one == ":" || one == "*" || one == "?"
+				|| one == "\"" || one == "<" || one == ">" || one == "|") ? "-" : one;
+		}
+
+		final held = StringTools.trim(out);
+		return held == "" ? "patch" : held;
 	}
 
 	public function exportAudio(where:String):String {

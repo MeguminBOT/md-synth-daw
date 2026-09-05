@@ -51,6 +51,11 @@ class Locale {
 
 	public static inline final NAMING_HINT = "naming.hint";
 	public static inline final PRESET_SAVE = "preset.save";
+	public static inline final PRESET_LIFT = "preset.lift";
+	public static inline final PRESET_LIFTED = "preset.lifted";
+	public static inline final PRESET_NONE_LIFTED = "preset.noneLifted";
+	public static inline final PRESET_SEARCH = "preset.search";
+	public static inline final PRESET_TAGS = "preset.tags";
 	public static inline final PRESET_NAME = "preset.name";
 	public static inline final PRESET_RENAME = "preset.rename";
 	public static inline final PRESET_DUPLICATE = "preset.duplicate";
@@ -177,6 +182,8 @@ class Locale {
 	public static inline final FILE_READ_XGM = "file.readXgm";
 	public static inline final FILE_READ_MIDI = "file.readMidi";
 	public static inline final FILE_READ_WAV = "file.readWav";
+	public static inline final FILE_READ_TFI = "file.readTfi";
+	public static inline final FILE_TFI = "file.tfi";
 	public static inline final FILE_UPDATE = "file.update";
 	public static inline final FILE_PREFERENCES = "file.preferences";
 	public static inline final FILE_QUIT = "file.quit";
@@ -398,7 +405,8 @@ class Locale {
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM, SCOPE_INSPECT,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
-		NAMING_HINT, PRESET_SAVE, PRESET_NAME, PRESET_RENAME,
+		NAMING_HINT, PRESET_SAVE, PRESET_NAME, PRESET_RENAME, PRESET_LIFT, PRESET_LIFTED,
+		PRESET_NONE_LIFTED, PRESET_SEARCH, PRESET_TAGS,
 		PRESET_DUPLICATE, PRESET_DELETE, PRESET_LOAD,
 		PRESET_ICON, PRESET_NO_ICON, PRESET_KIT, PRESET_SHAPES, PRESET_AUDIO,
 		PRESET_INSTRUMENTS,
@@ -422,7 +430,8 @@ class Locale {
 		REGISTERS_FOLLOW, REGISTERS_FORGET,
 		REGISTERS_LEVEL, REGISTERS_TONE,
 		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_XGM, FILE_READ_MIDI,
-		FILE_READ_WAV, FILE_VGM, FILE_XGM, FILE_WAV, FILE_MIDI, FILE_UPDATE,
+		FILE_READ_WAV, FILE_READ_TFI, FILE_TFI, FILE_VGM, FILE_XGM, FILE_WAV, FILE_MIDI,
+		FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,
 		EXPORT, EXPORT_FORMAT, EXPORT_RATE, EXPORT_DEPTH, EXPORT_SIDES, EXPORT_LEAD, EXPORT_TAIL, EXPORT_FADE, EXPORT_CEILING, EXPORT_DITHER, EXPORT_QUALITY, EXPORT_MONO, EXPORT_STEREO, EXPORT_OFF, EXPORT_ON, EXPORT_TITLE, EXPORT_ARTIST, EXPORT_ALBUM, EXPORT_YEAR, EXPORT_COMMENT, EXPORT_GO, EXPORT_CANCEL, FILE_AUDIO,
 		EDIT_UNDO, EDIT_REDO, EDIT_PLAY, EDIT_STOP,

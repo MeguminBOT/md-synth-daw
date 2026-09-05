@@ -194,11 +194,34 @@ final class Menus {
 		fired(held.offer(new Choice(said(Locale.FILE_READ_WAV))), function():Void
 			asks(Files.READ_WAV));
 
+		held.divide();
+
+		fired(held.offer(new Choice(said(Locale.FILE_READ_TFI))), function():Void
+			asks(Files.READ_TFI));
+
+		fired(held.offer(new Choice(said(Locale.PRESET_LIFT))), function():Void lifted());
+
 		return held;
+	}
+
+	public var onLift:Null<Void -> Int> = null;
+
+	function lifted():Void {
+		final many = onLift == null ? 0 : onLift();
+
+		session.say(many == 0 ? said(Locale.PRESET_NONE_LIFTED)
+			: many + " " + said(Locale.PRESET_LIFTED));
+
+		session.changed();
 	}
 
 	function exportMenu():Menu {
 		final held = new Menu();
+
+		fired(held.offer(new Choice(said(Locale.FILE_TFI))), function():Void
+			asks(Files.TFI));
+
+		held.divide();
 
 		fired(held.offer(new Choice(said(Locale.FILE_VGM), "Ctrl+E")), function():Void
 			asks(Files.VGM));
