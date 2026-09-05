@@ -79,9 +79,12 @@ class MixCheck {
 			&& vorbis.getString(0, 4) == "OggS" && vorbis.length < flac.length,
 			vorbis.length + " bytes of vorbis at q6 against " + flac.length + " of flac");
 
-		says("an opus is smaller still", opus.length > 0
-			&& opus.getString(0, 4) == "OggS" && opus.length < flac.length,
-			opus.length + " bytes of opus at 128k for a second at 48000");
+		says("an opus is a fraction of the wav", opus.length > 0
+			&& opus.getString(0, 4) == "OggS" && opus.length < one.length / 4,
+			opus.length + " bytes of opus at 128k for a second at 48000, against "
+			+ one.length + " of wav and " + flac.length + " of flac, which on a tone this "
+			+ (flac.length < opus.length ? "plain the lossless file beats"
+				: "plain still trails") + " it");
 
 		says("a flac is smaller than the wav it came from",
 			flac.getString(0, 4) == "fLaC" && flac.length < one.length,

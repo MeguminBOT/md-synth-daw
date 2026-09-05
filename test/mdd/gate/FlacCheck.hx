@@ -39,6 +39,7 @@ class FlacCheck {
 
 		scaled();
 		signed();
+		packed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    failed");
@@ -118,6 +119,27 @@ class FlacCheck {
 
 		says("a flac carries the signature of its audio", same && !blank,
 			"the sixteen bytes at " + Flac.SIGNED + " are the md5 of the samples that went in");
+	}
+
+	static function packed():Void {
+		final frames = 32768;
+		final held = new Vector<cpp.Float32>(frames * 2);
+
+		for (index in 0...frames) {
+			final one = Math.sin(index * 0.021) * 0.4 + Math.sin(index * 0.0037) * 0.3;
+
+			held[index * 2] = one;
+			held[index * 2 + 1] = one * 0.85 + Math.sin(index * 0.019) * 0.1;
+		}
+
+		final made = Flac.write(held, frames, 2, 44100, 16, []);
+		final raw = frames * 2 * 2;
+
+		final share = made.length * 100.0 / raw;
+
+		says("a correlated pair packs down", share < 30,
+			made.length + " bytes of " + raw + ", " + Math.round(share * 10) / 10
+			+ " per cent, which needs the mid and side pair and the fitted predictor together");
 	}
 
 	static function coded(from:String, into:String, depth:Int):Int {

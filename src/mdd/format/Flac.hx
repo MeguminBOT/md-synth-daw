@@ -245,8 +245,55 @@ final class Flac {
 		out.writeByte((value >> 24) & 0xFF);
 	}
 
+	final mid:Vector<Int> = new Vector<Int>(BLOCK);
+	final side:Vector<Int> = new Vector<Int>(BLOCK);
+
+	function guessed(values:Vector<Int>, many:Int):Float {
+		var least = 0.0;
+
+		for (order in 0...ORDERS) {
+			if (order >= many) break;
+
+			final cost = weighed(values, many, order);
+			if (order == 0 || cost < least) least = cost;
+		}
+
+		return least;
+	}
+
+	function paired(one:Vector<Int>, two:Vector<Int>, many:Int):Int {
+		for (index in 0...many) {
+			mid[index] = (one[index] + two[index]) >> 1;
+			side[index] = one[index] - two[index];
+		}
+
+		final left = guessed(one, many);
+		final right = guessed(two, many);
+		final middle = guessed(mid, many);
+		final apart = guessed(side, many);
+
+		var least = left + right;
+		var mode = 1;
+
+		if (left + apart < least) {
+			least = left + apart;
+			mode = 8;
+		}
+
+		if (apart + right < least) {
+			least = apart + right;
+			mode = 9;
+		}
+
+		if (middle + apart < least) mode = 10;
+
+		return mode;
+	}
+
 	function frame(number:Int, many:Int, channels:Int, rate:Int, depth:Int,
 			one:Vector<Int>, two:Vector<Int>):Void {
+		final mode = channels == 2 ? paired(one, two, many) : channels - 1;
+
 		crc8 = 0;
 		crc16 = 0;
 
@@ -255,7 +302,7 @@ final class Flac {
 		put(0, 1);
 		put(7, 4);
 		put(0, 4);
-		put(channels - 1, 4);
+		put(mode, 4);
 		put(depth == 24 ? 6 : 4, 3);
 		put(0, 1);
 
@@ -267,8 +314,23 @@ final class Flac {
 		flush();
 		byte(was);
 
-		subframe(one, many, depth);
-		if (channels > 1) subframe(two, many, depth);
+		switch (mode) {
+			case 8:
+				subframe(one, many, depth);
+				subframe(side, many, depth + 1);
+
+			case 9:
+				subframe(side, many, depth + 1);
+				subframe(two, many, depth);
+
+			case 10:
+				subframe(mid, many, depth);
+				subframe(side, many, depth + 1);
+
+			default:
+				subframe(one, many, depth);
+				if (channels > 1) subframe(two, many, depth);
+		}
 
 		flush();
 
@@ -305,6 +367,116 @@ final class Flac {
 
 	final residual:Vector<Int> = new Vector<Int>(BLOCK);
 
+	public static inline final LPC_MOST = 12;
+	public static inline final PRECISION = 15;
+
+	final shaped:Vector<Float> = new Vector<Float>(BLOCK);
+	final curve:Vector<Float> = new Vector<Float>(BLOCK);
+	final auto:Vector<Float> = new Vector<Float>(LPC_MOST + 1);
+	final ladder:Vector<Float> = new Vector<Float>(LPC_MOST * LPC_MOST);
+	final rest:Vector<Float> = new Vector<Float>(LPC_MOST + 1);
+	final weights:Vector<Float> = new Vector<Float>(LPC_MOST);
+	final swap:Vector<Float> = new Vector<Float>(LPC_MOST);
+	final coefficients:Vector<Int> = new Vector<Int>(LPC_MOST);
+
+	var curved:Int = 0;
+
+	function windowed(many:Int):Void {
+		if (curved == many) return;
+
+		for (index in 0...many) {
+			curve[index] = 0.5 - 0.5 * Math.cos(2 * Math.PI * index / (many - 1));
+		}
+
+		curved = many;
+	}
+
+	function correlated(values:Vector<Int>, many:Int):Void {
+		windowed(many);
+
+		for (index in 0...many) shaped[index] = values[index] * curve[index];
+
+		for (lag in 0...LPC_MOST + 1) {
+			var total = 0.0;
+			for (index in lag...many) total += shaped[index] * shaped[index - lag];
+
+			auto[lag] = total;
+		}
+	}
+
+	function laddered(most:Int):Void {
+		var error = auto[0];
+		rest[0] = error;
+
+		for (order in 0...most) {
+			var acc = auto[order + 1];
+			for (index in 0...order) acc -= weights[index] * auto[order - index];
+
+			final step = error == 0 ? 0.0 : acc / error;
+
+			for (index in 0...order) swap[index] = weights[index] - step * weights[order - 1 - index];
+			for (index in 0...order) weights[index] = swap[index];
+
+			weights[order] = step;
+
+			error *= 1 - step * step;
+			if (error < 0) error = 0;
+
+			rest[order + 1] = error;
+
+			for (index in 0...order + 1) ladder[order * LPC_MOST + index] = weights[index];
+		}
+	}
+
+	function fixedUp(order:Int):Int {
+		var most = 0.0;
+
+		for (index in 0...order) {
+			final value = ladder[(order - 1) * LPC_MOST + index];
+			final size = value < 0 ? -value : value;
+
+			if (size > most) most = size;
+		}
+
+		if (most <= 0) return -1;
+
+		var shift = PRECISION - 1 - Std.int(Math.floor(Math.log(most) / Math.log(2))) - 1;
+
+		if (shift > 15) shift = 15;
+		if (shift < 0) return -1;
+
+		final top = (1 << (PRECISION - 1)) - 1;
+		final bottom = -(1 << (PRECISION - 1));
+		final scale = Math.pow(2, shift);
+
+		var drift = 0.0;
+
+		for (index in 0...order) {
+			final want = ladder[(order - 1) * LPC_MOST + index] * scale + drift;
+
+			var value = Math.round(want);
+
+			if (value > top) value = top;
+			if (value < bottom) value = bottom;
+
+			drift = want - value;
+			coefficients[index] = value;
+		}
+
+		return shift;
+	}
+
+	function modelled(values:Vector<Int>, many:Int, order:Int, shift:Int):Void {
+		final scale = Math.pow(2, shift);
+
+		for (index in order...many) {
+			var total = 0.0;
+			for (step in 0...order) total += coefficients[step] * values[index - 1 - step];
+
+			residual[index] = values[index] - Std.int(Math.ffloor(total / scale));
+		}
+	}
+
 	function subframe(values:Vector<Int>, many:Int, depth:Int):Void {
 		var flat = true;
 		for (index in 1...many) if (values[index] != values[0]) flat = false;
@@ -336,6 +508,62 @@ final class Flac {
 			put(0, 1);
 
 			for (index in 0...many) put(values[index] & ((1 << depth) - 1), depth);
+			return;
+		}
+
+		var order = 0;
+		var shift = -1;
+		var leastLpc = 0.0;
+
+		if (many > LPC_MOST * 2) {
+			correlated(values, many);
+
+			if (auto[0] > 0) {
+				laddered(LPC_MOST);
+
+				for (want in 1...LPC_MOST + 1) {
+					final tried = fixedUp(want);
+					if (tried < 0) continue;
+
+					modelled(values, many, want, tried);
+
+					var total = 0.0;
+
+					for (index in want...many) {
+						final value = residual[index];
+						total += value < 0 ? -value : value;
+					}
+
+					final cost = total + want * (PRECISION + depth);
+
+					if (shift < 0 || cost < leastLpc) {
+						leastLpc = cost;
+						order = want;
+						shift = tried;
+					}
+				}
+			}
+		}
+
+		if (shift >= 0 && leastLpc < least) {
+			put(0, 1);
+			put(32 + order - 1, 6);
+			put(0, 1);
+
+			for (index in 0...order) put(values[index] & ((1 << depth) - 1), depth);
+
+			put(PRECISION - 1, 4);
+			put(shift, 5);
+
+			fixedUp(order);
+
+			for (index in 0...order) {
+				put(coefficients[index] & ((1 << PRECISION) - 1), PRECISION);
+			}
+
+			modelled(values, many, order, shift);
+			coded(many, order);
+
 			return;
 		}
 
@@ -376,43 +604,114 @@ final class Flac {
 		return total + order * 32;
 	}
 
+	static inline final MOST_PARTS = 6;
+	static inline final MOST_RICE = 14;
+
+	final sums:Vector<Float> = new Vector<Float>(1 << MOST_PARTS);
+
 	function coded(many:Int, order:Int):Void {
+		var most = 0;
+
+		while (most < MOST_PARTS && (many & ((1 << (most + 1)) - 1)) == 0
+			&& (many >> (most + 1)) > order) most++;
+
+		gathered(many, order, most);
+
+		var bestOrder = 0;
+		var least = 0.0;
+
+		for (level in 0...most + 1) {
+			final cost = costed(many, order, level);
+
+			if (level == 0 || cost < least) {
+				least = cost;
+				bestOrder = level;
+			}
+		}
+
 		put(0, 2);
-		put(0, 4);
+		put(bestOrder, 4);
 
-		final parameter = fitted(order, many);
+		final parts = 1 << bestOrder;
+		final each = many >> bestOrder;
 
-		put(parameter, 4);
-		for (index in order...many) rice(residual[index], parameter);
+		for (index in 0...parts) {
+			final from = index == 0 ? order : index * each;
+			final until = (index + 1) * each;
+
+			final parameter = fitted(from, until);
+
+			put(parameter, 4);
+			for (at in from...until) rice(residual[at], parameter);
+		}
+	}
+
+	function gathered(many:Int, order:Int, most:Int):Void {
+		final parts = 1 << most;
+		final each = many >> most;
+
+		for (index in 0...parts) {
+			final from = index == 0 ? order : index * each;
+			final until = (index + 1) * each;
+
+			var total = 0.0;
+			for (at in from...until) total += zigzag(residual[at]);
+
+			sums[index] = total;
+		}
+	}
+
+	function costed(many:Int, order:Int, level:Int):Float {
+		final parts = 1 << level;
+		final each = many >> level;
+		final gather = 1 << (MOST_PARTS - level);
+
+		var total = 0.0;
+
+		for (index in 0...parts) {
+			var held = 0.0;
+			for (step in 0...gather) held += sums[index * gather + step];
+
+			final count = index == 0 ? each - order : each;
+
+			total += 4 + priced(held, count);
+		}
+
+		return total;
+	}
+
+	static function priced(total:Float, count:Int):Float {
+		if (count < 1) return 0;
+
+		var least = 0.0;
+
+		for (parameter in 0...MOST_RICE + 1) {
+			final cost = count * (1 + parameter) + total / (1 << parameter);
+			if (parameter == 0 || cost < least) least = cost;
+		}
+
+		return least;
 	}
 
 	function fitted(from:Int, until:Int):Int {
+		final count = until - from;
+		if (count < 1) return 0;
+
 		var total = 0.0;
-		final many = until - from;
+		for (index in from...until) total += zigzag(residual[index]);
 
-		if (many < 1) return 0;
+		var best = 0;
+		var least = 0.0;
 
-		for (index in from...until) {
-			final value = residual[index];
-			total += value < 0 ? -value : value;
+		for (parameter in 0...MOST_RICE + 1) {
+			final cost = count * (1 + parameter) + total / (1 << parameter);
+
+			if (parameter == 0 || cost < least) {
+				least = cost;
+				best = parameter;
+			}
 		}
 
-		final mean = total / many;
-		var parameter = 0;
-
-		while (parameter < 14 && (1 << parameter) < mean) parameter++;
-
-		var widest = 0;
-
-		for (index in from...until) {
-			final value = residual[index];
-			final much = value < 0 ? -value : value;
-
-			if (much > widest) widest = much;
-		}
-
-		while (parameter < 14 && (widest >>> parameter) > 64) parameter++;
-
-		return parameter;
+		return best;
 	}
 }
