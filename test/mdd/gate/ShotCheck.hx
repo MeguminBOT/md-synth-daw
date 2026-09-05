@@ -49,6 +49,7 @@ class ShotCheck {
 		var point = false;
 		var typing = false;
 		var traced = false;
+		var direct = false;
 
 		var at = 0;
 
@@ -76,6 +77,7 @@ class ShotCheck {
 				case "--point": point = true;
 				case "--typing": typing = true;
 				case "--traced": traced = true;
+				case "--direct": direct = true;
 				case _:
 			}
 
@@ -347,7 +349,7 @@ class ShotCheck {
 			}
 		}
 
-		Draw.setTarget(renderer, texture);
+		if (!direct) Draw.setTarget(renderer, texture);
 
 		final ground = tree.theme.ground;
 		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
