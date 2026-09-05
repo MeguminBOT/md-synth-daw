@@ -35,7 +35,8 @@ final class Preferences extends Widget {
 	public static inline final MIDI_CHANNEL = 14;
 	public static inline final MIDI_VELOCITY = 15;
 	public static inline final CONSOLE = 16;
-	public static inline final ROWS = 17;
+	public static inline final TEMPO = 17;
+	public static inline final ROWS = 18;
 
 	public static inline final LOOK = 0;
 	public static inline final EDITING = 1;
@@ -50,7 +51,7 @@ final class Preferences extends Widget {
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
-		[AUTOMATING, TAIL],
+		[AUTOMATING, TAIL, TEMPO],
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
@@ -72,7 +73,10 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
-		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE];
+		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
+		Locale.PREFERENCE_TEMPO];
+
+	static final TEMPOS:Array<String> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
 
 	static final CONSOLES:Array<String> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
@@ -133,6 +137,7 @@ final class Preferences extends Widget {
 	public var keyboardChannel(default, null):Int = 0;
 	public var keyboardVelocity(default, null):Int = 0;
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
+	public var tempo(default, null):Int = 0;
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -149,6 +154,7 @@ final class Preferences extends Widget {
 	public var onKeyboardChannel:Null<Int -> Void> = null;
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
 	public var onConsole:Null<Int -> Void> = null;
+	public var onTempo:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverButton:Int = -1;
@@ -365,6 +371,7 @@ final class Preferences extends Widget {
 			case MIDI_CHANNEL: channels();
 			case MIDI_VELOCITY: VELOCITIES;
 			case CONSOLE: CONSOLES;
+			case TEMPO: TEMPOS;
 			case _: languages;
 		}
 	}
@@ -426,6 +433,7 @@ final class Preferences extends Widget {
 			case MIDI_CHANNEL: keyboardChannel;
 			case MIDI_VELOCITY: keyboardVelocity;
 			case CONSOLE: console;
+			case TEMPO: tempo;
 			case _: language;
 		}
 	}
@@ -496,6 +504,10 @@ final class Preferences extends Widget {
 			case CONSOLE:
 				console = which;
 				if (onConsole != null) onConsole(which);
+
+			case TEMPO:
+				tempo = which;
+				if (onTempo != null) onTempo(which);
 
 			case _:
 				language = which;

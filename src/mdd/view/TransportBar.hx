@@ -35,6 +35,7 @@ final class TransportBar extends Widget {
 	public final session:Session;
 
 	public final tempo:Number;
+	public var regrids:Bool = false;
 	public final resolution:Number;
 	public final length:Number;
 	public final video:Number;
@@ -130,7 +131,8 @@ final class TransportBar extends Widget {
 
 	function tempoChanged(from:Number):Void {
 		if (settling) return;
-		session.does(new SetTempo(0, from.value));
+		if (regrids) session.does(new mdd.song.edit.SetGrid(from.value));
+		else session.does(new SetTempo(0, from.value));
 	}
 
 	function resolutionChanged(from:Number):Void {

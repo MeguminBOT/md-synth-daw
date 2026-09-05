@@ -30,6 +30,7 @@ class MixCheck {
 		consoled(into);
 		voiced();
 		ceilinged();
+		gridded();
 		singly();
 		furnished();
 		threaded();
@@ -498,6 +499,53 @@ class MixCheck {
 		says("six channels of shipped patches fill the range", loudest > 0.3,
 			"a chord across every fm channel using the built in patches peaks at "
 			+ decibels(loudest) + " dBFS");
+	}
+
+	static function gridded():Void {
+		final song = new Song("grid", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(song);
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(96, 96, 60, 127, 0));
+
+		final note = pattern.lane(mdd.song.Part.Fm1).notes[0];
+
+		final wasAt = note.at;
+		final wasTime = song.tempo.samplesAt(note.at);
+
+		song.tempo.set(0, 160);
+
+		final spedAt = note.at;
+		final spedTime = song.tempo.samplesAt(note.at);
+
+		says("a faster tempo leaves the note on its beat", spedAt == wasAt
+			&& spedTime < wasTime,
+			"the note stays at tick " + spedAt + " and arrives at " + Math.round(spedTime)
+			+ " samples against " + Math.round(wasTime));
+
+		song.tempo.set(0, 120);
+
+		song.regrid(160);
+
+		final movedAt = note.at;
+		final movedTime = song.tempo.samplesAt(note.at);
+
+		final apart = movedTime - wasTime;
+
+		says("moving the grid leaves the music where it was", movedAt != wasAt
+			&& (apart < 0 ? -apart : apart) < 64 && Math.abs(song.tempo.beatsAt(0) - 160) < 0.01,
+			"the note moved from tick " + wasAt + " to " + movedAt + " and still sounds within "
+			+ Math.round(apart < 0 ? -apart : apart) + " samples of where it did");
+
+		song.regrid(120);
+
+		says("and it goes back", note.at == wasAt
+			&& Math.abs(song.tempo.beatsAt(0) - 120) < 0.01,
+			"the note is at tick " + note.at + " again with the tempo at "
+			+ Math.round(song.tempo.beatsAt(0)));
 	}
 
 	static function consoled(into:String):Void {

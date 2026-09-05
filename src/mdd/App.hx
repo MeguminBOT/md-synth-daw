@@ -188,6 +188,11 @@ class App {
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
 
+		panels.preferences.onTempo = function(which:Int):Void {
+			panels.bar.regrids = which != 0;
+			keeps();
+		};
+
 		panels.preferences.onConsole = function(which:Int):Void {
 			consoled(which);
 			keeps();
@@ -690,6 +695,8 @@ class App {
 		panels.preferences.chose(Preferences.CONSOLE,
 			settings.asWhole("console", mdd.play.Render.MODEL_ONE));
 
+		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
+
 		stage.root.reshape();
 	}
 
@@ -720,6 +727,7 @@ class App {
 		settings.whole("midiChannel", panels.preferences.keyboardChannel);
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 		settings.whole("console", panels.preferences.console);
+		settings.whole("tempo", panels.preferences.tempo);
 
 		settings.save();
 	}

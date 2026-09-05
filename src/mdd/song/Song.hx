@@ -215,35 +215,53 @@ final class Song {
 
 		if (want == was) return;
 
-		final scale = want / was;
+		stretch(want / was);
+		tempo.resolve(want);
+	}
+
+	public function regrid(beats:Float):Void {
+		final was = tempo.beatsAt(0);
+
+		if (was <= 0 || beats <= 0) return;
+
+		final by = beats / was;
+		if (by > 0.9999 && by < 1.0001) return;
+
+		stretch(by);
+
+		for (index in 0...tempo.bpm.length) tempo.bpm[index] *= by;
+
+		tempo.resolve(tempo.ppqn);
+	}
+
+	public function stretch(by:Float):Void {
+		if (by <= 0) return;
 
 		for (pattern in patterns) {
-			pattern.length = scaled(pattern.length, scale);
+			pattern.length = scaled(pattern.length, by);
 
 			for (index in 0...Part.COUNT) {
 				final lane = pattern.lane(index);
 
 				for (note in lane.notes) {
-					note.at = scaled(note.at, scale);
-					note.length = scaled(note.length, scale);
+					note.at = scaled(note.at, by);
+					note.length = scaled(note.length, by);
 				}
 
 				for (line in lane.automation) {
-					for (point in line.points) point.at = scaled(point.at, scale);
+					for (point in line.points) point.at = scaled(point.at, by);
 				}
 			}
 		}
 
 		for (track in tracks) {
 			for (clip in track.clips) {
-				clip.at = scaled(clip.at, scale);
-				clip.length = scaled(clip.length, scale);
+				clip.at = scaled(clip.at, by);
+				clip.length = scaled(clip.length, by);
 			}
 		}
 
-		for (index in 0...tempo.at.length) tempo.at[index] = scaled(tempo.at[index], scale);
-
-		tempo.resolve(want);
+		for (index in 0...tempo.at.length) tempo.at[index] = scaled(tempo.at[index], by);
 	}
 
 	static inline function scaled(value:Int, by:Float):Int {
