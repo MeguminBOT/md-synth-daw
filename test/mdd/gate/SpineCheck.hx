@@ -1105,6 +1105,7 @@ class SpineCheck {
 			lane.notes.length + " notes back from a single undo");
 
 		freed(tree, session, roll, beat);
+		levelled(tree, session, roll, beat);
 		clipped(session, centre);
 		gathered(tree, session, centre.roll);
 	}
@@ -1147,6 +1148,71 @@ class SpineCheck {
 			+ ", and on " + free + " with alt held");
 
 		lane.notes.resize(0);
+	}
+
+	static function levelled(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll, beat:Int):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		roll.showLanes = true;
+		roll.shows(0);
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		if (roll.velocityTall() <= 0) return;
+
+		final lane = pattern.lane(session.part);
+
+		lane.notes.resize(0);
+		lane.add(new Note(beat, Std.int(beat / 2), 60, 100));
+
+		roll.choose(null);
+		session.history.clear();
+
+		final note = lane.notes[0];
+		final was = note.velocity;
+
+		final top = roll.y + roll.height - roll.lanes() + roll.stripHead()
+			+ roll.velocityTall() * 0.2;
+		final floor = roll.y + roll.height - roll.lanes() + roll.velocityTall() * 0.9;
+		final at = roll.atTick(note.at);
+
+		final press = new mdd.ui.Input();
+		press.pointer(mdd.ui.Kind.PointerDown, at, top, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+		roll.took(press);
+
+		for (step in 0...16) {
+			final move = new mdd.ui.Input();
+			move.pointer(mdd.ui.Kind.PointerMove, at,
+				top + (floor - top) * (step + 1) / 16, mdd.ui.Pointer.Left,
+				mdd.ui.Mod.None);
+
+			roll.took(move);
+		}
+
+		final during = session.history.depth();
+		final pulled = note.velocity;
+
+		final lift = new mdd.ui.Input();
+		lift.pointer(mdd.ui.Kind.PointerUp, at, floor, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		roll.took(lift);
+
+		says("leaning on a velocity is one step of history",
+			pulled != was && during == 0 && session.history.depth() == 1,
+			"the velocity went from " + was + " to " + pulled + " across 16 moves that left "
+			+ during + " steps, and " + session.history.depth() + " once the button came up");
+
+		session.undo();
+
+		says("and it undoes", note.velocity == was,
+			"the velocity reads " + note.velocity + " again");
+
+		lane.notes.resize(0);
+		session.history.clear();
 	}
 
 	static function clipped(session:mdd.app.Session, centre:Centre):Void {

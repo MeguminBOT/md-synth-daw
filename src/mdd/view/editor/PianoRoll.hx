@@ -66,6 +66,10 @@ final class PianoRoll extends Widget {
 	var bandToX:Float = 0;
 	var bandToY:Float = 0;
 
+	final leaning:Array<Note> = [];
+	final wereLoud:Array<Int> = [];
+	var leadLoud:Int = 0;
+
 	final moving:Array<Note> = [];
 	final wereAt:Array<Int> = [];
 	final werePitch:Array<Int> = [];
@@ -857,7 +861,12 @@ final class PianoRoll extends Widget {
 					if (event.x < x + gutter()) return true;
 
 					stalking = stalkAt(event.x);
-					if (stalking != null) leaned(event.y);
+
+					if (stalking != null) {
+						leans(stalking);
+						leaned(event.y);
+					}
+
 					return true;
 				}
 
@@ -1019,6 +1028,7 @@ final class PianoRoll extends Widget {
 
 				if (stalking != null) {
 					stalking = null;
+					leanDropped();
 					return true;
 				}
 
@@ -1197,16 +1207,67 @@ final class PianoRoll extends Widget {
 		final held = picked.taken();
 		if (held.length == 0) return;
 
-		for (note in held) {
-			final want = note.velocity + by;
-			note.velocity = want < 1 ? 1 : (want > 127 ? 127 : want);
+		if (held.length == 1) {
+			session.does(new mdd.song.edit.SetVelocity(held[0], held[0].velocity + by));
+			session.say("velocity " + held[0].velocity);
+		} else {
+			final group = new mdd.song.edit.Together((by > 0 ? "raise " : "lower ")
+				+ counted(held.length));
+
+			for (note in held) {
+				group.also(new mdd.song.edit.SetVelocity(note, note.velocity + by));
+			}
+
+			session.does(group);
+			session.say(counted(held.length) + " leaned "
+				+ (by > 0 ? "louder" : "quieter"));
 		}
 
-		session.say(held.length == 1 ? "velocity " + held[0].velocity
-			: counted(held.length) + " leaned " + (by > 0 ? "louder" : "quieter"));
-
-		session.changed();
 		invalidate();
+	}
+
+	function leans(lead:Note):Void {
+		leaning.resize(0);
+		wereLoud.resize(0);
+
+		if (picked.count > 1 && picked.holds(lead)) {
+			for (index in 0...picked.count) leaning.push(picked.at(index));
+		} else {
+			picked.only(lead);
+			leaning.push(lead);
+		}
+
+		for (note in leaning) wereLoud.push(note.velocity);
+
+		leadLoud = lead.velocity;
+		chosen = lead;
+	}
+
+	function leanDropped():Void {
+		var many = 0;
+		for (index in 0...leaning.length) {
+			if (leaning[index].velocity != wereLoud[index]) many++;
+		}
+
+		if (many == 0) return;
+
+		final wants:Array<Int> = [];
+		for (note in leaning) wants.push(note.velocity);
+
+		for (index in 0...leaning.length) leaning[index].velocity = wereLoud[index];
+
+		if (leaning.length == 1) {
+			session.does(new mdd.song.edit.SetVelocity(leaning[0], wants[0]));
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("lean " + counted(leaning.length));
+
+		for (index in 0...leaning.length) {
+			group.also(new mdd.song.edit.SetVelocity(leaning[index], wants[index]));
+		}
+
+		session.does(group);
 	}
 
 	function scaled(kind:Int, key:Int):Void {
@@ -1649,21 +1710,13 @@ final class PianoRoll extends Widget {
 		final want = Math.round(part * 127);
 		if (want == stalking.velocity) return;
 
-		final by = want - stalking.velocity;
+		final by = want - leadLoud;
 
-		if (picked.count > 1 && picked.holds(stalking)) {
-			for (index in 0...picked.count) {
-				final note = picked.at(index);
-				final held = note.velocity + by;
-
-				note.velocity = held < 1 ? 1 : (held > 127 ? 127 : held);
-			}
-		} else {
-			stalking.velocity = want < 1 ? 1 : want;
-			picked.only(stalking);
+		for (index in 0...leaning.length) {
+			final held = wereLoud[index] + by;
+			leaning[index].velocity = held < 1 ? 1 : (held > 127 ? 127 : held);
 		}
 
-		chosen = stalking;
 		session.changed();
 		invalidate();
 	}

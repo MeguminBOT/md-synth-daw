@@ -694,10 +694,7 @@ final class Tracker extends Widget {
 		final held = noteAt(row, column);
 		if (held == null) return;
 
-		final want = held.velocity + by;
-		held.velocity = want < 1 ? 1 : (want > 127 ? 127 : want);
-
-		session.changed();
+		session.does(new mdd.song.edit.SetVelocity(held, held.velocity + by));
 		invalidate();
 	}
 

@@ -91,6 +91,7 @@ final class Lanes extends Widget {
 	var bending:Int = -1;
 	var bentFrom:Float = 0;
 	var bentWas:Int = 0;
+	var bentPoint:Null<Point> = null;
 	var wasAt:Int = 0;
 	var wasValue:Int = 0;
 
@@ -844,6 +845,7 @@ final class Lanes extends Widget {
 			case Kind.PointerUp:
 				if (banding) banded();
 				if (dragging != null) dropped();
+				if (bending >= 0) bendDropped();
 
 				dragging = null;
 				bending = -1;
@@ -1263,13 +1265,26 @@ final class Lanes extends Widget {
 
 		if (want == chosen.tension) return true;
 
-		chosen.tension = bentWas;
-		session.does(new ShapePoint(chosen, chosen.shape, want, chosen.steps));
+		chosen.tension = want;
+		bentPoint = chosen;
 
 		session.say("tension " + want);
+		session.changed();
 		invalidate();
 
 		return true;
+	}
+
+	function bendDropped():Void {
+		final point = bentPoint;
+
+		bentPoint = null;
+		if (point == null || point.tension == bentWas) return;
+
+		final want = point.tension;
+		point.tension = bentWas;
+
+		session.does(new ShapePoint(point, point.shape, want, point.steps));
 	}
 
 	override function hovered(on:Bool):Void {
