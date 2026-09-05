@@ -87,6 +87,7 @@ final class Lanes extends Widget {
 	var leastAt:Int = 0;
 	var leastValue:Int = 0;
 	var mostValue:Int = 0;
+	var fresh:Bool = false;
 	var bending:Int = -1;
 	var bentFrom:Float = 0;
 	var bentWas:Int = 0;
@@ -842,6 +843,7 @@ final class Lanes extends Widget {
 
 			case Kind.PointerUp:
 				if (banding) banded();
+				if (dragging != null) dropped();
 
 				dragging = null;
 				bending = -1;
@@ -926,6 +928,7 @@ final class Lanes extends Widget {
 			draggingAt = row;
 			wasAt = point.at;
 			wasValue = point.value;
+			fresh = false;
 
 			grabs(point, row);
 			anchors(event, point);
@@ -1055,6 +1058,7 @@ final class Lanes extends Widget {
 		draggingAt = row;
 		wasAt = point.at;
 		wasValue = point.value;
+		fresh = true;
 
 		grabs(point, row);
 
@@ -1064,7 +1068,7 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
-	function hauled(byTick:Int, byValue:Int, held:Parameter):Void {
+	function shifts(byTick:Int, byValue:Int, held:Parameter):Void {
 		var tick = byTick;
 		var value = byValue;
 
@@ -1073,18 +1077,59 @@ final class Lanes extends Widget {
 		if (mostValue + value > held.high) value = held.high - mostValue;
 
 		for (index in 0...moving.length) {
+			moving[index].at = movingAt[index] + tick;
+			moving[index].value = held.holds(movingValue[index] + value);
+		}
+
+		final line = lineOf(draggingAt);
+		if (line != null) line.sort();
+
+		session.changed();
+	}
+
+	function dropped():Void {
+		if (draggingAt < 0 || moving.length == 0) return;
+
+		if (fresh) {
+			fresh = false;
+			return;
+		}
+
+		var many = 0;
+
+		for (index in 0...moving.length) {
+			if (moving[index].at != movingAt[index]
+				|| moving[index].value != movingValue[index]) many++;
+		}
+
+		if (many == 0) return;
+
+		final wantAt:Array<Int> = [];
+		final wantValue:Array<Int> = [];
+
+		for (point in moving) {
+			wantAt.push(point.at);
+			wantValue.push(point.value);
+		}
+
+		for (index in 0...moving.length) {
 			moving[index].at = movingAt[index];
 			moving[index].value = movingValue[index];
 		}
 
-		if (tick == 0 && value == 0) return;
+		if (moving.length == 1) {
+			session.does(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
+				slotted(draggingAt), moving[0], wantAt[0], wantValue[0], driven()));
+
+			return;
+		}
 
 		final group = new mdd.song.edit.Together("move " + counted(moving.length));
 
 		for (index in 0...moving.length) {
 			group.also(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
-				slotted(draggingAt), moving[index], movingAt[index] + tick,
-				held.holds(movingValue[index] + value), driven()));
+				slotted(draggingAt), moving[index], wantAt[index], wantValue[index],
+				driven()));
 		}
 
 		session.does(group);
@@ -1165,16 +1210,7 @@ final class Lanes extends Widget {
 
 			if (tick == dragging.at && value == dragging.value) return true;
 
-			if (moving.length > 1) {
-				hauled(tick - wasAt, value - wasValue, held);
-			} else {
-				dragging.at = wasAt;
-				dragging.value = wasValue;
-
-				session.does(new MovePoint(session.pattern, drivenPart(),
-					targeted(draggingAt), slotted(draggingAt), dragging, tick, value,
-					driven()));
-			}
+			shifts(tick - wasAt, value - wasValue, held);
 
 			session.say(held.titled(slotted(draggingAt)) + "  " + held.said(value));
 			invalidate();

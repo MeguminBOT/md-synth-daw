@@ -228,16 +228,57 @@ class SpineCheck {
 			: "" + stack.chosen.value));
 
 		final was = stack.chosen == null ? 0 : stack.chosen.value;
+		final depth = session.history.depth();
+		final floor = stack.rowTop(0) + stack.rowHeight() * 0.75;
 
-		final move = new mdd.ui.Input();
-		move.pointer(mdd.ui.Kind.PointerMove, at, stack.rowTop(0) + stack.rowHeight() * 0.75,
-			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
-		stack.took(move);
+		for (step in 0...24) {
+			final move = new mdd.ui.Input();
+			move.pointer(mdd.ui.Kind.PointerMove, at,
+				top + (floor - top) * (step + 1) / 24, mdd.ui.Pointer.Left,
+				mdd.ui.Mod.None);
+
+			stack.took(move);
+		}
 
 		final now = stack.chosen == null ? was : stack.chosen.value;
 
 		says("and dragging it changes what it holds", now != was,
 			"the point read " + was + " and reads " + now + " after being dragged down");
+
+		final lift = new mdd.ui.Input();
+		lift.pointer(mdd.ui.Kind.PointerUp, at, floor, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(lift);
+
+		says("and dragging one just drawn adds no step of its own",
+			session.history.depth() == depth,
+			"24 moves after the press that made it added "
+			+ (session.history.depth() - depth) + " steps, so undoing the press takes the"
+			+ " point away wherever it was dragged to");
+
+		final again = session.history.depth();
+		stack.took(pressAt(at, floor));
+
+		for (step in 0...24) {
+			final move = new mdd.ui.Input();
+			move.pointer(mdd.ui.Kind.PointerMove, at,
+				floor + (top - floor) * (step + 1) / 24, mdd.ui.Pointer.Left,
+				mdd.ui.Mod.None);
+
+			stack.took(move);
+		}
+
+		final during = session.history.depth() - again;
+
+		final up = new mdd.ui.Input();
+		up.pointer(mdd.ui.Kind.PointerUp, at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		stack.took(up);
+
+		says("and moving it again is one step too", during == 0
+			&& session.history.depth() == again + 1,
+			"24 pointer moves added " + during + " steps while dragging and "
+			+ (session.history.depth() - again) + " once the button came up");
+
+		session.undo();
 
 		session.undo();
 		session.undo();
