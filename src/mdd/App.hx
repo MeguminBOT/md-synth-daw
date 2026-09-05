@@ -254,7 +254,7 @@ class App {
 		menus.onNew = function():Void fresh();
 
 		menus.onNudge = function(way:Int):Void {
-			session.does(new mdd.song.edit.ShiftSong(way * session.snap));
+			session.does(new mdd.song.edit.ShiftSong(way));
 			session.say(stage.root.translate(way < 0 ? Locale.EDIT_EARLIER : Locale.EDIT_LATER));
 		};
 		menus.dress(session);

@@ -31,6 +31,7 @@ class MixCheck {
 		voiced();
 		ceilinged();
 		gridded();
+		nudged();
 		singly();
 		furnished();
 		threaded();
@@ -546,6 +547,45 @@ class MixCheck {
 			&& Math.abs(song.tempo.beatsAt(0) - 120) < 0.01,
 			"the note is at tick " + note.at + " again with the tempo at "
 			+ Math.round(song.tempo.beatsAt(0)));
+	}
+
+	static function nudged():Void {
+		final song = new Song("nudge", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(song);
+
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(100, 48, 60, 127, 0));
+		pattern.lane(mdd.song.Part.Fm2).add(new mdd.song.Note(196, 48, 64, 127, 0));
+
+		final one = pattern.lane(mdd.song.Part.Fm1).notes[0];
+		final two = pattern.lane(mdd.song.Part.Fm2).notes[0];
+
+		final grid = Std.int(song.tempo.ppqn / 4);
+		final was = away(one.at, grid) + away(two.at, grid);
+
+		final held = new mdd.song.edit.ShiftSong(-4);
+		held.apply(song);
+
+		final now = away(one.at, grid) + away(two.at, grid);
+
+		says("a shift walks the notes onto the grid", one.at == 96 && two.at == 192
+			&& now == 0 && was > 0 && song.offset == -4,
+			"two notes four ticks late moved to " + one.at + " and " + two.at
+			+ ", which is " + was + " ticks off the grid before and " + now + " after");
+
+		held.revert(song);
+
+		says("and it goes back", one.at == 100 && two.at == 196 && song.offset == 0,
+			"the notes are at " + one.at + " and " + two.at + " again with no shift left");
+	}
+
+	static function away(at:Int, grid:Int):Int {
+		final over = at % grid;
+		return over > grid - over ? grid - over : over;
 	}
 
 	static function consoled(into:String):Void {

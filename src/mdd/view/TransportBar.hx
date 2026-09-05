@@ -35,6 +35,7 @@ final class TransportBar extends Widget {
 	public final session:Session;
 
 	public final tempo:Number;
+	public final offset:Number;
 	public var regrids:Bool = false;
 	public final resolution:Number;
 	public final length:Number;
@@ -67,8 +68,9 @@ final class TransportBar extends Widget {
 		length = new Number("", bars(), 1, 256);
 		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
 		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
+		offset = new Number("", song.offset, -960, 960);
 
-		held = [tempo, resolution, length, video, snap];
+		held = [tempo, resolution, length, video, snap, offset];
 
 		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
 		snap.derived = function(value:Int):String return SNAP_NAMES[value];
@@ -77,6 +79,7 @@ final class TransportBar extends Widget {
 		resolution.label = "PPQN";
 		video.label = "";
 		snap.label = "";
+		offset.label = "SHIFT";
 
 		for (field in held) add(field);
 
@@ -85,6 +88,7 @@ final class TransportBar extends Widget {
 		length.onChange = function(from:Number):Void lengthChanged(from);
 		video.onChange = function(from:Number):Void videoChanged(from);
 		snap.onChange = function(from:Number):Void snapChanged(from);
+		offset.onChange = function(from:Number):Void offsetChanged(from);
 	}
 
 	public function fields():Array<Number> {
@@ -121,6 +125,7 @@ final class TransportBar extends Widget {
 		}
 
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
+		offset.set(session.song.offset);
 		resolution.set(session.song.tempo.ppqn);
 		length.set(bars());
 		video.set(session.song.tempo.rate == 50 ? 0 : 1);
@@ -133,6 +138,15 @@ final class TransportBar extends Widget {
 		if (settling) return;
 		if (regrids) session.does(new mdd.song.edit.SetGrid(from.value));
 		else session.does(new SetTempo(0, from.value));
+	}
+
+	function offsetChanged(from:Number):Void {
+		if (settling) return;
+
+		final by = from.value - session.song.offset;
+		if (by == 0) return;
+
+		session.does(new mdd.song.edit.ShiftSong(by));
 	}
 
 	function resolutionChanged(from:Number):Void {

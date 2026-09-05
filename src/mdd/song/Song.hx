@@ -234,8 +234,12 @@ final class Song {
 		tempo.resolve(tempo.ppqn);
 	}
 
+	public var offset(default, null):Int = 0;
+
 	public function shift(by:Int):Void {
 		if (by == 0) return;
+
+		offset += by;
 
 		for (pattern in patterns) {
 			if (by > 0) pattern.length += by;
