@@ -343,6 +343,7 @@
   "track.rename": "Rename this track",
   "track.unmute": "Unmute this track",
   "tracker.division": "row",
+  "tracker.unread": "Not a note",
   "transport.armed": "recording: playing a key writes a note",
   "transport.bars": "BARS",
   "transport.disarmed": "no longer recording",

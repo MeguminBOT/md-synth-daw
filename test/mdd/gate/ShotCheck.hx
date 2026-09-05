@@ -47,6 +47,7 @@ class ShotCheck {
 		var rows = 0;
 		var icons = false;
 		var point = false;
+		var typing = false;
 
 		var at = 0;
 
@@ -72,6 +73,7 @@ class ShotCheck {
 				case "--rows": rows = whole(held, rows); at++;
 				case "--icons": icons = true;
 				case "--point": point = true;
+				case "--typing": typing = true;
 				case _:
 			}
 
@@ -210,6 +212,7 @@ class ShotCheck {
 
 		centre.show(centreTab);
 		editor.show(inspectorTab);
+
 		if (dockTab > 0) centre.show(mdd.view.Centre.WARNINGS);
 		dock.said = "ready";
 		dock.usage = "cpu 4%   ram 182 MB   gpu 2%   ring 69 ms";
@@ -289,6 +292,29 @@ class ShotCheck {
 			for (step in 0...12) {
 				tree.advance(0.05);
 				tree.frame(paint);
+			}
+		}
+
+		if (typing && centreTab == Centre.TRACKER) {
+			final pattern = session.current();
+
+			if (pattern != null && session.song.ends() < pattern.length) {
+				session.song.tracks[0].add(new mdd.song.Clip(session.pattern, 0,
+					pattern.length));
+			}
+
+			tree.reshape();
+			tree.top.measure(tree.width, tree.height);
+			tree.top.arrange(0, 0, tree.width, tree.height);
+
+			centre.tracker.at(6, mdd.song.Part.Fm3.index());
+			centre.tracker.opens();
+
+			for (index in 0..."C#5 3".length) {
+				final event = new mdd.ui.Input();
+				event.typed("C#5 3".charAt(index), mdd.ui.Mod.None);
+
+				centre.tracker.took(event);
 			}
 		}
 

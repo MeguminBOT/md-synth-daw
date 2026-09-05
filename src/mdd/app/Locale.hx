@@ -211,6 +211,7 @@ class Locale {
 	public static inline final VIEW_SCOPE = "view.scope";
 	public static inline final VIEW_TRACKER = "view.tracker";
 	public static inline final TRACKER_DIVISION = "tracker.division";
+	public static inline final TRACKER_UNREAD = "tracker.unread";
 	public static inline final VIEW_PLAYLIST = "view.playlist";
 	public static inline final VIEW_REGISTERS = "view.registers";
 	public static inline final VIEW_PATTERNS = "view.patterns";
@@ -486,7 +487,7 @@ class Locale {
 		HARDWARE, HARDWARE_FM, HARDWARE_OPERATORS, HARDWARE_SQUARE, HARDWARE_SAMPLE,
 		HARDWARE_NOW, HARDWARE_SONG,
 		VIEW_ROLL, VIEW_SCOPE, VIEW_TRACKER, VIEW_PLAYLIST,
-		TRACKER_DIVISION,
+		TRACKER_DIVISION, TRACKER_UNREAD,
 		VIEW_REGISTERS, VIEW_PATTERNS, VIEW_WARNINGS,
 		TRACK_ADD, TRACK_RENAME, TRACK_DELETE, TRACK_MUTE, TRACK_UNMUTE, TRACK_LAST, TRACK_NAME,
 		PREFERENCES, PREFERENCES_CLOSE, PREFERENCE_THEME, PREFERENCE_TYPEFACE,

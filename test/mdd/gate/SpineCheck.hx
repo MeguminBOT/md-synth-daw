@@ -806,6 +806,86 @@ class SpineCheck {
 		return held[Std.int(many / 2)];
 	}
 
+	static function wrote(tree:Root, widget:mdd.ui.Widget, said:String):Void {
+		for (index in 0...said.length) {
+			final event = new mdd.ui.Input();
+			event.typed(said.charAt(index), mdd.ui.Mod.None);
+
+			widget.took(event);
+		}
+	}
+
+	static function entered(tree:Root, tracker:Tracker, lane:mdd.song.Lane):Void {
+		says("a note spelt out reads as one",
+			Tracker.pitched("C-4") == 60 && Tracker.pitched("C#4") == 61
+			&& Tracker.pitched("Db4") == 61 && Tracker.pitched("c4") == 60
+			&& Tracker.pitched("B-3") == 59 && Tracker.pitched("H-4") == -1
+			&& Tracker.pitched("") == -1 && Tracker.louded("C-4 20") == 64,
+			"C-4, C#4, Db4, c4 and B-3 read as 60, 61, 61, 60 and 59, H-4 reads as"
+			+ " nothing, and a trailing 20 reads as a velocity of 64");
+
+		lane.notes.resize(0);
+
+		final part = mdd.song.Part.Fm3;
+		final at = tracker.atColumn(part.index()) + tracker.columnWide() * 0.5;
+		final top = tracker.y + tracker.head() + tracker.rowTall() * 2.5
+			- tracker.offsetY;
+
+		tree.focusOn(tracker);
+		tracker.at(2, part.index());
+
+		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 2);
+		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("a cell opens on a double click", tracker.entering && tracker.typing
+			&& tracker.entered == "",
+			"the cell under the pointer is taking characters and reads '"
+			+ tracker.entered + "'");
+
+		wrote(tree, tracker, "C#5 30");
+
+		says("and what is typed lands in it", tracker.entered == "C#5 30",
+			"the cell reads '" + tracker.entered + "'");
+
+		tree.key(true, mdd.ui.Key.Return, mdd.ui.Mod.None);
+
+		final made = tracker.noteAt(2, part.index());
+
+		says("and return writes the note and steps on",
+			made != null && made.pitch == 73 && made.velocity == 96
+			&& !tracker.entering && tracker.row == 3,
+			(made == null ? "nothing" : Tracker.spelt(made.pitch) + " at a velocity of "
+			+ made.velocity) + " landed, and the cursor sits on row " + tracker.row);
+
+		tracker.at(2, part.index());
+		tracker.opens();
+
+		says("and opening a written cell reads it back", tracker.entered == "C#5 30",
+			"the cell reads '" + tracker.entered + "' where it wrote C#5 30");
+
+		wrote(tree, tracker, "x");
+		tree.key(true, mdd.ui.Key.Escape, mdd.ui.Mod.None);
+
+		final kept = tracker.noteAt(2, part.index());
+
+		says("and escape leaves the cell as it was", !tracker.entering && kept == made,
+			"the note is still " + (kept == null ? "gone" : Tracker.spelt(kept.pitch))
+			+ " after typing into it and pressing escape");
+
+		tracker.at(2, part.index());
+		tracker.opens();
+
+		tree.key(true, mdd.ui.Key.Delete, mdd.ui.Mod.None);
+		wrote(tree, tracker, "---");
+		tree.key(true, mdd.ui.Key.Return, mdd.ui.Mod.None);
+
+		says("and three dashes take the note away",
+			tracker.noteAt(2, part.index()) == null && lane.notes.length == 0,
+			lane.notes.length + " notes left in the lane");
+
+		lane.notes.resize(0);
+	}
+
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
@@ -1496,6 +1576,8 @@ class SpineCheck {
 
 		says("and it is the roll's data", centre.roll.session == tracker.session,
 			"the tracker and the roll read the same pattern, not a copy of it");
+
+		entered(tree, tracker, third);
 
 		centre.show(Centre.ROLL);
 		session.snap = 24;

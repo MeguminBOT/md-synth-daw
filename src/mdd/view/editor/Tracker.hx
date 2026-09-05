@@ -41,7 +41,15 @@ final class Tracker extends Widget {
 
 	public var painted(default, null):Int = 0;
 
+	public var entering(default, null):Bool = false;
+	public var entered(default, null):String = "";
+
 	public var onAudition:Null<(Part, Int) -> Void> = null;
+
+	static final LETTERS:Array<String> = ["C", "D", "E", "F", "G", "A", "B"];
+	static final STEPS:Array<Int> = [0, 2, 4, 5, 7, 9, 11];
+
+	public static inline final MOST_TYPED = 7;
 
 	public function new(session:Session) {
 		super();
@@ -298,11 +306,11 @@ final class Tracker extends Widget {
 		reveal();
 	}
 
-	public function place(pitch:Int):Void {
+	public function place(pitch:Int):Null<Note> {
 		final part:Part = column;
 		final tick = tickOf(row);
 		final which = writing(tick, part);
-		if (which < 0) return;
+		if (which < 0) return null;
 
 		final held = noteAt(row, column);
 		if (held != null) session.does(new RemoveNote(which, part, held));
@@ -315,6 +323,102 @@ final class Tracker extends Widget {
 		if (onAudition != null) onAudition(part, pitch);
 
 		forward();
+		return note;
+	}
+
+	public function opens():Void {
+		if (entering) return;
+
+		final held = noteAt(row, column);
+
+		entered = held == null ? "" : spelt(held.pitch) + " " + hex(held.velocity >> 1);
+		entering = true;
+		typing = true;
+
+		reveal();
+	}
+
+	public function shuts(keep:Bool):Void {
+		if (!entering) return;
+
+		final said = entered;
+
+		entering = false;
+		typing = false;
+		entered = "";
+
+		if (keep) takes(said);
+
+		invalidate();
+	}
+
+	function takes(said:String):Void {
+		final held = StringTools.trim(said);
+		if (held == "") return;
+
+		if (held == "-" || held == "--" || held == "---"
+			|| held.toLowerCase() == "off") {
+			erase();
+			return;
+		}
+
+		final pitch = pitched(held);
+		if (pitch < 0) {
+			session.say(translate(Locale.TRACKER_UNREAD) + "  " + held);
+			session.changed();
+			return;
+		}
+
+		final note = place(pitch);
+		final loud = louded(held);
+
+		if (note != null && loud > 0) {
+			note.velocity = loud;
+			session.changed();
+		}
+	}
+
+	public static function pitched(said:String):Int {
+		final held = StringTools.trim(said);
+		if (held.length < 2) return -1;
+
+		final at = LETTERS.indexOf(held.charAt(0).toUpperCase());
+		if (at < 0) return -1;
+
+		var step = STEPS[at];
+		var index = 1;
+
+		final next = held.charAt(1);
+
+		if (next == "#") {
+			step++;
+			index = 2;
+		} else if (next == "b") {
+			step--;
+			index = 2;
+		} else if (next == "-") {
+			index = 2;
+		}
+
+		final octave = Std.parseInt(held.substr(index, 1));
+		if (octave == null) return -1;
+
+		final pitch = (octave + 1) * 12 + step;
+		return pitch < 0 || pitch > 127 ? -1 : pitch;
+	}
+
+	public static function louded(said:String):Int {
+		final at = said.indexOf(" ");
+		if (at < 0) return -1;
+
+		final held = StringTools.trim(said.substr(at + 1));
+		if (held == "") return -1;
+
+		final value = Std.parseInt("0x" + held);
+		if (value == null) return -1;
+
+		final want = value << 1;
+		return want < 1 ? 1 : (want > 127 ? 127 : want);
 	}
 
 	public function writing(tick:Int, part:Part):Int {
@@ -416,7 +520,12 @@ final class Tracker extends Widget {
 				final at = rowAt(event.y);
 				final which = columnAt(event.x);
 
-				if (at < 0 || which < 0) return false;
+				if (at < 0 || which < 0) {
+					shuts(true);
+					return false;
+				}
+
+				if (entering && (at != row || which != column)) shuts(true);
 
 				row = at;
 				column = which;
@@ -424,6 +533,14 @@ final class Tracker extends Widget {
 				session.choose(which);
 
 				if (event.button == Pointer.Right) erase();
+				else if (event.clicks > 1) opens();
+
+				invalidate();
+				return true;
+
+			case Kind.Text:
+				if (!entering) return false;
+				if (entered.length < MOST_TYPED) entered += event.said;
 
 				invalidate();
 				return true;
@@ -438,7 +555,13 @@ final class Tracker extends Widget {
 	}
 
 	function steered(event:Input):Bool {
+		if (entering) return typed(event);
 		if (event.ctrl()) return chorded(event);
+
+		if (event.code == Key.Return) {
+			opens();
+			return true;
+		}
 
 		switch (event.code) {
 			case Key.Up:
@@ -501,6 +624,34 @@ final class Tracker extends Widget {
 
 		place(pitch);
 		return true;
+	}
+
+	function typed(event:Input):Bool {
+		switch (event.code) {
+			case Key.Return, Key.Tab:
+				shuts(true);
+				return true;
+
+			case Key.Escape:
+				shuts(false);
+				return true;
+
+			case Key.Backspace:
+				if (entered.length > 0) entered = entered.substr(0, entered.length - 1);
+
+				invalidate();
+				return true;
+
+			case Key.Delete:
+				entered = "";
+
+				invalidate();
+				return true;
+
+			case _:
+		}
+
+		return !event.ctrl();
 	}
 
 	function chorded(event:Input):Bool {
@@ -637,7 +788,20 @@ final class Tracker extends Widget {
 			final line = top + row * tall - offsetY;
 			final left = atColumn(column);
 
-			paint.outline(left, line, wide, tall, theme.accent, metrics.whole(1));
+			if (entering) {
+				paint.rect(left, line, wide, tall, theme.raise2);
+
+				final baseline = line + (tall - font.height) * 0.5 + font.ascent;
+				final pen = left + metrics.gap;
+
+				paint.text(entered, pen, baseline, theme.ink);
+				paint.rect(pen + paint.measure(entered) + metrics.unit,
+					line + metrics.whole(2), metrics.whole(2), tall - metrics.whole(4),
+					theme.accent);
+			}
+
+			paint.outline(left, line, wide, tall, theme.accent,
+				metrics.whole(entering ? 2 : 1));
 		}
 
 		for (index in 1...Part.COUNT) {

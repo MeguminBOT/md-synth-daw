@@ -582,17 +582,17 @@ final class Root {
 			return true;
 		}
 
-		if (down && code == Key.Tab && popups.length == 0) {
-			step((mods & Mod.Shift) != 0 ? -1 : 1);
-			return true;
-		}
-
 		event.keyed(down ? Kind.KeyDown : Kind.KeyUp, code, mods, repeat);
 
 		var at = focus;
 		while (at != null) {
 			if (at.enabled && at.took(event)) return true;
 			at = at.parent;
+		}
+
+		if (down && code == Key.Tab && popups.length == 0) {
+			step((mods & Mod.Shift) != 0 ? -1 : 1);
+			return true;
 		}
 
 		if (!down || onChord == null) return false;
