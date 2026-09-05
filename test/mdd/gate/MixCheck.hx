@@ -558,10 +558,10 @@ class MixCheck {
 		final fresh = mdd.app.Session.started(mdd.song.Library.embedded()).song;
 		final blank = fresh.tempo.samplesAt(fresh.ends()) / mdd.song.Tempo.TICKS;
 
-		says("a new document has somewhere to write",
-			blank > 0 && fresh.patterns.length > 0 && fresh.tracks.length > 0,
-			round(blank, 1) + " s of song in a fresh document, " + fresh.patterns.length
-			+ " patterns across " + fresh.tracks.length + " tracks");
+		says("a new document is empty and ready",
+			blank == 0 && fresh.patterns.length > 0 && fresh.tracks.length > 0,
+			"a fresh document holds " + fresh.patterns.length + " empty pattern across "
+			+ fresh.tracks.length + " tracks and " + round(blank, 1) + " s of arrangement");
 
 		says("an imported song bounces whole",
 			made.seconds() > want - 1 && made.seconds() < want + 1 && quiet == 0

@@ -59,6 +59,10 @@ final class Session {
 	static final DEFAULTS:Array<Int> = [0, 1, 4, 5, 8, 2, 16, 17, 18, 22];
 
 	public static function started(library:mdd.song.Library):Session {
+		return new Session(empty(library));
+	}
+
+	public static function empty(library:mdd.song.Library):Song {
 		final song = new Song("untitled", 96, 120);
 
 		mdd.song.Shipped.into(song);
@@ -97,9 +101,8 @@ final class Session {
 		song.add(new Pattern("pattern 1", 384));
 
 		for (index in 0...TRACKS) song.track(new mdd.song.Track("track " + (index + 1)));
-		song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
 
-		return new Session(song);
+		return song;
 	}
 
 	public inline function holds():Void {

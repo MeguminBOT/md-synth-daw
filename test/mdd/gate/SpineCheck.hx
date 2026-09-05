@@ -719,6 +719,9 @@ class SpineCheck {
 		metrics.dress(body, small, mono, mono);
 
 		final session = Session.started(mdd.song.Library.embedded());
+
+		session.song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
+
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme());
 
@@ -1032,8 +1035,9 @@ class SpineCheck {
 
 		says("and a key writes a note", third.notes.length == 2 && written != null
 			&& next != null && written.pitch == 60 && next.pitch == 61,
-			"Z and S at octave 4 wrote " + Tracker.spelt(written.pitch) + " and "
-			+ Tracker.spelt(next.pitch) + ", each on its own row");
+			"Z and S at octave 4 wrote " + (written == null ? "nothing" : Tracker.spelt(written.pitch))
+			+ " and " + (next == null ? "nothing" : Tracker.spelt(next.pitch))
+			+ ", each on its own row");
 
 		tracker.at(4, Part.Fm3.index());
 		tree.key(true, mdd.ui.Key.X, mdd.ui.Mod.None);

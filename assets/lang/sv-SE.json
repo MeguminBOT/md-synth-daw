@@ -50,6 +50,7 @@
   "export.year": "År",
   "file.audio": "Exportera ljud",
   "file.midi": "Exportera en MIDI-fil",
+  "file.new": "Nytt projekt",
   "file.noUpdate": "inget arkiv är angivet i mdd.xml",
   "file.open": "Öppna",
   "file.preferences": "Inställningar",

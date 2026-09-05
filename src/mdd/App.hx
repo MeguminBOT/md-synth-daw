@@ -246,6 +246,7 @@ class App {
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
 		menus.onLift = function():Int return files.liftsPatches();
+		menus.onNew = function():Void fresh();
 		menus.dress(session);
 
 		stage.root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
@@ -752,6 +753,13 @@ class App {
 		session.changed();
 	}
 
+	function fresh():Void {
+		loaded(Session.empty(library));
+		files.forget();
+
+		session.say(stage.root.translate(Locale.FILE_NEW));
+	}
+
 	function chorded(code:Key, mods:Mod):Bool {
 		final ctrl = (mods & Mod.Ctrl) != 0;
 		final shift = (mods & Mod.Shift) != 0;
@@ -795,6 +803,10 @@ class App {
 
 			case Key.S:
 				keeping();
+				return true;
+
+			case Key.N:
+				fresh();
 				return true;
 
 			case Key.O:

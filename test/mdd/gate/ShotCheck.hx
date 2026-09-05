@@ -148,7 +148,8 @@ class ShotCheck {
 		final menus = new mdd.ui.control.MenuBar();
 
 		final entries:Array<Array<String>> = [
-			["Open a song|Ctrl+O", "Save|Ctrl+S", "Save as", "-", "Look for an update",
+			["New project|Ctrl+N", "Open a song|Ctrl+O", "Save|Ctrl+S", "Save as", "-",
+				"Look for an update",
 				"-", "Preferences|Ctrl+,", "-", "Quit|Alt+F4"],
 			["Undo|Ctrl+Z", "Redo|Ctrl+Y", "-", "Play|Space", "Stop|Ctrl+Space"],
 			["Add a pattern", "Duplicate this pattern", "Rename this pattern",

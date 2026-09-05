@@ -148,6 +148,7 @@ class Locale {
 	public static inline final REGISTERS_LEVEL = "registers.level";
 	public static inline final REGISTERS_TONE = "registers.tone";
 
+	public static inline final FILE_NEW = "file.new";
 	public static inline final FILE_OPEN = "file.open";
 	public static inline final FILE_SAVE = "file.save";
 	public static inline final FILE_SAVE_AS = "file.saveAs";
@@ -443,7 +444,7 @@ class Locale {
 		REGISTERS_COPY, REGISTERS_AS_VGM, REGISTERS_NO_ROW, REGISTERS_HOLD,
 		REGISTERS_FOLLOW, REGISTERS_FORGET,
 		REGISTERS_LEVEL, REGISTERS_TONE,
-		FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_XGM, FILE_READ_MIDI,
+		FILE_NEW, FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_READ_VGM, FILE_READ_XGM, FILE_READ_MIDI,
 		FILE_READ_WAV, FILE_READ_TFI, FILE_TFI, FILE_VGM, FILE_XGM, FILE_WAV, FILE_MIDI,
 		FILE_UPDATE,
 		FILE_PREFERENCES, FILE_QUIT,

@@ -52,6 +52,8 @@ final class Menus {
 	function commands():Void {
 		final file = new Menu();
 
+		fired(file.offer(new Choice(said(Locale.FILE_NEW), "Ctrl+N")), function():Void
+			if (onNew != null) onNew());
 		fired(file.offer(new Choice(said(Locale.FILE_OPEN), "Ctrl+O")), function():Void
 			asks(Files.OPEN));
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE), "Ctrl+S")), function():Void
@@ -205,6 +207,7 @@ final class Menus {
 	}
 
 	public var onLift:Null<Void -> Int> = null;
+	public var onNew:Null<Void -> Void> = null;
 
 	function lifted():Void {
 		final many = onLift == null ? 0 : onLift();

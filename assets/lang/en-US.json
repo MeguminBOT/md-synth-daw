@@ -50,6 +50,7 @@
   "export.year": "Year",
   "file.audio": "Export audio",
   "file.midi": "Export a MIDI file",
+  "file.new": "New project",
   "file.noUpdate": "no repository is configured in mdd.xml",
   "file.open": "Open",
   "file.preferences": "Settings",

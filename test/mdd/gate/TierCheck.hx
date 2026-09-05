@@ -181,6 +181,7 @@ class TierCheck {
 			+ "and added to");
 
 		final session = Session.started(mdd.song.Library.embedded());
+		session.song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
 		final pattern = session.current();
 
 		for (index in 0...4) {
@@ -274,6 +275,7 @@ class TierCheck {
 		sys.FileSystem.createDirectory(into);
 
 		final session = Session.started(mdd.song.Library.embedded());
+		session.song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
 		final files = new Files(session);
 
 		files.every = 2;
