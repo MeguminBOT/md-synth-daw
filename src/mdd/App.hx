@@ -37,6 +37,7 @@ class App {
 	static inline final LOCK = "-running";
 
 	final stage:Stage = new Stage();
+	final library:mdd.song.Library = mdd.song.Library.embedded();
 	final sound:Sound = new Sound();
 
 	var panels:Null<Panels> = null;
@@ -131,7 +132,9 @@ class App {
 	}
 
 	function dress():Void {
-		session = Session.started();
+		library.within(mdd.host.Paths.within("presets"));
+
+		session = Session.started(library);
 
 		panels = new Panels(stage);
 		panels.dress(session);
@@ -266,6 +269,8 @@ class App {
 		final automates = session == null ? Session.LANES : session.automating;
 
 		sound.stop();
+
+		library.into(song);
 
 		session = new Session(song);
 		session.onChange = function(held:Session):Void changed();

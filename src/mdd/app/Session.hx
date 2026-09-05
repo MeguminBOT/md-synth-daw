@@ -58,10 +58,12 @@ final class Session {
 
 	static final DEFAULTS:Array<Int> = [0, 1, 4, 5, 8, 2, 16, 17, 18, 22];
 
-	public static function started():Session {
+	public static function started(library:mdd.song.Library):Session {
 		final song = new Song("untitled", 96, 120);
 
 		mdd.song.Shipped.into(song);
+
+		library.into(song);
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;

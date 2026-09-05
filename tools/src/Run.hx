@@ -521,6 +521,20 @@ class Run {
 			args.push(face + "@icon");
 		}
 
+		final banks = root + "/assets/presets";
+
+		if (FileSystem.exists(banks)) {
+			final held = FileSystem.readDirectory(banks);
+			held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+
+			for (name in held) {
+				if (name.indexOf(".json") < 0) continue;
+
+				args.push("-resource");
+				args.push(banks + "/" + name + "@bank." + name.substr(0, name.length - 5));
+			}
+		}
+
 		return args;
 	}
 
