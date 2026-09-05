@@ -235,6 +235,14 @@ class Locale {
 	public static inline final GROUP_EDITING = "group.editing";
 	public static inline final GROUP_FILES = "group.files";
 	public static inline final GROUP_UPDATES = "group.updates";
+	public static inline final GROUP_MIDI = "group.midi";
+	public static inline final PREFERENCE_MIDI_DEVICE = "preference.midiDevice";
+	public static inline final PREFERENCE_MIDI_CHANNEL = "preference.midiChannel";
+	public static inline final PREFERENCE_MIDI_VELOCITY = "preference.midiVelocity";
+	public static inline final MIDI_NONE = "midi.none";
+	public static inline final MIDI_ANY = "midi.any";
+	public static inline final MIDI_TAKEN = "midi.taken";
+	public static inline final MIDI_FORCED = "midi.forced";
 	public static inline final TAIL_NONE = "tail.none";
 	public static inline final TAIL_BEAT = "tail.beat";
 	public static inline final TAIL_TWO = "tail.two";
@@ -451,6 +459,7 @@ class Locale {
 		WORKING_CANCEL, WORKING_STOPPING, WORKING_OPENING, WORKING_SAVING,
 		WORKING_IMPORTING, WORKING_EXPORTING, WORKING_RENDERING, WORKING_DOWNLOADING,
 		ABOUT_BUILT, GROUP_LOOK, GROUP_EDITING, GROUP_FILES, GROUP_UPDATES,
+		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
 		TAIL_TWO, TAIL_BAR, TAIL_TWO_BARS, PREFERENCE_KEEPING,
 		THEME_MIDNIGHT, THEME_RACK, THEME_SLATE,

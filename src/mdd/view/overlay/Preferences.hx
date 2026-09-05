@@ -31,22 +31,27 @@ final class Preferences extends Widget {
 	public static inline final PRESETS = 10;
 	public static inline final AUTOMATING = 11;
 	public static inline final TAIL = 12;
-	public static inline final ROWS = 13;
+	public static inline final MIDI_DEVICE = 13;
+	public static inline final MIDI_CHANNEL = 14;
+	public static inline final MIDI_VELOCITY = 15;
+	public static inline final ROWS = 16;
 
 	public static inline final LOOK = 0;
 	public static inline final EDITING = 1;
 	public static inline final FILES = 2;
 	public static inline final CHECKING = 3;
-	public static inline final GROUPS = 4;
+	public static inline final MIDI = 4;
+	public static inline final GROUPS = 5;
 
 	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
-		Locale.GROUP_FILES, Locale.GROUP_UPDATES];
+		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI];
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
 		[AUTOMATING, TAIL],
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
-		[UPDATES]
+		[UPDATES],
+		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY]
 	];
 
 	public var group(default, null):Int = LOOK;
@@ -63,7 +68,10 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
-		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL];
+		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
+		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY];
+
+	static final VELOCITIES:Array<String> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
 
 	public static final AUTOMATINGS:Array<String> = [Locale.AUTOMATING_LANES,
 		Locale.AUTOMATING_CLIPS];
@@ -113,6 +121,12 @@ final class Preferences extends Widget {
 	public var projectsAt:String = "";
 	public var presetsAt:String = "";
 
+	public final keyboards:Array<String> = [];
+
+	public var keyboardAt(default, null):Int = 0;
+	public var keyboardChannel(default, null):Int = 0;
+	public var keyboardVelocity(default, null):Int = 0;
+
 	public final rise:Motion;
 	public final fade:Motion;
 
@@ -124,6 +138,9 @@ final class Preferences extends Widget {
 	public var onUpdates:Null<Bool -> Void> = null;
 	public var onAutomating:Null<Int -> Void> = null;
 	public var onFolder:Null<Int -> Void> = null;
+	public var onKeyboard:Null<Int -> Void> = null;
+	public var onKeyboardChannel:Null<Int -> Void> = null;
+	public var onKeyboardVelocity:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverButton:Int = -1;
@@ -309,6 +326,19 @@ final class Preferences extends Widget {
 		return -1;
 	}
 
+	public function keyed(at:Int, channel:Int, velocity:Int):Void {
+		keyboardAt = at < 0 ? 0 : at;
+		keyboardChannel = channel < 0 ? 0 : channel;
+		keyboardVelocity = velocity < 0 ? 0 : velocity;
+	}
+
+	function channels():Array<String> {
+		final out = [translate(Locale.MIDI_ANY)];
+		for (index in 1...17) out.push(Std.string(index));
+
+		return out;
+	}
+
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case THEME: THEMES;
@@ -322,6 +352,9 @@ final class Preferences extends Widget {
 			case AUTOMATING: AUTOMATINGS;
 			case TAIL: TAILS;
 			case PROJECTS, PRESETS: [];
+			case MIDI_DEVICE: keyboards;
+			case MIDI_CHANNEL: channels();
+			case MIDI_VELOCITY: VELOCITIES;
 			case _: languages;
 		}
 	}
@@ -379,6 +412,9 @@ final class Preferences extends Widget {
 			case AUTOMATING: session.automating;
 			case TAIL: tail;
 			case PROJECTS, PRESETS: 0;
+			case MIDI_DEVICE: keyboardAt;
+			case MIDI_CHANNEL: keyboardChannel;
+			case MIDI_VELOCITY: keyboardVelocity;
 			case _: language;
 		}
 	}
@@ -433,6 +469,18 @@ final class Preferences extends Widget {
 
 				session.say(which == 0 ? translate(Locale.TAIL_NONE)
 					: translate(Locale.PREFERENCE_TAIL) + "  " + translate(TAILS[which]));
+
+			case MIDI_DEVICE:
+				keyboardAt = which;
+				if (onKeyboard != null) onKeyboard(which);
+
+			case MIDI_CHANNEL:
+				keyboardChannel = which;
+				if (onKeyboardChannel != null) onKeyboardChannel(which);
+
+			case MIDI_VELOCITY:
+				keyboardVelocity = which;
+				if (onKeyboardVelocity != null) onKeyboardVelocity(which);
 
 			case _:
 				language = which;

@@ -42,6 +42,7 @@ class ShotCheck {
 		var vgm = "";
 		var sheet = "";
 		var lane = 0;
+		var group = 0;
 		var menu = -1;
 		var rows = 0;
 		var icons = false;
@@ -66,6 +67,7 @@ class ShotCheck {
 				case "--drives": drives = true;
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
+				case "--group": group = whole(held, group); at++;
 				case "--menu": menu = whole(held, menu); at++;
 				case "--rows": rows = whole(held, rows); at++;
 				case "--icons": icons = true;
@@ -217,6 +219,10 @@ class ShotCheck {
 			final held = new mdd.view.overlay.Preferences(session);
 
 			held.speaks(mdd.app.Languages.shipped(), "en-GB");
+
+			held.keyboards.push("None");
+			held.keyboards.push("Microsoft GS Wavetable Synth");
+			held.shows(group);
 			tree.raise(held);
 			held.arrive();
 			held.rise.hold(1);

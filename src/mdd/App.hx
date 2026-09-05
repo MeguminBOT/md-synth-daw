@@ -1,6 +1,7 @@
 package mdd;
 
 import mdd.app.Files;
+import mdd.app.Keyboard;
 import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Menus;
@@ -38,6 +39,7 @@ class App {
 
 	final stage:Stage = new Stage();
 	final library:mdd.song.Library = mdd.song.Library.embedded();
+	final keyboard:Keyboard = new Keyboard();
 	final sound:Sound = new Sound();
 
 	var panels:Null<Panels> = null;
@@ -97,6 +99,8 @@ class App {
 			Sdl.quit();
 			Sys.exit(2);
 		}
+
+		mdd.host.Midi.close();
 
 		Usage.stop();
 		Instance.release();
@@ -182,6 +186,24 @@ class App {
 		};
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
+
+		panels.preferences.onKeyboard = function(which:Int):Void {
+			final names = panels.preferences.keyboards;
+			listens(which <= 0 || which >= names.length ? "" : names[which]);
+
+			session.say(midiAt < 0 ? stage.root.translate(Locale.MIDI_NONE) : midiSaid);
+			keeps();
+		};
+
+		panels.preferences.onKeyboardChannel = function(which:Int):Void {
+			keyboard.channel = which <= 0 ? Keyboard.ANY : which - 1;
+			keeps();
+		};
+
+		panels.preferences.onKeyboardVelocity = function(which:Int):Void {
+			keyboard.forces = which != 0;
+			keeps();
+		};
 		panels.preferences.onShut = function():Void stage.root.lower();
 
 		panels.preferences.onSpeak = function(code:String):Void {
@@ -622,6 +644,16 @@ class App {
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
 
+		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
+			if (session != null) session.transport.auditions(session.part, pitch, velocity, true);
+		};
+
+		keyboard.onRelease = function(pitch:Int):Void {
+			if (session != null) session.transport.releases(session.part);
+		};
+
+		listens(settings.of("midi", ""));
+
 		panels.preferences.projectsAt = files.projectsAt;
 		panels.preferences.presetsAt = files.presetsAt;
 
@@ -645,6 +677,8 @@ class App {
 		panels.preferences.chose(Preferences.BACKUPS, backups);
 		panels.preferences.chose(Preferences.BACKUP_AGE, backupAge);
 		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
+
+		keyboards();
 		stage.root.reshape();
 	}
 
@@ -671,6 +705,9 @@ class App {
 		settings.whole("height", Sdl.windowHeight(stage.window));
 		settings.put("song", files == null ? "" : files.path);
 		settings.put("language", stage.root.translation.language);
+		settings.put("midi", midiSaid);
+		settings.whole("midiChannel", panels.preferences.keyboardChannel);
+		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 
 		settings.save();
 	}
@@ -817,6 +854,8 @@ class App {
 			last = now;
 			if (since > 0.100) since = 0.100;
 
+			if (keyed()) stage.root.soil();
+
 			stage.root.advance(since);
 			if (files != null && files.poll()) stage.root.soil();
 			folded();
@@ -827,6 +866,63 @@ class App {
 			stage.draw();
 		}
 	}
+
+	function keyboards():Void {
+		final held = panels.preferences.keyboards;
+
+		held.resize(0);
+		held.push(stage.root.translate(Locale.MIDI_NONE));
+
+		for (name in devices()) held.push(name);
+
+		var at = held.indexOf(midiSaid);
+		if (midiSaid == "" || at < 0) at = 0;
+
+		final channel = settings == null ? 0 : settings.asWhole("midiChannel", 0);
+		final velocity = settings == null ? 0 : settings.asWhole("midiVelocity", 0);
+
+		panels.preferences.keyed(at, channel, velocity);
+
+		keyboard.channel = channel <= 0 ? Keyboard.ANY : channel - 1;
+		keyboard.forces = velocity != 0;
+	}
+
+	function keyed():Bool {
+		if (!mdd.host.Midi.holding()) return false;
+		return keyboard.drains() > 0;
+	}
+
+	function listens(want:String):Bool {
+		mdd.host.Midi.close();
+
+		midiAt = -1;
+		midiSaid = want;
+
+		if (want == "") return false;
+
+		for (index in 0...mdd.host.Midi.count()) {
+			if (Std.string(mdd.host.Midi.named(index)) != want) continue;
+
+			if (mdd.host.Midi.open(index)) {
+				midiAt = index;
+				return true;
+			}
+
+			break;
+		}
+
+		return false;
+	}
+
+	public static function devices():Array<String> {
+		final out:Array<String> = [];
+		for (index in 0...mdd.host.Midi.count()) out.push(Std.string(mdd.host.Midi.named(index)));
+
+		return out;
+	}
+
+	var midiAt:Int = -1;
+	var midiSaid:String = "";
 
 	function watch():Void {
 		if (session == null || panels == null) return;
