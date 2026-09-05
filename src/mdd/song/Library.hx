@@ -63,6 +63,8 @@ final class Library {
 
 			if (patch != null) instrument.patch = patch;
 
+			instrument.icon = mdd.Icon.NAMES.indexOf(one.get("icon").saying(""));
+
 			final tags = one.get("tags");
 			for (at in 0...tags.length()) {
 				final tag = tags.at(at).saying("");
@@ -122,8 +124,9 @@ final class Library {
 	}
 
 	public static inline final SUFFIX = ".json";
+	public static inline final PATCH = ".tfi";
 
-	public function within(where:String):Int {
+	public function within(where:String, saved:String):Int {
 		if (where == "" || !sys.FileSystem.exists(where)) return 0;
 		if (!sys.FileSystem.isDirectory(where)) return 0;
 
@@ -140,7 +143,47 @@ final class Library {
 			} catch (e:Dynamic) {}
 		}
 
-		return many;
+		final made:Array<Instrument> = [];
+
+		for (name in held) {
+			if (name.toLowerCase().indexOf(PATCH) < 0) continue;
+
+			try {
+				final patch = Tfi.read(sys.io.File.getBytes(where + "/" + name));
+				if (patch == null) continue;
+
+				final one = new Instrument(stem(name), Part.Fm1);
+
+				one.patch = patch;
+				one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
+
+				made.push(one);
+			} catch (e:Dynamic) {}
+		}
+
+		if (made.length == 0) return many;
+
+		var at = names.indexOf(saved);
+
+		if (at < 0) {
+			names.push(saved);
+			instruments.push([]);
+			samples.push([]);
+
+			at = names.length - 1;
+		}
+
+		for (one in made) {
+			instruments[at].push(one);
+			samples[at].push(null);
+		}
+
+		return many + made.length;
+	}
+
+	static function stem(name:String):String {
+		final dot = name.lastIndexOf(".");
+		return dot > 0 ? name.substring(0, dot) : name;
 	}
 
 	public static function sampled(named:String, said:String, rate:Int, root:Int):Null<Sample> {

@@ -51,6 +51,7 @@ class Locale {
 
 	public static inline final NAMING_HINT = "naming.hint";
 	public static inline final PRESET_SAVE = "preset.save";
+	public static inline final PRESET_SAVED = "preset.saved";
 	public static inline final PRESET_LIFT = "preset.lift";
 	public static inline final PRESET_LIFTED = "preset.lifted";
 	public static inline final PRESET_NONE_LIFTED = "preset.noneLifted";
@@ -405,7 +406,7 @@ class Locale {
 		HELP_ABOUT, HELP_SOURCE, FILE_NO_UPDATE,
 		SCOPE_WAVEFORM, SCOPE_SPECTRUM, SCOPE_INSPECT,
 		TOOL_SELECT, TOOL_DRAW, TOOL_ERASE, TOOL_SLICE, TOOL_PAN, TOOL_SNAP, TOOL_GHOSTS,
-		NAMING_HINT, PRESET_SAVE, PRESET_NAME, PRESET_RENAME, PRESET_LIFT, PRESET_LIFTED,
+		NAMING_HINT, PRESET_SAVE, PRESET_SAVED, PRESET_NAME, PRESET_RENAME, PRESET_LIFT, PRESET_LIFTED,
 		PRESET_NONE_LIFTED, PRESET_SEARCH, PRESET_TAGS,
 		PRESET_DUPLICATE, PRESET_DELETE, PRESET_LOAD,
 		PRESET_ICON, PRESET_NO_ICON, PRESET_KIT, PRESET_SHAPES, PRESET_AUDIO,

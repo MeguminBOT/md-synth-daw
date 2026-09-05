@@ -194,6 +194,7 @@
   "preset.noneLifted": "no new patches to lift",
   "preset.search": "search",
   "preset.tags": "Tags",
+  "preset.saved": "Saved presets",
   "preset.save": "Save this channel as a preset",
   "preset.shapes": "Shapes",
   "psg.noLoop": "off",

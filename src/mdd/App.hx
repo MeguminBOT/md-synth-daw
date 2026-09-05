@@ -132,7 +132,8 @@ class App {
 	}
 
 	function dress():Void {
-		library.within(mdd.host.Paths.within("presets"));
+		library.within(mdd.host.Paths.within("presets"),
+			stage.root.translate(Locale.PRESET_SAVED));
 
 		session = Session.started(library);
 
@@ -268,6 +269,11 @@ class App {
 		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
 
+		final projects = files == null ? "" : files.projectsAt;
+		final presets = files == null ? "" : files.presetsAt;
+		final saved = files == null ? "" : files.savedInto;
+		final room = files == null ? 0 : files.backupRoom;
+
 		sound.stop();
 
 		library.into(song);
@@ -278,6 +284,11 @@ class App {
 
 		files = new Files(session);
 		files.onLoad = function(held:Song):Void loaded(held);
+
+		files.projectsAt = projects;
+		files.presetsAt = presets;
+		files.savedInto = saved;
+		if (room > 0) files.backupRoom = room;
 
 		session.master = held;
 		session.automating = automates;
@@ -609,6 +620,7 @@ class App {
 
 		files.projectsAt = settings.of("projects", "");
 		files.presetsAt = settings.of("presets", "");
+		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
 
 		panels.preferences.projectsAt = files.projectsAt;
 		panels.preferences.presetsAt = files.presetsAt;

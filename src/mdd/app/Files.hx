@@ -59,6 +59,7 @@ final class Files {
 	var edits:Int = -1;
 
 	public var onLoad:Null<Song -> Void> = null;
+	public var savedInto:String = "";
 	public var onBusy:Null<(String, String) -> Void> = null;
 	public var onIdle:Null<Void -> Void> = null;
 	public var onRender:Null<String -> Void> = null;
@@ -455,10 +456,27 @@ final class Files {
 		}
 
 		final made = new mdd.song.Instrument(name(where), mdd.song.Part.Fm1);
+
 		made.patch = held;
+		made.icon = mdd.Icon.NAMES.indexOf("synthesizer");
 
 		session.song.instrument(made);
-		session.song.rack[session.part.index()] = session.song.instruments.length - 1;
+
+		final index = session.song.instruments.length - 1;
+		session.song.rack[session.part.index()] = index;
+
+		if (savedInto != "") {
+			session.song.bank(0).remove(index);
+			session.song.banked(savedInto).add(index);
+		}
+
+		final into = within("presets");
+		final named = into + "/" + safely(name(where)) + ".tfi";
+
+		if (!FileSystem.exists(named)) {
+			Paths.make(into);
+			sys.io.File.saveBytes(named, mdd.format.Tfi.write(held));
+		}
 
 		session.say(name(where));
 	}
