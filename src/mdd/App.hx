@@ -169,6 +169,7 @@ class App {
 		panels.exporting.onShut = function():Void stage.root.lower();
 
 		panels.exporting.onExport = function(mixing:mdd.play.Mixing):Void {
+			mixing.console = panels.preferences.console;
 			files.mixing = mixing;
 			files.ask(stage.window, Files.AUDIO);
 		};
@@ -186,6 +187,11 @@ class App {
 		};
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
+
+		panels.preferences.onConsole = function(which:Int):Void {
+			consoled(which);
+			keeps();
+		};
 
 		panels.preferences.onKeyboard = function(which:Int):Void {
 			final names = panels.preferences.keyboards;
@@ -679,6 +685,10 @@ class App {
 		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
 
 		keyboards();
+
+		panels.preferences.chose(Preferences.CONSOLE,
+			settings.asWhole("console", mdd.play.Render.MODEL_ONE));
+
 		stage.root.reshape();
 	}
 
@@ -708,6 +718,7 @@ class App {
 		settings.put("midi", midiSaid);
 		settings.whole("midiChannel", panels.preferences.keyboardChannel);
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
+		settings.whole("console", panels.preferences.console);
 
 		settings.save();
 	}
@@ -865,6 +876,12 @@ class App {
 			watch();
 			stage.draw();
 		}
+	}
+
+	function consoled(which:Int):Void {
+		if (sound.render != null) sound.render.console = which;
+		if (files != null) files.mixing.console = which;
+		if (panels != null && panels.exporting != null) panels.exporting.mixing.console = which;
 	}
 
 	function keyboards():Void {

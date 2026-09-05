@@ -15,6 +15,7 @@ final class Mixdown {
 	public var frames(default, null):Int = 0;
 	public var channels(default, null):Int = 2;
 	public var rate(default, null):Int = 44100;
+	public var console(default, null):Int = Render.MODEL_ONE;
 
 	public var peak(default, null):Float = 0;
 	public var gain(default, null):Float = 1;
@@ -67,6 +68,7 @@ final class Mixdown {
 	public function runs(song:Song, mixing:Mixing):Void {
 		rate = mixing.worksAt();
 		channels = mixing.channels();
+		console = mixing.console;
 
 		final span = song.tempo.samplesAt(song.ends());
 		final sounding = Std.int(span * (rate / Tempo.TICKS));
@@ -99,6 +101,7 @@ final class Mixdown {
 
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
 		final render = new Render(rate, Render.BLOCK);
+		render.console = console;
 		var done = 0;
 		var told = 0;
 

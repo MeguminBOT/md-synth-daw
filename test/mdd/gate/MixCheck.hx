@@ -27,6 +27,7 @@ class MixCheck {
 		bounced();
 		patched();
 		kitted();
+		consoled(into);
 		furnished();
 		threaded();
 		imported();
@@ -194,6 +195,93 @@ class MixCheck {
 			&& faster.frames > made.frames * 0,
 			faster.frames + " frames at 48000 against " + mono.frames + " at 44100, "
 			+ round(faster.seconds(), 2) + " s either way");
+	}
+
+	static function brightness(made:Mixdown):Float {
+		var total = 0.0;
+		var edge = 0.0;
+
+		for (index in 1...made.samples.length) {
+			final one = made.samples[index];
+			final gap = one - made.samples[index - 1];
+
+			total += one * one;
+			edge += gap * gap;
+		}
+
+		return total <= 0 ? 0 : edge / total;
+	}
+
+	static function heard(into:String):Void {
+		if (into == "" || !sys.FileSystem.isDirectory(Gate.root + "/vendor/vgm")) return;
+
+		final name = Fixtures.found("Green Hill");
+		if (name == "") return;
+
+		final source = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
+		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = true;
+		mixing.ceiling = -1;
+
+		final named = ["chip", "model-1", "model-2"];
+		final want = [mdd.play.Render.CHIP, mdd.play.Render.MODEL_ONE, mdd.play.Render.MODEL_TWO];
+
+		for (index in 0...named.length) {
+			mixing.console = want[index];
+
+			final made = Mixdown.of(song, mixing);
+			final file = into + "/green-hill-" + named[index] + ".wav";
+
+			sys.io.File.saveBytes(file, Wav.write(made.samples, made.frames, made.channels,
+				mixing.rate, 16, false));
+
+			Sys.println("    wrote " + file + ", " + round(made.seconds(), 1) + " s, brightness "
+				+ round(brightness(made), 4));
+		}
+	}
+
+	static function consoled(into:String):Void {
+		final song = new Song("a console", 96, 150);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("fm"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(song);
+
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 192, 72, 127, song.rack[0]));
+		pattern.lane(mdd.song.Part.Psg1).add(new mdd.song.Note(0, 192, 84, 127, song.rack[6]));
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.normalise = false;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.stereo = false;
+
+		mixing.console = mdd.play.Render.CHIP;
+		final chip = brightness(Mixdown.of(song, mixing));
+
+		mixing.console = mdd.play.Render.MODEL_TWO;
+		final two = brightness(Mixdown.of(song, mixing));
+
+		mixing.console = mdd.play.Render.MODEL_ONE;
+		final one = brightness(Mixdown.of(song, mixing));
+
+		says("the console output stage darkens what the chip sends",
+			chip > two && two > one && one > 0,
+			"edge energy against total is " + round(chip, 4) + " from the chip alone, "
+			+ round(two, 4) + " through a model 2 and " + round(one, 4) + " through a model 1");
+
+		heard(into);
 	}
 
 	static function furnished():Void {

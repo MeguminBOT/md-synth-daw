@@ -32,6 +32,7 @@ final class Mixing {
 	public var normalise:Bool = true;
 	public var ceiling:Float = -1;
 	public var dither:Bool = true;
+	public var console:Int = mdd.play.Render.MODEL_ONE;
 
 	public var title:String = "";
 	public var artist:String = "";

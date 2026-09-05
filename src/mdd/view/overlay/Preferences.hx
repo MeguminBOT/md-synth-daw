@@ -34,24 +34,27 @@ final class Preferences extends Widget {
 	public static inline final MIDI_DEVICE = 13;
 	public static inline final MIDI_CHANNEL = 14;
 	public static inline final MIDI_VELOCITY = 15;
-	public static inline final ROWS = 16;
+	public static inline final CONSOLE = 16;
+	public static inline final ROWS = 17;
 
 	public static inline final LOOK = 0;
 	public static inline final EDITING = 1;
 	public static inline final FILES = 2;
 	public static inline final CHECKING = 3;
 	public static inline final MIDI = 4;
-	public static inline final GROUPS = 5;
+	public static inline final SOUND = 5;
+	public static inline final GROUPS = 6;
 
 	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
-		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI];
+		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI, Locale.GROUP_SOUND];
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
 		[AUTOMATING, TAIL],
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
 		[UPDATES],
-		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY]
+		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
+		[CONSOLE]
 	];
 
 	public var group(default, null):Int = LOOK;
@@ -69,7 +72,10 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
-		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY];
+		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE];
+
+	static final CONSOLES:Array<String> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
+		Locale.CONSOLE_TWO];
 
 	static final VELOCITIES:Array<String> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
 
@@ -126,6 +132,7 @@ final class Preferences extends Widget {
 	public var keyboardAt(default, null):Int = 0;
 	public var keyboardChannel(default, null):Int = 0;
 	public var keyboardVelocity(default, null):Int = 0;
+	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -141,6 +148,7 @@ final class Preferences extends Widget {
 	public var onKeyboard:Null<Int -> Void> = null;
 	public var onKeyboardChannel:Null<Int -> Void> = null;
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
+	public var onConsole:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverButton:Int = -1;
@@ -259,6 +267,7 @@ final class Preferences extends Widget {
 
 		var most = 0;
 		for (held in GROUPED) if (held.length > most) most = held.length;
+		if (GROUPS > most) most = GROUPS;
 
 		wantHeight = metrics == null ? 300 : head() + most * rowTall() + foot();
 	}
@@ -355,6 +364,7 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
 			case MIDI_VELOCITY: VELOCITIES;
+			case CONSOLE: CONSOLES;
 			case _: languages;
 		}
 	}
@@ -415,6 +425,7 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboardAt;
 			case MIDI_CHANNEL: keyboardChannel;
 			case MIDI_VELOCITY: keyboardVelocity;
+			case CONSOLE: console;
 			case _: language;
 		}
 	}
@@ -481,6 +492,10 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY:
 				keyboardVelocity = which;
 				if (onKeyboardVelocity != null) onKeyboardVelocity(which);
+
+			case CONSOLE:
+				console = which;
+				if (onConsole != null) onConsole(which);
 
 			case _:
 				language = which;

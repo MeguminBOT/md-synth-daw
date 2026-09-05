@@ -13,7 +13,33 @@ final class Render {
 	public static inline final BLOCK = 128;
 	public static inline final COUPLED = 17.569;
 
+	public static inline final CHIP = 0;
+	public static inline final MODEL_ONE = 1;
+	public static inline final MODEL_TWO = 2;
+	public static inline final CONSOLES = 3;
+
+	static final CORNERS:Array<Float> = [0, 2840.0, 7100.0];
+
 	var coupling:Float = 0.9975;
+	var rolling:Float = 1.0;
+	var rolledLeft:Float = 0;
+	var rolledRight:Float = 0;
+
+	public var console(default, set):Int = MODEL_ONE;
+
+	function set_console(want:Int):Int {
+		console = want < 0 ? 0 : (want >= CONSOLES ? CONSOLES - 1 : want);
+		rolled();
+
+		return console;
+	}
+
+	function rolled():Void {
+		final corner = CORNERS[console];
+
+		rolling = corner <= 0 || corner >= rate * 0.5 ? 1.0
+			: 1.0 - Math.exp(-2 * Math.PI * corner / rate);
+	}
 	public static inline final FULL_SCALE = 2560.0;
 	public static inline final SCALE = 1.0 / FULL_SCALE;
 	public static inline final PRIMED = 0.100;
@@ -109,6 +135,7 @@ final class Render {
 		block = new Vector<cpp.Float32>(this.frames * 2);
 
 		coupling = Math.exp(-2 * Math.PI * COUPLED / this.rate);
+		rolled();
 		fmStep = Ym2612.CLOCK / (Ym2612.PER_SAMPLE * this.rate);
 		psgStep = Sn76489.CLOCK / (Sn76489.DIVIDER * this.rate);
 
@@ -329,8 +356,11 @@ final class Render {
 				tapping();
 			}
 
-			final wantLeft = heldLeft * SCALE;
-			final wantRight = heldRight * SCALE;
+			rolledLeft += rolling * (heldLeft - rolledLeft);
+			rolledRight += rolling * (heldRight - rolledRight);
+
+			final wantLeft = rolledLeft * SCALE;
+			final wantRight = rolledRight * SCALE;
 			final loudest = (wantLeft < 0 ? -wantLeft : wantLeft)
 				> (wantRight < 0 ? -wantRight : wantRight)
 				? (wantLeft < 0 ? -wantLeft : wantLeft)
