@@ -32,6 +32,8 @@ final class Transport {
 	var heardNote:Int = 0;
 	var heardLeft:Int = 0;
 	var heardFresh:Bool = false;
+	var heardHeld:Bool = false;
+	var heardVelocity:Int = AUDITION_VELOCITY;
 	var heardCarry:Float = 0;
 	var heardIndex:Int = 0;
 	var hushing:Bool = false;
@@ -156,13 +158,27 @@ final class Transport {
 		return song.tempo.samplesAt(last + song.tempo.ppqn * tail);
 	}
 
-	public function auditions(part:Part, note:Int):Void {
+	public function auditions(part:Part, note:Int, velocity:Int = AUDITION_VELOCITY,
+			held:Bool = false):Void {
 		gate.acquire();
 
 		heardPart = part.index();
 		heardNote = note;
 		heardLeft = AUDITION_BLOCKS;
 		heardFresh = true;
+		heardHeld = held;
+		heardVelocity = velocity < 1 ? 1 : (velocity > 127 ? 127 : velocity);
+
+		gate.release();
+	}
+
+	public function releases(part:Part):Void {
+		gate.acquire();
+
+		if (heardPart == part.index() && heardHeld) {
+			heardHeld = false;
+			heardLeft = 1;
+		}
 
 		gate.release();
 	}
@@ -181,7 +197,7 @@ final class Transport {
 			heardFresh = false;
 
 			final instrument = song.instrumentAt(song.rack[heardPart]);
-			final velocity = Velocity.scaled(AUDITION_VELOCITY, song.volume[heardPart]);
+			final velocity = Velocity.scaled(heardVelocity, song.volume[heardPart]);
 
 			if (part.fm()) {
 				if (instrument != null && instrument.patch != null) {
@@ -205,6 +221,8 @@ final class Transport {
 					velocity, 0);
 			}
 		}
+
+		if (heardHeld) return;
 
 		heardLeft--;
 		if (heardLeft > 0) return;
