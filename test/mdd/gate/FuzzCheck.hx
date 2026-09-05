@@ -69,19 +69,19 @@ class FuzzCheck {
 
 	static function seeded(root:String):Session {
 		final where = root + "vendor/vgm";
-		if (!sys.FileSystem.isDirectory(where)) return Session.started();
+		if (!sys.FileSystem.isDirectory(where)) return Session.started(mdd.song.Library.embedded());
 
-		for (name in sys.FileSystem.readDirectory(where)) {
-			if (name.indexOf("Green Hill") < 0) continue;
+		for (name in Fixtures.corpus()) {
+			if (Fixtures.titled(name).indexOf("Green Hill") < 0) continue;
 
 			final stream = new mdd.play.Stream(1 << 22);
-			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name),
 				stream);
 
 			return new Session(mdd.format.Transcription.of(stream, vgm.rate, name).song);
 		}
 
-		return Session.started();
+		return Session.started(mdd.song.Library.embedded());
 	}
 
 	static function hammered(rounds:Int, args:Array<String>):Void {

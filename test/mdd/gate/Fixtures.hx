@@ -8,6 +8,40 @@ class Fixtures {
 
 	static final APART:Array<Array<Int>> = [[0xA9, 0xAD], [0xAA, 0xAE], [0xA8, 0xAC]];
 
+	public static function corpus():Array<String> {
+		final where = Gate.root + "/vendor/vgm";
+		final out:Array<String> = [];
+
+		if (!FileSystem.isDirectory(where)) return out;
+
+		walked(where, out);
+		out.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+
+		return out;
+	}
+
+	static function walked(where:String, into:Array<String>):Void {
+		for (name in FileSystem.readDirectory(where)) {
+			final held = where + "/" + name;
+
+			if (FileSystem.isDirectory(held)) {
+				walked(held, into);
+				continue;
+			}
+
+			if (name.toLowerCase().indexOf(".vgm") >= 0) into.push(held);
+		}
+	}
+
+	public static function found(want:String):String {
+		for (held in corpus()) if (titled(held).indexOf(want) >= 0) return held;
+		return "";
+	}
+
+	public static inline function titled(where:String):String {
+		return haxe.io.Path.withoutDirectory(where);
+	}
+
 	public static function run(into:String):Int {
 		if (!FileSystem.exists(into)) tree(into);
 

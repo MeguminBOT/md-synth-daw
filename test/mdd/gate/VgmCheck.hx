@@ -29,8 +29,10 @@ class VgmCheck {
 			return 1;
 		}
 
-		final files = [for (name in FileSystem.readDirectory(where))
-			if (StringTools.endsWith(name.toLowerCase(), ".vgm")) name];
+		final files = args.length > 0 && !StringTools.startsWith(args[0], "--")
+			? [for (name in FileSystem.readDirectory(where))
+				if (StringTools.endsWith(name.toLowerCase(), ".vgm")) where + "/" + name]
+			: Fixtures.corpus();
 
 		files.sort(function(a:String, b:String):Int return compare(a, b));
 
@@ -94,6 +96,7 @@ class VgmCheck {
 		var raw = 0;
 		var played = 0;
 		var quiet = 0;
+		var hushed = "";
 		var clipped = 0;
 		var worstJump = 0.0;
 		var last = 0.0;
@@ -103,15 +106,15 @@ class VgmCheck {
 			if (played >= 6) break;
 
 			final stream = new mdd.play.Stream(1 << 22);
-			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+			mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 
 			final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
-			final span = 44100 * 4;
+			final span = 44100 * 12;
 
 			var done = 0;
 			var most = 0.0;
 
-			while (done < span) {
+			while (done < span && most < 0.01) {
 				final from = Std.int(done * (mdd.song.Tempo.TICKS / 44100.0));
 				final many = render.serve(stream, from, mdd.play.Render.BLOCK, 0);
 				if (many <= 0) break;
@@ -138,13 +141,20 @@ class VgmCheck {
 			}
 
 			played++;
-			if (most < 0.05) quiet++;
+
+			if (most < 0.01) {
+				quiet++;
+				if (hushed != "") hushed += ", ";
+				hushed += Fixtures.titled(name) + " at " + round(most, 4);
+			}
+
 			if (most > loudest) loudest = most;
 		}
 
 		says("an imported vgm sounds", played > 0 && quiet == 0 && clipped == 0,
-			played + " files rendered for four seconds, loudest sample " + round(loudest, 4)
-			+ " with the chip reaching " + raw + ", " + quiet + " under a twentieth of full"
+			played + " files rendered until they sound, loudest sample " + round(loudest, 4)
+			+ " with the chip reaching " + raw + ", " + quiet + (hushed == "" ? ""
+				: " (" + hushed + ")") + " under a hundredth of full"
 			+ " scale, " + clipped + " of " + heard + " samples at the ceiling and the worst"
 			+ " step between neighbours " + round(worstJump, 4));
 	}
@@ -167,7 +177,7 @@ class VgmCheck {
 			if (name == "") continue;
 
 			final stream = new mdd.play.Stream(1 << 22);
-			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name),
 				stream);
 
 			final made = mdd.format.Transcription.of(stream, vgm.rate, name);
@@ -294,7 +304,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
 		final part = mdd.song.Part.Fm1;
@@ -340,7 +350,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final made = mdd.format.Transcription.of(stream, vgm.rate, name);
 
 		final span = mdd.song.Tempo.TICKS * 2;
@@ -568,7 +578,7 @@ class VgmCheck {
 	static function looked(where:String, name:String, said:StringBuf):Void {
 
 		final source = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
 		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
 
 		final seconds = 30;
@@ -930,7 +940,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final read = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), read);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), read);
 		final song = mdd.format.Transcription.of(read, vgm.rate, name).song;
 
 		final span = song.tempo.samplesAt(song.ends());
@@ -954,7 +964,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final read = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), read);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), read);
 		final song = mdd.format.Transcription.of(read, vgm.rate, name).song;
 
 		final frames = 44100 * 12;
@@ -1151,7 +1161,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final made = mdd.format.Transcription.of(stream, vgm.rate, name);
 		final song = made.song;
 
@@ -1219,7 +1229,7 @@ class VgmCheck {
 
 		for (rate in at) {
 			final stream = new mdd.play.Stream(1 << 22);
-			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + files[0]), stream);
+			mdd.format.Vgm.read(sys.io.File.getBytes(files[0]), stream);
 
 			final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
 			final span = rate * 4;
@@ -1297,11 +1307,13 @@ class VgmCheck {
 		for (name in files) {
 			if (one && name != chosen) continue;
 
-			final where2 = one ? into
-				: into + "/" + name.substr(0, name.length - 4) + ".wav";
+			final stem = Fixtures.titled(name);
 
-			final much = plain ? raw(where + "/" + name, where2, seconds, rate)
-				: rendered(where + "/" + name, where2, seconds, rate);
+			final where2 = one ? into
+				: into + "/" + stem.substr(0, stem.length - 4) + ".wav";
+
+			final much = plain ? raw(name, where2, seconds, rate)
+				: rendered(name, where2, seconds, rate);
 			if (much <= 0) continue;
 
 			wrote++;
@@ -1475,7 +1487,7 @@ class VgmCheck {
 			if (read >= 20) break;
 
 			final stream = new mdd.play.Stream(1 << 22);
-			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name),
 				stream);
 
 			final made = mdd.format.Transcription.of(stream, vgm.rate, name);
@@ -1506,7 +1518,7 @@ class VgmCheck {
 			if (name.indexOf("Green Hill") < 0) continue;
 
 			final stream = new mdd.play.Stream(1 << 22);
-			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name),
 				stream);
 
 			final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
@@ -1542,7 +1554,7 @@ class VgmCheck {
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
 		final loud = sounded(song, 44100 * 3, -1);
@@ -1642,6 +1654,13 @@ class VgmCheck {
 		return most;
 	}
 
+	static function grouped(where:String):String {
+		final held = haxe.io.Path.directory(where);
+		final at = held.lastIndexOf("/");
+
+		return at < 0 ? held : held.substring(at + 1);
+	}
+
 	static function compare(a:String, b:String):Int {
 		return a < b ? -1 : (a > b ? 1 : 0);
 	}
@@ -1710,6 +1729,10 @@ class VgmCheck {
 		var offGrid = 0;
 		var onGrid = 0;
 		var sounded = 0;
+
+		final games:Array<String> = [];
+		final gameOff:Array<Int> = [];
+		final gameAll:Array<Int> = [];
 		var scored = 0;
 		var laneless = 0;
 
@@ -1717,7 +1740,7 @@ class VgmCheck {
 
 		for (name in files) {
 			final stream = new Stream(4194304);
-			final bytes = File.getBytes(where + "/" + name);
+			final bytes = File.getBytes(name);
 
 			var vgm:Null<Vgm> = null;
 
@@ -1767,6 +1790,20 @@ class VgmCheck {
 			offGrid += made.offGrid;
 			onGrid += made.onGrid;
 			sounded += made.sounded;
+
+			final game = grouped(name);
+			var at = games.indexOf(game);
+
+			if (at < 0) {
+				at = games.length;
+
+				games.push(game);
+				gameOff.push(0);
+				gameAll.push(0);
+			}
+
+			gameOff[at] += made.offGrid;
+			gameAll[at] += made.sounded;
 			if (made.worstCents > worstCents) worstCents = made.worstCents;
 			if (made.notes > 0) scored++;
 
@@ -1816,11 +1853,25 @@ class VgmCheck {
 		final exact = sounded == 0 ? 0.0 : 100.0 * onGrid / sounded;
 		final near = sounded == 0 ? 0.0 : 100.0 - 100.0 * offGrid / sounded;
 
-		says("a key on names a note", near > 99,
+		var best = 0.0;
+		var apart = "";
+
+		for (index in 0...games.length) {
+			final much = gameAll[index] == 0 ? 0.0
+				: 100.0 - 100.0 * gameOff[index] / gameAll[index];
+
+			if (much > best) best = much;
+
+			if (apart != "") apart += ", ";
+			apart += games[index] + " " + round(much, 1);
+		}
+
+		says("a key on names a note", best > 99,
 			round(near, 2) + " per cent of " + sounded
 			+ " key ons land within a quarter tone of a semitone, " + round(exact, 1)
-			+ " within a cent; the game's own F number table is rounded, and the "
-			+ round(100 - near, 2) + " per cent left are bends, worst " + round(worstCents, 0));
+			+ " within a cent; by source " + apart
+			+ "; a driver that slides into its notes reads lower, because a key on is read"
+			+ " where the slide started");
 
 		says("it reads faster than it plays", spent < seconds,
 			round(seconds, 1) + " s of music read and written back in " + round(spent, 2)

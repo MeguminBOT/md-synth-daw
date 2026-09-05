@@ -36,10 +36,7 @@ class DriftCheck {
 		}
 
 		var name = "";
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf(want) < 0) continue;
-			name = held;
-		}
+		name = Fixtures.found(want);
 
 		if (name == "") {
 			Sys.println("  drift: nothing here is called '" + want + "'");
@@ -50,7 +47,7 @@ class DriftCheck {
 		Sys.println("    " + name + ", " + SECONDS + " s");
 
 		final source = new Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
 		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
 		final made = played(song, Tempo.TICKS * SECONDS);
 

@@ -212,11 +212,9 @@ class CheckCheck {
 		var frames = 0;
 		var files = 0;
 
-		for (name in sys.FileSystem.readDirectory(where)) {
-			if (!StringTools.endsWith(name.toLowerCase(), ".vgm")) continue;
-
+		for (name in Fixtures.corpus()) {
 			final stream = new mdd.play.Stream(1 << 22);
-			mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+			mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 			files++;
 
 			final frame = Std.int(mdd.song.Tempo.TICKS / 60);

@@ -96,15 +96,12 @@ class StreamCheck {
 		final where = Gate.root + "/vendor/vgm";
 		if (!sys.FileSystem.isDirectory(where)) return;
 
-		var name = "";
-		for (found in sys.FileSystem.readDirectory(where)) {
-			if (found.indexOf("Green Hill") >= 0) name = found;
-		}
+		final name = Fixtures.found("Green Hill");
 
 		if (name == "") return;
 
 		final source = new Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
 		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
 
 		final into = Tempo.TICKS * 8;
@@ -371,7 +368,7 @@ class StreamCheck {
 	}
 
 	static function raced():Void {
-		final session = mdd.app.Session.started();
+		final session = mdd.app.Session.started(mdd.song.Library.embedded());
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
 
 		render.transport = session.transport;

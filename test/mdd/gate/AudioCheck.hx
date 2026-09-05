@@ -208,7 +208,7 @@ class AudioCheck {
 	}
 
 	static function auditioned():Void {
-		final session = mdd.app.Session.started();
+		final session = mdd.app.Session.started(mdd.song.Library.embedded());
 		final render = new Render(RATE, Render.BLOCK);
 
 		render.transport = session.transport;
@@ -585,15 +585,12 @@ class AudioCheck {
 
 		var name = "";
 
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf("Green Hill") < 0) continue;
-			name = held;
-		}
+		name = Fixtures.found("Green Hill");
 
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
 		final handle = Audio.open(0, Render.BLOCK);

@@ -180,7 +180,7 @@ class TierCheck {
 			"a name without one gets it, a name with it keeps it, and a different one is kept "
 			+ "and added to");
 
-		final session = Session.started();
+		final session = Session.started(mdd.song.Library.embedded());
 		final pattern = session.current();
 
 		for (index in 0...4) {
@@ -273,7 +273,7 @@ class TierCheck {
 		wipe(into);
 		sys.FileSystem.createDirectory(into);
 
-		final session = Session.started();
+		final session = Session.started(mdd.song.Library.embedded());
 		final files = new Files(session);
 
 		files.every = 2;
@@ -300,7 +300,7 @@ class TierCheck {
 			"one note written, and the next interval saved it, " + files.kept
 			+ " saves in all");
 
-		final recovery = new Files(Session.started());
+		final recovery = new Files(Session.started(mdd.song.Library.embedded()));
 		recovery.every = 1;
 		recovery.session.does(new mdd.song.edit.AddNote(0, Part.Fm1,
 			new mdd.song.Note(0, 48, 60, 100)));

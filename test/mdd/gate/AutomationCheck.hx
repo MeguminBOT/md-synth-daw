@@ -422,13 +422,11 @@ class AutomationCheck {
 
 		if (sys.FileSystem.isDirectory(where)) {
 			var name = "";
-			for (found in sys.FileSystem.readDirectory(where)) {
-				if (found.indexOf("Green Hill") >= 0) name = found;
-			}
+			name = Fixtures.found("Green Hill");
 
 			if (name != "") {
 				final source = new mdd.play.Stream(1 << 22);
-				final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name),
+				final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name),
 					source);
 
 				final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
@@ -519,14 +517,12 @@ class AutomationCheck {
 		if (!sys.FileSystem.isDirectory(where)) return;
 
 		var name = "";
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf("Green Hill") >= 0) name = held;
-		}
+		name = Fixtures.found("Green Hill");
 
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
 		var lines = 0;
@@ -563,14 +559,12 @@ class AutomationCheck {
 		if (!sys.FileSystem.isDirectory(where)) return;
 
 		var name = "";
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf("Green Hill") >= 0) name = held;
-		}
+		name = Fixtures.found("Green Hill");
 
 		if (name == "") return;
 
 		final stream = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), stream);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
 		var which = -1;

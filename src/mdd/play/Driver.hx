@@ -12,7 +12,7 @@ final class Driver {
 
 	public var on:Bool = false;
 
-	public static inline final PER_FRAME = 141;
+	public static inline final PER_FRAME = 178;
 
 	public var perFrame:Int = PER_FRAME;
 	public var rate:Int = 60;

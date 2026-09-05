@@ -25,6 +25,9 @@ class MixCheck {
 		shaped();
 		written(into);
 		bounced();
+		patched();
+		kitted();
+		furnished();
 		threaded();
 		imported();
 
@@ -193,6 +196,93 @@ class MixCheck {
 			+ round(faster.seconds(), 2) + " s either way");
 	}
 
+	static function furnished():Void {
+		final library = mdd.song.Library.embedded();
+
+		final song = new Song("import", 96, 120);
+
+		final first = library.into(song);
+		final banks = song.banks.length;
+		final again = library.into(song);
+
+		says("the shipped banks are built in and land on any song",
+			library.count() > 0 && first == library.count() && again == 0,
+			library.count() + " presets embedded in the binary across " + library.names.length
+			+ " banks, " + first + " of them added to a song read from a file and " + again
+			+ " added a second time");
+	}
+
+	static function kitted():Void {
+		final bytes = haxe.io.Bytes.alloc(600);
+		for (at in 0...bytes.length) bytes.set(at, (at * 7) & 0xFF);
+
+		final coded = haxe.crypto.Base64.encode(bytes);
+
+		final said = "{\"name\": \"a kit\", \"presets\": ["
+			+ "{\"name\": \"Kick 1\", \"tags\": [\"one\"], \"rate\": 16000,"
+			+ " \"root\": 60, \"pcm\": \"" + coded + "\"},"
+			+ "{\"name\": \"Snare 1\", \"tags\": [\"two\"], \"rate\": 8000,"
+			+ " \"root\": 48, \"pcm\": \"" + coded + "\"}]}";
+
+		final library = new mdd.song.Library();
+		final many = library.reads(said);
+
+		final song = new Song("kit", 96, 120);
+		library.into(song);
+
+		final one = song.samples.length == 0 ? null : song.samples[0];
+
+		var same = one != null && one.length() == bytes.length;
+		if (same) for (at in 0...bytes.length) if (one.bytes[at] != bytes.get(at)) same = false;
+
+		says("a kit reads back as samples", many == 2 && song.samples.length == 2 && same
+			&& one.rate == 16000,
+			many + " presets read, " + song.samples.length + " samples, the first "
+			+ (one == null ? 0 : one.length()) + " bytes at "
+			+ (one == null ? 0 : one.rate) + " Hz, "
+			+ (same ? "byte for byte" : "and the bytes do not match"));
+	}
+
+	static function patched():Void {
+		final made = new mdd.song.Patch();
+
+		made.algorithm = 5;
+		made.feedback = 6;
+
+		for (slot in 0...mdd.song.Patch.SLOTS) {
+			made.multiple[slot] = slot + 3;
+			made.detune[slot] = (slot + 1) & 7;
+			made.totalLevel[slot] = 17 + slot * 9;
+			made.keyScale[slot] = slot & 3;
+			made.attack[slot] = 31 - slot * 4;
+			made.decay[slot] = 5 + slot;
+			made.sustain[slot] = 9 + slot;
+			made.release[slot] = 12 - slot;
+			made.sustainLevel[slot] = 4 + slot;
+			made.ssg[slot] = 8 + slot;
+		}
+
+		final bytes = mdd.format.Tfi.write(made);
+		final back = mdd.format.Tfi.read(bytes);
+
+		says("a tfi is forty two bytes", bytes.length == mdd.format.Tfi.BYTES,
+			bytes.length + " bytes, two for the algorithm and feedback and ten for each of "
+			+ mdd.song.Patch.SLOTS + " operators");
+
+		says("and it reads back as the patch it was",
+			back != null && mdd.format.Tfi.same(back, made),
+			back == null ? "nothing came back"
+				: "algorithm " + back.algorithm + ", feedback " + back.feedback
+				+ ", and every operator field the same");
+
+		final other = mdd.format.Tfi.read(bytes);
+		other.totalLevel[2] = made.totalLevel[2] + 1;
+
+		says("and one field apart is not the same",
+			!mdd.format.Tfi.same(other, made),
+			"a single total level moved by one is told apart");
+	}
+
 	static function threaded():Void {
 		final song = new Song("a bounce", 96, 150);
 		final pattern = song.add(new mdd.song.Pattern("one", 384 * 16));
@@ -250,14 +340,12 @@ class MixCheck {
 		if (!sys.FileSystem.isDirectory(where)) return;
 
 		var name = "";
-		for (found in sys.FileSystem.readDirectory(where)) {
-			if (found.indexOf("Green Hill") >= 0) name = found;
-		}
+		name = Fixtures.found("Green Hill");
 
 		if (name == "") return;
 
 		final source = new mdd.play.Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
 		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
 
 		final mixing = new Mixing();
@@ -379,7 +467,7 @@ class MixCheck {
 			round(reopened, 1) + " s after a save and a load, against " + round(want, 1)
 			+ " s before");
 
-		final fresh = mdd.app.Session.started().song;
+		final fresh = mdd.app.Session.started(mdd.song.Library.embedded()).song;
 		final blank = fresh.tempo.samplesAt(fresh.ends()) / mdd.song.Tempo.TICKS;
 
 		says("a new document has somewhere to write",

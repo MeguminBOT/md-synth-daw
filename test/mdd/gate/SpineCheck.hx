@@ -255,6 +255,64 @@ class SpineCheck {
 		tree.top.arrange(0, 0, tree.width, tree.height);
 	}
 
+	static function tagged(tree:Root, presets:mdd.view.editor.Presets,
+			session:mdd.app.Session):Void {
+		final held = session.song.instrumentAt(0);
+		if (held == null) return;
+
+		held.tags.push("brass");
+		held.tags.push("lead");
+
+		laid(tree);
+		final every = presets.listed;
+
+		presets.search.set("brass");
+		laid(tree);
+
+		final some = presets.listed;
+
+		presets.search.set("nothingatall");
+		laid(tree);
+
+		final none = presets.listed;
+
+		presets.search.set("");
+		laid(tree);
+
+		says("a search finds a preset by its tag", every > some && some > 0 && none == 0
+			&& presets.listed == every,
+			every + " presets listed, " + some + " matching the tag brass, " + none
+			+ " matching nothing, and " + presets.listed + " again when the box is cleared");
+
+		says("and a tag survives a project", tagsKeep(session),
+			"written and read back with " + held.tags.length + " tags");
+
+		var lifted = 0;
+		for (one in session.song.instruments) if (one.tags.length > 0) lifted++;
+
+		presets.search.set("Green Hill Zone");
+		laid(tree);
+
+		final narrowed = presets.listed;
+
+		presets.search.set("");
+		laid(tree);
+
+		says("the shipped bank is tagged by its track", lifted > 100 && narrowed > 0
+			&& narrowed < lifted,
+			lifted + " presets carry a tag, and " + narrowed
+			+ " of them answer to Green Hill Zone");
+	}
+
+	static function tagsKeep(session:mdd.app.Session):Bool {
+		final back = mdd.format.Project.read(mdd.format.Project.text(session.song));
+
+		if (back == null || back.instruments.length == 0) return false;
+
+		final one = back.instruments[0];
+		return one.tags.length == 2 && one.tags[0] == "brass" && one.tags[1] == "lead";
+	}
+
 	static function tabbed(tree:Root, centre:mdd.view.Centre):Void {
 		final session = centre.session;
 		final pattern = session.current();
@@ -660,7 +718,7 @@ class SpineCheck {
 		final metrics = new Metrics(1);
 		metrics.dress(body, small, mono, mono);
 
-		final session = Session.started();
+		final session = Session.started(mdd.song.Library.embedded());
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme());
 
@@ -1067,6 +1125,7 @@ class SpineCheck {
 		fitted(tree);
 		aligned(tree);
 		laned(tree, session, centre.roll);
+		tagged(tree, editor.presets, session);
 		tabbed(tree, centre);
 		sheeted(tree, session);
 

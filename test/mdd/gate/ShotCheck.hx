@@ -104,7 +104,7 @@ class ShotCheck {
 		final metrics = new Metrics(1);
 		metrics.dress(body, small, mono, mono);
 
-		final session = vgm == "" ? Session.started() : imported(root, vgm);
+		final session = vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm);
 
 		if (icons) {
 			for (index in 0...session.song.instruments.length) {
@@ -376,18 +376,13 @@ class ShotCheck {
 	}
 
 	static function imported(root:String, name:String):Session {
-		final where = root + "/vendor/vgm";
-		if (!sys.FileSystem.isDirectory(where)) return Session.started();
+		final held = Fixtures.found(name);
+		if (held == "") return Session.started(mdd.song.Library.embedded());
 
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf(name) < 0) continue;
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(held), stream);
 
-			final stream = new mdd.play.Stream(1 << 22);
-			final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + held), stream);
-
-			return new Session(mdd.format.Transcription.of(stream, vgm.rate, held).song);
-		}
-
-		return Session.started();
+		return new Session(mdd.format.Transcription.of(stream, vgm.rate,
+			Fixtures.titled(held)).song);
 	}
 }

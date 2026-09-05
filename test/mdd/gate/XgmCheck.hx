@@ -28,11 +28,7 @@ class XgmCheck {
 			return 1;
 		}
 
-		var name = "";
-		for (held in sys.FileSystem.readDirectory(where)) {
-			if (held.indexOf("Green Hill") < 0) continue;
-			name = held;
-		}
+		final name = Fixtures.found("Green Hill");
 
 		if (name == "") {
 			Sys.println("    no Green Hill in the corpus");
@@ -40,7 +36,7 @@ class XgmCheck {
 		}
 
 		final source = new Stream(1 << 22);
-		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(where + "/" + name), source);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), source);
 		final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
 
 		final span = Tempo.TICKS * SECONDS;
@@ -125,7 +121,7 @@ class XgmCheck {
 	}
 
 	static function drawn():Void {
-		final song = mdd.app.Session.started().song;
+		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
 		final pattern = song.patterns[0];
 		final lane = pattern.lane(mdd.song.Part.Dac);
 
