@@ -1,5 +1,6 @@
 package mdd;
 
+import mdd.app.Bindings;
 import mdd.app.Files;
 import mdd.app.Keyboard;
 import mdd.app.Languages;
@@ -251,6 +252,12 @@ class App {
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
 		menus.onLift = function():Int return files.liftsPatches();
+		menus.bindings = bindings;
+
+		if (panels.centre != null && panels.centre.tools != null) {
+			panels.centre.tools.bindings = bindings;
+		}
+
 		menus.onNew = function():Void fresh();
 
 		menus.onPart = function(part:Int):Void {
@@ -709,6 +716,8 @@ class App {
 
 		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
 
+		bindings.reads(settings.of("keys", ""));
+
 		stage.root.reshape();
 	}
 
@@ -740,6 +749,7 @@ class App {
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 		settings.whole("console", panels.preferences.console);
 		settings.whole("tempo", panels.preferences.tempo);
+		settings.put("keys", bindings.said());
 
 		settings.save();
 	}
@@ -780,73 +790,54 @@ class App {
 		session.say(stage.root.translate(Locale.FILE_NEW));
 	}
 
-	function chorded(code:Key, mods:Mod):Bool {
-		final ctrl = (mods & Mod.Ctrl) != 0;
-		final shift = (mods & Mod.Shift) != 0;
+	final bindings:Bindings = new Bindings();
 
-		if (code == Key.Space) {
-			panels.bar.press(ctrl ? TransportBar.STOP : TransportBar.PLAY);
+	function chorded(code:Key, mods:Mod):Bool {
+		if (code == Key.Z && (mods & Mod.Ctrl) != 0 && (mods & Mod.Shift) != 0) {
+			redone();
 			return true;
 		}
 
-		if (!ctrl && !shift && (mods & Mod.Alt) == 0) {
-			final tools = panels.centre == null ? null : panels.centre.tools;
+		final action = bindings.actionFor(code, mods);
+		if (action == Bindings.NONE) return false;
 
-			if (tools != null && tools.visible) {
-				for (index in 0...mdd.view.Tools.KEYS.length) {
-					if (code != mdd.view.Tools.KEYS[index]) continue;
-					if ((tools.allowed & (1 << index)) == 0) continue;
+		if (action >= Bindings.SELECT) return tooled(action - Bindings.SELECT);
 
-					tools.press(index);
-					tools.invalidate();
-
-					return true;
-				}
-			}
+		switch (action) {
+			case Bindings.UNDO: undone();
+			case Bindings.REDO: redone();
+			case Bindings.NEW: fresh();
+			case Bindings.OPEN: files.ask(stage.window, Files.OPEN);
+			case Bindings.SAVE: keeping();
+			case Bindings.PREFERENCES: panels.opened();
+			case Bindings.PLAY: panels.bar.press(TransportBar.PLAY);
+			case Bindings.STOP: panels.bar.press(TransportBar.STOP);
+			case Bindings.LOOP: panels.bar.press(TransportBar.LOOP);
+			case Bindings.WRITE_VGM: files.ask(stage.window, Files.VGM);
+			case Bindings.WRITE_AUDIO: panels.sounded();
+			case Bindings.EARLIER: nudged(-1);
+			case Bindings.LATER: nudged(1);
+			case _: return false;
 		}
 
-		if (!ctrl) return false;
+		return true;
+	}
 
-		switch (code) {
-			case Key.Z:
-				if (shift) redone();
-				else undone();
-				return true;
+	function nudged(way:Int):Void {
+		session.does(new mdd.song.edit.ShiftSong(way));
+		session.say(stage.root.translate(way < 0 ? Locale.EDIT_EARLIER : Locale.EDIT_LATER));
+	}
 
-			case Key.Y:
-				redone();
-				return true;
+	function tooled(which:Int):Bool {
+		final tools = panels.centre == null ? null : panels.centre.tools;
 
-			case Key.L:
-				panels.bar.press(TransportBar.LOOP);
-				return true;
+		if (tools == null || !tools.visible) return false;
+		if (which < 0 || (tools.allowed & (1 << which)) == 0) return false;
 
-			case Key.S:
-				keeping();
-				return true;
+		tools.press(which);
+		tools.invalidate();
 
-			case Key.N:
-				fresh();
-				return true;
-
-			case Key.O:
-				files.ask(stage.window, Files.OPEN);
-				return true;
-
-			case Key.E:
-				if (shift) panels.sounded();
-				else files.ask(stage.window, Files.VGM);
-
-				return true;
-
-			case Key.Comma:
-				panels.opened();
-				return true;
-
-			case _:
-		}
-
-		return false;
+		return true;
 	}
 
 	function report():Void {

@@ -1,6 +1,8 @@
 package mdd.ui;
 
 enum abstract Key(Int) from Int to Int {
+	var Unknown = 0;
+
 	var A = 4;
 	var B = 5;
 	var C = 6;

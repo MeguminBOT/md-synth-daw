@@ -329,6 +329,46 @@ class SpineCheck {
 			"six tags across two zones read '" + zones + "', three with no zone read '"
 			+ plain + "', and none reads nothing");
 
+		final table = new mdd.app.Bindings();
+
+		final wasUndo = table.chordOf(mdd.app.Bindings.UNDO);
+		final wasDraw = table.chordOf(mdd.app.Bindings.DRAW);
+
+		final found = table.actionFor(mdd.ui.Key.Z, mdd.ui.Mod.Ctrl);
+		final none = table.actionFor(mdd.ui.Key.Q, mdd.ui.Mod.None);
+
+		says("a chord finds what it is bound to", wasUndo == "Ctrl+Z" && wasDraw == "P"
+			&& found == mdd.app.Bindings.UNDO && none == mdd.app.Bindings.NONE,
+			"undo reads '" + wasUndo + "' and draw '" + wasDraw + "', Ctrl+Z finds undo and"
+			+ " an unbound key finds nothing");
+
+		table.binds(mdd.app.Bindings.UNDO, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
+
+		final spelt = table.chordOf(mdd.app.Bindings.UNDO);
+		final moved = table.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
+		final gone = table.actionFor(mdd.ui.Key.Z, mdd.ui.Mod.Ctrl);
+
+		final written = table.said();
+
+		final other = new mdd.app.Bindings();
+		other.reads(written);
+
+		says("a chord can be moved and is remembered",
+			spelt == "Ctrl+Alt+B" && moved == mdd.app.Bindings.UNDO
+			&& gone == mdd.app.Bindings.NONE
+			&& other.chordOf(mdd.app.Bindings.UNDO) == "Ctrl+Alt+B"
+			&& other.chordOf(mdd.app.Bindings.DRAW) == wasDraw,
+			"undo moved to '" + spelt + "', the old chord finds nothing, and '" + written
+			+ "' brings it back with the rest left alone");
+
+		table.binds(mdd.app.Bindings.DRAW, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
+
+		says("and taking a chord leaves the other without one",
+			table.chordOf(mdd.app.Bindings.UNDO) == ""
+			&& table.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt)
+				== mdd.app.Bindings.DRAW,
+			"draw took Ctrl+Alt+B and undo was left with nothing rather than a second owner");
+
 		says("and a tag survives a project", tagsKeep(session),
 			"written and read back with " + held.tags.length + " tags");
 

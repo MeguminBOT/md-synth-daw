@@ -28,6 +28,12 @@ final class Menus {
 
 	var session:Null<Session> = null;
 
+	public var bindings:Null<Bindings> = null;
+
+	function chord(action:Int):String {
+		return bindings == null ? "" : bindings.chordOf(action);
+	}
+
 	public function new(stage:Stage, panels:Panels) {
 		this.stage = stage;
 		this.panels = panels;
@@ -52,11 +58,11 @@ final class Menus {
 	function commands():Void {
 		final file = new Menu();
 
-		fired(file.offer(new Choice(said(Locale.FILE_NEW), "Ctrl+N")), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_NEW), chord(Bindings.NEW))), function():Void
 			if (onNew != null) onNew());
-		fired(file.offer(new Choice(said(Locale.FILE_OPEN), "Ctrl+O")), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_OPEN), chord(Bindings.OPEN))), function():Void
 			asks(Files.OPEN));
-		fired(file.offer(new Choice(said(Locale.FILE_SAVE), "Ctrl+S")), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_SAVE), chord(Bindings.SAVE))), function():Void
 			saves());
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE_AS))), function():Void
 			asks(Files.SAVE));
@@ -71,7 +77,7 @@ final class Menus {
 		}
 
 		file.divide();
-		fired(file.offer(new Choice(said(Locale.FILE_PREFERENCES), "Ctrl+,")),
+		fired(file.offer(new Choice(said(Locale.FILE_PREFERENCES), chord(Bindings.PREFERENCES))),
 			function():Void panels.opened());
 		file.divide();
 		fired(file.offer(new Choice(said(Locale.FILE_QUIT), "Alt+F4")), function():Void
@@ -79,21 +85,21 @@ final class Menus {
 
 		final edit = new Menu();
 
-		fired(edit.offer(new Choice(said(Locale.EDIT_UNDO), "Ctrl+Z")), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_UNDO), chord(Bindings.UNDO))), function():Void
 			undoes());
-		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), "Ctrl+Y")), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), chord(Bindings.REDO))), function():Void
 			redoes());
 		edit.divide();
 		edit.divide();
-		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), "Ctrl+Left")),
+		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), chord(Bindings.EARLIER))),
 			function():Void nudges(-1));
-		fired(edit.offer(new Choice(said(Locale.EDIT_LATER), "Ctrl+Right")),
+		fired(edit.offer(new Choice(said(Locale.EDIT_LATER), chord(Bindings.LATER))),
 			function():Void nudges(1));
 		edit.divide();
 
-		fired(edit.offer(new Choice(said(Locale.EDIT_PLAY), "Space")), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_PLAY), chord(Bindings.PLAY))), function():Void
 			panels.bar.press(TransportBar.PLAY));
-		fired(edit.offer(new Choice(said(Locale.EDIT_STOP), "Ctrl+Space")),
+		fired(edit.offer(new Choice(said(Locale.EDIT_STOP), chord(Bindings.STOP))),
 			function():Void panels.bar.press(TransportBar.STOP));
 
 		bar.offer(said(Locale.MENU_FILE), file);
@@ -259,9 +265,9 @@ final class Menus {
 
 		held.divide();
 
-		fired(held.offer(new Choice(said(Locale.FILE_VGM), "Ctrl+E")), function():Void
+		fired(held.offer(new Choice(said(Locale.FILE_VGM), chord(Bindings.WRITE_VGM))), function():Void
 			asks(Files.VGM));
-		fired(held.offer(new Choice(said(Locale.FILE_AUDIO), "Ctrl+Shift+E")),
+		fired(held.offer(new Choice(said(Locale.FILE_AUDIO), chord(Bindings.WRITE_AUDIO))),
 			function():Void panels.sounded());
 		fired(held.offer(new Choice(said(Locale.FILE_XGM))), function():Void
 			asks(Files.XGM));

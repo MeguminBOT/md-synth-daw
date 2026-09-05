@@ -15,7 +15,12 @@ final class Tools extends Widget {
 	public static inline final GHOSTS = Session.TOOLS + 1;
 	public static inline final CELLS = Session.TOOLS + 2;
 
-	public static final CHORDS:Array<String> = ["E", "P", "D", "C", "H", "", ""];
+	public var bindings:Null<mdd.app.Bindings> = null;
+
+	function chordOf(index:Int):String {
+		if (bindings == null || index < 0 || index > 4) return "";
+		return bindings.chordOf(mdd.app.Bindings.SELECT + index);
+	}
 
 	public static final KEYS:Array<mdd.ui.Key> = [mdd.ui.Key.E, mdd.ui.Key.P, mdd.ui.Key.D,
 		mdd.ui.Key.C, mdd.ui.Key.H];
@@ -155,7 +160,7 @@ final class Tools extends Widget {
 			case Kind.PointerMove:
 				final index = cellAt(event.x, event.y);
 				tip = index < 0 ? "" : translate(TIPS[index]);
-				chord = index < 0 || index >= CHORDS.length ? "" : CHORDS[index];
+				chord = chordOf(index);
 
 				if (index == hoverAt) return false;
 

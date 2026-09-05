@@ -238,6 +238,26 @@ class Locale {
 	public static inline final GROUP_UPDATES = "group.updates";
 	public static inline final GROUP_MIDI = "group.midi";
 	public static inline final GROUP_SOUND = "group.sound";
+	public static inline final BIND_UNDO = "bind.undo";
+	public static inline final BIND_REDO = "bind.redo";
+	public static inline final BIND_NEW = "bind.new";
+	public static inline final BIND_OPEN = "bind.open";
+	public static inline final BIND_SAVE = "bind.save";
+	public static inline final BIND_PREFERENCES = "bind.preferences";
+	public static inline final BIND_PLAY = "bind.play";
+	public static inline final BIND_STOP = "bind.stop";
+	public static inline final BIND_LOOP = "bind.loop";
+	public static inline final BIND_WRITE_VGM = "bind.writeVgm";
+	public static inline final BIND_WRITE_AUDIO = "bind.writeAudio";
+	public static inline final BIND_EARLIER = "bind.earlier";
+	public static inline final BIND_LATER = "bind.later";
+	public static inline final BIND_ALL = "bind.all";
+	public static inline final BIND_SELECT = "bind.select";
+	public static inline final BIND_DRAW = "bind.draw";
+	public static inline final BIND_ERASE = "bind.erase";
+	public static inline final BIND_SLICE = "bind.slice";
+	public static inline final BIND_PAN = "bind.pan";
+	public static inline final GROUP_KEYBOARD = "group.keyboard";
 	public static inline final PATTERN_PART = "pattern.part";
 	public static inline final EDIT_EARLIER = "edit.earlier";
 	public static inline final EDIT_LATER = "edit.later";
@@ -474,6 +494,8 @@ class Locale {
 		PREFERENCE_TEMPO, TEMPO_SPEED, TEMPO_GRID,
 		EDIT_EARLIER, EDIT_LATER,
 		PATTERN_PART,
+		BIND_UNDO, BIND_REDO, BIND_NEW, BIND_OPEN, BIND_SAVE, BIND_PREFERENCES, BIND_PLAY, BIND_STOP, BIND_LOOP, BIND_WRITE_VGM,
+		BIND_WRITE_AUDIO, BIND_EARLIER, BIND_LATER, BIND_ALL, BIND_SELECT, BIND_DRAW, BIND_ERASE, BIND_SLICE, BIND_PAN, GROUP_KEYBOARD,
 		GROUP_SOUND, PREFERENCE_CONSOLE, CONSOLE_CHIP, CONSOLE_ONE, CONSOLE_TWO,
 		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
