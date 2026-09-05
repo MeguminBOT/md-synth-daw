@@ -475,6 +475,16 @@ final class Playlist extends Widget {
 		return many + (many == 1 ? " clip" : " clips");
 	}
 
+	public function held():Array<Clip> {
+		final out:Array<Clip> = [];
+
+		for (track in session.song.tracks) {
+			for (clip in track.clips) if (picked.holds(clip)) out.push(clip);
+		}
+
+		return out;
+	}
+
 	function alters(lead:Clip, which:Int, shift:Bool):Void {
 		if (shift) {
 			picked.toggles(lead);
@@ -543,7 +553,7 @@ final class Playlist extends Widget {
 	}
 
 	function copies():Bool {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return false;
 
 		var least = held[0].at;
@@ -614,7 +624,7 @@ final class Playlist extends Widget {
 	}
 
 	function erased():Void {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return;
 
 		final group = new mdd.song.edit.Together("remove " + counted(held.length));
@@ -953,7 +963,7 @@ final class Playlist extends Widget {
 	}
 
 	function transposed(by:Int):Void {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return;
 
 		if (held.length == 1) {

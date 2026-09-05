@@ -847,6 +847,10 @@ class SpineCheck {
 		return held[Std.int(many / 2)];
 	}
 
+	static function noted(many:Int):String {
+		return many + (many == 1 ? " note" : " notes");
+	}
+
 	static function wrote(tree:Root, widget:mdd.ui.Widget, said:String):Void {
 		for (index in 0...said.length) {
 			final event = new mdd.ui.Input();
@@ -1103,6 +1107,25 @@ class SpineCheck {
 
 		says("and one undo brings every one of them back", lane.notes.length == was,
 			lane.notes.length + " notes back from a single undo");
+
+		roll.edited(mdd.ui.Edit.ALL);
+
+		final chosen = roll.picked.count;
+		lane.notes.resize(0);
+
+		roll.took(keyAt(mdd.ui.Key.Delete));
+
+		says("and a selection left behind by an undo acts on nothing",
+			chosen > 0 && lane.notes.length == 0 && session.history.last() != "remove "
+			+ noted(chosen),
+			chosen + " notes were selected when the lane was emptied under them, and delete"
+			+ " wrote '" + session.history.last() + "' rather than a removal that would come"
+			+ " back on undo");
+
+		session.undo();
+
+		says("and undoing after that puts nothing back", lane.notes.length == 0,
+			lane.notes.length + " notes in a lane that was emptied");
 
 		freed(tree, session, roll, beat);
 		levelled(tree, session, roll, beat);

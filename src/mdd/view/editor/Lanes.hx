@@ -580,7 +580,13 @@ final class Lanes extends Widget {
 	}
 
 	function copies():Bool {
-		final held = picked.taken();
+		final line = lineOf(chosenAt);
+		final held:Array<Point> = [];
+
+		if (line != null) {
+			for (point in line.points) if (picked.holds(point)) held.push(point);
+		}
+
 		if (held.length == 0) return false;
 
 		var least = held[0].at;
@@ -1148,8 +1154,18 @@ final class Lanes extends Widget {
 	function erased():Bool {
 		if (chosenAt < 0 || picked.count == 0) return false;
 
-		final held = picked.taken();
 		final row = chosenAt;
+		final line = lineOf(row);
+		final held:Array<Point> = [];
+
+		if (line != null) {
+			for (point in line.points) if (picked.holds(point)) held.push(point);
+		}
+
+		if (held.length == 0) {
+			forgets();
+			return false;
+		}
 
 		if (held.length == 1) {
 			session.does(new RemovePoint(session.pattern, drivenPart(), targeted(row),

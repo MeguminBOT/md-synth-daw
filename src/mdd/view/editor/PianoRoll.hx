@@ -751,6 +751,19 @@ final class PianoRoll extends Widget {
 		return many + (many == 1 ? " note" : " notes");
 	}
 
+	public function held():Array<Note> {
+		final pattern = session.current();
+		final out:Array<Note> = [];
+
+		if (pattern == null) return out;
+
+		for (note in pattern.lane(session.part).notes) {
+			if (picked.holds(note)) out.push(note);
+		}
+
+		return out;
+	}
+
 	function alters(lead:Note, shift:Bool):Void {
 		if (shift) {
 			picked.toggles(lead);
@@ -1152,7 +1165,7 @@ final class PianoRoll extends Widget {
 	}
 
 	function copies():Bool {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return false;
 
 		var least = held[0].at;
@@ -1204,7 +1217,7 @@ final class PianoRoll extends Widget {
 	}
 
 	function leant(by:Int):Void {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return;
 
 		if (held.length == 1) {
@@ -1340,7 +1353,7 @@ final class PianoRoll extends Widget {
 	}
 
 	function erased():Void {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return;
 
 		if (held.length == 1) {
@@ -1360,7 +1373,7 @@ final class PianoRoll extends Widget {
 	}
 
 	function nudges(byTick:Int, bySeat:Int):Void {
-		final held = picked.taken();
+		final held = held();
 		if (held.length == 0) return;
 
 		var tick = byTick;
