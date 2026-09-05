@@ -225,6 +225,7 @@ class ShotCheck {
 
 			held.keyboards.push("None");
 			held.keyboards.push("Microsoft GS Wavetable Synth");
+			held.bindings = new mdd.app.Bindings();
 			held.shows(group);
 			tree.raise(held);
 			held.arrive();

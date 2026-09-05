@@ -102,6 +102,15 @@ final class Bindings {
 		mods[action] = mod;
 	}
 
+	public function restores(action:Int):Void {
+		if (action < 0 || action >= COUNT) return;
+		binds(action, KEYS[action], MODS[action]);
+	}
+
+	public inline function bound(action:Int):Bool {
+		return action >= 0 && action < COUNT && keys[action] != Key.Unknown;
+	}
+
 	public function actionFor(key:Key, mod:Int):Int {
 		final held = mod & (Mod.Ctrl | Mod.Alt | Mod.Shift);
 

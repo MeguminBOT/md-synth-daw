@@ -217,6 +217,13 @@ class App {
 			keeps();
 		};
 		panels.preferences.onShut = function():Void stage.root.lower();
+		panels.preferences.bindings = bindings;
+
+		panels.preferences.onRebind = function():Void {
+			relabel();
+			bound();
+			keeps();
+		};
 
 		panels.preferences.onSpeak = function(code:String):Void {
 			Languages.speak(stage.root.translation, code);

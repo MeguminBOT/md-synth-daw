@@ -74,6 +74,9 @@ enum abstract Key(Int) from Int to Int {
 			case Up: "Up";
 			case Home: "Home";
 			case End: "End";
+			case Comma: ",";
+			case Minus: "-";
+			case Equals: "=";
 			case PageUp: "Page Up";
 			case PageDown: "Page Down";
 			case Zero: "0";

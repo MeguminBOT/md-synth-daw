@@ -665,14 +665,85 @@ class SpineCheck {
 			&& held.rowsIn()[0] == mdd.view.overlay.Preferences.KEEPING,
 			"Files carries " + held.rowsIn().length + " rows, the first being autosave");
 
-		held.shows(mdd.view.overlay.Preferences.LOOK);
-
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 
+		rebound(tree, held);
+
+		held.shows(mdd.view.overlay.Preferences.LOOK);
 		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
 		says("and a press beside it closes it", tree.sheet == null,
 			"a press on the scrim lowers the sheet");
+	}
+
+	static function rebound(tree:Root, held:mdd.view.overlay.Preferences):Void {
+		final bindings = new mdd.app.Bindings();
+
+		held.bindings = bindings;
+		held.arrive();
+		held.shows(mdd.view.overlay.Preferences.KEYBOARD);
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final action = mdd.app.Bindings.REDO;
+		final was = bindings.chordOf(action);
+		final top = held.y + held.head() + (action + 0.5) * held.rowTall();
+		final at = held.fieldLeft() + held.fieldWide() * 0.5;
+
+		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("a chord row waits for a key", held.catching == action
+			&& held.bindAt(top) == action,
+			"the row for '" + tree.translate(mdd.app.Bindings.NAMES[action])
+			+ "' is listening, reading " + was);
+
+		tree.key(true, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
+
+		says("and the key it catches becomes the chord",
+			bindings.chordOf(action) == "Ctrl+Alt+B" && held.catching < 0
+			&& bindings.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt) == action,
+			"'" + was + "' became '" + bindings.chordOf(action)
+			+ "' and the table answers to it");
+
+		tree.pressed(at, top, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.released(at, top, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("and a right click puts the default back",
+			bindings.chordOf(action) == was && held.catching < 0,
+			"the row reads " + bindings.chordOf(action) + " again");
+
+		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.key(true, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
+
+		final moved = bindings.chordOf(action);
+		held.cancels();
+
+		says("and cancel gives every chord back", bindings.chordOf(action) == was
+			&& bindings.said() == "",
+			"the row read " + moved + " and reads " + bindings.chordOf(action)
+			+ " after cancelling, with nothing left over settings would keep");
+
+		final most = held.content() - held.room();
+		held.scrollTo(most);
+
+		final last = mdd.app.Bindings.COUNT - 1;
+		final floor = held.y + held.head() + held.room() - held.rowTall() * 0.5;
+
+		says("and the list scrolls to the last chord",
+			most > 0 && held.bindAt(floor) == last,
+			mdd.app.Bindings.COUNT + " chords in room for "
+			+ Math.round(held.room() / held.rowTall()) + ", and the bottom row is "
+			+ tree.translate(mdd.app.Bindings.NAMES[held.bindAt(floor) < 0 ? 0
+				: held.bindAt(floor)]));
+
+		held.scrollTo(0);
+
+		tree.raise(held);
+		held.arrive();
 	}
 
 	static function dragged(tree:Root, roll:mdd.view.editor.PianoRoll, session:mdd.app.Session,

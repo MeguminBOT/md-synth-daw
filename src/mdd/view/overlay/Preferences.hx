@@ -44,10 +44,12 @@ final class Preferences extends Widget {
 	public static inline final CHECKING = 3;
 	public static inline final MIDI = 4;
 	public static inline final SOUND = 5;
-	public static inline final GROUPS = 6;
+	public static inline final KEYBOARD = 6;
+	public static inline final GROUPS = 7;
 
 	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
-		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI, Locale.GROUP_SOUND];
+		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI, Locale.GROUP_SOUND,
+		Locale.GROUP_KEYBOARD];
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
@@ -55,7 +57,8 @@ final class Preferences extends Widget {
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
-		[CONSOLE]
+		[CONSOLE],
+		[]
 	];
 
 	public var group(default, null):Int = LOOK;
@@ -155,6 +158,12 @@ final class Preferences extends Widget {
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
 	public var onConsole:Null<Int -> Void> = null;
 	public var onTempo:Null<Int -> Void> = null;
+	public var onRebind:Null<Void -> Void> = null;
+
+	public var bindings:Null<mdd.app.Bindings> = null;
+	public var catching(default, null):Int = -1;
+
+	var wasKeys:String = "";
 
 	var hoverAt:Int = -1;
 	var hoverButton:Int = -1;
@@ -197,6 +206,8 @@ final class Preferences extends Widget {
 
 		wasProjects = projectsAt;
 		wasPresets = presetsAt;
+		wasKeys = bindings == null ? "" : bindings.said();
+		catching = -1;
 
 		offsetY = 0;
 		if (root == null) return;
@@ -209,6 +220,8 @@ final class Preferences extends Widget {
 	}
 
 	public function saves():Void {
+		catching = -1;
+
 		if (onKeep != null) onKeep();
 		if (onShut != null) onShut();
 	}
@@ -223,6 +236,12 @@ final class Preferences extends Widget {
 
 		projectsAt = wasProjects;
 		presetsAt = wasPresets;
+		catching = -1;
+
+		if (bindings != null && bindings.said() != wasKeys) {
+			bindings.reads(wasKeys);
+			if (onRebind != null) onRebind();
+		}
 
 		if (onShut != null) onShut();
 	}
@@ -232,7 +251,51 @@ final class Preferences extends Widget {
 
 		group = which;
 		offsetY = 0;
+		catching = -1;
 
+		invalidate();
+	}
+
+	public inline function binding():Bool {
+		return group == KEYBOARD && bindings != null;
+	}
+
+	public function bindAt(py:Float):Int {
+		if (!binding()) return -1;
+		if (py < y + head() || py >= y + head() + room()) return -1;
+
+		final at = Std.int((py - y - head() + offsetY) / rowTall());
+		return at < 0 || at >= mdd.app.Bindings.COUNT ? -1 : at;
+	}
+
+	public function catches(action:Int):Void {
+		catching = catching == action ? -1 : action;
+		invalidate();
+	}
+
+	public function binds(code:mdd.ui.Key, mods:Int):Bool {
+		if (bindings == null || catching < 0) return false;
+
+		if (code.name() == "") return true;
+
+		bindings.binds(catching, code, mods & (mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt
+			| mdd.ui.Mod.Shift));
+
+		catching = -1;
+
+		if (onRebind != null) onRebind();
+		invalidate();
+
+		return true;
+	}
+
+	public function restores(action:Int):Void {
+		if (bindings == null || action < 0) return;
+
+		bindings.restores(action);
+		catching = -1;
+
+		if (onRebind != null) onRebind();
 		invalidate();
 	}
 
@@ -255,6 +318,7 @@ final class Preferences extends Widget {
 	}
 
 	public function content():Float {
+		if (binding()) return mdd.app.Bindings.COUNT * rowTall();
 		return rowsIn().length * rowTall();
 	}
 
@@ -563,6 +627,10 @@ final class Preferences extends Widget {
 				if (event.x >= x + sidebar()) scrollTo(offsetY - event.dy * rowTall());
 				return true;
 
+			case Kind.KeyDown:
+				if (catching < 0) return true;
+				return binds(event.code, event.mods);
+
 			case Kind.PointerDown:
 				final button = buttonAt(event.x, event.y);
 
@@ -583,6 +651,16 @@ final class Preferences extends Widget {
 					return true;
 				}
 
+				if (binding()) {
+					final action = bindAt(event.y);
+					if (action < 0) return true;
+
+					if (event.button == Pointer.Right) restores(action);
+					else catches(action);
+
+					return true;
+				}
+
 				final row = rowAt(event.y);
 				if (row < 0) return true;
 
@@ -590,7 +668,8 @@ final class Preferences extends Widget {
 				return true;
 
 			case Kind.PointerMove:
-				final row = event.x < x + sidebar() ? -1 : rowAt(event.y);
+				final row = event.x < x + sidebar() ? -1
+					: (binding() ? bindAt(event.y) : rowAt(event.y));
 				final button = buttonAt(event.x, event.y);
 				final which = event.x < x + sidebar() ? groupAt(event.y) : -1;
 
@@ -654,6 +733,16 @@ final class Preferences extends Widget {
 
 		paint.pushClip(x + sidebar(), y + head(), width - sidebar(), room());
 
+		if (binding()) {
+			bound(paint, theme, metrics, small, alpha);
+			paint.popClip();
+
+			reined(paint, theme, metrics, alpha);
+			paint.popTransform();
+
+			return;
+		}
+
 		for (which in 0...rowsIn().length) {
 			final row = rowsIn()[which];
 			final top = y + head() - offsetY + which * tall;
@@ -696,6 +785,65 @@ final class Preferences extends Widget {
 		paint.popTransform();
 	}
 
+	function reined(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
+		final tall = room();
+		final reach = content();
+
+		if (reach <= tall + 0.5) return;
+
+		final thick = metrics.whole(4);
+		final held = tall * tall / reach;
+		final least = metrics.whole(24);
+		final span = held < least ? least : held;
+		final at = offsetY / (reach - tall) * (tall - span);
+
+		paint.roundedRect(x + width - metrics.gap - thick, y + head() + at, thick, span,
+			thick * 0.5, theme.frame, alpha * 0.9);
+	}
+
+	function bound(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			alpha:Float):Void {
+		final held = bindings;
+		if (held == null) return;
+
+		final tall = rowTall();
+		final deep = fieldTall();
+		final left = fieldLeft();
+		final wide = fieldWide();
+
+		for (action in 0...mdd.app.Bindings.COUNT) {
+			final top = y + head() - offsetY + action * tall;
+			if (top + tall < y + head() || top > y + head() + room()) continue;
+
+			final at = top + (tall - deep) * 0.5;
+			final on = action == catching;
+
+			paint.reface(font);
+			paint.text(translate(mdd.app.Bindings.NAMES[action]), x + sidebar() + metrics.inset,
+				top + (tall - font.height) * 0.5 + font.ascent, theme.dim, alpha * 0.9);
+
+			paint.roundedRect(left, at, wide, deep, metrics.radiusSmall,
+				on ? theme.accent : theme.raise2, on ? alpha * 0.35 : alpha);
+
+			if (action == hoverAt && !on) {
+				paint.roundedRect(left, at, wide, deep, metrics.radiusSmall, theme.accent,
+					alpha * Theme.HOVER);
+			}
+
+			paint.outline(left, at, wide, deep, on ? theme.accent : theme.frame,
+				metrics.whole(1), alpha * (on ? 1 : 0.8), metrics.radiusSmall);
+
+			final said = on ? translate(Locale.BIND_CATCH)
+				: (held.bound(action) ? held.chordOf(action) : translate(Locale.BIND_NONE));
+
+			paint.pushClip(left + metrics.gap, at, wide - metrics.gap * 2, deep);
+			paint.text(said, left + metrics.gap,
+				at + (deep - font.height) * 0.5 + font.ascent,
+				held.bound(action) || on ? theme.ink : theme.dim, alpha);
+			paint.popClip();
+		}
+	}
+
 	function sided(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
 			alpha:Float):Void {
 		final wide = sidebar();
@@ -733,6 +881,12 @@ final class Preferences extends Widget {
 		final hair = metrics.whole(1);
 
 		paint.rect(x, top, width, hair, theme.frame, alpha * 0.7);
+
+		if (binding()) {
+			paint.reface(font);
+			paint.text(translate(Locale.BIND_HINT), x + metrics.inset,
+				top + (foot() - font.height) * 0.5 + font.ascent, theme.dim, alpha * 0.75);
+		}
 
 		final wide = buttonWide();
 		final deep = buttonTall();
