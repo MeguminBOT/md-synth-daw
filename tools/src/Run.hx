@@ -396,7 +396,8 @@ class Run {
 		out.add("    BLOCK \"080904b0\"\n");
 		out.add("    BEGIN\n");
 		out.add("      VALUE \"CompanyName\", \"" + project.company + "\"\n");
-		out.add("      VALUE \"FileDescription\", \"" + project.description + "\"\n");
+		out.add("      VALUE \"FileDescription\", \"" + project.title + "\"\n");
+		out.add("      VALUE \"Comments\", \"" + project.description + "\"\n");
 		out.add("      VALUE \"FileVersion\", \"" + project.version + "\"\n");
 		out.add("      VALUE \"InternalName\", \"" + project.short + "\"\n");
 		out.add("      VALUE \"OriginalFilename\", \"" + project.short + ".exe\"\n");
