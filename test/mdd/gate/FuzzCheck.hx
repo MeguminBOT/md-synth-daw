@@ -197,7 +197,11 @@ class FuzzCheck {
 
 		final paint = Paint.on(renderer, body);
 		final keys:Array<Key> = [Key.Left, Key.Right, Key.Up, Key.Down, Key.Delete, Key.Return,
-			Key.Escape, Key.Home, Key.End, Key.Space];
+			Key.Escape, Key.Home, Key.End, Key.Space, Key.Backspace, Key.A, Key.C, Key.V,
+			Key.X, Key.Z, Key.P, Key.D];
+
+		final mods:Array<Mod> = [Mod.None, Mod.None, Mod.None, Mod.Shift, Mod.Ctrl, Mod.Alt,
+			Mod.Ctrl | Mod.Shift, Mod.Ctrl | Mod.Alt];
 
 		var painted = 0;
 		var events = 0;
@@ -226,7 +230,9 @@ class FuzzCheck {
 						: (next(3) == 0 ? Mod.Shift : Mod.None));
 
 				case 1, 2, 3:
-					tree.pressed(px, py, Pointer.Left, Mod.None, next(8) == 0 ? 2 : 1);
+					final holding = mods[next(mods.length)];
+
+					tree.pressed(px, py, Pointer.Left, holding, next(8) == 0 ? 2 : 1);
 
 					var atX = px;
 					var atY = py;
@@ -234,10 +240,10 @@ class FuzzCheck {
 					for (step in 0...2 + next(30)) {
 						atX += next(40) - 20;
 						atY += next(30) - 15;
-						tree.moved(atX, atY, next(6) == 0 ? Mod.Shift : Mod.None);
+						tree.moved(atX, atY, holding);
 					}
 
-					tree.released(atX, atY, Pointer.Left, Mod.None);
+					tree.released(atX, atY, Pointer.Left, holding);
 
 				case 4:
 					tree.pressed(px, py, Pointer.Right, Mod.None);
@@ -254,8 +260,10 @@ class FuzzCheck {
 
 				case 7:
 					final code = keys[next(keys.length)];
-					tree.key(true, code, next(5) == 0 ? Mod.Ctrl : Mod.None);
-					tree.key(false, code, Mod.None);
+					final holding = mods[next(mods.length)];
+
+					tree.key(true, code, holding);
+					tree.key(false, code, holding);
 
 				case 8:
 					centre.show(pinned >= 0 ? pinned : next(Centre.TABS));
@@ -268,7 +276,8 @@ class FuzzCheck {
 					shell.fit(metrics);
 
 				case 11:
-					tree.said(String.fromCharCode(48 + next(10)), Mod.None);
+					tree.said(next(2) == 0 ? String.fromCharCode(48 + next(10))
+						: String.fromCharCode(65 + next(26)), Mod.None);
 
 				case 12:
 					session.chooses(next(session.song.patterns.length));
