@@ -48,6 +48,22 @@ final class Patch {
 		}
 	}
 
+	public function raises():Void {
+		var least = 127;
+
+		for (slot in 0...SLOTS) {
+			if (!carries(slot)) continue;
+			if (totalLevel[slot] < least) least = totalLevel[slot];
+		}
+
+		if (least <= 0 || least > 127) return;
+
+		for (slot in 0...SLOTS) {
+			if (!carries(slot)) continue;
+			totalLevel[slot] -= least;
+		}
+	}
+
 	public function copy():Patch {
 		final out = new Patch();
 

@@ -195,6 +195,7 @@ class LiftCheck {
 
 				if (field != "TotalLevel") continue;
 
+				patch.raises();
 				local.push(patch);
 				patch = null;
 
@@ -248,14 +249,18 @@ class LiftCheck {
 			case "TotalLevel": spread(patch.totalLevel, held, 127);
 			case "AmpMod":
 				for (slot in 0...Patch.SLOTS) {
-					patch.tremolo[slot] = slot < held.length && held[slot] != 0;
+					final from = Patch.SLOTS - 1 - slot;
+					patch.tremolo[slot] = from < held.length && held[from] != 0;
 				}
 			default:
 		}
 	}
 
 	static inline function spread(into:haxe.ds.Vector<Int>, held:Array<Int>, mask:Int):Void {
-		for (slot in 0...Patch.SLOTS) if (slot < held.length) into[slot] = held[slot] & mask;
+		for (slot in 0...Patch.SLOTS) {
+			final from = Patch.SLOTS - 1 - slot;
+			if (from < held.length) into[slot] = held[from] & mask;
+		}
 	}
 
 	static function charactered(patch:Patch, pitch:Int, middle:Int):String {

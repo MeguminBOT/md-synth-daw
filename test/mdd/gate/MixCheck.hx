@@ -28,6 +28,9 @@ class MixCheck {
 		patched();
 		kitted();
 		consoled(into);
+		voiced();
+		ceilinged();
+		singly();
 		furnished();
 		threaded();
 		imported();
@@ -248,6 +251,253 @@ class MixCheck {
 			Sys.println("    wrote " + file + ", " + round(made.seconds(), 1) + " s, brightness "
 				+ round(brightness(made), 4));
 		}
+	}
+
+	static function alike(one:mdd.song.Patch, two:mdd.song.Patch):Bool {
+		if (one.algorithm != two.algorithm || one.feedback != two.feedback) return false;
+
+		for (slot in 0...mdd.song.Patch.SLOTS) {
+			if (one.multiple[slot] != two.multiple[slot]) return false;
+			if (one.detune[slot] != two.detune[slot]) return false;
+			if (one.keyScale[slot] != two.keyScale[slot]) return false;
+			if (one.attack[slot] != two.attack[slot]) return false;
+			if (one.decay[slot] != two.decay[slot]) return false;
+			if (one.sustain[slot] != two.sustain[slot]) return false;
+			if (one.sustainLevel[slot] != two.sustainLevel[slot]) return false;
+			if (one.release[slot] != two.release[slot]) return false;
+		}
+
+		return true;
+	}
+
+	static final GREEN:Array<Array<Int>> = [
+		[10, 0, 0, 31, 18, 0, 2, 15],
+		[0, 7, 0, 31, 14, 4, 2, 15],
+		[0, 3, 1, 31, 10, 4, 2, 15],
+		[0, 0, 1, 31, 10, 3, 2, 15]
+	];
+
+	static function voiced():Void {
+		final library = mdd.song.Library.embedded();
+		final at = library.names.indexOf("Sonic the Hedgehog");
+
+		if (at < 0) return;
+
+		var found = false;
+
+		for (held in library.instruments[at]) {
+			final patch = held.patch;
+			if (patch == null || patch.algorithm != 0 || patch.feedback != 1) continue;
+
+			var same = true;
+
+			for (slot in 0...mdd.song.Patch.SLOTS) {
+				final want = GREEN[slot];
+
+				if (patch.multiple[slot] != want[0]) same = false;
+				if (patch.detune[slot] != want[1]) same = false;
+				if (patch.keyScale[slot] != want[2]) same = false;
+				if (patch.attack[slot] != want[3]) same = false;
+				if (patch.decay[slot] != want[4]) same = false;
+				if (patch.sustain[slot] != want[5]) same = false;
+				if (patch.sustainLevel[slot] != want[6]) same = false;
+				if (patch.release[slot] != want[7]) same = false;
+			}
+
+			if (same) found = true;
+		}
+
+		says("a shipped voice is the one the chip was given", found,
+			"the bank carries the first voice of that track operator for operator as the"
+			+ " registers receive it, multiples 10, 0, 0, 0 and detunes 0, 7, 3, 0");
+	}
+
+	static function ceilinged():Void {
+		final song = new Song("loudest", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("all"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(song);
+
+		final patch = new mdd.song.Patch();
+		patch.algorithm = 7;
+
+		for (slot in 0...mdd.song.Patch.SLOTS) {
+			patch.multiple[slot] = 1;
+			patch.detune[slot] = 0;
+			patch.totalLevel[slot] = 0;
+			patch.keyScale[slot] = 0;
+			patch.attack[slot] = 31;
+			patch.decay[slot] = 0;
+			patch.sustain[slot] = 0;
+			patch.sustainLevel[slot] = 0;
+			patch.release[slot] = 15;
+		}
+
+		final loud = new mdd.song.Instrument("loudest", mdd.song.Part.Fm1);
+		loud.patch = patch;
+
+		song.instrument(loud);
+
+		final at = song.instruments.length - 1;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			if (part.sampled()) continue;
+
+			if (part.fm()) song.rack[index] = at;
+
+			song.volume[index] = mdd.song.Song.LOUDEST;
+			pattern.lane(part).add(new mdd.song.Note(0, 384, 60, 127, song.rack[index]));
+		}
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = false;
+
+		final made = Mixdown.of(song, mixing);
+
+		var loudest = 0.0;
+
+		for (index in 0...made.samples.length) {
+			final one = made.samples[index];
+			final size = one < 0 ? -one : one;
+
+			if (size > loudest) loudest = size;
+		}
+
+		final decibels = 20 * Math.log(loudest) / Math.log(10);
+
+		says("every part at once reaches the top", loudest > 0,
+			"six channels of the loudest patch with every square and the noise at full volume"
+			+ " peak at " + round(loudest, 4) + ", which is " + round(decibels, 2) + " dBFS");
+	}
+
+	static function alone(patch:mdd.song.Patch, named:String):Float {
+		final song = new Song("one", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		final held = new mdd.song.Instrument(named, mdd.song.Part.Fm1);
+		held.patch = patch;
+
+		song.instrument(held);
+
+		final at = song.instruments.length - 1;
+
+		song.rack[0] = at;
+		song.volume[0] = mdd.song.Song.LOUDEST;
+
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 384, 60, 127, at));
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = false;
+
+		final made = Mixdown.of(song, mixing);
+
+		var loudest = 0.0;
+
+		for (index in 0...made.samples.length) {
+			final one = made.samples[index];
+			final size = one < 0 ? -one : one;
+
+			if (size > loudest) loudest = size;
+		}
+
+		return loudest;
+	}
+
+	static function decibels(value:Float):Float {
+		return value <= 0 ? -99 : round(20 * Math.log(value) / Math.log(10), 2);
+	}
+
+	static function singly():Void {
+		final most = new mdd.song.Patch();
+		most.algorithm = 7;
+
+		for (slot in 0...mdd.song.Patch.SLOTS) {
+			most.multiple[slot] = 1;
+			most.totalLevel[slot] = 0;
+			most.attack[slot] = 31;
+			most.decay[slot] = 0;
+			most.sustain[slot] = 0;
+			most.sustainLevel[slot] = 0;
+			most.release[slot] = 15;
+		}
+
+		final song = new Song("shipped", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		final said = new StringBuf();
+		said.add("a patch with every operator open reaches " + decibels(alone(most, "open")) + " dB");
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instruments[index];
+			if (held.patch == null) continue;
+
+			said.add(", " + held.name + " " + decibels(alone(held.patch, held.name)));
+
+			if (index >= 3) break;
+		}
+
+		says("a single channel says how loud a patch is", true, said.toString());
+
+		final rack = new Song("rack", 96, 120);
+		final board = rack.add(new mdd.song.Pattern("one", 384));
+
+		final lane = rack.track(new mdd.song.Track("all"));
+		lane.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(rack);
+
+		final steps = [0, 3, 7, 12, 15, 19];
+		var which = 0;
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			if (!part.fm()) continue;
+
+			rack.rack[index] = which % 4;
+			rack.volume[index] = mdd.song.Song.LOUDEST;
+
+			board.lane(part).add(new mdd.song.Note(0, 384, 48 + steps[which % steps.length],
+				127, rack.rack[index]));
+
+			which++;
+		}
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = false;
+
+		final made = Mixdown.of(rack, mixing);
+
+		var loudest = 0.0;
+
+		for (index in 0...made.samples.length) {
+			final one = made.samples[index];
+			final size = one < 0 ? -one : one;
+
+			if (size > loudest) loudest = size;
+		}
+
+		says("six channels of shipped patches fill the range", loudest > 0.3,
+			"a chord across every fm channel using the built in patches peaks at "
+			+ decibels(loudest) + " dBFS");
 	}
 
 	static function consoled(into:String):Void {
