@@ -92,6 +92,8 @@ final class Pulse {
 
 		if (best <= 0) return fallback;
 
+		best = sharpened(onsets, best, step);
+
 		final beats = 60.0 * TICKS / (best * DIVISION);
 		if (beats < LEAST || beats > MOST) return fallback;
 
@@ -157,6 +159,30 @@ final class Pulse {
 		}
 
 		return near / onsets.length;
+	}
+
+	public static inline final FINE = 200;
+
+	static function sharpened(onsets:Array<Int>, grid:Float, step:Float):Float {
+		var best = grid;
+		var most = tight(onsets, grid);
+
+		final from = grid - step;
+		final fine = step * 2 / FINE;
+
+		for (index in 0...FINE + 1) {
+			final tried = from + index * fine;
+			if (tried <= 0) continue;
+
+			final held = tight(onsets, tried);
+
+			if (held > most) {
+				most = held;
+				best = tried;
+			}
+		}
+
+		return best;
 	}
 
 	static function tight(onsets:Array<Int>, grid:Float):Float {
