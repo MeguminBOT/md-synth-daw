@@ -91,7 +91,7 @@ final class Transcription {
 	}
 
 	function take(stream:Stream, rate:Int, name:String):Void {
-		beats = tempoFor(rate);
+		beats = Pulse.of(stream, rate, tempoFor(rate));
 
 		final ppqn = Math.round(Tempo.TICKS * 60.0 / (beats * PER_TICK));
 

@@ -73,6 +73,7 @@ class Gate {
 			case "console": ConsoleCheck.run(args);
 			case "flac": FlacCheck.run(args);
 			case "json": JsonCheck.run(args);
+			case "pulse": PulseCheck.run(args);
 			case _:
 				Sys.println("mdd gate: no program called '" + name + "'");
 				Sys.println("  known: " + PROGRAMS.join(", "));
