@@ -402,6 +402,15 @@ final class Playlist extends Widget {
 
 		final under = clipAt(event.x, event.y);
 
+		if (under != null && event.button == Pointer.Left
+			&& onCorner(under, which, event.x, event.y)) {
+			alters(under, which, false);
+			clipped(under, which, event.x, event.y);
+
+			invalidate();
+			return true;
+		}
+
 		if (event.button == Pointer.Right) {
 			if (under != null) {
 				picked.drops(under);
@@ -831,6 +840,90 @@ final class Playlist extends Widget {
 		return true;
 	}
 
+	function chordFor(action:Int):String {
+		return bindings == null ? "" : bindings.chordOf(action);
+	}
+
+	public function cornerSize():Float {
+		final root = root();
+		return root == null ? 12 : root.metrics.whole(12);
+	}
+
+	public function onCorner(clip:Clip, track:Int, px:Float, py:Float):Bool {
+		final size = cornerSize();
+		final wide = clip.length * perTick;
+
+		if (wide < size * 2 || trackTall() < size * 1.6) return false;
+
+		final at = atTick(clip.at);
+		final row = atTrack(track) + 2;
+
+		return px >= at && px < at + size && py >= row && py < row + size;
+	}
+
+	function clipped(clip:Clip, track:Int, px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final menu = new Menu();
+
+		final open = menu.offer(new Choice(translate(Locale.CLIP_OPEN)));
+
+		open.enabled = onOpen != null;
+		fires(open, function():Void if (onOpen != null) onOpen(clip));
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.ROLL_COPY),
+			chordFor(mdd.app.Bindings.COPY))), function():Void copies());
+
+		fires(menu.offer(new Choice(translate(Locale.ROLL_CUT),
+			chordFor(mdd.app.Bindings.CUT))), function():Void {
+			copies();
+			erased();
+		});
+
+		final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE),
+			chordFor(mdd.app.Bindings.PASTE)));
+
+		paste.enabled = session.copiedClips.length > 0;
+		fires(paste, function():Void pasted(clip.ends(), track));
+
+		fires(menu.offer(new Choice(translate(Locale.ROLL_DELETE), "Del")),
+			function():Void erased());
+
+		menu.divide();
+
+		fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_UP))),
+			function():Void transposed(12));
+		fires(menu.offer(new Choice(translate(Locale.ROLL_OCTAVE_DOWN))),
+			function():Void transposed(-12));
+
+		root.pop(menu, px, py, this);
+	}
+
+	function corner(paint:Paint, theme:Theme, metrics:Metrics, clip:Clip, at:Float,
+			row:Float, wide:Float, colour:Colour, alpha:Float):Void {
+		final size = cornerSize();
+		if (wide < size * 2 || trackTall() < size * 1.6) return;
+
+		final inset = metrics.whole(3);
+		final reach = size - inset * 2;
+
+		final points = arrow;
+
+		points[0] = at + inset;
+		points[1] = row + inset;
+		points[2] = at + inset + reach;
+		points[3] = row + inset;
+		points[4] = at + inset;
+		points[5] = row + inset + reach;
+
+		paint.polygon(points, 3, colour, alpha);
+	}
+
+	final arrow:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(6);
+
 	function popped(which:Int, px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
@@ -1214,6 +1307,9 @@ final class Playlist extends Widget {
 					paint.outline(at, row + 2, wide, deep, theme.ink, metrics.whole(1),
 						clip == chosen ? 1 : 0.65, metrics.radiusSmall);
 				}
+
+				corner(paint, theme, metrics, clip, at, row + 2, wide, colour.sink(0.74),
+					quiet ? 0.35 : 0.9);
 
 				final said = pattern == null ? "?" : pattern.name;
 				final tail = clip.transpose == 0 ? ""
