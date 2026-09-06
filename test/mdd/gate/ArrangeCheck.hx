@@ -31,6 +31,8 @@ class ArrangeCheck {
 		flattened();
 		transposed();
 		edits();
+		dropped();
+		shifted();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -183,6 +185,84 @@ class ArrangeCheck {
 		says("transposing moves the notes", highest - lowest > packedHighest - packedLowest,
 			"the flat song spans notes " + lowest + " to " + highest + ", the packed one "
 			+ packedLowest + " to " + packedHighest + ", because the transposes are in the notes");
+	}
+
+	static function dropped():Void {
+		final song = new Song("dropped", 96, 120);
+
+		song.add(new Pattern("gone", 384));
+		song.add(new Pattern("kept", 384));
+
+		final track = song.track(new Track("track"));
+
+		track.add(new Clip(0, 0, 384));
+		track.add(new Clip(1, 384, 384));
+		track.add(new Clip(0, 768, 384));
+		track.add(new Clip(0, 1152, 384));
+
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		history.does(song, new mdd.song.edit.RemovePattern(0));
+
+		final left = track.clips.length;
+
+		history.undo(song);
+
+		var ordered = true;
+		for (index in 1...track.clips.length) {
+			if (track.clips[index].at < track.clips[index - 1].at) ordered = false;
+		}
+
+		final places:Array<Int> = [];
+		for (clip in track.clips) places.push(clip.at);
+
+		says("removing a pattern takes its clips with it", left == 1,
+			left + " of 4 clips left on the track after the pattern three of them used"
+			+ " was removed");
+
+		says("and undoing puts them back in order", ordered
+			&& track.clips.length == 4 && mdd.format.Project.text(song) == before,
+			"the track reads " + places.join(", ") + " after the undo, and the song is "
+			+ (mdd.format.Project.text(song) == before ? "byte for byte what it was"
+			: "not what it was"));
+	}
+
+	static function shifted():Void {
+		final song = new Song("shifted", 96, 120);
+		final pattern = song.add(new Pattern("both", 384));
+
+		pattern.lane(Part.Fm1).add(new Note(96, 48, 60, 100));
+		pattern.lane(Part.Fm1).add(new Note(288, 48, 62, 100));
+
+		pattern.lane(Part.Psg1).add(new Note(0, 48, 72, 100));
+		pattern.lane(Part.Psg1).add(new Note(192, 48, 74, 100));
+
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		history.does(song, new mdd.song.edit.MovePattern(0, Part.Psg1.index()));
+
+		final held = pattern.lane(Part.Psg1).notes;
+		final places:Array<Int> = [];
+
+		var ordered = true;
+
+		for (index in 0...held.length) {
+			places.push(held[index].at);
+			if (index > 0 && held[index].at < held[index - 1].at) ordered = false;
+		}
+
+		says("a pattern moved onto a busy channel keeps its notes in order",
+			held.length == 4 && ordered,
+			held.length + " notes on PSG1 reading " + places.join(", "));
+
+		history.undo(song);
+
+		says("and moving it back leaves the song as it was",
+			mdd.format.Project.text(song) == before,
+			"the song is " + (mdd.format.Project.text(song) == before
+			? "byte for byte what it was" : "not what it was"));
 	}
 
 	static function edits():Void {
