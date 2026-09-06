@@ -751,12 +751,89 @@ class SpineCheck {
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 
 		rebound(tree, held);
+		mapped(tree, held);
 
 		held.shows(mdd.view.overlay.Preferences.LOOK);
 		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
 		says("and a press beside it closes it", tree.sheet == null,
 			"a press on the scrim lowers the sheet");
+	}
+
+	static function mapped(tree:Root, held:mdd.view.overlay.Preferences):Void {
+		final mapping = new mdd.app.Mapping();
+		final patch = new mdd.song.Patch();
+
+		mapping.drives(0, mdd.app.Mapping.OPERATOR, 3, 0);
+		mapping.hears(0, 74);
+
+		final full = mapping.turns(patch, 0, 127);
+		final half = mapping.turns(patch, 0, 64);
+		final none = mapping.turns(patch, 0, 0);
+
+		says("a control turns the field it is aimed at",
+			full == 127 && half == 64 && none == 0 && patch.totalLevel[3] == 0,
+			"a control at 127, 64 and 0 sets a total level of " + full + ", " + half
+			+ " and " + none + ", where the field runs to " + mdd.song.Patch.mostOf(0));
+
+		mapping.drives(1, mdd.app.Mapping.DIAL, 0, mdd.song.Patch.FEEDBACK);
+		mapping.hears(1, 71);
+
+		final turned = mapping.turns(patch, 1, 127);
+
+		says("and a dial takes its own range", turned == 7 && patch.feedback == 7,
+			"a control at 127 sets a feedback of " + turned + " where the dial runs to 7");
+
+		mapping.hears(1, 74);
+
+		says("and a control only drives one thing",
+			mapping.slotFor(74) == 1 && !mapping.bound(0),
+			"control 74 moved to the second slot and the first was left with "
+			+ (mapping.bound(0) ? "one anyway" : "nothing"));
+
+		final wrote = mapping.said();
+		final other = new mdd.app.Mapping();
+
+		other.reads(wrote);
+
+		says("and a mapping is remembered", other.said() == wrote
+			&& other.named(1) == mapping.named(1),
+			"'" + wrote + "' reads back to the same, holding " + other.named(1));
+
+		held.mapping = mapping;
+		held.arrive();
+		held.shows(mdd.view.overlay.Preferences.MIDI);
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final row = held.rowsIn().length + 2;
+		final top = held.y + held.head() + (row + 0.5) * held.rowTall();
+		final at = held.fieldLeft() + held.fieldWide() * 0.5;
+
+		says("a control row sits under the device rows", held.slotAt(top) == 2,
+			"the row at that height is control " + (held.slotAt(top) + 1));
+
+		held.listens(2);
+
+		says("and it waits for one to be turned", held.learning == 2,
+			"the third row is listening");
+
+		final took = held.hears(20);
+
+		says("and takes the next control that moves", took && mapping.slotFor(20) == 2
+			&& held.learning < 0,
+			"control 20 landed on slot " + (mapping.slotFor(20) + 1)
+			+ " and the row stopped listening");
+
+		held.cancels();
+
+		says("and cancel gives the mapping back", mapping.said() == wrote,
+			"the mapping reads '" + mapping.said() + "' again");
+
+		tree.raise(held);
+		held.arrive();
 	}
 
 	static function rebound(tree:Root, held:mdd.view.overlay.Preferences):Void {

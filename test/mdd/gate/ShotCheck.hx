@@ -233,6 +233,15 @@ class ShotCheck {
 			held.keyboards.push("None");
 			held.keyboards.push("Microsoft GS Wavetable Synth");
 			held.bindings = new mdd.app.Bindings();
+
+			final controls = new mdd.app.Mapping();
+
+			controls.drives(0, mdd.app.Mapping.OPERATOR, 3, 0);
+			controls.hears(0, 74);
+			controls.drives(1, mdd.app.Mapping.DIAL, 0, mdd.song.Patch.FEEDBACK);
+			controls.hears(1, 71);
+
+			held.mapping = controls;
 			held.shows(group);
 			tree.raise(held);
 			held.arrive();
