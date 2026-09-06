@@ -148,6 +148,35 @@ class PaintCheck {
 
 		says("throughput", each < 400, Math.round(each) + " ns a rectangle, "
 			+ round(best * 1000) + " ms for " + many + ", best of 5");
+
+		final said = "The quick brown fox";
+		final runs = 20000;
+		final glyphs = runs * said.length;
+
+		var quickest = 1000.0;
+
+		for (pass in 0...5) {
+			begin();
+
+			final began = Sdl.ticks();
+
+			for (index in 0...runs) {
+				paint.text(said, 4, index & 255, Theme.PARTS[index % 11], 0.9);
+				if ((index & 63) == 63) paint.flush();
+			}
+
+			paint.flush();
+
+			final took = Sdl.ticks() - began;
+			if (took < quickest) quickest = took;
+
+			Draw.setTarget(renderer, null);
+		}
+
+		final perGlyph = quickest * 1000000000 / glyphs;
+
+		says("text throughput", perGlyph < 200, Math.round(perGlyph) + " ns a glyph, "
+			+ round(quickest * 1000) + " ms for " + glyphs + ", best of 5");
 	}
 
 	static function joined(paint:Paint):Void {

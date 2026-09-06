@@ -763,7 +763,7 @@ final class Paint {
 		var pen = x;
 
 		for (i in 0...value.length) {
-			final code = value.charCodeAt(i);
+			final code = StringTools.fastCodeAt(value, i);
 			if (!font.has(code)) continue;
 
 			final left = at(pen + font.offsetX(code));

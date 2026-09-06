@@ -247,8 +247,7 @@ final class Presets extends Widget {
 		if (tag.length < 2 || tag.length > 5) return false;
 
 		for (index in 0...tag.length) {
-			final code = tag.charCodeAt(index);
-			if (code == null) return false;
+			final code = StringTools.fastCodeAt(tag, index);
 
 			final letter = code >= 65 && code <= 90;
 			final digit = code >= 48 && code <= 57;

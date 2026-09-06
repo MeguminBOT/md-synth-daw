@@ -110,7 +110,7 @@ final class Font {
 	public function measure(text:String):Float {
 		var pen = 0.0;
 		for (i in 0...text.length) {
-			final code = text.charCodeAt(i);
+			final code = StringTools.fastCodeAt(text, i);
 			if (!has(code)) continue;
 			pen += advance(code);
 		}
@@ -120,7 +120,7 @@ final class Font {
 	public function fits(text:String, room:Float):Int {
 		var pen = 0.0;
 		for (i in 0...text.length) {
-			final code = text.charCodeAt(i);
+			final code = StringTools.fastCodeAt(text, i);
 			if (!has(code)) continue;
 			if (pen + advance(code) > room) return i;
 			pen += advance(code);
