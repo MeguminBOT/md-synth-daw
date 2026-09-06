@@ -85,6 +85,65 @@ class SpineCheck {
 		says("and its end is what the pointer grabs", roll.onEdge(note, right)
 			&& !roll.onEdge(note, right - roll.edge() * 4),
 			"the last few pixels of a note resize it and the middle of it does not");
+
+		lengthy(roll, session);
+	}
+
+	static function lengthy(roll:mdd.view.editor.PianoRoll,
+			session:mdd.app.Session):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		final beat = session.song.tempo.ppqn;
+		final wasSnap = session.snap;
+
+		lane.notes.resize(0);
+		roll.forgets();
+
+		session.snap = beat;
+		session.uses(mdd.app.Session.DRAW);
+
+		roll.draws(0, 60);
+
+		final first = lane.notes.length == 0 ? 0 : lane.notes[0].length;
+
+		says("a drawn note takes the grid", first == session.snap,
+			"drawn at a snap of " + session.snap + " ticks, the note is " + first + " long");
+
+		session.snap = Std.int(roll.sixteenth() / 2);
+		roll.draws(beat * 4, 62);
+
+		final tight = lane.notes.length < 2 ? 0 : lane.notes[1].length;
+
+		says("and never comes out shorter than a sixteenth",
+			tight == roll.sixteenth() && session.snap < tight,
+			"at a snap of " + session.snap + " ticks the note is still " + tight
+			+ ", a sixteenth of " + beat);
+
+		roll.resized(lane.notes[1], lane.notes[1].at + beat * 2);
+		roll.draws(beat * 8, 64);
+
+		final next = lane.notes.length < 3 ? 0 : lane.notes[2].length;
+
+		says("and the next one takes the length the last was given",
+			next == beat * 2 && lane.notes.length == 3,
+			"after one was pulled to " + (beat * 2) + " ticks the next drawn note is "
+			+ next);
+
+		session.snap = beat * 3;
+		roll.draws(beat * 12, 65);
+
+		final moved = lane.notes.length < 4 ? 0 : lane.notes[3].length;
+
+		says("and moving the grid takes the length back to it", moved == beat * 3
+			&& moved != next,
+			"the grid moved to " + session.snap + " ticks and the next drawn note is "
+			+ moved + " rather than the " + next + " the one before it kept");
+
+		session.snap = wasSnap;
+		lane.notes.resize(0);
+		roll.forgets();
 	}
 
 	static function menued(tree:Root):Void {
