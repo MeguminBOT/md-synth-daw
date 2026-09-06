@@ -1397,11 +1397,43 @@ final class PianoRoll extends Widget {
 
 		if (tick == 0 && seat == 0) return;
 
+		final wantAt:Array<Int> = [];
+		final wantPitch:Array<Int> = [];
+		final wantHeld:Array<Int> = [];
+
 		for (note in held) {
+			final wasAt = note.at;
+			final wasPitch = note.pitch;
+			final wasHeld = note.instrument;
+
 			if (tick != 0) note.at += tick;
 			if (seat != 0) seated(note, seatOf(note) + seat);
+
+			wantAt.push(note.at);
+			wantPitch.push(note.pitch);
+			wantHeld.push(note.instrument);
+
+			note.at = wasAt;
+			note.pitch = wasPitch;
+			note.instrument = wasHeld;
 		}
 
+		if (held.length == 1) {
+			session.does(new mdd.song.edit.MoveNote(session.pattern, session.part, held[0],
+				wantAt[0], wantPitch[0], wantHeld[0]));
+
+			invalidate();
+			return;
+		}
+
+		final group = new mdd.song.edit.Together("move " + counted(held.length));
+
+		for (index in 0...held.length) {
+			group.also(new mdd.song.edit.MoveNote(session.pattern, session.part, held[index],
+				wantAt[index], wantPitch[index], wantHeld[index]));
+		}
+
+		session.does(group);
 		invalidate();
 	}
 
