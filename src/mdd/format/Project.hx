@@ -715,7 +715,14 @@ class Project {
 		}
 
 		final out = File.write(into, true);
-		new haxe.zip.Writer(out).write(entries);
+
+		try {
+			new haxe.zip.Writer(out).write(entries);
+		} catch (e:Dynamic) {
+			out.close();
+			throw e;
+		}
+
 		out.close();
 	}
 
@@ -733,9 +740,7 @@ class Project {
 	}
 
 	public static function openPacked(from:String):Song {
-		final input = File.read(from, true);
-		final entries = haxe.zip.Reader.readZip(input);
-		input.close();
+		final entries = haxe.zip.Reader.readZip(new haxe.io.BytesInput(File.getBytes(from)));
 
 		var said = "";
 		final held:Map<String, Bytes> = new Map();
