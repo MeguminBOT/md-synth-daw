@@ -24,6 +24,7 @@ class MidiCheck {
 		filtered();
 		shifted();
 		bent();
+		aimed();
 		guarded();
 
 		Sys.println("    " + ran + " of " + ran + " checks");
@@ -112,6 +113,39 @@ class MidiCheck {
 
 		says("the wheel and the pedal are read", wheel == 1.0 && down && !keeps.pedal,
 			"the wheel at its top is " + wheel + ", and the pedal goes down and up");
+	}
+
+	static function aimed():Void {
+		final mapping = new mdd.app.Mapping();
+		final patch = new mdd.song.Patch();
+
+		mapping.drives(0, mdd.app.Mapping.OPERATOR, 0, 1);
+		mapping.hears(0, 74);
+
+		final keys = held();
+		var seen = 0;
+
+		keys.onControl = function(control:Int, value:Int):Void {
+			final slot = mapping.slotFor(control);
+			if (slot == mdd.app.Mapping.NONE) return;
+
+			mapping.turns(patch, slot, value);
+			seen++;
+		};
+
+		keys.takes(packed(Keyboard.CONTROL, 74, 127));
+		final full = patch.attack[0];
+
+		keys.takes(packed(Keyboard.CONTROL, 74, 0));
+		final none = patch.attack[0];
+
+		keys.takes(packed(Keyboard.CONTROL, 30, 127));
+
+		says("a control message reaches the field it is aimed at",
+			seen == 2 && full == 31 && none == 0,
+			"control 74 at its top and bottom set an attack rate of " + full + " and "
+			+ none + ", and an unmapped control changed nothing across " + seen
+			+ " that were aimed");
 	}
 
 	static function filtered():Void {
