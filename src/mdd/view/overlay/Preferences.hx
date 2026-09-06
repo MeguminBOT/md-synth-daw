@@ -163,7 +163,13 @@ final class Preferences extends Widget {
 	public var bindings:Null<mdd.app.Bindings> = null;
 	public var catching(default, null):Int = -1;
 
+	public var mapping:Null<mdd.app.Mapping> = null;
+	public var learning(default, null):Int = -1;
+
+	public var onRemap:Null<Void -> Void> = null;
+
 	var wasKeys:String = "";
+	var wasControls:String = "";
 
 	var hoverAt:Int = -1;
 	var hoverButton:Int = -1;
@@ -207,7 +213,10 @@ final class Preferences extends Widget {
 		wasProjects = projectsAt;
 		wasPresets = presetsAt;
 		wasKeys = bindings == null ? "" : bindings.said();
+		wasControls = mapping == null ? "" : mapping.said();
+
 		catching = -1;
+		learning = -1;
 
 		offsetY = 0;
 		if (root == null) return;
@@ -221,6 +230,7 @@ final class Preferences extends Widget {
 
 	public function saves():Void {
 		catching = -1;
+		learning = -1;
 
 		if (onKeep != null) onKeep();
 		if (onShut != null) onShut();
@@ -237,10 +247,16 @@ final class Preferences extends Widget {
 		projectsAt = wasProjects;
 		presetsAt = wasPresets;
 		catching = -1;
+		learning = -1;
 
 		if (bindings != null && bindings.said() != wasKeys) {
 			bindings.reads(wasKeys);
 			if (onRebind != null) onRebind();
+		}
+
+		if (mapping != null && mapping.said() != wasControls) {
+			mapping.reads(wasControls);
+			if (onRemap != null) onRemap();
 		}
 
 		if (onShut != null) onShut();
@@ -252,6 +268,59 @@ final class Preferences extends Widget {
 		group = which;
 		offsetY = 0;
 		catching = -1;
+		learning = -1;
+
+		invalidate();
+	}
+
+	public inline function mapped():Bool {
+		return group == MIDI && mapping != null;
+	}
+
+	public function slotAt(py:Float):Int {
+		if (!mapped()) return -1;
+		if (py < y + head() || py >= y + head() + room()) return -1;
+
+		final at = Std.int((py - y - head() + offsetY) / rowTall()) - rowsIn().length;
+		return at < 0 || at >= mdd.app.Mapping.SLOTS ? -1 : at;
+	}
+
+	public function listens(slot:Int):Void {
+		learning = learning == slot ? -1 : slot;
+		invalidate();
+	}
+
+	public function hears(control:Int):Bool {
+		final held = mapping;
+
+		if (held == null || learning < 0) return false;
+
+		held.hears(learning, control);
+		learning = -1;
+
+		if (onRemap != null) onRemap();
+		invalidate();
+
+		return true;
+	}
+
+	public function forgets(slot:Int):Void {
+		final held = mapping;
+		if (held == null || slot < 0) return;
+
+		held.clears(slot);
+		learning = -1;
+
+		if (onRemap != null) onRemap();
+		invalidate();
+	}
+
+	public function aims(slot:Int, kind:Int, op:Int, row:Int):Void {
+		final held = mapping;
+		if (held == null || slot < 0) return;
+
+		held.drives(slot, kind, op, row);
+		if (onRemap != null) onRemap();
 
 		invalidate();
 	}
@@ -319,7 +388,9 @@ final class Preferences extends Widget {
 
 	public function content():Float {
 		if (binding()) return mdd.app.Bindings.COUNT * rowTall();
-		return rowsIn().length * rowTall();
+
+		final rows = rowsIn().length + (mapped() ? mdd.app.Mapping.SLOTS : 0);
+		return rows * rowTall();
 	}
 
 	public function scrollTo(py:Float):Void {
@@ -614,6 +685,62 @@ final class Preferences extends Widget {
 		root.pop(menu, fieldLeft(), rowTop(row) + fieldTall(), this);
 	}
 
+	function aimed(slot:Int):Void {
+		final root = root();
+		final held = mapping;
+
+		if (root == null || held == null) return;
+
+		menu = new Menu();
+
+		final listen = menu.offer(new Choice(translate(Locale.MAP_LISTEN)));
+		listen.onFire = function(from:Choice):Void listens(slot);
+
+		final drop = menu.offer(new Choice(translate(Locale.MAP_CLEAR)));
+
+		drop.enabled = held.bound(slot);
+		drop.onFire = function(from:Choice):Void forgets(slot);
+
+		menu.divide();
+
+		for (which in 0...mdd.song.Patch.DIALS) {
+			final dial = which;
+			final choice = menu.offer(new Choice(mdd.song.Patch.DIAL_SPELT[dial]));
+
+			if (held.kindOf(slot) == mdd.app.Mapping.DIAL && held.rowOf(slot) == dial) {
+				choice.chord = "•";
+			}
+
+			choice.onFire = function(from:Choice):Void
+				aims(slot, mdd.app.Mapping.DIAL, 0, dial);
+		}
+
+		menu.divide();
+
+		for (index in 0...mdd.song.Patch.SLOTS) {
+			final which = index;
+			final rows = new Menu();
+
+			for (step in 0...mdd.song.Patch.ROWS) {
+				final row = step;
+				final choice = rows.offer(new Choice(mdd.song.Patch.SPELT[row]));
+
+				if (held.kindOf(slot) == mdd.app.Mapping.OPERATOR
+					&& held.operatorOf(slot) == which && held.rowOf(slot) == row) {
+					choice.chord = "•";
+				}
+
+				choice.onFire = function(from:Choice):Void
+					aims(slot, mdd.app.Mapping.OPERATOR, which, row);
+			}
+
+			menu.offer(new Choice("OP" + (which + 1))).submenu = rows;
+		}
+
+		root.pop(menu, fieldLeft(), y + head() + (rowsIn().length + slot + 1) * rowTall()
+			- offsetY, this);
+	}
+
 	public function rowTop(row:Int):Float {
 		final at = rowsIn().indexOf(row);
 		final which = at < 0 ? 0 : at;
@@ -659,6 +786,17 @@ final class Preferences extends Widget {
 					else catches(action);
 
 					return true;
+				}
+
+				if (mapped()) {
+					final slot = slotAt(event.y);
+
+					if (slot >= 0) {
+						if (event.button == Pointer.Right) forgets(slot);
+						else aimed(slot);
+
+						return true;
+					}
 				}
 
 				final row = rowAt(event.y);
@@ -743,6 +881,8 @@ final class Preferences extends Widget {
 			return;
 		}
 
+		if (mapped()) controlled(paint, theme, metrics, small, alpha);
+
 		for (which in 0...rowsIn().length) {
 			final row = rowsIn()[which];
 			final top = y + head() - offsetY + which * tall;
@@ -782,7 +922,50 @@ final class Preferences extends Widget {
 		}
 
 		paint.popClip();
+
+		reined(paint, theme, metrics, alpha);
 		paint.popTransform();
+	}
+
+	function controlled(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			alpha:Float):Void {
+		final held = mapping;
+		if (held == null) return;
+
+		final tall = rowTall();
+		final deep = fieldTall();
+		final left = fieldLeft();
+		final wide = fieldWide();
+		final from = rowsIn().length;
+
+		for (slot in 0...mdd.app.Mapping.SLOTS) {
+			final top = y + head() - offsetY + (from + slot) * tall;
+			if (top + tall < y + head() || top > y + head() + room()) continue;
+
+			final at = top + (tall - deep) * 0.5;
+			final on = slot == learning;
+
+			paint.reface(font);
+			paint.text(translate(Locale.MAP_CONTROL) + " " + (slot + 1),
+				x + sidebar() + metrics.inset,
+				top + (tall - font.height) * 0.5 + font.ascent, theme.dim, alpha * 0.9);
+
+			paint.roundedRect(left, at, wide, deep, metrics.radiusSmall,
+				on ? theme.accent : theme.raise2, on ? alpha * 0.35 : alpha);
+
+			paint.outline(left, at, wide, deep, on ? theme.accent : theme.frame,
+				metrics.whole(1), alpha * (on ? 1 : 0.8), metrics.radiusSmall);
+
+			final said = on ? translate(Locale.MAP_WAITING)
+				: (held.bound(slot) ? "CC " + held.controlOf(slot) + "   " + held.named(slot)
+				: translate(Locale.MAP_EMPTY));
+
+			paint.pushClip(left + metrics.gap, at, wide - metrics.gap * 2, deep);
+			paint.text(said, left + metrics.gap,
+				at + (deep - font.height) * 0.5 + font.ascent,
+				held.bound(slot) || on ? theme.ink : theme.dim, alpha);
+			paint.popClip();
+		}
 	}
 
 	function reined(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
