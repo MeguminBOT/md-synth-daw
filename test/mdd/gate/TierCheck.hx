@@ -302,6 +302,21 @@ class TierCheck {
 			"one note written, and the next interval saved it, " + files.kept
 			+ " saves in all");
 
+		final patch = session.song.patchOf(Part.Fm1);
+		final before = files.kept;
+
+		if (patch != null) patch.writes(3, 0, patch.reads(3, 0) == 20 ? 30 : 20);
+
+		final turned = files.tick(3.0);
+
+		says("and a patch edit is kept as well as a note", patch != null && turned
+			&& files.kept == before + 1,
+			"a total level changed with no command behind it, and the next interval saved"
+			+ " it, " + files.kept + " saves in all");
+
+		says("and nothing changed still means nothing written", !files.tick(3.0),
+			"the interval after it left the file alone");
+
 		final recovery = new Files(Session.started(mdd.song.Library.embedded()));
 		recovery.every = 1;
 		recovery.session.does(new mdd.song.edit.AddNote(0, Part.Fm1,
