@@ -279,8 +279,35 @@ final class Song {
 		return false;
 	}
 
-	public function shift(by:Int):Void {
-		if (by == 0) return;
+	public function earliest():Int {
+		var least = -1;
+
+		for (pattern in patterns) {
+			for (index in 0...Part.COUNT) {
+				final lane = pattern.lane(index);
+
+				for (note in lane.notes) if (least < 0 || note.at < least) least = note.at;
+
+				for (line in lane.automation) {
+					for (point in line.points) if (least < 0 || point.at < least) least = point.at;
+				}
+			}
+		}
+
+		for (track in tracks) {
+			for (clip in track.clips) if (least < 0 || clip.at < least) least = clip.at;
+		}
+
+		for (index in 0...tempo.at.length) {
+			final held = tempo.at[index];
+			if (held > 0 && (least < 0 || held < least)) least = held;
+		}
+
+		return least < 0 ? 0 : least;
+	}
+
+	public function shift(by:Int):Int {
+		if (by == 0) return 0;
 
 		offset += by;
 
@@ -306,6 +333,7 @@ final class Song {
 		}
 
 		tempo.resolve(tempo.ppqn);
+		return by;
 	}
 
 	static inline function moved(value:Int, by:Int):Int {
