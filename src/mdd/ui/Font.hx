@@ -9,8 +9,9 @@ import mdd.host.Texture;
 @:unreflective
 final class Font {
 	public static inline final FIRST = 32;
-	public static inline final LAST = 126;
+	public static inline final LAST = 255;
 	public static inline final GLYPHS = LAST - FIRST + 1;
+	public static inline final WIDEST = 2048;
 
 	static inline final FLOATS = 9;
 
@@ -48,20 +49,29 @@ final class Font {
 
 		var side = 128;
 		while (side * side < Std.int(pixels * pixels * GLYPHS * 2.2)) side <<= 1;
-		if (side > 2048) side = 2048;
+		if (side > WIDEST) side = WIDEST;
 
-		font.atlasWidth = side;
-		font.atlasHeight = side;
+		var rgba = new Vector<cpp.UInt8>(side * side * 4);
+		var done = 0;
 
-		final rgba = new Vector<cpp.UInt8>(side * side * 4);
-		final done = Text.bake(face, pixels, FIRST, GLYPHS,
-			cpp.Pointer.arrayElem(rgba.toData(), 0).raw, side, side,
-			cpp.Pointer.arrayElem(font.metrics.toData(), 0).raw);
+		while (true) {
+			done = Text.bake(face, pixels, FIRST, GLYPHS,
+				cpp.Pointer.arrayElem(rgba.toData(), 0).raw, side, side,
+				cpp.Pointer.arrayElem(font.metrics.toData(), 0).raw);
+
+			if (done != 0 || side >= WIDEST) break;
+
+			side <<= 1;
+			rgba = new Vector<cpp.UInt8>(side * side * 4);
+		}
 
 		if (done == 0) {
 			Text.free(face);
 			return null;
 		}
+
+		font.atlasWidth = side;
+		font.atlasHeight = side;
 
 		font.solid(rgba, side);
 		font.texture = Draw.createTexture(renderer, side, side);
@@ -87,8 +97,12 @@ final class Font {
 		solidV = (at + 2) / side;
 	}
 
-	public inline function has(code:Int):Bool {
+	public static inline function holds(code:Int):Bool {
 		return code >= FIRST && code <= LAST;
+	}
+
+	public inline function has(code:Int):Bool {
+		return holds(code);
 	}
 
 	inline function at(code:Int):Int {
