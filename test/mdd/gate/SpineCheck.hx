@@ -1438,6 +1438,7 @@ class SpineCheck {
 		levelled(tree, session, roll, beat);
 		stepped(tree, session, roll, beat);
 		clipped(session, centre);
+		cornered(tree, session, centre);
 		gathered(tree, session, centre.roll);
 	}
 
@@ -1627,6 +1628,55 @@ class SpineCheck {
 		says("and one undo restores all three", again == 3,
 			again + " clips back from a single undo");
 
+		for (track in tracks) track.clips.resize(0);
+	}
+
+	static function cornered(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		centre.show(Centre.PLAYLIST);
+		laid(tree);
+
+		final playlist = centre.playlist;
+		final tracks = session.song.tracks;
+
+		for (track in tracks) track.clips.resize(0);
+
+		final beat = session.song.tempo.ppqn;
+		final clip = new mdd.song.Clip(session.pattern, 0, beat * 16);
+
+		tracks[0].add(clip);
+
+		playlist.fit();
+		laid(tree);
+
+		while (clip.length * playlist.perTick < playlist.cornerSize() * 4) {
+			playlist.zoom(2, playlist.x + playlist.names());
+			laid(tree);
+		}
+
+		final size = playlist.cornerSize();
+		final at = playlist.atTick(clip.at);
+		final row = playlist.atTrack(0) + 2;
+
+		final inside = playlist.onCorner(clip, 0, at + size * 0.5, row + size * 0.5);
+		final outside = playlist.onCorner(clip, 0, at + size * 3, row + size * 0.5);
+
+		says("a clip carries a corner to press", inside && !outside,
+			"the top left " + Math.round(size) + " pixels of a clip "
+			+ Math.round(clip.length * playlist.perTick) + " wide answer, and the body"
+			+ " beside them does not");
+
+		tree.dismiss();
+		tree.pressed(at + size * 0.5, row + size * 0.5, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+
+		final many = tree.popups.length == 0 ? 0 : tree.popups[0].commands();
+
+		says("and pressing it offers what to do with the clip", many >= 7
+			&& playlist.picked.holds(clip),
+			many + " commands under the corner, and the clip it belongs to is the one"
+			+ " selected");
+
+		tree.dismiss();
 		for (track in tracks) track.clips.resize(0);
 	}
 
