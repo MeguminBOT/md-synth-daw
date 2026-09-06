@@ -5,6 +5,10 @@ final class MovePattern implements Command {
 	final part:Int;
 
 	var was:Int = -1;
+	var belonged:Int = -1;
+
+	final moved:Array<Note> = [];
+	final lines:Array<Automation> = [];
 
 	public function new(at:Int, part:Int) {
 		this.at = at;
@@ -15,7 +19,9 @@ final class MovePattern implements Command {
 		final pattern = song.patterns[at];
 		if (pattern == null) return;
 
+		belonged = pattern.part;
 		was = pattern.part < 0 ? held(pattern) : pattern.part;
+
 		moves(pattern, was, part);
 
 		pattern.part = part;
@@ -25,8 +31,28 @@ final class MovePattern implements Command {
 		final pattern = song.patterns[at];
 		if (pattern == null || was < 0) return;
 
-		moves(pattern, part, was);
-		pattern.part = was;
+		if (was != part) {
+			final one = pattern.lanes[was];
+			final two = pattern.lanes[part];
+
+			for (note in moved) {
+				two.notes.remove(note);
+				one.notes.push(note);
+			}
+
+			for (line in lines) {
+				two.automation.remove(line);
+				one.automation.push(line);
+			}
+
+			one.sort();
+			two.sort();
+		}
+
+		moved.resize(0);
+		lines.resize(0);
+
+		pattern.part = belonged;
 	}
 
 	static function held(pattern:Pattern):Int {
@@ -34,17 +60,31 @@ final class MovePattern implements Command {
 		return 0;
 	}
 
-	static function moves(pattern:Pattern, from:Int, to:Int):Void {
+	function moves(pattern:Pattern, from:Int, to:Int):Void {
+		moved.resize(0);
+		lines.resize(0);
+
 		if (from == to || from < 0 || to < 0) return;
 
 		final one = pattern.lanes[from];
 		final two = pattern.lanes[to];
 
-		for (note in one.notes) two.notes.push(note);
+		for (note in one.notes) {
+			moved.push(note);
+			two.notes.push(note);
+		}
+
 		one.notes.resize(0);
 
-		for (line in one.automation) two.automation.push(line);
+		for (line in one.automation) {
+			lines.push(line);
+			two.automation.push(line);
+		}
+
 		one.automation.resize(0);
+
+		one.sort();
+		two.sort();
 	}
 
 	public function label():String {

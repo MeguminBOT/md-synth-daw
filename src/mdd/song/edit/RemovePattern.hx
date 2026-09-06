@@ -53,7 +53,9 @@ final class RemovePattern implements Command {
 			}
 		}
 
-		for (index in 0...clips.length) {
+		var index = clips.length;
+
+		while (index-- > 0) {
 			tracks[index].clips.insert(places[index], clips[index]);
 		}
 
