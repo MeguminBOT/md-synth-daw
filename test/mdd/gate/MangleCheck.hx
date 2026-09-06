@@ -30,6 +30,7 @@ class MangleCheck {
 		midis(rounds, seed);
 		projects(rounds, seed);
 		packed(rounds, seed);
+		kept();
 		waves(rounds, seed);
 		patches(rounds, seed);
 
@@ -296,6 +297,50 @@ class MangleCheck {
 		says("and a mangled packed project does not either", spent < PATIENCE,
 			many + " corruptions of a " + whole.length + " byte project in "
 			+ round(spent, 2) + " s, " + read + " read through and " + threw + " refused");
+	}
+
+	static function kept():Void {
+		final song = new mdd.song.Song("kept", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 96, 60, 100));
+
+		song.track(new mdd.song.Track("track"));
+		song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
+
+		final where = Gate.root + "/export/kept" + "." + mdd.Config.SUFFIX;
+		final aside = where + ".part";
+
+		mdd.format.Project.savePacked(song, where);
+
+		final was = sys.io.File.getBytes(where);
+		final tidy = !sys.FileSystem.exists(aside);
+
+		sys.FileSystem.createDirectory(aside);
+
+		song.add(new mdd.song.Pattern("two", 384));
+
+		var threw = false;
+
+		try {
+			mdd.format.Project.savePacked(song, where);
+		} catch (e:Dynamic) {
+			threw = true;
+		}
+
+		final now = sys.io.File.getBytes(where);
+		final same = now.compare(was) == 0;
+
+		try {
+			sys.FileSystem.deleteDirectory(aside);
+			sys.FileSystem.deleteFile(where);
+		} catch (e:Dynamic) {}
+
+		says("a save that fails leaves the old file alone", threw && same && tidy,
+			"the write refused and the " + was.length + " bytes already on disk are "
+			+ (same ? "byte for byte what they were" : "not what they were")
+			+ ", with no partial file left behind by the save that worked");
 	}
 
 	static function waves(rounds:Int, seed:Int):Void {

@@ -714,16 +714,30 @@ class Project {
 			entries.add(entry(SAMPLES + "/" + index + ".pcm", sampleBytes(song.samples[index])));
 		}
 
-		final out = File.write(into, true);
+		final aside = into + PARTIAL;
+		final out = File.write(aside, true);
 
 		try {
 			new haxe.zip.Writer(out).write(entries);
 		} catch (e:Dynamic) {
 			out.close();
+			swept(aside);
+
 			throw e;
 		}
 
 		out.close();
+
+		if (FileSystem.exists(into)) FileSystem.deleteFile(into);
+		FileSystem.rename(aside, into);
+	}
+
+	static inline final PARTIAL = ".part";
+
+	static function swept(where:String):Void {
+		try {
+			if (FileSystem.exists(where)) FileSystem.deleteFile(where);
+		} catch (e:Dynamic) {}
 	}
 
 	static function entry(name:String, body:Bytes):haxe.zip.Entry {
