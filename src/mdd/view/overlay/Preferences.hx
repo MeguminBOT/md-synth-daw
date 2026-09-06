@@ -36,7 +36,8 @@ final class Preferences extends Widget {
 	public static inline final MIDI_VELOCITY = 15;
 	public static inline final CONSOLE = 16;
 	public static inline final TEMPO = 17;
-	public static inline final ROWS = 18;
+	public static inline final PRESENCE = 18;
+	public static inline final ROWS = 19;
 
 	public static inline final LOOK = 0;
 	public static inline final EDITING = 1;
@@ -45,11 +46,12 @@ final class Preferences extends Widget {
 	public static inline final MIDI = 4;
 	public static inline final SOUND = 5;
 	public static inline final KEYBOARD = 6;
-	public static inline final GROUPS = 7;
+	public static inline final SHARING = 7;
+	public static inline final GROUPS = 8;
 
 	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
 		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI, Locale.GROUP_SOUND,
-		Locale.GROUP_KEYBOARD];
+		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
@@ -58,7 +60,8 @@ final class Preferences extends Widget {
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
 		[CONSOLE],
-		[]
+		[],
+		[PRESENCE]
 	];
 
 	public var group(default, null):Int = LOOK;
@@ -77,7 +80,10 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
-		Locale.PREFERENCE_TEMPO];
+		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE];
+
+	static final PRESENCES:Array<String> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
+		Locale.PRESENCE_FULL];
 
 	static final TEMPOS:Array<String> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
 
@@ -141,6 +147,9 @@ final class Preferences extends Widget {
 	public var keyboardVelocity(default, null):Int = 0;
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
 	public var tempo(default, null):Int = 0;
+	public var presence(default, null):Int = mdd.app.Presence.FULL;
+
+	public var presenceSaid:String = "";
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -158,6 +167,7 @@ final class Preferences extends Widget {
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
 	public var onConsole:Null<Int -> Void> = null;
 	public var onTempo:Null<Int -> Void> = null;
+	public var onPresence:Null<Int -> Void> = null;
 	public var onRebind:Null<Void -> Void> = null;
 
 	public var bindings:Null<mdd.app.Bindings> = null;
@@ -507,6 +517,7 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY: VELOCITIES;
 			case CONSOLE: CONSOLES;
 			case TEMPO: TEMPOS;
+			case PRESENCE: PRESENCES;
 			case _: languages;
 		}
 	}
@@ -569,6 +580,7 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY: keyboardVelocity;
 			case CONSOLE: console;
 			case TEMPO: tempo;
+			case PRESENCE: presence;
 			case _: language;
 		}
 	}
@@ -643,6 +655,10 @@ final class Preferences extends Widget {
 			case TEMPO:
 				tempo = which;
 				if (onTempo != null) onTempo(which);
+
+			case PRESENCE:
+				presence = which;
+				if (onPresence != null) onPresence(which);
 
 			case _:
 				language = which;
@@ -882,6 +898,7 @@ final class Preferences extends Widget {
 		}
 
 		if (mapped()) controlled(paint, theme, metrics, small, alpha);
+		if (group == SHARING) shared(paint, theme, metrics, small, alpha);
 
 		for (which in 0...rowsIn().length) {
 			final row = rowsIn()[which];
@@ -925,6 +942,17 @@ final class Preferences extends Widget {
 
 		reined(paint, theme, metrics, alpha);
 		paint.popTransform();
+	}
+
+	function shared(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,
+			alpha:Float):Void {
+		if (presenceSaid == "") return;
+
+		final top = y + head() - offsetY + rowsIn().length * rowTall() + metrics.gap;
+
+		paint.reface(font);
+		paint.text(presenceSaid, x + sidebar() + metrics.inset, top + font.ascent, theme.dim,
+			alpha * 0.8);
 	}
 
 	function controlled(paint:Paint, theme:Theme, metrics:Metrics, font:mdd.ui.Font,

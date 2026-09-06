@@ -40,6 +40,7 @@ class Project {
 	public var short(default, null):String = "mdd";
 	public var company(default, null):String = "";
 	public var github(default, null):String = "";
+	public var discord(default, null):String = "";
 	public var version(default, null):String = "0.0.0";
 	public var description(default, null):String = "";
 
@@ -122,6 +123,9 @@ class Project {
 
 			case "update":
 				github = has(node, "github") ? node.get("github") : github;
+
+			case "presence":
+				discord = has(node, "discord") ? node.get("discord") : discord;
 
 			case "window":
 				windowWidth = number(node, "width", windowWidth);

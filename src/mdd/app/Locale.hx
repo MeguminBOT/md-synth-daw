@@ -239,6 +239,13 @@ class Locale {
 	public static inline final GROUP_UPDATES = "group.updates";
 	public static inline final GROUP_MIDI = "group.midi";
 	public static inline final GROUP_SOUND = "group.sound";
+	public static inline final GROUP_SHARING = "group.sharing";
+	public static inline final PREFERENCE_PRESENCE = "preference.presence";
+	public static inline final PRESENCE_OFF = "presence.off";
+	public static inline final PRESENCE_PLAIN = "presence.plain";
+	public static inline final PRESENCE_FULL = "presence.full";
+	public static inline final PRESENCE_NONE = "presence.none";
+	public static inline final PRESENCE_WAITING = "presence.waiting";
 	public static inline final BIND_UNDO = "bind.undo";
 	public static inline final BIND_REDO = "bind.redo";
 	public static inline final BIND_NEW = "bind.new";
@@ -515,6 +522,8 @@ class Locale {
 		MAP_CONTROL, MAP_EMPTY, MAP_LISTEN, MAP_WAITING, MAP_CLEAR,
 		PRESET_BY_BANK, PRESET_BY_NAME, PRESET_BY_TAG, CLIP_OPEN,
 		GROUP_SOUND, PREFERENCE_CONSOLE, CONSOLE_CHIP, CONSOLE_ONE, CONSOLE_TWO,
+		GROUP_SHARING, PREFERENCE_PRESENCE, PRESENCE_OFF, PRESENCE_PLAIN, PRESENCE_FULL,
+		PRESENCE_NONE, PRESENCE_WAITING,
 		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
 		TAIL_TWO, TAIL_BAR, TAIL_TWO_BARS, PREFERENCE_KEEPING,

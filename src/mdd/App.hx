@@ -8,6 +8,7 @@ import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Menus;
 import mdd.app.Panels;
+import mdd.app.Presence;
 import mdd.app.Session;
 import mdd.app.Task;
 import mdd.app.Sound;
@@ -58,6 +59,8 @@ class App {
 	var asked:Int = -1;
 
 	final task:Task = new Task();
+	final presence:Presence = new Presence();
+
 	var rendering:Null<mdd.play.Mixdown> = null;
 	var rendersInto:String = "";
 	var running:Bool = true;
@@ -144,6 +147,7 @@ class App {
 			stage.root.translate(Locale.PRESET_SAVED));
 
 		session = Session.started(library);
+		presence.follows(session);
 
 		panels = new Panels(stage);
 		panels.dress(session);
@@ -191,6 +195,11 @@ class App {
 		};
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
+
+		panels.preferences.onPresence = function(which:Int):Void {
+			presence.level = which;
+			presence.tick(Presence.DIAL_EVERY);
+		};
 
 		panels.preferences.onTempo = function(which:Int):Void {
 			panels.bar.regrids = which != 0;
@@ -343,6 +352,7 @@ class App {
 		library.into(song);
 
 		session = new Session(song);
+		presence.follows(session);
 		session.onChange = function(held:Session):Void changed();
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
 
@@ -732,6 +742,9 @@ class App {
 
 		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
 
+		panels.preferences.chose(Preferences.PRESENCE,
+			settings.asWhole("presence", Presence.FULL));
+
 		bindings.reads(settings.of("keys", ""));
 		mapping.reads(settings.of("controls", ""));
 
@@ -766,6 +779,7 @@ class App {
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 		settings.whole("console", panels.preferences.console);
 		settings.whole("tempo", panels.preferences.tempo);
+		settings.whole("presence", panels.preferences.presence);
 		settings.put("keys", bindings.said());
 		settings.put("controls", mapping.said());
 
@@ -909,6 +923,7 @@ class App {
 		Sys.println("  language      " + stage.root.translation.language + ", "
 			+ stage.root.translation.count() + " strings of " + Languages.shipped().length
 			+ " shipped languages");
+		Sys.println("  presence      " + presence.said());
 	}
 
 	function loop():Void {
@@ -936,6 +951,11 @@ class App {
 			if (files != null && files.tick(since)) stage.root.soil();
 			if (watched()) stage.root.soil();
 			watch();
+
+			presence.busy = task.running() ? stage.root.translate(task.label) : "";
+			presence.tick(since);
+
+			if (shared()) stage.root.soil();
 
 			collector.rests(since, stage.draw());
 		}
@@ -1074,8 +1094,26 @@ class App {
 		centre.scope.invalidate();
 	}
 
+	function shared():Bool {
+		if (panels == null || panels.preferences == null) return false;
+		if (stage.root.sheet != panels.preferences) return false;
+
+		final held = !presence.possible() ? stage.root.translate(Locale.PRESENCE_NONE)
+			: (presence.live() ? presence.said()
+				: stage.root.translate(Locale.PRESENCE_WAITING));
+
+		if (held == panels.preferences.presenceSaid) return false;
+
+		panels.preferences.presenceSaid = held;
+		panels.preferences.invalidate();
+
+		return true;
+	}
+
 	function shut():Void {
 		keeps();
+
+		presence.shut();
 
 		sound.shut();
 		stage.shut();
