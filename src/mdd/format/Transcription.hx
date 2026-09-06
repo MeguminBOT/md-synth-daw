@@ -625,7 +625,7 @@ final class Transcription {
 				last++;
 			}
 
-			hit(head, last, dacWhen[last] + spacing(), paced(head, last));
+			hit(head, last, dacWhen[last] + middle, paced(head, last));
 			head = last + 1;
 		}
 	}
@@ -641,24 +641,34 @@ final class Transcription {
 		return now > was * STEADY_TURN || now * STEADY_TURN < was;
 	}
 
+	final steadied:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(STEADY);
+
 	function steady(from:Int, many:Int):Float {
-		final gaps:Array<Int> = [];
+		var held = 0;
 
 		for (index in from + 1...from + many) {
 			if (index < 1 || index >= dacWhen.length) continue;
 
 			final apart = dacWhen[index] - dacWhen[index - 1];
-			if (apart > 0 && apart <= DAC_GAP) gaps.push(apart);
+			if (apart < 1 || apart > DAC_GAP) continue;
+
+			var at = held;
+
+			while (at > 0 && steadied[at - 1] > apart) {
+				steadied[at] = steadied[at - 1];
+				at--;
+			}
+
+			steadied[at] = apart;
+			held++;
 		}
 
-		if (gaps.length < 4) return -1;
-
-		gaps.sort(function(one:Int, two:Int):Int return one - two);
+		if (held < 4) return -1;
 
 		var total = 0;
-		final kept = gaps.length * 3 >> 2;
+		final kept = held * 3 >> 2;
 
-		for (index in 0...kept) total += gaps[index];
+		for (index in 0...kept) total += steadied[index];
 
 		return kept < 1 ? -1 : total / kept;
 	}
