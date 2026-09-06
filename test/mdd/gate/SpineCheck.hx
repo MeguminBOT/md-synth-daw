@@ -146,6 +146,56 @@ class SpineCheck {
 		roll.forgets();
 	}
 
+	static function wasted(litter:Array<haxe.ds.Vector<Float>>, many:Int):Void {
+		for (round in 0...many) litter.push(new haxe.ds.Vector<Float>(16));
+		litter.resize(0);
+	}
+
+	static function collected():Void {
+		final held = new mdd.host.Collector();
+		final litter:Array<haxe.ds.Vector<Float>> = [];
+
+		wasted(litter, 40000);
+
+		held.rests(1.0, false);
+
+		says("a collector left alone does nothing", held.swept == 0,
+			held.swept + " sweeps before it was asked to mind the heap");
+
+		held.minds();
+		held.sweeps(true);
+
+		final settled = held.swept;
+
+		wasted(litter, 260000);
+
+		held.rests(1.0, true);
+
+		says("and it leaves a busy frame alone", held.swept == settled,
+			Math.round(held.loose() / 1048576) + " mb of garbage and "
+			+ (held.swept - settled) + " sweeps while the frame was drawing");
+
+		held.rests(1.0, false);
+
+		says("and sweeps once the frame goes quiet", held.swept == settled + 1
+			&& held.loose() < mdd.host.Collector.ROUSE,
+			"one quiet frame swept it down to "
+			+ Math.round(held.loose() / 1048576) + " mb");
+
+		final before = held.swept;
+
+		wasted(litter, 900000);
+
+		held.rests(0.0, true);
+
+		says("and past a ceiling it sweeps whatever the frame is doing",
+			held.swept == before + 1 && held.forced == 1,
+			"a busy frame with " + Math.round(mdd.host.Collector.CEILING / 1048576)
+			+ " mb behind it was swept anyway, " + held.forced + " forced");
+
+		held.leaves();
+	}
+
 	static function menued(tree:Root):Void {
 		final one = new mdd.ui.control.Menu();
 		final two = new mdd.ui.control.Menu();
@@ -2214,6 +2264,7 @@ class SpineCheck {
 			+ round(first * 1000, 1));
 
 		menued(tree);
+		collected();
 		fitted(tree);
 		aligned(tree);
 		laned(tree, session, centre.roll);
