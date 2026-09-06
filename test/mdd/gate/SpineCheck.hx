@@ -499,6 +499,25 @@ class SpineCheck {
 			many + " lanes traced, median frame " + round(middle, 3) + " ms, worst "
 			+ round(worst * 1000, 3) + " ms");
 
+		cpp.vm.Gc.enable(false);
+
+		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+
+		for (frame in 0...120) {
+			stack.invalidate();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+		}
+
+		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+		cpp.vm.Gc.enable(true);
+
+		says("and every one of them allocates nothing", grew / 120 < 4096,
+			Math.round(grew / 120) + " bytes a frame with " + many
+			+ " lanes open, the collector off");
+
 		final was = stack.heightOf(0);
 
 		stack.folds(0);
@@ -1845,6 +1864,25 @@ class SpineCheck {
 			&& roll.chosen == budget.found[0].note,
 			warned + " warnings in the centre, and clicking the first one selected "
 			+ session.part.name() + " and the note it names");
+
+		cpp.vm.Gc.enable(false);
+
+		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+
+		for (frame in 0...120) {
+			roll.invalidate();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+		}
+
+		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+		cpp.vm.Gc.enable(true);
+
+		says("a frame keeps its allocation small", grew / 120 < 4096,
+			Math.round(grew / 120) + " bytes a frame across 120 frames of the whole shell,"
+			+ " with the collector off");
 
 		final middle = median(times, rolls) * 1000;
 
