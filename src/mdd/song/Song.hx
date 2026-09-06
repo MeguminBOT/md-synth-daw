@@ -324,10 +324,6 @@ final class Song {
 			}
 		}
 
-		for (track in tracks) {
-			for (clip in track.clips) clip.at = moved(clip.at, by);
-		}
-
 		for (index in 0...tempo.at.length) {
 			if (tempo.at[index] > 0) tempo.at[index] = moved(tempo.at[index], by);
 		}

@@ -11,8 +11,6 @@ final class ShiftSong implements Command {
 	final wereNotes:Array<Int> = [];
 	final points:Array<Point> = [];
 	final werePoints:Array<Int> = [];
-	final clips:Array<Clip> = [];
-	final wereClips:Array<Int> = [];
 	final marks:Array<Int> = [];
 	final wereMarks:Array<Int> = [];
 
@@ -35,7 +33,6 @@ final class ShiftSong implements Command {
 
 		for (index in 0...notes.length) notes[index].at = wereNotes[index];
 		for (index in 0...points.length) points[index].at = werePoints[index];
-		for (index in 0...clips.length) clips[index].at = wereClips[index];
 
 		for (index in 0...marks.length) song.tempo.at[marks[index]] = wereMarks[index];
 		if (marks.length > 0) song.tempo.resolve(song.tempo.ppqn);
@@ -53,8 +50,6 @@ final class ShiftSong implements Command {
 		wereNotes.resize(0);
 		points.resize(0);
 		werePoints.resize(0);
-		clips.resize(0);
-		wereClips.resize(0);
 		marks.resize(0);
 		wereMarks.resize(0);
 	}
@@ -85,15 +80,6 @@ final class ShiftSong implements Command {
 						werePoints.push(point.at);
 					}
 				}
-			}
-		}
-
-		for (track in song.tracks) {
-			for (clip in track.clips) {
-				if (clip.at >= floor) continue;
-
-				clips.push(clip);
-				wereClips.push(clip.at);
 			}
 		}
 
