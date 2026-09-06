@@ -1211,8 +1211,53 @@ class SpineCheck {
 
 		freed(tree, session, roll, beat);
 		levelled(tree, session, roll, beat);
+		stepped(tree, session, roll, beat);
 		clipped(session, centre);
 		gathered(tree, session, centre.roll);
+	}
+
+	static function stepped(tree:Root, session:mdd.app.Session,
+			roll:mdd.view.editor.PianoRoll, beat:Int):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+
+		lane.notes.resize(0);
+		for (step in 0...3) lane.add(new Note(step * beat, 24, 60 + step, 100));
+
+		session.snap = beat * 2;
+		session.history.clear();
+
+		roll.choose(lane.notes[0]);
+		tree.focusOn(roll);
+
+		tree.key(true, mdd.ui.Key.Right, mdd.ui.Mod.None);
+
+		var ordered = true;
+		final places:Array<Int> = [];
+
+		for (index in 0...lane.notes.length) {
+			places.push(lane.notes[index].at);
+			if (index > 0 && lane.notes[index].at < lane.notes[index - 1].at) ordered = false;
+		}
+
+		says("a note stepped past its neighbours keeps the lane in order",
+			ordered && session.history.depth() == 1,
+			"the lane reads " + places.join(", ") + " after one note was stepped "
+			+ (beat * 2) + " ticks later, in " + session.history.depth()
+			+ " step of history");
+
+		session.undo();
+
+		says("and one undo puts it back", lane.notes[0].at == 0
+			&& lane.notes.length == 3,
+			"the lane reads " + lane.notes[0].at + ", " + lane.notes[1].at + ", "
+			+ lane.notes[2].at + " again");
+
+		session.snap = 24;
+		lane.notes.resize(0);
+		session.history.clear();
 	}
 
 	static function freed(tree:Root, session:mdd.app.Session,
