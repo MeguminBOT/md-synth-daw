@@ -21,6 +21,16 @@ final class Presets extends Widget {
 	public final tree:Tree;
 	public final search:mdd.ui.control.Field;
 
+	public static inline final BY_BANK = 0;
+	public static inline final BY_NAME = 1;
+	public static inline final BY_TAG = 2;
+	public static inline final ORDERS = 3;
+
+	static final ORDER_NAMES:Array<String> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
+		Locale.PRESET_BY_TAG];
+
+	public var order(default, null):Int = BY_BANK;
+
 	public var listed(default, null):Int = 0;
 	public var banks(default, null):Int = 0;
 
@@ -349,6 +359,96 @@ final class Presets extends Widget {
 
 	static final KINDS:Array<Part> = [Part.Fm1, Part.Psg1, Part.Noise, Part.Dac];
 
+	public function sorts(which:Int):Void {
+		final want = which < 0 ? 0 : (which >= ORDERS ? ORDERS - 1 : which);
+		if (want == order) return;
+
+		order = want;
+		fit();
+
+		session.say(translate(ORDER_NAMES[order]));
+		session.changed();
+
+		invalidate();
+	}
+
+	public function turns():Void {
+		sorts((order + 1) % ORDERS);
+	}
+
+	public function orderWide():Float {
+		final root = root();
+		return root == null ? 62 : root.metrics.whole(62);
+	}
+
+	public function orderLeft():Float {
+		final root = root();
+		if (root == null) return x;
+
+		final metrics = root.metrics;
+		final font = metrics.small == null ? metrics.body : metrics.small;
+
+		return x + width - metrics.inset - font.measure(listed + " / " + banks)
+			- metrics.gap - orderWide();
+	}
+
+	public function onOrder(px:Float, py:Float):Bool {
+		final root = root();
+		if (root == null) return false;
+
+		final left = orderLeft();
+
+		return py >= y && py < y + root.metrics.head && px >= left
+			&& px < left + orderWide();
+	}
+
+	override function took(event:mdd.ui.Input):Bool {
+		if (event.kind != mdd.ui.Kind.PointerDown) return false;
+		if (!onOrder(event.x, event.y)) return false;
+
+		turns();
+		return true;
+	}
+
+	function tagged(index:Int):String {
+		final held = session.song.instrumentAt(index);
+		if (held == null || held.tags.length == 0) return "~";
+
+		return held.tags[0].toLowerCase();
+	}
+
+	function called(index:Int):String {
+		final held = session.song.instrumentAt(index);
+		return held == null ? "" : held.name.toLowerCase();
+	}
+
+	function ordered(inside:Array<Int>):Void {
+		if (order == BY_BANK) return;
+
+		if (order == BY_NAME) {
+			inside.sort(function(one:Int, two:Int):Int {
+				final first = called(one);
+				final second = called(two);
+
+				return first < second ? -1 : (first > second ? 1 : 0);
+			});
+
+			return;
+		}
+
+		inside.sort(function(one:Int, two:Int):Int {
+			final first = tagged(one);
+			final second = tagged(two);
+
+			if (first != second) return first < second ? -1 : 1;
+
+			final held = called(one);
+			final other = called(two);
+
+			return held < other ? -1 : (held > other ? 1 : 0);
+		});
+	}
+
 	public function fit():Void {
 		tree.clear();
 
@@ -414,6 +514,7 @@ final class Presets extends Widget {
 				}
 
 				if (inside.length == 0) continue;
+				ordered(inside);
 
 				final group = head.add(new Item(bank.name + "   " + inside.length,
 					kitting ? Theme.PARTS[kind.index()] : (bank.kept ? -1 : warned)));
@@ -535,6 +636,20 @@ final class Presets extends Widget {
 		paint.reface(font);
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
+
+		final chip = orderWide();
+		final left = orderLeft();
+		final deep = metrics.whole(17);
+		final at = y + (top - deep) * 0.5;
+
+		paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.raise2, 0.9);
+		paint.outline(left, at, chip, deep, theme.frame, metrics.whole(1), 0.7,
+			metrics.radiusSmall);
+
+		paint.pushClip(left, at, chip, deep);
+		paint.textCentred(translate(ORDER_NAMES[order]), left + chip * 0.5,
+			at + (deep - font.height) * 0.5 + font.ascent, theme.ink, 0.85);
+		paint.popClip();
 
 		if (listed == 0) {
 			paint.text(translate(Locale.PANEL_NO_PRESETS), x + metrics.inset,

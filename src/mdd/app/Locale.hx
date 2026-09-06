@@ -270,6 +270,9 @@ class Locale {
 	public static inline final MAP_LISTEN = "map.listen";
 	public static inline final MAP_WAITING = "map.waiting";
 	public static inline final MAP_CLEAR = "map.clear";
+	public static inline final PRESET_BY_BANK = "preset.byBank";
+	public static inline final PRESET_BY_NAME = "preset.byName";
+	public static inline final PRESET_BY_TAG = "preset.byTag";
 	public static inline final PATTERN_PART = "pattern.part";
 	public static inline final EDIT_EARLIER = "edit.earlier";
 	public static inline final EDIT_LATER = "edit.later";
@@ -509,6 +512,7 @@ class Locale {
 		BIND_UNDO, BIND_REDO, BIND_NEW, BIND_OPEN, BIND_SAVE, BIND_PREFERENCES, BIND_PLAY, BIND_STOP, BIND_LOOP, BIND_WRITE_VGM,
 		BIND_WRITE_AUDIO, BIND_EARLIER, BIND_LATER, BIND_ALL, BIND_COPY, BIND_CUT, BIND_PASTE, BIND_SELECT, BIND_DRAW, BIND_ERASE, BIND_SLICE, BIND_PAN, GROUP_KEYBOARD, BIND_CATCH, BIND_HINT, BIND_NONE,
 		MAP_CONTROL, MAP_EMPTY, MAP_LISTEN, MAP_WAITING, MAP_CLEAR,
+		PRESET_BY_BANK, PRESET_BY_NAME, PRESET_BY_TAG,
 		GROUP_SOUND, PREFERENCE_CONSOLE, CONSOLE_CHIP, CONSOLE_ONE, CONSOLE_TWO,
 		GROUP_MIDI, PREFERENCE_MIDI_DEVICE, PREFERENCE_MIDI_CHANNEL, PREFERENCE_MIDI_VELOCITY, MIDI_NONE, MIDI_ANY, MIDI_TAKEN, MIDI_FORCED,
 		PREFERENCE_LANGUAGE, PREFERENCE_DENSITY, PREFERENCE_TAIL, TAIL_NONE, TAIL_BEAT,
