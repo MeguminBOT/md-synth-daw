@@ -367,6 +367,8 @@ class SpineCheck {
 		final plain = mdd.view.editor.Presets.briefly(["Boss", "Credits", "Title Screen"]);
 		final none = mdd.view.editor.Presets.briefly([]);
 
+		sorted(tree, presets, session);
+
 		says("a game preset shows its zones and nothing else",
 			zones == "GHZ SBZ" && plain == "Boss, Credits  +1" && none == "",
 			"six tags across two zones read '" + zones + "', three with no zone read '"
@@ -499,6 +501,7 @@ class SpineCheck {
 			many + " lanes traced, median frame " + round(middle, 3) + " ms, worst "
 			+ round(worst * 1000, 3) + " ms");
 
+		cpp.vm.Gc.run(true);
 		cpp.vm.Gc.enable(false);
 
 		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
@@ -514,9 +517,9 @@ class SpineCheck {
 		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
 		cpp.vm.Gc.enable(true);
 
-		says("and every one of them allocates nothing", grew / 120 < 4096,
+		says("and every one of them allocates nothing", grew == 0,
 			Math.round(grew / 120) + " bytes a frame with " + many
-			+ " lanes open, the collector off");
+			+ " lanes open, measured from a swept heap");
 
 		final was = stack.heightOf(0);
 
@@ -532,6 +535,34 @@ class SpineCheck {
 			&& stack.heightOf(0) == was,
 			"folded to " + Math.round(shut) + " px from " + Math.round(was)
 			+ ", and back again");
+
+		final was = stack.height;
+
+		tab.zoom(4, tab.x + tab.width * 0.5);
+		laid(tree);
+
+		final floor = tab.y + tab.height - tab.reinTall() * 0.5;
+		final started = tab.offsetX;
+
+		tree.pressed(tab.x + tab.width - 4, floor, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(tab.x + tab.width - 4, floor, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("the automation tab scrolls sideways on a bar of its own",
+			tab.across() && tab.onRein(tab.x + tab.width - 4, floor)
+			&& tab.offsetX > started && stack.height < was,
+			"zoomed in, the bar reaches " + Math.round(tab.span() * tab.perTick)
+			+ " px across " + Math.round(tab.width - tab.gutter())
+			+ ", a press at its right end moved the view from " + Math.round(started)
+			+ " to " + Math.round(tab.offsetX) + ", and the lanes gave up "
+			+ Math.round(was - stack.height) + " px for it");
+
+		tab.zoom(0.001, tab.x + tab.width * 0.5);
+		laid(tree);
+
+		says("and the bar goes when everything fits", !tab.across()
+			&& stack.height == was,
+			"zoomed back out the bar is gone and the lanes have their "
+			+ Math.round(stack.height) + " px again");
 
 		tab.scrollDown(10000);
 		laid(tree);
@@ -1067,6 +1098,64 @@ class SpineCheck {
 			+ " at a velocity of " + over.velocity) + " came from a copy of D-4 20");
 
 		lane.notes.resize(0);
+	}
+
+	static function sorted(tree:Root, presets:mdd.view.editor.Presets,
+			session:mdd.app.Session):Void {
+		presets.sorts(mdd.view.editor.Presets.BY_BANK);
+		laid(tree);
+
+		final banked = spelt(presets);
+
+		presets.sorts(mdd.view.editor.Presets.BY_NAME);
+		laid(tree);
+
+		final named = spelt(presets);
+		var rising = true;
+
+		for (index in 1...named.length) {
+			if (named[index].toLowerCase() < named[index - 1].toLowerCase()) rising = false;
+		}
+
+		says("presets sort by name", rising && named.length > 4
+			&& named.join(",") != banked.join(","),
+			named.length + " presets in a bank read " + named[0] + " to "
+			+ named[named.length - 1] + " in order, where the bank had them as "
+			+ banked[0] + " to " + banked[banked.length - 1]);
+
+		presets.sorts(mdd.view.editor.Presets.BY_TAG);
+		laid(tree);
+
+		final tagged = spelt(presets);
+
+		says("and by tag", tagged.length == named.length
+			&& tagged.join(",") != named.join(","),
+			tagged.length + " presets read " + tagged[0] + " first by tag against "
+			+ named[0] + " by name");
+
+		says("and the order is a chip in the header",
+			presets.onOrder(presets.orderLeft() + presets.orderWide() * 0.5,
+				presets.y + 4)
+			&& !presets.onOrder(presets.x + 4, presets.y + 4),
+			"the chip answers to a press on itself and not to the panel's title");
+
+		presets.sorts(mdd.view.editor.Presets.BY_BANK);
+		laid(tree);
+	}
+
+	static function spelt(presets:mdd.view.editor.Presets):Array<String> {
+		final out:Array<String> = [];
+
+		for (top in presets.tree.roots) {
+			for (group in top.children) {
+				if (group.children.length < 5) continue;
+
+				for (child in group.children) out.push(child.label);
+				return out;
+			}
+		}
+
+		return out;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
@@ -1987,6 +2076,7 @@ class SpineCheck {
 			warned + " warnings in the centre, and clicking the first one selected "
 			+ session.part.name() + " and the note it names");
 
+		cpp.vm.Gc.run(true);
 		cpp.vm.Gc.enable(false);
 
 		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
@@ -2002,9 +2092,9 @@ class SpineCheck {
 		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
 		cpp.vm.Gc.enable(true);
 
-		says("a frame keeps its allocation small", grew / 120 < 4096,
+		says("a frame allocates nothing", grew == 0,
 			Math.round(grew / 120) + " bytes a frame across 120 frames of the whole shell,"
-			+ " with the collector off");
+			+ " measured from a swept heap with the collector off");
 
 		final middle = median(times, rolls) * 1000;
 
