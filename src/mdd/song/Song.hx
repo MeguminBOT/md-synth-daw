@@ -96,6 +96,11 @@ final class Song {
 		return index < 0 || index >= patterns.length ? null : patterns[index];
 	}
 
+	public function patchOf(part:Part):Null<Patch> {
+		final held = instrumentAt(rack[part.index()]);
+		return held == null ? null : held.patch;
+	}
+
 	public function instrumentAt(index:Int):Null<Instrument> {
 		return index < 0 || index >= instruments.length ? null : instruments[index];
 	}

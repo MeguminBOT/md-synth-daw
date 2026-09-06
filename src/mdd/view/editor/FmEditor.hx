@@ -17,12 +17,9 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class FmEditor extends Widget {
-	static final NAMES:Array<String> = ["TL", "AR", "D1R", "D1L", "D2R", "RR", "MUL", "DT", "RS",
-		"SSG"];
+	static final NAMES:Array<String> = Patch.NAMES;
 
-	static final SPELT:Array<String> = ["Total level", "Attack rate", "First decay rate",
-		"Sustain level", "Second decay rate", "Release rate", "Multiple", "Detune",
-		"Rate scaling", "SSG envelope"];
+	static final SPELT:Array<String> = Patch.SPELT;
 
 	static final BASES:Array<Int> = [0x40, 0x50, 0x60, 0x80, 0x70, 0x80, 0x30, 0x30, 0x50, 0x90];
 
@@ -39,16 +36,15 @@ final class FmEditor extends Widget {
 		[]
 	];
 
-	public static inline final ALGORITHM = 0;
-	public static inline final FEEDBACK = 1;
-	public static inline final AMS = 2;
-	public static inline final PMS = 3;
-	public static inline final DIALS = 4;
+	public static inline final ALGORITHM = Patch.ALGORITHM;
+	public static inline final FEEDBACK = Patch.FEEDBACK;
+	public static inline final AMS = Patch.AMS;
+	public static inline final PMS = Patch.PMS;
+	public static inline final DIALS = Patch.DIALS;
 
-	static final DIAL_NAMES:Array<String> = ["ALG", "FB", "AMS", "PMS"];
+	static final DIAL_NAMES:Array<String> = Patch.DIAL_NAMES;
 
-	static final DIAL_SPELT:Array<String> = ["Algorithm", "Feedback", "Tremolo", "Vibrato"];
-	static final DIAL_MOST:Array<Int> = [7, 7, 3, 7];
+	static final DIAL_SPELT:Array<String> = Patch.DIAL_SPELT;
 
 	public final session:Session;
 
@@ -113,24 +109,11 @@ final class FmEditor extends Widget {
 	}
 
 	public function dialOf(patch:Patch, which:Int):Int {
-		return switch (which) {
-			case ALGORITHM: patch.algorithm;
-			case FEEDBACK: patch.feedback;
-			case AMS: patch.ams;
-			case _: patch.pms;
-		}
+		return patch.dial(which);
 	}
 
 	public function turnTo(patch:Patch, which:Int, value:Int):Void {
-		final most = DIAL_MOST[which];
-		final want = value < 0 ? 0 : (value > most ? most : value);
-
-		switch (which) {
-			case ALGORITHM: patch.algorithm = want;
-			case FEEDBACK: patch.feedback = want;
-			case AMS: patch.ams = want;
-			case _: patch.pms = want;
-		}
+		patch.turns(which, value);
 	}
 
 	function curve():Float {
@@ -168,47 +151,15 @@ final class FmEditor extends Widget {
 	}
 
 	public function valueOf(patch:Patch, slot:Int, row:Int):Int {
-		return switch (row) {
-			case 0: patch.totalLevel[slot];
-			case 1: patch.attack[slot];
-			case 2: patch.decay[slot];
-			case 3: patch.sustainLevel[slot];
-			case 4: patch.sustain[slot];
-			case 5: patch.release[slot];
-			case 6: patch.multiple[slot];
-			case 7: patch.detune[slot];
-			case 8: patch.keyScale[slot];
-			case _: patch.ssg[slot];
-		}
+		return patch.reads(slot, row);
 	}
 
 	public function most(row:Int):Int {
-		return switch (row) {
-			case 0: 127;
-			case 1, 2, 4, 5: 31;
-			case 3: 15;
-			case 6: 15;
-			case 7: 7;
-			case 8: 3;
-			case _: 15;
-		}
+		return Patch.mostOf(row);
 	}
 
 	public function setTo(patch:Patch, slot:Int, row:Int, value:Int):Void {
-		final want = value < 0 ? 0 : (value > most(row) ? most(row) : value);
-
-		switch (row) {
-			case 0: patch.totalLevel[slot] = want;
-			case 1: patch.attack[slot] = want;
-			case 2: patch.decay[slot] = want;
-			case 3: patch.sustainLevel[slot] = want;
-			case 4: patch.sustain[slot] = want;
-			case 5: patch.release[slot] = want;
-			case 6: patch.multiple[slot] = want;
-			case 7: patch.detune[slot] = want;
-			case 8: patch.keyScale[slot] = want;
-			case _: patch.ssg[slot] = want;
-		}
+		patch.writes(slot, row, value);
 	}
 
 	public function registerOf(slot:Int, row:Int):Int {
@@ -391,7 +342,7 @@ final class FmEditor extends Widget {
 			final left = x + metrics.inset + which * room;
 			final wide = room - metrics.unit;
 			final value = dialOf(patch, which);
-			final part = value / DIAL_MOST[which];
+			final part = value / Patch.mostDial(which);
 
 			paint.roundedRect(left, top, wide, tall, metrics.radiusSmall, theme.raise1);
 
