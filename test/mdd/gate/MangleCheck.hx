@@ -26,8 +26,10 @@ class MangleCheck {
 		final seed = held == null ? 20260906 : held;
 
 		vgms(rounds, seed);
+		xgms(rounds, seed);
 		midis(rounds, seed);
 		projects(rounds, seed);
+		packed(rounds, seed);
 		waves(rounds, seed);
 		patches(rounds, seed);
 
@@ -119,6 +121,55 @@ class MangleCheck {
 			+ round(spent, 2) + " s, " + read + " read through and " + threw + " refused");
 	}
 
+	static function xgms(rounds:Int, seed:Int):Void {
+		final song = new mdd.song.Song("mangle", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		for (step in 0...16) {
+			pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(step * 24, 24,
+				48 + step, 100));
+		}
+
+		song.track(new mdd.song.Track("track"));
+		song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
+
+		final span = song.tempo.samplesAt(384);
+		final made = new Stream(1 << 16);
+
+		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK).spanned(made, 0, span);
+
+		final whole = mdd.format.Xgm.write(song, made, 0, span, song.tempo.rate).written;
+
+		final random = new Random(seed + 5);
+		final began = haxe.Timer.stamp();
+
+		var threw = 0;
+		var read = 0;
+
+		for (round in 0...rounds) {
+			final bytes = chewed(random, whole);
+
+			try {
+				final stream = new Stream(1 << 16);
+				mdd.format.Xgm.read(bytes, stream);
+
+				read++;
+			} catch (e:Dynamic) {
+				threw++;
+			}
+
+			if (haxe.Timer.stamp() - began > PATIENCE) break;
+		}
+
+		final spent = haxe.Timer.stamp() - began;
+
+		says("and a mangled xgm does not either", spent < PATIENCE,
+			rounds + " corruptions of a " + whole.length + " byte xgm in " + round(spent, 2)
+			+ " s, " + read + " read through and " + threw + " refused");
+	}
+
 	static function midis(rounds:Int, seed:Int):Void {
 		final song = new mdd.song.Song("mangle", 96, 120);
 		final pattern = song.add(new mdd.song.Pattern("one", 384));
@@ -192,6 +243,58 @@ class MangleCheck {
 
 		says("and a mangled project does not either", spent < PATIENCE,
 			rounds + " corruptions of a " + whole.length + " byte project in "
+			+ round(spent, 2) + " s, " + read + " read through and " + threw + " refused");
+	}
+
+	static function packed(rounds:Int, seed:Int):Void {
+		final song = new mdd.song.Song("mangle", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 96, 60, 100));
+
+		song.track(new mdd.song.Track("track"));
+		song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
+
+		final sample = song.sample(new mdd.song.Sample("noise", 8000, 60));
+		final held = new haxe.ds.Vector<Int>(512);
+
+		for (index in 0...held.length) held[index] = (index * 37) & 255;
+		sample.hold(held);
+
+		final where = Gate.root + "/export/mangled" + "." + mdd.Config.SUFFIX;
+		mdd.format.Project.savePacked(song, where);
+
+		final whole = sys.io.File.getBytes(where);
+		final random = new Random(seed + 6);
+		final began = haxe.Timer.stamp();
+
+		final many = rounds < 4 ? rounds : Std.int(rounds / 4);
+
+		var threw = 0;
+		var read = 0;
+
+		for (round in 0...many) {
+			sys.io.File.saveBytes(where, chewed(random, whole));
+
+			try {
+				mdd.format.Project.openPacked(where);
+				read++;
+			} catch (e:Dynamic) {
+				threw++;
+			}
+
+			if (haxe.Timer.stamp() - began > PATIENCE) break;
+		}
+
+		final spent = haxe.Timer.stamp() - began;
+
+		try {
+			if (sys.FileSystem.exists(where)) sys.FileSystem.deleteFile(where);
+		} catch (e:Dynamic) {}
+
+		says("and a mangled packed project does not either", spent < PATIENCE,
+			many + " corruptions of a " + whole.length + " byte project in "
 			+ round(spent, 2) + " s, " + read + " read through and " + threw + " refused");
 	}
 
