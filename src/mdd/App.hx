@@ -14,6 +14,7 @@ import mdd.app.Sound;
 import mdd.app.Stage;
 import mdd.app.Update;
 import mdd.host.Audio;
+import mdd.host.Collector;
 import mdd.host.Crash;
 import mdd.host.Event;
 import mdd.host.Instance;
@@ -134,6 +135,7 @@ class App {
 		sound.open(session.transport);
 
 		stage.show(settings == null || settings.asFlag("maximised", true));
+		collector.minds();
 		return true;
 	}
 
@@ -364,6 +366,8 @@ class App {
 
 		stage.measured();
 		changed();
+
+		collector.sweeps(true);
 	}
 
 	function changed():Void {
@@ -806,6 +810,7 @@ class App {
 
 	final bindings:Bindings = new Bindings();
 	final mapping:Mapping = new Mapping();
+	final collector:Collector = new Collector();
 
 	function chorded(code:Key, mods:Mod):Bool {
 		if (code == Key.Z && (mods & Mod.Ctrl) != 0 && (mods & Mod.Shift) != 0) {
@@ -931,7 +936,8 @@ class App {
 			if (files != null && files.tick(since)) stage.root.soil();
 			if (watched()) stage.root.soil();
 			watch();
-			stage.draw();
+
+			collector.rests(since, stage.draw());
 		}
 	}
 

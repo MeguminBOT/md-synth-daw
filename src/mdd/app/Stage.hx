@@ -293,16 +293,18 @@ final class Stage {
 		return true;
 	}
 
-	public function draw():Void {
+	public function draw():Bool {
 		if (!root.stale()) {
 			Sdl.sleep(IDLE);
-			return;
+			return false;
 		}
 
 		final ground = root.theme.ground;
 		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
 		root.frame(paint);
 		Sdl.renderPresent(renderer);
+
+		return true;
 	}
 
 	public function shut():Void {
