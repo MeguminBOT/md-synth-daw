@@ -80,6 +80,7 @@ class PaintCheck {
 		opacities(paint);
 		speckled(paint);
 		joined(paint);
+		poured(paint);
 
 		font.shut();
 		shut();
@@ -117,6 +118,36 @@ class PaintCheck {
 				|| pixels[i * 4 + 2] > 8)) lit++;
 		}
 		return lit;
+	}
+
+	static function poured(paint:Paint):Void {
+		final many = 200000;
+		var best = 1000.0;
+
+		for (pass in 0...5) {
+			begin();
+
+			final began = Sdl.ticks();
+
+			for (index in 0...many) {
+				final at = index & 255;
+				paint.rect(at, (index >> 8) & 255, 6, 4, Theme.PARTS[index % 11], 0.8);
+
+				if ((index & 1023) == 1023) paint.flush();
+			}
+
+			paint.flush();
+
+			final took = Sdl.ticks() - began;
+			if (took < best) best = took;
+
+			Draw.setTarget(renderer, null);
+		}
+
+		final each = best * 1000000000 / many;
+
+		says("throughput", each < 400, Math.round(each) + " ns a rectangle, "
+			+ round(best * 1000) + " ms for " + many + ", best of 5");
 	}
 
 	static function joined(paint:Paint):Void {

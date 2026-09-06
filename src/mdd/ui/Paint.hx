@@ -113,9 +113,10 @@ final class Paint {
 		binds(icons.texture);
 		room(FLOATS * 6);
 
-		final r = colour.red / 255;
-		final g = colour.green / 255;
-		final b = colour.blue / 255;
+		final r = colour.red * CHANNEL;
+		final g = colour.green * CHANNEL;
+		final b = colour.blue * CHANNEL;
+		final a = alpha * opacity;
 
 		final left = at(x);
 		final top = down(y);
@@ -127,13 +128,13 @@ final class Paint {
 		final u1 = icons.u1(which);
 		final v1 = icons.v1(which);
 
-		push(left, top, r, g, b, alpha, u0, v0);
-		push(right, top, r, g, b, alpha, u1, v0);
-		push(right, bottom, r, g, b, alpha, u1, v1);
+		push(left, top, r, g, b, a, u0, v0);
+		push(right, top, r, g, b, a, u1, v0);
+		push(right, bottom, r, g, b, a, u1, v1);
 
-		push(left, top, r, g, b, alpha, u0, v0);
-		push(right, bottom, r, g, b, alpha, u1, v1);
-		push(left, bottom, r, g, b, alpha, u0, v1);
+		push(left, top, r, g, b, a, u0, v0);
+		push(right, bottom, r, g, b, a, u1, v1);
+		push(left, bottom, r, g, b, a, u0, v1);
 	}
 
 	inline function binds(texture:cpp.Star<Texture>):Void {
@@ -177,17 +178,23 @@ final class Paint {
 		return y * scaleY + offsetY;
 	}
 
+	static inline final CHANNEL = 1 / 255.0;
+
 	inline function push(x:Float, y:Float, r:Float, g:Float, b:Float, a:Float, u:Float,
 			v:Float):Void {
-		batch[used] = x;
-		batch[used + 1] = y;
-		batch[used + 2] = r;
-		batch[used + 3] = g;
-		batch[used + 4] = b;
-		batch[used + 5] = a * opacity;
-		batch[used + 6] = u;
-		batch[used + 7] = v;
-		used += FLOATS;
+		final into = batch;
+		final at = used;
+
+		into[at] = x;
+		into[at + 1] = y;
+		into[at + 2] = r;
+		into[at + 3] = g;
+		into[at + 4] = b;
+		into[at + 5] = a;
+		into[at + 6] = u;
+		into[at + 7] = v;
+
+		used = at + FLOATS;
 	}
 
 	function triangle(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, colour:Colour,
@@ -195,21 +202,46 @@ final class Paint {
 		binds(font.texture);
 		room(FLOATS * 3);
 
-		final r = colour.red / 255;
-		final g = colour.green / 255;
-		final b = colour.blue / 255;
+		final r = colour.red * CHANNEL;
+		final g = colour.green * CHANNEL;
+		final b = colour.blue * CHANNEL;
+		final a = alpha * opacity;
 		final u = font.solidU;
 		final v = font.solidV;
 
-		push(at(x0), down(y0), r, g, b, alpha, u, v);
-		push(at(x1), down(y1), r, g, b, alpha, u, v);
-		push(at(x2), down(y2), r, g, b, alpha, u, v);
+		push(at(x0), down(y0), r, g, b, a, u, v);
+		push(at(x1), down(y1), r, g, b, a, u, v);
+		push(at(x2), down(y2), r, g, b, a, u, v);
 	}
 
 	function quad(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float,
 			colour:Colour, alpha:Float):Void {
-		triangle(x0, y0, x1, y1, x2, y2, colour, alpha);
-		triangle(x0, y0, x2, y2, x3, y3, colour, alpha);
+		binds(font.texture);
+		room(FLOATS * 6);
+
+		final r = colour.red * CHANNEL;
+		final g = colour.green * CHANNEL;
+		final b = colour.blue * CHANNEL;
+		final a = alpha * opacity;
+		final u = font.solidU;
+		final v = font.solidV;
+
+		final ax = at(x0);
+		final ay = down(y0);
+		final bx = at(x1);
+		final by = down(y1);
+		final cx = at(x2);
+		final cy = down(y2);
+		final dx = at(x3);
+		final dy = down(y3);
+
+		push(ax, ay, r, g, b, a, u, v);
+		push(bx, by, r, g, b, a, u, v);
+		push(cx, cy, r, g, b, a, u, v);
+
+		push(ax, ay, r, g, b, a, u, v);
+		push(cx, cy, r, g, b, a, u, v);
+		push(dx, dy, r, g, b, a, u, v);
 	}
 
 	public function rect(x:Float, y:Float, width:Float, height:Float, colour:Colour,
@@ -332,15 +364,16 @@ final class Paint {
 		binds(font.texture);
 		room(FLOATS * 3);
 
-		final r = colour.red / 255;
-		final g = colour.green / 255;
-		final b = colour.blue / 255;
+		final r = colour.red * CHANNEL;
+		final g = colour.green * CHANNEL;
+		final b = colour.blue * CHANNEL;
+		final held = opacity;
 		final u = font.solidU;
 		final v = font.solidV;
 
-		push(at(x0), down(y0), r, g, b, a0, u, v);
-		push(at(x1), down(y1), r, g, b, a1, u, v);
-		push(at(x2), down(y2), r, g, b, a2, u, v);
+		push(at(x0), down(y0), r, g, b, a0 * held, u, v);
+		push(at(x1), down(y1), r, g, b, a1 * held, u, v);
+		push(at(x2), down(y2), r, g, b, a2 * held, u, v);
 	}
 
 	function band(cx:Float, cy:Float, inner:Float, outer:Float, from:Float, to:Float,
@@ -378,12 +411,13 @@ final class Paint {
 		binds(font.texture);
 		room(FLOATS * 3);
 
+		final a = alpha * opacity;
 		final u = font.solidU;
 		final v = font.solidV;
 
-		push(at(x0), down(y0), c0.red / 255, c0.green / 255, c0.blue / 255, alpha, u, v);
-		push(at(x1), down(y1), c1.red / 255, c1.green / 255, c1.blue / 255, alpha, u, v);
-		push(at(x2), down(y2), c2.red / 255, c2.green / 255, c2.blue / 255, alpha, u, v);
+		push(at(x0), down(y0), c0.red * CHANNEL, c0.green * CHANNEL, c0.blue * CHANNEL, a, u, v);
+		push(at(x1), down(y1), c1.red * CHANNEL, c1.green * CHANNEL, c1.blue * CHANNEL, a, u, v);
+		push(at(x2), down(y2), c2.red * CHANNEL, c2.green * CHANNEL, c2.blue * CHANNEL, a, u, v);
 	}
 
 	public function outline(x:Float, y:Float, width:Float, height:Float, colour:Colour,
@@ -721,9 +755,10 @@ final class Paint {
 		binds(font.texture);
 		room(FLOATS * 6 * value.length);
 
-		final r = colour.red / 255;
-		final g = colour.green / 255;
-		final b = colour.blue / 255;
+		final r = colour.red * CHANNEL;
+		final g = colour.green * CHANNEL;
+		final b = colour.blue * CHANNEL;
+		final a = alpha * opacity;
 
 		var pen = x;
 
@@ -731,23 +766,23 @@ final class Paint {
 			final code = value.charCodeAt(i);
 			if (!font.has(code)) continue;
 
-			final left = pen + font.offsetX(code);
-			final top = y + font.offsetY(code);
-			final right = left + font.wide(code);
-			final bottom = top + font.tall(code);
+			final left = at(pen + font.offsetX(code));
+			final top = down(y + font.offsetY(code));
+			final right = left + font.wide(code) * scaleX;
+			final bottom = top + font.tall(code) * scaleY;
 
 			final u0 = font.u0(code);
 			final v0 = font.v0(code);
 			final u1 = font.u1(code);
 			final v1 = font.v1(code);
 
-			push(at(left), down(top), r, g, b, alpha, u0, v0);
-			push(at(right), down(top), r, g, b, alpha, u1, v0);
-			push(at(right), down(bottom), r, g, b, alpha, u1, v1);
+			push(left, top, r, g, b, a, u0, v0);
+			push(right, top, r, g, b, a, u1, v0);
+			push(right, bottom, r, g, b, a, u1, v1);
 
-			push(at(left), down(top), r, g, b, alpha, u0, v0);
-			push(at(right), down(bottom), r, g, b, alpha, u1, v1);
-			push(at(left), down(bottom), r, g, b, alpha, u0, v1);
+			push(left, top, r, g, b, a, u0, v0);
+			push(right, bottom, r, g, b, a, u1, v1);
+			push(left, bottom, r, g, b, a, u0, v1);
 
 			pen += font.advance(code);
 		}
