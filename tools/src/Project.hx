@@ -41,6 +41,10 @@ class Project {
 	public var company(default, null):String = "";
 	public var github(default, null):String = "";
 	public var discord(default, null):String = "";
+	public var discordCover(default, null):String = "";
+	public var discordPlaying(default, null):String = "";
+	public var discordStopped(default, null):String = "";
+	public var discordWorking(default, null):String = "";
 	public var version(default, null):String = "0.0.0";
 	public var description(default, null):String = "";
 
@@ -126,6 +130,10 @@ class Project {
 
 			case "presence":
 				discord = has(node, "discord") ? node.get("discord") : discord;
+				discordCover = has(node, "cover") ? node.get("cover") : discordCover;
+				discordPlaying = has(node, "playing") ? node.get("playing") : discordPlaying;
+				discordStopped = has(node, "stopped") ? node.get("stopped") : discordStopped;
+				discordWorking = has(node, "working") ? node.get("working") : discordWorking;
 
 			case "window":
 				windowWidth = number(node, "width", windowWidth);

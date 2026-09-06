@@ -18,14 +18,14 @@ final class Presence {
 	public static inline final MOST = 118;
 	public static inline final LABEL = 30;
 
-	public static inline final LARGE = "cover";
-	public static inline final PLAYING = "playing";
-	public static inline final STOPPED = "stopped";
-	public static inline final WORKING = "working";
-
 	public var level:Int = FULL;
 	public var busy:String = "";
+
 	public var application:String = Config.DISCORD;
+	public var cover:String = Config.DISCORD_COVER;
+	public var badgePlaying:String = Config.DISCORD_PLAYING;
+	public var badgeStopped:String = Config.DISCORD_STOPPED;
+	public var badgeWorking:String = Config.DISCORD_WORKING;
 
 	public var sent(default, null):Int = 0;
 	public var dials(default, null):Int = 0;
@@ -168,11 +168,7 @@ final class Presence {
 		timed(out);
 		parted(out);
 
-		out.add(",\"assets\":{\"large_image\":\"" + LARGE + "\",\"large_text\":");
-		out.add(quoted(shelf(), MOST));
-		out.add(",\"small_image\":\"" + badge() + "\",\"small_text\":");
-		out.add(quoted(pace(), MOST));
-		out.add("}");
+		shelved(out);
 
 		if (Config.GITHUB != "") {
 			out.add(",\"buttons\":[{\"label\":");
@@ -183,6 +179,27 @@ final class Presence {
 		out.add(",\"instance\":false}");
 
 		return out.toString();
+	}
+
+	function shelved(out:StringBuf):Void {
+		out.add(",\"assets\":{\"large_text\":");
+		out.add(quoted(shelf(), MOST));
+
+		if (cover != "") {
+			out.add(",\"large_image\":");
+			out.add(quoted(cover, MOST));
+		}
+
+		final mark = badge();
+
+		if (mark != "") {
+			out.add(",\"small_image\":");
+			out.add(quoted(mark, MOST));
+			out.add(",\"small_text\":");
+			out.add(quoted(pace(), MOST));
+		}
+
+		out.add("}");
 	}
 
 	function details():String {
@@ -263,8 +280,8 @@ final class Presence {
 	function badge():String {
 		final held = session;
 
-		if (busy != "") return WORKING;
-		return held != null && held.transport.playing ? PLAYING : STOPPED;
+		if (busy != "") return badgeWorking;
+		return held != null && held.transport.playing ? badgePlaying : badgeStopped;
 	}
 
 	function timed(out:StringBuf):Void {

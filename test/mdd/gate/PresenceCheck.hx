@@ -8,10 +8,10 @@ import mdd.song.Note;
 import mdd.song.Part;
 
 typedef Shelf = {
-	var large_image:String;
 	var large_text:String;
-	var small_image:String;
-	var small_text:String;
+	var ?large_image:String;
+	var ?small_image:String;
+	var ?small_text:String;
 }
 
 typedef Clocked = {
@@ -63,6 +63,7 @@ class PresenceCheck {
 		levelled();
 		censused();
 		played();
+		nameless();
 		paced();
 		stamped();
 		hosted();
@@ -74,7 +75,9 @@ class PresenceCheck {
 	}
 
 	static function dialled(application:String):Int {
-		final held = made();
+		final held = new Presence();
+		held.follows(Session.started(mdd.song.Library.embedded()));
+
 		held.application = application;
 
 		Sys.println("    dialling discord as " + application);
@@ -113,6 +116,11 @@ class PresenceCheck {
 		final held = new Presence();
 		held.follows(Session.started(mdd.song.Library.embedded()));
 
+		held.cover = "cover";
+		held.badgePlaying = "playing";
+		held.badgeStopped = "stopped";
+		held.badgeWorking = "working";
+
 		return held;
 	}
 
@@ -141,8 +149,8 @@ class PresenceCheck {
 			said.state == "Editing FM1, pattern 1 of 1", said.state);
 
 		says("and it carries a large image and a badge",
-			said.assets.large_image == Presence.LARGE
-				&& said.assets.small_image == Presence.STOPPED,
+			said.assets.large_image == held.cover
+				&& said.assets.small_image == held.badgeStopped,
 			said.assets.large_image + ", " + said.assets.small_image);
 
 		says("and an elapsed clock with no end while stopped",
@@ -184,9 +192,11 @@ class PresenceCheck {
 		says("a name longer than discord takes is cut",
 			said.details.length <= Presence.MOST, said.details.length + " of " + Presence.MOST);
 
+		final tooltip = said.assets.small_text;
+
 		says("and every field stays within the limit",
 			said.state.length <= Presence.MOST && said.assets.large_text.length <= Presence.MOST
-				&& said.assets.small_text.length <= Presence.MOST,
+				&& tooltip != null && tooltip.length <= Presence.MOST,
 			said.assets.large_text.length + " the longest");
 	}
 
@@ -251,7 +261,7 @@ class PresenceCheck {
 		says("playing says the bar it is on",
 			StringTools.startsWith(said.state, "Playing bar 1."), said.state);
 
-		says("and the badge changes with it", said.assets.small_image == Presence.PLAYING,
+		says("and the badge changes with it", said.assets.small_image == held.badgePlaying,
 			said.assets.small_image);
 
 		says("and a song with an end gets a countdown", said.timestamps.end != null,
@@ -262,7 +272,7 @@ class PresenceCheck {
 
 		says("and work in hand takes the line over",
 			read(held).state == "Exporting"
-				&& read(held).assets.small_image == Presence.WORKING,
+				&& read(held).assets.small_image == held.badgeWorking,
 			read(held).state);
 
 		held.busy = "";
@@ -271,6 +281,26 @@ class PresenceCheck {
 		says("and the plain level keeps the song's length back",
 			read(held).timestamps.end == null && read(held).timestamps.start > 0,
 			"start only");
+	}
+
+	static function nameless():Void {
+		final held = made();
+
+		held.cover = "";
+		held.badgePlaying = "";
+		held.badgeStopped = "";
+		held.badgeWorking = "";
+
+		final said = read(held);
+
+		says("an asset with no name is left out entirely",
+			said.assets.large_image == null && said.assets.small_image == null
+				&& said.assets.small_text == null,
+			"large text only");
+
+		says("and what is left is still well formed",
+			said.assets.large_text != "" && said.details == "untitled",
+			said.assets.large_text);
 	}
 
 	static function paced():Void {

@@ -27,11 +27,17 @@
 	<!-- The Discord application this tells its rich presence to, from an application made at
 	     discord.com/developers. Empty means the presence never connects and nothing is sent.
 
-	     The application's Rich Presence art assets are looked up by name, and the names are
-	     "cover" for the large image and "playing", "stopped" and "working" for the badge in its
-	     corner. An asset that is not uploaded simply does not appear. -->
+	     The rest are the application's art assets, by the name each carries in its Rich Presence
+	     asset list. "embedded_cover", "embedded_icon" and "embedded_background" are the three the
+	     application already has, taken from its icon and its cover image; anything else has to be
+	     uploaded first. An empty name, or one nothing answers to, leaves that image out.
 
-	<presence discord="" />
+	     The badge is the small mark in the large image's corner, and it carries the tooltip that
+	     says the tempo and the position, so an empty badge loses the tooltip with it. Point the
+	     three at three separate images and the badge follows the transport. -->
+
+	<presence discord="1546264890317086730" cover="embedded_cover"
+		playing="embedded_icon" stopped="embedded_icon" working="embedded_icon" />
 
 	<window width="1440" height="900" least-width="960" least-height="600"
 		vsync="true" resizable="true" high-dpi="true" />

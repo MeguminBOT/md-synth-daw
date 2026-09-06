@@ -219,6 +219,10 @@ class Run {
 		out.add("\tpublic static inline final COMPANY = \"" + project.company + "\";\n");
 		out.add("\tpublic static inline final GITHUB = \"" + project.github + "\";\n");
 		out.add("\tpublic static inline final DISCORD = \"" + project.discord + "\";\n");
+		out.add("\tpublic static inline final DISCORD_COVER = \"" + project.discordCover + "\";\n");
+		out.add("\tpublic static inline final DISCORD_PLAYING = \"" + project.discordPlaying + "\";\n");
+		out.add("\tpublic static inline final DISCORD_STOPPED = \"" + project.discordStopped + "\";\n");
+		out.add("\tpublic static inline final DISCORD_WORKING = \"" + project.discordWorking + "\";\n");
 		
 		out.add("\tpublic static inline final VERSION = \"" + project.version + "\";\n");
 		out.add("\tpublic static inline final WIDTH = " + project.windowWidth + ";\n");
