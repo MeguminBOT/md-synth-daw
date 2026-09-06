@@ -959,14 +959,9 @@ final class PianoRoll extends Widget {
 				final pitch = pitchAt(event.y);
 				if (pitch < lowest() || pitch > highest()) return true;
 
-				final length = drawn < 1 ? (session.snap < 1 ? 24 : session.snap) : drawn;
-				final note = new Note(at < 0 ? 0 : at, length, pitch, 100);
+				final note = draws(at, pitch);
+				if (note == null) return true;
 
-				seated(note, pitch);
-				session.does(new AddNote(session.pattern, session.part, note));
-
-				picked.only(note);
-				chosen = note;
 				dragging = note;
 				sizing = true;
 				grabTick = 0;
@@ -1655,6 +1650,34 @@ final class PianoRoll extends Widget {
 	}
 
 
+
+	public function forgets():Void {
+		drawn = 0;
+
+		picked.clear();
+		chosen = null;
+	}
+
+	public function draws(at:Int, pitch:Int):Null<Note> {
+		final pattern = session.current();
+		if (pattern == null) return null;
+
+		final length = drawn < 1 ? sixteenth() : drawn;
+		final note = new Note(at < 0 ? 0 : at, length, pitch, 100);
+
+		seated(note, pitch);
+		session.does(new AddNote(session.pattern, session.part, note));
+
+		picked.only(note);
+		chosen = note;
+
+		return note;
+	}
+
+	public function sixteenth():Int {
+		final held = Std.int(session.song.tempo.ppqn / 4);
+		return held < 1 ? 1 : held;
+	}
 
 	public function edge():Float {
 		final root = root();
