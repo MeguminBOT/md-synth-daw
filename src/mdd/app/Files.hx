@@ -56,7 +56,7 @@ final class Files {
 	public var projectsAt:String = "";
 	public var presetsAt:String = "";
 
-	var edits:Int = -1;
+	var stamp:Int = -1;
 
 	public var onLoad:Null<Song -> Void> = null;
 	public var savedInto:String = "";
@@ -81,9 +81,16 @@ final class Files {
 		return keep();
 	}
 
+	public function marked():Int {
+		final said = haxe.io.Bytes.ofString(Project.text(session.song));
+		final bulk = Project.bulk(session.song);
+
+		return haxe.crypto.Crc32.make(said) ^ haxe.crypto.Crc32.make(bulk);
+	}
+
 	public function keep():Bool {
-		final depth = session.history.depth();
-		if (depth == edits) return false;
+		final now = marked();
+		if (now == stamp) return false;
 
 		final where = path != "" ? path : recovery();
 
@@ -94,7 +101,7 @@ final class Files {
 			return true;
 		}
 
-		edits = depth;
+		stamp = now;
 		kept++;
 		recovered = path != "" ? "" : where;
 
@@ -214,7 +221,7 @@ final class Files {
 	}
 
 	public function forget():Void {
-		edits = session.history.depth();
+		stamp = marked();
 		since = 0;
 	}
 
