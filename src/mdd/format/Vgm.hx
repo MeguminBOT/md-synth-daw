@@ -116,7 +116,9 @@ final class Vgm {
 		while (at < bytes.length) {
 			if (loopAt >= 0 && at >= loopAt && loopWrite < 0) loopWrite = into.count;
 
+			final began = at;
 			final code = bytes.get(at);
+
 			at++;
 			commands++;
 
@@ -159,6 +161,8 @@ final class Vgm {
 					final length = bytes.getInt32(at);
 					at += 4;
 
+					if (length < 0 || at + length > bytes.length) return;
+
 					blocks++;
 					blockBytes += length;
 					pcm(bytes, at, length, kind);
@@ -185,6 +189,8 @@ final class Vgm {
 						unknown++;
 					}
 			}
+
+			if (at <= began) return;
 		}
 	}
 

@@ -187,8 +187,11 @@ final class Midi {
 		while (read < tracks && at + 8 <= bytes.length) {
 			if (bytes.getString(at, 4) != "MTrk") break;
 
-			final length = whole(bytes, at + 4);
+			final asked = whole(bytes, at + 4);
 			at += 8;
+
+			final room = bytes.length - at;
+			final length = asked < 0 || asked > room ? room : asked;
 
 			final ends = walk(bytes, at, at + length, song, pattern);
 			if (ends > longest) longest = ends;

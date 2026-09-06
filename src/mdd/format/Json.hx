@@ -183,11 +183,15 @@ private class Reader {
 				continue;
 			}
 
+			final began = at;
 			final key = string();
+
 			skip();
 			if (at < said.length && StringTools.fastCodeAt(said, at) == 58) at++;
 
 			node.put(key, value());
+
+			if (at <= began) break;
 		}
 
 		return node;
@@ -211,7 +215,10 @@ private class Reader {
 				continue;
 			}
 
+			final began = at;
 			node.push(value());
+
+			if (at <= began) break;
 		}
 
 		return node;
