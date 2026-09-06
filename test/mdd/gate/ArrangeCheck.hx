@@ -33,6 +33,7 @@ class ArrangeCheck {
 		edits();
 		dropped();
 		shifted();
+		reversed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -263,6 +264,135 @@ class ArrangeCheck {
 			mdd.format.Project.text(song) == before,
 			"the song is " + (mdd.format.Project.text(song) == before
 			? "byte for byte what it was" : "not what it was"));
+	}
+
+	static function rich():Song {
+		final song = new Song("rich", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		final one = song.add(new Pattern("one", 384));
+		final two = song.add(new Pattern("two", 192));
+
+		one.lane(Part.Fm1).add(new Note(0, 96, 60, 100));
+		one.lane(Part.Fm1).add(new Note(192, 96, 64, 90));
+		one.lane(Part.Psg1).add(new Note(96, 48, 72, 110));
+		two.lane(Part.Fm2).add(new Note(0, 48, 55, 80));
+
+		final line = new mdd.song.Automation(mdd.song.Automation.LEVEL, 0);
+
+		line.add(new mdd.song.Point(0, -8));
+		line.add(new mdd.song.Point(192, -2));
+
+		one.lane(Part.Fm1).automation.push(line);
+
+		final first = song.track(new Track("first"));
+		final second = song.track(new Track("second"));
+
+		first.add(new Clip(0, 0, 384));
+		first.add(new Clip(1, 384, 192));
+		second.add(new Clip(0, 192, 384));
+
+		song.tempo.set(192, 140);
+
+		return song;
+	}
+
+	static function reversed():Void {
+		final names:Array<String> = [];
+		final makers:Array<Song -> mdd.song.edit.Command> = [];
+
+		function offer(name:String, make:Song -> mdd.song.edit.Command):Void {
+			names.push(name);
+			makers.push(make);
+		}
+
+		offer("AddNote", function(song) return new mdd.song.edit.AddNote(0, Part.Fm1,
+			new Note(288, 48, 67, 100)));
+		offer("RemoveNote", function(song) return new mdd.song.edit.RemoveNote(0, Part.Fm1,
+			song.patterns[0].lane(Part.Fm1).notes[0]));
+		offer("MoveNote", function(song) return new mdd.song.edit.MoveNote(0, Part.Fm1,
+			song.patterns[0].lane(Part.Fm1).notes[0], 48, 65, 1));
+		offer("SizeNote", function(song) return new mdd.song.edit.SizeNote(0, Part.Fm1,
+			song.patterns[0].lane(Part.Fm1).notes[0], 24));
+		offer("SetVelocity", function(song) return new mdd.song.edit.SetVelocity(
+			song.patterns[0].lane(Part.Fm1).notes[0], 40));
+
+		offer("AddClip", function(song) return new mdd.song.edit.AddClip(1,
+			new Clip(1, 960, 192)));
+		offer("RemoveClip", function(song) return new mdd.song.edit.RemoveClip(0,
+			song.tracks[0].clips[0]));
+		offer("MoveClip", function(song) return new mdd.song.edit.MoveClip(0,
+			song.tracks[0].clips[0], 576, 3));
+		offer("SizeClip", function(song) return new mdd.song.edit.SizeClip(0,
+			song.tracks[0].clips[0], 96));
+
+		offer("AddPattern", function(song) return new AddPattern(new Pattern("three", 96)));
+		offer("RemovePattern", function(song) return new mdd.song.edit.RemovePattern(0));
+		offer("RenamePattern", function(song) return new RenamePattern(0, "renamed"));
+		offer("ResizePattern", function(song) return new ResizePattern(0, 768));
+		offer("MovePattern", function(song) return new mdd.song.edit.MovePattern(0,
+			Part.Psg1.index()));
+
+		offer("AddTrack", function(song) return new mdd.song.edit.AddTrack(2));
+		offer("RemoveTrack", function(song) return new mdd.song.edit.RemoveTrack(1));
+		offer("RenameTrack", function(song) return new mdd.song.edit.RenameTrack(0, "named"));
+
+		offer("AddPoint", function(song) return new mdd.song.edit.AddPoint(0, Part.Fm1,
+			mdd.song.Automation.LEVEL, 0, new mdd.song.Point(96, -5)));
+		offer("RemovePoint", function(song) return new mdd.song.edit.RemovePoint(0, Part.Fm1,
+			mdd.song.Automation.LEVEL, 0,
+			song.patterns[0].lane(Part.Fm1).automation[0].points[0]));
+		offer("MovePoint", function(song) return new mdd.song.edit.MovePoint(0, Part.Fm1,
+			mdd.song.Automation.LEVEL, 0,
+			song.patterns[0].lane(Part.Fm1).automation[0].points[0], 48, -6));
+		offer("ShapePoint", function(song) return new mdd.song.edit.ShapePoint(
+			song.patterns[0].lane(Part.Fm1).automation[0].points[0],
+			mdd.song.Automation.CURVE, 30, 4));
+		offer("LiftAutomation", function(song) return new mdd.song.edit.LiftAutomation(0,
+			Part.Fm1, mdd.song.Automation.LEVEL, 0));
+
+		offer("SetInstrument", function(song) return new mdd.song.edit.SetInstrument(Part.Fm1,
+			2));
+		offer("SetTempo", function(song) return new mdd.song.edit.SetTempo(0, 96));
+		offer("SetGrid", function(song) return new mdd.song.edit.SetGrid(200));
+		offer("ShiftSong", function(song) return new mdd.song.edit.ShiftSong(1));
+
+		offer("Together", function(song) {
+			final group = new mdd.song.edit.Together("two notes");
+
+			group.also(new mdd.song.edit.RemoveNote(0, Part.Fm1,
+				song.patterns[0].lane(Part.Fm1).notes[0]));
+			group.also(new mdd.song.edit.RemoveNote(0, Part.Fm1,
+				song.patterns[0].lane(Part.Fm1).notes[1]));
+
+			return group;
+		});
+
+		final idle:Array<String> = [];
+		final broken:Array<String> = [];
+
+		for (index in 0...makers.length) {
+			final song = rich();
+			final before = mdd.format.Project.text(song);
+			final history = new History();
+
+			history.does(song, makers[index](song));
+
+			if (mdd.format.Project.text(song) == before) idle.push(names[index]);
+
+			history.undo(song);
+
+			if (mdd.format.Project.text(song) != before) broken.push(names[index]);
+		}
+
+		says("every edit changes the song", idle.length == 0,
+			makers.length + " commands applied, " + idle.length + " left it alone"
+			+ (idle.length == 0 ? "" : ": " + idle.join(", ")));
+
+		says("and every one of them undoes byte for byte", broken.length == 0,
+			(makers.length - broken.length) + " of " + makers.length
+			+ " came back to what they were"
+			+ (broken.length == 0 ? "" : ", these did not: " + broken.join(", ")));
 	}
 
 	static function edits():Void {
