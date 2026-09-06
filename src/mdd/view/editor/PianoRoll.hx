@@ -88,6 +88,7 @@ final class PianoRoll extends Widget {
 	var grabFresh:Bool = false;
 	var sizing:Bool = false;
 	var drawn:Int = 0;
+	var gridded:Int = -1;
 	var panning:Bool = false;
 	var scrubbing:Bool = false;
 	var menu:Null<Menu> = null;
@@ -1653,6 +1654,7 @@ final class PianoRoll extends Widget {
 
 	public function forgets():Void {
 		drawn = 0;
+		gridded = -1;
 
 		picked.clear();
 		chosen = null;
@@ -1662,7 +1664,12 @@ final class PianoRoll extends Widget {
 		final pattern = session.current();
 		if (pattern == null) return null;
 
-		final length = drawn < 1 ? sixteenth() : drawn;
+		if (session.snap != gridded) {
+			gridded = session.snap;
+			drawn = 0;
+		}
+
+		final length = drawn < 1 ? stepped() : drawn;
 		final note = new Note(at < 0 ? 0 : at, length, pitch, 100);
 
 		seated(note, pitch);
@@ -1677,6 +1684,13 @@ final class PianoRoll extends Widget {
 	public function sixteenth():Int {
 		final held = Std.int(session.song.tempo.ppqn / 4);
 		return held < 1 ? 1 : held;
+	}
+
+	public function stepped():Int {
+		final least = sixteenth();
+		final held = session.snap < 1 ? least : session.snap;
+
+		return held < least ? least : held;
 	}
 
 	public function edge():Float {
