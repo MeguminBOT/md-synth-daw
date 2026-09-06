@@ -31,6 +31,7 @@ class LangCheck {
 		for (code in shipped) spoken(code);
 
 		matched(shipped);
+		drawable(shipped);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -46,7 +47,7 @@ class LangCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 44) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function catalogue():Void {
@@ -82,6 +83,42 @@ class LangCheck {
 			+ (extra.length == 0 ? "" : ", unused " + shown(extra));
 
 		says(code, taken > 0 && missing.length == 0 && extra.length == 0, said);
+	}
+
+	static function drawable(shipped:Array<String>):Void {
+		final lost:Array<String> = [];
+
+		var counted = 0;
+		var widest = 0;
+
+		for (code in shipped) {
+			final held = new Translation();
+			Languages.speak(held, code);
+
+			for (index in 0...held.count()) {
+				final key = held.keyAt(index);
+				final said = held.of(key);
+
+				for (at in 0...said.length) {
+					final one = StringTools.fastCodeAt(said, at);
+
+					counted++;
+					if (one > widest) widest = one;
+
+					if (mdd.ui.Font.holds(one)) continue;
+
+					final shown = code + " " + key + " U+" + StringTools.hex(one, 4);
+					if (lost.indexOf(shown) < 0) lost.push(shown);
+				}
+			}
+		}
+
+		says("every letter a language ships can be drawn", lost.length == 0,
+			lost.length == 0
+				? counted + " characters over " + shipped.length + " languages, the highest U+"
+					+ StringTools.hex(widest, 4) + ", and the atlas holds to U+"
+					+ StringTools.hex(mdd.ui.Font.LAST, 4)
+				: lost.length + " the atlas has no glyph for: " + lost.slice(0, 4).join(", "));
 	}
 
 	static function matched(shipped:Array<String>):Void {
