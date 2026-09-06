@@ -126,11 +126,24 @@ final class AutomationEditor extends Widget {
 		offsetX = 0;
 	}
 
+	public function reinTall():Float {
+		final root = root();
+		return root == null ? 8 : root.metrics.whole(8);
+	}
+
+	public function across():Bool {
+		return span() * perTick > width - gutter() + 0.5;
+	}
+
+	public function reined():Float {
+		return across() ? reinTall() : 0;
+	}
+
 	override function layout():Void {
 		framed();
 
 		final top = y + head() + ruler();
-		final room = height - head() - ruler();
+		final room = height - head() - ruler() - reined();
 
 		stack.holding = holding;
 		stack.rowTall = holding == null ? 0 : room;
@@ -270,7 +283,7 @@ final class AutomationEditor extends Widget {
 	public var offsetDown:Float = 0;
 
 	public function scrollDown(py:Float):Void {
-		final most = stack.wants() - (height - head() - ruler());
+		final most = stack.wants() - (height - head() - ruler() - reined());
 
 		offsetDown = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
 		relayout();
@@ -304,6 +317,54 @@ final class AutomationEditor extends Widget {
 	}
 
 	var scrubbing:Bool = false;
+	var dragging:Bool = false;
+
+	public function onRein(px:Float, py:Float):Bool {
+		if (!across()) return false;
+
+		final floor = y + height;
+		return py >= floor - reinTall() && py < floor && px >= x + gutter();
+	}
+
+	function thumb(wide:Float, reach:Float):Float {
+		final root = root();
+		final least = root == null ? 24.0 : root.metrics.whole(24);
+		final held = wide * wide / reach;
+
+		return held < least ? least : held;
+	}
+
+	function drags(px:Float):Void {
+		final wide = width - gutter();
+		final reach = span() * perTick;
+
+		final held = thumb(wide, reach);
+		final room = wide - held;
+
+		if (room <= 0) return;
+
+		final want = (px - x - gutter() - held * 0.5) / room;
+		scrollTo(want * (reach - wide));
+	}
+
+	function rein(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		if (!across()) return;
+
+		final thick = reinTall();
+		final wide = width - gutter();
+		final reach = span() * perTick;
+
+		final held = thumb(wide, reach);
+		final room = wide - held;
+		final most = reach - wide;
+		final at = most <= 0 ? 0 : offsetX / most * room;
+
+		final top = y + height - thick;
+
+		paint.rect(x + gutter(), top, wide, thick, theme.sink, 0.7);
+		paint.roundedRect(x + gutter() + at, top + metrics.whole(2), held,
+			thick - metrics.whole(4), metrics.whole(2), theme.frame);
+	}
 
 	override function took(event:Input):Bool {
 		if (event.kind == Kind.PointerMove && scrubbing) {
@@ -313,6 +374,22 @@ final class AutomationEditor extends Widget {
 
 		if (event.kind == Kind.PointerUp && scrubbing) {
 			scrubbing = false;
+			return true;
+		}
+
+		if (event.kind == Kind.PointerDown && onRein(event.x, event.y)) {
+			dragging = true;
+			drags(event.x);
+			return true;
+		}
+
+		if (event.kind == Kind.PointerMove && dragging) {
+			drags(event.x);
+			return true;
+		}
+
+		if (event.kind == Kind.PointerUp && dragging) {
+			dragging = false;
 			return true;
 		}
 
@@ -358,6 +435,7 @@ final class AutomationEditor extends Widget {
 		barred(paint, theme, metrics);
 
 		super.paint(paint);
+		rein(paint, theme, metrics);
 
 		if (playhead >= 0) {
 			final at = atTick(holding == null ? playhead : playhead - holding.at);
