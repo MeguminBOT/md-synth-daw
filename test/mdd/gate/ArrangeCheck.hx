@@ -34,6 +34,7 @@ class ArrangeCheck {
 		dropped();
 		shifted();
 		reversed();
+		nudged();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -264,6 +265,29 @@ class ArrangeCheck {
 			mdd.format.Project.text(song) == before,
 			"the song is " + (mdd.format.Project.text(song) == before
 			? "byte for byte what it was" : "not what it was"));
+	}
+
+	static function nudged():Void {
+		final song = new Song("nudged", 96, 120);
+		final pattern = song.add(new Pattern("one", 384));
+
+		pattern.lane(Part.Fm1).add(new Note(96, 48, 60, 100));
+
+		final track = song.track(new Track("track"));
+		track.add(new Clip(0, 384, 384));
+
+		final was = track.clips[0].at + pattern.lane(Part.Fm1).notes[0].at;
+		final history = new History();
+
+		history.does(song, new mdd.song.edit.ShiftSong(-4));
+
+		final now = track.clips[0].at + pattern.lane(Part.Fm1).notes[0].at;
+
+		says("a nudge moves what sounds by what it says", now == was - 4,
+			"a note that sounded at tick " + was + " sounds at " + now
+			+ " after a nudge of four ticks earlier, so it moved by " + (was - now));
+
+		history.undo(song);
 	}
 
 	static function rich():Song {
