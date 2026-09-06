@@ -3,6 +3,7 @@ package mdd;
 import mdd.app.Bindings;
 import mdd.app.Files;
 import mdd.app.Keyboard;
+import mdd.app.Mapping;
 import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Menus;
@@ -218,6 +219,9 @@ class App {
 		};
 		panels.preferences.onShut = function():Void stage.root.lower();
 		panels.preferences.bindings = bindings;
+		panels.preferences.mapping = mapping;
+
+		panels.preferences.onRemap = function():Void keeps();
 
 		panels.preferences.onRebind = function():Void {
 			relabel();
@@ -689,6 +693,8 @@ class App {
 			if (session != null) session.transport.releases(session.part);
 		};
 
+		keyboard.onControl = function(control:Int, value:Int):Void turned(control, value);
+
 		listens(settings.of("midi", ""));
 
 		panels.preferences.projectsAt = files.projectsAt;
@@ -723,6 +729,7 @@ class App {
 		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
 
 		bindings.reads(settings.of("keys", ""));
+		mapping.reads(settings.of("controls", ""));
 
 		stage.root.reshape();
 	}
@@ -756,6 +763,7 @@ class App {
 		settings.whole("console", panels.preferences.console);
 		settings.whole("tempo", panels.preferences.tempo);
 		settings.put("keys", bindings.said());
+		settings.put("controls", mapping.said());
 
 		settings.save();
 	}
@@ -797,6 +805,7 @@ class App {
 	}
 
 	final bindings:Bindings = new Bindings();
+	final mapping:Mapping = new Mapping();
 
 	function chorded(code:Key, mods:Mod):Bool {
 		if (code == Key.Z && (mods & Mod.Ctrl) != 0 && (mods & Mod.Shift) != 0) {
@@ -950,6 +959,24 @@ class App {
 
 		keyboard.channel = channel <= 0 ? Keyboard.ANY : channel - 1;
 		keyboard.forces = velocity != 0;
+	}
+
+	function turned(control:Int, value:Int):Void {
+		if (panels != null && panels.preferences != null
+			&& panels.preferences.hears(control)) return;
+
+		if (session == null || !session.part.fm()) return;
+
+		final slot = mapping.slotFor(control);
+		if (slot == Mapping.NONE) return;
+
+		final patch = session.song.patchOf(session.part);
+		if (patch == null) return;
+
+		final want = mapping.turns(patch, slot, value);
+
+		session.say(mapping.named(slot) + "  " + want);
+		session.changed();
 	}
 
 	function keyed():Bool {

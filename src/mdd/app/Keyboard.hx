@@ -32,6 +32,7 @@ final class Keyboard {
 	public var onRelease:Null<Int -> Void> = null;
 	public var onBend:Null<Float -> Void> = null;
 	public var onWheel:Null<Float -> Void> = null;
+	public var onControl:Null<Int -> Int -> Void> = null;
 
 	public function new() {}
 
@@ -92,6 +93,8 @@ final class Keyboard {
 				} else if (one == SUSTAIN) {
 					pedal = two >= 64;
 				}
+
+				if (onControl != null) onControl(one, two);
 
 			default:
 		}
