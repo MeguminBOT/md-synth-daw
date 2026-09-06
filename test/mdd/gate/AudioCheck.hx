@@ -611,8 +611,28 @@ class AudioCheck {
 		render.start(handle);
 
 		final began = Sdl.ticks();
+		final litter:Array<haxe.ds.Vector<Float>> = [];
 
-		while (Sdl.ticks() - began < seconds) Sdl.sleep(0.002);
+		var swept = 0;
+		var worstSweep = 0.0;
+
+		while (Sdl.ticks() - began < seconds) {
+			for (round in 0...200) litter.push(new haxe.ds.Vector<Float>(1024));
+
+			if (litter.length > 4000) {
+				final mark = Sdl.ticks();
+
+				litter.resize(0);
+				cpp.vm.Gc.run(true);
+
+				final took = Sdl.ticks() - mark;
+
+				if (took > worstSweep) worstSweep = took;
+				swept++;
+			}
+
+			Sdl.sleep(0.002);
+		}
 
 		final underruns = Audio.underruns(handle);
 		final taken = Audio.taken(handle);
@@ -628,6 +648,11 @@ class AudioCheck {
 			+ " frames dropped for want of room, and the ring never fell below "
 			+ round(thinnest * 1000.0 / rate, 1) + " ms of a "
 			+ round(render.cushion * 1000.0 / rate, 1) + " ms cushion");
+
+		says("and a collector sweeping does not reach it", underruns == 0,
+			swept + " collections forced while it played, worst "
+			+ round(worstSweep * 1000, 1) + " ms, and the device took every frame it asked"
+			+ " for");
 	}
 
 	static function device(seconds:Float):Void {
