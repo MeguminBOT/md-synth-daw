@@ -41,16 +41,49 @@ class VgmCheck {
 			return 1;
 		}
 
+		final timed = args.indexOf("--times") >= 0;
+		final names = ["corpus", "sounds", "rated", "sound", "hushed", "paced", "covered",
+			"shadowed", "whole", "stepped"];
+
+		final spent:Array<Float> = [];
+		var began = haxe.Timer.stamp();
+
+		function marks():Void {
+			spent.push(haxe.Timer.stamp() - began);
+			began = haxe.Timer.stamp();
+		}
+
 		corpus(where, files);
+		marks();
 		sounds(where, files);
+		marks();
 		rated(where, files);
+		marks();
 		sound(where, files);
+		marks();
 		hushed(where, files);
+		marks();
 		paced(where, files);
+		marks();
 		covered(where, files);
+		marks();
 		shadowed(where, files);
+		marks();
 		whole(where, files);
+		marks();
 		stepped(where, files);
+		marks();
+
+		if (timed) {
+			var total = 0.0;
+			for (held in spent) total += held;
+
+			for (index in 0...names.length) {
+				Sys.println("    " + StringTools.rpad(names[index], " ", 12)
+					+ StringTools.lpad("" + Math.round(spent[index] * 10) / 10, " ", 7)
+					+ " s   " + Math.round(spent[index] / total * 100) + " per cent");
+			}
+		}
 
 		final into = args.indexOf("--wav");
 
@@ -1738,8 +1771,13 @@ class VgmCheck {
 
 		final began = Sdl.ticks();
 
+		final stream = new Stream(4194304);
+		final again = new Stream(4194304);
+
 		for (name in files) {
-			final stream = new Stream(4194304);
+			stream.clear();
+			stream.forget();
+
 			final bytes = File.getBytes(name);
 
 			var vgm:Null<Vgm> = null;
@@ -1770,8 +1808,10 @@ class VgmCheck {
 			seconds += vgm.samples / Vgm.TICKS;
 
 			final until = stream.count == 0 ? 0 : stream.tickAt(stream.count - 1) + 1;
-			final again = new Stream(4194304);
 			final back = Vgm.write(stream, 0, until, vgm.rate);
+
+			again.clear();
+			again.forget();
 
 			Vgm.read(back, again);
 
