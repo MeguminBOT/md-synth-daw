@@ -177,6 +177,29 @@ class PresenceCheck {
 		says("a quote, a backslash and a newline survive", said.details == want,
 			said.details.length + " characters back");
 
+		final treble = String.fromCharCode(0xD834) + String.fromCharCode(0xDD1E);
+
+		named(held, "AB" + treble + "CD");
+
+		says("a surrogate pair survives the payload whole",
+			read(held).details == "AB" + treble + "CD",
+			read(held).details.length + " units back");
+
+		named(held, StringTools.rpad("", "a", Presence.MOST - 1) + treble + "tail");
+
+		final cut = read(held).details;
+		final last = StringTools.fastCodeAt(cut, cut.length - 1);
+
+		says("and a cut never ends on half of one", last < 0xD800 || last > 0xDBFF,
+			cut.length + " characters, ending U+" + StringTools.hex(last, 4));
+
+		named(held, "AB" + String.fromCharCode(0xD834) + "CD");
+
+		says("and a lone surrogate is dropped rather than sent",
+			read(held).details == "ABCD", read(held).details);
+
+		named(held, want);
+
 		says("and the control character is escaped",
 			held.activity().indexOf("\\u000a") >= 0
 				|| held.activity().indexOf("\\u000A") >= 0,

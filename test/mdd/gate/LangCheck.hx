@@ -31,7 +31,7 @@ class LangCheck {
 		for (code in shipped) spoken(code);
 
 		matched(shipped);
-		drawable(shipped);
+		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -85,7 +85,19 @@ class LangCheck {
 		says(code, taken > 0 && missing.length == 0 && extra.length == 0, said);
 	}
 
-	static function drawable(shipped:Array<String>):Void {
+	static function drawable(shipped:Array<String>, root:String):Void {
+		final where = root + "/vendor/fonts/Go-Regular.ttf";
+		final face = mdd.host.Text.load(where);
+
+		if (face < 0) {
+			says("every letter a language ships can be drawn", false, "no face at " + where);
+			return;
+		}
+
+		final asked = new haxe.ds.Vector<Int>(2);
+		final wide = cpp.Pointer.arrayElem(asked.toData(), 0).raw;
+		final tall = cpp.Pointer.arrayElem(asked.toData(), 1).raw;
+
 		final lost:Array<String> = [];
 
 		var counted = 0;
@@ -99,13 +111,16 @@ class LangCheck {
 				final key = held.keyAt(index);
 				final said = held.of(key);
 
-				for (at in 0...said.length) {
-					final one = StringTools.fastCodeAt(said, at);
+				var at = 0;
+
+				while (at < said.length) {
+					final one = mdd.ui.Font.codeAt(said, at);
+					at += mdd.ui.Font.step(one);
 
 					counted++;
 					if (one > widest) widest = one;
 
-					if (mdd.ui.Font.holds(one)) continue;
+					if (mdd.host.Text.extent(face, 15, one, wide, tall) != 0) continue;
 
 					final shown = code + " " + key + " U+" + StringTools.hex(one, 4);
 					if (lost.indexOf(shown) < 0) lost.push(shown);
@@ -113,12 +128,13 @@ class LangCheck {
 			}
 		}
 
-		says("every letter a language ships can be drawn", lost.length == 0,
+		mdd.host.Text.free(face);
+
+		says("every letter a language ships has a glyph", lost.length == 0,
 			lost.length == 0
 				? counted + " characters over " + shipped.length + " languages, the highest U+"
-					+ StringTools.hex(widest, 4) + ", and the atlas holds to U+"
-					+ StringTools.hex(mdd.ui.Font.LAST, 4)
-				: lost.length + " the atlas has no glyph for: " + lost.slice(0, 4).join(", "));
+					+ StringTools.hex(widest, 4) + ", every one of them cut by the face"
+				: lost.length + " the face has no glyph for: " + lost.slice(0, 4).join(", "));
 	}
 
 	static function matched(shipped:Array<String>):Void {

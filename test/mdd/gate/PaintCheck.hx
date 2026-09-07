@@ -75,6 +75,8 @@ class PaintCheck {
 		shapes(paint);
 		batching(paint, font);
 		measured(paint, font, root);
+		paired(font);
+		caching(paint, font);
 		scales(root);
 		clipping(paint);
 		opacities(paint);
@@ -320,7 +322,7 @@ class PaintCheck {
 		final ok = wide <= slack;
 		if (!ok) failed++;
 
-		Sys.println("    " + StringTools.rpad(name, " ", 14)
+		Sys.println("    " + StringTools.rpad(name, " ", 46)
 			+ StringTools.lpad(round(got) + "", " ", 9)
 			+ "   want " + round(want) + " +/- " + round(slack)
 			+ (ok ? "" : "   FAILED"));
@@ -329,7 +331,7 @@ class PaintCheck {
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
-		Sys.println("    " + StringTools.rpad(name, " ", 14) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 46) + said + (ok ? "" : "   FAILED"));
 	}
 
 	static function shapes(paint:Paint):Void {
@@ -425,6 +427,88 @@ class PaintCheck {
 			+ (empty == 0 ? "" : "   FAILED"));
 	}
 
+	static function caching(paint:Paint, font:Font):Void {
+		final alpha = 0x03B1;
+		final was = font.kept;
+
+		final slot = font.slotOf(alpha);
+
+		says("a codepoint past the atlas is baked on demand",
+			slot != Font.NONE && font.kept == was + 1,
+			"greek alpha at slot " + slot + ", " + font.kept + " cached");
+
+		says("and it lands in the shelf below the packed range",
+			slot != Font.NONE && font.v0(slot) > 0.5 && font.v1(slot) <= 1.0001,
+			slot == Font.NONE ? "no slot"
+				: "v " + round(font.v0(slot)) + " to " + round(font.v1(slot)));
+
+		says("and asking twice bakes once",
+			font.slotOf(alpha) == slot && font.kept == was + 1,
+			font.kept + " cached after two asks");
+
+		final missing = font.missed;
+
+		says("and a codepoint the face has not is remembered as missing",
+			font.slotOf(0x4E2D) == Font.NONE && font.missed == missing + 1,
+			font.missed + " missing");
+
+		says("and it costs one lookup, not a bake, the second time",
+			font.slotOf(0x4E2D) == Font.NONE && font.missed == missing + 1,
+			font.missed + " missing after two asks");
+
+		begin();
+		paint.text(String.fromCharCode(alpha), 10, 60, Theme.PARTS[8]);
+		paint.flush();
+
+		Draw.readPixels(renderer, 0, 0, SIDE, SIDE,
+			cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+		Draw.setTarget(renderer, null);
+
+		var lit = 0;
+		for (y in 0...SIDE) {
+			for (x in 0...SIDE) {
+				if (pixels[(y * SIDE + x) * 4 + 1] > 8) lit++;
+			}
+		}
+
+		says("and a cached glyph draws pixels", lit > 20, lit + " pixels lit");
+
+		says("and it measures wider than nothing", font.measure(String.fromCharCode(alpha)) > 0,
+			round(font.measure(String.fromCharCode(alpha))) + " wide");
+	}
+
+	static function paired(font:Font):Void {
+		final treble = String.fromCharCode(0xD834) + String.fromCharCode(0xDD1E);
+		final code = Font.codeAt(treble, 0);
+
+		says("a surrogate pair is one codepoint", code == 0x1D11E && Font.step(code) == 2,
+			"U+" + StringTools.hex(code, 5) + " over " + Font.step(code) + " units");
+
+		final lone = String.fromCharCode(0xD834);
+
+		says("and a lone surrogate is left as it is",
+			Font.codeAt(lone, 0) == 0xD834 && Font.step(Font.codeAt(lone, 0)) == 1,
+			"U+" + StringTools.hex(Font.codeAt(lone, 0), 4));
+
+		final held = "AB" + treble + "CD";
+
+		var lands = true;
+		var at = 0;
+
+		while (at <= 400) {
+			final cut = font.fits(held, at * 0.5);
+			if (cut == 3) lands = false;
+
+			at++;
+		}
+
+		says("and no cut lands inside a pair", lands, "401 widths, none cut at index 3");
+
+		says("and an unknown codepoint costs one advance, not two",
+			font.measure(held) == font.measure("ABCD"),
+			round(font.measure(held)) + " against " + round(font.measure("ABCD")));
+	}
+
 	static function scales(root:String):Void {
 		final face = root + "/vendor/fonts/Go-Regular.ttf";
 
@@ -439,8 +523,10 @@ class PaintCheck {
 
 			var overlapping = false;
 			for (a in Font.FIRST...Font.LAST) {
-				if (font.wide(a) <= 0) continue;
-				if (font.u1(a) > 1.0001 || font.v1(a) > 1.0001 || font.u0(a) < 0) {
+				final slot = font.slotOf(a);
+				if (slot == Font.NONE || font.wide(slot) <= 0) continue;
+
+				if (font.u1(slot) > 1.0001 || font.v1(slot) > 1.0001 || font.u0(slot) < 0) {
 					overlapping = true;
 					break;
 				}
