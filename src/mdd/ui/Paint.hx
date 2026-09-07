@@ -761,20 +761,24 @@ final class Paint {
 		final a = alpha * opacity;
 
 		var pen = x;
+		var index = 0;
 
-		for (i in 0...value.length) {
-			final code = StringTools.fastCodeAt(value, i);
-			if (!font.has(code)) continue;
+		while (index < value.length) {
+			final code = Font.codeAt(value, index);
+			index += Font.step(code);
 
-			final left = at(pen + font.offsetX(code));
-			final top = down(y + font.offsetY(code));
-			final right = left + font.wide(code) * scaleX;
-			final bottom = top + font.tall(code) * scaleY;
+			final slot = font.slotOf(code);
+			if (slot == Font.NONE) continue;
 
-			final u0 = font.u0(code);
-			final v0 = font.v0(code);
-			final u1 = font.u1(code);
-			final v1 = font.v1(code);
+			final left = at(pen + font.offsetX(slot));
+			final top = down(y + font.offsetY(slot));
+			final right = left + font.wide(slot) * scaleX;
+			final bottom = top + font.tall(slot) * scaleY;
+
+			final u0 = font.u0(slot);
+			final v0 = font.v0(slot);
+			final u1 = font.u1(slot);
+			final v1 = font.v1(slot);
 
 			push(left, top, r, g, b, a, u0, v0);
 			push(right, top, r, g, b, a, u1, v0);
@@ -784,7 +788,7 @@ final class Paint {
 			push(right, bottom, r, g, b, a, u1, v1);
 			push(left, bottom, r, g, b, a, u0, v1);
 
-			pen += font.advance(code);
+			pen += font.advance(slot);
 		}
 
 		return pen;

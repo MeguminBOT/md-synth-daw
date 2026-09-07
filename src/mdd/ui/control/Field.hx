@@ -202,13 +202,21 @@ final class Field extends Widget {
 		final left = x + root.metrics.unit * 2;
 
 		var pen = left;
-		for (i in 0...value.length) {
-			final code = value.charCodeAt(i);
-			if (!font.has(code)) continue;
+		var index = 0;
 
-			final step = font.advance(code);
-			if (px < pen + step * 0.5) return i;
-			pen += step;
+		while (index < value.length) {
+			final code = Font.codeAt(value, index);
+			final next = index + Font.step(code);
+			final slot = font.slotOf(code);
+
+			if (slot != Font.NONE) {
+				final held = font.advance(slot);
+				if (px < pen + held * 0.5) return index;
+
+				pen += held;
+			}
+
+			index = next;
 		}
 
 		return value.length;
