@@ -77,6 +77,7 @@ class PaintCheck {
 		measured(paint, font, root);
 		paired(font);
 		caching(paint, font);
+		borrowed(paint, font, root);
 		scales(root);
 		clipping(paint);
 		opacities(paint);
@@ -475,6 +476,74 @@ class PaintCheck {
 
 		says("and it measures wider than nothing", font.measure(String.fromCharCode(alpha)) > 0,
 			round(font.measure(String.fromCharCode(alpha))) + " wide");
+	}
+
+	static function borrowed(paint:Paint, font:Font, root:String):Void {
+		final spare = new mdd.ui.Fallback();
+		for (name in mdd.Typeface.FALLBACK) spare.adds(root + "/vendor/fonts/" + name);
+
+		says("the fallback list is what the build named", spare.counted() == mdd.Typeface.FALLBACK.length,
+			spare.counted() + " faces, unloaded");
+
+		final forgotten = font.missed;
+		font.chains(spare);
+
+		says("and chaining one forgets what was missing before it",
+			forgotten > 0 && font.missed == 0,
+			forgotten + " misses dropped, so a codepoint is asked again");
+
+		final began = haxe.Timer.stamp();
+		final wanted = [0x4E2D, 0x3042, 0x30AB, 0xD55C, 0x0419, 0x03A9, 0x1EC7];
+		final called = ["han", "hiragana", "katakana", "hangul", "cyrillic", "greek",
+			"vietnamese"];
+
+		var found = 0;
+		final lost:Array<String> = [];
+
+		for (index in 0...wanted.length) {
+			if (font.slotOf(wanted[index]) != Font.NONE) found++;
+			else lost.push(called[index] + " U+" + StringTools.hex(wanted[index], 4));
+		}
+
+		final took = haxe.Timer.stamp() - began;
+
+		says("a glyph no interface face has is cut from a fallback", found == wanted.length,
+			found + " of " + wanted.length + " found"
+				+ (lost.length == 0 ? "" : ", missing " + lost.join(", ")));
+
+		says("and the faces are only read when one is first asked for",
+			spare.loaded && spare.bytes > 0,
+			Math.round(spare.bytes / 1048576) + " mb read in "
+				+ Math.round(took * 1000) + " ms, on the first miss");
+
+		begin();
+		paint.text(String.fromCharCode(0x4E2D) + String.fromCharCode(0x3042)
+			+ String.fromCharCode(0xD55C), 10, 60, Theme.PARTS[8]);
+		paint.flush();
+
+		Draw.readPixels(renderer, 0, 0, SIDE, SIDE,
+			cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+		Draw.setTarget(renderer, null);
+
+		var lit = 0;
+		for (y in 0...SIDE) {
+			for (x in 0...SIDE) {
+				if (pixels[(y * SIDE + x) * 4 + 1] > 8) lit++;
+			}
+		}
+
+		says("and three scripts draw side by side", lit > 200, lit + " pixels lit");
+
+		final wide = font.measure(String.fromCharCode(0x4E2D));
+		final latin = font.measure("M");
+		final ratio = latin <= 0 ? 0 : wide / latin;
+
+		says("and an ideograph sits at a sane width beside the latin it follows",
+			ratio >= 0.9 && ratio <= 2.0,
+			round(wide) + " against " + round(latin) + " for M, " + round(ratio) + " times");
+
+		font.chains(null);
+		spare.shut();
 	}
 
 	static function paired(font:Font):Void {

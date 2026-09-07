@@ -32,6 +32,7 @@ class LangCheck {
 
 		matched(shipped);
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
+		scripted(args.length > 0 ? args[0] : Gate.root);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -83,6 +84,85 @@ class LangCheck {
 			+ (extra.length == 0 ? "" : ", unused " + shown(extra));
 
 		says(code, taken > 0 && missing.length == 0 && extra.length == 0, said);
+	}
+
+	static function chain(root:String):Array<Int> {
+		final held:Array<Int> = [];
+		final where = root + "/vendor/fonts/";
+
+		for (name in ["Go-Regular.ttf"].concat(mdd.Typeface.FALLBACK)) {
+			if (!sys.FileSystem.exists(where + name)) continue;
+
+			final face = mdd.host.Text.load(where + name);
+			if (face >= 0) held.push(face);
+		}
+
+		return held;
+	}
+
+	static function covers(faces:Array<Int>, code:Int, wide:cpp.RawPointer<Int>,
+			tall:cpp.RawPointer<Int>):Bool {
+		for (face in faces) {
+			if (mdd.host.Text.extent(face, 15, code, wide, tall) != 0) return true;
+		}
+
+		return false;
+	}
+
+	static function scripted(root:String):Void {
+		final faces = chain(root);
+
+		if (faces.length == 0) {
+			says("every script the fonts promise can be drawn", false, "no faces to ask");
+			return;
+		}
+
+		final asked = new haxe.ds.Vector<Int>(2);
+		final wide = cpp.Pointer.arrayElem(asked.toData(), 0).raw;
+		final tall = cpp.Pointer.arrayElem(asked.toData(), 1).raw;
+
+		final samples = [
+			"english", "The quick brown fox",
+			"swedish", "Blå ängar på Öland",
+			"german", "Größenwahn für Öl",
+			"french", "Où être, ça y est",
+			"vietnamese", "Tiếng Việt rất đẹp",
+			"greek", "Ρυθμίσεις ήχου",
+			"cyrillic", "Настройки звука",
+			"japanese", "ドラム パターンを編集",
+			"chinese", "编辑鼓组模式",
+			"korean", "드럼 패턴 편집"
+		];
+
+		final lost:Array<String> = [];
+		var counted = 0;
+
+		var index = 0;
+		while (index < samples.length) {
+			final name = samples[index];
+			final said = samples[index + 1];
+
+			index += 2;
+
+			var at = 0;
+			while (at < said.length) {
+				final one = mdd.ui.Font.codeAt(said, at);
+				at += mdd.ui.Font.step(one);
+
+				counted++;
+				if (covers(faces, one, wide, tall)) continue;
+
+				lost.push(name + " U+" + StringTools.hex(one, 4));
+			}
+		}
+
+		for (face in faces) mdd.host.Text.free(face);
+
+		says("every script the fonts promise can be drawn", lost.length == 0,
+			lost.length == 0
+				? counted + " characters over " + Std.int(samples.length / 2)
+					+ " scripts, all cut from the chain of " + faces.length + " faces"
+				: lost.length + " with no glyph anywhere: " + lost.slice(0, 5).join(", "));
 	}
 
 	static function drawable(shipped:Array<String>, root:String):Void {
