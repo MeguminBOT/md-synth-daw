@@ -22,7 +22,7 @@ class Run {
 		}
 
 		switch (args[0]) {
-			case "setup": setup(root, project);
+			case "setup": setup(root, project, args.slice(1));
 			case "check": check(root, project);
 			case "display": display(root, project, true);
 			case "build": build(root, project, args.slice(1), debug);
@@ -169,7 +169,11 @@ class Run {
 		return source.system != "" && FileSystem.exists(source.system);
 	}
 
-	static function setup(root:String, project:Project):Void {
+	static function asked(args:Array<String>, flag:String):Bool {
+		return args.indexOf("--" + flag) >= 0;
+	}
+
+	static function setup(root:String, project:Project, args:Array<String>):Void {
 		final vendor = root + "/vendor";
 		tree(vendor);
 
@@ -178,6 +182,11 @@ class Run {
 		for (source in project.vendors) {
 			if (vendored(root, source)) {
 				Sys.println("  " + pad(source.name) + "present");
+				continue;
+			}
+
+			if (source.flag != "" && !asked(args, source.flag)) {
+				Sys.println("  " + pad(source.name) + "not fetched, ask with --" + source.flag);
 				continue;
 			}
 
@@ -221,8 +230,14 @@ class Run {
 
 		for (source in project.vendors) {
 			final here = vendored(root, source);
-			if (!here) missing++;
-			Sys.println("    " + (here ? "[x] " : "[ ] ") + pad(source.name) + source.about);
+			final spare = source.flag != "";
+
+			if (!here && !spare) missing++;
+
+			final mark = here ? "[x] " : (spare ? "[-] " : "[ ] ");
+			final tail = here || !spare ? "" : ". Ask with: mdd setup --" + source.flag;
+
+			Sys.println("    " + mark + pad(source.name) + source.about + tail);
 		}
 
 		Sys.println("");
@@ -830,10 +845,13 @@ class Run {
 		if (code != 0) Sys.println("  " + pad("opn2") + "the reference would not build");
 	}
 
+	static inline final SKIPPED = 2;
+
 	static function gate(root:String, project:Project, args:Array<String>):Void {
 		if (exeOf(root, project, "gate") == "") built(root, project, "gate", false);
 
 		if (args.length == 0 || args[0] == "chip") opn2(root, project);
+
 
 		final shipped = ship(root, project, "gate");
 		if (shipped == "") {
@@ -841,7 +859,8 @@ class Run {
 			Sys.exit(1);
 		}
 
-		Sys.exit(Sys.command(shipped, args.concat(["--root", root])));
+		final code = Sys.command(shipped, args.concat(["--root", root]));
+		Sys.exit(code == SKIPPED ? 0 : code);
 	}
 
 	static function packaged(root:String, project:Project, args:Array<String>):Void {

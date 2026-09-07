@@ -32,9 +32,9 @@ class ChipCheck {
 		final program = reference(root);
 
 		if (program == "") {
-			Sys.println("    no reference program at export/bin/opn2" + suffix());
-			Sys.println("    run: mdd setup, then mdd gate chip");
-			return 1;
+			Sys.println("    not run: there is no reference to measure against");
+			Sys.println("    fetch it with: mdd setup --nuked");
+			return Gate.SKIPPED;
 		}
 
 		final scripts = root + "/export/fixtures/scripts";

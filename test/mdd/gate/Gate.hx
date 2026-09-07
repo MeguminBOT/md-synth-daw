@@ -30,18 +30,27 @@ class Gate {
 		Sys.exit(one(args[0], args.slice(1)));
 	}
 
+	public static inline final SKIPPED = 2;
+
 	static function all():Int {
 		var failed = 0;
+		final held:Array<String> = [];
 
 		Sys.println("");
 		for (name in PROGRAMS) {
 			final code = one(name, []);
-			if (code != 0) failed++;
+
+			if (code == SKIPPED) held.push(name);
+			else if (code != 0) failed++;
+
 			Sys.println("");
 		}
 
-		Sys.println(failed == 0 ? "  gate passed" : "  gate failed, " + failed + " of "
-			+ PROGRAMS.length);
+		final rest = held.length == 0 ? "" : ", " + held.join(" and ") + " not run";
+
+		Sys.println(failed == 0 ? "  gate passed" + rest
+			: "  gate failed, " + failed + " of " + PROGRAMS.length + rest);
+
 		Sys.println("");
 		return failed == 0 ? 0 : 1;
 	}

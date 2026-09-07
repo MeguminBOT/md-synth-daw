@@ -85,7 +85,7 @@
 	<vendor name="qlementine" present="qlementine/16/instrument/piano.svg" size="1 MB"
 		about="the interface icons, rasterised into an atlas at build time" />
 
-	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB"
+	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB" flag="nuked"
 		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
 
 	<path name="SDL3PATH" value="vendor/SDL3" />

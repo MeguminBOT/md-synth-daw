@@ -10,6 +10,7 @@ typedef Vendor = {
 	final name:String;
 	final present:String;
 	final system:String;
+	final flag:String;
 	final size:String;
 	final about:String;
 }
@@ -259,6 +260,7 @@ class Project {
 					name: node.get("name"),
 					present: node.get("present"),
 					system: has(node, "system") ? node.get("system") : "",
+					flag: has(node, "flag") ? node.get("flag") : "",
 					size: has(node, "size") ? node.get("size") : "",
 					about: has(node, "about") ? node.get("about") : ""
 				});
