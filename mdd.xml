@@ -1,51 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- Everything the build reads. There is no .hxml written by hand: ./mdd builds from this file
-	     and generates completion.hxml from it for the editor's language server.
-	     Conditions are if="..." and unless="...", and take windows, linux, mac, debug or release.
+	<!-- The one file the build reads. No .hxml is written by hand: ./mdd builds from this, and
+	     generates the editor's completion files from it too.
 
-	     The name matters. A file called project.xml, Project.xml, project.hxp or project.lime in
-	     the repository root makes the Lime editor extension claim the workspace and hand the Haxe
-	     language server arguments from a lime command that is not installed here, which leaves the
-	     editor with no completion at all. Nothing else about this file depends on what it is
-	     called, and the four names above are the whole list to stay away from. -->
+	     Elements may appear in any order. Any of them takes if="..." and unless="...", over
+	     windows, linux, mac, desktop, debug, release, a toolchain name, or llvm.
+
+	     Do not rename this to project.xml, Project.xml, project.hxp or project.lime. Any of those
+	     four makes the Lime editor extension claim the workspace and feed the Haxe language
+	     server arguments from a lime command that is not installed here, and completion dies
+	     with nothing said about why. -->
+
+
+	<!-- ==============================================================================
+	     THE APPLICATION
+	     ============================================================================== -->
 
 	<meta title="MD Synth DAW" short="mdd" version="0.1.0"
 		company="md-synth-daw"
 		description="A hardware-aware DAW for the Sega Mega Drive" />
 
-	<!-- The project file: the suffix it takes, what a file browser calls it, and the media
-	     type it registers under. The suffix is checked against the common extension registers
-	     before it is chosen, so that a project is never mistaken for somebody else's format. -->
+	<window width="1440" height="900" least-width="960" least-height="600"
+		vsync="true" resizable="true" high-dpi="true" />
+
+	<!-- The saved project: its suffix, what a file browser calls it, its media type. -->
 
 	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn" />
 
-	<!-- The repository the updater reads releases from. Empty means it never looks. -->
+	<!-- Where the updater reads releases from. Empty means it never looks. -->
 
 	<update github="MeguminBOT/md-synth-daw" />
 
-	<!-- The Discord application this tells its rich presence to, from an application made at
-	     discord.com/developers. Empty means the presence never connects and nothing is sent.
-
-	     The rest are the application's art assets, by the name each carries in its Rich Presence
-	     asset list. "embedded_cover", "embedded_icon" and "embedded_background" are the three the
-	     application already has, taken from its icon and its cover image; anything else has to be
-	     uploaded first. An empty name, or one nothing answers to, leaves that image out.
-
-	     The badge is the small mark in the large image's corner, and it carries the tooltip that
-	     says the tempo and the position, so an empty badge loses the tooltip with it. Point the
-	     three at three separate images and the badge follows the transport. -->
+	<!-- Discord rich presence. The id comes from an application at discord.com/developers, and
+	     empty means the socket is never opened. The other four name that application's art
+	     assets; a name nothing answers to leaves that image out. An empty badge also loses the
+	     tooltip carrying the tempo and position, since Discord hangs one on the other. -->
 
 	<presence discord="1546264890317086730" cover="embedded_cover"
 		playing="embedded_icon" stopped="embedded_icon" working="embedded_icon" />
 
-	<!-- What the C++ is compiled with. The first one whose probe is on the path is what a build
-	     uses, so LLVM is preferred wherever LLVM is installed, and `mdd build --msvc` or any
-	     other name overrides it. A toolchain with no probe is assumed present: hxcpp finds the
-	     Microsoft compiler through its own vcvars setup rather than through the path.
 
-	     A name is also a condition, so `if="mingw"` and `unless="msvc"` gate any element below,
-	     and `if="llvm"` holds for clang-cl, clang and mingw alike. -->
+	<!-- ==============================================================================
+	     HOW IT BUILDS
+	     ============================================================================== -->
+
+	<!-- The first toolchain whose probe is on the path is the one a build uses, so LLVM wins
+	     wherever LLVM is installed. A name given to mdd build overrides it. No probe means
+	     assumed present, because hxcpp finds the Microsoft compiler through its own vcvars
+	     rather than through the path. A name is also a condition, and llvm holds for all
+	     three of them. -->
 
 	<toolchains>
 		<toolchain name="clang-cl" if="windows" probe="clang-cl"
@@ -53,13 +56,9 @@
 		<toolchain name="msvc" if="windows"
 			about="the Microsoft compiler and linker" />
 
-		<!-- A different ABI, so it is asked for by name rather than chosen because it happens
-		     to be installed: mdd build --mingw
-
-		     It builds and the whole gate passes under it, but it produces no crash report: the
-		     binary carries DWARF rather than a PDB, so DbgHelp has nothing to read, and the
-		     unhandled exception filter does not fire. Useful for a second compiler's warnings,
-		     not for anything shipped. -->
+		<!-- Asked for by name rather than picked up: a different ABI, and it writes DWARF
+		     rather than a PDB, so nothing walks its stack and a crash reports no frames. Good
+		     for a second compiler's warnings, not for anything shipped. -->
 
 		<toolchain name="mingw" if="windows" probe="none"
 			about="LLVM or GCC against the mingw-w64 ABI, with no crash report" />
@@ -68,22 +67,212 @@
 		<toolchain name="gcc" unless="windows" about="GCC" />
 	</toolchains>
 
-	<window width="1440" height="900" least-width="960" least-height="600"
-		vsync="true" resizable="true" high-dpi="true" />
-
-	<!-- src/ is the application. A target may add source paths of its own, and only the gate
-	     does: nothing that tests the application is compiled into it. -->
+	<!-- src/ is the application. Only the gate adds a source path of its own, so nothing that
+	     tests the application is compiled into it. -->
 
 	<source path="src" />
 	<generated path="export/haxe" />
+	<output path="export" />
+
+	<target id="mdd" main="mdd.App" />
+
+	<target id="gate" main="mdd.gate.Gate">
+		<source path="test" />
+	</target>
+
+	<!-- A debug build carries the hxcpp debug server, on port 6972. -->
+
+	<library name="hxcpp-debug-server" if="debug" />
+
+	<!-- Haxe defines none of these for the cpp target, so every #if windows, #if linux and
+	     #if mac in the source depends on them being here. -->
+
+	<define name="windows" if="windows" />
+	<define name="linux" if="linux" />
+	<define name="mac" if="mac" />
+	<define name="desktop" />
+
+	<define name="analyzer-optimize" />
+	<define name="HXCPP_OPTIMIZE_LINK" />
+	<define name="HXCPP_GC_GENERATIONAL" />
+	<define name="HXCPP_M64" />
+	<define name="HXCPP_CHECK_POINTER" if="debug" />
+	<define name="HXCPP_STACK_LINE" if="debug" />
+	<define name="HXCPP_DEBUG_LINK" />
+
+
+	<!-- ==============================================================================
+	     WHAT IT IS BUILT FROM
+	     ============================================================================== -->
+
+	<!-- Fetched by ./mdd setup into vendor/, which is never tracked and never edited. -->
+
+	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" size="12 MB"
+		about="the window and its events, called directly. A system package off Windows" />
+	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
+		about="the audio device, called directly" />
+	<vendor name="stb" present="stb/stb_truetype.h" size="1 MB"
+		about="the glyph rasteriser the font atlas is baked with" />
+	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="40 MB"
+		about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
+	<vendor name="libogg" present="libogg/src/framing.c" size="1 MB"
+		about="the ogg container, the pages an ogg vorbis or opus file is made of" />
+	<vendor name="libvorbis" present="libvorbis/lib/vorbisenc.c" size="5 MB"
+		about="the ogg vorbis encoder" />
+	<vendor name="libopus" present="libopus/src/opus_encoder.c" size="30 MB"
+		about="the opus encoder" />
+
+	<vendor name="qlementine" present="qlementine/16/instrument/piano.svg" size="1 MB"
+		about="the interface icons, rasterised into an atlas at build time" />
+
+	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB"
+		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
+	<!-- Names for the paths below, so a vendored source moves in one place. -->
+
+	<path name="SDL3PATH" value="vendor/SDL3" />
+	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
+	<path name="STBPATH" value="vendor/stb" />
+	<path name="FONTPATH" value="vendor/fonts" />
+	<path name="NATIVEPATH" value="src/mdd/native" />
+	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
+	<path name="OGGPATH" value="vendor/libogg" />
+	<path name="VORBISPATH" value="vendor/libvorbis" />
+	<path name="OPUSPATH" value="vendor/libopus" />
+	<!-- The C++ compiled beside the Haxe. A tree takes every file with the suffix, less the
+	     ones skip names, and an include on a tree is given to that tree alone. -->
+
+	<native path="src/mdd/native">
+		<file name="window.cpp" />
+		<file name="events.cpp" />
+		<file name="draw.cpp" />
+		<file name="text.cpp" />
+		<file name="audio.cpp" />
+		<file name="dialog.cpp" />
+		<file name="instance.cpp" />
+		<file name="crash.cpp" />
+		<file name="usage.cpp" />
+		<file name="midi.cpp" />
+		<file name="discord.cpp" />
+		<file name="encode.cpp" />
+
+		<flag value="-DOPUS_BUILD" />
+		<flag value="-DUSE_ALLOCA" />
+		<flag value="-DOPUS_HAVE_RTCD=0" />
+		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
+
+		<tree path="vendor/libogg/src" suffix=".c" />
+		<!-- libvorbis quote-includes "modes/floor_all.h" from inside lib/modes, which needs lib
+		     on the path. Only the Microsoft compiler finds it without one, by walking the
+		     include stack. The path goes to this tree alone: libvorbis and libopus both declare
+		     mdct_lookup, and a shared one lets each see the other's header. -->
+
+		<tree path="vendor/libvorbis/lib" suffix=".c"
+			skip="barkmel,misc,psytune,tone,vorbisfile" include="vendor/libvorbis/lib" />
+		<tree path="vendor/libopus/celt" suffix=".c" skip="opus_custom_demo" />
+		<tree path="vendor/libopus/silk" suffix=".c" />
+		<tree path="vendor/libopus/silk/float" suffix=".c" />
+		<tree path="vendor/libopus/src" suffix=".c"
+			skip="opus_compare,opus_demo,repacketizer_demo" />
+	</native>
+	<include value="${SDL3PATH}/include" if="windows" />
+	<include value="${MINIAUDIOPATH}" />
+	<include value="${STBPATH}" />
+	<include value="${NATIVEPATH}" />
+	<include value="${OGGPATH}/include" />
+	<include value="${VORBISPATH}/include" />
+	<include value="${OPUSPATH}/include" />
+	<include value="${OPUSPATH}/celt" />
+	<include value="${OPUSPATH}/silk" />
+	<include value="${OPUSPATH}/silk/float" />
+
+	<!-- SDL3 is vendored on Windows and a system package everywhere else. mingw's linker takes
+	     the DLL directly, so it needs no import library of its own. -->
+
+	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
+	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
+	<link value="-lSDL3" unless="windows" />
+
+	<!-- What the Windows sources call into. These were pragma comment lines, which only the
+	     Microsoft compiler reads; named here, every Windows toolchain gets them. -->
+
+	<link value="dbghelp.lib" if="windows" unless="mingw" />
+	<link value="winmm.lib" if="windows" unless="mingw" />
+	<link value="psapi.lib" if="windows" unless="mingw" />
+	<link value="pdh.lib" if="windows" unless="mingw" />
+
+	<link value="-ldbghelp" if="mingw" />
+	<link value="-lwinmm" if="mingw" />
+	<link value="-lpsapi" if="mingw" />
+	<link value="-lpdh" if="mingw" />
+
+	<link value="-lm" if="linux" />
+	<link value="-ldl" if="linux" />
+	<link value="-lpthread" if="linux" />
+
+	<link value="-framework CoreFoundation" if="mac" />
+	<link value="-framework CoreAudio" if="mac" />
+	<link value="-framework AudioToolbox" if="mac" />
+
+	<!-- Copied beside the executable so it runs from export/bin with nothing installed. -->
+
+	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
+
+
+	<!-- ==============================================================================
+	     ASSETS
+	     ============================================================================== -->
+
 	<languages path="assets/lang" />
 	<appicon path="assets/icon" />
 
-	<!-- The interface icons. Each is rasterised from an SVG at build time into one
-	     atlas per size, and the order below is the order they are numbered in, which a
-	     saved project refers to: add at the end, and change a "from" rather than a
-	     "name" when the artwork is replaced. A "from" with no prefix is this
-	     repository's own, under the icons path. -->
+	<!-- A face says where it is fetched from: go: from the Go image repository, ofl: from
+	     google/fonts. A typeface pairs a sans with a mono and is what preferences lists.
+
+	     A fallback is never an interface font. It is asked, in order, for a codepoint the
+	     chosen face has no glyph for, and cut from one glyph at a time into the atlas that
+	     face already owns. The three CJK faces carry kana, hangul and the ideographs. -->
+
+	<typefaces path="vendor/fonts">
+		<face name="Go-Regular.ttf" from="go:Go-Regular.ttf" />
+		<face name="Go-Mono.ttf" from="go:Go-Mono.ttf" />
+		<face name="IBMPlexSans.ttf" from="ofl:ibmplexsans/IBMPlexSans[wdth,wght].ttf" />
+		<face name="IBMPlexMono.ttf" from="ofl:ibmplexmono/IBMPlexMono-Regular.ttf" />
+		<face name="Inter.ttf" from="ofl:inter/Inter[opsz,wght].ttf" />
+		<face name="JetBrainsMono.ttf" from="ofl:jetbrainsmono/JetBrainsMono[wght].ttf" />
+		<face name="BarlowSemiCondensed.ttf" from="ofl:barlowsemicondensed/BarlowSemiCondensed-Regular.ttf" />
+		<face name="SourceSans3.ttf" from="ofl:sourcesans3/SourceSans3[wght].ttf" />
+		<face name="SourceCodePro.ttf" from="ofl:sourcecodepro/SourceCodePro[wght].ttf" />
+		<face name="NotoSans.ttf" from="ofl:notosans/NotoSans[wdth,wght].ttf" />
+		<face name="NotoSansMono.ttf" from="ofl:notosansmono/NotoSansMono[wdth,wght].ttf" />
+		<face name="FiraSans.ttf" from="ofl:firasans/FiraSans-Regular.ttf" />
+		<face name="FiraCode.ttf" from="ofl:firacode/FiraCode[wght].ttf" />
+		<face name="WorkSans.ttf" from="ofl:worksans/WorkSans[wght].ttf" />
+		<face name="RobotoMono.ttf" from="ofl:robotomono/RobotoMono[wght].ttf" />
+		<face name="OpenSans.ttf" from="ofl:opensans/OpenSans[wdth,wght].ttf" />
+
+		<face name="NotoSansJP.ttf" from="ofl:notosansjp/NotoSansJP[wght].ttf" />
+		<face name="NotoSansSC.ttf" from="ofl:notosanssc/NotoSansSC[wght].ttf" />
+		<face name="NotoSansKR.ttf" from="ofl:notosanskr/NotoSansKR[wght].ttf" />
+
+		<fallback name="NotoSans.ttf" />
+		<fallback name="NotoSansJP.ttf" />
+		<fallback name="NotoSansSC.ttf" />
+		<fallback name="NotoSansKR.ttf" />
+
+		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
+		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
+		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />
+		<typeface name="Barlow" sans="BarlowSemiCondensed.ttf" mono="IBMPlexMono.ttf" />
+		<typeface name="Source" sans="SourceSans3.ttf" mono="SourceCodePro.ttf" />
+		<typeface name="Noto" sans="NotoSans.ttf" mono="NotoSansMono.ttf" />
+		<typeface name="Fira" sans="FiraSans.ttf" mono="FiraCode.ttf" />
+		<typeface name="Work Sans" sans="WorkSans.ttf" mono="RobotoMono.ttf" />
+		<typeface name="Open Sans" sans="OpenSans.ttf" mono="RobotoMono.ttf" />
+	</typefaces>
+	<!-- Rasterised from SVG at build time into one atlas per size. The order below is the order
+	     they are numbered in, and a saved project refers to the number: add at the end, and
+	     change a from rather than a name when artwork is replaced. A from with no prefix is
+	     this repository's own, under the icons path. -->
 
 	<icons path="assets/icons" sizes="16,18,20,22,24,26,28,32,36,40,48,64">
 		<from name="qlementine" path="vendor/qlementine/16" />
@@ -161,200 +350,5 @@
 			<icon name="mastering" from="qlementine:instrument/mastering" />
 		</group>
 	</icons>
-
-	<!-- A debug build carries the hxcpp debug server, so a debugger can attach to it on
-	     port 6972. A release build does not. -->
-
-	<!-- The typefaces one of which is chosen in preferences. A face says where it is
-	     fetched from, "go:" from the Go image repository and "ofl:" from google/fonts,
-	     and a typeface pairs a sans with a mono. The names are what preferences shows,
-	     and they are family names rather than anything to translate. -->
-
-	<typefaces path="vendor/fonts">
-		<face name="Go-Regular.ttf" from="go:Go-Regular.ttf" />
-		<face name="Go-Mono.ttf" from="go:Go-Mono.ttf" />
-		<face name="IBMPlexSans.ttf" from="ofl:ibmplexsans/IBMPlexSans[wdth,wght].ttf" />
-		<face name="IBMPlexMono.ttf" from="ofl:ibmplexmono/IBMPlexMono-Regular.ttf" />
-		<face name="Inter.ttf" from="ofl:inter/Inter[opsz,wght].ttf" />
-		<face name="JetBrainsMono.ttf" from="ofl:jetbrainsmono/JetBrainsMono[wght].ttf" />
-		<face name="BarlowSemiCondensed.ttf" from="ofl:barlowsemicondensed/BarlowSemiCondensed-Regular.ttf" />
-		<face name="SourceSans3.ttf" from="ofl:sourcesans3/SourceSans3[wght].ttf" />
-		<face name="SourceCodePro.ttf" from="ofl:sourcecodepro/SourceCodePro[wght].ttf" />
-		<face name="NotoSans.ttf" from="ofl:notosans/NotoSans[wdth,wght].ttf" />
-		<face name="NotoSansMono.ttf" from="ofl:notosansmono/NotoSansMono[wdth,wght].ttf" />
-		<face name="FiraSans.ttf" from="ofl:firasans/FiraSans-Regular.ttf" />
-		<face name="FiraCode.ttf" from="ofl:firacode/FiraCode[wght].ttf" />
-		<face name="WorkSans.ttf" from="ofl:worksans/WorkSans[wght].ttf" />
-		<face name="RobotoMono.ttf" from="ofl:robotomono/RobotoMono[wght].ttf" />
-		<face name="OpenSans.ttf" from="ofl:opensans/OpenSans[wdth,wght].ttf" />
-
-		<face name="NotoSansJP.ttf" from="ofl:notosansjp/NotoSansJP[wght].ttf" />
-		<face name="NotoSansSC.ttf" from="ofl:notosanssc/NotoSansSC[wght].ttf" />
-		<face name="NotoSansKR.ttf" from="ofl:notosanskr/NotoSansKR[wght].ttf" />
-
-		<!-- Asked in order for any codepoint the chosen face has no glyph for. A fallback is
-		     never the interface font: it is only cut from, one glyph at a time, into the atlas
-		     the chosen face already owns. Noto Sans carries Greek, Cyrillic and Vietnamese; the
-		     three CJK faces carry kana, hangul and the ideographs, which no Latin face does. -->
-
-		<fallback name="NotoSans.ttf" />
-		<fallback name="NotoSansJP.ttf" />
-		<fallback name="NotoSansSC.ttf" />
-		<fallback name="NotoSansKR.ttf" />
-
-		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
-		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
-		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />
-		<typeface name="Barlow" sans="BarlowSemiCondensed.ttf" mono="IBMPlexMono.ttf" />
-		<typeface name="Source" sans="SourceSans3.ttf" mono="SourceCodePro.ttf" />
-		<typeface name="Noto" sans="NotoSans.ttf" mono="NotoSansMono.ttf" />
-		<typeface name="Fira" sans="FiraSans.ttf" mono="FiraCode.ttf" />
-		<typeface name="Work Sans" sans="WorkSans.ttf" mono="RobotoMono.ttf" />
-		<typeface name="Open Sans" sans="OpenSans.ttf" mono="RobotoMono.ttf" />
-	</typefaces>
-
-	<library name="hxcpp-debug-server" if="debug" />
-	<output path="export" />
-
-	<target id="mdd" main="mdd.App" />
-
-	<target id="gate" main="mdd.gate.Gate">
-		<source path="test" />
-	</target>
-
-	<!-- Haxe does not define these for the cpp target, so the build does. Every #if windows,
-	     #if linux and #if mac in the source depends on them being here. -->
-
-	<define name="windows" if="windows" />
-	<define name="linux" if="linux" />
-	<define name="mac" if="mac" />
-	<define name="desktop" />
-
-	<define name="analyzer-optimize" />
-	<define name="HXCPP_OPTIMIZE_LINK" />
-	<define name="HXCPP_GC_GENERATIONAL" />
-	<define name="HXCPP_M64" />
-	<define name="HXCPP_CHECK_POINTER" if="debug" />
-	<define name="HXCPP_STACK_LINE" if="debug" />
-	<define name="HXCPP_DEBUG_LINK" />
-
-	<!-- Fetched by ./mdd setup into vendor/, which is never tracked. -->
-
-	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" size="12 MB"
-		about="the window and its events, called directly. A system package off Windows" />
-	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
-		about="the audio device, called directly" />
-	<vendor name="stb" present="stb/stb_truetype.h" size="1 MB"
-		about="the glyph rasteriser the font atlas is baked with" />
-	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="40 MB"
-		about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
-	<vendor name="libogg" present="libogg/src/framing.c" size="1 MB"
-		about="the ogg container, the pages an ogg vorbis or opus file is made of" />
-	<vendor name="libvorbis" present="libvorbis/lib/vorbisenc.c" size="5 MB"
-		about="the ogg vorbis encoder" />
-	<vendor name="libopus" present="libopus/src/opus_encoder.c" size="30 MB"
-		about="the opus encoder" />
-
-	<vendor name="qlementine" present="qlementine/16/instrument/piano.svg" size="1 MB"
-		about="the interface icons, rasterised into an atlas at build time" />
-
-	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB"
-		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
-
-	<path name="SDL3PATH" value="vendor/SDL3" />
-	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
-	<path name="STBPATH" value="vendor/stb" />
-	<path name="FONTPATH" value="vendor/fonts" />
-	<path name="NATIVEPATH" value="src/mdd/native" />
-	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
-	<path name="OGGPATH" value="vendor/libogg" />
-	<path name="VORBISPATH" value="vendor/libvorbis" />
-	<path name="OPUSPATH" value="vendor/libopus" />
-
-	<native path="src/mdd/native">
-		<file name="window.cpp" />
-		<file name="events.cpp" />
-		<file name="draw.cpp" />
-		<file name="text.cpp" />
-		<file name="audio.cpp" />
-		<file name="dialog.cpp" />
-		<file name="instance.cpp" />
-		<file name="crash.cpp" />
-		<file name="usage.cpp" />
-		<file name="midi.cpp" />
-		<file name="discord.cpp" />
-		<file name="encode.cpp" />
-
-		<!-- The encoders are fetched into vendor/ and compiled from their own trees.
-		     A tree takes every file with the suffix, less the ones skip names. -->
-
-		<flag value="-DOPUS_BUILD" />
-		<flag value="-DUSE_ALLOCA" />
-		<flag value="-DOPUS_HAVE_RTCD=0" />
-		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
-
-		<tree path="vendor/libogg/src" suffix=".c" />
-		<!-- libvorbis quote-includes "modes/floor_all.h" from inside lib/modes, which only
-		     resolves with lib on the path. The Microsoft compiler finds it anyway by walking the
-		     include stack, which is its own extension. The path is given to this tree alone
-		     because libvorbis and libopus both declare mdct_lookup, and a path shared with the
-		     rest lets one see the other's header. -->
-
-		<tree path="vendor/libvorbis/lib" suffix=".c"
-			skip="barkmel,misc,psytune,tone,vorbisfile" include="vendor/libvorbis/lib" />
-		<tree path="vendor/libopus/celt" suffix=".c" skip="opus_custom_demo" />
-		<tree path="vendor/libopus/silk" suffix=".c" />
-		<tree path="vendor/libopus/silk/float" suffix=".c" />
-		<tree path="vendor/libopus/src" suffix=".c"
-			skip="opus_compare,opus_demo,repacketizer_demo" />
-	</native>
-
-	<include value="${SDL3PATH}/include" />
-	<include value="${MINIAUDIOPATH}" />
-	<include value="${STBPATH}" />
-	<include value="${NATIVEPATH}" />
-	<include value="${OGGPATH}/include" />
-	<include value="${VORBISPATH}/include" />
-
-	<include value="${OPUSPATH}/include" />
-	<include value="${OPUSPATH}/celt" />
-	<include value="${OPUSPATH}/silk" />
-	<include value="${OPUSPATH}/silk/float" />
-
-	<!-- What each platform has to be told to link against. -->
-
-	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
-	<link value="-lSDL3" unless="windows" />
-
-	<!-- mingw's linker takes a DLL directly, so the Microsoft import library is not needed and
-	     nothing extra has to be fetched for it. -->
-
-	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
-
-	<!-- What the Windows native sources call into. These were pragma comment lines inside the
-	     sources, which only the Microsoft compiler reads: named here, every Windows toolchain
-	     gets them. -->
-
-	<link value="dbghelp.lib" if="windows" unless="mingw" />
-	<link value="winmm.lib" if="windows" unless="mingw" />
-	<link value="psapi.lib" if="windows" unless="mingw" />
-	<link value="pdh.lib" if="windows" unless="mingw" />
-
-	<link value="-ldbghelp" if="mingw" />
-	<link value="-lwinmm" if="mingw" />
-	<link value="-lpsapi" if="mingw" />
-	<link value="-lpdh" if="mingw" />
-
-	<link value="-lm" if="linux" />
-	<link value="-ldl" if="linux" />
-	<link value="-lpthread" if="linux" />
-
-	<link value="-framework CoreFoundation" if="mac" />
-	<link value="-framework CoreAudio" if="mac" />
-	<link value="-framework AudioToolbox" if="mac" />
-
-	<!-- Copied beside the executable so it runs from export/bin with nothing installed. -->
-
-	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
 
 </project>

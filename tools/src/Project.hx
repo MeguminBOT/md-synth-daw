@@ -110,7 +110,13 @@ class Project {
 		final root = Xml.parse(File.getContent(path)).firstElement();
 		if (root == null) throw "mdd.xml has no root element";
 
-		for (node in root.elements()) read(node);
+		for (node in root.elements()) {
+			if (node.nodeName == "path" && allowed(node)) read(node);
+		}
+
+		for (node in root.elements()) {
+			if (node.nodeName != "path") read(node);
+		}
 
 		for (i in 0...paths.length) {
 			paths[i] = { name: paths[i].name, value: fill(paths[i].value) };
