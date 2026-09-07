@@ -13,10 +13,10 @@ final class Presence {
 
 	public static inline final DIAL_EVERY = 12.0;
 	public static inline final SEND_EVERY = 5.0;
-	public static inline final LOOK_EVERY = 1.0;
+	static inline final LOOK_EVERY = 1.0;
 
 	public static inline final MOST = 118;
-	public static inline final LABEL = 30;
+	static inline final LABEL = 30;
 
 	public var level:Int = FULL;
 	public var busy:String = "";
@@ -433,10 +433,8 @@ final class Presence {
 				final tail = StringTools.fastCodeAt(from, index);
 				if (tail < 0xDC00 || tail > 0xDFFF) continue;
 
+				out.add(from.substr(index - 1, 2));
 				index++;
-
-				out.addChar(code);
-				out.addChar(tail);
 
 				continue;
 			}
