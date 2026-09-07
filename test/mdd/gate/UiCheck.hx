@@ -126,7 +126,7 @@ class UiCheck {
 		menus(renderer, target, face, monoFace);
 		tooltips(renderer, face, monoFace);
 		bars(renderer, face, monoFace);
-		chords();
+		shortcuts();
 		saying();
 		modal();
 		remembers();
@@ -687,7 +687,7 @@ class UiCheck {
 		return Math.round(value * scale) / scale;
 	}
 
-	static function chords():Void {
+	static function shortcuts():Void {
 		final root = shaped();
 		root.resize(400, 300);
 
@@ -698,8 +698,8 @@ class UiCheck {
 
 		var heard = "";
 
-		root.onChord = function(code:Key, mods:Mod):Bool {
-			heard = code.chord(mods);
+		root.onShortcut = function(code:Key, mods:Mod):Bool {
+			heard = code.shortcut(mods);
 			return true;
 		};
 
@@ -711,7 +711,7 @@ class UiCheck {
 		root.key(true, Key.S, Mod.Ctrl);
 		final saved = heard;
 
-		says("a chord reaches the session", loose == "Space" && saved == "Ctrl+S",
+		says("a shortcut reaches the session", loose == "Space" && saved == "Ctrl+S",
 			"with nothing focused the session heard \"" + loose + "\" and \"" + saved + "\"");
 
 		heard = "";
@@ -725,8 +725,8 @@ class UiCheck {
 		heard = "";
 		root.key(true, Key.S, Mod.Ctrl);
 
-		says("but not the chord", heard == "Ctrl+S",
-			"a modified chord still reaches the session past a focused field");
+		says("but not the shortcut", heard == "Ctrl+S",
+			"a modified shortcut still reaches the session past a focused field");
 	}
 
 	static function remembers():Void {
@@ -1127,7 +1127,7 @@ class UiCheck {
 
 		final play = new Button("");
 		play.tip = "Play";
-		play.chord = "Space";
+		play.shortcut = "Space";
 		top.add(play);
 		play.arrange(20, 20, 40, 30);
 

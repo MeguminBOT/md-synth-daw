@@ -12,7 +12,7 @@ class Widget {
 
 	public var tip:String = "";
 	public var detail:String = "";
-	public var chord:String = "";
+	public var shortcut:String = "";
 
 	public var visible:Bool = true;
 	public var enabled:Bool = true;
@@ -144,6 +144,13 @@ class Widget {
 	}
 
 	public function tick(seconds:Float):Void {}
+
+	public function fires(choice:mdd.ui.control.Choice, what:Void -> Void):Void {
+		choice.onFire = function(from:mdd.ui.control.Choice):Void {
+			what();
+			invalidate();
+		};
+	}
 
 	public function translate(key:Int):String {
 		final held = root();

@@ -285,10 +285,6 @@ final class Presets extends Widget {
 		return tags[0] + ", " + tags[1] + "  +" + (tags.length - 2);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(from:Choice):Void what();
-	}
-
 	function popped(item:Item, px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;

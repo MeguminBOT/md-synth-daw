@@ -14,7 +14,7 @@ final class Root {
 
 	public var flow:Flow = Flow.Full;
 
-	public var onChord:Null<(Key, Mod) -> Bool> = null;
+	public var onShortcut:Null<(Key, Mod) -> Bool> = null;
 	public var onTyping:Null<Bool -> Void> = null;
 
 	var typingNow:Bool = false;
@@ -595,10 +595,10 @@ final class Root {
 			return true;
 		}
 
-		if (!down || onChord == null) return false;
+		if (!down || onShortcut == null) return false;
 		if (typed() && (mods & (Mod.Ctrl | Mod.Alt)) == 0) return false;
 
-		return onChord(code, mods);
+		return onShortcut(code, mods);
 	}
 
 	public function reports():Void {

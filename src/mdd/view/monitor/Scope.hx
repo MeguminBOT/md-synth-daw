@@ -200,10 +200,6 @@ final class Scope extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(from:Choice):Void what();
-	}
-
 	function bands(part:Int):Float {
 		final base = part * SPAN;
 		final from = written[part];

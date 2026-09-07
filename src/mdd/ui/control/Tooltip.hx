@@ -37,7 +37,7 @@ final class Tooltip extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		var wide = font.measure(want.tip);
-		if (want.chord != "") wide += metrics.whole(28) + font.measure(want.chord);
+		if (want.shortcut != "") wide += metrics.whole(28) + font.measure(want.shortcut);
 
 		var tall = font.height;
 
@@ -73,8 +73,8 @@ final class Tooltip extends Widget {
 		final line = y + metrics.gap + font.ascent;
 		paint.text(want.tip, x + metrics.inset, line, theme.ink, alpha);
 
-		if (want.chord != "") {
-			paint.textRight(want.chord, x + width - metrics.inset, line, theme.dim, alpha * 0.8);
+		if (want.shortcut != "") {
+			paint.textRight(want.shortcut, x + width - metrics.inset, line, theme.dim, alpha * 0.8);
 		}
 
 		if (want.detail != "") {

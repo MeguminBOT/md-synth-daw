@@ -30,10 +30,6 @@ final class Menus {
 
 	public var bindings:Null<Bindings> = null;
 
-	function chord(action:Int):String {
-		return bindings == null ? "" : bindings.chordOf(action);
-	}
-
 	public function new(stage:Stage, panels:Panels) {
 		this.stage = stage;
 		this.panels = panels;
@@ -58,11 +54,11 @@ final class Menus {
 	function commands():Void {
 		final file = new Menu();
 
-		fired(file.offer(new Choice(said(Locale.FILE_NEW), chord(Bindings.NEW))), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_NEW), Bindings.of(bindings, Bindings.NEW))), function():Void
 			if (onNew != null) onNew());
-		fired(file.offer(new Choice(said(Locale.FILE_OPEN), chord(Bindings.OPEN))), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_OPEN), Bindings.of(bindings, Bindings.OPEN))), function():Void
 			asks(Files.OPEN));
-		fired(file.offer(new Choice(said(Locale.FILE_SAVE), chord(Bindings.SAVE))), function():Void
+		fired(file.offer(new Choice(said(Locale.FILE_SAVE), Bindings.of(bindings, Bindings.SAVE))), function():Void
 			saves());
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE_AS))), function():Void
 			asks(Files.SAVE));
@@ -77,7 +73,7 @@ final class Menus {
 		}
 
 		file.divide();
-		fired(file.offer(new Choice(said(Locale.FILE_PREFERENCES), chord(Bindings.PREFERENCES))),
+		fired(file.offer(new Choice(said(Locale.FILE_PREFERENCES), Bindings.of(bindings, Bindings.PREFERENCES))),
 			function():Void panels.opened());
 		file.divide();
 		fired(file.offer(new Choice(said(Locale.FILE_QUIT), "Alt+F4")), function():Void
@@ -85,29 +81,29 @@ final class Menus {
 
 		final edit = new Menu();
 
-		fired(edit.offer(new Choice(said(Locale.EDIT_UNDO), chord(Bindings.UNDO))), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_UNDO), Bindings.of(bindings, Bindings.UNDO))), function():Void
 			undoes());
-		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), chord(Bindings.REDO))), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_REDO), Bindings.of(bindings, Bindings.REDO))), function():Void
 			redoes());
 		edit.divide();
-		fired(edit.offer(new Choice(said(Locale.BIND_ALL), chord(Bindings.ALL))),
+		fired(edit.offer(new Choice(said(Locale.BIND_ALL), Bindings.of(bindings, Bindings.ALL))),
 			function():Void edits(mdd.ui.Edit.ALL));
-		fired(edit.offer(new Choice(said(Locale.BIND_COPY), chord(Bindings.COPY))),
+		fired(edit.offer(new Choice(said(Locale.BIND_COPY), Bindings.of(bindings, Bindings.COPY))),
 			function():Void edits(mdd.ui.Edit.COPY));
-		fired(edit.offer(new Choice(said(Locale.BIND_CUT), chord(Bindings.CUT))),
+		fired(edit.offer(new Choice(said(Locale.BIND_CUT), Bindings.of(bindings, Bindings.CUT))),
 			function():Void edits(mdd.ui.Edit.CUT));
-		fired(edit.offer(new Choice(said(Locale.BIND_PASTE), chord(Bindings.PASTE))),
+		fired(edit.offer(new Choice(said(Locale.BIND_PASTE), Bindings.of(bindings, Bindings.PASTE))),
 			function():Void edits(mdd.ui.Edit.PASTE));
 		edit.divide();
-		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), chord(Bindings.EARLIER))),
+		fired(edit.offer(new Choice(said(Locale.EDIT_EARLIER), Bindings.of(bindings, Bindings.EARLIER))),
 			function():Void nudges(-1));
-		fired(edit.offer(new Choice(said(Locale.EDIT_LATER), chord(Bindings.LATER))),
+		fired(edit.offer(new Choice(said(Locale.EDIT_LATER), Bindings.of(bindings, Bindings.LATER))),
 			function():Void nudges(1));
 		edit.divide();
 
-		fired(edit.offer(new Choice(said(Locale.EDIT_PLAY), chord(Bindings.PLAY))), function():Void
+		fired(edit.offer(new Choice(said(Locale.EDIT_PLAY), Bindings.of(bindings, Bindings.PLAY))), function():Void
 			panels.bar.press(TransportBar.PLAY));
-		fired(edit.offer(new Choice(said(Locale.EDIT_STOP), chord(Bindings.STOP))),
+		fired(edit.offer(new Choice(said(Locale.EDIT_STOP), Bindings.of(bindings, Bindings.STOP))),
 			function():Void panels.bar.press(TransportBar.STOP));
 
 		bar.offer(said(Locale.MENU_FILE), file);
@@ -274,9 +270,9 @@ final class Menus {
 
 		held.divide();
 
-		fired(held.offer(new Choice(said(Locale.FILE_VGM), chord(Bindings.WRITE_VGM))), function():Void
+		fired(held.offer(new Choice(said(Locale.FILE_VGM), Bindings.of(bindings, Bindings.WRITE_VGM))), function():Void
 			asks(Files.VGM));
-		fired(held.offer(new Choice(said(Locale.FILE_AUDIO), chord(Bindings.WRITE_AUDIO))),
+		fired(held.offer(new Choice(said(Locale.FILE_AUDIO), Bindings.of(bindings, Bindings.WRITE_AUDIO))),
 			function():Void panels.sounded());
 		fired(held.offer(new Choice(said(Locale.FILE_XGM))), function():Void
 			asks(Files.XGM));

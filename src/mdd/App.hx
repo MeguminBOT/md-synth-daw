@@ -293,7 +293,7 @@ class App {
 		};
 		menus.dress(session);
 
-		stage.root.onChord = function(code:Key, mods:Mod):Bool return chorded(code, mods);
+		stage.root.onShortcut = function(code:Key, mods:Mod):Bool return commanded(code, mods);
 
 		stage.root.onTyping = function(on:Bool):Void {
 			if (on) Sdl.startTextInput(stage.window);
@@ -826,7 +826,7 @@ class App {
 	final mapping:Mapping = new Mapping();
 	final collector:Collector = new Collector();
 
-	function chorded(code:Key, mods:Mod):Bool {
+	function commanded(code:Key, mods:Mod):Bool {
 		if (code == Key.Z && (mods & Mod.Ctrl) != 0 && (mods & Mod.Shift) != 0) {
 			redone();
 			return true;

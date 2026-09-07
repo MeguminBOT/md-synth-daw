@@ -17,9 +17,9 @@ final class Tools extends Widget {
 
 	public var bindings:Null<mdd.app.Bindings> = null;
 
-	function chordOf(index:Int):String {
+	function shortcutAt(index:Int):String {
 		if (bindings == null || index < 0 || index > 4) return "";
-		return bindings.chordOf(mdd.app.Bindings.SELECT + index);
+		return bindings.shortcut(mdd.app.Bindings.SELECT + index);
 	}
 
 	public static final KEYS:Array<mdd.ui.Key> = [mdd.ui.Key.E, mdd.ui.Key.P, mdd.ui.Key.D,
@@ -160,7 +160,7 @@ final class Tools extends Widget {
 			case Kind.PointerMove:
 				final index = cellAt(event.x, event.y);
 				tip = index < 0 ? "" : translate(TIPS[index]);
-				chord = chordOf(index);
+				shortcut = shortcutAt(index);
 
 				if (index == hoverAt) return false;
 

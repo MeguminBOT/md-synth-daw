@@ -840,10 +840,6 @@ final class Playlist extends Widget {
 		return true;
 	}
 
-	function chordFor(action:Int):String {
-		return bindings == null ? "" : bindings.chordOf(action);
-	}
-
 	public function cornerSize():Float {
 		final root = root();
 		return root == null ? 12 : root.metrics.whole(12);
@@ -875,16 +871,16 @@ final class Playlist extends Widget {
 		menu.divide();
 
 		fires(menu.offer(new Choice(translate(Locale.ROLL_COPY),
-			chordFor(mdd.app.Bindings.COPY))), function():Void copies());
+			mdd.app.Bindings.of(bindings, mdd.app.Bindings.COPY))), function():Void copies());
 
 		fires(menu.offer(new Choice(translate(Locale.ROLL_CUT),
-			chordFor(mdd.app.Bindings.CUT))), function():Void {
+			mdd.app.Bindings.of(bindings, mdd.app.Bindings.CUT))), function():Void {
 			copies();
 			erased();
 		});
 
 		final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE),
-			chordFor(mdd.app.Bindings.PASTE)));
+			mdd.app.Bindings.of(bindings, mdd.app.Bindings.PASTE)));
 
 		paste.enabled = session.copiedClips.length > 0;
 		fires(paste, function():Void pasted(clip.ends(), track));
@@ -1017,13 +1013,6 @@ final class Playlist extends Widget {
 
 			session.say(held.titled(slot) + "  " + session.part.name());
 		});
-	}
-
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(chosen:Choice):Void {
-			what();
-			invalidate();
-		};
 	}
 
 	function steered(event:Input):Bool {

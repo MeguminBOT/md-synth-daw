@@ -255,10 +255,6 @@ final class AutomationEditor extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(chosen:Choice):Void what();
-	}
-
 	public inline function atTick(tick:Int):Float {
 		return x + gutter() - offsetX + tick * perTick;
 	}

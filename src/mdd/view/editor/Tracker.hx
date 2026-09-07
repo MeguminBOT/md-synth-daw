@@ -606,7 +606,7 @@ final class Tracker extends Widget {
 
 	function steered(event:Input):Bool {
 		if (entering) return typed(event);
-		if (event.ctrl()) return chorded(event);
+		if (event.ctrl()) return commanded(event);
 
 		if (event.code == Key.Return) {
 			opens();
@@ -704,7 +704,7 @@ final class Tracker extends Widget {
 		return !event.ctrl();
 	}
 
-	function chorded(event:Input):Bool {
+	function commanded(event:Input):Bool {
 		switch (event.code) {
 			case Key.PageUp:
 				if (octave < 8) octave++;

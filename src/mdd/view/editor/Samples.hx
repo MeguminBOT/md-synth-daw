@@ -114,10 +114,6 @@ final class Samples extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(from:Choice):Void what();
-	}
-
 	function normalised(held:Sample):Void {
 		final bytes = held.bytes;
 		var most = 0;

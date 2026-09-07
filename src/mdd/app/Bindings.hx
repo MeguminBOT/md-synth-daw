@@ -82,9 +82,13 @@ final class Bindings {
 		return mods[action];
 	}
 
-	public function chordOf(action:Int):String {
+	public static function of(held:Null<Bindings>, action:Int):String {
+		return held == null ? "" : held.shortcut(action);
+	}
+
+	public function shortcut(action:Int):String {
 		if (action < 0 || action >= COUNT) return "";
-		return keys[action].chord(mods[action]);
+		return keys[action].shortcut(mods[action]);
 	}
 
 	public function binds(action:Int, key:Key, mod:Int):Void {

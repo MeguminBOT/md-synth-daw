@@ -1068,9 +1068,9 @@ final class PianoRoll extends Widget {
 
 		if (under != null) {
 			fires(menu.offer(new Choice(translate(Locale.ROLL_COPY),
-				chordFor(mdd.app.Bindings.COPY))), function():Void copies());
+				mdd.app.Bindings.of(bindings, mdd.app.Bindings.COPY))), function():Void copies());
 			fires(menu.offer(new Choice(translate(Locale.ROLL_CUT),
-				chordFor(mdd.app.Bindings.CUT))), function():Void {
+				mdd.app.Bindings.of(bindings, mdd.app.Bindings.CUT))), function():Void {
 				copies();
 				erased();
 			});
@@ -1105,7 +1105,7 @@ final class PianoRoll extends Widget {
 			}
 		} else {
 			final paste = menu.offer(new Choice(translate(Locale.ROLL_PASTE),
-				chordFor(mdd.app.Bindings.PASTE)));
+				mdd.app.Bindings.of(bindings, mdd.app.Bindings.PASTE)));
 			paste.enabled = session.copiedNotes.length > 0;
 			if (!paste.enabled) paste.reason = translate(Locale.ROLL_NOTHING_COPIED);
 
@@ -1144,10 +1144,6 @@ final class PianoRoll extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(chosen:Choice):Void what();
-	}
-
 	function reasonFor(note:Note):Null<mdd.check.Diagnostic> {
 		if (budget == null) return null;
 		for (found in budget.found) if (found.note == note) return found;
@@ -1155,10 +1151,6 @@ final class PianoRoll extends Widget {
 	}
 
 	public var bindings:Null<mdd.app.Bindings> = null;
-
-	function chordFor(action:Int):String {
-		return bindings == null ? "" : bindings.chordOf(action);
-	}
 
 	function copies():Bool {
 		final held = held();

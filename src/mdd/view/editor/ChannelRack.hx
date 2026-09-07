@@ -291,14 +291,10 @@ final class ChannelRack extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(chosen:Choice):Void what();
-	}
-
 	function described(at:Int, px:Float, metrics:Metrics):Void {
 		if (at < 0) {
 			tip = "";
-			chord = "";
+			shortcut = "";
 			detail = "";
 			return;
 		}
@@ -309,27 +305,27 @@ final class ChannelRack extends Widget {
 
 		if (part.fm() && slotHolds(metrics, PAN, px)) {
 			tip = translate(Locale.RACK_PAN) + " " + part.name();
-			chord = "";
+			shortcut = "";
 			detail = sided(session.song.pan[at]);
 			return;
 		}
 
 		if (slotHolds(metrics, MUTE, px)) {
 			tip = translate(muted ? Locale.RACK_UNMUTE : Locale.RACK_MUTE) + " " + part.name();
-			chord = "";
+			shortcut = "";
 			detail = "";
 			return;
 		}
 
 		if (slotHolds(metrics, SOLO, px)) {
 			tip = translate(soloed ? Locale.RACK_UNSOLO : Locale.RACK_SOLO) + " " + part.name();
-			chord = translate(Locale.RACK_SOLO_CHORD);
+			shortcut = translate(Locale.RACK_SOLO_SHORTCUT);
 			detail = "";
 			return;
 		}
 
 		tip = part.name();
-		chord = "";
+		shortcut = "";
 
 		if (part.sampled()) detail = translate(Locale.RACK_DAC);
 		else if (part.fm()) detail = translate(Locale.RACK_FM);

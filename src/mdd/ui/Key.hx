@@ -87,7 +87,7 @@ enum abstract Key(Int) from Int to Int {
 		}
 	}
 
-	public function chord(mods:Mod):String {
+	public function shortcut(mods:Mod):String {
 		var out = "";
 		if ((mods & Mod.Ctrl) != 0) out += "Ctrl+";
 		if ((mods & Mod.Alt) != 0) out += "Alt+";

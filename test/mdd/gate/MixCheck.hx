@@ -499,7 +499,7 @@ class MixCheck {
 		}
 
 		says("six channels of shipped patches fill the range", loudest > 0.3,
-			"a chord across every fm channel using the built in patches peaks at "
+			"a shortcut across every fm channel using the built in patches peaks at "
 			+ decibels(loudest) + " dBFS");
 	}
 

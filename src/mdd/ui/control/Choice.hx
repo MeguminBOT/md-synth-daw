@@ -3,7 +3,7 @@ package mdd.ui.control;
 @:unreflective
 class Choice {
 	public var label:String;
-	public var chord:String = "";
+	public var shortcut:String = "";
 	public var reason:String = "";
 	public var enabled:Bool = true;
 	public var submenu:Null<Menu> = null;
@@ -12,9 +12,9 @@ class Choice {
 
 	public var divides(default, null):Bool = false;
 
-	public function new(label:String, chord:String = "") {
+	public function new(label:String, shortcut:String = "") {
 		this.label = label;
-		this.chord = chord;
+		this.shortcut = shortcut;
 	}
 
 	public static function divider():Choice {

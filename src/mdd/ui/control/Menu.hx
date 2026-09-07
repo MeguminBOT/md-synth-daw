@@ -125,7 +125,7 @@ final class Menu extends Widget {
 			if (choice.divides) continue;
 
 			var wide = font.measure(choice.label);
-			if (choice.chord != "") wide += metrics.whole(28) + font.measure(choice.chord);
+			if (choice.shortcut != "") wide += metrics.whole(28) + font.measure(choice.shortcut);
 			if (choice.opens()) wide += metrics.whole(18);
 			if (!choice.enabled && choice.reason != "") {
 				final reason = small.measure(choice.reason);
@@ -320,8 +320,8 @@ final class Menu extends Widget {
 
 			paint.text(choice.label, x + metrics.inset, line, ink, shade);
 
-			if (choice.chord != "") {
-				paint.textRight(choice.chord,
+			if (choice.shortcut != "") {
+				paint.textRight(choice.shortcut,
 					x + width - metrics.inset - (choice.opens() ? metrics.whole(14) : 0), line,
 					theme.dim, shade);
 			}

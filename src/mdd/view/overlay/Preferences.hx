@@ -719,7 +719,7 @@ final class Preferences extends Widget {
 			final choice = menu.offer(new Choice(said(row, which)));
 
 			choice.onFire = function(from:Choice):Void chose(row, which);
-			if (which == on) choice.chord = "•";
+			if (which == on) choice.shortcut = "•";
 		}
 
 		root.pop(menu, fieldLeft(), rowTop(row) + fieldTall(), this);
@@ -748,7 +748,7 @@ final class Preferences extends Widget {
 			final choice = menu.offer(new Choice(mdd.song.Patch.DIAL_SPELT[dial]));
 
 			if (held.kindOf(slot) == mdd.app.Mapping.DIAL && held.rowOf(slot) == dial) {
-				choice.chord = "•";
+				choice.shortcut = "•";
 			}
 
 			choice.onFire = function(from:Choice):Void
@@ -767,7 +767,7 @@ final class Preferences extends Widget {
 
 				if (held.kindOf(slot) == mdd.app.Mapping.OPERATOR
 					&& held.operatorOf(slot) == which && held.rowOf(slot) == row) {
-					choice.chord = "•";
+					choice.shortcut = "•";
 				}
 
 				choice.onFire = function(from:Choice):Void
@@ -1069,7 +1069,7 @@ final class Preferences extends Widget {
 				metrics.whole(1), alpha * (on ? 1 : 0.8), metrics.radiusSmall);
 
 			final said = on ? translate(Locale.BIND_CATCH)
-				: (held.bound(action) ? held.chordOf(action) : translate(Locale.BIND_NONE));
+				: (held.bound(action) ? held.shortcut(action) : translate(Locale.BIND_NONE));
 
 			paint.pushClip(left + metrics.gap, at, wide - metrics.gap * 2, deep);
 			paint.text(said, left + metrics.gap,

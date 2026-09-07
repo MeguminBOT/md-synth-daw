@@ -199,10 +199,6 @@ final class Registers extends Scroll {
 		root.pop(menu, px, py, this);
 	}
 
-	function fires(choice:Choice, what:Void -> Void):Void {
-		choice.onFire = function(from:Choice):Void what();
-	}
-
 	function named(kind:Int, port:Int, value:Int):String {
 		if (kind != Stream.YM) return square(value);
 		return "port " + port;

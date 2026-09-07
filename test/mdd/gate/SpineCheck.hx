@@ -485,20 +485,20 @@ class SpineCheck {
 
 		final table = new mdd.app.Bindings();
 
-		final wasUndo = table.chordOf(mdd.app.Bindings.UNDO);
-		final wasDraw = table.chordOf(mdd.app.Bindings.DRAW);
+		final wasUndo = table.shortcut(mdd.app.Bindings.UNDO);
+		final wasDraw = table.shortcut(mdd.app.Bindings.DRAW);
 
 		final found = table.actionFor(mdd.ui.Key.Z, mdd.ui.Mod.Ctrl);
 		final none = table.actionFor(mdd.ui.Key.Q, mdd.ui.Mod.None);
 
-		says("a chord finds what it is bound to", wasUndo == "Ctrl+Z" && wasDraw == "P"
+		says("a shortcut finds what it is bound to", wasUndo == "Ctrl+Z" && wasDraw == "P"
 			&& found == mdd.app.Bindings.UNDO && none == mdd.app.Bindings.NONE,
 			"undo reads '" + wasUndo + "' and draw '" + wasDraw + "', Ctrl+Z finds undo and"
 			+ " an unbound key finds nothing");
 
 		table.binds(mdd.app.Bindings.UNDO, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
 
-		final spelt = table.chordOf(mdd.app.Bindings.UNDO);
+		final spelt = table.shortcut(mdd.app.Bindings.UNDO);
 		final moved = table.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
 		final gone = table.actionFor(mdd.ui.Key.Z, mdd.ui.Mod.Ctrl);
 
@@ -507,18 +507,18 @@ class SpineCheck {
 		final other = new mdd.app.Bindings();
 		other.reads(written);
 
-		says("a chord can be moved and is remembered",
+		says("a shortcut can be moved and is remembered",
 			spelt == "Ctrl+Alt+B" && moved == mdd.app.Bindings.UNDO
 			&& gone == mdd.app.Bindings.NONE
-			&& other.chordOf(mdd.app.Bindings.UNDO) == "Ctrl+Alt+B"
-			&& other.chordOf(mdd.app.Bindings.DRAW) == wasDraw,
-			"undo moved to '" + spelt + "', the old chord finds nothing, and '" + written
+			&& other.shortcut(mdd.app.Bindings.UNDO) == "Ctrl+Alt+B"
+			&& other.shortcut(mdd.app.Bindings.DRAW) == wasDraw,
+			"undo moved to '" + spelt + "', the old shortcut finds nothing, and '" + written
 			+ "' brings it back with the rest left alone");
 
 		table.binds(mdd.app.Bindings.DRAW, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
 
-		says("and taking a chord leaves the other without one",
-			table.chordOf(mdd.app.Bindings.UNDO) == ""
+		says("and taking a shortcut leaves the other without one",
+			table.shortcut(mdd.app.Bindings.UNDO) == ""
 			&& table.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt)
 				== mdd.app.Bindings.DRAW,
 			"draw took Ctrl+Alt+B and undo was left with nothing rather than a second owner");
@@ -988,43 +988,43 @@ class SpineCheck {
 		tree.top.arrange(0, 0, tree.width, tree.height);
 
 		final action = mdd.app.Bindings.REDO;
-		final was = bindings.chordOf(action);
+		final was = bindings.shortcut(action);
 		final top = held.y + held.head() + (action + 0.5) * held.rowTall();
 		final at = held.fieldLeft() + held.fieldWide() * 0.5;
 
 		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
-		says("a chord row waits for a key", held.catching == action
+		says("a shortcut row waits for a key", held.catching == action
 			&& held.bindAt(top) == action,
 			"the row for '" + tree.translate(mdd.app.Bindings.NAMES[action])
 			+ "' is listening, reading " + was);
 
 		tree.key(true, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
 
-		says("and the key it catches becomes the chord",
-			bindings.chordOf(action) == "Ctrl+Alt+B" && held.catching < 0
+		says("and the key it catches becomes the shortcut",
+			bindings.shortcut(action) == "Ctrl+Alt+B" && held.catching < 0
 			&& bindings.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt) == action,
-			"'" + was + "' became '" + bindings.chordOf(action)
+			"'" + was + "' became '" + bindings.shortcut(action)
 			+ "' and the table answers to it");
 
 		tree.pressed(at, top, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
 		tree.released(at, top, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
 
 		says("and a right click puts the default back",
-			bindings.chordOf(action) == was && held.catching < 0,
-			"the row reads " + bindings.chordOf(action) + " again");
+			bindings.shortcut(action) == was && held.catching < 0,
+			"the row reads " + bindings.shortcut(action) + " again");
 
 		tree.pressed(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 		tree.key(true, mdd.ui.Key.B, mdd.ui.Mod.Ctrl | mdd.ui.Mod.Alt);
 
-		final moved = bindings.chordOf(action);
+		final moved = bindings.shortcut(action);
 		held.cancels();
 
-		says("and cancel gives every chord back", bindings.chordOf(action) == was
+		says("and cancel gives every shortcut back", bindings.shortcut(action) == was
 			&& bindings.said() == "",
-			"the row read " + moved + " and reads " + bindings.chordOf(action)
+			"the row read " + moved + " and reads " + bindings.shortcut(action)
 			+ " after cancelling, with nothing left over settings would keep");
 
 		final most = held.content() - held.room();
@@ -1033,9 +1033,9 @@ class SpineCheck {
 		final last = mdd.app.Bindings.COUNT - 1;
 		final floor = held.y + held.head() + held.room() - held.rowTall() * 0.5;
 
-		says("and the list scrolls to the last chord",
+		says("and the list scrolls to the last shortcut",
 			most > 0 && held.bindAt(floor) == last,
-			mdd.app.Bindings.COUNT + " chords in room for "
+			mdd.app.Bindings.COUNT + " shortcuts in room for "
 			+ Math.round(held.room() / held.rowTall()) + ", and the bottom row is "
 			+ tree.translate(mdd.app.Bindings.NAMES[held.bindAt(floor) < 0 ? 0
 				: held.bindAt(floor)]));
@@ -1353,7 +1353,7 @@ class SpineCheck {
 
 		says("everything in a lane can be selected at once",
 			tree.edits(mdd.ui.Edit.ALL) && roll.picked.count == 4,
-			roll.picked.count + " of " + lane.notes.length + " notes selected by one chord");
+			roll.picked.count + " of " + lane.notes.length + " notes selected by one shortcut");
 
 		final field = new mdd.ui.control.Field("120");
 
@@ -1367,7 +1367,7 @@ class SpineCheck {
 		tree.focusOn(roll);
 		roll.remove(field);
 
-		says("and a chord that would edit leaves a field alone",
+		says("and a shortcut that would edit leaves a field alone",
 			!blocked && roll.picked.count == 0,
 			"select everything reached " + roll.picked.count + " notes while a field was"
 			+ " being typed into");
@@ -1658,7 +1658,7 @@ class SpineCheck {
 
 		says("every clip on the playlist selects at once",
 			playlist.edited(mdd.ui.Edit.ALL) && playlist.picked.count == 3,
-			playlist.picked.count + " of 3 clips selected by one chord");
+			playlist.picked.count + " of 3 clips selected by one shortcut");
 
 		final depth = session.history.depth();
 		playlist.took(keyAt(mdd.ui.Key.Delete));
@@ -1774,7 +1774,7 @@ class SpineCheck {
 
 		says("every point in a lane selects at once", many == before + 3 && took
 			&& stack.picked.count == many,
-			stack.picked.count + " of " + many + " points selected by one chord");
+			stack.picked.count + " of " + many + " points selected by one shortcut");
 
 		final depth = session.history.depth();
 		stack.took(keyAt(mdd.ui.Key.Delete));

@@ -30,7 +30,7 @@ final class TransportBar extends Widget {
 
 	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
-	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
+	static final SHORTCUTS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
 
 	public final session:Session;
 
@@ -184,7 +184,7 @@ final class TransportBar extends Widget {
 	function described(which:Int):Void {
 		if (which < 0) {
 			tip = "";
-			chord = "";
+			shortcut = "";
 			detail = "";
 			return;
 		}
@@ -194,7 +194,7 @@ final class TransportBar extends Widget {
 			? Locale.TRANSPORT_PAUSE : TIPS[which];
 
 		tip = root == null ? "" : translate(key);
-		chord = CHORDS[which];
+		shortcut = SHORTCUTS[which];
 		detail = "";
 	}
 
