@@ -1,5 +1,6 @@
 package mdd.play;
 
+import haxe.atomic.AtomicInt;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
@@ -10,8 +11,11 @@ final class Transport {
 	public final sequencer:Sequencer;
 	public final stream:Stream;
 
-	public var playing(default, null):Bool = false;
+	public var playing(get, never):Bool;
 	public var position(default, null):Int = 0;
+
+	final running:AtomicInt = new AtomicInt(0);
+	final hushing:AtomicInt = new AtomicInt(0);
 
 	public var looping:Bool = false;
 	public var tail:Int = 1;
@@ -36,7 +40,6 @@ final class Transport {
 	var heardVelocity:Int = AUDITION_VELOCITY;
 	var heardCarry:Float = 0;
 	var heardIndex:Int = 0;
-	var hushing:Bool = false;
 	var priming:Bool = false;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
@@ -49,18 +52,22 @@ final class Transport {
 		stream = new Stream(capacity);
 	}
 
+	function get_playing():Bool {
+		return running.load() == 1;
+	}
+
 	public function play():Void {
-		playing = true;
+		running.store(1);
 	}
 
 	public function stop():Void {
-		playing = false;
-		hushing = true;
+		running.store(0);
+		hushing.store(1);
 	}
 
 	public function seek(tick:Int):Void {
 		position = tick < 0 ? 0 : tick;
-		hushing = true;
+		hushing.store(1);
 	}
 
 	public function loop(fromTick:Int, toTick:Int):Void {
@@ -83,14 +90,13 @@ final class Transport {
 
 		watched();
 
-		if (hushing) {
-			hushing = false;
+		if (hushing.exchange(0) == 1) {
 			heardPart = -1;
 			stream.reset(position);
 			priming = true;
 		}
 
-		if (!playing) {
+		if (running.load() == 0) {
 			stepped = 0;
 
 			gate.acquire();
@@ -134,8 +140,8 @@ final class Transport {
 				wrapped++;
 			} else {
 				position = 0;
-				playing = false;
-				hushing = true;
+				running.store(0);
+				hushing.store(1);
 			}
 		} else {
 			position = until;
@@ -293,7 +299,7 @@ final class Transport {
 	}
 
 	public function silence():Void {
-		hushing = true;
+		hushing.store(1);
 	}
 
 	public inline function seconds():Float {

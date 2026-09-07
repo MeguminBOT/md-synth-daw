@@ -42,6 +42,7 @@ class StreamCheck {
 		sounded();
 		sought(args);
 		raced();
+		hushed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -365,6 +366,146 @@ class StreamCheck {
 		}
 
 		return -2;
+	}
+
+	static function keyed(stream:Stream, on:Bool, part:Part):Int {
+		var many = 0;
+		var index = 0;
+
+		while (index + 1 < stream.count) {
+			if (stream.kindAt(index) == Stream.YM && stream.portAt(index) == 0
+				&& stream.valueAt(index) == 0x28 && stream.portAt(index + 1) == 1) {
+				final byte = stream.valueAt(index + 1);
+
+				if (Stream.keyPart(byte) == part.index() && ((byte & 0xF0) != 0) == on) many++;
+			}
+
+			index++;
+		}
+
+		return many;
+	}
+
+	static function holding():Song {
+		final song = new Song("hushed", 96, 120);
+		final bar = song.tempo.ppqn * 4;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+
+			song.instrument(new Instrument(part.name(), part));
+			song.rack[index] = index;
+		}
+
+		final pattern = song.add(new Pattern("long", bar * 4));
+		pattern.lane(Part.Fm1).add(new Note(0, bar * 4, 60, 100));
+
+		song.track(new Track("row")).add(new Clip(0, 0, bar * 4));
+
+		return song;
+	}
+
+	static inline final HUSH_BLOCK = 512;
+	static inline final HUSH_RATE = 44100;
+	static inline final HUSH_ROUNDS = 200;
+
+	static function hushed():Void {
+		final transport = new mdd.play.Transport(holding(), 65536);
+
+		transport.rewind();
+		transport.play();
+
+		var on = 0;
+		var blocks = 0;
+
+		while (on == 0 && blocks < 32) {
+			transport.advance(HUSH_BLOCK, HUSH_RATE);
+			on += keyed(transport.stream, true, Part.Fm1);
+			blocks++;
+		}
+
+		transport.stop();
+		transport.advance(HUSH_BLOCK, HUSH_RATE);
+
+		final off = keyed(transport.stream, false, Part.Fm1);
+
+		says("stopping writes the key off that ends a note", on > 0 && off > 0,
+			"a note keyed on after " + blocks + " blocks of " + HUSH_BLOCK
+			+ " frames, and the block after the stop carries " + off + " key off"
+			+ (off == 1 ? "" : "s") + " for that channel");
+
+		live();
+	}
+
+	static function live():Void {
+		final transport = new mdd.play.Transport(holding(), 65536);
+
+		transport.rewind();
+
+		final alive = new haxe.atomic.AtomicInt(1);
+		final ons = new haxe.atomic.AtomicInt(0);
+		final offs = new haxe.atomic.AtomicInt(0);
+		final served = new haxe.atomic.AtomicInt(0);
+
+		sys.thread.Thread.create(function():Void {
+			while (alive.load() == 1) {
+				transport.advance(HUSH_BLOCK, HUSH_RATE);
+
+				final up = keyed(transport.stream, true, Part.Fm1);
+				final down = keyed(transport.stream, false, Part.Fm1);
+
+				if (up > 0) ons.add(up);
+				if (down > 0) offs.add(down);
+
+				served.add(1);
+			}
+		});
+
+		var seed = 0x2F6E;
+		var late = 0;
+		var worst = 0.0;
+
+		for (round in 0...HUSH_ROUNDS) {
+			ons.store(0);
+
+			transport.seek(0);
+			transport.play();
+
+			var waited = 0;
+
+			while (ons.load() == 0 && waited < 400) {
+				Sys.sleep(0.001);
+				waited++;
+			}
+
+			seed = (seed * 1103515245 + 12345) & 0x3FFFFFFF;
+			Sys.sleep((seed % 1200) / 100000.0);
+
+			offs.store(0);
+
+			final began = mdd.host.Sdl.ticks();
+			transport.stop();
+
+			waited = 0;
+
+			while (offs.load() == 0 && waited < 200) {
+				Sys.sleep(0.001);
+				waited++;
+			}
+
+			final took = mdd.host.Sdl.ticks() - began;
+
+			if (offs.load() == 0) late++;
+			else if (took > worst) worst = took;
+		}
+
+		alive.store(0);
+		Sys.sleep(0.05);
+
+		says("and a stop from another thread reaches the render one", late == 0,
+			HUSH_ROUNDS + " stops timed across the block a render thread was serving, "
+			+ late + " of them with no key off inside 200 ms, and the slowest answered in "
+			+ Math.round(worst * 1000000) / 1000 + " ms");
 	}
 
 	static function raced():Void {
