@@ -24,6 +24,12 @@ typedef Icon = {
 	final group:String;
 }
 
+typedef Toolchain = {
+	var name:String;
+	var probe:String;
+	var about:String;
+}
+
 typedef Face = {
 	final name:String;
 	final from:String;
@@ -90,12 +96,16 @@ class Project {
 	public var nativeTrees(default, null):Array<Grove> = [];
 	public var nativeFlags(default, null):Array<String> = [];
 
+	public var toolchains(default, null):Array<Toolchain> = [];
+	public var toolchain(default, null):String = "";
+
 	final os:String;
 	final debug:Bool;
 
-	public function new(path:String, os:String, debug:Bool) {
+	public function new(path:String, os:String, debug:Bool, toolchain:String = "") {
 		this.os = os;
 		this.debug = debug;
+		this.toolchain = toolchain;
 
 		final root = Xml.parse(File.getContent(path)).firstElement();
 		if (root == null) throw "mdd.xml has no root element";
@@ -125,6 +135,17 @@ class Project {
 				formatSuffix = node.get("suffix");
 				formatName = node.get("name");
 				formatMime = node.get("mime");
+
+			case "toolchains":
+				for (held in node.elements()) {
+					if (held.nodeName != "toolchain" || !allowed(held)) continue;
+
+					toolchains.push({
+						name: held.get("name"),
+						probe: has(held, "probe") ? held.get("probe") : "",
+						about: has(held, "about") ? held.get("about") : ""
+					});
+				}
 
 			case "update":
 				github = has(node, "github") ? node.get("github") : github;
@@ -257,7 +278,8 @@ class Project {
 						case "tree":
 							nativeTrees.push(new Grove(fill(file.get("path")),
 								has(file, "suffix") ? file.get("suffix") : ".c",
-								has(file, "skip") ? file.get("skip") : ""));
+								has(file, "skip") ? file.get("skip") : "",
+								has(file, "include") ? fill(file.get("include")) : ""));
 
 						case "flag": nativeFlags.push(file.get("value"));
 						case _:
@@ -280,7 +302,8 @@ class Project {
 			case "desktop": true;
 			case "debug": debug;
 			case "release": !debug;
-			case _: false;
+			case "llvm": toolchain == "clang-cl" || toolchain == "clang" || toolchain == "mingw";
+			case _: toolchain == term;
 		}
 	}
 

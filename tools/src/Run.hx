@@ -14,7 +14,7 @@ class Run {
 		final args = Sys.args();
 		final root = native(Sys.getCwd());
 		final debug = args.indexOf("-debug") >= 0 || args.indexOf("--debug") >= 0;
-		final project = read(root, debug);
+		final project = read(root, debug, picked(read(root, debug, ""), args));
 
 		if (args.length == 0) {
 			usage(project);
@@ -38,7 +38,70 @@ class Run {
 		}
 	}
 
-	static function read(root:String, debug:Bool):Project {
+	static function overrides(root:String, project:Project):String {
+		final into = root + "/" + project.output + "/build";
+		tree(into);
+
+		final out = new StringBuf();
+		out.add("<xml>
+
+");
+
+		final home = Sys.getEnv("HOME") != null ? Sys.getEnv("HOME") : Sys.getEnv("USERPROFILE");
+
+		if (home != null && FileSystem.exists(home + "/.hxcpp_config.xml")) {
+			out.add("	<include name=\"" + native(home) + "/.hxcpp_config.xml\" noerror=\"1\" />
+
+");
+		}
+
+		out.add("	<compiler id=\"MSVC\" exe=\"clang-cl.exe\" if=\"windows\">
+");
+		out.add("		<getversion value=\"clang-cl.exe -v\" />
+");
+		out.add("		<objdir value=\"obj/clang-cl${OBJEXT}${OBJCACHE}${XPOBJ}\" />
+");
+
+		for (flag in CLANG_QUIET) {
+			out.add("		<flag value=\"" + flag + "\" />
+");
+		}
+
+		out.add("	</compiler>
+");
+
+		out.add("
+</xml>
+");
+
+		final where = into + "/toolchain.xml";
+		File.saveContent(where, out.toString());
+
+		return where;
+	}
+
+	static final CLANG_QUIET:Array<String> = ["-Wno-unused-command-line-argument",
+		"-Wno-invalid-offsetof", "-Wno-parentheses-equality", "-Wno-parentheses",
+		"-Wno-deprecated-declarations", "-Wno-microsoft-cast", "-Wno-microsoft-include",
+		"-Wno-unknown-pragmas", "-Wno-ignored-attributes", "-Wno-ignored-pragma-intrinsic",
+		"-Wno-nonportable-include-path"];
+
+	static function picked(project:Project, args:Array<String>):String {
+		for (arg in args) {
+			if (!StringTools.startsWith(arg, "--")) continue;
+
+			final want = arg.substr(2);
+			for (held in project.toolchains) if (held.name == want) return want;
+		}
+
+		for (held in project.toolchains) {
+			if (held.probe == "" || tool(held.probe, ["--version"])) return held.name;
+		}
+
+		return "";
+	}
+
+	static function read(root:String, debug:Bool, toolchain:String):Project {
 		final path = root + "/mdd.xml";
 
 		if (!FileSystem.exists(path)) {
@@ -47,7 +110,7 @@ class Run {
 		}
 
 		try {
-			return new Project(path, system(), debug);
+			return new Project(path, system(), debug, toolchain);
 		} catch (e:Dynamic) {
 			Sys.println("mdd: mdd.xml would not read: " + e);
 			Sys.exit(1);
@@ -163,6 +226,20 @@ class Run {
 			+ "4.3 or newer");
 		Sys.println("    " + (tool("curl", ["--version"]) ? "[x] " : "[ ] ") + pad("curl")
 			+ "what setup fetches with");
+
+		if (project.toolchains.length > 0) {
+			Sys.println("");
+			Sys.println("  compilers");
+
+			for (held in project.toolchains) {
+				final here = held.probe == "" || tool(held.probe, ["--version"]);
+				final mark = held.name == project.toolchain ? "[>] "
+					: (here ? "[x] " : "[ ] ");
+
+				Sys.println("    " + mark + pad(held.name) + held.about
+					+ (held.name == project.toolchain ? ", what a build uses here" : ""));
+			}
+		}
 
 		Sys.println("");
 		Sys.println("  built");
@@ -352,8 +429,11 @@ class Run {
 				}
 
 				for (grove in project.nativeTrees) {
+					if (grove.include != "") continue;
+
 					for (name in grown(root, grove)) {
-						out.add("\t\t<file name=\"" + name + "\" />\n");
+						out.add("		<file name=\"" + name + "\" />
+");
 					}
 				}
 
@@ -361,6 +441,36 @@ class Run {
 			}
 
 			out.add("\t</files>\n");
+		}
+
+		final extra:Array<String> = [];
+
+		for (index in 0...project.nativeTrees.length) {
+			final grove = project.nativeTrees[index];
+			if (grove.include == "") continue;
+
+			final id = "mdd_tree_" + index;
+			extra.push(id);
+
+			out.add("	<files id=\"" + id + "\">
+");
+			out.add(flags.toString());
+			out.add("		<compilerflag value=\"-I"
+				+ native(root + "/" + grove.include) + "\" />
+");
+
+			for (flag in project.nativeFlags) {
+				out.add("		<compilerflag value=\"" + flag + "\" />
+");
+			}
+
+			for (name in grown(root, grove)) {
+				out.add("		<file name=\"" + name + "\" />
+");
+			}
+
+			out.add("	</files>
+");
 		}
 
 		out.add("\t<target id=\"haxe\">\n");
@@ -372,6 +482,8 @@ class Run {
 		}
 
 		out.add("\t\t<files id=\"mdd_native\" />\n");
+		for (id in extra) out.add("		<files id=\"" + id + "\" />
+");
 		out.add("\t</target>\n");
 		out.add("</xml>\n");
 
@@ -513,6 +625,21 @@ class Run {
 		args.push("-D");
 		args.push("MDDBUILD=" + xml);
 
+		switch (project.toolchain) {
+			case "clang-cl":
+				Sys.putEnv("HXCPP_CONFIG", native(overrides(root, project)));
+
+			case "mingw":
+				args.push("-D");
+				args.push("HXCPP_MINGW");
+
+			case "clang":
+				args.push("-D");
+				args.push("CXX=clang++");
+
+			case _:
+		}
+
 		if (!resources) return args;
 
 		for (code in spoken) {
@@ -563,9 +690,10 @@ class Run {
 		final args = compiled(root, project, target, spoken, xml, true);
 		if (debug) args.push("-debug");
 
-		display(root, read(root, false), false);
+		display(root, read(root, false, project.toolchain), false);
 
-		Sys.println("  " + pad(target) + "building");
+		Sys.println("  " + pad(target) + "building"
+			+ (project.toolchain == "" ? "" : " with " + project.toolchain));
 		release(target);
 
 		final here = Sys.getCwd();

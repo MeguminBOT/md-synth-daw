@@ -39,6 +39,35 @@
 	<presence discord="1546264890317086730" cover="embedded_cover"
 		playing="embedded_icon" stopped="embedded_icon" working="embedded_icon" />
 
+	<!-- What the C++ is compiled with. The first one whose probe is on the path is what a build
+	     uses, so LLVM is preferred wherever LLVM is installed, and `mdd build --msvc` or any
+	     other name overrides it. A toolchain with no probe is assumed present: hxcpp finds the
+	     Microsoft compiler through its own vcvars setup rather than through the path.
+
+	     A name is also a condition, so `if="mingw"` and `unless="msvc"` gate any element below,
+	     and `if="llvm"` holds for clang-cl, clang and mingw alike. -->
+
+	<toolchains>
+		<toolchain name="clang-cl" if="windows" probe="clang-cl"
+			about="LLVM against the Microsoft ABI, linked by the Microsoft linker" />
+		<toolchain name="msvc" if="windows"
+			about="the Microsoft compiler and linker" />
+
+		<!-- A different ABI, so it is asked for by name rather than chosen because it happens
+		     to be installed: mdd build --mingw
+
+		     It builds and the whole gate passes under it, but it produces no crash report: the
+		     binary carries DWARF rather than a PDB, so DbgHelp has nothing to read, and the
+		     unhandled exception filter does not fire. Useful for a second compiler's warnings,
+		     not for anything shipped. -->
+
+		<toolchain name="mingw" if="windows" probe="none"
+			about="LLVM or GCC against the mingw-w64 ABI, with no crash report" />
+
+		<toolchain name="clang" unless="windows" probe="clang++" about="LLVM" />
+		<toolchain name="gcc" unless="windows" about="GCC" />
+	</toolchains>
+
 	<window width="1440" height="900" least-width="960" least-height="600"
 		vsync="true" resizable="true" high-dpi="true" />
 
@@ -265,8 +294,14 @@
 		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
 
 		<tree path="vendor/libogg/src" suffix=".c" />
+		<!-- libvorbis quote-includes "modes/floor_all.h" from inside lib/modes, which only
+		     resolves with lib on the path. The Microsoft compiler finds it anyway by walking the
+		     include stack, which is its own extension. The path is given to this tree alone
+		     because libvorbis and libopus both declare mdct_lookup, and a path shared with the
+		     rest lets one see the other's header. -->
+
 		<tree path="vendor/libvorbis/lib" suffix=".c"
-			skip="barkmel,misc,psytune,tone,vorbisfile" />
+			skip="barkmel,misc,psytune,tone,vorbisfile" include="vendor/libvorbis/lib" />
 		<tree path="vendor/libopus/celt" suffix=".c" skip="opus_custom_demo" />
 		<tree path="vendor/libopus/silk" suffix=".c" />
 		<tree path="vendor/libopus/silk/float" suffix=".c" />
@@ -280,6 +315,7 @@
 	<include value="${NATIVEPATH}" />
 	<include value="${OGGPATH}/include" />
 	<include value="${VORBISPATH}/include" />
+
 	<include value="${OPUSPATH}/include" />
 	<include value="${OPUSPATH}/celt" />
 	<include value="${OPUSPATH}/silk" />
@@ -287,9 +323,27 @@
 
 	<!-- What each platform has to be told to link against. -->
 
-	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" />
-	<link value="dbghelp.lib" if="windows" />
+	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
 	<link value="-lSDL3" unless="windows" />
+
+	<!-- mingw's linker takes a DLL directly, so the Microsoft import library is not needed and
+	     nothing extra has to be fetched for it. -->
+
+	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
+
+	<!-- What the Windows native sources call into. These were pragma comment lines inside the
+	     sources, which only the Microsoft compiler reads: named here, every Windows toolchain
+	     gets them. -->
+
+	<link value="dbghelp.lib" if="windows" unless="mingw" />
+	<link value="winmm.lib" if="windows" unless="mingw" />
+	<link value="psapi.lib" if="windows" unless="mingw" />
+	<link value="pdh.lib" if="windows" unless="mingw" />
+
+	<link value="-ldbghelp" if="mingw" />
+	<link value="-lwinmm" if="mingw" />
+	<link value="-lpsapi" if="mingw" />
+	<link value="-lpdh" if="mingw" />
 
 	<link value="-lm" if="linux" />
 	<link value="-ldl" if="linux" />

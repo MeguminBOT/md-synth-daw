@@ -2,11 +2,13 @@ class Grove {
 	public var path(default, null):String;
 	public var suffix(default, null):String;
 	public var skip(default, null):Array<String>;
+	public var include(default, null):String;
 
-	public function new(path:String, suffix:String, skip:String) {
+	public function new(path:String, suffix:String, skip:String, include:String = "") {
 		this.path = path;
 		this.suffix = suffix;
 		this.skip = skip == "" ? [] : skip.split(",");
+		this.include = include;
 	}
 
 	public function wanted(name:String):Bool {
