@@ -755,6 +755,7 @@ class Run {
 		final shipped = into + "/" + target + suffix;
 
 		copyFile(exe, shipped);
+		runnable(shipped);
 
 		for (one in project.ships) {
 			final from = root + "/" + one;
@@ -1665,6 +1666,12 @@ class Run {
 		} catch (e:Dynamic) {
 			return false;
 		}
+	}
+
+	static function runnable(path:String):Void {
+		if (windows() || !FileSystem.exists(path)) return;
+
+		Sys.command("chmod", ["+x", path]);
 	}
 
 	static function copyFile(from:String, to:String):Void {
