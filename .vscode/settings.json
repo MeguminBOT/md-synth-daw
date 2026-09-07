@@ -59,6 +59,42 @@
 		"editor.tabSize": 4
 	},
 
+	// mdd.xml is read far more often than it is edited, so the value inside each pair of
+	// quotes is what carries colour and the punctuation around it recedes. Change the hex
+	// values to taste: these suit a dark theme. Every XML file in the workspace gets them.
+
+	"editor.tokenColorCustomizations": {
+		"textMateRules": [
+			{
+				"scope": ["entity.name.tag.xml", "entity.name.tag.localname.xml"],
+				"settings": { "foreground": "#4EC9B0" }
+			},
+			{
+				"scope": [
+					"entity.other.attribute-name.xml",
+					"entity.other.attribute-name.localname.xml"
+				],
+				"settings": { "foreground": "#7A9BC4" }
+			},
+			{
+				"scope": "string.quoted.double.xml",
+				"settings": { "foreground": "#E8C07D" }
+			},
+			{
+				"scope": [
+					"punctuation.definition.string.begin.xml",
+					"punctuation.definition.string.end.xml",
+					"punctuation.definition.tag.xml"
+				],
+				"settings": { "foreground": "#5C6370" }
+			},
+			{
+				"scope": ["comment.block.xml", "punctuation.definition.comment.xml"],
+				"settings": { "foreground": "#6A8759", "fontStyle": "italic" }
+			}
+		]
+	},
+
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
 
