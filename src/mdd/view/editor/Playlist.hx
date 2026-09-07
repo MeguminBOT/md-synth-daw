@@ -423,7 +423,7 @@ final class Playlist extends Widget {
 
 		if (under != null && event.button == Pointer.Left
 			&& onCorner(under, which, event.x, event.y)) {
-			alters(under, which, false);
+			alters(under, which, false, false);
 			clipped(under, which, event.x, event.y);
 
 			invalidate();
@@ -448,7 +448,7 @@ final class Playlist extends Widget {
 			}
 
 			final adding = event.shift() || event.ctrl();
-			alters(under, which, adding);
+			alters(under, which, event.shift(), event.ctrl());
 
 			if (adding) {
 				invalidate();
@@ -535,36 +535,33 @@ final class Playlist extends Widget {
 		return out;
 	}
 
-	function alters(lead:Clip, which:Int, shift:Bool):Void {
-		if (shift) {
-			picked.toggles(lead);
+	function alters(lead:Clip, which:Int, shift:Bool, ctrl:Bool):Void {
+		picked.alters(everything(), chosen, lead, shift, ctrl);
 
-			final on = picked.holds(lead);
-			chosen = on ? lead : picked.lead();
-			chosenTrack = chosen == null ? -1 : (on ? which : trackOf(chosen));
+		final on = picked.holds(lead);
 
-			return;
+		chosen = on ? lead : picked.lead();
+		chosenTrack = chosen == null ? -1 : (on ? which : trackOf(chosen));
+	}
+
+	function everything():Array<Clip> {
+		final out:Array<Clip> = [];
+
+		for (track in session.song.tracks) {
+			for (clip in track.clips) out.push(clip);
 		}
 
-		if (!picked.holds(lead)) picked.only(lead);
-
-		chosen = lead;
-		chosenTrack = which;
+		return out;
 	}
 
 	public function picksAll():Bool {
-		var many = 0;
-
-		picked.clear();
-
-		for (track in session.song.tracks) {
-			for (clip in track.clips) {
-				picked.adds(clip);
-				many++;
-			}
-		}
+		final all = everything();
+		final many = all.length;
 
 		if (many == 0) return false;
+
+		picked.clear();
+		for (clip in all) picked.adds(clip);
 
 		chosen = picked.lead();
 		chosenTrack = chosen == null ? -1 : trackOf(chosen);
@@ -761,7 +758,7 @@ final class Playlist extends Widget {
 		bandToX = event.x;
 		bandToY = event.y;
 
-		if (!event.shift() && !event.ctrl()) {
+		if (!event.ctrl()) {
 			picked.clear();
 			chosen = null;
 		}

@@ -38,6 +38,7 @@ class ArrangeCheck {
 		fitted();
 		dressed();
 		cut();
+		ranged();
 		reversed();
 		nudged();
 
@@ -390,6 +391,38 @@ class ArrangeCheck {
 			song.tracks[0].clips.length == 2 && back,
 			song.tracks[0].clips.length + " clips left on the track and the song is "
 			+ (back ? "what it was" : "not what it was"));
+	}
+
+	static function ranged():Void {
+		final song = new Song("ranged", 96, 120);
+		song.add(new Pattern("one", 384));
+
+		final row = song.track(new Track("row"));
+		for (index in 0...5) row.add(new Clip(0, index * 384, 384));
+
+		final all = row.clips;
+		final picked = new mdd.view.Picked<Clip>();
+
+		picked.alters(all, null, all[1], false, false);
+		final one = picked.count;
+
+		picked.alters(all, all[1], all[3], true, false);
+		final range = picked.count;
+
+		picked.alters(all, all[3], all[2], false, true);
+		final dropped = picked.count;
+
+		picked.alters(all, all[3], all[2], false, true);
+		final added = picked.count;
+
+		picked.alters(all, all[3], all[0], false, false);
+		final alone = picked.count;
+
+		says("a click, a range and a toggle pick what they say",
+			one == 1 && range == 3 && dropped == 2 && added == 3 && alone == 1,
+			"over five clips a click takes " + one + ", a shift click three along takes "
+			+ range + ", a ctrl click drops one to " + dropped + " and puts it back at "
+			+ added + ", and a click away from all of them is back to " + alone);
 	}
 
 	static function wholes(held:Array<Int>, bar:Int):String {

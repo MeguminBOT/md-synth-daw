@@ -1389,22 +1389,39 @@ class SpineCheck {
 			+ "first " + (two ? "two" : "of something else"));
 
 		final third = lane.notes[2];
-		final shift = new mdd.ui.Input();
+		final press = new mdd.ui.Input();
+		final seat = roll.atPitch(60) + roll.rowTall * 0.5;
 
-		shift.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2,
-			roll.atPitch(60) + roll.rowTall * 0.5, mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
-		roll.took(shift);
+		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2, seat,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
+		roll.took(press);
 
-		final grew = roll.picked.count == 3 && roll.picked.holds(third);
+		final ranged = roll.picked.count == 2 && roll.picked.holds(third)
+			&& roll.picked.holds(lane.notes[1]);
 
-		shift.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2,
-			roll.atPitch(60) + roll.rowTall * 0.5, mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
-		roll.took(shift);
+		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(lane.notes[0].at) + 2, seat,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
+		roll.took(press);
 
-		says("and shift adds one and takes it away again",
-			grew && roll.picked.count == 2 && !roll.picked.holds(third),
-			"three after shift on a third note, " + roll.picked.count + " after shift on it "
-			+ "again");
+		final wider = roll.picked.count == 3;
+
+		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2, seat,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.Ctrl);
+		roll.took(press);
+
+		final without = roll.picked.count == 2 && !roll.picked.holds(third);
+
+		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2, seat,
+			mdd.ui.Pointer.Left, mdd.ui.Mod.Ctrl);
+		roll.took(press);
+
+		says("and shift takes a range where ctrl takes one out of it",
+			ranged && wider && without && roll.picked.count == 3
+			&& roll.picked.holds(third),
+			"shift on the third note of a band of two reaches " + (ranged ? "2" : "something"
+			+ " else") + ", shift back to the first reaches " + (wider ? "3" : "something else")
+			+ ", and a ctrl click drops it to " + (without ? "2" : "something else")
+			+ " and puts it back at " + roll.picked.count);
 
 		roll.edited(mdd.ui.Edit.ALL);
 

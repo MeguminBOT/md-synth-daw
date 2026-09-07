@@ -63,6 +63,38 @@ final class Picked<T:{}> {
 		marks.clear();
 	}
 
+	public function alters(order:Array<T>, anchor:Null<T>, lead:T, shift:Bool,
+			ctrl:Bool):Void {
+		if (shift) {
+			ranges(order, anchor, lead);
+			return;
+		}
+
+		if (ctrl) {
+			toggles(lead);
+			return;
+		}
+
+		if (!holds(lead)) only(lead);
+	}
+
+	public function ranges(order:Array<T>, anchor:Null<T>, lead:T):Void {
+		final from = anchor == null ? -1 : order.indexOf(anchor);
+		final to = order.indexOf(lead);
+
+		if (from < 0 || to < 0) {
+			only(lead);
+			return;
+		}
+
+		clear();
+
+		final head = from < to ? from : to;
+		final tail = from < to ? to : from;
+
+		for (index in head...tail + 1) adds(order[index]);
+	}
+
 	public function taken():Array<T> {
 		return order.copy();
 	}

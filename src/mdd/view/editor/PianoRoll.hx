@@ -636,7 +636,7 @@ final class PianoRoll extends Widget {
 		bandToX = event.x;
 		bandToY = event.y;
 
-		if (!event.shift() && !event.ctrl()) {
+		if (!event.ctrl()) {
 			picked.clear();
 			chosen = null;
 		}
@@ -765,15 +765,14 @@ final class PianoRoll extends Widget {
 		return out;
 	}
 
-	function alters(lead:Note, shift:Bool):Void {
-		if (shift) {
-			picked.toggles(lead);
-			chosen = picked.holds(lead) ? lead : picked.lead();
-			return;
-		}
+	function alters(lead:Note, shift:Bool, ctrl:Bool):Void {
+		picked.alters(everything(), chosen, lead, shift, ctrl);
+		chosen = picked.holds(lead) ? lead : picked.lead();
+	}
 
-		if (!picked.holds(lead)) picked.only(lead);
-		chosen = lead;
+	function everything():Array<Note> {
+		final pattern = session.current();
+		return pattern == null ? [] : pattern.lane(session.part).notes;
 	}
 
 	public function scrollTo(px:Float, py:Float):Void {
@@ -910,7 +909,7 @@ final class PianoRoll extends Widget {
 				final under = noteAt(event.x, event.y);
 
 				if (event.button == Pointer.Right) {
-					if (under != null) alters(under, false);
+					if (under != null) alters(under, false, false);
 					popped(under, event.x, event.y);
 					invalidate();
 					return true;
@@ -932,7 +931,7 @@ final class PianoRoll extends Widget {
 					}
 
 					final adding = event.shift() || event.ctrl();
-					alters(under, adding);
+					alters(under, event.shift(), event.ctrl());
 
 					if (adding) {
 						invalidate();
