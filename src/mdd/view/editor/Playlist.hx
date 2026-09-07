@@ -10,6 +10,7 @@ import mdd.song.edit.MoveTrack;
 import mdd.song.edit.RemoveClip;
 import mdd.song.edit.RemoveTrack;
 import mdd.song.edit.SizeClip;
+import mdd.song.edit.SliceClip;
 import mdd.song.Part;
 import mdd.ui.Colour;
 import mdd.ui.control.Choice;
@@ -441,6 +442,11 @@ final class Playlist extends Widget {
 		}
 
 		if (under != null) {
+			if (session.tool == Session.SLICE && event.button == Pointer.Left) {
+				sliced(which, under, freely(tickAt(event.x), event.alt()));
+				return true;
+			}
+
 			final adding = event.shift() || event.ctrl();
 			alters(under, which, adding);
 
@@ -488,6 +494,21 @@ final class Playlist extends Widget {
 
 		invalidate();
 		return true;
+	}
+
+	function sliced(which:Int, clip:Clip, at:Int):Void {
+		if (!SliceClip.splits(clip, at)) return;
+
+		final was = clip.length;
+
+		session.does(new SliceClip(which, clip, at));
+
+		picked.only(clip);
+		chosen = clip;
+		chosenTrack = which;
+
+		session.say("sliced into " + clip.length + " and " + (was - clip.length) + " ticks");
+		invalidate();
 	}
 
 	function trackOf(clip:Clip):Int {

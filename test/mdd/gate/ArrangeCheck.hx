@@ -37,6 +37,7 @@ class ArrangeCheck {
 		reordered();
 		fitted();
 		dressed();
+		cut();
 		reversed();
 		nudged();
 
@@ -359,6 +360,38 @@ class ArrangeCheck {
 			+ (mdd.format.Project.text(song) == before ? "what it was" : "not what it was"));
 	}
 
+	static function cut():Void {
+		final song = rich();
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		final clip = song.tracks[0].clips[0];
+		final was = clip.length;
+		final at = clip.at + 96;
+
+		history.does(song, new mdd.song.edit.SliceClip(0, clip, at));
+
+		final clips = song.tracks[0].clips;
+		final halves = clips.length == 3 && clips[0] == clip
+			&& clips[0].length + clips[1].length == was
+			&& clips[1].at == at && clips[1].pattern == clip.pattern
+			&& clips[1].transpose == clip.transpose;
+
+		says("a sliced clip is two clips that sum to the one", halves,
+			"a clip of " + was + " ticks cut at " + at + " leaves "
+			+ clips[0].length + " and " + (clips.length > 1 ? clips[1].length : 0)
+			+ ", the second carrying the same pattern and transpose");
+
+		history.undo(song);
+
+		final back = mdd.format.Project.text(song) == before;
+
+		says("and joining it back up is byte for byte",
+			song.tracks[0].clips.length == 2 && back,
+			song.tracks[0].clips.length + " clips left on the track and the song is "
+			+ (back ? "what it was" : "not what it was"));
+	}
+
 	static function wholes(held:Array<Int>, bar:Int):String {
 		final out:Array<String> = [];
 		for (value in held) out.push(Std.string(Math.round(value / bar)));
@@ -498,6 +531,8 @@ class ArrangeCheck {
 		offer("MoveClip", function(song) return new mdd.song.edit.MoveClip(0,
 			song.tracks[0].clips[0], 576, 3));
 		offer("SizeClip", function(song) return new mdd.song.edit.SizeClip(0,
+			song.tracks[0].clips[0], 96));
+		offer("SliceClip", function(song) return new mdd.song.edit.SliceClip(0,
 			song.tracks[0].clips[0], 96));
 
 		offer("AddPattern", function(song) return new AddPattern(new Pattern("three", 96)));
