@@ -33,6 +33,19 @@ final class Pattern {
 		return lanes[part.index()].notes.length > 0;
 	}
 
+	public function fits(bar:Int):Int {
+		final was = length;
+		if (bar < 1) return was;
+
+		final most = longest();
+		var want = Math.ceil(most / bar) * bar;
+
+		if (want < bar) want = bar;
+		length = want;
+
+		return was;
+	}
+
 	public function longest():Int {
 		var most = 0;
 		for (i in 0...Part.COUNT) {

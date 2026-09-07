@@ -2303,6 +2303,30 @@ class SpineCheck {
 			+ " hidden of "
 			+ tabs.labels.length);
 
+		final held = session.current();
+		final was = held.length;
+		final depth = session.history.depth();
+		final resized:Array<String> = [];
+
+		for (field in bar.fields()) {
+			final value = field.value;
+
+			field.set(value + 1);
+			if (session.history.last() == "resize a pattern") resized.push(field.label);
+
+			field.set(value - 1);
+			if (session.history.last() == "resize a pattern") resized.push(field.label);
+
+			field.set(value);
+		}
+
+		while (session.history.depth() > depth) session.history.undo(session.song);
+
+		says("no field on the transport bar sets a pattern's length", resized.length == 0,
+			bar.fields().length + " fields driven either way and " + resized.length
+			+ " reached for a resize" + (resized.length == 0 ? "" : ": " + resized.join(", "))
+			+ ", with the pattern holding " + held.notes() + " notes across " + was + " ticks");
+
 		tree.resize(1440, 900);
 		shell.fit(metrics);
 

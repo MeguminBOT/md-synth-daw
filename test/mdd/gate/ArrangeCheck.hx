@@ -35,6 +35,7 @@ class ArrangeCheck {
 		shifted();
 		carried();
 		reordered();
+		fitted();
 		reversed();
 		nudged();
 
@@ -322,6 +323,64 @@ class ArrangeCheck {
 			mdd.format.Project.text(song) == before,
 			"the song is " + (mdd.format.Project.text(song) == before
 			? "what it was" : "not what it was"));
+	}
+
+	static function wholes(held:Array<Int>, bar:Int):String {
+		final out:Array<String> = [];
+		for (value in held) out.push(Std.string(Math.round(value / bar)));
+		return out.join(", ");
+	}
+
+	static function fitted():Void {
+		final song = new Song("fitted", 96, 120);
+		final bar = song.tempo.ppqn * 4;
+		final pattern = song.add(new Pattern("one", bar));
+
+		final near = new Note(0, 96, 60, 100);
+		final far = new Note(bar * 2, 96, 62, 100);
+
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+		final grew:Array<Int> = [];
+
+		history.does(song, new mdd.song.edit.AddNote(0, Part.Fm1, near));
+		grew.push(pattern.length);
+
+		history.does(song, new mdd.song.edit.AddNote(0, Part.Fm1, far));
+		grew.push(pattern.length);
+
+		history.does(song, new mdd.song.edit.SizeNote(0, Part.Fm1, far, 480));
+		grew.push(pattern.length);
+
+		history.does(song, new mdd.song.edit.MoveNote(0, Part.Fm1, far, bar * 4, 62));
+		grew.push(pattern.length);
+
+		history.does(song, new ResizePattern(0, bar * 9));
+		grew.push(pattern.length);
+
+		history.does(song, new mdd.song.edit.RemoveNote(0, Part.Fm1, far));
+		grew.push(pattern.length);
+
+		final want:Array<Int> = [bar, bar * 3, bar * 4, bar * 6, bar * 9, bar];
+
+		var same = grew.length == want.length;
+		for (index in 0...grew.length) if (grew[index] != want[index]) same = false;
+
+		says("a pattern's length follows its notes", same,
+			"an add, a second add two bars out, a resize, a move, a set and a remove leave it "
+			+ wholes(grew, bar) + " bars, wanting " + wholes(want, bar)
+			+ ", and a note of a quarter bar still holds one whole one");
+
+		var undone = 0;
+		while (history.undo(song)) undone++;
+
+		final back = mdd.format.Project.text(song) == before;
+
+		says("and every one of them undoes to the length it started at",
+			undone == 6 && pattern.length == bar && back,
+			undone + " edits reverted, the pattern back to "
+			+ Math.round(pattern.length / bar) + " bar and the song "
+			+ (back ? "byte for byte what it was" : "not what it was"));
 	}
 
 	static function nudged():Void {

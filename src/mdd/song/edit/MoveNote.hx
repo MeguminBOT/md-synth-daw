@@ -11,6 +11,7 @@ final class MoveNote implements Command {
 	var wasAt:Int = 0;
 	var wasPitch:Int = 0;
 	var wasInstrument:Int = 0;
+	var wasLength:Int = 0;
 
 	public function new(pattern:Int, part:Part, note:Note, at:Int, pitch:Int,
 			instrument:Int = -2) {
@@ -31,7 +32,11 @@ final class MoveNote implements Command {
 		note.pitch = pitch;
 		if (instrument != -2) note.instrument = instrument;
 
-		resort(song);
+		final held = song.patternAt(pattern);
+		if (held == null) return;
+
+		held.lane(part).sort();
+		wasLength = held.fits(song.tempo.ppqn * 4);
 	}
 
 	public function revert(song:Song):Void {
@@ -39,12 +44,11 @@ final class MoveNote implements Command {
 		note.pitch = wasPitch;
 		note.instrument = wasInstrument;
 
-		resort(song);
-	}
-
-	function resort(song:Song):Void {
 		final held = song.patternAt(pattern);
-		if (held != null) held.lane(part).sort();
+		if (held == null) return;
+
+		held.lane(part).sort();
+		held.length = wasLength;
 	}
 
 	public function label():String {

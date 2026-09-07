@@ -38,7 +38,6 @@ final class TransportBar extends Widget {
 	public final offset:Number;
 	public var regrids:Bool = false;
 	final resolution:Number;
-	public final length:Number;
 	final video:Number;
 	public final snap:Number;
 
@@ -65,12 +64,11 @@ final class TransportBar extends Widget {
 
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
 		resolution = new Number("", song.tempo.ppqn, 24, 48000);
-		length = new Number("", bars(), 1, 256);
 		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
 		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
 		offset = new Number("", song.offset, -960, 960);
 
-		held = [tempo, resolution, length, video, snap, offset];
+		held = [tempo, resolution, video, snap, offset];
 
 		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
 		snap.derived = function(value:Int):String return SNAP_NAMES[value];
@@ -85,7 +83,6 @@ final class TransportBar extends Widget {
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
 		resolution.onChange = function(from:Number):Void resolutionChanged(from);
-		length.onChange = function(from:Number):Void lengthChanged(from);
 		video.onChange = function(from:Number):Void videoChanged(from);
 		snap.onChange = function(from:Number):Void snapChanged(from);
 		offset.onChange = function(from:Number):Void offsetChanged(from);
@@ -93,13 +90,6 @@ final class TransportBar extends Widget {
 
 	public function fields():Array<Number> {
 		return held;
-	}
-
-	function bars():Int {
-		final pattern = session.current();
-		final bar = session.song.tempo.ppqn * 4;
-
-		return pattern == null || bar <= 0 ? 4 : Math.round(pattern.length / bar);
 	}
 
 	function snapIndex():Int {
@@ -116,18 +106,9 @@ final class TransportBar extends Widget {
 		if (settling) return;
 		settling = true;
 
-		final pattern = session.current();
-		final named = pattern == null ? translate(Locale.TRANSPORT_BARS) : pattern.name;
-
-		if (named != length.label) {
-			length.label = named;
-			relayout();
-		}
-
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
 		offset.set(session.song.offset);
 		resolution.set(session.song.tempo.ppqn);
-		length.set(bars());
 		video.set(session.song.tempo.rate == 50 ? 0 : 1);
 		snap.set(snapIndex());
 
@@ -155,16 +136,6 @@ final class TransportBar extends Widget {
 		session.song.retick(from.value);
 		session.snap = Math.round(from.value * 4 / SNAPS[snap.value]);
 		session.changed();
-	}
-
-	function lengthChanged(from:Number):Void {
-		if (settling) return;
-
-		final pattern = session.current();
-		if (pattern == null) return;
-
-		session.does(new mdd.song.edit.ResizePattern(session.pattern,
-			from.value * session.song.tempo.ppqn * 4));
 	}
 
 	function videoChanged(from:Number):Void {
