@@ -20,8 +20,8 @@
 
 	<update github="MeguminBOT/md-synth-daw" />
 
-	<presence discord="1546264890317086730" cover="embedded_cover"
-		playing="embedded_icon" stopped="embedded_icon" working="embedded_icon" />
+	<presence discord="1546264890317086730" cover="cover"
+		playing="playing" stopped="stopped" working="working" />
 
 
 	<!-- build -->

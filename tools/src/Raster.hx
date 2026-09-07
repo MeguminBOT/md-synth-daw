@@ -3,7 +3,46 @@ import haxe.io.Bytes;
 class Raster {
 	public static inline final SAMPLES = 5;
 
+	public static function paint(svg:Svg, size:Int):Bytes {
+		final out = Bytes.alloc(size * size * 4);
+		final one:Array<Svg.Shape> = [];
+
+		for (shape in svg.shapes) {
+			one.resize(0);
+			one.push(shape);
+
+			final mask = covered(one, svg.width, svg.height, size);
+
+			final red = (shape.colour >> 16) & 0xFF;
+			final green = (shape.colour >> 8) & 0xFF;
+			final blue = shape.colour & 0xFF;
+
+			for (index in 0...size * size) {
+				final cover = mask.get(index);
+				if (cover == 0) continue;
+
+				final at = index * 4;
+				final over = cover / 255.0;
+				final under = out.get(at + 3) / 255.0 * (1 - over);
+				final total = over + under;
+
+				if (total <= 0) continue;
+
+				out.set(at, Std.int((red * over + out.get(at) * under) / total));
+				out.set(at + 1, Std.int((green * over + out.get(at + 1) * under) / total));
+				out.set(at + 2, Std.int((blue * over + out.get(at + 2) * under) / total));
+				out.set(at + 3, Std.int(total * 255));
+			}
+		}
+
+		return out;
+	}
+
 	public static function fill(svg:Svg, size:Int):Bytes {
+		return covered(svg.shapes, svg.width, svg.height, size);
+	}
+
+	static function covered(shapes:Array<Svg.Shape>, wide:Float, high:Float, size:Int):Bytes {
 		final out = Bytes.alloc(size * size);
 		final tall = size * SAMPLES;
 
@@ -11,13 +50,13 @@ class Raster {
 		sums.resize(size * size);
 		for (index in 0...sums.length) sums[index] = 0;
 
-		final scale = svg.width <= 0 ? 1 : size / svg.width;
-		final down = svg.height <= 0 ? 1 : size / svg.height;
+		final scale = wide <= 0 ? 1 : size / wide;
+		final down = high <= 0 ? 1 : size / high;
 
 		final crossings:Array<Float> = [];
 		final winding:Array<Int> = [];
 
-		for (shape in svg.shapes) {
+		for (shape in shapes) {
 			final weight = shape.alpha <= 0 ? 0 : (shape.alpha >= 1 ? 1.0 : shape.alpha);
 			if (weight <= 0) continue;
 

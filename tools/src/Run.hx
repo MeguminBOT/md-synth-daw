@@ -9,6 +9,8 @@ class Run {
 	static inline final VORBIS_VERSION = "1.3.7";
 	static inline final OPUS_VERSION = "1.5.2";
 
+	static inline final PRESENCE:Int = 1024;
+
 
 	public static function main():Void {
 		final args = Sys.args();
@@ -24,6 +26,7 @@ class Run {
 		switch (args[0]) {
 			case "setup": setup(root, project, args.slice(1));
 			case "check": check(root, project);
+			case "presence": presence(root, project);
 			case "display": display(root, project, true);
 			case "build": build(root, project, args.slice(1), debug);
 			case "run": start(root, project, args.slice(1), debug);
@@ -133,6 +136,7 @@ class Run {
 	static function usage(project:Project):Void {
 		Sys.println("");
 		Sys.println("  mdd setup             fetch what vendor/ is missing");
+		Sys.println("  mdd presence          draw the discord art assets from assets/presence");
 		Sys.println("  mdd check             what is present and what is missing");
 		Sys.println("  mdd build [target]    build a target. -debug for a debug build");
 		Sys.println("  mdd run [args]        build the application and start it");
@@ -217,6 +221,43 @@ class Run {
 
 		Sys.println("");
 		check(root, project);
+	}
+
+	static function presence(root:String, project:Project):Void {
+		final from = root + "/assets/presence";
+
+		if (!FileSystem.exists(from)) {
+			Sys.println("mdd: nothing in assets/presence to draw");
+			return;
+		}
+
+		final into = root + "/" + project.output + "/presence";
+		tree(into);
+
+		Sys.println("");
+
+		final held = FileSystem.readDirectory(from);
+		held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+
+		for (entry in held) {
+			if (!StringTools.endsWith(entry, ".svg")) continue;
+
+			final name = entry.substr(0, entry.length - 4);
+			final svg = Svg.read(File.getContent(from + "/" + entry));
+
+			final rgba = Raster.paint(svg, PRESENCE);
+			final at = into + "/" + name + ".png";
+
+			File.saveBytes(at, Png.write(rgba, PRESENCE));
+
+			Sys.println("  " + pad(name) + PRESENCE + "x" + PRESENCE + ", "
+				+ Math.round(FileSystem.stat(at).size / 1024) + " kb");
+		}
+
+		Sys.println("");
+		Sys.println("  upload these as the art assets of the discord application named in");
+		Sys.println("  mdd.xml, under the same names, then set them in the presence block");
+		Sys.println("");
 	}
 
 	static function check(root:String, project:Project):Void {

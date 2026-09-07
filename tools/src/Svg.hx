@@ -6,6 +6,7 @@ typedef Shape = {
 	final contours:Array<Contour>;
 	final evenOdd:Bool;
 	final alpha:Float;
+	final colour:Int;
 };
 
 class Svg {
@@ -17,6 +18,39 @@ class Svg {
 	static inline final STEPS = 12;
 
 	function new() {}
+
+	public static function painted(fill:String):Int {
+		if (fill == "" || fill.charAt(0) != "#") return 0;
+
+		final said = fill.substr(1);
+		var out = 0;
+
+		if (said.length == 3) {
+			for (index in 0...3) {
+				final one = digit(said.charCodeAt(index));
+				out = (out << 8) | (one << 4) | one;
+			}
+
+			return out;
+		}
+
+		for (index in 0...6) {
+			if (index >= said.length) return out << ((6 - index) * 4);
+			out = (out << 4) | digit(said.charCodeAt(index));
+		}
+
+		return out;
+	}
+
+	static function digit(code:Null<Int>):Int {
+		if (code == null) return 0;
+
+		if (code >= "0".code && code <= "9".code) return code - "0".code;
+		if (code >= "a".code && code <= "f".code) return code - "a".code + 10;
+		if (code >= "A".code && code <= "F".code) return code - "A".code + 10;
+
+		return 0;
+	}
 
 	public static function read(said:String):Svg {
 		final out = new Svg();
@@ -55,7 +89,8 @@ class Svg {
 			out.shapes.push({
 				contours: out.traced(data),
 				evenOdd: rule == "evenodd",
-				alpha: held == "" ? 1.0 : Std.parseFloat(held)
+				alpha: held == "" ? 1.0 : Std.parseFloat(held),
+				colour: painted(fill)
 			});
 		}
 
