@@ -170,27 +170,18 @@ class Icons {
 	public static function typefaces(project:Project, into:String):Void {
 		final out = new StringBuf();
 
-		out.add("package mdd;
-
-");
-		out.add("class Typeface {
-");
-		out.add("	public static inline final COUNT = " + project.typefaces.length + ";
-
-");
+		out.add("package mdd;\n\n");
+		out.add("class Typeface {\n");
+		out.add("\tpublic static inline final COUNT = " + project.typefaces.length + ";\n\n");
 
 		out.add(listed("NAMES", [for (held in project.typefaces) held.name]));
-		out.add("
-");
+		out.add("\n");
 		out.add(listed("SANS", [for (held in project.typefaces) held.sans]));
-		out.add("
-");
+		out.add("\n");
 		out.add(listed("MONO", [for (held in project.typefaces) held.mono]));
-		out.add("
-");
+		out.add("\n");
 		out.add(listed("FALLBACK", project.fallbacks));
-		out.add("}
-");
+		out.add("}\n");
 
 		tree(into + "/mdd");
 		File.saveContent(into + "/mdd/Typeface.hx", out.toString());
@@ -199,26 +190,22 @@ class Icons {
 	static function listed(name:String, held:Array<String>):String {
 		final out = new StringBuf();
 
-		out.add("	public static final " + name + ":Array<String> = [
-");
+		out.add("\tpublic static final " + name + ":Array<String> = [\n");
 
-		var line = "		";
+		var line = "\t\t";
 
 		for (index in 0...held.length) {
 			final said = "\"" + held[index] + "\"" + (index == held.length - 1 ? "" : ",");
 
 			if (line.length + said.length > 100) {
-				out.add(line + "
-");
-				line = "		";
+				out.add(line + "\n");
+				line = "\t\t";
 			}
 
 			line += (line.length > 2 ? " " : "") + said;
 		}
 
-		out.add(line + "
-	];
-");
+		out.add(line + "\n\t];\n");
 		return out.toString();
 	}
 
