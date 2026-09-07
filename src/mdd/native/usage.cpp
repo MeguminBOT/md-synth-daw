@@ -135,10 +135,92 @@ extern "C" double mdd_usage_gpu() {
 
 #else
 
-extern "C" void mdd_usage_start() {}
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <cstdio>
+
+#ifdef __APPLE__
+#include <mach/mach.h>
+#endif
+
+static double heldBusy = 0;
+static double heldWall = 0;
+static double heldCpu = 0;
+
+static double mdd_usage_now() {
+	struct timeval held;
+	gettimeofday(&held, nullptr);
+
+	return held.tv_sec + held.tv_usec / 1000000.0;
+}
+
+static double mdd_usage_spent() {
+	struct rusage held;
+	if (getrusage(RUSAGE_SELF, &held) != 0) return -1;
+
+	return held.ru_utime.tv_sec + held.ru_utime.tv_usec / 1000000.0
+		+ held.ru_stime.tv_sec + held.ru_stime.tv_usec / 1000000.0;
+}
+
+extern "C" void mdd_usage_start() {
+	heldBusy = mdd_usage_spent();
+	heldWall = mdd_usage_now();
+}
+
 extern "C" void mdd_usage_stop() {}
-extern "C" double mdd_usage_cpu() { return -1; }
-extern "C" double mdd_usage_ram() { return -1; }
-extern "C" double mdd_usage_gpu() { return -1; }
+
+extern "C" double mdd_usage_cpu() {
+	const double busy = mdd_usage_spent();
+	const double wall = mdd_usage_now();
+
+	if (busy < 0) return heldCpu;
+
+	if (wall > heldWall && busy >= heldBusy) {
+		const long cores = sysconf(_SC_NPROCESSORS_ONLN);
+		const double many = cores < 1 ? 1.0 : (double) cores;
+
+		heldCpu = (busy - heldBusy) / (wall - heldWall) * 100.0 / many;
+
+		if (heldCpu < 0) heldCpu = 0;
+		if (heldCpu > 100) heldCpu = 100;
+	}
+
+	heldBusy = busy;
+	heldWall = wall;
+
+	return heldCpu;
+}
+
+extern "C" double mdd_usage_ram() {
+#ifdef __APPLE__
+	mach_task_basic_info info;
+	mach_msg_type_number_t many = MACH_TASK_BASIC_INFO_COUNT;
+
+	if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t) &info, &many)
+			!= KERN_SUCCESS) {
+		return -1;
+	}
+
+	return (double) info.resident_size / (1024.0 * 1024.0);
+#else
+	FILE *file = fopen("/proc/self/statm", "r");
+	if (file == nullptr) return -1;
+
+	long total = 0;
+	long resident = 0;
+
+	const int read = fscanf(file, "%ld %ld", &total, &resident);
+	fclose(file);
+
+	if (read != 2) return -1;
+
+	return (double) resident * (double) sysconf(_SC_PAGESIZE) / (1024.0 * 1024.0);
+#endif
+}
+
+extern "C" double mdd_usage_gpu() {
+	return -1;
+}
 
 #endif
