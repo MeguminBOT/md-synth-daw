@@ -164,6 +164,11 @@ class Run {
 		return StringTools.rpad(text, " ", 14);
 	}
 
+	static function vendored(root:String, source:{final present:String; final system:String;}):Bool {
+		if (FileSystem.exists(root + "/vendor/" + source.present)) return true;
+		return source.system != "" && FileSystem.exists(source.system);
+	}
+
 	static function setup(root:String, project:Project):Void {
 		final vendor = root + "/vendor";
 		tree(vendor);
@@ -171,7 +176,7 @@ class Run {
 		Sys.println("");
 
 		for (source in project.vendors) {
-			if (FileSystem.exists(vendor + "/" + source.present)) {
+			if (vendored(root, source)) {
 				Sys.println("  " + pad(source.name) + "present");
 				continue;
 			}
@@ -191,7 +196,7 @@ class Run {
 				case _: false;
 			}
 
-			if (!done || !FileSystem.exists(vendor + "/" + source.present)) {
+			if (!done || !vendored(root, source)) {
 				Sys.println("  " + pad("") + "failed. " + source.about);
 				if (source.name == "SDL3" && !windows()) {
 					Sys.println("  " + pad("") + "install SDL3 from the system packages");
@@ -215,7 +220,7 @@ class Run {
 		Sys.println("  vendor");
 
 		for (source in project.vendors) {
-			final here = FileSystem.exists(vendor + "/" + source.present);
+			final here = vendored(root, source);
 			if (!here) missing++;
 			Sys.println("    " + (here ? "[x] " : "[ ] ") + pad(source.name) + source.about);
 		}

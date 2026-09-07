@@ -9,6 +9,7 @@ typedef Target = {
 typedef Vendor = {
 	final name:String;
 	final present:String;
+	final system:String;
 	final size:String;
 	final about:String;
 }
@@ -255,7 +256,9 @@ class Project {
 
 			case "vendor":
 				vendors.push({
-					name: node.get("name"), present: node.get("present"),
+					name: node.get("name"),
+					present: node.get("present"),
+					system: has(node, "system") ? node.get("system") : "",
 					size: has(node, "size") ? node.get("size") : "",
 					about: has(node, "about") ? node.get("about") : ""
 				});

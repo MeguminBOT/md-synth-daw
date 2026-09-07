@@ -107,7 +107,8 @@
 
 	<!-- Fetched by ./mdd setup into vendor/, which is never tracked and never edited. -->
 
-	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" size="12 MB"
+	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" system="/usr/include/SDL3/SDL.h"
+		size="12 MB"
 		about="the window and its events, called directly. A system package off Windows" />
 	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
 		about="the audio device, called directly" />
