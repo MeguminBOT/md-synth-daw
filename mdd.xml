@@ -1,20 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- The one file the build reads. No .hxml is written by hand: ./mdd builds from this, and
-	     generates the editor's completion files from it too.
+	<!-- The one file the build reads. Any element takes if="..." and unless="...", over windows,
+	     linux, mac, desktop, debug, release, a toolchain name, or llvm. Order does not matter.
 
-	     Elements may appear in any order. Any of them takes if="..." and unless="...", over
-	     windows, linux, mac, desktop, debug, release, a toolchain name, or llvm.
-
-	     Do not rename this to project.xml, Project.xml, project.hxp or project.lime. Any of those
-	     four makes the Lime editor extension claim the workspace and feed the Haxe language
-	     server arguments from a lime command that is not installed here, and completion dies
-	     with nothing said about why. -->
+	     Never call this project.xml, Project.xml, project.hxp or project.lime: any of the four
+	     makes the Lime editor extension claim the workspace, and completion dies silently. -->
 
 
-	<!-- ==============================================================================
-	     THE APPLICATION
-	     ============================================================================== -->
+	<!-- application -->
 
 	<meta title="MD Synth DAW" short="mdd" version="0.1.0"
 		company="md-synth-daw"
@@ -23,52 +16,27 @@
 	<window width="1440" height="900" least-width="960" least-height="600"
 		vsync="true" resizable="true" high-dpi="true" />
 
-	<!-- The saved project: its suffix, what a file browser calls it, its media type. -->
-
 	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn" />
 
-	<!-- Where the updater reads releases from. Empty means it never looks. -->
-
 	<update github="MeguminBOT/md-synth-daw" />
-
-	<!-- Discord rich presence. The id comes from an application at discord.com/developers, and
-	     empty means the socket is never opened. The other four name that application's art
-	     assets; a name nothing answers to leaves that image out. An empty badge also loses the
-	     tooltip carrying the tempo and position, since Discord hangs one on the other. -->
 
 	<presence discord="1546264890317086730" cover="embedded_cover"
 		playing="embedded_icon" stopped="embedded_icon" working="embedded_icon" />
 
 
-	<!-- ==============================================================================
-	     HOW IT BUILDS
-	     ============================================================================== -->
-
-	<!-- The first toolchain whose probe is on the path is the one a build uses, so LLVM wins
-	     wherever LLVM is installed. A name given to mdd build overrides it. No probe means
-	     assumed present, because hxcpp finds the Microsoft compiler through its own vcvars
-	     rather than through the path. A name is also a condition, and llvm holds for all
-	     three of them. -->
+	<!-- build -->
 
 	<toolchains>
 		<toolchain name="clang-cl" if="windows" probe="clang-cl"
 			about="LLVM against the Microsoft ABI, linked by the Microsoft linker" />
 		<toolchain name="msvc" if="windows"
 			about="the Microsoft compiler and linker" />
-
-		<!-- Asked for by name rather than picked up: a different ABI, and it writes DWARF
-		     rather than a PDB, so nothing walks its stack and a crash reports no frames. Good
-		     for a second compiler's warnings, not for anything shipped. -->
-
 		<toolchain name="mingw" if="windows" probe="none"
 			about="LLVM or GCC against the mingw-w64 ABI, with no crash report" />
 
 		<toolchain name="clang" unless="windows" probe="clang++" about="LLVM" />
 		<toolchain name="gcc" unless="windows" about="GCC" />
 	</toolchains>
-
-	<!-- src/ is the application. Only the gate adds a source path of its own, so nothing that
-	     tests the application is compiled into it. -->
 
 	<source path="src" />
 	<generated path="export/haxe" />
@@ -80,12 +48,7 @@
 		<source path="test" />
 	</target>
 
-	<!-- A debug build carries the hxcpp debug server, on port 6972. -->
-
 	<library name="hxcpp-debug-server" if="debug" />
-
-	<!-- Haxe defines none of these for the cpp target, so every #if windows, #if linux and
-	     #if mac in the source depends on them being here. -->
 
 	<define name="windows" if="windows" />
 	<define name="linux" if="linux" />
@@ -101,11 +64,7 @@
 	<define name="HXCPP_DEBUG_LINK" />
 
 
-	<!-- ==============================================================================
-	     WHAT IT IS BUILT FROM
-	     ============================================================================== -->
-
-	<!-- Fetched by ./mdd setup into vendor/, which is never tracked and never edited. -->
+	<!-- sources -->
 
 	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" system="/usr/include/SDL3/SDL.h"
 		size="12 MB"
@@ -128,7 +87,6 @@
 
 	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB"
 		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
-	<!-- Names for the paths below, so a vendored source moves in one place. -->
 
 	<path name="SDL3PATH" value="vendor/SDL3" />
 	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
@@ -139,8 +97,6 @@
 	<path name="OGGPATH" value="vendor/libogg" />
 	<path name="VORBISPATH" value="vendor/libvorbis" />
 	<path name="OPUSPATH" value="vendor/libopus" />
-	<!-- The C++ compiled beside the Haxe. A tree takes every file with the suffix, less the
-	     ones skip names, and an include on a tree is given to that tree alone. -->
 
 	<native path="src/mdd/native">
 		<file name="window.cpp" />
@@ -162,10 +118,9 @@
 		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
 
 		<tree path="vendor/libogg/src" suffix=".c" />
-		<!-- libvorbis quote-includes "modes/floor_all.h" from inside lib/modes, which needs lib
-		     on the path. Only the Microsoft compiler finds it without one, by walking the
-		     include stack. The path goes to this tree alone: libvorbis and libopus both declare
-		     mdct_lookup, and a shared one lets each see the other's header. -->
+
+		<!-- its own quote-includes need lib on the path, and it is kept off the shared list
+		     because libopus declares mdct_lookup as well -->
 
 		<tree path="vendor/libvorbis/lib" suffix=".c"
 			skip="barkmel,misc,psytune,tone,vorbisfile" include="vendor/libvorbis/lib" />
@@ -175,6 +130,7 @@
 		<tree path="vendor/libopus/src" suffix=".c"
 			skip="opus_compare,opus_demo,repacketizer_demo" />
 	</native>
+
 	<include value="${SDL3PATH}/include" if="windows" />
 	<include value="${MINIAUDIOPATH}" />
 	<include value="${STBPATH}" />
@@ -186,15 +142,9 @@
 	<include value="${OPUSPATH}/silk" />
 	<include value="${OPUSPATH}/silk/float" />
 
-	<!-- SDL3 is vendored on Windows and a system package everywhere else. mingw's linker takes
-	     the DLL directly, so it needs no import library of its own. -->
-
 	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
 	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
 	<link value="-lSDL3" unless="windows" />
-
-	<!-- What the Windows sources call into. These were pragma comment lines, which only the
-	     Microsoft compiler reads; named here, every Windows toolchain gets them. -->
 
 	<link value="dbghelp.lib" if="windows" unless="mingw" />
 	<link value="winmm.lib" if="windows" unless="mingw" />
@@ -214,24 +164,13 @@
 	<link value="-framework CoreAudio" if="mac" />
 	<link value="-framework AudioToolbox" if="mac" />
 
-	<!-- Copied beside the executable so it runs from export/bin with nothing installed. -->
-
 	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
 
 
-	<!-- ==============================================================================
-	     ASSETS
-	     ============================================================================== -->
+	<!-- assets -->
 
 	<languages path="assets/lang" />
 	<appicon path="assets/icon" />
-
-	<!-- A face says where it is fetched from: go: from the Go image repository, ofl: from
-	     google/fonts. A typeface pairs a sans with a mono and is what preferences lists.
-
-	     A fallback is never an interface font. It is asked, in order, for a codepoint the
-	     chosen face has no glyph for, and cut from one glyph at a time into the atlas that
-	     face already owns. The three CJK faces carry kana, hangul and the ideographs. -->
 
 	<typefaces path="vendor/fonts">
 		<face name="Go-Regular.ttf" from="go:Go-Regular.ttf" />
@@ -270,10 +209,9 @@
 		<typeface name="Work Sans" sans="WorkSans.ttf" mono="RobotoMono.ttf" />
 		<typeface name="Open Sans" sans="OpenSans.ttf" mono="RobotoMono.ttf" />
 	</typefaces>
-	<!-- Rasterised from SVG at build time into one atlas per size. The order below is the order
-	     they are numbered in, and a saved project refers to the number: add at the end, and
-	     change a from rather than a name when artwork is replaced. A from with no prefix is
-	     this repository's own, under the icons path. -->
+
+	<!-- numbered in the order below, and a saved project refers to the number: add at the end,
+	     and change a from rather than a name when artwork is replaced -->
 
 	<icons path="assets/icons" sizes="16,18,20,22,24,26,28,32,36,40,48,64">
 		<from name="qlementine" path="vendor/qlementine/16" />
