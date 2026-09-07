@@ -36,6 +36,9 @@ class MixCheck {
 		singly();
 		furnished();
 		threaded();
+		settled();
+		encoded();
+		offloaded();
 		imported();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -795,6 +798,210 @@ class MixCheck {
 			&& made.reach() >= 1,
 			spins + " rounds of allocation while it rendered, worst stall "
 			+ round(worst * 1000, 1) + " ms across " + round(over, 2) + " s");
+	}
+
+	static function bouncing(bars:Int):Song {
+		final song = mdd.app.Session.empty(mdd.song.Library.embedded());
+		final pattern = song.add(new mdd.song.Pattern("one", 384 * bars));
+
+		song.name = "a bounce";
+		song.tempo.set(0, 150);
+
+		song.track(new mdd.song.Track("fm")).add(new mdd.song.Clip(song.patterns.length - 1,
+			0, 384 * bars));
+
+		for (bar in 0...bars) {
+			for (index in 0...4) {
+				final part:mdd.song.Part = index;
+
+				pattern.lane(part).add(new mdd.song.Note(bar * 384 + index * 48, 288,
+					48 + index * 7, 127));
+			}
+		}
+
+		return song;
+	}
+
+	static function loudest(made:Mixdown):Float {
+		var most = 0.0;
+
+		for (index in 0...made.frames * made.channels) {
+			final value = made.samples[index];
+			final much = value < 0 ? -value : value;
+
+			if (much > most) most = much;
+		}
+
+		return most;
+	}
+
+	static inline final SETTLE_ROUNDS = 12;
+
+	static function settled():Void {
+		var apart = 0;
+		var most = 0.0;
+
+		for (round in 0...SETTLE_ROUNDS) {
+			final song = bouncing(8);
+			final mixing = new Mixing();
+
+			mixing.rate = 44100;
+			mixing.normalise = true;
+			mixing.ceiling = -1;
+			mixing.fade = 0.5;
+
+			final made = Mixdown.made();
+			final left = new haxe.atomic.AtomicInt(0);
+
+			sys.thread.Thread.create(function():Void {
+				try {
+					made.runs(song, mixing);
+				} catch (e:Dynamic) {
+					made.stops();
+				}
+
+				left.store(1);
+			});
+
+			while (made.reach() < 1) Sys.sleep(0.0002);
+
+			final early = loudest(made);
+
+			while (left.load() == 0) Sys.sleep(0.0002);
+
+			final late = loudest(made);
+			final away = early > late ? early - late : late - early;
+
+			if (away > 0.001) apart++;
+			if (away > most) most = away;
+		}
+
+		says("a bounce is finished when it says it is", apart == 0,
+			SETTLE_ROUNDS + " bounces read the moment they reported done and again once the"
+			+ " thread had left them, " + apart + " still changing under the reader, the"
+			+ " widest by " + round(most, 4));
+	}
+
+	static function encoded():Void {
+		final song = bouncing(16);
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.normalise = true;
+
+		final kinds:Array<Int> = [Mixing.WAV, Mixing.FLAC, Mixing.OGG, Mixing.OPUS];
+		final names:Array<String> = ["wav", "flac", "ogg", "opus"];
+		final said = new StringBuf();
+
+		var worst = 0.0;
+
+		for (index in 0...kinds.length) {
+			mixing.kind = kinds[index];
+
+			final made = Mixdown.of(song, mixing);
+			final began = haxe.Timer.stamp();
+
+			final bytes = switch (mixing.kind) {
+				case Mixing.FLAC:
+					mdd.format.Flac.write(made.samples, made.frames, made.channels, made.rate,
+						mixing.depth, []);
+
+				case Mixing.OGG:
+					mdd.format.Coded.vorbis(made.samples, made.frames, made.channels,
+						made.rate, mdd.format.Coded.QUALITIES[mixing.quality], []);
+
+				case Mixing.OPUS:
+					mdd.format.Coded.opus(made.samples, made.frames, made.channels, made.rate,
+						mdd.format.Coded.BITRATES[mixing.quality], []);
+
+				case _:
+					mdd.format.Wav.write(made.samples, made.frames, made.channels, made.rate,
+						mixing.depth, mixing.dither);
+			}
+
+			final took = haxe.Timer.stamp() - began;
+			if (took > worst) worst = took;
+
+			if (index > 0) said.add(", ");
+			said.add(names[index] + " " + round(took * 1000, 1) + " ms into "
+				+ Math.round(bytes.length / 1024) + " kb");
+
+			if (bytes.length == 0) worst = 1000;
+		}
+
+		says("an encode is long enough to be worth a thread", worst > 0,
+			round(Mixdown.of(song, mixing).seconds(), 1) + " s of audio encodes in "
+			+ said.toString() + ", which is what the main loop waits through when the"
+			+ " encode runs on it");
+	}
+
+	static function offloaded():Void {
+		final into = Gate.root + "/export";
+		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
+
+		final kinds:Array<Int> = [Mixing.FLAC, Mixing.OGG];
+		final names:Array<String> = ["flac", "ogg"];
+		final said = new StringBuf();
+
+		final stamp = Std.string(Std.int(haxe.Timer.stamp() * 1000) % 1000000);
+
+		var wrong = 0;
+		var worst = 0.0;
+		var least = 1.0;
+
+		for (index in 0...kinds.length) {
+			final session = new mdd.app.Session(bouncing(16));
+			final files = new mdd.app.Files(session);
+
+			files.mixing.rate = 44100;
+			files.mixing.kind = kinds[index];
+			files.mixing.normalise = true;
+
+			final made = files.renders(into + "/gate-bounce-" + stamp);
+			final began = haxe.Timer.stamp();
+
+			var stalled = 0.0;
+			var spins = 0;
+
+			while (!files.wroteYet() && haxe.Timer.stamp() - began < 120) {
+				final at = haxe.Timer.stamp();
+				final held:Array<mdd.song.Point> = [];
+
+				for (round in 0...4000) held.push(new mdd.song.Point(round, round));
+
+				final took = haxe.Timer.stamp() - at;
+				if (took > stalled) stalled = took;
+
+				spins++;
+			}
+
+			final named = files.wroteAs;
+			final there = named != "" && sys.FileSystem.exists(named);
+			final size = there ? sys.FileSystem.stat(named).size : 0;
+
+			if (!there || size < 65536 || made.peak < 0.1 || spins < 20
+				|| files.wroteWrong != "") wrong++;
+
+			if (stalled > worst) worst = stalled;
+			if (made.peak < least) least = made.peak;
+
+			if (index > 0) said.add(", ");
+			said.add(names[index] + " " + Math.round(size / 1024) + " kb at a worst stall of "
+				+ round(stalled * 1000, 1) + " ms over " + spins + " rounds"
+				+ (files.wroteWrong == "" ? "" : ", refused with " + files.wroteWrong));
+
+			if (there) {
+				try {
+					sys.FileSystem.deleteFile(named);
+				} catch (e:Dynamic) {}
+			}
+		}
+
+		says("the encode runs where the render does, and carries audio",
+			wrong == 0 && worst < 0.4,
+			round(Mixdown.of(bouncing(16), new Mixing()).seconds(), 1)
+			+ " s bounced and written while the calling thread went on allocating: "
+			+ said.toString() + ", the quieter of the two peaking at " + round(least, 3));
 	}
 
 	static function imported():Void {

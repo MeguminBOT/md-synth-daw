@@ -62,7 +62,6 @@ class App {
 	final presence:Presence = new Presence();
 
 	var rendering:Null<mdd.play.Mixdown> = null;
-	var rendersInto:String = "";
 	var running:Bool = true;
 	var last:Float = 0;
 
@@ -549,8 +548,7 @@ class App {
 			return;
 		}
 
-		rendersInto = where;
-		rendering = files.renders();
+		rendering = files.renders(where);
 
 		task.begins(Locale.WORKING_RENDERING, Files.name(where), true);
 		stage.root.raise(panels.working);
@@ -561,6 +559,7 @@ class App {
 		};
 
 		stage.root.soil();
+		stage.draw();
 	}
 
 	function rendered(since:Float):Bool {
@@ -571,28 +570,17 @@ class App {
 
 		if (panels.working != null) panels.working.advance(since);
 
-		if (held.stopped()) {
-			rendering = null;
-			task.ends(false);
-
-			if (stage.root.sheet == panels.working) stage.root.lower();
-			session.say("stopped rendering");
-			session.changed();
-
-			return true;
-		}
-
-		if (held.reach() < 1) return true;
+		if (!files.wroteYet()) return true;
 
 		rendering = null;
 
-		try {
-			files.wrote(rendersInto, held);
-		} catch (e:Dynamic) {
-			session.say("that would not work: " + e);
-		}
+		final wrong = files.wroteWrong;
+		final beaten = wrong == "" && held.stopped();
 
-		task.ends(true);
+		session.say(wrong != "" ? "that would not work: " + wrong
+			: (beaten ? "stopped rendering" : files.wroteSaid));
+
+		task.ends(wrong == "" && !beaten);
 		if (stage.root.sheet == panels.working) stage.root.lower();
 
 		session.changed();

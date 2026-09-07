@@ -439,16 +439,37 @@ final class Files {
 
 	public var mixdown:Null<Mixdown> = null;
 
-	public function renders():Mixdown {
+	final writing:haxe.atomic.AtomicInt = new haxe.atomic.AtomicInt(1);
+
+	public var wroteAs(default, null):String = "";
+	public var wroteSaid(default, null):String = "";
+	public var wroteWrong(default, null):String = "";
+
+	public inline function wroteYet():Bool {
+		return writing.load() == 1;
+	}
+
+	public function renders(where:String):Mixdown {
 		final made = Mixdown.made();
+		final song = session.song;
 
 		mixdown = made;
+
+		wroteAs = "";
+		wroteSaid = "";
+		wroteWrong = "";
+
+		writing.store(0);
+
 		sys.thread.Thread.create(function():Void {
 			try {
-				made.runs(session.song, mixing);
+				made.runs(song, mixing);
+				if (!made.stopped()) wroteAs = wrote(where, made);
 			} catch (e:Dynamic) {
-				made.stops();
+				wroteWrong = Std.string(e);
 			}
+
+			writing.store(1);
 		});
 
 		return made;
@@ -565,14 +586,17 @@ final class Files {
 	}
 
 	public function exportAudio(where:String):String {
-		return wrote(where, Mixdown.of(session.song, mixing));
+		final named = wrote(where, Mixdown.of(session.song, mixing));
+
+		session.say(wroteSaid);
+		return named;
 	}
 
 	public function wrote(where:String, made:Mixdown):String {
 		final named = suffixed(where, mixing.suffix());
 
 		if (made.frames <= 0) {
-			session.say("there is nothing to render");
+			wroteSaid = "there is nothing to render";
 			return "";
 		}
 
@@ -596,10 +620,10 @@ final class Files {
 
 		sys.io.File.saveBytes(named, bytes);
 
-		session.say("rendered " + Math.round(made.seconds() * 10) / 10 + " s to "
+		wroteSaid = "rendered " + Math.round(made.seconds() * 10) / 10 + " s to "
 			+ name(named) + ", " + Math.round(bytes.length / 1024) + " kb"
 			+ (mixing.normalise ? ", up " + Math.round(2000 * Math.log(made.gain)
-				/ Math.log(10)) / 100 + " dB" : ""));
+				/ Math.log(10)) / 100 + " dB" : "");
 
 		return named;
 	}

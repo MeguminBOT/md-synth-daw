@@ -97,6 +97,8 @@ final class Mixdown {
 		poured(stream, ahead, sounding + behind);
 		faded(mixing, ahead);
 		levelled(mixing);
+
+		reached.store(WHOLE);
 	}
 
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
@@ -133,7 +135,7 @@ final class Mixdown {
 
 			done += took;
 
-			final held = Std.int(done * WHOLE / many);
+			final held = Std.int(done * (WHOLE - 1) / many);
 
 			if (held != told) {
 				told = held;
@@ -142,8 +144,6 @@ final class Mixdown {
 		}
 
 		cpp.vm.Gc.exitGCFreeZone();
-
-		reached.store(WHOLE);
 	}
 
 	function faded(mixing:Mixing, ahead:Int):Void {
