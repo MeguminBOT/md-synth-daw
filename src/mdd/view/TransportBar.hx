@@ -28,7 +28,7 @@ final class TransportBar extends Widget {
 	static final SNAPS:Array<Int> = [16, 8, 4, 2, 1];
 	static final SNAP_NAMES:Array<String> = ["1/16", "1/8", "1/4", "1/2", "1/1"];
 
-	static final TIPS:Array<String> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
+	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
 	static final CHORDS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
 
@@ -193,7 +193,7 @@ final class TransportBar extends Widget {
 		final key = which == PLAY && session.transport.playing
 			? Locale.TRANSPORT_PAUSE : TIPS[which];
 
-		tip = root == null ? key : translate(key);
+		tip = root == null ? "" : translate(key);
 		chord = CHORDS[which];
 		detail = "";
 	}
@@ -449,7 +449,7 @@ final class TransportBar extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
-	function commands(into:Menu, key:String, which:Int):Choice {
+	function commands(into:Menu, key:Locale, which:Int):Choice {
 		final choice = into.offer(new Choice(translate(key)));
 
 		choice.onFire = function(from:Choice):Void

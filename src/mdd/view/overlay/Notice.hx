@@ -19,7 +19,7 @@ final class Notice extends Widget {
 	public static inline final NEVER = 2;
 	public static inline final BUTTONS = 3;
 
-	static final LABELS:Array<String> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,
+	static final LABELS:Array<Locale> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,
 		Locale.UPDATE_NEVER];
 
 	public var session:Session;

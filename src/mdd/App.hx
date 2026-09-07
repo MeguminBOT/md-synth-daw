@@ -169,7 +169,7 @@ class App {
 			keeps();
 		};
 
-		files.onBusy = function(label:String, detail:String):Void busy(label, detail);
+		files.onBusy = function(label:Locale, detail:String):Void busy(label, detail);
 		files.onIdle = function():Void idle();
 		files.onRender = function(where:String):Void renders(where);
 
@@ -525,7 +525,7 @@ class App {
 		menus.dress(session);
 	}
 
-	function busy(label:String, detail:String):Void {
+	function busy(label:Locale, detail:String):Void {
 		if (panels.working == null) return;
 
 		task.begins(label, detail);

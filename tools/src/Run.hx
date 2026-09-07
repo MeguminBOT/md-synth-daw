@@ -542,6 +542,7 @@ class Run {
 		final spoken = languages(root, project);
 
 		configure(root, project, spoken);
+		Catalogue.named(project, root, root + "/" + project.generated);
 		Icons.named(project, root + "/" + project.generated);
 		Icons.typefaces(project, root + "/" + project.generated);
 		final xml = nativeXml(root, project);
@@ -686,6 +687,7 @@ class Run {
 		final spoken = languages(root, project);
 
 		configure(root, project, spoken);
+		Catalogue.named(project, root, root + "/" + project.generated);
 		Icons.named(project, root + "/" + project.generated);
 		Icons.typefaces(project, root + "/" + project.generated);
 		Icons.built(root, project, root + "/" + project.output + "/icons", false);

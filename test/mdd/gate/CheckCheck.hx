@@ -334,7 +334,7 @@ class CheckCheck {
 
 		var named = true;
 		for (kind in 0...mdd.song.Scale.KINDS) {
-			if (mdd.song.Scale.nameOf(kind) == "") named = false;
+			if ((mdd.view.Scales.named(kind) : Int) < 0) named = false;
 		}
 
 		says("every scale has a name", named && mdd.song.Scale.rootOf(1) == "C#"

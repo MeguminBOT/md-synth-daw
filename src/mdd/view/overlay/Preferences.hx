@@ -49,7 +49,7 @@ final class Preferences extends Widget {
 	public static inline final SHARING = 7;
 	public static inline final GROUPS = 8;
 
-	static final GROUP_NAMES:Array<String> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
+	static final GROUP_NAMES:Array<Locale> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
 		Locale.GROUP_FILES, Locale.GROUP_UPDATES, Locale.GROUP_MIDI, Locale.GROUP_SOUND,
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
@@ -74,7 +74,7 @@ final class Preferences extends Widget {
 	var wasPresets:String = "";
 	var offsetY:Float = 0;
 
-	static final NAMES:Array<String> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
+	static final NAMES:Array<Locale> = [Locale.PREFERENCE_THEME, Locale.PREFERENCE_TYPEFACE,
 		Locale.PREFERENCE_MOTION, Locale.PREFERENCE_LANGUAGE, Locale.PREFERENCE_DENSITY,
 		Locale.PREFERENCE_KEEPING, Locale.PREFERENCE_BACKUPS, Locale.PREFERENCE_BACKUP_AGE,
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
@@ -82,46 +82,49 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE];
 
-	static final PRESENCES:Array<String> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
+	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
 
-	static final TEMPOS:Array<String> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
+	static final TEMPOS:Array<Locale> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
 
-	static final CONSOLES:Array<String> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
+	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
 
-	static final VELOCITIES:Array<String> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
+	static final VELOCITIES:Array<Locale> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
 
-	public static final AUTOMATINGS:Array<String> = [Locale.AUTOMATING_LANES,
+	public static final AUTOMATINGS:Array<Locale> = [Locale.AUTOMATING_LANES,
 		Locale.AUTOMATING_CLIPS];
 
-	static final TAILS:Array<String> = [Locale.TAIL_NONE, Locale.TAIL_BEAT, Locale.TAIL_TWO,
+	static final TAILS:Array<Locale> = [Locale.TAIL_NONE, Locale.TAIL_BEAT, Locale.TAIL_TWO,
 		Locale.TAIL_BAR, Locale.TAIL_TWO_BARS];
 
 	public static final BEATS:Array<Int> = [0, 1, 2, 4, 8];
 
-	static final KEEPINGS:Array<String> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
+	static final KEEPINGS:Array<Locale> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
 
 	public static final MINUTES:Array<Float> = [0, 60, 300, 600];
 
-	static final BACKUP_ROOMS:Array<String> = [Locale.BACKUPS_OFF, "50 MB", "100 MB", "250 MB",
-		"500 MB", "1 GB", Locale.BACKUPS_ANY];
+	static final BACKUP_ROOMS:Array<String> = ["", "50 MB", "100 MB", "250 MB", "500 MB",
+		"1 GB", ""];
+
+	static final NOTHING:Array<String> = [];
+	static final NO_KEYS:Array<Locale> = [];
 
 	public static final ROOMS:Array<Float> = [0, 50, 100, 250, 500, 1024, 1024 * 64];
 
-	static final BACKUP_AGES:Array<String> = [Locale.BACKUP_AGE_ANY, Locale.BACKUP_AGE_WEEK,
+	static final BACKUP_AGES:Array<Locale> = [Locale.BACKUP_AGE_ANY, Locale.BACKUP_AGE_WEEK,
 		Locale.BACKUP_AGE_MONTH, Locale.BACKUP_AGE_QUARTER];
 
 	public static final DAYS:Array<Int> = [0, 7, 30, 90];
 
-	static final UPDATING:Array<String> = [Locale.UPDATES_NEVER, Locale.UPDATES_LAUNCH];
+	static final UPDATING:Array<Locale> = [Locale.UPDATES_NEVER, Locale.UPDATES_LAUNCH];
 
-	static final THEMES:Array<String> = [Locale.THEME_MIDNIGHT, Locale.THEME_RACK,
+	static final THEMES:Array<Locale> = [Locale.THEME_MIDNIGHT, Locale.THEME_RACK,
 		Locale.THEME_SLATE];
-	static final MOTIONS:Array<String> = [Locale.MOTION_FULL, Locale.MOTION_REDUCED,
+	static final MOTIONS:Array<Locale> = [Locale.MOTION_FULL, Locale.MOTION_REDUCED,
 		Locale.MOTION_NONE];
-	static final DENSITIES:Array<String> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
+	static final DENSITIES:Array<Locale> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
 		Locale.DENSITY_ROOMY];
 
 	public var session:Session;
@@ -499,27 +502,40 @@ final class Preferences extends Widget {
 		return out;
 	}
 
-	public function choices(row:Int):Array<String> {
+	public function labels(row:Int):Array<Locale> {
 		return switch (row) {
 			case THEME: THEMES;
-			case TYPEFACE: Typeface.NAMES;
 			case MOTION: MOTIONS;
 			case DENSITY: DENSITIES;
 			case KEEPING: KEEPINGS;
-			case BACKUPS: BACKUP_ROOMS;
 			case BACKUP_AGE: BACKUP_AGES;
 			case UPDATES: UPDATING;
 			case AUTOMATING: AUTOMATINGS;
 			case TAIL: TAILS;
-			case PROJECTS, PRESETS: [];
-			case MIDI_DEVICE: keyboards;
-			case MIDI_CHANNEL: channels();
 			case MIDI_VELOCITY: VELOCITIES;
 			case CONSOLE: CONSOLES;
 			case TEMPO: TEMPOS;
 			case PRESENCE: PRESENCES;
+			case _: NO_KEYS;
+		}
+	}
+
+	public function choices(row:Int):Array<String> {
+		return switch (row) {
+			case TYPEFACE: Typeface.NAMES;
+			case BACKUPS: BACKUP_ROOMS;
+			case PROJECTS, PRESETS: NOTHING;
+			case MIDI_DEVICE: keyboards;
+			case MIDI_CHANNEL: channels();
+			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
+				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE: NOTHING;
 			case _: languages;
 		}
+	}
+
+	public function counted(row:Int):Int {
+		final keys = labels(row);
+		return keys.length > 0 ? keys.length : choices(row).length;
 	}
 
 	public inline function folded(row:Int):Bool {
@@ -532,13 +548,21 @@ final class Preferences extends Widget {
 			return held == "" ? translate(Locale.FOLDER_DEFAULT) : held;
 		}
 
+		if (row == BACKUPS) {
+			if (which == 0) return translate(Locale.BACKUPS_OFF);
+			if (which == BACKUP_ROOMS.length - 1) return translate(Locale.BACKUPS_ANY);
+
+			return which > 0 && which < BACKUP_ROOMS.length ? BACKUP_ROOMS[which] : "";
+		}
+
+		final keys = labels(row);
+
+		if (keys.length > 0) {
+			return which < 0 || which >= keys.length ? "" : translate(keys[which]);
+		}
+
 		final held = choices(row);
-		if (which < 0 || which >= held.length) return "";
-
-		if (row == LANGUAGE || row == TYPEFACE) return held[which];
-		if (row == BACKUPS && which > 0 && which < BACKUP_ROOMS.length - 1) return held[which];
-
-		return translate(held[which]);
+		return which < 0 || which >= held.length ? "" : held[which];
 	}
 
 	public function fieldLeft():Float {
@@ -684,13 +708,13 @@ final class Preferences extends Widget {
 			return;
 		}
 
-		final held = choices(row);
-		if (held.length == 0) return;
+		final many = counted(row);
+		if (many == 0) return;
 
 		final on = holding(row);
 		menu = new Menu();
 
-		for (index in 0...held.length) {
+		for (index in 0...many) {
 			final which = index;
 			final choice = menu.offer(new Choice(said(row, which)));
 

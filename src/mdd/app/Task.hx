@@ -12,7 +12,7 @@ final class Task {
 	public static inline final UNKNOWN = -1;
 	public static inline final WHOLE = 1000;
 
-	public var label:String = "";
+	public var label:Locale = 0;
 	public var detail:String = "";
 	public var said:String = "";
 
@@ -24,7 +24,7 @@ final class Task {
 
 	public function new() {}
 
-	public function begins(label:String, detail:String, cancellable:Bool = false):Void {
+	public function begins(label:Locale, detail:String, cancellable:Bool = false):Void {
 		this.label = label;
 		this.detail = detail;
 		this.cancellable = cancellable;

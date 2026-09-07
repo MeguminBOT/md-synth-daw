@@ -47,7 +47,7 @@ final class Bindings {
 		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl
 	];
 
-	public static final NAMES:Array<String> = [
+	public static final NAMES:Array<Locale> = [
 		Locale.BIND_UNDO, Locale.BIND_REDO, Locale.BIND_NEW, Locale.BIND_OPEN,
 		Locale.BIND_SAVE, Locale.BIND_PREFERENCES, Locale.BIND_PLAY, Locale.BIND_STOP,
 		Locale.BIND_LOOP, Locale.BIND_WRITE_VGM, Locale.BIND_WRITE_AUDIO,

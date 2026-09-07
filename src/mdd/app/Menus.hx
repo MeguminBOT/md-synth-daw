@@ -51,7 +51,7 @@ final class Menus {
 		commands();
 	}
 
-	inline function said(key:String):String {
+	inline function said(key:Locale):String {
 		return stage.root.translate(key);
 	}
 

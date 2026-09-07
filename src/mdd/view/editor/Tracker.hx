@@ -748,9 +748,9 @@ final class Tracker extends Widget {
 		invalidate();
 	}
 
-	function said(key:String):String {
+	function said(key:Locale):String {
 		final root = root();
-		return root == null ? key : translate(key);
+		return root == null ? "" : translate(key);
 	}
 
 	public static function spelt(pitch:Int):String {

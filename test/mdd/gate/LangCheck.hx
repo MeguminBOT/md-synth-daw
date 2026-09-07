@@ -27,6 +27,7 @@ class LangCheck {
 			shipped.length + " compiled in: " + shipped.join(", "));
 
 		catalogue();
+		quick();
 
 		for (code in shipped) spoken(code);
 
@@ -52,17 +53,53 @@ class LangCheck {
 	}
 
 	static function catalogue():Void {
-		final seen:Array<String> = [];
-		var twice = "";
+		final held = new Translation();
+		final taken = Languages.speak(held, Languages.first());
 
-		for (key in Locale.ALL) {
-			if (seen.indexOf(key) >= 0 && twice == "") twice = key;
-			else seen.push(key);
+		says("the catalogue is what the reference language holds", taken == Locale.COUNT,
+			Locale.COUNT + " ids generated against " + taken + " strings in "
+				+ Languages.first());
+
+		says("and an id is the position of its key", held.keyAt(Locale.APP) == "app"
+			&& held.keyAt(Locale.WORKING_SAVING) == "working.saving",
+			"app is " + (Locale.APP : Int) + ", working.saving is "
+				+ (Locale.WORKING_SAVING : Int));
+	}
+
+	static function quick():Void {
+		final held = new Translation();
+		Languages.speak(held, Languages.first());
+
+		final rounds = 500000;
+		final began = haxe.Timer.stamp();
+
+		var kept = 0;
+
+		for (round in 0...rounds) {
+			kept += held.of(Locale.APP).length;
+			kept += held.of(Locale.MENU_FILE).length;
+			kept += held.of(Locale.WORKING_SAVING).length;
+			kept += held.of(Locale.THEME_SLATE).length;
 		}
 
-		says("the catalogue is a set", twice == "" && seen.length == Locale.ALL.length,
-			twice == "" ? Locale.ALL.length + " keys, each named once"
-				: "'" + twice + "' is in the catalogue twice");
+		final each = (haxe.Timer.stamp() - began) / (rounds * 4);
+
+		final scans = 20000;
+		final scanned = haxe.Timer.stamp();
+
+		for (round in 0...scans) {
+			kept += held.named("app").length;
+			kept += held.named("menu.file").length;
+			kept += held.named("working.saving").length;
+			kept += held.named("theme.slate").length;
+		}
+
+		final slow = (haxe.Timer.stamp() - scanned) / (scans * 4);
+
+		says("a lookup is an index rather than a scan", kept > 0 && each * 10 < slow,
+			Math.round(each * 1000000000) + " ns by id against "
+				+ Math.round(slow * 1000000000) + " ns by name over "
+				+ Locale.COUNT + " keys");
 	}
 
 	static function spoken(code:String):Void {
@@ -70,20 +107,18 @@ class LangCheck {
 		final taken = Languages.speak(held, code);
 
 		final missing:Array<String> = [];
-		for (key in Locale.ALL) if (!held.has(key)) missing.push(key);
 
-		final extra:Array<String> = [];
-
-		for (i in 0...held.count()) {
-			final key = held.keyAt(i);
-			if (Locale.ALL.indexOf(key) < 0) extra.push(key);
+		for (id in 0...Locale.COUNT) {
+			if (held.of(id) == "") missing.push(held.keyAt(id));
 		}
 
-		final said = taken + " strings"
-			+ (missing.length == 0 ? "" : ", missing " + shown(missing))
-			+ (extra.length == 0 ? "" : ", unused " + shown(extra));
+		final apart = held.count() - Locale.COUNT;
 
-		says(code, taken > 0 && missing.length == 0 && extra.length == 0, said);
+		final said = taken + " strings"
+			+ (missing.length == 0 ? "" : ", empty " + shown(missing))
+			+ (apart == 0 ? "" : ", " + apart + " away from the catalogue");
+
+		says(code, taken > 0 && missing.length == 0 && apart == 0, said);
 	}
 
 	static function chain(root:String):Array<Int> {
@@ -189,7 +224,7 @@ class LangCheck {
 
 			for (index in 0...held.count()) {
 				final key = held.keyAt(index);
-				final said = held.of(key);
+				final said = held.of(index);
 
 				var at = 0;
 
@@ -257,12 +292,12 @@ class LangCheck {
 
 		var translated = 0;
 
-		for (key in Locale.ALL) {
-			if (english.of(key) != swedish.of(key)) translated++;
+		for (id in 0...Locale.COUNT) {
+			if (english.of(id) != swedish.of(id)) translated++;
 		}
 
-		says("and a language is a language", translated > Std.int(Locale.ALL.length / 2),
-			translated + " of " + Locale.ALL.length
+		says("and a language is a language", translated > Std.int(Locale.COUNT / 2),
+			translated + " of " + Locale.COUNT
 			+ " strings differ between en-GB and sv-SE, so it is a translation and not a copy");
 
 		says("a hardware name is never translated",

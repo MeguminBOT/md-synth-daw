@@ -29,20 +29,24 @@ final class Export extends Widget {
 
 	public static inline final FIELDS = 5;
 
-	static final NAMES:Array<String> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
+	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
 		Locale.EXPORT_QUALITY];
 
-	static final LABELS:Array<String> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
+	static final LABELS:Array<Locale> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
 
 	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
 	static final RATED:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
-	static final SIDINGS:Array<String> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
-	static final SWITCHES:Array<String> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
+	static final SIDINGS:Array<Locale> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
+	static final SWITCHES:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
+
+	static final NOTHING:Array<String> = [];
+	static final NO_KEYS:Array<Locale> = [];
+	static final ONE_RATE:Array<String> = ["48000"];
 
 	static final SECONDS:Array<Float> = [0, 0.5, 1, 2];
 	static final TAILS:Array<Float> = [0, 1, 2, 4];
@@ -50,8 +54,7 @@ final class Export extends Widget {
 
 	static final LEADS:Array<String> = ["0", "0.5 s", "1 s", "2 s"];
 	static final TAILED:Array<String> = ["0", "1 s", "2 s", "4 s"];
-	static final CEILED:Array<String> = [Locale.EXPORT_OFF, "-0.1 dB", "-0.3 dB", "-1 dB",
-		"-3 dB"];
+	static final CEILED:Array<String> = ["", "-0.1 dB", "-0.3 dB", "-1 dB", "-3 dB"];
 
 	public var session:Session;
 	public final mixing:Mixing = new Mixing();
@@ -89,8 +92,8 @@ final class Export extends Widget {
 			add(held);
 		}
 
-		go = new Button(Locale.EXPORT_GO);
-		stop = new Button(Locale.EXPORT_CANCEL);
+		go = new Button("");
+		stop = new Button("");
 
 		add(go);
 		add(stop);
@@ -215,19 +218,30 @@ final class Export extends Widget {
 		go.arrange(x + width - metrics.inset - wide, bottom, wide, metrics.control);
 	}
 
+	public function labels(row:Int):Array<Locale> {
+		return switch (row) {
+			case SIDES: SIDINGS;
+			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, CEILING, QUALITY: NO_KEYS;
+			case _: SWITCHES;
+		}
+	}
+
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
-			case RATE: mixing.kind == Mixing.OPUS ? ["48000"] : rates();
+			case RATE: mixing.kind == Mixing.OPUS ? ONE_RATE : rates();
 			case DEPTH: depths();
-			case SIDES: SIDINGS;
 			case LEAD: LEADS;
-			case TAIL: TAILED;
-			case FADE: TAILED;
+			case TAIL, FADE: TAILED;
 			case CEILING: CEILED;
 			case QUALITY: mixing.kind == Mixing.OPUS ? RATED : QUALITIES;
-			case _: SWITCHES;
+			case _: NOTHING;
 		}
+	}
+
+	public function counted(row:Int):Int {
+		final keys = labels(row);
+		return keys.length > 0 ? keys.length : choices(row).length;
 	}
 
 	static function rates():Array<String> {
@@ -371,12 +385,20 @@ final class Export extends Widget {
 		super.hovered(on);
 	}
 
-	function shown(row:Int, which:Int, label:String):String {
-		if (row == RATE || row == LEAD || row == TAIL || row == FADE) return label;
-		if (row == FORMAT || row == DEPTH || row == QUALITY) return label;
-		if (row == CEILING && which > 0) return label;
+	function shown(row:Int, which:Int):String {
+		if (row == CEILING) {
+			if (which == 0) return translate(Locale.EXPORT_OFF);
+			return which > 0 && which < CEILED.length ? CEILED[which] : "";
+		}
 
-		return translate(label);
+		final keys = labels(row);
+
+		if (keys.length > 0) {
+			return which < 0 || which >= keys.length ? "" : translate(keys[which]);
+		}
+
+		final held = choices(row);
+		return which < 0 || which >= held.length ? "" : held[which];
 	}
 
 	override function paint(paint:Paint):Void {
@@ -438,7 +460,7 @@ final class Export extends Widget {
 				}
 
 				paint.pushClip(where + 1, at, wide - 2, button);
-				paint.textCentred(shown(row, which, held[which]), where + wide * 0.5,
+				paint.textCentred(shown(row, which), where + wide * 0.5,
 					at + (button - small.height) * 0.5 + small.ascent,
 					which == on ? theme.ink : theme.dim, alpha);
 				paint.popClip();

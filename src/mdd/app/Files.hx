@@ -60,7 +60,7 @@ final class Files {
 
 	public var onLoad:Null<Song -> Void> = null;
 	public var savedInto:String = "";
-	public var onBusy:Null<(String, String) -> Void> = null;
+	public var onBusy:Null<(Locale, String) -> Void> = null;
 	public var onIdle:Null<Void -> Void> = null;
 	public var onRender:Null<String -> Void> = null;
 
@@ -287,7 +287,7 @@ final class Files {
 		return true;
 	}
 
-	public static function labelled(what:Int):String {
+	public static function labelled(what:Int):Locale {
 		return switch (what) {
 			case OPEN: Locale.WORKING_OPENING;
 			case SAVE: Locale.WORKING_SAVING;

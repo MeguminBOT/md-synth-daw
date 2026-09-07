@@ -137,7 +137,7 @@ final class Lanes extends Widget {
 
 		position.derived = function(value:Int):String return spelt(value);
 		shape.derived = function(value:Int):String
-			return translate(Locale.SHAPES[value]);
+			return translate(mdd.view.Shapes.NAMES[value]);
 
 		position.onChange = function(from:Number):Void placed();
 		amount.onChange = function(from:Number):Void placed();

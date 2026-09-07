@@ -22,12 +22,16 @@ final class Translation {
 		said.push(saying);
 	}
 
-	public function of(key:String):String {
-		final at = keys.indexOf(key);
-		if (at >= 0) return said[at];
+	public function of(id:Int):String {
+		if (id >= 0 && id < said.length) return said[id];
 
 		missing++;
-		return key;
+		return "";
+	}
+
+	public function named(key:String):String {
+		final at = keys.indexOf(key);
+		return at < 0 ? key : said[at];
 	}
 
 	public function has(key:String):Bool {

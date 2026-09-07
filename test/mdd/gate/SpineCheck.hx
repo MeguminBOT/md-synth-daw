@@ -865,7 +865,7 @@ class SpineCheck {
 		tree.released(at, top, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
 
 		says("a press inside a sheet reaches it", tree.sheet == held && tree.popups.length == 1
-			&& tree.popups[0].commands() == held.choices(row).length,
+			&& tree.popups[0].commands() == held.counted(row),
 			"the sheet is still up and its dropdown offers "
 			+ (tree.popups.length == 0 ? 0 : tree.popups[0].commands()) + " themes");
 

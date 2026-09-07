@@ -27,10 +27,6 @@ final class Scale {
 		0x4E9
 	]);
 
-	static final NAMES:Array<String> = ["scale.chromatic", "scale.major", "scale.minor",
-		"scale.harmonic", "scale.dorian", "scale.mixolydian", "scale.pentatonic",
-		"scale.minorPentatonic", "scale.blues"];
-
 	static final ROOTS:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
 		"A#", "B"];
 
@@ -57,10 +53,6 @@ final class Scale {
 		var many = 0;
 		for (i in 0...12) if ((SHAPES[kind] & (1 << i)) != 0) many++;
 		return many;
-	}
-
-	public static function nameOf(kind:Int):String {
-		return kind < 0 || kind >= KINDS ? NAMES[0] : NAMES[kind];
 	}
 
 	public static function rootOf(root:Int):String {

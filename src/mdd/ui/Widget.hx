@@ -145,9 +145,9 @@ class Widget {
 
 	public function tick(seconds:Float):Void {}
 
-	public function translate(key:String):String {
+	public function translate(key:Int):String {
 		final held = root();
-		return held == null ? key : held.translate(key);
+		return held == null ? "" : held.translate(key);
 	}
 
 	public function focused(on:Bool):Void {

@@ -26,7 +26,7 @@ final class Presets extends Widget {
 	public static inline final BY_TAG = 2;
 	public static inline final ORDERS = 3;
 
-	static final ORDER_NAMES:Array<String> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
+	static final ORDER_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
 		Locale.PRESET_BY_TAG];
 
 	public var order(default, null):Int = BY_BANK;

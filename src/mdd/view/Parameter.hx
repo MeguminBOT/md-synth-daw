@@ -17,11 +17,11 @@ final class Parameter {
 	public var operators(default, null):Bool;
 
 	public var name(default, null):String;
-	public var about(default, null):String;
+	public var about(default, null):Locale;
 
 	public var decibels(default, null):Float;
 
-	function new(target:Int, slot:Int, low:Int, high:Int, name:String, about:String) {
+	function new(target:Int, slot:Int, low:Int, high:Int, name:String, about:Locale) {
 		this.target = target;
 		this.slot = slot;
 		this.low = low;
@@ -36,7 +36,7 @@ final class Parameter {
 	}
 
 	static function made(target:Int, slot:Int, low:Int, high:Int, name:String,
-			about:String):Parameter {
+			about:Locale):Parameter {
 		return new Parameter(target, slot, low, high, name, about);
 	}
 

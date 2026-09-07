@@ -823,21 +823,21 @@ class UiCheck {
 			+ "theme.rack = Rack\n");
 
 		says("a table reads", taken == 3 && words.count() == 3
-			&& words.of("menu.edit") == "Edit",
+			&& words.named("menu.edit") == "Edit",
 			taken + " lines taken, a comment and a line with no mark skipped");
 
 		words.forget();
-		final absent = words.of("nothing.here");
+		final absent = words.of(words.count() + 5);
 
-		says("a missing word says itself", absent == "nothing.here" && words.missing == 1,
-			"an untranslated key comes back as the key and is counted, " + words.missing
-			+ " missing");
+		says("an id past the end says nothing", absent == "" && words.missing == 1,
+			"a key the catalogue has no string for comes back empty and is counted, "
+			+ words.missing + " missing");
 
 		final again = new Translation();
 		again.read(words.write());
 
 		says("a table writes what it read", again.count() == words.count()
-			&& again.of("theme.rack") == "Rack",
+			&& again.named("theme.rack") == "Rack",
 			again.count() + " keys survive being written and read back");
 
 	}

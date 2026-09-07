@@ -180,7 +180,7 @@ final class Welcome extends Widget {
 		super.hovered(on);
 	}
 
-	static final WAYS_SAID:Array<String> = [Locale.AUTOMATING_LANES, Locale.AUTOMATING_CLIPS];
+	static final WAYS_SAID:Array<Locale> = [Locale.AUTOMATING_LANES, Locale.AUTOMATING_CLIPS];
 
 	function ways(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
 		final font = metrics.body;

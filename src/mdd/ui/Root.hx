@@ -227,7 +227,7 @@ final class Root {
 		tooltip.arrange(px, py, wide, tall);
 	}
 
-	public inline function translate(key:String):String {
+	public inline function translate(key:Int):String {
 		return translation.of(key);
 	}
 

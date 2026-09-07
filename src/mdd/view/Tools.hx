@@ -25,7 +25,7 @@ final class Tools extends Widget {
 	public static final KEYS:Array<mdd.ui.Key> = [mdd.ui.Key.E, mdd.ui.Key.P, mdd.ui.Key.D,
 		mdd.ui.Key.C, mdd.ui.Key.H];
 
-	static final TIPS:Array<String> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
+	static final TIPS:Array<Locale> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
 		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS];
 
 	public final session:Session;

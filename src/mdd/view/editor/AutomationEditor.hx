@@ -222,7 +222,7 @@ final class AutomationEditor extends Widget {
 		final one = heldAt(row);
 
 		for (shape in 0...Automation.SHAPES) {
-			final choice = menu.offer(new Choice(translate(Locale.SHAPES[shape])));
+			final choice = menu.offer(new Choice(translate(mdd.view.Shapes.NAMES[shape])));
 
 			if (shape == point.shape) choice.enabled = false;
 			else if (one != null && !one.smooth && Automation.moves(shape)) {

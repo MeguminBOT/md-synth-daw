@@ -210,7 +210,7 @@ final class PianoRoll extends Widget {
 		menu = new Menu();
 
 		for (shape in 0...mdd.song.Automation.SHAPES) {
-			final one = menu.offer(new Choice(translate(Locale.SHAPES[shape])));
+			final one = menu.offer(new Choice(translate(mdd.view.Shapes.NAMES[shape])));
 
 			if (shape == point.shape) one.enabled = false;
 			else fires(one, function():Void {
@@ -1118,7 +1118,7 @@ final class PianoRoll extends Widget {
 
 			for (kind in 0...mdd.song.Scale.KINDS) {
 				final choice = scales.offer(new Choice(translate(
-					mdd.song.Scale.nameOf(kind))));
+					mdd.view.Scales.named(kind))));
 
 				fires(choice, function():Void scaled(kind, session.scale.root));
 			}
@@ -1284,8 +1284,7 @@ final class PianoRoll extends Widget {
 		session.scale.root = key;
 
 		final held = root();
-		final named = held == null ? mdd.song.Scale.nameOf(kind)
-			: translate(mdd.song.Scale.nameOf(kind));
+		final named = held == null ? "" : translate(mdd.view.Scales.named(kind));
 
 		session.say(kind == mdd.song.Scale.CHROMATIC ? "every note lit"
 			: mdd.song.Scale.rootOf(key) + " " + named + ", "
