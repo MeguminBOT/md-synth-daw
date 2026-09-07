@@ -68,6 +68,7 @@ class Project {
 	public var typefacePath(default, null):String = "vendor/fonts";
 	public var faces(default, null):Array<Face> = [];
 	public var typefaces(default, null):Array<Typeface> = [];
+	public var fallbacks(default, null):Array<String> = [];
 
 	public var iconPath(default, null):String = "assets/icons";
 	public var iconSizes(default, null):Array<Int> = [];
@@ -169,6 +170,9 @@ class Project {
 						case "typeface":
 							typefaces.push({name: held.get("name"), sans: held.get("sans"),
 								mono: held.get("mono")});
+
+						case "fallback":
+							fallbacks.push(held.get("name"));
 
 						case _:
 					}

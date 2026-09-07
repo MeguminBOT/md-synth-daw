@@ -159,6 +159,20 @@
 		<face name="RobotoMono.ttf" from="ofl:robotomono/RobotoMono[wght].ttf" />
 		<face name="OpenSans.ttf" from="ofl:opensans/OpenSans[wdth,wght].ttf" />
 
+		<face name="NotoSansJP.ttf" from="ofl:notosansjp/NotoSansJP[wght].ttf" />
+		<face name="NotoSansSC.ttf" from="ofl:notosanssc/NotoSansSC[wght].ttf" />
+		<face name="NotoSansKR.ttf" from="ofl:notosanskr/NotoSansKR[wght].ttf" />
+
+		<!-- Asked in order for any codepoint the chosen face has no glyph for. A fallback is
+		     never the interface font: it is only cut from, one glyph at a time, into the atlas
+		     the chosen face already owns. Noto Sans carries Greek, Cyrillic and Vietnamese; the
+		     three CJK faces carry kana, hangul and the ideographs, which no Latin face does. -->
+
+		<fallback name="NotoSans.ttf" />
+		<fallback name="NotoSansJP.ttf" />
+		<fallback name="NotoSansSC.ttf" />
+		<fallback name="NotoSansKR.ttf" />
+
 		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
 		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
 		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />
@@ -203,8 +217,8 @@
 		about="the audio device, called directly" />
 	<vendor name="stb" present="stb/stb_truetype.h" size="1 MB"
 		about="the glyph rasteriser the font atlas is baked with" />
-	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="2 MB"
-		about="Go and Go Mono, the faces the atlas is baked from" />
+	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="40 MB"
+		about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
 	<vendor name="libogg" present="libogg/src/framing.c" size="1 MB"
 		about="the ogg container, the pages an ogg vorbis or opus file is made of" />
 	<vendor name="libvorbis" present="libvorbis/lib/vorbisenc.c" size="5 MB"

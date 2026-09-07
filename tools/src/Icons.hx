@@ -186,6 +186,9 @@ class Icons {
 		out.add("
 ");
 		out.add(listed("MONO", [for (held in project.typefaces) held.mono]));
+		out.add("
+");
+		out.add(listed("FALLBACK", project.fallbacks));
 		out.add("}
 ");
 
