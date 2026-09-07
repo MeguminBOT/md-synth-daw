@@ -45,7 +45,7 @@ final class Font {
 	final scratch:Vector<cpp.UInt8> = new Vector<cpp.UInt8>(SCRATCH * SCRATCH * 4);
 
 	var face:Int = -1;
-	var beside:Null<Font> = null;
+	var beside:Null<Fallback> = null;
 
 	var shelfX:Int = 0;
 	var shelfY:Int = 0;
@@ -132,8 +132,18 @@ final class Font {
 		solidV = (top + SOLID * 0.5) / atlasHeight;
 	}
 
-	public function chains(next:Null<Font>):Void {
+	public function chains(next:Null<Fallback>):Void {
 		beside = next;
+
+		final lost:Array<Int> = [];
+
+		for (code in cached.keys()) {
+			if (cached.get(code) == NONE) lost.push(code);
+		}
+
+		for (code in lost) cached.remove(code);
+
+		missed = 0;
 	}
 
 	public inline function slotOf(code:Int):Int {
@@ -163,6 +173,10 @@ final class Font {
 			return borrows(code);
 		}
 
+		return cuts(face, code);
+	}
+
+	function cuts(from:Int, code:Int):Int {
 		final wide = asked[0];
 		final tall = asked[1];
 
@@ -171,7 +185,7 @@ final class Font {
 
 		final base = (GLYPHS + kept) * FLOATS;
 
-		if (Text.glyph(face, pixels, code, cpp.Pointer.arrayElem(scratch.toData(), 0).raw,
+		if (Text.glyph(from, pixels, code, cpp.Pointer.arrayElem(scratch.toData(), 0).raw,
 				atlasWidth, atlasHeight, shelfX, shelfY,
 				cpp.Pointer.arrayElem(metrics.toData(), base).raw) == 0) {
 			return NONE;
@@ -189,37 +203,21 @@ final class Font {
 	}
 
 	function borrows(code:Int):Int {
-		final next = beside;
-		if (next == null) return NONE;
+		final spare = beside;
+		if (spare == null) return NONE;
 
-		if (Text.extent(next.face, pixels, code, cpp.Pointer.arrayElem(asked.toData(), 0).raw,
-				cpp.Pointer.arrayElem(asked.toData(), 1).raw) == 0) {
-			return next.borrows(code);
+		for (next in spare.held()) {
+			if (next < 0) continue;
+
+			if (Text.extent(next, pixels, code, cpp.Pointer.arrayElem(asked.toData(), 0).raw,
+					cpp.Pointer.arrayElem(asked.toData(), 1).raw) == 0) {
+				continue;
+			}
+
+			return cuts(next, code);
 		}
 
-		final wide = asked[0];
-		final tall = asked[1];
-
-		if (wide > SCRATCH || tall > SCRATCH) return NONE;
-		if (!room(wide, tall)) return NONE;
-
-		final base = (GLYPHS + kept) * FLOATS;
-
-		if (Text.glyph(next.face, pixels, code, cpp.Pointer.arrayElem(scratch.toData(), 0).raw,
-				atlasWidth, atlasHeight, shelfX, shelfY,
-				cpp.Pointer.arrayElem(metrics.toData(), base).raw) == 0) {
-			return NONE;
-		}
-
-		if (wide > 0 && tall > 0) {
-			Draw.patchTexture(texture, cpp.Pointer.arrayElem(scratch.toData(), 0).constRaw,
-				shelfX, shelfY, wide, tall);
-		}
-
-		shelfX += wide + 1;
-		if (tall > shelfTall) shelfTall = tall;
-
-		return base;
+		return NONE;
 	}
 
 	function room(wide:Int, tall:Int):Bool {

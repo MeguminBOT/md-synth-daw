@@ -8,6 +8,7 @@ import mdd.host.Paths;
 import mdd.host.Sdl;
 import mdd.host.Window;
 import mdd.ui.Flow;
+import mdd.ui.Fallback;
 import mdd.ui.Font;
 import mdd.ui.Icons;
 import mdd.ui.Metrics;
@@ -37,6 +38,8 @@ final class Stage {
 	public var shown(default, null):Bool = false;
 
 	var icons:Null<Icons> = null;
+
+	final spare:Fallback = new Fallback();
 
 	var body:Null<Font> = null;
 	var small:Null<Font> = null;
@@ -191,6 +194,8 @@ final class Stage {
 		final sans = where + "/" + Typeface.SANS[pairing];
 		final fixed = where + "/" + Typeface.MONO[pairing];
 
+		for (name in Typeface.FALLBACK) spare.adds(where + "/" + name);
+
 		body = Font.bake(renderer, sans, 15 * scale);
 		small = Font.bake(renderer, sans, 13 * scale);
 		mono = Font.bake(renderer, fixed, 14 * scale);
@@ -200,6 +205,11 @@ final class Stage {
 			Sys.println("mdd: the fonts would not bake");
 			return false;
 		}
+
+		body.chains(spare);
+		small.chains(spare);
+		mono.chains(spare);
+		large.chains(spare);
 
 		metrics.dress(body, small, mono, large);
 		if (paint != null) paint.reface(body);
@@ -310,6 +320,7 @@ final class Stage {
 	public function shut():Void {
 		if (icons != null) icons.shut();
 
+		spare.shut();
 		shed();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
