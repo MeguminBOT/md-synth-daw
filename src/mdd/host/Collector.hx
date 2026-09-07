@@ -4,7 +4,7 @@ package mdd.host;
 final class Collector {
 	public static inline final CEILING = 64 * 1024 * 1024;
 	public static inline final ROUSE = 8 * 1024 * 1024;
-	public static inline final QUIET = 0.25;
+	static inline final QUIET = 0.25;
 
 	public var swept(default, null):Int = 0;
 	public var forced(default, null):Int = 0;

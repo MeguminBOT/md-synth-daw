@@ -165,11 +165,11 @@ final class Stream {
 		return ((value & 4) != 0 ? 3 : 0) + channel;
 	}
 
-	public static inline function halfOf(part:Part):Int {
+	static inline function halfOf(part:Part):Int {
 		return part.index() >= 3 ? 1 : 0;
 	}
 
-	public static inline function channelOf(part:Part):Int {
+	static inline function channelOf(part:Part):Int {
 		return part.index() % 3;
 	}
 

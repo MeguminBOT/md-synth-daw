@@ -15,19 +15,19 @@ final class Vgm {
 	public static inline final YM_LOW = 0x52;
 	public static inline final YM_HIGH = 0x53;
 	public static inline final WAIT = 0x61;
-	public static inline final WAIT_60 = 0x62;
-	public static inline final WAIT_50 = 0x63;
+	static inline final WAIT_60 = 0x62;
+	static inline final WAIT_50 = 0x63;
 	public static inline final END = 0x66;
 	public static inline final BLOCK = 0x67;
-	public static inline final SEEK = 0xE0;
-	public static inline final STEREO = 0x4F;
+	static inline final SEEK = 0xE0;
+	static inline final STEREO = 0x4F;
 
 	public var version(default, null):Int = 0x150;
-	public var snClock(default, null):Int = 0;
-	public var ymClock(default, null):Int = 0;
+	var snClock(default, null):Int = 0;
+	var ymClock(default, null):Int = 0;
 	public var samples(default, null):Int = 0;
 	public var loopAt(default, null):Int = -1;
-	public var loopSamples(default, null):Int = 0;
+	var loopSamples(default, null):Int = 0;
 	public var rate(default, null):Int = 60;
 
 	public var title(default, null):String = "";
@@ -40,7 +40,7 @@ final class Vgm {
 	public var waits(default, null):Int = 0;
 	public var blocks(default, null):Int = 0;
 	public var blockBytes(default, null):Int = 0;
-	public var seeks(default, null):Int = 0;
+	var seeks(default, null):Int = 0;
 	public var stereo(default, null):Int = 0;
 	public var unknown(default, null):Int = 0;
 
@@ -204,7 +204,7 @@ final class Vgm {
 		return 0;
 	}
 
-	public var pcmBytes(default, null):Vector<Int> = new Vector<Int>(0);
+	var pcmBytes(default, null):Vector<Int> = new Vector<Int>(0);
 
 	var pcmHeld:Int = 0;
 	var pcmAt:Int = 0;

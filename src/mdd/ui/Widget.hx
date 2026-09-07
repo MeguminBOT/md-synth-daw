@@ -25,7 +25,7 @@ class Widget {
 	public var parent(default, null):Null<Widget> = null;
 	public final children:Array<Widget> = [];
 
-	public var dirty(default, null):Bool = true;
+	var dirty(default, null):Bool = true;
 
 	var owner:Null<Root> = null;
 

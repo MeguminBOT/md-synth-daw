@@ -10,14 +10,14 @@ final class Shell extends Widget {
 	public static inline final STATUS = 5;
 	public static inline final ZONES = 6;
 
-	public var railWide:Float = 0;
-	public var inspectorWide:Float = 0;
+	var railWide:Float = 0;
+	var inspectorWide:Float = 0;
 
-	public var railOpen:Bool = true;
-	public var inspectorOpen:Bool = true;
+	var railOpen:Bool = true;
+	var inspectorOpen:Bool = true;
 
-	public final railSize:Motion;
-	public final inspectorSize:Motion;
+	final railSize:Motion;
+	final inspectorSize:Motion;
 
 	final zones:Array<Widget> = [];
 

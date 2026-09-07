@@ -7,12 +7,12 @@ final class Scale {
 	public static inline final CHROMATIC = 0;
 	public static inline final MAJOR = 1;
 	public static inline final MINOR = 2;
-	public static inline final HARMONIC = 3;
-	public static inline final DORIAN = 4;
-	public static inline final MIXOLYDIAN = 5;
-	public static inline final PENTATONIC = 6;
-	public static inline final MINOR_PENTATONIC = 7;
-	public static inline final BLUES = 8;
+	static inline final HARMONIC = 3;
+	static inline final DORIAN = 4;
+	static inline final MIXOLYDIAN = 5;
+	static inline final PENTATONIC = 6;
+	static inline final MINOR_PENTATONIC = 7;
+	static inline final BLUES = 8;
 	public static inline final KINDS = 9;
 
 	static final SHAPES:Vector<Int> = Vector.fromArrayCopy([

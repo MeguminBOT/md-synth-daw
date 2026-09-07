@@ -78,7 +78,7 @@ final class Bindings {
 		return keys[action];
 	}
 
-	public inline function modOf(action:Int):Int {
+	inline function modOf(action:Int):Int {
 		return mods[action];
 	}
 

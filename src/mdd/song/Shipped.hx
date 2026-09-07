@@ -3,13 +3,13 @@ package mdd.song;
 @:unreflective
 final class Shipped {
 	public static inline final DETUNE = 0;
-	public static inline final MULTIPLE = 1;
+	static inline final MULTIPLE = 1;
 	public static inline final LEVEL = 2;
-	public static inline final SCALING = 3;
+	static inline final SCALING = 3;
 	public static inline final ATTACK = 4;
 	public static inline final DECAY = 5;
 	public static inline final SUSTAIN = 6;
-	public static inline final SUSTAIN_LEVEL = 7;
+	static inline final SUSTAIN_LEVEL = 7;
 	public static inline final RELEASE = 8;
 	public static inline final SSG = 9;
 	public static inline final FIELDS = 10;

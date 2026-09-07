@@ -9,9 +9,9 @@ final class Profile {
 
 	public final has:Vector<Bool> = new Vector<Bool>(Part.COUNT);
 
-	public var fm3Special:Bool = true;
+	var fm3Special:Bool = true;
 	public var lowestSquare:Int = 45;
-	public var highestSquare:Int = 127;
+	var highestSquare:Int = 127;
 	public var lowestFm:Int = 12;
 	public var highestFm:Int = 107;
 	public var sampleBytes:Int = 262144;

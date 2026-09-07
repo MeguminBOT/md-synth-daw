@@ -11,7 +11,7 @@ import mdd.song.Tempo;
 @:unreflective
 final class Render {
 	public static inline final BLOCK = 128;
-	public static inline final COUPLED = 17.569;
+	static inline final COUPLED = 17.569;
 
 	public static inline final CHIP = 0;
 	public static inline final MODEL_ONE = 1;
@@ -20,7 +20,7 @@ final class Render {
 
 	static final CORNERS:Array<Float> = [0, 3300.0, 7100.0];
 
-	public static inline final MATCHED = 0.8;
+	static inline final MATCHED = 0.8;
 
 	var coupling:Float = 0.9975;
 
@@ -82,13 +82,13 @@ final class Render {
 		rollGain = (1 - pole) / (1 - zero);
 	}
 	public static inline final FULL_SCALE = 2560.0;
-	public static inline final SCALE = 1.0 / FULL_SCALE;
-	public static inline final PRIMED = 0.100;
+	static inline final SCALE = 1.0 / FULL_SCALE;
+	static inline final PRIMED = 0.100;
 
 	public static inline final TAPS = 2048;
 	public static inline final TAP_EVERY = 4;
-	public static inline final FM_TAP = 1.0 / 200.0;
-	public static inline final PSG_TAP = 1.0 / 340.0;
+	static inline final FM_TAP = 1.0 / 200.0;
+	static inline final PSG_TAP = 1.0 / 340.0;
 
 	public final taps:haxe.ds.Vector<cpp.Float32> =
 		new haxe.ds.Vector<cpp.Float32>(mdd.song.Part.COUNT * TAPS);
@@ -147,15 +147,15 @@ final class Render {
 
 	public var running(default, null):Bool = false;
 	public var blocks(default, null):Int = 0;
-	public var worstHeld(default, null):Int = 0;
+	var worstHeld(default, null):Int = 0;
 
-	public static inline final BAND = 19845.0;
+	static inline final BAND = 19845.0;
 
-	public static inline final PHASES = 32;
+	static inline final PHASES = 32;
 
-	public static inline final WEIGHTS = 127;
+	static inline final WEIGHTS = 127;
 
-	public static inline final SQUARES = 384;
+	static inline final SQUARES = 384;
 
 	final weights:Vector<Float> = new Vector<Float>(WEIGHTS * PHASES);
 	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS);

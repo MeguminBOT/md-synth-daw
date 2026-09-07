@@ -2,9 +2,9 @@ package mdd.ui;
 
 @:unreflective
 final class Motion {
-	public static inline final QUICK = 0.120;
+	static inline final QUICK = 0.120;
 	public static inline final ENTER = 0.180;
-	public static inline final LEAVING = 0.70;
+	static inline final LEAVING = 0.70;
 
 	public var value(default, null):Float;
 	public var from(default, null):Float;
@@ -12,10 +12,10 @@ final class Motion {
 	public var duration(default, null):Float = 0;
 	public var elapsed(default, null):Float = 0;
 	public var moves(default, null):Bool;
-	public var reshapes(default, null):Bool;
+	var reshapes(default, null):Bool;
 	public var running(default, null):Bool = false;
 
-	public var onSettle:Null<Motion -> Void> = null;
+	var onSettle:Null<Motion -> Void> = null;
 
 	final subject:Null<Widget>;
 

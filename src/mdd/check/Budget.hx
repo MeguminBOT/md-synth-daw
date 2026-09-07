@@ -12,7 +12,7 @@ final class Budget {
 	public final profile:Profile;
 
 	public final found:Array<Diagnostic> = [];
-	public final troubles:Array<Note> = [];
+	final troubles:Array<Note> = [];
 
 	public static inline final FRAMES = 60;
 

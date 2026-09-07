@@ -10,12 +10,12 @@ import mdd.host.Texture;
 final class Font {
 	public static inline final FIRST = 32;
 	public static inline final LAST = 255;
-	public static inline final GLYPHS = LAST - FIRST + 1;
-	public static inline final WIDEST = 2048;
-	public static inline final PAIRED = 0x10000;
+	static inline final GLYPHS = LAST - FIRST + 1;
+	static inline final WIDEST = 2048;
+	static inline final PAIRED = 0x10000;
 
-	public static inline final CACHE = 1024;
-	public static inline final SCRATCH = 192;
+	static inline final CACHE = 1024;
+	static inline final SCRATCH = 192;
 	public static inline final NONE = -1;
 
 	static inline final FLOATS = 9;

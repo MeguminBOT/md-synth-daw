@@ -39,7 +39,7 @@ final class MenuBar extends Widget {
 		return root == null ? 22 : root.metrics.whole(22);
 	}
 
-	public function trailingAt(px:Float, py:Float):Int {
+	function trailingAt(px:Float, py:Float):Int {
 		if (trailing.length == 0) return -1;
 
 		final root = root();

@@ -4,7 +4,7 @@ package mdd.host;
 extern class Dialog {
 	public static inline final WAITING = 0;
 	public static inline final CHOSEN = 1;
-	public static inline final CANCELLED = 2;
+	static inline final CANCELLED = 2;
 	public static inline final FAILED = 3;
 
 	@:native("mdd_dialog_open")

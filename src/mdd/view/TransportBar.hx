@@ -20,8 +20,8 @@ import mdd.ui.control.Number;
 final class TransportBar extends Widget {
 	public static inline final PLAY = 0;
 	public static inline final STOP = 1;
-	public static inline final RECORD = 2;
-	public static inline final REWIND = 3;
+	static inline final RECORD = 2;
+	static inline final REWIND = 3;
 	public static inline final LOOP = 4;
 	public static inline final BUTTONS = 5;
 
@@ -37,9 +37,9 @@ final class TransportBar extends Widget {
 	public final tempo:Number;
 	public final offset:Number;
 	public var regrids:Bool = false;
-	public final resolution:Number;
+	final resolution:Number;
 	public final length:Number;
-	public final video:Number;
+	final video:Number;
 	public final snap:Number;
 
 	final held:Array<Number>;
@@ -236,7 +236,7 @@ final class TransportBar extends Widget {
 		return root == null ? 44 : root.metrics.whole(44);
 	}
 
-	public function modeAt(px:Float, py:Float):Int {
+	function modeAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
 
@@ -297,7 +297,7 @@ final class TransportBar extends Widget {
 		return volumeLeft() + volumeWide() - trackLeft();
 	}
 
-	public function onVolume(px:Float, py:Float):Bool {
+	function onVolume(px:Float, py:Float):Bool {
 		final button = size();
 		final top = y + (height - button) * 0.5;
 
@@ -325,7 +325,7 @@ final class TransportBar extends Widget {
 		invalidate();
 	}
 
-	public function onPicker(px:Float, py:Float):Bool {
+	function onPicker(px:Float, py:Float):Bool {
 		final button = size();
 		final top = y + (height - button) * 0.5;
 

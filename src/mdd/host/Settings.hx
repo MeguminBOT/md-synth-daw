@@ -5,7 +5,7 @@ import sys.io.File;
 
 @:unreflective
 final class Settings {
-	public static inline final NAME = "settings.txt";
+	static inline final NAME = "settings.txt";
 	public static inline final MARK = "portable.txt";
 
 	public var path(default, null):String;

@@ -10,7 +10,7 @@ final class Mapping {
 	public static inline final DIAL = 0;
 	public static inline final OPERATOR = 1;
 
-	public static inline final CONTROLS = 128;
+	static inline final CONTROLS = 128;
 
 	final controls:Array<Int> = [];
 	final kinds:Array<Int> = [];

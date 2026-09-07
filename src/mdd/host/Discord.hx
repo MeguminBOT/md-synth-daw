@@ -2,11 +2,11 @@ package mdd.host;
 
 @:include("discord.h")
 extern class Discord {
-	public static inline final HANDSHAKE = 0;
+	static inline final HANDSHAKE = 0;
 	public static inline final FRAME = 1;
-	public static inline final CLOSED = 2;
-	public static inline final PING = 3;
-	public static inline final PONG = 4;
+	static inline final CLOSED = 2;
+	static inline final PING = 3;
+	static inline final PONG = 4;
 
 	@:native("mdd_discord_open")
 	public static function open(application:cpp.ConstCharStar):Bool;

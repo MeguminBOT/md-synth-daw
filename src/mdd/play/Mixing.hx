@@ -8,14 +8,14 @@ final class Mixing {
 	public static inline final OPUS = 3;
 	public static inline final KINDS = 4;
 
-	public static final SUFFIXES:Array<String> = ["wav", "flac", "ogg", "opus"];
+	static final SUFFIXES:Array<String> = ["wav", "flac", "ogg", "opus"];
 	public static final NAMES:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	public static final RATES:Array<Int> = [22050, 32000, 44100, 48000, 88200, 96000];
-	public static final DEPTHS:Array<Int> = [16, 24, 32];
+	static final DEPTHS:Array<Int> = [16, 24, 32];
 	public static final BITRATES:Array<Int> = [96, 128, 160, 192, 256, 320];
 
-	public static final OPUS_RATES:Array<Int> = [8000, 12000, 16000, 24000, 48000];
+	static final OPUS_RATES:Array<Int> = [8000, 12000, 16000, 24000, 48000];
 
 	public var kind:Int = WAV;
 	public var rate:Int = 44100;
@@ -43,7 +43,7 @@ final class Mixing {
 
 	public function new() {}
 
-	public inline function lossy():Bool {
+	inline function lossy():Bool {
 		return kind == OGG || kind == OPUS;
 	}
 

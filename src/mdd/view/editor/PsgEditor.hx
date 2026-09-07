@@ -18,7 +18,7 @@ final class PsgEditor extends Widget {
 	public static inline final STEPS = 32;
 
 	public static inline final LOOP = 0;
-	public static inline final SPEED = 1;
+	static inline final SPEED = 1;
 	public static inline final NOISE = 2;
 	public static inline final DIALS = 3;
 
@@ -104,7 +104,7 @@ final class PsgEditor extends Widget {
 		}
 	}
 
-	public function dialSpan(which:Int):Float {
+	function dialSpan(which:Int):Float {
 		return switch (which) {
 			case LOOP: STEPS - 1;
 			case SPEED: 16;
@@ -116,12 +116,12 @@ final class PsgEditor extends Widget {
 		return width / STEPS;
 	}
 
-	public function stepAt(px:Float):Int {
+	function stepAt(px:Float):Int {
 		final at = Std.int((px - x) / stepWide());
 		return at < 0 || at >= STEPS ? -1 : at;
 	}
 
-	public function levelAt(py:Float, top:Float, tall:Float):Int {
+	function levelAt(py:Float, top:Float, tall:Float):Int {
 		final part = (py - top) / tall;
 		final level = Math.round(part * 15);
 
@@ -199,7 +199,7 @@ final class PsgEditor extends Widget {
 		return false;
 	}
 
-	public function graphTall():Float {
+	function graphTall():Float {
 		final root = root();
 		if (root == null) return 220;
 

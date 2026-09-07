@@ -7,7 +7,7 @@ final class Splitter extends Widget {
 	public var least:Float = 60;
 	public var most:Float = 1e9;
 
-	public var onMove:Null<Splitter -> Void> = null;
+	var onMove:Null<Splitter -> Void> = null;
 
 	var dragging:Bool = false;
 	var grabAt:Float = 0;

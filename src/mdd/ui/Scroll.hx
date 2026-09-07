@@ -19,7 +19,7 @@ class Scroll extends Widget {
 		opaque = true;
 	}
 
-	public inline function downwards():Bool {
+	inline function downwards():Bool {
 		return contentHeight > height + 0.5;
 	}
 
@@ -39,7 +39,7 @@ class Scroll extends Widget {
 		invalidate();
 	}
 
-	public function scrollAcross(x:Float):Void {
+	function scrollAcross(x:Float):Void {
 		var next = x;
 		final most = contentWidth - width;
 

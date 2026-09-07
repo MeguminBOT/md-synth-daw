@@ -12,8 +12,8 @@ import mdd.ui.Widget;
 @:unreflective
 final class Tools extends Widget {
 	public static inline final SNAP = Session.TOOLS;
-	public static inline final GHOSTS = Session.TOOLS + 1;
-	public static inline final CELLS = Session.TOOLS + 2;
+	static inline final GHOSTS = Session.TOOLS + 1;
+	static inline final CELLS = Session.TOOLS + 2;
 
 	public var bindings:Null<mdd.app.Bindings> = null;
 
@@ -62,7 +62,7 @@ final class Tools extends Widget {
 
 	final order:Array<Int> = [];
 
-	public function orders():Array<Int> {
+	function orders():Array<Int> {
 		order.resize(0);
 		for (index in 0...CELLS) if (allowed & (1 << index) != 0) order.push(index);
 
@@ -105,7 +105,7 @@ final class Tools extends Widget {
 		return cell() * many + gap * (many - 1) + lead() * 2;
 	}
 
-	public function cellAt(px:Float, py:Float):Int {
+	function cellAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
 

@@ -15,8 +15,8 @@ final class Update {
 	public static inline final FETCHING = 5;
 	public static inline final FETCHED = 6;
 
-	public static inline final API = "https://api.github.com/repos/";
-	public static inline final LATEST = "/releases/latest";
+	static inline final API = "https://api.github.com/repos/";
+	static inline final LATEST = "/releases/latest";
 
 	public var repository(default, null):String;
 	public var running(default, null):String;
@@ -27,7 +27,7 @@ final class Update {
 	public var notes(default, null):String = "";
 	public var into(default, null):String = "";
 	public var assets(default, null):Int = 0;
-	public var weighs(default, null):Int = 0;
+	var weighs(default, null):Int = 0;
 
 	final held:AtomicInt = new AtomicInt(IDLE);
 
@@ -185,7 +185,7 @@ final class Update {
 		held.store(IDLE);
 	}
 
-	public static function fetched(url:String):String {
+	static function fetched(url:String):String {
 		final run = new sys.io.Process("curl", [
 			"-sL", "--fail", "--max-time", "10",
 			"-H", "Accept: application/vnd.github+json",

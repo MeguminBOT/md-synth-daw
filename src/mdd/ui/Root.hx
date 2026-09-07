@@ -4,8 +4,8 @@ import mdd.ui.control.Menu;
 import mdd.ui.control.Tooltip;
 @:unreflective
 final class Root {
-	public static inline final STILL = 0.450;
-	public static inline final GRACE = 0.250;
+	static inline final STILL = 0.450;
+	static inline final GRACE = 0.250;
 
 	public var top(default, null):Widget;
 	public var metrics(default, null):Metrics;
@@ -23,8 +23,8 @@ final class Root {
 	public var capture(default, null):Null<Widget> = null;
 	public var over(default, null):Null<Widget> = null;
 
-	public var pointerX(default, null):Float = 0;
-	public var pointerY(default, null):Float = 0;
+	var pointerX(default, null):Float = 0;
+	var pointerY(default, null):Float = 0;
 	public var mods(default, null):Mod = Mod.None;
 
 	public var width(default, null):Float = 0;
@@ -613,7 +613,7 @@ final class Root {
 		return focus != null && focus.typing;
 	}
 
-	public function acting():Null<Widget> {
+	function acting():Null<Widget> {
 		return popups.length > 0 && returnFocus != null ? returnFocus : focus;
 	}
 

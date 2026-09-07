@@ -114,7 +114,7 @@ final class Song {
 		return instrumentAt(named);
 	}
 
-	public function soloing():Bool {
+	function soloing():Bool {
 		for (i in 0...Part.COUNT) if (soloed[i]) return true;
 		return false;
 	}
@@ -284,7 +284,7 @@ final class Song {
 		return false;
 	}
 
-	public function earliest():Int {
+	function earliest():Int {
 		var least = -1;
 
 		for (pattern in patterns) {

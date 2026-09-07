@@ -57,7 +57,7 @@ final class Session {
 		transport = new Transport(song, 65536);
 	}
 
-	public static inline final TRACKS = 8;
+	static inline final TRACKS = 8;
 
 	static final DEFAULTS:Array<Int> = [0, 1, 4, 5, 8, 2, 16, 17, 18, 22];
 

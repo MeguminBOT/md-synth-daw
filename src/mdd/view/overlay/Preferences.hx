@@ -19,8 +19,8 @@ import mdd.ui.Widget;
 @:unreflective
 final class Preferences extends Widget {
 	public static inline final THEME = 0;
-	public static inline final TYPEFACE = 1;
-	public static inline final MOTION = 2;
+	static inline final TYPEFACE = 1;
+	static inline final MOTION = 2;
 	public static inline final LANGUAGE = 3;
 	public static inline final DENSITY = 4;
 	public static inline final KEEPING = 5;
@@ -31,22 +31,22 @@ final class Preferences extends Widget {
 	public static inline final PRESETS = 10;
 	public static inline final AUTOMATING = 11;
 	public static inline final TAIL = 12;
-	public static inline final MIDI_DEVICE = 13;
-	public static inline final MIDI_CHANNEL = 14;
-	public static inline final MIDI_VELOCITY = 15;
+	static inline final MIDI_DEVICE = 13;
+	static inline final MIDI_CHANNEL = 14;
+	static inline final MIDI_VELOCITY = 15;
 	public static inline final CONSOLE = 16;
 	public static inline final TEMPO = 17;
 	public static inline final PRESENCE = 18;
 	public static inline final ROWS = 19;
 
 	public static inline final LOOK = 0;
-	public static inline final EDITING = 1;
+	static inline final EDITING = 1;
 	public static inline final FILES = 2;
-	public static inline final CHECKING = 3;
+	static inline final CHECKING = 3;
 	public static inline final MIDI = 4;
 	public static inline final SOUND = 5;
 	public static inline final KEYBOARD = 6;
-	public static inline final SHARING = 7;
+	static inline final SHARING = 7;
 	public static inline final GROUPS = 8;
 
 	static final GROUP_NAMES:Array<Locale> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
@@ -92,18 +92,18 @@ final class Preferences extends Widget {
 
 	static final VELOCITIES:Array<Locale> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
 
-	public static final AUTOMATINGS:Array<Locale> = [Locale.AUTOMATING_LANES,
+	static final AUTOMATINGS:Array<Locale> = [Locale.AUTOMATING_LANES,
 		Locale.AUTOMATING_CLIPS];
 
 	static final TAILS:Array<Locale> = [Locale.TAIL_NONE, Locale.TAIL_BEAT, Locale.TAIL_TWO,
 		Locale.TAIL_BAR, Locale.TAIL_TWO_BARS];
 
-	public static final BEATS:Array<Int> = [0, 1, 2, 4, 8];
+	static final BEATS:Array<Int> = [0, 1, 2, 4, 8];
 
 	static final KEEPINGS:Array<Locale> = [Locale.KEEPING_NEVER, Locale.KEEPING_ONE,
 		Locale.KEEPING_FIVE, Locale.KEEPING_TEN];
 
-	public static final MINUTES:Array<Float> = [0, 60, 300, 600];
+	static final MINUTES:Array<Float> = [0, 60, 300, 600];
 
 	static final BACKUP_ROOMS:Array<String> = ["", "50 MB", "100 MB", "250 MB", "500 MB",
 		"1 GB", ""];
@@ -145,7 +145,7 @@ final class Preferences extends Widget {
 
 	public final keyboards:Array<String> = [];
 
-	public var keyboardAt(default, null):Int = 0;
+	var keyboardAt(default, null):Int = 0;
 	public var keyboardChannel(default, null):Int = 0;
 	public var keyboardVelocity(default, null):Int = 0;
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
@@ -328,7 +328,7 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
-	public function aims(slot:Int, kind:Int, op:Int, row:Int):Void {
+	function aims(slot:Int, kind:Int, op:Int, row:Int):Void {
 		final held = mapping;
 		if (held == null || slot < 0) return;
 
@@ -338,7 +338,7 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
-	public inline function binding():Bool {
+	inline function binding():Bool {
 		return group == KEYBOARD && bindings != null;
 	}
 
@@ -385,7 +385,7 @@ final class Preferences extends Widget {
 		return GROUPED[group];
 	}
 
-	public function sidebar():Float {
+	function sidebar():Float {
 		final root = root();
 		return root == null ? 150 : root.metrics.whole(150);
 	}
@@ -449,7 +449,7 @@ final class Preferences extends Widget {
 		return at < 0 || at >= held.length ? -1 : held[at];
 	}
 
-	public function groupAt(py:Float):Int {
+	function groupAt(py:Float):Int {
 		if (py < y + head() || py >= y + head() + room()) return -1;
 
 		final at = Std.int((py - y - head()) / rowTall());
@@ -466,7 +466,7 @@ final class Preferences extends Widget {
 		return root == null ? 32 : root.metrics.control;
 	}
 
-	public function buttonTop():Float {
+	function buttonTop():Float {
 		return y + height - foot() + (foot() - buttonTall()) * 0.5;
 	}
 

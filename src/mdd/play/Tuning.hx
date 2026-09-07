@@ -2,15 +2,15 @@ package mdd.play;
 
 @:unreflective
 final class Tuning {
-	public static inline final FNUM = 0x7FF;
-	public static inline final BLOCKS = 7;
-	public static inline final RAW = false;
+	static inline final FNUM = 0x7FF;
+	static inline final BLOCKS = 7;
+	static inline final RAW = false;
 
-	public static inline function blockIn(word:Int):Int {
+	static inline function blockIn(word:Int):Int {
 		return (word >> 11) & BLOCKS;
 	}
 
-	public static inline function fnumIn(word:Int):Int {
+	static inline function fnumIn(word:Int):Int {
 		return word & FNUM;
 	}
 

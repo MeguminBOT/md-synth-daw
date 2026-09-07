@@ -21,8 +21,8 @@ final class Theme {
 	]);
 
 	public static inline final MIDNIGHT = 0;
-	public static inline final RACK = 1;
-	public static inline final SLATE = 2;
+	static inline final RACK = 1;
+	static inline final SLATE = 2;
 
 	static final SURFACES:Vector<Colour> = Vector.fromArrayCopy([
 		0x0C0C0C, 0x141414, 0x1E1E1E, 0x272727, 0x2F2F2F, 0x3A3A3A, 0x4A4A4A, 0x282828,

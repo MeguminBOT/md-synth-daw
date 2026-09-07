@@ -103,7 +103,7 @@ final class ChannelRack extends Widget {
 		return y + header() + index * rowHeight() - offsetY;
 	}
 
-	public function contentTall():Float {
+	function contentTall():Float {
 		return Part.COUNT * rowHeight();
 	}
 

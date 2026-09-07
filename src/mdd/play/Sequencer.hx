@@ -10,17 +10,17 @@ import mdd.song.Tempo;
 final class Sequencer {
 	public static inline final OFF = 0;
 	public static inline final PATCH = 1;
-	public static inline final TWEAK = 2;
+	static inline final TWEAK = 2;
 	public static inline final TUNE = 3;
 	public static inline final DATA = 4;
 	public static inline final ON = 5;
-	public static inline final SETUP = 6;
+	static inline final SETUP = 6;
 
-	public static inline final DAC_BYTE = 0;
-	public static inline final PSG_STEP = 1;
+	static inline final DAC_BYTE = 0;
+	static inline final PSG_STEP = 1;
 
 	public static inline final ENVELOPE_TICKS = 735;
-	public static inline final GUARD = 0;
+	static inline final GUARD = 0;
 
 	public final song:Song;
 	public final voices:Voices;

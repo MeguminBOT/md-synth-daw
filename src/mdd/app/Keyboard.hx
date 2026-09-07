@@ -4,10 +4,10 @@ package mdd.app;
 final class Keyboard {
 	public static inline final NOTE_OFF = 0x80;
 	public static inline final NOTE_ON = 0x90;
-	public static inline final TOUCH = 0xA0;
+	static inline final TOUCH = 0xA0;
 	public static inline final CONTROL = 0xB0;
-	public static inline final PROGRAM = 0xC0;
-	public static inline final PRESSURE = 0xD0;
+	static inline final PROGRAM = 0xC0;
+	static inline final PRESSURE = 0xD0;
 	public static inline final BEND = 0xE0;
 
 	public static inline final WHEEL = 1;

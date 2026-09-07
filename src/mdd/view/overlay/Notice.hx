@@ -14,9 +14,9 @@ import mdd.ui.Widget;
 
 @:unreflective
 final class Notice extends Widget {
-	public static inline final TAKE = 0;
+	static inline final TAKE = 0;
 	public static inline final LATER = 1;
-	public static inline final NEVER = 2;
+	static inline final NEVER = 2;
 	public static inline final BUTTONS = 3;
 
 	static final LABELS:Array<Locale> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,

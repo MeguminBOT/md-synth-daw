@@ -63,7 +63,7 @@ final class Voices {
 		return holds[index];
 	}
 
-	public static inline final CHAIN = 64;
+	static inline final CHAIN = 64;
 
 	public function resolve(lane:Lane, from:Int = 0, until:Int = 0x3FFFFFFF):Int {
 		count = 0;

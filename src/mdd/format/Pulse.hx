@@ -15,7 +15,7 @@ final class Pulse {
 	public static inline final STEPS = 1200;
 	public static inline final TOLERANCE = 0.12;
 
-	public static inline final ENOUGH = 32;
+	static inline final ENOUGH = 32;
 
 	public static function of(stream:Stream, rate:Int, fallback:Float):Float {
 		return from(struck(stream, rate), fallback);

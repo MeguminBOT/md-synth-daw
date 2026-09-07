@@ -20,7 +20,7 @@ final class Welcome extends Widget {
 	public var chosen(default, null):Int = 0;
 	public var automating(default, null):Int = Session.LANES;
 
-	public static inline final WAYS = 2;
+	static inline final WAYS = 2;
 
 	public final rise:Motion;
 	public final fade:Motion;
@@ -90,7 +90,7 @@ final class Welcome extends Widget {
 		return at < 0 || at >= languages.length ? -1 : at;
 	}
 
-	public function wayTall():Float {
+	function wayTall():Float {
 		final root = root();
 		return root == null ? 48 : root.metrics.whole(48);
 	}
@@ -100,11 +100,11 @@ final class Welcome extends Widget {
 		return root == null ? 34 : root.metrics.whole(34);
 	}
 
-	public function waysTop():Float {
+	function waysTop():Float {
 		return y + head() + languages.length * rowTall() + asking();
 	}
 
-	public function wayAt(py:Float):Int {
+	function wayAt(py:Float):Int {
 		final at = Std.int((py - waysTop()) / wayTall());
 		return at < 0 || at >= WAYS ? -1 : at;
 	}

@@ -27,7 +27,7 @@ final class Automation {
 	public static inline final CURVE = 2;
 	public static inline final SMOOTH = 3;
 	public static inline final STAIRS = 4;
-	public static inline final SMOOTH_STAIRS = 5;
+	static inline final SMOOTH_STAIRS = 5;
 	public static inline final PULSE = 6;
 	public static inline final WAVE = 7;
 	public static inline final HALF_SINE = 8;
@@ -161,7 +161,7 @@ final class Automation {
 		return from.value + Math.round((to.value - from.value) * much);
 	}
 
-	public static function warped(part:Float, tension:Int):Float {
+	static function warped(part:Float, tension:Int):Float {
 		if (tension == 0) return part;
 
 		var much = tension / MOST_TENSION;

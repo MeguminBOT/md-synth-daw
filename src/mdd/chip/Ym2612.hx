@@ -73,7 +73,7 @@ final class Ym2612 {
 	var pendingValue:Int = 0;
 	var pendingIn:Int = 0;
 	var waiting:Bool = false;
-	public var lfoPhase(default, null):Int = 0;
+	var lfoPhase(default, null):Int = 0;
 	public var swell(default, null):Int = 126;
 
 	var lfoOn:Bool = false;

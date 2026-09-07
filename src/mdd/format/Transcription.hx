@@ -86,7 +86,7 @@ final class Transcription {
 		return made;
 	}
 
-	public static function tempoFor(rate:Int):Float {
+	static function tempoFor(rate:Int):Float {
 		return rate == 50 ? 125 : 150;
 	}
 

@@ -3,7 +3,7 @@ package mdd.host;
 @:include("window.h")
 @:include("events.h")
 extern class Sdl {
-	public static inline final EVENT_NONE = 0;
+	static inline final EVENT_NONE = 0;
 	public static inline final EVENT_QUIT = 1;
 	public static inline final EVENT_KEY_DOWN = 2;
 	public static inline final EVENT_KEY_UP = 3;
@@ -14,21 +14,21 @@ extern class Sdl {
 	public static inline final EVENT_TEXT = 8;
 	public static inline final EVENT_WINDOW_CLOSE = 9;
 	public static inline final EVENT_WINDOW_RESIZED = 10;
-	public static inline final EVENT_WINDOW_FOCUS_LOST = 11;
-	public static inline final EVENT_WINDOW_FOCUS_GAINED = 12;
+	static inline final EVENT_WINDOW_FOCUS_LOST = 11;
+	static inline final EVENT_WINDOW_FOCUS_GAINED = 12;
 	public static inline final EVENT_WINDOW_SCALE_CHANGED = 13;
 	public static inline final EVENT_WINDOW_EXPOSED = 14;
-	public static inline final EVENT_DROP_FILE = 15;
+	static inline final EVENT_DROP_FILE = 15;
 
-	public static inline final MOD_NONE = 0;
-	public static inline final MOD_SHIFT = 1;
-	public static inline final MOD_CTRL = 2;
-	public static inline final MOD_ALT = 4;
-	public static inline final MOD_GUI = 8;
+	static inline final MOD_NONE = 0;
+	static inline final MOD_SHIFT = 1;
+	static inline final MOD_CTRL = 2;
+	static inline final MOD_ALT = 4;
+	static inline final MOD_GUI = 8;
 
-	public static inline final BUTTON_LEFT = 1;
-	public static inline final BUTTON_MIDDLE = 2;
-	public static inline final BUTTON_RIGHT = 3;
+	static inline final BUTTON_LEFT = 1;
+	static inline final BUTTON_MIDDLE = 2;
+	static inline final BUTTON_RIGHT = 3;
 
 	@:native("mdd_sdl_init")
 	public static function init():Int;
@@ -50,7 +50,7 @@ extern class Sdl {
 	public static function windowID(window:cpp.Star<Window>):Int;
 
 	@:native("mdd_window_set_title")
-	public static function setWindowTitle(window:cpp.Star<Window>, title:cpp.ConstCharStar):Void;
+	static function setWindowTitle(window:cpp.Star<Window>, title:cpp.ConstCharStar):Void;
 
 	@:native("mdd_window_width")
 	public static function windowWidth(window:cpp.Star<Window>):Int;
@@ -59,20 +59,20 @@ extern class Sdl {
 	public static function windowHeight(window:cpp.Star<Window>):Int;
 
 	@:native("mdd_window_pixel_width")
-	public static function windowPixelWidth(window:cpp.Star<Window>):Int;
+	static function windowPixelWidth(window:cpp.Star<Window>):Int;
 
 	@:native("mdd_window_pixel_height")
-	public static function windowPixelHeight(window:cpp.Star<Window>):Int;
+	static function windowPixelHeight(window:cpp.Star<Window>):Int;
 
 	@:native("mdd_window_set_size")
-	public static function setWindowSize(window:cpp.Star<Window>, width:Int, height:Int):Void;
+	static function setWindowSize(window:cpp.Star<Window>, width:Int, height:Int):Void;
 
 	@:native("mdd_window_set_minimum_size")
 	public static function setWindowMinimumSize(window:cpp.Star<Window>, width:Int,
 		height:Int):Void;
 
 	@:native("mdd_window_set_fullscreen")
-	public static function setWindowFullscreen(window:cpp.Star<Window>, on:Int):Void;
+	static function setWindowFullscreen(window:cpp.Star<Window>, on:Int):Void;
 
 	@:native("mdd_window_show")
 	public static function showWindow(window:cpp.Star<Window>):Void;
@@ -156,10 +156,10 @@ extern class Sdl {
 	public static function mods():Int;
 
 	@:native("mdd_mouse_x")
-	public static function mouseX():Single;
+	static function mouseX():Single;
 
 	@:native("mdd_mouse_y")
-	public static function mouseY():Single;
+	static function mouseY():Single;
 
 	@:native("mdd_clipboard_set")
 	public static function setClipboard(text:cpp.ConstCharStar):Void;

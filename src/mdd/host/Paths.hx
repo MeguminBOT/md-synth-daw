@@ -36,7 +36,7 @@ class Paths {
 		#end
 	}
 
-	public static inline final USERDATA = "userdata";
+	static inline final USERDATA = "userdata";
 
 	public static function platform():String {
 		#if windows

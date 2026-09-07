@@ -5,8 +5,8 @@ import haxe.ds.Vector;
 @:unreflective
 final class Menu extends Widget {
 	public static inline final CEILING = 9;
-	public static inline final DWELL = 0.200;
-	public static inline final RISE = 4.0;
+	static inline final DWELL = 0.200;
+	static inline final RISE = 4.0;
 
 	public final choices:Array<Choice> = [];
 
@@ -153,7 +153,7 @@ final class Menu extends Widget {
 		if (dwelt >= DWELL) expand(hoverAt);
 	}
 
-	public function expand(at:Int):Void {
+	function expand(at:Int):Void {
 		final root = root();
 		if (root == null || at < 0 || at >= choices.length) return;
 

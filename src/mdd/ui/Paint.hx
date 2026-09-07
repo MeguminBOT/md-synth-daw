@@ -587,7 +587,7 @@ final class Paint {
 		quad(x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny, colour, alpha);
 	}
 
-	public static inline final JOIN = 0.35;
+	static inline final JOIN = 0.35;
 
 	public function polyline(points:Vector<Float>, count:Int, weight:Float, colour:Colour,
 			alpha:Float = 1):Void {

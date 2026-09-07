@@ -145,7 +145,7 @@ final class Panels {
 		stage.root.raise(naming);
 	}
 
-	public function taggedPreset(which:Int):Void {
+	function taggedPreset(which:Int):Void {
 		final held = session.song.instrumentAt(which);
 		if (held == null || naming == null) return;
 
@@ -165,7 +165,7 @@ final class Panels {
 		stage.root.raise(naming);
 	}
 
-	public function renamedPreset(which:Int):Void {
+	function renamedPreset(which:Int):Void {
 		final held = session.song.instrumentAt(which);
 		if (held == null || naming == null) return;
 
@@ -178,7 +178,7 @@ final class Panels {
 		stage.root.raise(naming);
 	}
 
-	public function renamedTrack(which:Int):Void {
+	function renamedTrack(which:Int):Void {
 		if (naming == null || which < 0 || which >= session.song.tracks.length) return;
 
 		final held = session.song.tracks[which];

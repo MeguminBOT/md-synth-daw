@@ -367,8 +367,8 @@ final class Flac {
 
 	final residual:Vector<Int> = new Vector<Int>(BLOCK);
 
-	public static inline final LPC_MOST = 12;
-	public static inline final PRECISION = 15;
+	static inline final LPC_MOST = 12;
+	static inline final PRECISION = 15;
 
 	final shaped:Vector<Float> = new Vector<Float>(BLOCK);
 	final curve:Vector<Float> = new Vector<Float>(BLOCK);

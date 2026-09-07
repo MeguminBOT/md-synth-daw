@@ -14,12 +14,12 @@ final class Xgm {
 	public static inline final TABLE = 0x0004;
 	public static inline final SLOTS = 63;
 	public static inline final ALIGN = 256;
-	public static inline final MUSIC = 0x0108;
+	static inline final MUSIC = 0x0108;
 
 	public static inline final PCM_RATE = 14000;
 	public static inline final VOICES = 4;
 	public static inline final CENTRE = 0x80;
-	public static inline final READS = 1;
+	static inline final READS = 1;
 
 	public static inline final WAIT = 0x00;
 	public static inline final PSG = 0x10;
@@ -31,9 +31,9 @@ final class Xgm {
 	public static inline final END = 0x7F;
 
 	public var version(default, null):Int = 1;
-	public var pal(default, null):Bool = false;
+	var pal(default, null):Bool = false;
 	public var rate(default, null):Int = 60;
-	public var multi(default, null):Bool = false;
+	var multi(default, null):Bool = false;
 
 	public var sampleBytes(default, null):Int = 0;
 	public var samples(default, null):Int = 0;

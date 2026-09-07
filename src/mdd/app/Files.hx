@@ -40,7 +40,7 @@ final class Files {
 	public static inline final READ_TFI = 13;
 
 	public static inline final RATE = 44100;
-	public static inline final DAC_RATE = 8000;
+	static inline final DAC_RATE = 8000;
 
 	public var path(default, null):String = "";
 	public var asking(default, null):Int = NOTHING;
@@ -206,7 +206,7 @@ final class Files {
 		return gone;
 	}
 
-	public function backedUp():Float {
+	function backedUp():Float {
 		final where = backups();
 		if (!FileSystem.exists(where)) return 0;
 
@@ -349,7 +349,7 @@ final class Files {
 			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
 	}
 
-	public function readXgm(where:String):Void {
+	function readXgm(where:String):Void {
 		final into = new Stream(1 << 22);
 		final xgm = Xgm.read(sys.io.File.getBytes(where), into);
 		final made = Transcription.of(into, xgm.rate, name(where));
@@ -454,7 +454,7 @@ final class Files {
 		return made;
 	}
 
-	public function readTfi(where:String):Void {
+	function readTfi(where:String):Void {
 		final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
 
 		if (held == null) {
@@ -488,7 +488,7 @@ final class Files {
 		session.say(name(where));
 	}
 
-	public function writeTfi(where:String):String {
+	function writeTfi(where:String):String {
 		final at = session.song.rack[session.part.index()];
 		final held = session.song.instrumentAt(at);
 
@@ -547,7 +547,7 @@ final class Files {
 		}
 	}
 
-	public static function safely(said:String):String {
+	static function safely(said:String):String {
 		var out = "";
 
 		for (index in 0...said.length) {
@@ -617,7 +617,7 @@ final class Files {
 		return held;
 	}
 
-	public function exportXgm(where:String):String {
+	function exportXgm(where:String):String {
 		final named = suffixed(where, "xgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
 

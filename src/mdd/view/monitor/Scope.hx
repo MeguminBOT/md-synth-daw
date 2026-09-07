@@ -32,7 +32,7 @@ final class Scope extends Widget {
 
 	public final session:Session;
 
-	public final traces:Vector<Float> = new Vector<Float>(Part.COUNT * SPAN);
+	final traces:Vector<Float> = new Vector<Float>(Part.COUNT * SPAN);
 	public final written:Vector<Int> = new Vector<Int>(Part.COUNT);
 	public final notes:Vector<Int> = new Vector<Int>(Part.COUNT);
 
@@ -127,7 +127,7 @@ final class Scope extends Widget {
 		return ORDER[cell];
 	}
 
-	public function switchAt(px:Float, py:Float):Int {
+	function switchAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null || py < y || py >= y + head()) return -1;
 

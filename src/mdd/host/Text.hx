@@ -18,7 +18,7 @@ extern class Text {
 	public static function line(font:Int, pixels:Single):Single;
 
 	@:native("mdd_font_kern")
-	public static function kern(font:Int, pixels:Single, left:Int, right:Int):Single;
+	static function kern(font:Int, pixels:Single, left:Int, right:Int):Single;
 
 	@:native("mdd_font_extent")
 	public static function extent(font:Int, pixels:Single, codepoint:Int,

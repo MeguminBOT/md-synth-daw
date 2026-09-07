@@ -44,11 +44,11 @@ final class Channel {
 
 	public var keyRequest:Int = 0;
 
-	public var published(default, null):Int = 0;
+	var published(default, null):Int = 0;
 
 	public var delivered(default, null):Int = 0;
 
-	public final outputs:Vector<Int> = new Vector<Int>(4);
+	final outputs:Vector<Int> = new Vector<Int>(4);
 
 	final codes:Vector<Int> = new Vector<Int>(4);
 
@@ -259,11 +259,11 @@ final class Channel {
 		}
 	}
 
-	public inline function onLeft():Int {
+	inline function onLeft():Int {
 		return left ? delivered : 0;
 	}
 
-	public inline function onRight():Int {
+	inline function onRight():Int {
 		return right ? delivered : 0;
 	}
 }

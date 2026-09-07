@@ -26,7 +26,7 @@ final class Tracker extends Widget {
 	static final UPPER:Array<Key> = [Key.Q, Key.Two, Key.W, Key.Three, Key.E, Key.R, Key.Five,
 		Key.T, Key.Six, Key.Y, Key.Seven, Key.U];
 
-	public static final DIVISIONS:Array<Int> = [4, 8, 16, 32];
+	static final DIVISIONS:Array<Int> = [4, 8, 16, 32];
 
 	public final session:Session;
 
@@ -49,7 +49,7 @@ final class Tracker extends Widget {
 	static final LETTERS:Array<String> = ["C", "D", "E", "F", "G", "A", "B"];
 	static final STEPS:Array<Int> = [0, 2, 4, 5, 7, 9, 11];
 
-	public static inline final MOST_TYPED = 7;
+	static inline final MOST_TYPED = 7;
 
 	public function new(session:Session) {
 		super();
@@ -93,7 +93,7 @@ final class Tracker extends Widget {
 		return held < 1 ? 1 : held;
 	}
 
-	public inline function songly():Bool {
+	inline function songly():Bool {
 		return !session.alone && session.song.tracks.length > 0;
 	}
 
@@ -126,7 +126,7 @@ final class Tracker extends Widget {
 		return null;
 	}
 
-	public function clipFor(tick:Int):Null<mdd.song.Clip> {
+	function clipFor(tick:Int):Null<mdd.song.Clip> {
 		for (track in session.song.tracks) {
 			if (track.muted) continue;
 
@@ -154,14 +154,14 @@ final class Tracker extends Widget {
 		return pattern == null ? null : pattern.lane(part);
 	}
 
-	public function originAt(tick:Int, part:Part):Int {
+	function originAt(tick:Int, part:Part):Int {
 		if (!songly()) return 0;
 
 		final clip = clipAt(tick, part);
 		return clip == null ? 0 : clip.at;
 	}
 
-	public inline function tickOf(row:Int):Int {
+	inline function tickOf(row:Int):Int {
 		return row * step();
 	}
 
@@ -170,7 +170,7 @@ final class Tracker extends Widget {
 		return at < 0 || at >= rows() ? -1 : at;
 	}
 
-	public function columnAt(px:Float):Int {
+	function columnAt(px:Float):Int {
 		final at = Std.int((px - x - numbers() + offsetX) / columnWide());
 		return at < 0 || at >= Part.COUNT ? -1 : at;
 	}
@@ -481,7 +481,7 @@ final class Tracker extends Widget {
 		return clip == null ? -1 : clip.pattern;
 	}
 
-	public function writingAt(tick:Int, part:Part):Int {
+	function writingAt(tick:Int, part:Part):Int {
 		if (!songly()) return 0;
 
 		final held = clipAt(tick, part);
@@ -514,7 +514,7 @@ final class Tracker extends Widget {
 		forward();
 	}
 
-	public function erase():Void {
+	function erase():Void {
 		final held = noteAt(row, column);
 		if (held == null) {
 			forward();
@@ -527,7 +527,7 @@ final class Tracker extends Widget {
 		forward();
 	}
 
-	public function pitchFor(code:Key):Int {
+	function pitchFor(code:Key):Int {
 		for (i in 0...LOWER.length) if (LOWER[i] == code) return (octave + 1) * 12 + i;
 		for (i in 0...UPPER.length) if (UPPER[i] == code) return (octave + 2) * 12 + i;
 

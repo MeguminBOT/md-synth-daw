@@ -28,9 +28,9 @@ final class Lanes extends Widget {
 	public static inline final MOST_ROW = 220;
 	public static inline final ROW = 92;
 
-	public static inline final REACH = 8;
-	public static inline final KNOB = 5;
-	public static inline final TRACE = 512;
+	static inline final REACH = 8;
+	static inline final KNOB = 5;
+	static inline final TRACE = 512;
 
 	static inline final FINE = 0.125;
 
@@ -56,10 +56,10 @@ final class Lanes extends Widget {
 	public var holding:Null<mdd.song.Clip> = null;
 	public var playhead:Int = -1;
 	public var chosen(default, null):Null<Point> = null;
-	public var chosenAt(default, null):Int = -1;
+	var chosenAt(default, null):Int = -1;
 	public final picked:Picked<Point> = new Picked<Point>();
 
-	public static inline final STACK = -2;
+	static inline final STACK = -2;
 
 	var sizing:Int = -1;
 	var grabY:Float = 0;
@@ -356,7 +356,7 @@ final class Lanes extends Widget {
 		return root == null ? 17 : root.metrics.whole(17);
 	}
 
-	public function footTall():Float {
+	function footTall():Float {
 		final root = root();
 		return root == null ? 32 : root.metrics.whole(32);
 	}
@@ -376,7 +376,7 @@ final class Lanes extends Widget {
 		return heightOf(row) - headTall();
 	}
 
-	public function footTop():Float {
+	function footTop():Float {
 		var much = y - offsetY;
 		for (row in 0...rows()) much += heightOf(row);
 
@@ -650,7 +650,7 @@ final class Lanes extends Widget {
 		return root == null ? 5 : root.metrics.whole(5);
 	}
 
-	public function edgeAt(px:Float, py:Float):Int {
+	function edgeAt(px:Float, py:Float):Int {
 		if (rowTall > 0 || rows() == 0) return -1;
 		if (px < x || px >= x + width) return -1;
 
@@ -775,7 +775,7 @@ final class Lanes extends Widget {
 		return root == null ? 9 : root.metrics.whole(9);
 	}
 
-	public function pointAt(row:Int, px:Float, py:Float):Null<Point> {
+	function pointAt(row:Int, px:Float, py:Float):Null<Point> {
 		final line = lineOf(row);
 		if (line == null) return null;
 
@@ -799,7 +799,7 @@ final class Lanes extends Widget {
 		return found;
 	}
 
-	public function segmentAt(row:Int, px:Float):Int {
+	function segmentAt(row:Int, px:Float):Int {
 		final line = lineOf(row);
 		if (line == null || line.points.length < 2) return -1;
 
@@ -813,7 +813,7 @@ final class Lanes extends Widget {
 		return -1;
 	}
 
-	public function bendAt(row:Int, px:Float, py:Float):Int {
+	function bendAt(row:Int, px:Float, py:Float):Int {
 		final line = lineOf(row);
 		if (line == null || line.points.length < 2) return -1;
 
@@ -1363,7 +1363,7 @@ final class Lanes extends Widget {
 			thick, theme.accent, 0.9);
 	}
 
-	public function onFoot(px:Float, py:Float):Bool {
+	function onFoot(px:Float, py:Float):Bool {
 		if (holding != null || !adding) return false;
 
 		final top = footTop();
@@ -1498,7 +1498,7 @@ final class Lanes extends Widget {
 		return pattern == null ? session.song.tempo.ppqn * 16 : pattern.length;
 	}
 
-	public function nameWide(row:Int):Float {
+	function nameWide(row:Int):Float {
 		final root = root();
 		final held = parameterOf(row);
 
@@ -1515,7 +1515,7 @@ final class Lanes extends Widget {
 		return px >= x && px < x + nameWide(row);
 	}
 
-	public function onShed(row:Int, px:Float):Bool {
+	function onShed(row:Int, px:Float):Bool {
 		final root = root();
 		if (root == null || holding != null || !adding) return false;
 
@@ -1523,7 +1523,7 @@ final class Lanes extends Widget {
 		return px >= x + width - metrics.whole(20) && px < x + width;
 	}
 
-	public function onFold(row:Int, px:Float):Bool {
+	function onFold(row:Int, px:Float):Bool {
 		final root = root();
 		if (root == null || holding != null || !adding) return false;
 

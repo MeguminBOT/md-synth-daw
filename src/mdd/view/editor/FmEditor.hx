@@ -137,7 +137,7 @@ final class FmEditor extends Widget {
 		return room < least ? least : (room > most ? most : room);
 	}
 
-	public function fieldAt(px:Float, py:Float):Int {
+	function fieldAt(px:Float, py:Float):Int {
 		if (patch() == null) return -1;
 
 		final wide = columns();
@@ -158,7 +158,7 @@ final class FmEditor extends Widget {
 		return Patch.mostOf(row);
 	}
 
-	public function setTo(patch:Patch, slot:Int, row:Int, value:Int):Void {
+	function setTo(patch:Patch, slot:Int, row:Int, value:Int):Void {
 		patch.writes(slot, row, value);
 	}
 

@@ -5,11 +5,11 @@ import haxe.atomic.AtomicInt;
 @:unreflective
 final class Task {
 	public static inline final IDLE = 0;
-	public static inline final RUNNING = 1;
-	public static inline final DONE = 2;
+	static inline final RUNNING = 1;
+	static inline final DONE = 2;
 	public static inline final FAILED = 3;
 
-	public static inline final UNKNOWN = -1;
+	static inline final UNKNOWN = -1;
 	public static inline final WHOLE = 1000;
 
 	public var label:Locale = 0;

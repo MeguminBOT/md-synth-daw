@@ -8,7 +8,7 @@ final class Table extends Scroll {
 	public var columns(default, null):Int = 0;
 
 	public final widths:Array<Float> = [];
-	public final headings:Array<String> = [];
+	final headings:Array<String> = [];
 
 	public var read:Null<Cell> = null;
 	public var tint:Null<Int -> Colour> = null;

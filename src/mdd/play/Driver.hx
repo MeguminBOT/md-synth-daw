@@ -6,9 +6,9 @@ import mdd.song.Tempo;
 
 @:unreflective
 final class Driver {
-	public static inline final BUSY_CYCLES = 32;
+	static inline final BUSY_CYCLES = 32;
 	public static inline final PER_SAMPLE = 24;
-	public static inline final BACKLOG = 8192;
+	static inline final BACKLOG = 8192;
 
 	public var on:Bool = false;
 
@@ -28,7 +28,7 @@ final class Driver {
 
 	var held:Int = 0;
 
-	public static inline final TALLY = 256;
+	static inline final TALLY = 256;
 
 	final counted:Vector<Int> = new Vector<Int>(TALLY);
 	final countedAt:Vector<Int> = new Vector<Int>(TALLY);

@@ -25,8 +25,8 @@ final class Transport {
 
 	final gate:sys.thread.Mutex = new sys.thread.Mutex();
 
-	public static inline final AUDITION_BLOCKS = 90;
-	public static inline final AUDITION_VELOCITY = 100;
+	static inline final AUDITION_BLOCKS = 90;
+	static inline final AUDITION_VELOCITY = 100;
 
 	var heardPart:Int = -1;
 	var heardNote:Int = 0;

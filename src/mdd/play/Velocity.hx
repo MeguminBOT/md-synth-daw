@@ -5,8 +5,8 @@ import haxe.ds.Vector;
 @:unreflective
 final class Velocity {
 	public static inline final FULL = 127;
-	public static inline final SILENT = 127;
-	public static inline final PSG_OFF = 15;
+	static inline final SILENT = 127;
+	static inline final PSG_OFF = 15;
 
 	static inline final FM_DECIBELS = 0.75;
 	static inline final PSG_DECIBELS = 2.0;

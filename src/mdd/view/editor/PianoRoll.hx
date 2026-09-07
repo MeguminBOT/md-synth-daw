@@ -29,9 +29,9 @@ import mdd.view.Picked;
 final class PianoRoll extends Widget {
 
 
-	public static inline final LOWEST = 12;
-	public static inline final HIGHEST = 108;
-	public static inline final KIT_BASE = 24;
+	static inline final LOWEST = 12;
+	static inline final HIGHEST = 108;
+	static inline final KIT_BASE = 24;
 
 	static final BLACK:Array<Bool> = [false, true, false, true, false, false, true, false, true,
 		false, true, false];
@@ -288,7 +288,7 @@ final class PianoRoll extends Widget {
 		return KIT_BASE + (kit.length < 1 ? 0 : kit.length - 1);
 	}
 
-	public function seatOf(note:Note):Int {
+	function seatOf(note:Note):Int {
 		if (!kitting()) return note.pitch;
 
 		final want = note.instrument >= 0 ? note.instrument
@@ -298,7 +298,7 @@ final class PianoRoll extends Widget {
 		return KIT_BASE + (at < 0 ? 0 : at);
 	}
 
-	public function seated(note:Note, seat:Int):Void {
+	function seated(note:Note, seat:Int):Void {
 		if (!kitting()) {
 			note.pitch = seat;
 			return;
@@ -316,7 +316,7 @@ final class PianoRoll extends Widget {
 		note.pitch = sample == null ? 60 : sample.root;
 	}
 
-	public function seatName(seat:Int):String {
+	function seatName(seat:Int):String {
 		if (!kitting()) return named(seat);
 
 		final at = seat - KIT_BASE;
@@ -391,7 +391,7 @@ final class PianoRoll extends Widget {
 		relayout();
 	}
 
-	public function onLaneHead(py:Float):Bool {
+	function onLaneHead(py:Float):Bool {
 		if (!showLanes || lanes() <= 0) return false;
 
 		final top = y + height - lanes();
@@ -1736,11 +1736,11 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
-	public inline function onStrip(py:Float):Bool {
+	inline function onStrip(py:Float):Bool {
 		return lanes() > 0 && py >= y + height - lanes();
 	}
 
-	public inline function onVelocity(py:Float):Bool {
+	inline function onVelocity(py:Float):Bool {
 		final top = y + height - lanes();
 		return lanes() > 0 && py >= top && py < top + velocityTall();
 	}

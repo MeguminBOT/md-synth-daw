@@ -3,7 +3,7 @@ package mdd.ui.control;
 @:unreflective
 final class Field extends Widget {
 	public var value(default, null):String = "";
-	public var caret(default, null):Int = 0;
+	var caret(default, null):Int = 0;
 	public var hint:String = "";
 	public var mark(default, null):Int = 0;
 
@@ -29,7 +29,7 @@ final class Field extends Widget {
 		invalidate();
 	}
 
-	public inline function selecting():Bool {
+	inline function selecting():Bool {
 		return caret != mark;
 	}
 

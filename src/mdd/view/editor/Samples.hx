@@ -59,7 +59,7 @@ final class Samples extends Widget {
 		return at < 0 || at >= session.song.samples.length ? -1 : at;
 	}
 
-	public function waveTall():Float {
+	function waveTall():Float {
 		final root = root();
 		if (root == null) return 200;
 
@@ -156,12 +156,12 @@ final class Samples extends Widget {
 		return total;
 	}
 
-	public inline function atByte(index:Int, sample:Sample):Float {
+	inline function atByte(index:Int, sample:Sample):Float {
 		final many = sample.length();
 		return many == 0 ? x : x + width * index / many;
 	}
 
-	public function byteAt(px:Float, sample:Sample):Int {
+	function byteAt(px:Float, sample:Sample):Int {
 		final many = sample.length();
 		if (many == 0) return 0;
 

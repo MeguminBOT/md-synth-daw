@@ -22,7 +22,7 @@ extern class Draw {
 	public static function destroyTexture(texture:cpp.Star<Texture>):Void;
 
 	@:native("mdd_texture_scale_mode")
-	public static function textureSmooth(texture:cpp.Star<Texture>, smooth:Int):Void;
+	static function textureSmooth(texture:cpp.Star<Texture>, smooth:Int):Void;
 
 	@:native("mdd_set_target")
 	public static function setTarget(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>):Void;

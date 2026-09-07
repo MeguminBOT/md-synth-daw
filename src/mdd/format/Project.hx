@@ -20,8 +20,8 @@ import sys.io.File;
 
 class Project {
 	public static inline final VERSION = 1;
-	public static inline final STRUCTURE = "project.json";
-	public static inline final BULK = "chunks/bulk.mdc";
+	static inline final STRUCTURE = "project.json";
+	static inline final BULK = "chunks/bulk.mdc";
 	public static inline final SAMPLES = "samples";
 
 	static final EPOCH:Date = new Date(1980, 0, 1, 0, 0, 0);

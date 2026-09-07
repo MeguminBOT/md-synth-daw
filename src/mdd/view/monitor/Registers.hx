@@ -16,14 +16,14 @@ import mdd.ui.Theme;
 
 @:unreflective
 final class Registers extends Scroll {
-	public static inline final KEPT = 512;
-	public static inline final SEEN = 256;
+	static inline final KEPT = 512;
+	static inline final SEEN = 256;
 
 	public final session:Session;
 
 	public var writes(default, null):Int = 0;
 	public var painted(default, null):Int = 0;
-	public var following:Bool = true;
+	var following:Bool = true;
 
 	var menu:Null<Menu> = null;
 
@@ -135,7 +135,7 @@ final class Registers extends Scroll {
 		return false;
 	}
 
-	public function rowUnder(py:Float):Int {
+	function rowUnder(py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
 

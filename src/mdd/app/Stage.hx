@@ -248,7 +248,7 @@ final class Stage {
 		measured();
 	}
 
-	public function rescaled():Void {
+	function rescaled():Void {
 		final next = Sdl.windowDisplayScale(window);
 		if (next == scale) return;
 

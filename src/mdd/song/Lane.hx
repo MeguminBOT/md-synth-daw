@@ -2,7 +2,7 @@ package mdd.song;
 
 @:unreflective
 final class Lane {
-	public static inline final FLOOR = 1536;
+	static inline final FLOOR = 1536;
 
 	public var part(default, null):Part;
 	public final notes:Array<Note> = [];

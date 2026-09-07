@@ -18,7 +18,7 @@ final class Centre extends Widget {
 	public static inline final ROLL = 1;
 	public static inline final TRACKER = 2;
 	public static inline final SCOPE = 3;
-	public static inline final REGISTERS = 4;
+	static inline final REGISTERS = 4;
 	public static inline final AUTOMATION = 5;
 	public static inline final WARNINGS = 6;
 	public static inline final TABS = 7;

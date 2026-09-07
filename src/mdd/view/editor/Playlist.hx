@@ -77,7 +77,7 @@ final class Playlist extends Widget {
 	public static inline final LEAST_ROW = 16;
 	public static inline final MOST_ROW = 180;
 
-	public function trackTall():Float {
+	function trackTall():Float {
 		final root = root();
 		if (rowTall <= 0) return root == null ? 34 : root.metrics.row;
 
@@ -87,7 +87,7 @@ final class Playlist extends Widget {
 		return rowTall < least ? least : (rowTall > most ? most : rowTall);
 	}
 
-	public function heighten(to:Float):Void {
+	function heighten(to:Float):Void {
 		final was = trackTall();
 
 		rowTall = to;
@@ -97,7 +97,7 @@ final class Playlist extends Widget {
 		invalidate();
 	}
 
-	public function rowEdgeAt(px:Float, py:Float):Int {
+	function rowEdgeAt(px:Float, py:Float):Int {
 		if (px < x || px >= x + names() || py < y + ruler()) return -1;
 
 		final tall = trackTall();
@@ -139,12 +139,12 @@ final class Playlist extends Widget {
 		return y + ruler() + which * trackTall() - offsetY;
 	}
 
-	public function trackAt(py:Float):Int {
+	function trackAt(py:Float):Int {
 		final at = Std.int((py - y - ruler() + offsetY) / trackTall());
 		return at < 0 || at >= rows() ? -1 : at;
 	}
 
-	public function muteAt(px:Float):Bool {
+	function muteAt(px:Float):Bool {
 		final root = root();
 		if (root == null) return false;
 
@@ -470,7 +470,7 @@ final class Playlist extends Widget {
 		return true;
 	}
 
-	public function trackOf(clip:Clip):Int {
+	function trackOf(clip:Clip):Int {
 		final tracks = session.song.tracks;
 
 		for (index in 0...tracks.length) {
@@ -1160,11 +1160,11 @@ final class Playlist extends Widget {
 		return root == null ? 8 : root.metrics.whole(8);
 	}
 
-	public function acrossReach():Float {
+	function acrossReach():Float {
 		return session.song.ends() * perTick;
 	}
 
-	public function downReach():Float {
+	function downReach():Float {
 		return rows() * trackTall();
 	}
 

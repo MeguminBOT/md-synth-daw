@@ -19,12 +19,12 @@ final class Export extends Widget {
 	public static inline final RATE = 1;
 	public static inline final DEPTH = 2;
 	public static inline final SIDES = 3;
-	public static inline final LEAD = 4;
+	static inline final LEAD = 4;
 	public static inline final TAIL = 5;
-	public static inline final FADE = 6;
+	static inline final FADE = 6;
 	public static inline final CEILING = 7;
-	public static inline final DITHER = 8;
-	public static inline final QUALITY = 9;
+	static inline final DITHER = 8;
+	static inline final QUALITY = 9;
 	public static inline final KINDS = 10;
 
 	public static inline final FIELDS = 5;
@@ -327,7 +327,7 @@ final class Export extends Widget {
 		return showing[at];
 	}
 
-	public function optionAt(row:Int, px:Float):Int {
+	function optionAt(row:Int, px:Float):Int {
 		final root = root();
 		if (root == null) return -1;
 
