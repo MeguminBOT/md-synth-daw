@@ -199,9 +199,17 @@ static void mdd_crash_place(FILE *into, const char *name, unsigned long long awa
 
 	if (mdd_crash_top[0] != 0) return;
 
-	_snprintf_s(mdd_crash_top, sizeof(mdd_crash_top), _TRUNCATE, "%s, %s:%lu",
+	snprintf(mdd_crash_top, sizeof(mdd_crash_top), "%s, %s:%lu",
 		name, file, line);
 }
+
+#if defined(_MSC_VER)
+#define MDD_CRASH_PDB 1
+#else
+#define MDD_CRASH_PDB 0
+#endif
+
+#if MDD_CRASH_PDB
 
 static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
 	const char *module) {
@@ -239,6 +247,18 @@ static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
 	}
 }
 
+#else
+
+static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
+	const char *module) {
+	(void) into;
+	(void) process;
+	(void) address;
+	(void) module;
+}
+
+#endif
+
 static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 	char room[sizeof(SYMBOL_INFO) + 512];
 	SYMBOL_INFO *found = (SYMBOL_INFO *) room;
@@ -271,6 +291,18 @@ static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 		placed ? where.FileName : NULL, placed ? where.LineNumber : 0, module);
 }
 
+#if !MDD_CRASH_PDB
+
+static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
+	(void) held;
+
+	fprintf(into, "  the stack is not walked in this build\n");
+	fprintf(into, "  DbgHelp reads the PDB the Microsoft linker writes, and this one carries\n");
+	fprintf(into, "  DWARF instead. Build with msvc or clang-cl for a stack.\n");
+}
+
+#else
+
 static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
 	HANDLE process = GetCurrentProcess();
 
@@ -302,18 +334,20 @@ static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
 	SymCleanup(process);
 }
 
+#endif
+
 static void mdd_crash_told(const char *cause) {
 	if (mdd_crash_announce == 0) return;
 
 	char said[2048];
 
 	if (mdd_crash_top[0] != 0) {
-		_snprintf_s(said, sizeof(said), _TRUNCATE,
+		snprintf(said, sizeof(said),
 			"%s stopped.\n\n%s, on %s,\nin %s.\n\nThe whole report is in\n%s",
 			mdd_crash_label, cause, mdd_crash_owner(GetCurrentThreadId()),
 			mdd_crash_top, mdd_crash_path);
 	} else {
-		_snprintf_s(said, sizeof(said), _TRUNCATE,
+		snprintf(said, sizeof(said),
 			"%s stopped.\n\n%s, on %s.\n\nThe whole report is in\n%s",
 			mdd_crash_label, cause, mdd_crash_owner(GetCurrentThreadId()),
 			mdd_crash_path);

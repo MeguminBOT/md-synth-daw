@@ -9,9 +9,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#pragma comment(lib, "psapi.lib")
-#pragma comment(lib, "pdh.lib")
-
 static ULONGLONG lastWall = 0;
 static ULONGLONG lastBusy = 0;
 static double heldCpu = 0;
@@ -44,7 +41,7 @@ extern "C" void mdd_usage_start() {
 	if (PdhOpenQueryW(nullptr, 0, &gpuQuery) != ERROR_SUCCESS) return;
 
 	wchar_t path[128];
-	_snwprintf_s(path, 128, _TRUNCATE, L"\\GPU Engine(pid_%lu*)\\Utilization Percentage",
+	swprintf(path, 128, L"\\GPU Engine(pid_%lu*)\\Utilization Percentage",
 		(unsigned long)GetCurrentProcessId());
 
 	if (PdhAddEnglishCounterW(gpuQuery, path, 0, &gpuCounter) != ERROR_SUCCESS) {

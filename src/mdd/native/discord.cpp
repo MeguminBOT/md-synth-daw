@@ -43,7 +43,7 @@ static void mdd_discord_dropped() {
 
 static bool mdd_discord_dialled(int index) {
 	char path[64];
-	_snprintf_s(path, sizeof(path), _TRUNCATE, "\\\\.\\pipe\\discord-ipc-%d", index);
+	snprintf(path, sizeof(path), "\\\\.\\pipe\\discord-ipc-%d", index);
 
 	const HANDLE held = CreateFileA(path, GENERIC_READ | GENERIC_WRITE, 0, nullptr,
 		OPEN_EXISTING, 0, nullptr);

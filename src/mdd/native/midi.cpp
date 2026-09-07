@@ -44,8 +44,6 @@ extern "C" int mdd_midi_lost() {
 #include <windows.h>
 #include <mmsystem.h>
 
-#pragma comment(lib, "winmm.lib")
-
 static HMIDIIN mddMidiHeld = nullptr;
 
 static void CALLBACK mdd_midi_arrived(HMIDIIN, UINT message, DWORD_PTR, DWORD_PTR one, DWORD_PTR) {
