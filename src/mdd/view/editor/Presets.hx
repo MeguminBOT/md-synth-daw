@@ -4,7 +4,7 @@ import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Instrument;
 import mdd.song.Part;
-import mdd.ui.Icon;
+import mdd.Icon;
 import mdd.ui.Item;
 import mdd.ui.Paint;
 import mdd.ui.Panel;
@@ -581,7 +581,7 @@ final class Presets extends Widget {
 		return instrument.kind.sampled();
 	}
 
-	public function searchTall():Float {
+	function searchTall():Float {
 		final root = root();
 		return root == null ? 28 : root.metrics.whole(28);
 	}
