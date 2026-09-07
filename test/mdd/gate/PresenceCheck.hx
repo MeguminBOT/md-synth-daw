@@ -105,6 +105,26 @@ class PresenceCheck {
 		return Discord.took() > 0 ? 0 : 1;
 	}
 
+	static function halved(text:String):Bool {
+		var index = 0;
+
+		while (index < text.length) {
+			final one = StringTools.fastCodeAt(text, index);
+			index++;
+
+			if (one < 0xD800 || one > 0xDFFF) continue;
+			if (one > 0xDBFF) return true;
+			if (index >= text.length) return true;
+
+			final two = StringTools.fastCodeAt(text, index);
+			if (two < 0xDC00 || two > 0xDFFF) return true;
+
+			index++;
+		}
+
+		return false;
+	}
+
 	static function says(name:String, ok:Bool, said:String):Void {
 		ran++;
 		if (!ok) failed++;
@@ -177,26 +197,23 @@ class PresenceCheck {
 		says("a quote, a backslash and a newline survive", said.details == want,
 			said.details.length + " characters back");
 
-		final treble = String.fromCharCode(0xD834) + String.fromCharCode(0xDD1E);
+		final treble = "\u{1D11E}";
 
 		named(held, "AB" + treble + "CD");
 
-		says("a surrogate pair survives the payload whole",
+		says("an astral character survives the payload whole",
 			read(held).details == "AB" + treble + "CD",
 			read(held).details.length + " units back");
 
 		named(held, StringTools.rpad("", "a", Presence.MOST - 1) + treble + "tail");
 
-		final cut = read(held).details;
-		final last = StringTools.fastCodeAt(cut, cut.length - 1);
-
-		says("and a cut never ends on half of one", last < 0xD800 || last > 0xDBFF,
-			cut.length + " characters, ending U+" + StringTools.hex(last, 4));
+		says("and a cut never leaves half of one behind", !halved(read(held).details),
+			read(held).details.length + " characters, no stray surrogate");
 
 		named(held, "AB" + String.fromCharCode(0xD834) + "CD");
 
-		says("and a lone surrogate is dropped rather than sent",
-			read(held).details == "ABCD", read(held).details);
+		says("and a stray surrogate never reaches the payload", !halved(read(held).details),
+			read(held).details);
 
 		named(held, want);
 

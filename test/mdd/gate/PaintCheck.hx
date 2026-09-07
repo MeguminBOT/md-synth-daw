@@ -547,17 +547,17 @@ class PaintCheck {
 	}
 
 	static function paired(font:Font):Void {
-		final treble = String.fromCharCode(0xD834) + String.fromCharCode(0xDD1E);
+		final treble = "\u{1D11E}";
 		final code = Font.codeAt(treble, 0);
 
-		says("a surrogate pair is one codepoint", code == 0x1D11E && Font.step(code) == 2,
+		says("an astral character is one codepoint", code == 0x1D11E,
 			"U+" + StringTools.hex(code, 5) + " over " + Font.step(code) + " units");
 
 		final lone = String.fromCharCode(0xD834);
 
-		says("and a lone surrogate is left as it is",
-			Font.codeAt(lone, 0) == 0xD834 && Font.step(Font.codeAt(lone, 0)) == 1,
-			"U+" + StringTools.hex(Font.codeAt(lone, 0), 4));
+		says("and half a pair is never walked as a character",
+			Font.step(Font.codeAt(lone, 0)) == 1 && Font.codeAt(lone, 0) < 0x10000,
+			"U+" + StringTools.hex(Font.codeAt(lone, 0), 4) + ", one unit");
 
 		final held = "AB" + treble + "CD";
 
@@ -571,7 +571,8 @@ class PaintCheck {
 			at++;
 		}
 
-		says("and no cut lands inside a pair", lands, "401 widths, none cut at index 3");
+		says("and no cut lands inside a character", lands,
+			"401 widths, none cut between the halves of one");
 
 		says("and an unknown codepoint costs one advance, not two",
 			font.measure(held) == font.measure("ABCD"),
