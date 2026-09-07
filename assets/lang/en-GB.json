@@ -1,6 +1,8 @@
 {
   "about.built": "Built with",
   "app": "MD Synth DAW",
+  "associate.no": "Not registered",
+  "associate.yes": "Registered to this copy",
   "automating.ask": "How would you like to write automation?",
   "automating.clips": "Clips on the playlist",
   "automating.lanes": "Lanes under the editor",
@@ -194,6 +196,7 @@
   "point.bend": "BEND",
   "point.shape": "SHAPE",
   "point.steps": "STEPS",
+  "preference.associate": "Project files",
   "preference.automating": "Automation",
   "preference.backupAge": "Keep backups for",
   "preference.backups": "Backup storage",

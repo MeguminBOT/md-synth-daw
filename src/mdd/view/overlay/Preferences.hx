@@ -1,5 +1,6 @@
 package mdd.view.overlay;
 
+import mdd.app.Associations;
 import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Session;
@@ -37,7 +38,8 @@ final class Preferences extends Widget {
 	public static inline final CONSOLE = 16;
 	public static inline final TEMPO = 17;
 	public static inline final PRESENCE = 18;
-	public static inline final ROWS = 19;
+	public static inline final ASSOCIATE = 19;
+	public static inline final ROWS = 20;
 
 	public static inline final LOOK = 0;
 	static inline final EDITING = 1;
@@ -56,7 +58,11 @@ final class Preferences extends Widget {
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
 		[AUTOMATING, TAIL, TEMPO],
+		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
+		#else
+		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS, ASSOCIATE],
+		#end
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
 		[CONSOLE],
@@ -70,6 +76,7 @@ final class Preferences extends Widget {
 
 	final was:Array<Int> = [];
 
+	var associated:Bool = false;
 	var wasProjects:String = "";
 	var wasPresets:String = "";
 	var offsetY:Float = 0;
@@ -80,10 +87,12 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
-		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE];
+		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
+
+	static final ASSOCIATES:Array<Locale> = [Locale.ASSOCIATE_NO, Locale.ASSOCIATE_YES];
 
 	static final TEMPOS:Array<Locale> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
 
@@ -219,6 +228,8 @@ final class Preferences extends Widget {
 
 	public function arrive():Void {
 		final root = root();
+
+		associated = Associations.holds();
 
 		was.resize(0);
 		for (row in 0...ROWS) was.push(holding(row));
@@ -516,6 +527,7 @@ final class Preferences extends Widget {
 			case CONSOLE: CONSOLES;
 			case TEMPO: TEMPOS;
 			case PRESENCE: PRESENCES;
+			case ASSOCIATE: ASSOCIATES;
 			case _: NO_KEYS;
 		}
 	}
@@ -528,7 +540,7 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
-				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE: NOTHING;
+				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE: NOTHING;
 			case _: languages;
 		}
 	}
@@ -605,6 +617,7 @@ final class Preferences extends Widget {
 			case CONSOLE: console;
 			case TEMPO: tempo;
 			case PRESENCE: presence;
+			case ASSOCIATE: associated ? 1 : 0;
 			case _: language;
 		}
 	}
@@ -683,6 +696,13 @@ final class Preferences extends Widget {
 			case PRESENCE:
 				presence = which;
 				if (onPresence != null) onPresence(which);
+
+			case ASSOCIATE:
+				if (which > 0) Associations.takes();
+				else Associations.drops();
+
+				associated = Associations.holds();
+				session.say(translate(ASSOCIATES[associated ? 1 : 0]));
 
 			case _:
 				language = which;

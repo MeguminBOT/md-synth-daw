@@ -884,7 +884,9 @@ class SpineCheck {
 
 		held.shows(mdd.view.overlay.Preferences.FILES);
 
-		says("a category shows its own rows", held.rowsIn().length == 5
+		final wanted = #if mac 5 #else 6 #end;
+
+		says("a category shows its own rows", held.rowsIn().length == wanted
 			&& held.rowsIn()[0] == mdd.view.overlay.Preferences.KEEPING,
 			"Files carries " + held.rowsIn().length + " rows, the first being autosave");
 

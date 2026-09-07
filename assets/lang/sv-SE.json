@@ -1,6 +1,8 @@
 {
   "about.built": "Byggd med",
   "app": "MD Synth DAW",
+  "associate.no": "Inte registrerade",
+  "associate.yes": "Registrerade till den här kopian",
   "automating.ask": "Hur vill du skriva automation?",
   "automating.clips": "Klipp i spellistan",
   "automating.lanes": "Spår under redigeraren",
@@ -194,6 +196,7 @@
   "point.bend": "BOJ",
   "point.shape": "FORM",
   "point.steps": "STEG",
+  "preference.associate": "Projektfiler",
   "preference.automating": "Automation",
   "preference.backupAge": "Behåll säkerhetskopior i",
   "preference.backups": "Utrymme för säkerhetskopior",

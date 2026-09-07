@@ -111,6 +111,7 @@
 		<file name="midi.cpp" />
 		<file name="discord.cpp" />
 		<file name="encode.cpp" />
+		<file name="shell.cpp" />
 
 		<flag value="-DOPUS_BUILD" />
 		<flag value="-DUSE_ALLOCA" />
@@ -150,11 +151,15 @@
 	<link value="winmm.lib" if="windows" unless="mingw" />
 	<link value="psapi.lib" if="windows" unless="mingw" />
 	<link value="pdh.lib" if="windows" unless="mingw" />
+	<link value="advapi32.lib" if="windows" unless="mingw" />
+	<link value="shell32.lib" if="windows" unless="mingw" />
 
 	<link value="-ldbghelp" if="mingw" />
 	<link value="-lwinmm" if="mingw" />
 	<link value="-lpsapi" if="mingw" />
 	<link value="-lpdh" if="mingw" />
+	<link value="-ladvapi32" if="mingw" />
+	<link value="-lshell32" if="mingw" />
 
 	<link value="-lm" if="linux" />
 	<link value="-ldl" if="linux" />
