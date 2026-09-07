@@ -22,6 +22,7 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.Palette;
 import mdd.view.Picked;
 
 @:unreflective
@@ -1040,6 +1041,9 @@ final class Playlist extends Widget {
 				if (onRename != null) onRename(which);
 			});
 
+			menu.offer(new Choice(translate(Locale.COLOUR_PICK))).submenu = coloured(which);
+			menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(which);
+
 			fires(menu.offer(new Choice(translate(held.muted
 					? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE))), function():Void {
 				held.muted = !held.muted;
@@ -1063,6 +1067,68 @@ final class Playlist extends Widget {
 		}
 
 		root.pop(menu, px, py, this);
+	}
+
+	function coloured(which:Int):Menu {
+		final out = new Menu();
+
+		fires(out.offer(new Choice(translate(Locale.COLOUR_NONE))), function():Void {
+			session.does(new mdd.song.edit.ColourTrack(which, -1));
+		});
+
+		out.divide();
+
+		for (index in 0...Palette.COLOURS.length) {
+			final want = Palette.COLOURS[index];
+
+			fires(out.offer(new Choice(translate(Palette.NAMES[index]))), function():Void {
+				session.does(new mdd.song.edit.ColourTrack(which, want));
+			});
+		}
+
+		return out;
+	}
+
+	function icons(which:Int):Menu {
+		final out = new Menu();
+
+		fires(out.offer(new Choice(translate(Locale.ICON_NONE))), function():Void {
+			session.does(new mdd.song.edit.IconTrack(which, -1));
+		});
+
+		out.divide();
+
+		final seen:Array<String> = [];
+		for (group in mdd.Icon.GROUPS) if (seen.indexOf(group) < 0) seen.push(group);
+
+		for (group in seen) out.offer(new Choice(grouped(group))).submenu = drawn(which, group);
+
+		return out;
+	}
+
+	function grouped(group:String):String {
+		return switch (group) {
+			case "shape": translate(Locale.ICON_SHAPES);
+			case "audio": translate(Locale.ICON_AUDIO);
+			case "instrument": translate(Locale.ICON_INSTRUMENTS);
+			case _: group;
+		}
+	}
+
+	function drawn(which:Int, group:String):Menu {
+		final out = new Menu();
+
+		for (index in 0...mdd.Icon.COUNT) {
+			if (mdd.Icon.GROUPS[index] != group) continue;
+
+			final want = index;
+
+			fires(out.offer(new Choice(mdd.Icon.NAMES[want])), function():Void {
+				session.does(new mdd.song.edit.IconTrack(which, want));
+			});
+		}
+
+		return out;
 	}
 
 	function driven(into:Menu, track:mdd.song.Track, held:mdd.view.Parameter, target:Int,
@@ -1361,10 +1427,8 @@ final class Playlist extends Widget {
 				}
 
 				final pattern = session.song.patternAt(clip.pattern);
-				final colour = pattern == null ? theme.part(clip.pattern % 11)
-					: pattern.colour >= 0 ? new Colour(pattern.colour)
-					: pattern.part >= 0 ? theme.part(pattern.part)
-					: theme.part(clip.pattern % 11);
+				final colour = pattern != null && pattern.colour >= 0
+					? new Colour(pattern.colour) : theme.dim;
 
 				final deep = tall - 5;
 				final quiet = track.muted;
@@ -1535,6 +1599,7 @@ final class Playlist extends Widget {
 	}
 
 	function rails(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
+		final tree = root();
 		final wide = names();
 		final font = metrics.body;
 		final small = metrics.small == null ? font : metrics.small;
@@ -1577,7 +1642,8 @@ final class Playlist extends Widget {
 			}
 
 			paint.rect(x, row + metrics.unit, metrics.whole(3), tall - metrics.unit * 2 - hair,
-				theme.part(which % 11), held.muted ? 0.25 : 0.9);
+				held.colour >= 0 ? new Colour(held.colour) : theme.frame,
+				held.muted ? 0.25 : 0.9);
 
 			final box = metrics.whole(18);
 			final at = x + wide - metrics.whole(26);
@@ -1591,9 +1657,19 @@ final class Playlist extends Widget {
 					metrics.radiusSmall, theme.raise1);
 			}
 
+			var pen = x + metrics.inset + metrics.gap;
+
+			if (held.icon >= 0 && tree != null) {
+				final box = metrics.whole(14);
+
+				paint.icon(tree.icons, held.icon, pen, row + (tall - box) * 0.5, box,
+					held.muted ? theme.dim : theme.ink, held.muted ? 0.4 : 0.9);
+
+				pen += box + metrics.gap;
+			}
+
 			paint.reface(font);
-			paint.text(held.name, x + metrics.inset + metrics.gap,
-				row + (tall - font.height) * 0.5 + font.ascent,
+			paint.text(held.name, pen, row + (tall - font.height) * 0.5 + font.ascent,
 				held.muted ? theme.dim : theme.ink);
 
 			paint.reface(small);

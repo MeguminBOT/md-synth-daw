@@ -36,6 +36,7 @@ class ArrangeCheck {
 		carried();
 		reordered();
 		fitted();
+		dressed();
 		reversed();
 		nudged();
 
@@ -325,6 +326,39 @@ class ArrangeCheck {
 			? "what it was" : "not what it was"));
 	}
 
+	static function dressed():Void {
+		final song = rich();
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		final fresh = song.tracks[0].colour < 0 && song.tracks[0].icon < 0
+			&& song.patterns[0].colour < 0;
+
+		history.does(song, new mdd.song.edit.ColourTrack(0, mdd.ui.Theme.FM4));
+		history.does(song, new mdd.song.edit.IconTrack(0, mdd.Icon.PIANO));
+		history.does(song, new mdd.song.edit.ColourPattern(0, mdd.ui.Theme.PSG2));
+
+		final track = song.tracks[0];
+		final worn = track.colour == mdd.ui.Theme.FM4 && track.icon == mdd.Icon.PIANO
+			&& song.patterns[0].colour == mdd.ui.Theme.PSG2;
+
+		final kept = mdd.format.Project.read(mdd.format.Project.text(song));
+		final saved = kept.tracks[0].colour == track.colour
+			&& kept.tracks[0].icon == track.icon;
+
+		says("a track and a pattern arrive with no colour", fresh && worn && saved,
+			"a fresh track has no colour and no icon, and once given one it reads back from"
+			+ " the project file as " + (saved ? "the same pair" : "something else"));
+
+		var undone = 0;
+		while (history.undo(song)) undone++;
+
+		says("and taking the colour off is byte for byte", undone == 3
+			&& mdd.format.Project.text(song) == before,
+			undone + " edits reverted and the song is "
+			+ (mdd.format.Project.text(song) == before ? "what it was" : "not what it was"));
+	}
+
 	static function wholes(held:Array<Int>, bar:Int):String {
 		final out:Array<String> = [];
 		for (value in held) out.push(Std.string(Math.round(value / bar)));
@@ -480,6 +514,11 @@ class ArrangeCheck {
 		offer("MoveTrack", function(song) return new mdd.song.edit.MoveTrack(0, 1));
 		offer("RemoveTrack", function(song) return new mdd.song.edit.RemoveTrack(1));
 		offer("RenameTrack", function(song) return new mdd.song.edit.RenameTrack(0, "named"));
+		offer("ColourTrack", function(song) return new mdd.song.edit.ColourTrack(0,
+			mdd.ui.Theme.FM4));
+		offer("IconTrack", function(song) return new mdd.song.edit.IconTrack(0, mdd.Icon.PIANO));
+		offer("ColourPattern", function(song) return new mdd.song.edit.ColourPattern(0,
+			mdd.ui.Theme.PSG2));
 
 		offer("AddPoint", function(song) return new mdd.song.edit.AddPoint(0, Part.Fm1,
 			mdd.song.Automation.LEVEL, 0, new mdd.song.Point(96, -5)));

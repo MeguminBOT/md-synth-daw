@@ -160,6 +160,9 @@ final class Song {
 
 		for (track in tracks) {
 			final made = new Track(track.name);
+
+			made.colour = track.colour;
+			made.icon = track.icon;
 			made.muted = track.muted;
 
 			for (clip in track.clips) {

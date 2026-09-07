@@ -3,6 +3,8 @@ package mdd.song;
 @:unreflective
 final class Track {
 	public var name:String;
+	public var colour:Int = -1;
+	public var icon:Int = -1;
 	public var muted:Bool = false;
 	public final clips:Array<Clip> = [];
 

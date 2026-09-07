@@ -159,7 +159,7 @@ final class Presets extends Widget {
 			if (onRename != null) onRename(which);
 		});
 
-		menu.offer(new Choice(translate(Locale.PRESET_ICON))).submenu = icons(which);
+		menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(which);
 
 		final tagging = menu.offer(new Choice(translate(Locale.PRESET_TAGS),
 			instrument.tags.length == 0 ? "" : "" + instrument.tags.length));
@@ -180,7 +180,7 @@ final class Presets extends Widget {
 	function icons(which:Int):Menu {
 		final out = new Menu();
 
-		fires(out.offer(new Choice(translate(Locale.PRESET_NO_ICON))), function():Void
+		fires(out.offer(new Choice(translate(Locale.ICON_NONE))), function():Void
 			iconed(which, -1));
 
 		out.divide();
@@ -198,9 +198,9 @@ final class Presets extends Widget {
 
 	function titled(group:String):String {
 		return switch (group) {
-			case "shape": translate(Locale.PRESET_SHAPES);
-			case "audio": translate(Locale.PRESET_AUDIO);
-			case "instrument": translate(Locale.PRESET_INSTRUMENTS);
+			case "shape": translate(Locale.ICON_SHAPES);
+			case "audio": translate(Locale.ICON_AUDIO);
+			case "instrument": translate(Locale.ICON_INSTRUMENTS);
 			case _: group;
 		}
 	}

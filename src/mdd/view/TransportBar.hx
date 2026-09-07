@@ -5,6 +5,7 @@ import mdd.app.Session;
 import mdd.song.Song;
 import mdd.song.Tempo;
 import mdd.song.edit.SetTempo;
+import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
@@ -410,6 +411,8 @@ final class TransportBar extends Widget {
 		commands(menu, Locale.PATTERN_DUPLICATE, DUPLICATE);
 		commands(menu, Locale.PATTERN_RENAME, RENAME);
 
+		menu.offer(new Choice(translate(Locale.COLOUR_PICK))).submenu = coloured(session.pattern);
+
 		final drop = commands(menu, Locale.PATTERN_DELETE, DELETE);
 
 		if (session.song.patterns.length <= 1) {
@@ -418,6 +421,27 @@ final class TransportBar extends Widget {
 		}
 
 		root.pop(menu, px, py, this);
+	}
+
+	function coloured(which:Int):Menu {
+		final out = new Menu();
+
+		fires(out.offer(new Choice(translate(Locale.COLOUR_NONE))), function():Void {
+			session.does(new mdd.song.edit.ColourPattern(which, -1));
+		});
+
+		out.divide();
+
+		for (index in 0...mdd.view.Palette.COLOURS.length) {
+			final want = mdd.view.Palette.COLOURS[index];
+
+			fires(out.offer(new Choice(translate(mdd.view.Palette.NAMES[index]))),
+				function():Void {
+					session.does(new mdd.song.edit.ColourPattern(which, want));
+				});
+		}
+
+		return out;
 	}
 
 	function commands(into:Menu, key:Locale, which:Int):Choice {
@@ -696,7 +720,8 @@ final class TransportBar extends Widget {
 		final swatch = metrics.whole(10);
 
 		paint.roundedRect(left + metrics.gap, top + (button - swatch) * 0.5, swatch, swatch,
-			metrics.radiusSmall, Theme.PARTS[session.pattern % Theme.PARTS.length]);
+			metrics.radiusSmall, pattern != null && pattern.colour >= 0
+			? new Colour(pattern.colour) : theme.dim);
 
 		final arrow = metrics.whole(4);
 		final textAt = left + metrics.gap * 2 + swatch;
