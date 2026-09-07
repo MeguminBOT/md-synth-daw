@@ -3,13 +3,11 @@ package mdd.song;
 @:unreflective
 final class Track {
 	public var name:String;
-	public var held:Int;
 	public var muted:Bool = false;
 	public final clips:Array<Clip> = [];
 
-	public function new(name:String, held:Int = -1) {
+	public function new(name:String) {
 		this.name = name;
-		this.held = held;
 	}
 
 	public function add(clip:Clip):Clip {

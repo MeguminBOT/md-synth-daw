@@ -158,8 +158,6 @@ class Project {
 			out.open();
 			out.key("name");
 			out.text(track.name);
-			out.key("held");
-			out.whole(track.held);
 			out.key("muted");
 			out.flag(track.muted);
 			out.key("clips");
@@ -451,7 +449,7 @@ class Project {
 
 		for (i in 0...tracks.length()) {
 			final held = tracks.at(i);
-			final track = new Track(held.get("name").saying(""), held.get("held").whole(-1));
+			final track = new Track(held.get("name").saying(""));
 			track.muted = held.get("muted").truth(false);
 
 			final clips = held.get("clips");

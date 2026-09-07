@@ -159,7 +159,7 @@ final class Song {
 		}
 
 		for (track in tracks) {
-			final made = new Track(track.name, track.held);
+			final made = new Track(track.name);
 			made.muted = track.muted;
 
 			for (clip in track.clips) {

@@ -6,6 +6,7 @@ import mdd.song.edit.AddClip;
 import mdd.song.edit.AddTrack;
 import mdd.song.Clip;
 import mdd.song.edit.MoveClip;
+import mdd.song.edit.MoveTrack;
 import mdd.song.edit.RemoveClip;
 import mdd.song.edit.RemoveTrack;
 import mdd.song.edit.SizeClip;
@@ -53,6 +54,8 @@ final class Playlist extends Widget {
 	var grabWasAt:Int = 0;
 	var grabFresh:Bool = false;
 	var hoverTrack:Int = -1;
+	var railing:Int = -1;
+	var railTo:Int = -1;
 
 	var banding:Bool = false;
 	var bandFromX:Float = 0;
@@ -65,6 +68,10 @@ final class Playlist extends Widget {
 	final wereAt:Array<Int> = [];
 	final wereLong:Array<Int> = [];
 	var leastAt:Int = 0;
+	var leastRow:Int = 0;
+	var mostRow:Int = 0;
+	var grabRow:Int = 0;
+	var haulRows:Int = 0;
 
 	public function new(session:Session) {
 		super();
@@ -315,6 +322,11 @@ final class Playlist extends Widget {
 					return true;
 				}
 
+				if (railing >= 0) {
+					reorders(trackAt(event.y));
+					return true;
+				}
+
 				final edging = rowEdgeAt(event.x, event.y);
 
 				if (edging != hoverEdge) {
@@ -344,7 +356,7 @@ final class Playlist extends Widget {
 					return true;
 				}
 
-				hauled(freely(tickAt(event.x) - grabTick, event.alt()));
+				hauled(freely(tickAt(event.x) - grabTick, event.alt()), trackAt(event.y));
 
 				invalidate();
 				return true;
@@ -362,6 +374,11 @@ final class Playlist extends Widget {
 
 				if (scrubbing) {
 					scrubbing = false;
+					return true;
+				}
+
+				if (railing >= 0) {
+					reordered();
 					return true;
 				}
 
@@ -436,6 +453,7 @@ final class Playlist extends Widget {
 			grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 			grabWasAt = under.at;
 			grabFresh = false;
+			grabRow = which;
 			grabs(under);
 			invalidate();
 			return true;
@@ -464,6 +482,7 @@ final class Playlist extends Widget {
 		grabTick = 0;
 		grabWasAt = clip.at;
 		grabFresh = true;
+		grabRow = which;
 		grabs(clip);
 
 		invalidate();
@@ -670,20 +689,47 @@ final class Playlist extends Widget {
 
 		leastAt = moving[0].at;
 
+		haulRows = 0;
+		leastRow = -1;
+		mostRow = -1;
+
 		for (clip in moving) {
-			movingRows.push(trackOf(clip));
+			final row = trackOf(clip);
+
+			movingRows.push(row);
 			wereAt.push(clip.at);
 			wereLong.push(clip.length);
 
 			if (clip.at < leastAt) leastAt = clip.at;
+			if (row < 0) continue;
+
+			if (leastRow < 0 || row < leastRow) leastRow = row;
+			if (row > mostRow) mostRow = row;
+		}
+
+		if (leastRow < 0) {
+			leastRow = grabRow;
+			mostRow = grabRow;
 		}
 	}
 
-	function hauled(at:Int):Void {
+	function hauled(at:Int, row:Int):Void {
 		var by = at - grabWasAt;
 		if (leastAt + by < 0) by = -leastAt;
 
 		for (index in 0...moving.length) moving[index].at = wereAt[index] + by;
+
+		final most = session.song.tracks.length - 1;
+		var down = (row < 0 ? grabRow : row) - grabRow;
+
+		if (leastRow + down < 0) down = -leastRow;
+		if (mostRow + down > most) down = most - mostRow;
+
+		haulRows = down;
+	}
+
+	inline function hauling(clip:Clip):Bool {
+		return moving.indexOf(clip) >= 0;
 	}
 
 	function bands(event:Input):Void {
@@ -749,6 +795,7 @@ final class Playlist extends Widget {
 		if (held == null || grabFresh) {
 			sizing = false;
 			grabFresh = false;
+			haulRows = 0;
 			session.changed();
 			return;
 		}
@@ -757,6 +804,7 @@ final class Playlist extends Widget {
 		else hauledDone();
 
 		sizing = false;
+		haulRows = 0;
 		session.changed();
 	}
 
@@ -784,9 +832,11 @@ final class Playlist extends Widget {
 	}
 
 	function hauledDone():Void {
+		final down = haulRows;
+
 		var many = 0;
 		for (index in 0...moving.length) if (moving[index].at != wereAt[index]) many++;
-		if (many == 0) return;
+		if (many == 0 && down == 0) return;
 
 		final wants:Array<Int> = [];
 		for (clip in moving) wants.push(clip.at);
@@ -794,17 +844,21 @@ final class Playlist extends Widget {
 		for (index in 0...moving.length) moving[index].at = wereAt[index];
 
 		if (moving.length == 1) {
-			session.does(new MoveClip(rowOf(0), moving[0], wants[0], moving[0].transpose));
-			return;
+			final row = rowOf(0);
+			session.does(new MoveClip(row, moving[0], wants[0], moving[0].transpose, row + down));
+		} else {
+			final group = new mdd.song.edit.Together("move " + counted(moving.length));
+
+			for (index in 0...moving.length) {
+				final row = rowOf(index);
+				group.also(new MoveClip(row, moving[index], wants[index],
+					moving[index].transpose, row + down));
+			}
+
+			session.does(group);
 		}
 
-		final group = new mdd.song.edit.Together("move " + counted(moving.length));
-		for (index in 0...moving.length) {
-			group.also(new MoveClip(rowOf(index), moving[index], wants[index],
-				moving[index].transpose));
-		}
-
-		session.does(group);
+		if (down != 0) chosenTrack = chosen == null ? -1 : trackOf(chosen);
 	}
 
 	inline function rowOf(index:Int):Int {
@@ -836,8 +890,38 @@ final class Playlist extends Widget {
 		}
 
 		chosenTrack = which;
+		railing = which;
+		railTo = which;
+
 		invalidate();
 		return true;
+	}
+
+	function reorders(want:Int):Void {
+		final most = session.song.tracks.length - 1;
+		final onto = want < 0 ? railTo : (want > most ? most : want);
+
+		if (onto == railTo) return;
+
+		railTo = onto;
+		invalidate();
+	}
+
+	function reordered():Void {
+		final from = railing;
+		final to = railTo;
+
+		railing = -1;
+		railTo = -1;
+
+		if (from >= 0 && to >= 0 && from != to) {
+			session.does(new MoveTrack(from, to));
+
+			chosenTrack = to;
+			session.say("moved " + session.song.tracks[to].name);
+		}
+
+		invalidate();
 	}
 
 	public function cornerSize():Float {
@@ -1248,18 +1332,26 @@ final class Playlist extends Widget {
 
 		paint.reface(font);
 
+		final hauls = haulRows != 0;
+
 		for (which in 0...session.song.tracks.length) {
 			final track = session.song.tracks[which];
-			final row = atTrack(which);
+			final seat = atTrack(which);
 
-			if (row + tall < top) continue;
-			if (row > y + height) break;
+			if (!hauls) {
+				if (seat + tall < top) continue;
+				if (seat > y + height) break;
+			}
 
 			for (clip in track.clips) {
 				final at = atTick(clip.at);
 				final wide = clip.length * perTick;
 
 				if (at + wide < x + names() || at > x + width) continue;
+
+				final row = hauls && hauling(clip) ? atTrack(which + haulRows) : seat;
+
+				if (row + tall < top || row > y + height) continue;
 
 				painted++;
 
@@ -1470,6 +1562,11 @@ final class Playlist extends Widget {
 				paint.rect(x, row + tall - hair * 2, wide, hair * 3, theme.accent, 0.9);
 			} else {
 				paint.rect(x, row + tall - hair, wide, hair, theme.frame, 0.5);
+			}
+
+			if (railing >= 0 && railTo != railing && which == railTo) {
+				paint.rect(x, railTo > railing ? row + tall - hair * 3 : row, wide, hair * 3,
+					theme.accent, 0.9);
 			}
 
 			if (held == null) {

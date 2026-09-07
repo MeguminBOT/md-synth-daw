@@ -33,6 +33,8 @@ class ArrangeCheck {
 		edits();
 		dropped();
 		shifted();
+		carried();
+		reordered();
 		reversed();
 		nudged();
 
@@ -267,6 +269,61 @@ class ArrangeCheck {
 			? "byte for byte what it was" : "not what it was"));
 	}
 
+	static function carried():Void {
+		final song = rich();
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		final clip = song.tracks[0].clips[0];
+
+		history.does(song, new MoveClip(0, clip, 96, 0, 1));
+
+		final onto = song.tracks[1].clips;
+		final places:Array<Int> = [];
+
+		for (held in onto) places.push(held.at);
+
+		var ordered = true;
+		for (index in 1...onto.length) if (onto[index].at < onto[index - 1].at) ordered = false;
+
+		says("a clip moves to another track", song.tracks[0].clips.length == 1
+			&& onto.length == 2 && onto.indexOf(clip) == 0 && ordered,
+			song.tracks[0].clips.length + " clip left on the first track and the second reads "
+			+ places.join(", "));
+
+		history.undo(song);
+
+		says("and moving it back is byte for byte",
+			mdd.format.Project.text(song) == before,
+			"the song is " + (mdd.format.Project.text(song) == before
+			? "what it was" : "not what it was"));
+	}
+
+	static function reordered():Void {
+		final song = rich();
+		final before = mdd.format.Project.text(song);
+		final history = new History();
+
+		final was:Array<String> = [];
+		for (track in song.tracks) was.push(track.name);
+
+		history.does(song, new mdd.song.edit.MoveTrack(0, 1));
+
+		final now:Array<String> = [];
+		for (track in song.tracks) now.push(track.name);
+
+		says("a track moves to another row", now.length == was.length
+			&& now[0] == was[1] && now[1] == was[0],
+			"the rows read " + was.join(", ") + " and then " + now.join(", "));
+
+		history.undo(song);
+
+		says("and putting the row back is byte for byte",
+			mdd.format.Project.text(song) == before,
+			"the song is " + (mdd.format.Project.text(song) == before
+			? "what it was" : "not what it was"));
+	}
+
 	static function nudged():Void {
 		final song = new Song("nudged", 96, 120);
 		final pattern = song.add(new Pattern("one", 384));
@@ -357,7 +414,11 @@ class ArrangeCheck {
 		offer("MovePattern", function(song) return new mdd.song.edit.MovePattern(0,
 			Part.Psg1.index()));
 
+		offer("MoveClip across", function(song) return new mdd.song.edit.MoveClip(0,
+			song.tracks[0].clips[0], 96, 0, 1));
+
 		offer("AddTrack", function(song) return new mdd.song.edit.AddTrack(2));
+		offer("MoveTrack", function(song) return new mdd.song.edit.MoveTrack(0, 1));
 		offer("RemoveTrack", function(song) return new mdd.song.edit.RemoveTrack(1));
 		offer("RenameTrack", function(song) return new mdd.song.edit.RenameTrack(0, "named"));
 
