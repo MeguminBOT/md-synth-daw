@@ -427,6 +427,20 @@ final class Presence {
 			index++;
 			held++;
 
+			if (code >= 0xD800 && code <= 0xDFFF) {
+				if (code > 0xDBFF || index >= from.length) continue;
+
+				final tail = StringTools.fastCodeAt(from, index);
+				if (tail < 0xDC00 || tail > 0xDFFF) continue;
+
+				index++;
+
+				out.addChar(code);
+				out.addChar(tail);
+
+				continue;
+			}
+
 			if (code == 34 || code == 92) {
 				out.addChar(92);
 				out.addChar(code);
