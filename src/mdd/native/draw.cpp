@@ -26,6 +26,19 @@ extern "C" void mdd_texture_update(SDL_Texture *texture, const unsigned char *rg
 	if (texture != nullptr) SDL_UpdateTexture(texture, nullptr, rgba, width * 4);
 }
 
+extern "C" void mdd_texture_patch(SDL_Texture *texture, const unsigned char *rgba, int x, int y,
+		int width, int height) {
+	if (texture == nullptr || rgba == nullptr || width <= 0 || height <= 0) return;
+
+	SDL_Rect where;
+	where.x = x;
+	where.y = y;
+	where.w = width;
+	where.h = height;
+
+	SDL_UpdateTexture(texture, &where, rgba, width * 4);
+}
+
 extern "C" void mdd_texture_destroy(SDL_Texture *texture) {
 	if (texture != nullptr) SDL_DestroyTexture(texture);
 }

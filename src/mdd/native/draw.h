@@ -10,6 +10,8 @@ extern "C" {
 SDL_Texture *mdd_texture_create(SDL_Renderer *renderer, int width, int height);
 SDL_Texture *mdd_texture_target(SDL_Renderer *renderer, int width, int height);
 void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba, int width, int height);
+void mdd_texture_patch(SDL_Texture *texture, const unsigned char *rgba, int x, int y, int width,
+	int height);
 void mdd_texture_destroy(SDL_Texture *texture);
 void mdd_texture_scale_mode(SDL_Texture *texture, int smooth);
 

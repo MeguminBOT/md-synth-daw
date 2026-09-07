@@ -14,6 +14,10 @@ extern class Draw {
 	public static function updateTexture(texture:cpp.Star<Texture>,
 		rgba:cpp.RawConstPointer<cpp.UInt8>, width:Int, height:Int):Void;
 
+	@:native("mdd_texture_patch")
+	public static function patchTexture(texture:cpp.Star<Texture>,
+		rgba:cpp.RawConstPointer<cpp.UInt8>, x:Int, y:Int, width:Int, height:Int):Void;
+
 	@:native("mdd_texture_destroy")
 	public static function destroyTexture(texture:cpp.Star<Texture>):Void;
 

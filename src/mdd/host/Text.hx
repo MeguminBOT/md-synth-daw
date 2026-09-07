@@ -20,6 +20,15 @@ extern class Text {
 	@:native("mdd_font_kern")
 	public static function kern(font:Int, pixels:Single, left:Int, right:Int):Single;
 
+	@:native("mdd_font_extent")
+	public static function extent(font:Int, pixels:Single, codepoint:Int,
+		wide:cpp.RawPointer<Int>, tall:cpp.RawPointer<Int>):Int;
+
+	@:native("mdd_font_glyph")
+	public static function glyph(font:Int, pixels:Single, codepoint:Int,
+		rgba:cpp.RawPointer<cpp.UInt8>, atlasWidth:Int, atlasHeight:Int, atX:Int, atY:Int,
+		glyph:cpp.RawPointer<Single>):Int;
+
 	@:native("mdd_font_bake")
 	public static function bake(font:Int, pixels:Single, first:Int, count:Int,
 		rgba:cpp.RawPointer<cpp.UInt8>, atlasWidth:Int, atlasHeight:Int,

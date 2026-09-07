@@ -92,6 +92,91 @@ extern "C" float mdd_font_kern(int font, float pixels, int left, int right) {
 	return stbtt_GetCodepointKernAdvance(&faces[font].info, left, right) * scaleOf(font, pixels);
 }
 
+extern "C" int mdd_font_extent(int font, float pixels, int codepoint, int *wide, int *tall) {
+	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
+	if (wide == nullptr || tall == nullptr) return 0;
+	if (stbtt_FindGlyphIndex(&faces[font].info, codepoint) == 0) return 0;
+
+	const float scale = stbtt_ScaleForPixelHeight(&faces[font].info, pixels);
+
+	int x0 = 0;
+	int y0 = 0;
+	int x1 = 0;
+	int y1 = 0;
+
+	stbtt_GetCodepointBitmapBox(&faces[font].info, codepoint, scale, scale, &x0, &y0, &x1, &y1);
+
+	*wide = x1 - x0;
+	*tall = y1 - y0;
+
+	return 1;
+}
+
+extern "C" int mdd_font_glyph(int font, float pixels, int codepoint, unsigned char *rgba,
+		int atlasWidth, int atlasHeight, int atX, int atY, float *glyph) {
+	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
+	if (rgba == nullptr || glyph == nullptr) return 0;
+	if (stbtt_FindGlyphIndex(&faces[font].info, codepoint) == 0) return 0;
+
+	const float scale = stbtt_ScaleForPixelHeight(&faces[font].info, pixels);
+
+	int x0 = 0;
+	int y0 = 0;
+	int x1 = 0;
+	int y1 = 0;
+
+	stbtt_GetCodepointBitmapBox(&faces[font].info, codepoint, scale, scale, &x0, &y0, &x1, &y1);
+
+	const int wide = x1 - x0;
+	const int tall = y1 - y0;
+
+	if (wide < 0 || tall < 0) return 0;
+	if (atX < 0 || atY < 0 || atX + wide > atlasWidth || atY + tall > atlasHeight) return 0;
+
+	if (wide > 0 && tall > 0) {
+		unsigned char *coverage =
+			static_cast<unsigned char *>(calloc(static_cast<size_t>(wide) * tall, 1));
+
+		if (coverage == nullptr) return 0;
+
+		stbtt_MakeCodepointBitmap(&faces[font].info, coverage, wide, tall, wide, scale, scale,
+			codepoint);
+
+		for (int row = 0; row < tall; row++) {
+			for (int column = 0; column < wide; column++) {
+				unsigned char *out = rgba + (static_cast<size_t>(row) * wide + column) * 4;
+
+				out[0] = 255;
+				out[1] = 255;
+				out[2] = 255;
+				out[3] = coverage[static_cast<size_t>(row) * wide + column];
+			}
+		}
+
+		free(coverage);
+	}
+
+	int advance = 0;
+	int bearing = 0;
+
+	stbtt_GetCodepointHMetrics(&faces[font].info, codepoint, &advance, &bearing);
+
+	const float acrossWide = 1.0f / atlasWidth;
+	const float acrossTall = 1.0f / atlasHeight;
+
+	glyph[0] = atX * acrossWide;
+	glyph[1] = atY * acrossTall;
+	glyph[2] = (atX + wide) * acrossWide;
+	glyph[3] = (atY + tall) * acrossTall;
+	glyph[4] = static_cast<float>(x0);
+	glyph[5] = static_cast<float>(y0);
+	glyph[6] = advance * scale;
+	glyph[7] = static_cast<float>(wide);
+	glyph[8] = static_cast<float>(tall);
+
+	return 1;
+}
+
 extern "C" int mdd_font_bake(int font, float pixels, int first, int count, unsigned char *rgba,
 		int atlasWidth, int atlasHeight, float *glyphs) {
 	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
