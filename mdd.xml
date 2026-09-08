@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- The one file the build reads. Any element takes if="..." and unless="...", over windows,
-	     linux, mac, desktop, debug, release, a toolchain name, or llvm. Order does not matter.
+	<!-- The one file the build reads. Order does not matter.
+
+	     Every element takes if="..." and unless="...", and these are the whole vocabulary:
+
+	       windows, linux, mac    the operating system being built on
+	       desktop                all of them, and the form factor a build is for
+	       debug, release         the kind of build
+	       msvc, clang-cl, mingw  a toolchain on Windows
+	       clang, gcc             a toolchain everywhere else
+	       llvm                   clang-cl, clang or mingw, whichever of them is in hand
+
+	     A toolchain name is never a target. if="mingw" on a link says how a library is named
+	     to the mingw linker, not that there is a mingw build to produce; the targets are the
+	     <target> elements and nothing else names them.
 
 	     Never call this project.xml, Project.xml, project.hxp or project.lime: any of the four
 	     makes the Lime editor extension claim the workspace, and completion dies silently. -->
@@ -143,9 +155,15 @@
 	<include value="${OPUSPATH}/silk" />
 	<include value="${OPUSPATH}/silk/float" />
 
+	<!-- the window's library, however each linker wants to be told about it -->
+
 	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
 	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
 	<link value="-lSDL3" unless="windows" />
+
+	<!-- what Windows itself supplies: the crash report reads dbghelp, the scheduler tick
+	     comes from winmm, and the usage readout from psapi and pdh. The Microsoft linker
+	     takes a file name and the mingw one takes a -l switch, so each is written twice -->
 
 	<link value="dbghelp.lib" if="windows" unless="mingw" />
 	<link value="winmm.lib" if="windows" unless="mingw" />
@@ -161,9 +179,13 @@
 	<link value="-ladvapi32" if="mingw" />
 	<link value="-lshell32" if="mingw" />
 
+	<!-- what Linux supplies -->
+
 	<link value="-lm" if="linux" />
 	<link value="-ldl" if="linux" />
 	<link value="-lpthread" if="linux" />
+
+	<!-- what macOS supplies, as frameworks -->
 
 	<link value="-framework CoreFoundation" if="mac" />
 	<link value="-framework CoreAudio" if="mac" />
