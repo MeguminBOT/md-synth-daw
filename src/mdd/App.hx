@@ -59,6 +59,8 @@ class App {
 	var asked:Int = -1;
 
 	final task:Task = new Task();
+	final bounce:Task = new Task();
+	final progress:Working = new Working();
 	final presence:Presence = new Presence();
 
 	var rendering:Null<mdd.play.Mixdown> = null;
@@ -414,11 +416,6 @@ class App {
 		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
 
-		final projects = files == null ? "" : files.projectsAt;
-		final presets = files == null ? "" : files.presetsAt;
-		final saved = files == null ? "" : files.savedInto;
-		final room = files == null ? 0 : files.backupRoom;
-
 		sound.stop();
 
 		library.into(song);
@@ -428,13 +425,7 @@ class App {
 		session.onChange = function(held:Session):Void changed();
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
 
-		files = new Files(session);
-		files.onLoad = function(held:Song):Void loaded(held);
-
-		files.projectsAt = projects;
-		files.presetsAt = presets;
-		files.savedInto = saved;
-		if (room > 0) files.backupRoom = room;
+		files.follows(session);
 
 		session.master = held;
 		session.automating = automates;
@@ -501,7 +492,6 @@ class App {
 	}
 
 	function settled():Void {
-		if (rendering != null) return;
 		if (panels.working == null || stage.root.sheet != panels.working) return;
 
 		task.ends(true);
@@ -509,7 +499,6 @@ class App {
 	}
 
 	function pulling(since:Float):Bool {
-		if (rendering != null) return false;
 		if (update == null || update.state() != Update.FETCHING) return false;
 
 		task.holds(update.pulling());
@@ -618,18 +607,16 @@ class App {
 	}
 
 	function renders(where:String):Void {
-		if (panels.working == null) {
-			files.exportAudio(where);
-			return;
-		}
-
 		rendering = files.renders(where);
 
-		task.begins(Locale.WORKING_RENDERING, Files.name(where), true);
-		stage.root.raise(panels.working);
-		panels.working.arrive(task);
+		bounce.begins(Locale.WORKING_RENDERING, Files.name(where), true);
 
-		panels.working.onCancel = function():Void {
+		stage.root.bands(progress);
+		progress.arrive(bounce);
+		progress.rise.hold(1);
+		progress.fade.hold(1);
+
+		progress.onCancel = function():Void {
 			if (rendering != null) rendering.stops();
 		};
 
@@ -641,9 +628,9 @@ class App {
 		if (rendering == null) return false;
 
 		final held = rendering;
-		task.holds(held.reach());
+		bounce.holds(held.reach());
 
-		if (panels.working != null) panels.working.advance(since);
+		progress.advance(since);
 
 		if (!files.wroteYet()) return true;
 
@@ -655,8 +642,8 @@ class App {
 		session.say(wrong != "" ? "that would not work: " + wrong
 			: (beaten ? "stopped rendering" : files.wroteSaid));
 
-		task.ends(wrong == "" && !beaten);
-		if (stage.root.sheet == panels.working) stage.root.lower();
+		bounce.ends(wrong == "" && !beaten);
+		stage.root.bands(null);
 
 		session.changed();
 		return true;
@@ -1019,7 +1006,8 @@ class App {
 			if (watched()) stage.root.soil();
 			watch();
 
-			presence.busy = task.running() ? stage.root.translate(task.label) : "";
+			final showing = bounce.running() ? bounce : task;
+			presence.busy = showing.running() ? stage.root.translate(showing.label) : "";
 			presence.tick(since);
 
 			if (shared()) stage.root.soil();

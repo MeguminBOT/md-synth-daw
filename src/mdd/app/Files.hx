@@ -64,10 +64,14 @@ final class Files {
 	public var onIdle:Null<Void -> Void> = null;
 	public var onRender:Null<String -> Void> = null;
 
-	public final session:Session;
+	public var session(default, null):Session;
 	var chooser:cpp.Star<Chooser> = null;
 
 	public function new(session:Session) {
+		this.session = session;
+	}
+
+	public function follows(session:Session):Void {
 		this.session = session;
 	}
 

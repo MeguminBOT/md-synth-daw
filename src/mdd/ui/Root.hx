@@ -37,6 +37,7 @@ final class Root {
 	public final translation:Translation = new Translation();
 
 	public var sheet(default, null):Null<Widget> = null;
+	public var band(default, null):Null<Widget> = null;
 
 	public final scrim:Motion;
 
@@ -231,6 +232,29 @@ final class Root {
 		return translation.of(key);
 	}
 
+	public function bands(widget:Null<Widget>):Void {
+		if (band == widget) return;
+
+		final was = band;
+
+		if (was != null) {
+			@:privateAccess was.attach(null);
+			band = null;
+			if (focus == was) focusOn(null);
+		}
+
+		band = widget;
+
+		if (band != null) {
+			@:privateAccess band.attach(this);
+			spread(band);
+			hideTip();
+			if (band.focusable) focusOn(band);
+		}
+
+		reshape();
+	}
+
 	public function raise(widget:Widget):Void {
 		if (sheet == widget) return;
 
@@ -384,6 +408,11 @@ final class Root {
 	}
 
 	public function pick(px:Float, py:Float):Null<Widget> {
+		if (band != null) {
+			final caught = band.hit(px, py);
+			return caught != null ? caught : band;
+		}
+
 		var i = popups.length - 1;
 
 		while (i >= 0) {
@@ -434,6 +463,7 @@ final class Root {
 			top.arrange(0, 0, width, height);
 
 			if (sheet != null) spread(sheet);
+			if (band != null) spread(band);
 
 			for (menu in popups) place(menu);
 			if (tipUp) placeTip();
@@ -452,6 +482,11 @@ final class Root {
 
 		for (menu in popups) menu.paint(paint);
 		if (tooltip.fade.value > 0) tooltip.paint(paint);
+
+		if (band != null) {
+			paint.rect(0, 0, width, height, theme.sink, 0.68);
+			band.paint(paint);
+		}
 
 		paint.flush();
 
