@@ -775,6 +775,31 @@ class Run {
 		} catch (e:Dynamic) {}
 	}
 
+	static function strips(root:String, project:Project, target:String, exe:String):Void {
+		if (project.stripped.length == 0 || !FileSystem.exists(exe)) return;
+
+		final cutter = tool("llvm-objcopy", ["--version"]) ? "llvm-objcopy"
+			: (tool("objcopy", ["--version"]) ? "objcopy" : "");
+
+		if (cutter == "") {
+			Sys.println("  " + pad(target) + "no objcopy, so the symbols stay in the binary");
+			return;
+		}
+
+		final args:Array<String> = [];
+		for (name in project.stripped) args.push("--remove-section=" + name);
+		args.push(native(exe));
+
+		final was = FileSystem.stat(exe).size;
+		if (Sys.command(cutter, args) != 0) return;
+
+		final now = FileSystem.stat(exe).size;
+		if (now >= was) return;
+
+		Sys.println("  " + pad(target) + "shed " + Math.round((was - now) / 1048576)
+			+ " MB of what the crash report never reads");
+	}
+
 	static function exeOf(root:String, project:Project, target:String):String {
 		final one = project.targetOf(target);
 		if (one == null) return "";
@@ -811,6 +836,7 @@ class Run {
 
 		copyFile(exe, shipped);
 		runnable(shipped);
+		strips(root, project, target, shipped);
 
 		for (one in project.ships) {
 			final from = root + "/" + one;

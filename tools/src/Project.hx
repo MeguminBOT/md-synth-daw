@@ -89,6 +89,7 @@ class Project {
 	public var dce(default, null):String = "";
 	public var linkFlags(default, null):Array<String> = [];
 	public var compileFlags(default, null):Array<String> = [];
+	public var stripped(default, null):Array<String> = [];
 	public var libraries(default, null):Array<String> = [];
 	public var vendors(default, null):Array<Vendor> = [];
 	public var paths(default, null):Array<Named> = [];
@@ -259,6 +260,12 @@ class Project {
 
 			case "compileflag":
 				compileFlags.push(node.get("value"));
+
+			case "strip":
+				for (part in node.get("sections").split(",")) {
+					final held = StringTools.trim(part);
+					if (held != "") stripped.push(held);
+				}
 
 			case "define":
 				defines.push(has(node, "value")

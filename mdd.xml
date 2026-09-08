@@ -166,6 +166,15 @@
 
 	<linkflag value="-OPT:REF" if="windows" unless="mingw,debug" />
 
+	<!-- mingw carries its symbols inside the binary where the Microsoft linker puts them in a
+	     pdb beside it, and it is told not to strip because the crash report reads them back.
+	     The report reads the symbol table and the line table and opens none of the rest, which
+	     is 79 per cent of the file: a release sheds it and reports the same stack. A debug
+	     build keeps the lot, because a debugger wants what a crash report does not -->
+
+	<strip sections=".debug_info,.debug_loc,.debug_str,.debug_ranges,.debug_abbrev,.debug_aranges"
+		if="mingw" unless="debug" />
+
 	<!-- the window's library, however each linker wants to be told about it -->
 
 	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
