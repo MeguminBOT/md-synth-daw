@@ -62,6 +62,8 @@
 
 	<library name="hxcpp-debug-server" if="debug" />
 
+	<dce value="full" unless="debug" />
+
 	<define name="windows" if="windows" />
 	<define name="linux" if="linux" />
 	<define name="mac" if="mac" />

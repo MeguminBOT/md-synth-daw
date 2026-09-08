@@ -86,6 +86,7 @@ class Project {
 
 	public var targets(default, null):Array<Target> = [];
 	public var defines(default, null):Array<String> = [];
+	public var dce(default, null):String = "";
 	public var libraries(default, null):Array<String> = [];
 	public var vendors(default, null):Array<Vendor> = [];
 	public var paths(default, null):Array<Named> = [];
@@ -247,6 +248,9 @@ class Project {
 
 			case "library":
 				libraries.push(node.get("name"));
+
+			case "dce":
+				dce = node.get("value");
 
 			case "define":
 				defines.push(has(node, "value")

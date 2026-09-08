@@ -647,6 +647,11 @@ class Run {
 			args.push(library);
 		}
 
+		if (project.dce != "") {
+			args.push("-dce");
+			args.push(project.dce);
+		}
+
 		for (define in project.defines) {
 			args.push("-D");
 			args.push(define);
