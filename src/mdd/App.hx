@@ -226,7 +226,6 @@ class App {
 		panels.exporting.onShut = function():Void stage.root.lower();
 
 		panels.exporting.onExport = function(mixing:mdd.play.Mixing):Void {
-			mixing.console = panels.preferences.console;
 			files.mixing = mixing;
 			files.ask(stage.window, Files.AUDIO);
 		};
@@ -1031,8 +1030,7 @@ class App {
 
 	function consoled(which:Int):Void {
 		if (sound.render != null) sound.render.console = which;
-		if (files != null) files.mixing.console = which;
-		if (panels != null && panels.exporting != null) panels.exporting.mixing.console = which;
+		if (panels != null && panels.exporting != null) panels.exporting.follows(which);
 	}
 
 	function keyboards():Void {

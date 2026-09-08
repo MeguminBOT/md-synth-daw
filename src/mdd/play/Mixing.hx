@@ -86,6 +86,7 @@ final class Mixing {
 		out.normalise = normalise;
 		out.ceiling = ceiling;
 		out.dither = dither;
+		out.console = console;
 		out.title = title;
 		out.artist = artist;
 		out.album = album;

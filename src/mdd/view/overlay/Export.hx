@@ -66,6 +66,8 @@ final class Export extends Widget {
 	public var session:Session;
 	public final mixing:Mixing = new Mixing();
 
+	var picked:Bool = false;
+
 	public final fields:Array<Field> = [];
 	public final timers:Array<Number> = [];
 	public final go:Button;
@@ -319,6 +321,10 @@ final class Export extends Widget {
 		return best;
 	}
 
+	public function follows(which:Int):Void {
+		if (!picked) mixing.console = which;
+	}
+
 	public function chose(row:Int, which:Int):Void {
 		switch (row) {
 			case FORMAT: mixing.kind = which;
@@ -334,7 +340,7 @@ final class Export extends Widget {
 				mixing.normalise = which > 0;
 				mixing.ceiling = 0;
 
-			case CONSOLE: mixing.console = which;
+			case CONSOLE: { mixing.console = which; picked = true; }
 
 			case QUALITY: mixing.quality = which;
 			case _: mixing.dither = which == 1;
