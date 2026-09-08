@@ -43,7 +43,7 @@ class VgmCheck {
 
 		final timed = args.indexOf("--times") >= 0;
 		final names = ["corpus", "sounds", "rated", "sound", "hushed", "paced", "covered",
-			"shadowed", "whole", "stepped"];
+			"shadowed", "whole", "stepped", "kitted"];
 
 		final spent:Array<Float> = [];
 		var began = haxe.Timer.stamp();
@@ -72,6 +72,8 @@ class VgmCheck {
 		whole(where, files);
 		marks();
 		stepped(where, files);
+		marks();
+		kitted(files);
 		marks();
 
 		if (timed) {
@@ -1692,6 +1694,114 @@ class VgmCheck {
 		final at = held.lastIndexOf("/");
 
 		return at < 0 ? held : held.substring(at + 1);
+	}
+
+	static inline final HIT_QUIET = 4;
+	static inline final HIT_SLIP = 8;
+	static inline final HIT_APART = 6.0;
+	static inline final HIT_LEAST = 128;
+
+	static function loudFrom(bytes:haxe.ds.Vector<Int>, many:Int):Int {
+		var at = 0;
+
+		while (at < many) {
+			final byte = bytes[at] - 128;
+			if ((byte < 0 ? -byte : byte) > HIT_QUIET) break;
+
+			at++;
+		}
+
+		return at;
+	}
+
+	static function apartBy(one:mdd.song.Sample, head:Int, two:mdd.song.Sample, rest:Int,
+			many:Int, slip:Int):Float {
+		var total = 0.0;
+		var counted = 0;
+
+		for (index in 0...many) {
+			final left = head + index;
+			final right = rest + index + slip;
+
+			if (left < 0 || left >= one.length()) continue;
+			if (right < 0 || right >= two.length()) continue;
+
+			final away = one.bytes[left] - two.bytes[right];
+
+			total += away < 0 ? -away : away;
+			counted++;
+		}
+
+		return counted < HIT_LEAST ? 256 : total / counted;
+	}
+
+	static function copies(song:mdd.song.Song):Int {
+		var many = 0;
+
+		for (first in 0...song.samples.length) {
+			for (second in first + 1...song.samples.length) {
+				final one = song.samples[first];
+				final two = song.samples[second];
+
+				final head = loudFrom(one.bytes, one.length());
+				final rest = loudFrom(two.bytes, two.length());
+
+				final left = one.length() - head;
+				final right = two.length() - rest;
+
+				if (left < HIT_LEAST || right < HIT_LEAST) continue;
+
+				final shorter = left < right ? left : right;
+				final longer = left > right ? left : right;
+
+				if (shorter * 5 < longer * 4) continue;
+
+				var best = 256.0;
+
+				for (slip in -HIT_SLIP...HIT_SLIP + 1) {
+					final away = apartBy(one, head, two, rest, shorter, slip);
+					if (away < best) best = away;
+				}
+
+				if (best <= HIT_APART) many++;
+			}
+		}
+
+		return many;
+	}
+
+	static function kitted(files:Array<String>):Void {
+		final said = new StringBuf();
+
+		var over = 0;
+		var counted = 0;
+		var shown = 0;
+
+		for (name in files) {
+			final source = new Stream(1 << 22);
+			final vgm = mdd.format.Vgm.read(File.getBytes(name), source);
+
+			if (vgm == null) continue;
+
+			final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+			if (song.samples.length == 0) continue;
+
+			final many = copies(song);
+
+			counted += song.samples.length;
+			over += many;
+
+			if (many > 0 && shown < 8) {
+				if (shown > 0) said.add(", ");
+				said.add(Fixtures.titled(name) + " " + song.samples.length
+					+ " with " + many + " a copy");
+				shown++;
+			}
+		}
+
+		says("a drum played twice is one sample", over == 0,
+			counted + " samples cut from the files that carry any, " + over
+			+ " of them a near copy of another: " + said.toString());
 	}
 
 	static function compare(a:String, b:String):Int {

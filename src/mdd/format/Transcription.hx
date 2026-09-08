@@ -65,7 +65,9 @@ final class Transcription {
 	static inline final STEADY = 32;
 	static inline final STEADY_TURN = 1.3;
 	static inline final DAC_ROOM = 1 << 22;
-	static inline final DAC_RAGGED = 24;
+	static inline final DAC_QUIET = 4;
+	static inline final DAC_SLIP = 8;
+	static inline final DAC_APART = 6.0;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -1055,9 +1057,10 @@ final class Transcription {
 
 	function sampleInstrument(rate:Int):Int {
 		final many = dacTake.length;
+		final head = loudTaken(many);
 
 		for (index in 0...song.samples.length) {
-			if (alike(song.samples[index])) return kits[index];
+			if (alike(song.samples[index], head)) return kits[index];
 		}
 
 		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
@@ -1079,23 +1082,81 @@ final class Transcription {
 		return song.instruments.length - 1;
 	}
 
-	function alike(sample:Sample):Bool {
+	static function loudIn(bytes:Vector<Int>, many:Int):Int {
+		var at = 0;
+
+		while (at < many) {
+			final byte = bytes[at] - 128;
+			if ((byte < 0 ? -byte : byte) > DAC_QUIET) break;
+
+			at++;
+		}
+
+		return at;
+	}
+
+	function loudTaken(many:Int):Int {
+		var at = 0;
+
+		while (at < many) {
+			final byte = dacTake[at] - 128;
+			if ((byte < 0 ? -byte : byte) > DAC_QUIET) break;
+
+			at++;
+		}
+
+		return at;
+	}
+
+	function alike(sample:Sample, rest:Int):Bool {
+		final bytes = sample.bytes;
 		final one = sample.length();
 		final two = dacTake.length;
 
-		if (one < 1 || two < 1) return false;
+		if (one < DAC_LEAST || two < DAC_LEAST) return false;
 
-		final apart = one > two ? one - two : two - one;
-		if (apart > DAC_RAGGED) return false;
+		final head = loudIn(bytes, one);
 
-		final many = one < two ? one : two;
-		if (many < DAC_LEAST) return false;
+		final left = one - head;
+		final right = two - rest;
 
-		final bytes = sample.bytes;
+		if (left < DAC_LEAST || right < DAC_LEAST) return false;
 
-		for (index in 0...many) if (bytes[index] != dacTake[index]) return false;
+		final shorter = left < right ? left : right;
+		final longer = left > right ? left : right;
 
-		return true;
+		if (shorter * 5 < longer * 4) return false;
+
+		var best = 256.0;
+
+		for (slip in -DAC_SLIP...DAC_SLIP + 1) {
+			final away = apartBy(bytes, head, rest, shorter, slip);
+
+			if (away < best) best = away;
+			if (best <= DAC_APART) return true;
+		}
+
+		return false;
+	}
+
+	function apartBy(bytes:Vector<Int>, head:Int, rest:Int, many:Int, slip:Int):Float {
+		var total = 0.0;
+		var counted = 0;
+
+		for (index in 0...many) {
+			final left = head + index;
+			final right = rest + index + slip;
+
+			if (left < 0 || left >= bytes.length) continue;
+			if (right < 0 || right >= dacTake.length) continue;
+
+			final away = bytes[left] - dacTake[right];
+
+			total += away < 0 ? -away : away;
+			counted++;
+		}
+
+		return counted < DAC_LEAST ? 256 : total / counted;
 	}
 	function session():Void {
 		if (song.instruments.length == 0) return;
