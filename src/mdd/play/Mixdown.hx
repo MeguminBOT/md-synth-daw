@@ -23,6 +23,7 @@ final class Mixdown {
 	public var lost(default, null):Int = 0;
 
 	public static inline final WHOLE = 1000;
+	static inline final RESTS = 1 << 16;
 
 	var working:Null<Render> = null;
 	var feeding:Null<Stream> = null;
@@ -87,7 +88,18 @@ final class Mixdown {
 		frames = ahead + sounding + behind;
 		samples = new Vector<cpp.Float32>(frames * channels);
 
-		for (index in 0...samples.length) samples[index] = 0;
+		var wiped = 0;
+
+		while (wiped < samples.length) {
+			final until = wiped + RESTS < samples.length ? wiped + RESTS : samples.length;
+
+			while (wiped < until) {
+				samples[wiped] = 0;
+				wiped++;
+			}
+
+			cpp.vm.Gc.safePoint();
+		}
 
 		feeding = new Stream(roomFor(span));
 
@@ -145,7 +157,7 @@ final class Mixdown {
 
 			done += took;
 
-			final held = Std.int(done * (WHOLE - 1) / many);
+			final held = Std.int(done * (WHOLE - 1.0) / many);
 
 			if (held != told) {
 				told = held;
@@ -162,22 +174,41 @@ final class Mixdown {
 
 		final from = frames - over;
 
-		for (index in 0...over) {
-			final much = 1.0 - index / over;
-			final at = (from + index) * channels;
+		var index = 0;
 
-			for (side in 0...channels) samples[at + side] *= much;
+		while (index < over) {
+			final until = index + RESTS < over ? index + RESTS : over;
+
+			while (index < until) {
+				final much = 1.0 - index / over;
+				final at = (from + index) * channels;
+
+				for (side in 0...channels) samples[at + side] *= much;
+				index++;
+			}
+
+			cpp.vm.Gc.safePoint();
 		}
 	}
 
 	function levelled(mixing:Mixing):Void {
 		peak = 0;
 
-		for (index in 0...frames * channels) {
-			final value = samples[index];
-			final much = value < 0 ? -value : value;
+		final many = frames * channels;
+		var index = 0;
 
-			if (much > peak) peak = much;
+		while (index < many) {
+			final until = index + RESTS < many ? index + RESTS : many;
+
+			while (index < until) {
+				final value = samples[index];
+				final much = value < 0 ? -value : value;
+
+				if (much > peak) peak = much;
+				index++;
+			}
+
+			cpp.vm.Gc.safePoint();
 		}
 
 		gain = 1;
@@ -187,7 +218,18 @@ final class Mixdown {
 		final want = Math.pow(10, mixing.ceiling / 20.0);
 		gain = want / peak;
 
-		for (index in 0...frames * channels) samples[index] *= gain;
+		var scaled = 0;
+
+		while (scaled < many) {
+			final until = scaled + RESTS < many ? scaled + RESTS : many;
+
+			while (scaled < until) {
+				samples[scaled] *= gain;
+				scaled++;
+			}
+
+			cpp.vm.Gc.safePoint();
+		}
 
 		peak = want;
 	}

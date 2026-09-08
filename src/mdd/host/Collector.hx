@@ -49,7 +49,7 @@ final class Collector {
 
 		if (much > CEILING) {
 			forced++;
-			sweeps(true);
+			sweeps(!busy);
 
 			return;
 		}

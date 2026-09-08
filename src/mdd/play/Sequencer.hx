@@ -68,6 +68,8 @@ final class Sequencer {
 			made += emit(stream, at, edge);
 			lost += dropped;
 			at = edge;
+
+			cpp.vm.Gc.safePoint();
 		}
 
 		return made;
