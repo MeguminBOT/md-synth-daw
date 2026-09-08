@@ -204,12 +204,12 @@ static void mdd_crash_place(FILE *into, const char *name, unsigned long long awa
 }
 
 #if defined(_MSC_VER)
-#define MDD_CRASH_PDB 1
+#define MDD_CRASH_INLINE 1
 #else
-#define MDD_CRASH_PDB 0
+#define MDD_CRASH_INLINE 0
 #endif
 
-#if MDD_CRASH_PDB
+#if MDD_CRASH_INLINE
 
 static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
 	const char *module) {
@@ -259,6 +259,158 @@ static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
 
 #endif
 
+#if !defined(_MSC_VER)
+#include <cxxabi.h>
+#endif
+
+#define MDD_CRASH_COFF_ENTRY 18
+#define MDD_CRASH_COFF_SECTION 40
+
+struct mdd_crash_coff {
+	const unsigned char *sections;
+	const unsigned char *symbols;
+	const char *strings;
+	unsigned long count;
+	unsigned int many;
+};
+
+static char mdd_crash_coff_path[1024];
+static mdd_crash_coff mdd_crash_coff_held;
+static int mdd_crash_coff_ready;
+
+static unsigned short mdd_crash_word(const unsigned char *at) {
+	return (unsigned short) (at[0] | (at[1] << 8));
+}
+
+static unsigned long mdd_crash_long(const unsigned char *at) {
+	return (unsigned long) at[0] | ((unsigned long) at[1] << 8)
+		| ((unsigned long) at[2] << 16) | ((unsigned long) at[3] << 24);
+}
+
+static int mdd_crash_coff_open(mdd_crash_coff *into, const char *path) {
+	memset(into, 0, sizeof(*into));
+
+	HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (file == INVALID_HANDLE_VALUE) return 0;
+
+	HANDLE mapping = CreateFileMappingA(file, NULL, PAGE_READONLY, 0, 0, NULL);
+	CloseHandle(file);
+
+	if (mapping == NULL) return 0;
+
+	const unsigned char *image = (const unsigned char *)
+		MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+
+	CloseHandle(mapping);
+
+	if (image == NULL) return 0;
+	if (image[0] != 'M' || image[1] != 'Z') return 0;
+
+	const unsigned char *pe = image + mdd_crash_long(image + 0x3C);
+	if (pe[0] != 'P' || pe[1] != 'E' || pe[2] != 0 || pe[3] != 0) return 0;
+
+	const unsigned long table = mdd_crash_long(pe + 12);
+	const unsigned long count = mdd_crash_long(pe + 16);
+
+	if (table == 0 || count == 0) return 0;
+
+	into->many = mdd_crash_word(pe + 6);
+	into->sections = pe + 24 + mdd_crash_word(pe + 20);
+	into->symbols = image + table;
+	into->count = count;
+	into->strings = (const char *)
+		(into->symbols + (size_t) count * MDD_CRASH_COFF_ENTRY);
+
+	return 1;
+}
+
+static int mdd_crash_coff_named(const mdd_crash_coff *held, unsigned long long rva,
+	char *into, int room, unsigned long long *away) {
+	unsigned long long best = 0;
+	const unsigned char *found = NULL;
+
+	for (unsigned long index = 0; index < held->count; index++) {
+		const unsigned char *one = held->symbols
+			+ (size_t) index * MDD_CRASH_COFF_ENTRY;
+
+		const short section = (short) mdd_crash_word(one + 12);
+		const unsigned char storage = one[16];
+
+		index += one[17];
+
+		if (section <= 0 || (unsigned int) section > held->many) continue;
+		if (storage != 2 && storage != 3 && storage != 6) continue;
+
+		const unsigned char *where = held->sections
+			+ (size_t) (section - 1) * MDD_CRASH_COFF_SECTION;
+
+		const unsigned long long at = (unsigned long long) mdd_crash_long(where + 12)
+			+ (unsigned long long) mdd_crash_long(one + 8);
+
+		if (at > rva || at < best) continue;
+
+		best = at;
+		found = one;
+	}
+
+	if (found == NULL) return 0;
+
+	if (mdd_crash_long(found) == 0) {
+		mdd_crash_copy(into, room, held->strings + mdd_crash_long(found + 4));
+	} else {
+		char name[9];
+
+		memcpy(name, found, 8);
+		name[8] = 0;
+
+		mdd_crash_copy(into, room, name);
+	}
+
+	*away = rva - best;
+	return into[0] != 0;
+}
+
+static void mdd_crash_plainly(char *into, int room) {
+#if defined(_MSC_VER)
+	(void) into;
+	(void) room;
+#else
+	if (into[0] != '_' || into[1] != 'Z') return;
+
+	int state = 0;
+	char *out = abi::__cxa_demangle(into, NULL, NULL, &state);
+
+	if (state == 0 && out != NULL) mdd_crash_copy(into, room, out);
+#endif
+}
+
+static int mdd_crash_owned(DWORD64 address, char *into, int room,
+	unsigned long long *away) {
+	HMODULE owner = NULL;
+
+	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+		| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPCSTR) (uintptr_t) address, &owner)) return 0;
+
+	char path[1024];
+	if (GetModuleFileNameA(owner, path, sizeof(path)) == 0) return 0;
+
+	if (strcmp(path, mdd_crash_coff_path) != 0) {
+		mdd_crash_copy(mdd_crash_coff_path, sizeof(mdd_crash_coff_path), path);
+		mdd_crash_coff_ready = mdd_crash_coff_open(&mdd_crash_coff_held, path);
+	}
+
+	if (!mdd_crash_coff_ready) return 0;
+
+	if (!mdd_crash_coff_named(&mdd_crash_coff_held,
+		address - (DWORD64) (uintptr_t) owner, into, room, away)) return 0;
+
+	mdd_crash_plainly(into, room);
+	return 1;
+}
+
 static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 	char room[sizeof(SYMBOL_INFO) + 512];
 	SYMBOL_INFO *found = (SYMBOL_INFO *) room;
@@ -273,6 +425,14 @@ static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 	DWORD64 away = 0;
 
 	if (!SymFromAddr(process, address, &away, found)) {
+		char named[512];
+		unsigned long long past = 0;
+
+		if (mdd_crash_owned(address, named, sizeof(named), &past)) {
+			mdd_crash_place(into, named, past, NULL, 0, module);
+			return;
+		}
+
 		fprintf(into, "  0x%llX in %s\n", (unsigned long long) address, module);
 		return;
 	}
@@ -290,18 +450,6 @@ static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 	mdd_crash_place(into, found->Name, (unsigned long long) away,
 		placed ? where.FileName : NULL, placed ? where.LineNumber : 0, module);
 }
-
-#if !MDD_CRASH_PDB
-
-static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
-	(void) held;
-
-	fprintf(into, "  the stack is not walked in this build\n");
-	fprintf(into, "  DbgHelp reads the PDB the Microsoft linker writes, and this one carries\n");
-	fprintf(into, "  DWARF instead. Build with msvc or clang-cl for a stack.\n");
-}
-
-#else
 
 static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
 	HANDLE process = GetCurrentProcess();
@@ -331,10 +479,14 @@ static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
 		mdd_crash_frame(into, process, walk.AddrPC.Offset);
 	}
 
+	if (mdd_crash_coff_ready) {
+		fprintf(into, "\n  the names above are read from the symbol table in the binary and\n");
+		fprintf(into, "  carry no line with them: this build holds its lines in DWARF, which\n");
+		fprintf(into, "  DbgHelp does not read. A build with msvc or clang-cl names the line.\n");
+	}
+
 	SymCleanup(process);
 }
-
-#endif
 
 static void mdd_crash_told(const char *cause) {
 	if (mdd_crash_announce == 0) return;
