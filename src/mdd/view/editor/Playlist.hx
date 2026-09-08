@@ -9,6 +9,7 @@ import mdd.song.edit.MoveClip;
 import mdd.song.edit.MoveTrack;
 import mdd.song.edit.RemoveClip;
 import mdd.song.edit.RemoveTrack;
+import mdd.song.edit.RenameTrack;
 import mdd.song.edit.SizeClip;
 import mdd.song.edit.SliceClip;
 import mdd.song.Part;
@@ -1064,8 +1065,55 @@ final class Playlist extends Widget {
 
 			fires(menu.offer(new Choice(translate(held.muted
 					? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE))), function():Void {
-				held.muted = !held.muted;
-				session.changed();
+				session.does(new mdd.song.edit.MuteTrack(which, !held.muted));
+			});
+
+			menu.divide();
+
+			final names = menu.offer(new Choice(translate(Locale.TRACK_AUTO_NAME)));
+
+			names.enabled = held.clips.length > 0;
+			if (!names.enabled) names.reason = translate(Locale.TRACK_NOTHING_TO_NAME);
+
+			fires(names, function():Void {
+				final want = named(held);
+				if (want != "") session.does(new RenameTrack(which, want));
+			});
+
+			final dressed = menu.offer(new Choice(translate(Locale.TRACK_AUTO_NAME_CLIPS)));
+
+			dressed.enabled = held.clips.length > 0;
+			if (!dressed.enabled) dressed.reason = translate(Locale.TRACK_NOTHING_TO_NAME);
+
+			fires(dressed, function():Void dresses(which, held));
+
+			final folds = menu.offer(new Choice(translate(Locale.TRACK_MERGE_CLIPS)));
+
+			folds.enabled = mdd.song.edit.MergeClips.merges(held);
+			if (!folds.enabled) folds.reason = translate(Locale.TRACK_NOTHING_TO_MERGE);
+
+			fires(folds, function():Void {
+				session.does(new mdd.song.edit.MergeClips(which,
+					held.name == "" ? "merged" : held.name));
+
+				picked.clear();
+				chosen = null;
+			});
+
+			menu.divide();
+
+			fires(menu.offer(new Choice(translate(Locale.TRACK_INSERT))), function():Void {
+				session.does(new mdd.song.edit.InsertTrack(which,
+					"track " + (song.tracks.length + 1)));
+			});
+
+			fires(menu.offer(new Choice(translate(Locale.TRACK_CLONE))), function():Void {
+				session.does(new mdd.song.edit.CloneTrack(which));
+			});
+
+			fires(menu.offer(new Choice(translate(Locale.TRACK_RESET))), function():Void {
+				session.does(new mdd.song.edit.ResetTrack(which,
+					"track " + (which + 1)));
 			});
 
 			menu.divide();
@@ -1085,6 +1133,45 @@ final class Playlist extends Widget {
 		}
 
 		root.pop(menu, px, py, this);
+	}
+
+	function named(track:mdd.song.Track):String {
+		final song = session.song;
+
+		for (clip in track.clips) {
+			final pattern = song.patternAt(clip.pattern);
+			if (pattern != null && pattern.name != "") return pattern.name;
+		}
+
+		return "";
+	}
+
+	function dresses(which:Int, track:mdd.song.Track):Void {
+		final song = session.song;
+		final all = new mdd.song.edit.Together(translate(Locale.TRACK_AUTO_NAME_CLIPS));
+		final done:Array<Int> = [];
+
+		for (clip in track.clips) {
+			if (clip.kind != mdd.song.Clip.PATTERN) continue;
+			if (done.indexOf(clip.pattern) >= 0) continue;
+
+			final pattern = song.patternAt(clip.pattern);
+			if (pattern == null) continue;
+
+			done.push(clip.pattern);
+
+			final want = track.name + " " + (done.length);
+
+			if (pattern.name != want) {
+				all.also(new mdd.song.edit.RenamePattern(clip.pattern, want));
+			}
+
+			if (track.colour >= 0 && pattern.colour != track.colour) {
+				all.also(new mdd.song.edit.ColourPattern(clip.pattern, track.colour));
+			}
+		}
+
+		if (all.count() > 0) session.does(all);
 	}
 
 	function coloured(which:Int):Menu {
@@ -1446,7 +1533,8 @@ final class Playlist extends Widget {
 
 				final pattern = session.song.patternAt(clip.pattern);
 				final colour = pattern != null && pattern.colour >= 0
-					? new Colour(pattern.colour) : theme.dim;
+					? new Colour(pattern.colour)
+					: (track.colour >= 0 ? new Colour(track.colour) : theme.dim);
 
 				final deep = tall - 5;
 				final quiet = track.muted;
