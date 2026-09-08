@@ -177,6 +177,8 @@ class Project {
 				out.whole(clip.length);
 				out.key("transpose");
 				out.whole(clip.transpose);
+				out.key("offset");
+				out.whole(clip.offset);
 
 				final line = clip.line;
 
@@ -464,7 +466,8 @@ class Project {
 			for (at in 0...clips.length()) {
 				final clip = clips.at(at);
 				final made = new Clip(clip.get("pattern").whole(0), clip.get("at").whole(0),
-					clip.get("length").whole(0), clip.get("transpose").whole(0));
+					clip.get("length").whole(0), clip.get("transpose").whole(0),
+					clip.get("offset").whole(0));
 
 				final drives = clip.get("drives").whole(-1);
 

@@ -118,7 +118,7 @@ final class Sequencer {
 		if (alone >= 0) {
 			final pattern = song.patternAt(alone);
 			if (pattern != null) {
-				walk(pattern, 0, pattern.length, 0, low, high, fromSample, toSample);
+				walk(pattern, 0, 0, pattern.length, 0, low, high, fromSample, toSample);
 			}
 
 			return;
@@ -134,8 +134,8 @@ final class Sequencer {
 				final pattern = song.patternAt(clip.pattern);
 				if (pattern == null) continue;
 
-				walk(pattern, clip.at, clip.ends(), clip.transpose, low, high, fromSample,
-					toSample);
+				walk(pattern, clip.origin(), clip.at, clip.ends(), clip.transpose, low, high,
+					fromSample, toSample);
 			}
 		}
 
@@ -167,7 +167,7 @@ final class Sequencer {
 				final pattern = song.patternAt(clip.pattern);
 				if (pattern == null) continue;
 
-				final local = tick - clip.at;
+				final local = tick - clip.origin();
 
 				for (note in pattern.lane(part).notes) {
 					if (note.at > local) break;
@@ -271,8 +271,8 @@ final class Sequencer {
 			note.instrument);
 	}
 
-	function walk(pattern:mdd.song.Pattern, from:Int, until:Int, transpose:Int, low:Int,
-			high:Int, fromSample:Int, toSample:Int):Void {
+	function walk(pattern:mdd.song.Pattern, origin:Int, from:Int, until:Int, transpose:Int,
+			low:Int, high:Int, fromSample:Int, toSample:Int):Void {
 		if (from > high || until <= low) return;
 
 		for (index in 0...Part.COUNT) {
@@ -282,16 +282,17 @@ final class Sequencer {
 			final lane = pattern.lane(part);
 			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
 
-			var head = low - from;
-			if (head < 0) head = 0;
+			final least = from - origin;
+			var head = low - origin;
+			if (head < least) head = least;
 
-			voices.resolve(lane, head, high - from + 1);
-			sound(lane, from, until, transpose, part, fromSample, toSample);
-			tweaked(lane, from, part, head, high - from + 1, transpose, fromSample, toSample);
+			voices.resolve(lane, head, high - origin + 1);
+			sound(lane, origin, from, until, transpose, part, fromSample, toSample);
+			tweaked(lane, origin, part, head, high - origin + 1, transpose, fromSample, toSample);
 		}
 	}
 
-	function sound(lane:mdd.song.Lane, from:Int, until:Int, transpose:Int, part:Part,
+	function sound(lane:mdd.song.Lane, origin:Int, from:Int, until:Int, transpose:Int, part:Part,
 			fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
 		var sided:Null<mdd.song.Automation> = null;
@@ -315,8 +316,8 @@ final class Sequencer {
 		}
 
 		for (slice in 0...voices.count) {
-			var start = from + voices.startAt(slice);
-			var ends = from + voices.endAt(slice);
+			var start = origin + voices.startAt(slice);
+			var ends = origin + voices.endAt(slice);
 
 			if (start < from) start = from;
 			if (ends > until) ends = until;
@@ -540,7 +541,7 @@ final class Sequencer {
 		return found;
 	}
 
-	function tweaked(lane:mdd.song.Lane, from:Int, part:Part, head:Int, tail:Int,
+	function tweaked(lane:mdd.song.Lane, origin:Int, part:Part, head:Int, tail:Int,
 			transpose:Int, fromSample:Int, toSample:Int):Void {
 		if (lane.automation.length == 0) return;
 		if (!part.fm() && !part.square() && !part.noise() && !part.sampled()) return;
@@ -563,7 +564,7 @@ final class Sequencer {
 
 				index++;
 
-				final at = tempo.samplesAt(from + point.at);
+				final at = tempo.samplesAt(origin + point.at);
 
 				if (at >= fromSample && at < toSample
 						&& !(riding && starts(point.at))) {
@@ -573,7 +574,7 @@ final class Sequencer {
 				if (!mdd.song.Automation.moves(point.shape)) continue;
 				if (index >= line.points.length) continue;
 
-				ramped(part, line, point, line.points[index], from, transpose, riding,
+				ramped(part, line, point, line.points[index], origin, transpose, riding,
 					fromSample, toSample);
 			}
 		}
@@ -628,7 +629,7 @@ final class Sequencer {
 					if (held.notes.length == 0 && held.automation.length == 0) continue;
 
 					lane = held;
-					local = tick - clip.at;
+					local = tick - clip.origin();
 					transpose = clip.transpose;
 				}
 			}

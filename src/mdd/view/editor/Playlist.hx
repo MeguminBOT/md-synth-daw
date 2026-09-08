@@ -1571,7 +1571,7 @@ final class Playlist extends Widget {
 
 		for (index in 0...Part.COUNT) {
 			for (note in pattern.lanes[index].notes) {
-				if (note.at >= clip.length) continue;
+				if (note.at < clip.offset || note.at >= clip.offset + clip.length) continue;
 
 				if (note.pitch < low) low = note.pitch;
 				if (note.pitch > high) high = note.pitch;
@@ -1596,13 +1596,14 @@ final class Playlist extends Widget {
 
 		for (index in 0...Part.COUNT) {
 			for (note in pattern.lanes[index].notes) {
-				if (note.at >= clip.length) continue;
+				if (note.at < clip.offset || note.at >= clip.offset + clip.length) continue;
 				if (drawn >= MOST_NOTES) return;
 
+				final seen = note.at - clip.offset;
 				var length = note.length;
-				if (note.at + length > clip.length) length = clip.length - note.at;
+				if (seen + length > clip.length) length = clip.length - seen;
 
-				final from = left + note.at * perTick;
+				final from = left + seen * perTick;
 				var run = length * perTick;
 				if (run < least) run = least;
 

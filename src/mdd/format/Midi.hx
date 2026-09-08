@@ -100,14 +100,15 @@ final class Midi {
 				if (pattern == null) continue;
 
 				for (note in pattern.lane(part).notes) {
-					final from = clip.at + note.at;
+					final from = clip.origin() + note.at;
 					final until = from + note.length;
 
-					if (from >= clip.ends()) continue;
+					if (from >= clip.ends() || until <= clip.at) continue;
 
 					final ends = until > clip.ends() ? clip.ends() : until;
+					final head = from < clip.at ? clip.at : from;
 
-					final one = Math.round(from * scale);
+					final one = Math.round(head * scale);
 					var two = Math.round(ends * scale);
 
 					if (two <= one) two = one + 1;

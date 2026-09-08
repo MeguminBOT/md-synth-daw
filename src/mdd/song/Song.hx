@@ -194,7 +194,7 @@ final class Song {
 				}
 
 				out.add(pattern);
-				made.add(new Clip(out.patterns.length - 1, clip.at, clip.length, 0));
+				made.add(new Clip(out.patterns.length - 1, clip.at, clip.length, 0, clip.offset));
 			}
 
 			out.track(made);
@@ -369,6 +369,7 @@ final class Song {
 			for (clip in track.clips) {
 				clip.at = scaled(clip.at, by);
 				clip.length = scaled(clip.length, by);
+				clip.offset = scaled(clip.offset, by);
 			}
 		}
 

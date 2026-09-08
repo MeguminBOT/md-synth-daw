@@ -27,7 +27,8 @@ final class SliceClip implements Command {
 		var made = rest;
 
 		if (made == null) {
-			made = new Clip(clip.pattern, at, was - (at - clip.at), clip.transpose);
+			made = new Clip(clip.pattern, at, was - (at - clip.at), clip.transpose,
+				clip.offset + (at - clip.at));
 			rest = made;
 		}
 

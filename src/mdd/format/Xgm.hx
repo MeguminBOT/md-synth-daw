@@ -511,8 +511,8 @@ private class Bank {
 				if (pattern == null) continue;
 
 				for (note in pattern.lane(Part.Dac).notes) {
-					final at = clip.at + note.at;
-					if (at >= clip.ends()) continue;
+					final at = clip.origin() + note.at;
+					if (at >= clip.ends() || at < clip.at) continue;
 
 					final slot = slotOf(song, note.instrument >= 0 ? note.instrument : racked);
 					if (slot < 0) continue;

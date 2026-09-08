@@ -361,6 +361,28 @@ class ArrangeCheck {
 			+ (mdd.format.Project.text(song) == before ? "what it was" : "not what it was"));
 	}
 
+	static function played(song:Song):Stream {
+		final span = song.tempo.samplesAt(song.ends());
+		final stream = new Stream(mdd.play.Mixdown.roomFor(span));
+
+		new Sequencer(song).spanned(stream, 0, span);
+
+		return stream;
+	}
+
+	static function apart(one:Stream, two:Stream):Int {
+		if (one.count != two.count) return -1;
+
+		for (index in 0...one.count) {
+			if (one.tickAt(index) != two.tickAt(index)) return index;
+			if (one.kindAt(index) != two.kindAt(index)) return index;
+			if (one.portAt(index) != two.portAt(index)) return index;
+			if (one.valueAt(index) != two.valueAt(index)) return index;
+		}
+
+		return -2;
+	}
+
 	static function cut():Void {
 		final song = rich();
 		final before = mdd.format.Project.text(song);
@@ -369,6 +391,8 @@ class ArrangeCheck {
 		final clip = song.tracks[0].clips[0];
 		final was = clip.length;
 		final at = clip.at + 96;
+
+		final wasHeard = played(song);
 
 		history.does(song, new mdd.song.edit.SliceClip(0, clip, at));
 
@@ -382,6 +406,21 @@ class ArrangeCheck {
 			"a clip of " + was + " ticks cut at " + at + " leaves "
 			+ clips[0].length + " and " + (clips.length > 1 ? clips[1].length : 0)
 			+ ", the second carrying the same pattern and transpose");
+
+		final nowHeard = played(song);
+		final differs = apart(wasHeard, nowHeard);
+
+		says("and a cut changes nothing that sounds", differs == -2,
+			differs == -2 ? wasHeard.count + " register writes, the same before and after"
+				: differs == -1 ? wasHeard.count + " register writes before against "
+					+ nowHeard.count + " after"
+				: "write " + differs + " of " + wasHeard.count + " moved from tick "
+					+ wasHeard.tickAt(differs) + " to " + nowHeard.tickAt(differs));
+
+		says("and the half after the cut starts inside the pattern",
+			clips.length > 1 && clips[1].offset == at - clip.at,
+			"the second half reads the pattern from tick "
+			+ (clips.length > 1 ? clips[1].offset : 0) + ", which is where the cut was");
 
 		history.undo(song);
 

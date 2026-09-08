@@ -9,16 +9,18 @@ final class Clip {
 	public var at:Int;
 	public var length:Int;
 	public var transpose:Int;
+	public var offset:Int;
 
 	public var kind:Int = PATTERN;
 	public var part:Int = -1;
 	public var line:Null<Automation> = null;
 
-	public function new(pattern:Int, at:Int, length:Int, transpose:Int = 0) {
+	public function new(pattern:Int, at:Int, length:Int, transpose:Int = 0, offset:Int = 0) {
 		this.pattern = pattern;
 		this.at = at;
 		this.length = length;
 		this.transpose = transpose;
+		this.offset = offset;
 	}
 
 	public static function drives(part:Part, target:Int, slot:Int, at:Int,
@@ -37,7 +39,7 @@ final class Clip {
 	}
 
 	public function copy():Clip {
-		final out = new Clip(pattern, at, length, transpose);
+		final out = new Clip(pattern, at, length, transpose, offset);
 
 		out.kind = kind;
 		out.part = part;
@@ -54,5 +56,9 @@ final class Clip {
 
 	public inline function ends():Int {
 		return at + length;
+	}
+
+	public inline function origin():Int {
+		return at - offset;
 	}
 }
