@@ -263,6 +263,7 @@ static void mdd_crash_inlined(FILE *into, HANDLE process, DWORD64 address,
 #include <cxxabi.h>
 #endif
 
+#define MDD_CRASH_SOURCE 512
 #define MDD_CRASH_COFF_ENTRY 18
 #define MDD_CRASH_COFF_SECTION 40
 
@@ -272,6 +273,10 @@ struct mdd_crash_coff {
 	const char *strings;
 	unsigned long count;
 	unsigned int many;
+
+	const unsigned char *lines;
+	unsigned long lineBytes;
+	unsigned long long preferred;
 };
 
 static char mdd_crash_coff_path[1024];
@@ -285,6 +290,46 @@ static unsigned short mdd_crash_word(const unsigned char *at) {
 static unsigned long mdd_crash_long(const unsigned char *at) {
 	return (unsigned long) at[0] | ((unsigned long) at[1] << 8)
 		| ((unsigned long) at[2] << 16) | ((unsigned long) at[3] << 24);
+}
+
+static unsigned long long mdd_crash_quad(const unsigned char *at) {
+	return (unsigned long long) mdd_crash_long(at)
+		| ((unsigned long long) mdd_crash_long(at + 4) << 32);
+}
+
+static unsigned long long mdd_crash_uleb(const unsigned char **at,
+	const unsigned char *end) {
+	unsigned long long out = 0;
+	unsigned int shift = 0;
+
+	while (*at < end) {
+		const unsigned char byte = *(*at)++;
+
+		if (shift < 64) out |= (unsigned long long) (byte & 0x7F) << shift;
+		shift += 7;
+
+		if ((byte & 0x80) == 0) break;
+	}
+
+	return out;
+}
+
+static long long mdd_crash_sleb(const unsigned char **at, const unsigned char *end) {
+	long long out = 0;
+	unsigned int shift = 0;
+	unsigned char byte = 0;
+
+	while (*at < end) {
+		byte = *(*at)++;
+
+		if (shift < 64) out |= (long long) (byte & 0x7F) << shift;
+		shift += 7;
+
+		if ((byte & 0x80) == 0) break;
+	}
+
+	if (shift < 64 && (byte & 0x40) != 0) out |= -((long long) 1 << shift);
+	return out;
 }
 
 static int mdd_crash_coff_open(mdd_crash_coff *into, const char *path) {
@@ -322,6 +367,35 @@ static int mdd_crash_coff_open(mdd_crash_coff *into, const char *path) {
 	into->count = count;
 	into->strings = (const char *)
 		(into->symbols + (size_t) count * MDD_CRASH_COFF_ENTRY);
+
+	const unsigned char *optional = pe + 24;
+
+	into->preferred = mdd_crash_word(optional) == 0x20B
+		? mdd_crash_quad(optional + 24)
+		: (unsigned long long) mdd_crash_long(optional + 28);
+
+	for (unsigned int index = 0; index < into->many; index++) {
+		const unsigned char *one = into->sections
+			+ (size_t) index * MDD_CRASH_COFF_SECTION;
+
+		char name[16];
+
+		memcpy(name, one, 8);
+		name[8] = 0;
+
+		const char *said = name;
+
+		if (name[0] == '/') {
+			const unsigned long at = (unsigned long) atol(name + 1);
+			said = into->strings + at;
+		}
+
+		if (strcmp(said, ".debug_line") != 0) continue;
+
+		into->lines = image + mdd_crash_long(one + 20);
+		into->lineBytes = mdd_crash_long(one + 16);
+		break;
+	}
 
 	return 1;
 }
@@ -372,6 +446,293 @@ static int mdd_crash_coff_named(const mdd_crash_coff *held, unsigned long long r
 	return into[0] != 0;
 }
 
+static const char *mdd_crash_dwarf_folder(const unsigned char *folders,
+	const unsigned char *end, unsigned long long want) {
+	const unsigned char *at = folders;
+	unsigned long long index = 1;
+
+	while (at < end && *at != 0) {
+		const char *name = (const char *) at;
+
+		while (at < end && *at != 0) at++;
+		if (at < end) at++;
+
+		if (index == want) return name;
+		index++;
+	}
+
+	return NULL;
+}
+
+static int mdd_crash_dwarf_file(const unsigned char *folders, const unsigned char *files,
+	const unsigned char *end, unsigned long long want, const char *prefix,
+	char *into, int room) {
+	const unsigned char *at = files;
+	unsigned long long index = 1;
+
+	while (at < end && *at != 0) {
+		const char *name = (const char *) at;
+
+		while (at < end && *at != 0) at++;
+		if (at < end) at++;
+
+		const unsigned long long folder = mdd_crash_uleb(&at, end);
+
+		mdd_crash_uleb(&at, end);
+		mdd_crash_uleb(&at, end);
+
+		if (index++ != want) continue;
+
+		const char *where = folder == 0 ? NULL
+			: mdd_crash_dwarf_folder(folders, files - 1, folder);
+
+		if (name[0] == '/' || (name[0] != 0 && name[1] == ':')) {
+			mdd_crash_copy(into, room, name);
+			return 1;
+		}
+
+		if (where == NULL) {
+			snprintf(into, (size_t) room, "%s/%s", prefix, name);
+			return 1;
+		}
+
+		if (where[0] == '/' || (where[0] != 0 && where[1] == ':')) {
+			snprintf(into, (size_t) room, "%s/%s", where, name);
+			return 1;
+		}
+
+		snprintf(into, (size_t) room, "%s/%s/%s", prefix, where, name);
+		return 1;
+	}
+
+	return 0;
+}
+
+static int mdd_crash_dwarf(const mdd_crash_coff *held, const unsigned long long *wanted,
+	int many, const char *prefix, char *paths, int stride, unsigned long *lines) {
+	if (held->lines == NULL || held->lineBytes == 0) return 0;
+
+	const unsigned char *at = held->lines;
+	const unsigned char *over = held->lines + held->lineBytes;
+
+	unsigned long long best[MDD_CRASH_DEPTH];
+	int found = 0;
+
+	for (int index = 0; index < many; index++) best[index] = 0;
+
+	while (at + 16 < over) {
+		const unsigned long length = mdd_crash_long(at);
+		const unsigned char *unit = at + 4;
+		const unsigned char *tail = unit + length;
+
+		at = tail;
+
+		if (length == 0 || length == 0xFFFFFFFF || tail > over) break;
+
+		const unsigned int version = mdd_crash_word(unit);
+		if (version < 2 || version > 4) continue;
+
+		const unsigned long header = mdd_crash_long(unit + 2);
+		const unsigned char *after = unit + 6 + header;
+
+		if (after > tail) continue;
+
+		const unsigned char *step = unit + 6;
+
+		const unsigned int minimum = *step++;
+		if (version >= 4) step++;
+
+		const unsigned char first = *step++;
+		const int lineBase = (signed char) *step++;
+		const unsigned int lineRange = *step++;
+		const unsigned int opcodeBase = *step++;
+
+		const unsigned char *sizes = step;
+		step += opcodeBase == 0 ? 0 : opcodeBase - 1;
+
+		const unsigned char *folders = step;
+
+		while (step < after && *step != 0) {
+			while (step < after && *step != 0) step++;
+			if (step < after) step++;
+		}
+
+		if (step < after) step++;
+
+		const unsigned char *names = step;
+
+		if (lineRange == 0 || opcodeBase == 0 || minimum == 0) continue;
+
+		unsigned long long address = 0;
+		unsigned long long file = 1;
+		unsigned long line = 1;
+		int running = first != 0;
+
+		const unsigned char *pen = after;
+
+		unsigned long long wasAddress = 0;
+		unsigned long long wasFile = 1;
+		unsigned long wasLine = 1;
+		int started = 0;
+
+		while (pen < tail) {
+			const unsigned char opcode = *pen++;
+			int row = 0;
+			int ends = 0;
+
+			if (opcode >= opcodeBase) {
+				const unsigned int adjusted = opcode - opcodeBase;
+
+				address += (unsigned long long) (adjusted / lineRange) * minimum;
+				line = (unsigned long) ((long) line + lineBase
+					+ (long) (adjusted % lineRange));
+				row = 1;
+			} else if (opcode == 0) {
+				const unsigned long long size = mdd_crash_uleb(&pen, tail);
+				const unsigned char *next = pen + size;
+
+				if (size == 0 || next > tail) break;
+
+				const unsigned char kind = *pen;
+
+				if (kind == 1) {
+					ends = 1;
+					row = 1;
+				} else if (kind == 2 && size >= 9) {
+					address = mdd_crash_quad(pen + 1);
+				}
+
+				pen = next;
+			} else {
+				switch (opcode) {
+					case 1: row = 1; break;
+					case 2: address += mdd_crash_uleb(&pen, tail) * minimum; break;
+					case 3: line = (unsigned long) ((long long) line
+						+ mdd_crash_sleb(&pen, tail)); break;
+					case 4: file = mdd_crash_uleb(&pen, tail); break;
+					case 5: mdd_crash_uleb(&pen, tail); break;
+					case 6: break;
+					case 7: break;
+					case 8: address += (unsigned long long)
+						((255 - opcodeBase) / lineRange) * minimum; break;
+					case 9: address += mdd_crash_word(pen); pen += 2; break;
+					case 10: break;
+					case 11: break;
+					case 12: mdd_crash_uleb(&pen, tail); break;
+					default: {
+						const unsigned int skip = opcode - 1 < opcodeBase - 1
+							? sizes[opcode - 1] : 0;
+						for (unsigned int one = 0; one < skip; one++) {
+							mdd_crash_uleb(&pen, tail);
+						}
+						break;
+					}
+				}
+			}
+
+			if (!row) continue;
+
+			if (started && wasAddress <= address && wasLine > 0) {
+				for (int index = 0; index < many; index++) {
+					const unsigned long long ask = wanted[index];
+
+					if (ask < wasAddress || ask >= address) continue;
+					if (wasAddress < best[index]) continue;
+
+					if (!mdd_crash_dwarf_file(folders, names, after, wasFile, prefix,
+						paths + (size_t) index * stride, stride)) continue;
+
+					best[index] = wasAddress;
+					lines[index] = wasLine;
+					found++;
+				}
+			}
+
+			wasAddress = address;
+			wasFile = file;
+			wasLine = line;
+			started = 1;
+
+			if (!ends) continue;
+
+			address = 0;
+			file = 1;
+			line = 1;
+			running = first != 0;
+			started = 0;
+			(void) running;
+		}
+	}
+
+	return found;
+}
+
+static void mdd_crash_lined(const DWORD64 *found, int many, char *sources, int stride,
+	unsigned long *rows) {
+	if (many <= 0) return;
+
+	HMODULE owner = NULL;
+
+	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+		| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPCSTR) (uintptr_t) found[0], &owner)) return;
+
+	char path[1024];
+	if (GetModuleFileNameA(owner, path, sizeof(path)) == 0) return;
+
+	if (strcmp(path, mdd_crash_coff_path) != 0) {
+		mdd_crash_copy(mdd_crash_coff_path, sizeof(mdd_crash_coff_path), path);
+		mdd_crash_coff_ready = mdd_crash_coff_open(&mdd_crash_coff_held, path);
+	}
+
+	if (!mdd_crash_coff_ready) return;
+	if (mdd_crash_coff_held.lines == NULL) return;
+
+	const DWORD64 base = (DWORD64) (uintptr_t) owner;
+	unsigned long long wanted[MDD_CRASH_DEPTH];
+
+	for (int index = 0; index < many; index++) {
+		HMODULE holds = NULL;
+
+		const int same = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+			| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			(LPCSTR) (uintptr_t) found[index], &holds) && holds == owner;
+
+		wanted[index] = same
+			? mdd_crash_coff_held.preferred + (found[index] - base) : 0;
+	}
+
+	char prefix[512];
+
+	mdd_crash_copy(prefix, sizeof(prefix), path);
+
+	char *tail = strrchr(prefix, '\\');
+	char *slash = strrchr(prefix, '/');
+
+	if (slash != NULL && (tail == NULL || slash > tail)) tail = slash;
+	if (tail == NULL) return;
+
+	*tail = 0;
+
+	char *stem = tail + 1;
+	char *dot = strrchr(stem, '.');
+
+	if (dot != NULL) *dot = 0;
+
+	char *over = strrchr(prefix, '\\');
+	slash = strrchr(prefix, '/');
+
+	if (slash != NULL && (over == NULL || slash > over)) over = slash;
+	if (over == NULL) return;
+
+	*over = 0;
+
+	char where[512];
+	snprintf(where, sizeof(where), "%s/obj/%s", prefix, stem);
+
+	mdd_crash_dwarf(&mdd_crash_coff_held, wanted, many, where, sources, stride, rows);
+}
+
 static void mdd_crash_plainly(char *into, int room) {
 #if defined(_MSC_VER)
 	(void) into;
@@ -411,7 +772,8 @@ static int mdd_crash_owned(DWORD64 address, char *into, int room,
 	return 1;
 }
 
-static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
+static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address,
+	const char *source, unsigned long row) {
 	char room[sizeof(SYMBOL_INFO) + 512];
 	SYMBOL_INFO *found = (SYMBOL_INFO *) room;
 
@@ -429,7 +791,7 @@ static void mdd_crash_frame(FILE *into, HANDLE process, DWORD64 address) {
 		unsigned long long past = 0;
 
 		if (mdd_crash_owned(address, named, sizeof(named), &past)) {
-			mdd_crash_place(into, named, past, NULL, 0, module);
+			mdd_crash_place(into, named, past, source, row, module);
 			return;
 		}
 
@@ -468,21 +830,39 @@ static void mdd_crash_walked(FILE *into, EXCEPTION_POINTERS *held) {
 	walk.AddrStack.Offset = frame.Rsp;
 	walk.AddrStack.Mode = AddrModeFlat;
 
-	fprintf(into, "where it stopped\n");
+	DWORD64 found[MDD_CRASH_DEPTH];
+	int many = 0;
 
-	for (int depth = 0; depth < MDD_CRASH_DEPTH; depth++) {
+	while (many < MDD_CRASH_DEPTH) {
 		if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, GetCurrentThread(), &walk,
 			&frame, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) break;
 
 		if (walk.AddrPC.Offset == 0) break;
 
-		mdd_crash_frame(into, process, walk.AddrPC.Offset);
+		found[many++] = walk.AddrPC.Offset;
+	}
+
+	static char sources[MDD_CRASH_DEPTH][MDD_CRASH_SOURCE];
+	unsigned long rows[MDD_CRASH_DEPTH];
+
+	for (int index = 0; index < many; index++) {
+		sources[index][0] = 0;
+		rows[index] = 0;
+	}
+
+	mdd_crash_lined(found, many, sources[0], MDD_CRASH_SOURCE, rows);
+
+	fprintf(into, "where it stopped\n");
+
+	for (int index = 0; index < many; index++) {
+		mdd_crash_frame(into, process, found[index],
+			rows[index] == 0 ? NULL : sources[index], rows[index]);
 	}
 
 	if (mdd_crash_coff_ready) {
-		fprintf(into, "\n  the names above are read from the symbol table in the binary and\n");
-		fprintf(into, "  carry no line with them: this build holds its lines in DWARF, which\n");
-		fprintf(into, "  DbgHelp does not read. A build with msvc or clang-cl names the line.\n");
+		fprintf(into, "\n  the names and lines above come from the symbol table and the DWARF in\n");
+		fprintf(into, "  the binary itself, because DbgHelp reads neither. A call that was put\n");
+		fprintf(into, "  inline into another is missing from the walk: msvc or clang-cl shows it.\n");
 	}
 
 	SymCleanup(process);
