@@ -27,12 +27,12 @@ final class Coded {
 	}
 
 	public static function opus(samples:Vector<cpp.Float32>, frames:Int, channels:Int,
-			rate:Int, bitrate:Int, tags:Array<String>):Bytes {
+			rate:Int, bitrate:Int, mode:Int, span:Int, bitrateMode:Int, tags:Array<String>):Bytes {
 		final room = frames * channels * 2 + SPARE;
 		final into = Bytes.alloc(room);
 
 		final many = Encode.opus(cpp.Pointer.arrayElem(samples.toData(), 0).constRaw,
-			frames, channels, rate, bitrate, tags.join("\n"),
+			frames, channels, rate, bitrate, mode, span, bitrateMode, tags.join("\n"),
 			cpp.Pointer.arrayElem(into.getData(), 0).raw, room);
 
 		if (many <= 0) throw "the opus encoder would not run, " + many;

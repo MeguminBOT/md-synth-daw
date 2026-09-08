@@ -611,7 +611,8 @@ final class Files {
 
 			case Mixing.OPUS:
 				Coded.opus(made.samples, made.frames, made.channels, made.rate,
-					Coded.BITRATES[mixing.quality], tagged());
+					Coded.BITRATES[mixing.quality], mixing.opusMode, mixing.opusSpan,
+					mixing.opusBitrateMode, tagged());
 
 			case _:
 				Wav.write(made.samples, made.frames, made.channels, made.rate, mixing.depth,

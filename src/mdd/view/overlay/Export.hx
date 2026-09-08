@@ -27,7 +27,10 @@ final class Export extends Widget {
 	static inline final DITHER = 8;
 	static inline final QUALITY = 9;
 	static inline final CONSOLE = 10;
-	public static inline final KINDS = 11;
+	static inline final OPUS_MODE = 11;
+	static inline final OPUS_SPAN = 12;
+	static inline final OPUS_BITRATE = 13;
+	public static inline final KINDS = 14;
 
 	public static inline final FIELDS = 5;
 	public static inline final TIMED = 3;
@@ -35,7 +38,8 @@ final class Export extends Widget {
 	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
-		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE];
+		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE, Locale.EXPORT_OPUS_MODE,
+		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -46,12 +50,22 @@ final class Export extends Widget {
 	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
-	static final RATED:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
+	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
 	static final SIDINGS:Array<Locale> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
 	static final SWITCHES:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
 
 	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
+
+	static final OPUS_MODES:Array<Locale> = [Locale.EXPORT_OPUS_LOCAL,
+		Locale.EXPORT_OPUS_STREAM];
+
+	static final OPUS_BITRATE_MODES:Array<Locale> = [Locale.EXPORT_OPUS_VBR,
+		Locale.EXPORT_OPUS_BOUND, Locale.EXPORT_OPUS_FIXED];
+
+	static final SPANS:Array<Int> = [5, 10, 20, 40, 60];
+
+	static final SPANNED:Array<String> = ["5 ms", "10 ms", "20 ms", "40 ms", "60 ms"];
 
 	static final NOTHING:Array<String> = [];
 	static final NO_KEYS:Array<Locale> = [];
@@ -134,6 +148,12 @@ final class Export extends Widget {
 		showing.push(SIDES);
 		showing.push(CEILING);
 		showing.push(CONSOLE);
+
+		if (mixing.kind == Mixing.OPUS) {
+			showing.push(OPUS_MODE);
+			showing.push(OPUS_SPAN);
+			showing.push(OPUS_BITRATE);
+		}
 
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
 	}
@@ -249,7 +269,9 @@ final class Export extends Widget {
 		return switch (row) {
 			case SIDES: SIDINGS;
 			case CONSOLE: CONSOLES;
-			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY: NO_KEYS;
+			case OPUS_MODE: OPUS_MODES;
+			case OPUS_BITRATE: OPUS_BITRATE_MODES;
+			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN: NO_KEYS;
 			case _: SWITCHES;
 		}
 	}
@@ -262,7 +284,8 @@ final class Export extends Widget {
 			case LEAD: LEADS;
 			case TAIL, FADE: TAILED;
 
-			case QUALITY: mixing.kind == Mixing.OPUS ? RATED : QUALITIES;
+			case QUALITY: mixing.kind == Mixing.OPUS ? KILOBITS : QUALITIES;
+			case OPUS_SPAN: SPANNED;
 			case _: NOTHING;
 		}
 	}
@@ -294,6 +317,9 @@ final class Export extends Widget {
 			case FADE: closest(TAILS, mixing.fade);
 			case CEILING: mixing.normalise ? 1 : 0;
 			case CONSOLE: mixing.console;
+			case OPUS_MODE: mixing.opusMode;
+			case OPUS_BITRATE: mixing.opusBitrateMode;
+			case OPUS_SPAN: spanAt();
 			case QUALITY: mixing.quality;
 			case _: mixing.dither ? 1 : 0;
 		}
@@ -341,6 +367,9 @@ final class Export extends Widget {
 				mixing.ceiling = 0;
 
 			case CONSOLE: { mixing.console = which; picked = true; }
+			case OPUS_MODE: mixing.opusMode = which;
+			case OPUS_BITRATE: mixing.opusBitrateMode = which;
+			case OPUS_SPAN: mixing.opusSpan = SPANS[which];
 
 			case QUALITY: mixing.quality = which;
 			case _: mixing.dither = which == 1;
@@ -420,6 +449,11 @@ final class Export extends Widget {
 		}
 
 		super.hovered(on);
+	}
+
+	function spanAt():Int {
+		for (index in 0...SPANS.length) if (SPANS[index] == mixing.opusSpan) return index;
+		return 2;
 	}
 
 	static function spelt(value:Int):String {

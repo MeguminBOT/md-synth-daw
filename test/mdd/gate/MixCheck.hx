@@ -23,6 +23,7 @@ class MixCheck {
 		final into = where >= 0 && where + 1 < args.length ? args[where + 1] : "";
 
 		shaped();
+		latenced();
 		written(into);
 		bounced();
 		patched();
@@ -82,7 +83,7 @@ class MixCheck {
 
 		final vorbis = Coded.vorbis(held, rate, 2, rate, 0.6, ["TITLE=a tone"]);
 		final quick = tone(48000, 48000, 2);
-		final opus = Coded.opus(quick, 48000, 2, 48000, 128, ["TITLE=a tone"]);
+		final opus = Coded.opus(quick, 48000, 2, 48000, 128, 0, 20, 0, ["TITLE=a tone"]);
 
 		says("an ogg is smaller than the flac", vorbis.length > 0
 			&& vorbis.getString(0, 4) == "OggS" && vorbis.length < flac.length,
@@ -99,6 +100,81 @@ class MixCheck {
 			flac.getString(0, 4) == "fLaC" && flac.length < one.length,
 			flac.length + " bytes against " + one.length + ", "
 			+ Math.round(flac.length * 100.0 / one.length) + " per cent of it");
+	}
+
+	static function skipped(held:haxe.io.Bytes):Int {
+		for (at in 0...held.length - 12) {
+			if (held.getString(at, 8) != "OpusHead") continue;
+			return held.get(at + 10) | (held.get(at + 11) << 8);
+		}
+
+		return -1;
+	}
+
+	static function reached(held:haxe.io.Bytes):Float {
+		var last = -1.0;
+
+		var at = 0;
+		while (at < held.length - 27) {
+			if (held.getString(at, 4) != "OggS") { at++; continue; }
+
+			var granule = 0.0;
+			for (index in 0...8) granule += held.get(at + 6 + index) * Math.pow(256, index);
+
+			last = granule;
+
+			final many = held.get(at + 26);
+			var wide = 27 + many;
+
+			for (index in 0...many) wide += held.get(at + 27 + index);
+
+			at += wide;
+		}
+
+		return last;
+	}
+
+	static function latenced():Void {
+		final second = tone(48000, 48000, 2);
+		final spans = [5, 10, 20, 40, 60];
+
+		var trimmed = true;
+		var sizes = "";
+
+		for (span in spans) {
+			final made = Coded.opus(second, 48000, 2, 48000, 128, 0, span, 0, []);
+			final skip = skipped(made);
+			final ends = reached(made);
+
+			if (skip < 0 || ends != skip + 48000) trimmed = false;
+
+			sizes += (sizes == "" ? "" : ", ") + span + "ms " + made.length;
+		}
+
+		says("every opus frame size ends level", trimmed,
+			"a second of tone lands on the sample it was given at " + sizes);
+
+		final music = Coded.opus(second, 48000, 2, 48000, 128, 0, 20, 0, []);
+		final quick = Coded.opus(second, 48000, 2, 48000, 128, 1, 10, 0, []);
+
+		says("low delay asks for its own bytes", quick.length > 512
+			&& quick.getString(0, 4) == "OggS" && quick.length != music.length,
+			music.length + " bytes of music against " + quick.length + " of low delay at 10 ms");
+
+		final bound = Coded.opus(second, 48000, 2, 48000, 128, 0, 20, 1, []);
+		final fixed = Coded.opus(second, 48000, 2, 48000, 128, 0, 20, 2, []);
+		final wanted = 128000 / 8;
+
+		says("a constant rate holds its size", fixed.length > 512
+			&& Math.abs(fixed.length - wanted) < wanted * 0.06
+			&& bound.length < music.length,
+			music.length + " bytes variable, " + bound.length + " bounded and "
+			+ fixed.length + " constant against " + wanted + " asked for");
+
+		final low = Coded.opus(second, 48000, 2, 48000, 96, 0, 20, 2, []);
+
+		says("a lower rate writes less", low.length < fixed.length,
+			low.length + " bytes at 96k against " + fixed.length + " at 128k");
 	}
 
 	static function written(into:String):Void {
@@ -132,7 +208,7 @@ class MixCheck {
 		final fast = tone(48000 * 2, 48000, 2);
 
 		sys.io.File.saveBytes(into + "/tone.opus",
-			Coded.opus(fast, 48000 * 2, 2, 48000, 128,
+			Coded.opus(fast, 48000 * 2, 2, 48000, 128, 0, 20, 0,
 				["TITLE=a tone", "ARTIST=the gate", "ALBUM=Mega Drive"]));
 
 		Sys.println("    wrote the tones to " + into);
@@ -196,7 +272,7 @@ class MixCheck {
 			faster.rate, 0.6, ["TITLE=" + song.name]);
 
 		final opus = Coded.opus(faster.samples, faster.frames, faster.channels,
-			faster.rate, 128, ["TITLE=" + song.name]);
+			faster.rate, 128, 0, 20, 0, ["TITLE=" + song.name]);
 
 		says("a song goes out as ogg and opus", ogg.length > 512 && opus.length > 512
 			&& ogg.getString(0, 4) == "OggS" && opus.getString(0, 4) == "OggS",
@@ -912,7 +988,8 @@ class MixCheck {
 
 				case Mixing.OPUS:
 					mdd.format.Coded.opus(made.samples, made.frames, made.channels, made.rate,
-						mdd.format.Coded.BITRATES[mixing.quality], []);
+						mdd.format.Coded.BITRATES[mixing.quality], mixing.opusMode,
+						mixing.opusSpan, mixing.opusBitrateMode, []);
 
 				case _:
 					mdd.format.Wav.write(made.samples, made.frames, made.channels, made.rate,
@@ -1049,7 +1126,7 @@ class MixCheck {
 
 		final over = Mixdown.of(song, mixing);
 		final opus = Coded.opus(over.samples, over.frames, over.channels, over.rate,
-			128, []);
+			128, 0, 20, 0, []);
 
 		says("and opus takes a rate it knows", over.rate == 48000 && opus.length > 100000,
 			round(over.seconds(), 1) + " s at " + over.rate + " Hz makes "

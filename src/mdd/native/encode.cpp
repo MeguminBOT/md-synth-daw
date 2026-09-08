@@ -220,24 +220,31 @@ static int mdd_encode_tags(unsigned char *room, int most, char **lines, int many
 }
 
 extern "C" int mdd_encode_opus(const float *samples, int frames, int channels, int rate,
-	int bitrate, const char *tags, unsigned char *into, int room) {
+	int bitrate, int mode, int span_ms, int bitrate_mode, const char *tags, unsigned char *into,
+	int room) {
 	if (samples == NULL || into == NULL || frames <= 0 || channels < 1 || channels > 2) {
 		return -1;
 	}
 
 	int fault = 0;
 
-	OpusEncoder *encoder = opus_encoder_create(rate, channels,
-		OPUS_APPLICATION_AUDIO, &fault);
+	const int wanted = mode == 1 ? OPUS_APPLICATION_RESTRICTED_LOWDELAY
+		: OPUS_APPLICATION_AUDIO;
+
+	OpusEncoder *encoder = opus_encoder_create(rate, channels, wanted, &fault);
 
 	if (encoder == NULL || fault != OPUS_OK) return -2;
 
 	opus_encoder_ctl(encoder, OPUS_SET_BITRATE(bitrate * 1000));
-	opus_encoder_ctl(encoder, OPUS_SET_VBR(1));
+	opus_encoder_ctl(encoder, OPUS_SET_VBR(bitrate_mode != 2));
+	opus_encoder_ctl(encoder, OPUS_SET_VBR_CONSTRAINT(bitrate_mode == 1));
 	opus_encoder_ctl(encoder, OPUS_SET_COMPLEXITY(10));
+	opus_encoder_ctl(encoder, OPUS_SET_SIGNAL(OPUS_SIGNAL_MUSIC));
 
 	opus_int32 ahead = 0;
 	opus_encoder_ctl(encoder, OPUS_GET_LOOKAHEAD(&ahead));
+
+	const ogg_int64_t skip = (ogg_int64_t) ahead * 48000 / rate;
 
 	ogg_stream_state stream;
 	ogg_stream_init(&stream, 0x4D444422);
@@ -249,7 +256,7 @@ extern "C" int mdd_encode_opus(const float *samples, int frames, int channels, i
 	pile.spilled = 0;
 
 	unsigned char header[19];
-	mdd_encode_head(header, channels, rate, (int) ahead);
+	mdd_encode_head(header, channels, rate, (int) skip);
 
 	ogg_packet packet;
 	memset(&packet, 0, sizeof(packet));
@@ -289,7 +296,13 @@ extern "C" int mdd_encode_opus(const float *samples, int frames, int channels, i
 
 	free(comments);
 
-	const int span = rate / 50;
+	int lasting = span_ms < 5 ? 5 : (span_ms > 60 ? 60 : span_ms);
+
+	if (mode == 1 && lasting > 20) lasting = 20;
+	if (lasting > 20 && lasting < 40) lasting = 20;
+	if (lasting > 40) lasting = 60;
+
+	const int span = rate / 1000 * lasting;
 	float *block = (float *) calloc((size_t) (span * channels), sizeof(float));
 	unsigned char *coded = (unsigned char *) malloc(4096);
 
@@ -330,10 +343,14 @@ extern "C" int mdd_encode_opus(const float *samples, int frames, int channels, i
 
 		granule += span;
 
+		const ogg_int64_t reached = at >= frames
+			? (ogg_int64_t) frames * 48000 / rate
+			: granule * 48000 / rate;
+
 		memset(&packet, 0, sizeof(packet));
 		packet.packet = coded;
 		packet.bytes = wrote;
-		packet.granulepos = granule + ahead;
+		packet.granulepos = reached + skip;
 		packet.packetno = number++;
 		packet.e_o_s = at >= frames ? 1 : 0;
 

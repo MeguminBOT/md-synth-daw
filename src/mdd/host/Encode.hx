@@ -9,6 +9,6 @@ extern class Encode {
 
 	@:native("mdd_encode_opus")
 	public static function opus(samples:cpp.RawConstPointer<cpp.Float32>, frames:Int,
-		channels:Int, rate:Int, bitrate:Int, tags:cpp.ConstCharStar,
-		into:cpp.RawPointer<cpp.UInt8>, room:Int):Int;
+		channels:Int, rate:Int, bitrate:Int, mode:Int, span:Int, bitrateMode:Int,
+		tags:cpp.ConstCharStar, into:cpp.RawPointer<cpp.UInt8>, room:Int):Int;
 }

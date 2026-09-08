@@ -25,6 +25,10 @@ final class Mixing {
 	public var quality:Int = 3;
 	public var bitrate:Int = 192;
 
+	public var opusMode:Int = 0;
+	public var opusSpan:Int = 20;
+	public var opusBitrateMode:Int = 0;
+
 	public var padStart:Float = 0;
 	public var padEnd:Float = 1;
 	public var fade:Float = 0;
@@ -80,6 +84,9 @@ final class Mixing {
 		out.stereo = stereo;
 		out.quality = quality;
 		out.bitrate = bitrate;
+		out.opusMode = opusMode;
+		out.opusSpan = opusSpan;
+		out.opusBitrateMode = opusBitrateMode;
 		out.padStart = padStart;
 		out.padEnd = padEnd;
 		out.fade = fade;
