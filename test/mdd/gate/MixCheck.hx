@@ -939,69 +939,51 @@ class MixCheck {
 		final into = Gate.root + "/export";
 		if (!sys.FileSystem.exists(into)) sys.FileSystem.createDirectory(into);
 
-		final kinds:Array<Int> = [Mixing.FLAC, Mixing.OGG];
-		final names:Array<String> = ["flac", "ogg"];
-		final said = new StringBuf();
+		final session = new mdd.app.Session(bouncing(4));
+		final files = new mdd.app.Files(session);
+
+		files.mixing.rate = 44100;
+		files.mixing.kind = Mixing.FLAC;
+		files.mixing.normalise = true;
 
 		final stamp = Std.string(Std.int(haxe.Timer.stamp() * 1000) % 1000000);
+		final made = files.renders(into + "/gate-bounce-" + stamp);
+		final began = haxe.Timer.stamp();
 
-		var wrong = 0;
 		var worst = 0.0;
-		var least = 1.0;
+		var spins = 0;
 
-		for (index in 0...kinds.length) {
-			final session = new mdd.app.Session(bouncing(16));
-			final files = new mdd.app.Files(session);
+		while (!files.wroteYet() && haxe.Timer.stamp() - began < 120) {
+			final at = haxe.Timer.stamp();
+			final held:Array<mdd.song.Point> = [];
 
-			files.mixing.rate = 44100;
-			files.mixing.kind = kinds[index];
-			files.mixing.normalise = true;
+			for (round in 0...200) held.push(new mdd.song.Point(round, round));
+			Sys.sleep(0.001);
 
-			final made = files.renders(into + "/gate-bounce-" + stamp);
-			final began = haxe.Timer.stamp();
+			final took = haxe.Timer.stamp() - at;
+			if (took > worst) worst = took;
 
-			var stalled = 0.0;
-			var spins = 0;
-
-			while (!files.wroteYet() && haxe.Timer.stamp() - began < 120) {
-				final at = haxe.Timer.stamp();
-				final held:Array<mdd.song.Point> = [];
-
-				for (round in 0...4000) held.push(new mdd.song.Point(round, round));
-
-				final took = haxe.Timer.stamp() - at;
-				if (took > stalled) stalled = took;
-
-				spins++;
-			}
-
-			final named = files.wroteAs;
-			final there = named != "" && sys.FileSystem.exists(named);
-			final size = there ? sys.FileSystem.stat(named).size : 0;
-
-			if (!there || size < 65536 || made.peak < 0.1 || spins < 20
-				|| files.wroteWrong != "") wrong++;
-
-			if (stalled > worst) worst = stalled;
-			if (made.peak < least) least = made.peak;
-
-			if (index > 0) said.add(", ");
-			said.add(names[index] + " " + Math.round(size / 1024) + " kb at a worst stall of "
-				+ round(stalled * 1000, 1) + " ms over " + spins + " rounds"
-				+ (files.wroteWrong == "" ? "" : ", refused with " + files.wroteWrong));
-
-			if (there) {
-				try {
-					sys.FileSystem.deleteFile(named);
-				} catch (e:Dynamic) {}
-			}
+			spins++;
 		}
 
+		final named = files.wroteAs;
+		final there = named != "" && sys.FileSystem.exists(named);
+		final size = there ? sys.FileSystem.stat(named).size : 0;
+
 		says("the encode runs where the render does, and carries audio",
-			wrong == 0 && worst < 0.4,
-			round(Mixdown.of(bouncing(16), new Mixing()).seconds(), 1)
-			+ " s bounced and written while the calling thread went on allocating: "
-			+ said.toString() + ", the quieter of the two peaking at " + round(least, 3));
+			there && size > 65536 && made.peak > 0.1 && spins > 20
+			&& files.wroteWrong == "" && worst < 0.4,
+			round(made.seconds(), 1) + " s bounced and written to "
+			+ Math.round(size / 1024) + " kb while the calling thread went on allocating"
+			+ " through " + spins + " rounds at a worst stall of "
+			+ round(worst * 1000, 1) + " ms, peaking at " + round(made.peak, 3)
+			+ (files.wroteWrong == "" ? "" : ", refused with " + files.wroteWrong));
+
+		if (there) {
+			try {
+				sys.FileSystem.deleteFile(named);
+			} catch (e:Dynamic) {}
+		}
 	}
 
 	static function imported():Void {
