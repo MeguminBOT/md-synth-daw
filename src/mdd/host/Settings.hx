@@ -79,6 +79,16 @@ final class Settings {
 		return keys.length;
 	}
 
+	public function forget():Void {
+		keys.resize(0);
+		said.resize(0);
+		read = 0;
+
+		try {
+			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+		} catch (e:Dynamic) {}
+	}
+
 	public function load():Bool {
 		read = 0;
 

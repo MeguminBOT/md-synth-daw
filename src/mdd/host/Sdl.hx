@@ -105,10 +105,17 @@ extern class Sdl {
 	public static function stopTextInput(window:cpp.Star<Window>):Void;
 
 	@:native("mdd_renderer_create")
-	public static function createRenderer(window:cpp.Star<Window>, vsync:Int):cpp.Star<Canvas>;
+	public static function createRenderer(window:cpp.Star<Window>, vsync:Int,
+		driver:cpp.ConstCharStar):cpp.Star<Canvas>;
 
 	@:native("mdd_renderer_destroy")
 	public static function destroyRenderer(renderer:cpp.Star<Canvas>):Void;
+
+	@:native("mdd_render_drivers")
+	public static function renderDrivers():Int;
+
+	@:native("mdd_render_driver")
+	public static function renderDriver(index:Int):cpp.ConstCharStar;
 
 	@:native("mdd_renderer_name")
 	public static function rendererName(renderer:cpp.Star<Canvas>):cpp.ConstCharStar;

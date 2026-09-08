@@ -133,8 +133,24 @@ extern "C" void mdd_text_input_stop(SDL_Window *window) {
 	if (window != nullptr) SDL_StopTextInput(window);
 }
 
-extern "C" SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync) {
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, nullptr);
+extern "C" int mdd_render_drivers() {
+	const int many = SDL_GetNumRenderDrivers();
+	return many < 0 ? 0 : many;
+}
+
+extern "C" const char *mdd_render_driver(int index) {
+	if (index < 0 || index >= SDL_GetNumRenderDrivers()) return "";
+
+	const char *name = SDL_GetRenderDriver(index);
+	return name == nullptr ? "" : name;
+}
+
+extern "C" SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync, const char *driver) {
+	const char *wanted = driver == nullptr || driver[0] == 0 ? nullptr : driver;
+
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, wanted);
+
+	if (renderer == nullptr && wanted != nullptr) renderer = SDL_CreateRenderer(window, nullptr);
 	if (renderer == nullptr) return nullptr;
 
 	SDL_SetRenderVSync(renderer, vsync != 0 ? 1 : SDL_RENDERER_VSYNC_DISABLED);

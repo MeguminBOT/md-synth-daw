@@ -129,7 +129,50 @@ class App {
 		} catch (held:haxe.Exception) {}
 	}
 
+	static final DRIVERS:Array<String> = ["--dx11", "direct3d11", "--d3d11", "direct3d11",
+		"--dx12", "direct3d12", "--d3d12", "direct3d12", "--vulkan", "vulkan",
+		"--opengl", "opengl", "--opengles", "opengles2", "--software", "software"];
+
+	public static function flagged(args:Array<String>):String {
+		for (index in 0...DRIVERS.length >> 1) {
+			if (args.indexOf(DRIVERS[index * 2]) >= 0) return DRIVERS[index * 2 + 1];
+		}
+
+		for (arg in args) {
+			if (StringTools.startsWith(arg, "--renderer=")) return arg.substr(11);
+		}
+
+		return "";
+	}
+
+	public static function offered():Array<String> {
+		final out:Array<String> = [];
+
+		for (index in 0...Sdl.renderDrivers()) {
+			final name = (Sdl.renderDriver(index) : String);
+			if (name != "") out.push(name);
+		}
+
+		return out;
+	}
+
 	function open():Bool {
+		final args = Sys.args();
+
+		settings = new Settings();
+
+		if (args.indexOf("--reset") >= 0) {
+			settings.forget();
+			Sys.println("  settings      reset to defaults");
+		} else {
+			settings.load();
+		}
+
+		final asked = flagged(args);
+		final held = asked != "" ? asked : settings.of("renderer", "");
+
+		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : "";
+
 		if (!stage.open()) return false;
 
 		dress();
@@ -247,6 +290,15 @@ class App {
 			stage.root.reshape();
 		};
 
+		panels.preferences.onRenderer = function(name:String):Void {
+			settings.put("renderer", name);
+			settings.save();
+
+			session.say(stage.root.translate(Locale.RENDERER_RESTART));
+		};
+
+		panels.preferences.draws(offered(), stage.driver);
+
 		update = new Update(Config.GITHUB, Config.VERSION);
 
 		panels.notice = new Notice(session);
@@ -256,9 +308,6 @@ class App {
 			settings.flag("update", false);
 			settings.save();
 		};
-
-		settings = new Settings();
-		settings.load();
 
 		firstRun = settings.of("language", "") == "";
 		spoken();

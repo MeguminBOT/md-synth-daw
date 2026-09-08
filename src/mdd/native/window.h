@@ -33,7 +33,9 @@ float mdd_display_refresh(SDL_Window *window);
 void mdd_text_input_start(SDL_Window *window);
 void mdd_text_input_stop(SDL_Window *window);
 
-SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync);
+int mdd_render_drivers();
+const char *mdd_render_driver(int index);
+SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync, const char *driver);
 void mdd_renderer_destroy(SDL_Renderer *renderer);
 const char *mdd_renderer_name(SDL_Renderer *renderer);
 int mdd_renderer_vsync(SDL_Renderer *renderer);

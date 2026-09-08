@@ -39,7 +39,8 @@ final class Preferences extends Widget {
 	public static inline final TEMPO = 17;
 	public static inline final PRESENCE = 18;
 	public static inline final ASSOCIATE = 19;
-	public static inline final ROWS = 20;
+	public static inline final RENDERER = 20;
+	public static inline final ROWS = 21;
 
 	public static inline final LOOK = 0;
 	static inline final EDITING = 1;
@@ -56,7 +57,7 @@ final class Preferences extends Widget {
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
-		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
+		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE, RENDERER],
 		[AUTOMATING, TAIL, TEMPO],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
@@ -87,7 +88,8 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_UPDATES, Locale.PREFERENCE_PROJECTS, Locale.PREFERENCE_PRESETS,
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
-		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE];
+		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
+		Locale.PREFERENCE_RENDERER];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -138,11 +140,14 @@ final class Preferences extends Widget {
 
 	public var session:Session;
 	public final languages:Array<String> = [];
+	public final renderers:Array<String> = [];
 	public final spoken:Array<String> = [];
 
 	public var chosen(default, null):Int = 0;
 	public var density(default, null):Int = 1;
 	public var language(default, null):Int = 0;
+	public var renderer:Int = 0;
+	public var onRenderer:Null<String -> Void> = null;
 	public var keeping(default, null):Int = 2;
 	public var backups(default, null):Int = 3;
 	public var backupAge(default, null):Int = 2;
@@ -210,6 +215,18 @@ final class Preferences extends Widget {
 	}
 
 	public var onSpeak:Null<String -> Void> = null;
+
+	public function draws(names:Array<String>, held:String):Void {
+		renderers.resize(0);
+		renderers.push(translate(Locale.RENDERER_AUTO));
+
+		for (name in names) renderers.push(name);
+
+		final at = renderers.indexOf(held);
+		renderer = held == "" || at < 0 ? 0 : at;
+
+		invalidate();
+	}
 
 	public function speaks(codes:Array<String>, code:String):Void {
 		languages.resize(0);
@@ -535,6 +552,7 @@ final class Preferences extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case TYPEFACE: Typeface.NAMES;
+			case RENDERER: renderers;
 			case BACKUPS: BACKUP_ROOMS;
 			case PROJECTS, PRESETS: NOTHING;
 			case MIDI_DEVICE: keyboards;
@@ -618,6 +636,7 @@ final class Preferences extends Widget {
 			case TEMPO: tempo;
 			case PRESENCE: presence;
 			case ASSOCIATE: associated ? 1 : 0;
+			case RENDERER: renderer;
 			case _: language;
 		}
 	}
@@ -703,6 +722,12 @@ final class Preferences extends Widget {
 
 				associated = Associations.holds();
 				session.say(translate(ASSOCIATES[associated ? 1 : 0]));
+
+			case RENDERER:
+				renderer = which < 0 || which >= renderers.length ? 0 : which;
+
+				final name = renderer == 0 ? "" : renderers[renderer];
+				if (onRenderer != null) onRenderer(name);
 
 			case _:
 				language = which;

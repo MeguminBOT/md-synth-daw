@@ -48,6 +48,8 @@ final class Stage {
 
 	public function new() {}
 
+	public var driver:String = "";
+
 	public function open():Bool {
 		window = Sdl.createWindow(Config.TITLE, Config.WIDTH, Config.HEIGHT,
 			Config.RESIZABLE ? 1 : 0, Config.HIGH_DPI ? 1 : 0);
@@ -61,7 +63,7 @@ final class Stage {
 		faced();
 		windowID = Sdl.windowID(window);
 
-		renderer = Sdl.createRenderer(window, Config.VSYNC ? 1 : 0);
+		renderer = Sdl.createRenderer(window, Config.VSYNC ? 1 : 0, driver);
 		if (renderer == null) {
 			Sys.println("mdd: no renderer: " + Sdl.error());
 			Sdl.destroyWindow(window);
