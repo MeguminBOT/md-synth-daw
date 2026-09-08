@@ -2,7 +2,6 @@ package mdd.gate;
 
 import haxe.ds.Vector;
 import mdd.host.Crash;
-import mdd.song.Song;
 
 @:unreflective
 class FaultCheck {
@@ -32,8 +31,10 @@ class FaultCheck {
 	}
 
 	static function read(args:Array<String>):Void {
-		final held = never(args);
-		Sys.println("    " + held.name);
+		final at:Int = args.length > 4096 ? 8 : 0;
+		final held:Int = untyped __cpp__("*(volatile unsigned char *)(size_t)({0})", at);
+
+		Sys.println("    " + held);
 	}
 
 	static function write(args:Array<String>):Void {
@@ -51,12 +52,17 @@ class FaultCheck {
 		while (true) Sys.sleep(0.05);
 	}
 
-	static function deeper(depth:Int):Int {
-		return depth + deeper(depth + 1);
-	}
+	static inline final DEEPEST = 1 << 28;
 
-	static function never(args:Array<String>):Null<Song> {
-		return args.length > 4096 ? new Song() : null;
+	static var reached:Int = 0;
+
+	static function deeper(depth:Int):Int {
+		if (depth >= DEEPEST) return depth;
+
+		final held = deeper(depth + 1);
+
+		reached = held;
+		return held;
 	}
 
 	static function far(args:Array<String>):Int {
