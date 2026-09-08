@@ -17,7 +17,7 @@ final class Mixing {
 
 	static final OPUS_RATES:Array<Int> = [8000, 12000, 16000, 24000, 48000];
 
-	public var kind:Int = WAV;
+	public var kind:Int = FLAC;
 	public var rate:Int = 44100;
 	public var depth:Int = 16;
 	public var stereo:Bool = true;
@@ -30,7 +30,7 @@ final class Mixing {
 	public var fade:Float = 0;
 
 	public var normalise:Bool = true;
-	public var ceiling:Float = -1;
+	public var ceiling:Float = 0;
 	public var dither:Bool = true;
 	public var console:Int = mdd.play.Render.MODEL_ONE;
 

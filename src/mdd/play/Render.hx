@@ -153,7 +153,7 @@ final class Render {
 
 	static inline final PHASES = 32;
 
-	static inline final WEIGHTS = 127;
+	static inline final WEIGHTS = 512;
 
 	static inline final SQUARES = 384;
 

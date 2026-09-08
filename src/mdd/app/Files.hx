@@ -638,6 +638,9 @@ final class Files {
 		if (mixing.track != "") held.push("TRACKNUMBER=" + mixing.track);
 		if (mixing.comment != "") held.push("COMMENT=" + mixing.comment);
 
+		final beats = session.song.tempo.beatsAt(0);
+		if (beats > 0) held.push("BPM=" + Math.round(beats * 100) / 100);
+
 		return held;
 	}
 

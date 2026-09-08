@@ -276,8 +276,6 @@ final class Menus {
 			function():Void panels.sounded());
 		fired(held.offer(new Choice(said(Locale.FILE_XGM))), function():Void
 			asks(Files.XGM));
-		fired(held.offer(new Choice(said(Locale.FILE_WAV))), function():Void
-			asks(Files.WAV));
 		fired(held.offer(new Choice(said(Locale.FILE_MIDI))), function():Void
 			asks(Files.MIDI));
 
