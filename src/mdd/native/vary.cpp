@@ -540,6 +540,10 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 	unsigned long gvarLength = 0;
 	unsigned long locaLength = 0;
 	unsigned long hmtxLength = 0;
+	unsigned long glyfLength = 0;
+	unsigned long headLength = 0;
+	unsigned long maxpLength = 0;
+	unsigned long hheaLength = 0;
 
 	for (unsigned int index = 0; index < tables; index++) {
 		const unsigned char *entry = data + 12 + (size_t) index * 16;
@@ -558,11 +562,11 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 		if (memcmp(entry, "fvar", 4) == 0) fvar = held;
 		else if (memcmp(entry, "avar", 4) == 0) avar = held;
 		else if (memcmp(entry, "gvar", 4) == 0) { gvar = held; gvarLength = slots[index].length; }
-		else if (memcmp(entry, "glyf", 4) == 0) glyf = held;
+		else if (memcmp(entry, "glyf", 4) == 0) { glyf = held; glyfLength = slots[index].length; }
 		else if (memcmp(entry, "loca", 4) == 0) { loca = held; locaLength = slots[index].length; }
-		else if (memcmp(entry, "head", 4) == 0) head = held;
-		else if (memcmp(entry, "maxp", 4) == 0) maxp = held;
-		else if (memcmp(entry, "hhea", 4) == 0) hhea = held;
+		else if (memcmp(entry, "head", 4) == 0) { head = held; headLength = slots[index].length; }
+		else if (memcmp(entry, "maxp", 4) == 0) { maxp = held; maxpLength = slots[index].length; }
+		else if (memcmp(entry, "hhea", 4) == 0) { hhea = held; hheaLength = slots[index].length; }
 		else if (memcmp(entry, "hmtx", 4) == 0) { hmtx = held; hmtxLength = slots[index].length; }
 	}
 
@@ -571,6 +575,8 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 		free(slots);
 		return nullptr;
 	}
+
+	if (headLength < 54 || maxpLength < 6 || hheaLength < 36) { free(slots); return nullptr; }
 
 	const unsigned int axesAt = wordAt(fvar + 4);
 	const unsigned int axisCount = wordAt(fvar + 8);
@@ -629,10 +635,19 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 
 	if (gvarAxes != axisCount) { free(slots); return nullptr; }
 
+	const int gvarLong = (gvarFlags & 1) != 0;
+	const unsigned long wantOffsets = (unsigned long) (gvarGlyphs + 1) * (gvarLong ? 4 : 2);
+
+	if (sharedAt > gvarLength || gvarData > gvarLength) { free(slots); return nullptr; }
+	if (wantOffsets > gvarLength - 20) { free(slots); return nullptr; }
+	if (sharedCount != 0 && sharedAt + (unsigned long) sharedCount * axisCount * 2 > gvarLength) {
+		free(slots);
+		return nullptr;
+	}
+
 	const unsigned char *shared = gvar + sharedAt;
 	const unsigned char *gvarOffsets = gvar + 20;
 	const unsigned char *varied = gvar + gvarData;
-	const int gvarLong = (gvarFlags & 1) != 0;
 
 	Grown newGlyf = {nullptr, 0, 0};
 	Grown newLoca = {nullptr, 0, 0};
@@ -672,6 +687,8 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 
 		if (!putLong(&newLoca, (unsigned long) newGlyf.used)) { well = false; break; }
 
+		if (start > glyfLength || stop > glyfLength) { well = false; break; }
+
 		const bool blank = stop <= start || stop - start < 10;
 
 		const unsigned char *entry = glyf + start;
@@ -693,7 +710,7 @@ extern "C" unsigned char *mdd_vary_instance(const unsigned char *data, long size
 			const unsigned long till = gvarLong ? longAt(gvarOffsets + (size_t) (glyph + 1) * 4)
 				: wordAt(gvarOffsets + (size_t) (glyph + 1) * 2) * 2;
 
-			if (till > from && till <= gvarLength) {
+			if (till > from && gvarData + till <= gvarLength && till - from >= 4) {
 				tuples = varied + from;
 				tuplesEnd = varied + till;
 			}
