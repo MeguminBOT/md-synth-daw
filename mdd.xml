@@ -44,7 +44,7 @@
 		<toolchain name="msvc" if="windows"
 			about="the Microsoft compiler and linker" />
 		<toolchain name="mingw" if="windows" probe="none"
-			about="LLVM or GCC against the mingw-w64 ABI, with no crash report" />
+			about="LLVM or GCC against the mingw-w64 ABI, reading its own symbols and DWARF" />
 
 		<toolchain name="clang" unless="windows" probe="clang++" about="LLVM" />
 		<toolchain name="gcc" unless="windows" about="GCC" />
@@ -157,6 +157,14 @@
 	<include value="${OPUSPATH}/celt" />
 	<include value="${OPUSPATH}/silk" />
 	<include value="${OPUSPATH}/silk/float" />
+
+	<!-- /DEBUG turns REF off and the crash report wants the symbols, so the pass that drops
+	     what nothing calls is asked for again: it takes the binary from 8225280 bytes to
+	     5350912. ICF stays off. LTCG has already folded what it would fold, so it saves
+	     nothing here, and it would leave a stack trace naming whichever of two identical
+	     functions the linker happened to keep -->
+
+	<linkflag value="-OPT:REF" if="windows" unless="mingw,debug" />
 
 	<!-- the window's library, however each linker wants to be told about it -->
 

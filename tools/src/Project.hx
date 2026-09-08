@@ -87,6 +87,8 @@ class Project {
 	public var targets(default, null):Array<Target> = [];
 	public var defines(default, null):Array<String> = [];
 	public var dce(default, null):String = "";
+	public var linkFlags(default, null):Array<String> = [];
+	public var compileFlags(default, null):Array<String> = [];
 	public var libraries(default, null):Array<String> = [];
 	public var vendors(default, null):Array<Vendor> = [];
 	public var paths(default, null):Array<Named> = [];
@@ -252,6 +254,12 @@ class Project {
 			case "dce":
 				dce = node.get("value");
 
+			case "linkflag":
+				linkFlags.push(node.get("value"));
+
+			case "compileflag":
+				compileFlags.push(node.get("value"));
+
 			case "define":
 				defines.push(has(node, "value")
 					? node.get("name") + "=" + node.get("value") : node.get("name"));
@@ -321,9 +329,17 @@ class Project {
 	}
 
 	function allowed(node:Xml):Bool {
-		if (has(node, "if") && !holds(node.get("if"))) return false;
-		if (has(node, "unless") && holds(node.get("unless"))) return false;
+		if (has(node, "if") && !any(node.get("if"))) return false;
+		if (has(node, "unless") && any(node.get("unless"))) return false;
 		return true;
+	}
+
+	function any(terms:String):Bool {
+		for (term in terms.split(",")) {
+			if (holds(StringTools.trim(term))) return true;
+		}
+
+		return false;
 	}
 
 	function holds(term:String):Bool {

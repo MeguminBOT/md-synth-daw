@@ -453,6 +453,11 @@ class Run {
 		tree(into);
 
 		final flags = new StringBuf();
+		for (flag in project.compileFlags) {
+			flags.add("		<compilerflag value=\"" + flag + "\" />
+");
+		}
+
 		for (path in project.includes) {
 			flags.add("\t\t<compilerflag value=\"-I" + native(root + "/" + path) + "\" />\n");
 		}
@@ -484,7 +489,6 @@ class Run {
 					}
 				}
 
-				if (script != "") out.add("\t\t<file name=\"" + script + "\" />\n");
 			}
 
 			out.add("\t</files>\n");
@@ -515,7 +519,17 @@ class Run {
 			out.add("\t</files>\n");
 		}
 
+		if (script != "") {
+			out.add("\t<files id=\"mdd_resource\">\n");
+			out.add("\t\t<file name=\"" + script + "\" />\n");
+			out.add("\t</files>\n");
+		}
+
 		out.add("\t<target id=\"haxe\">\n");
+
+		for (flag in project.linkFlags) {
+			out.add("\t\t<flag value=\"" + flag + "\" />\n");
+		}
 
 		for (link in project.links) {
 			out.add("\t\t<lib name=\""
@@ -524,6 +538,7 @@ class Run {
 		}
 
 		out.add("\t\t<files id=\"mdd_native\" />\n");
+		if (script != "") out.add("\t\t<files id=\"mdd_resource\" />\n");
 		for (id in extra) out.add("\t\t<files id=\"" + id + "\" />\n");
 		out.add("\t</target>\n");
 		out.add("</xml>\n");
