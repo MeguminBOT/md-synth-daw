@@ -95,7 +95,7 @@ class ShotCheck {
 		final monoFace = root + "/vendor/fonts/Go-Mono.ttf";
 
 		final window = Sdl.createWindow("mdd shot", wide, tall, 0, 0);
-		final renderer = Sdl.createRenderer(window, 0);
+		final renderer = Sdl.createRenderer(window, 0, mdd.App.PINNED);
 
 		final body = Font.bake(renderer, face, 15);
 		final small = Font.bake(renderer, face, 13);

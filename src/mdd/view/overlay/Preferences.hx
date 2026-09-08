@@ -57,7 +57,11 @@ final class Preferences extends Widget {
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
+		#if windows
+		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE],
+		#else
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE, RENDERER],
+		#end
 		[AUTOMATING, TAIL, TEMPO],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],

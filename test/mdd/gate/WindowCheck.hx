@@ -27,7 +27,7 @@ class WindowCheck {
 			return 1;
 		}
 
-		final renderer = Sdl.createRenderer(window, 0);
+		final renderer = Sdl.createRenderer(window, 0, mdd.App.PINNED);
 		if (renderer == null) {
 			Sys.println("    no renderer: " + Sdl.error());
 			Sdl.destroyWindow(window);

@@ -95,7 +95,7 @@ class UiCheck {
 		}
 
 		final window = Sdl.createWindow("mdd gate ui", SIDE, SIDE, 0, 0);
-		final renderer = Sdl.createRenderer(window, 0);
+		final renderer = Sdl.createRenderer(window, 0, mdd.App.PINNED);
 		final target = Draw.createTarget(renderer, SIDE, SIDE);
 
 		final root = args.length > 0 ? args[0] : Gate.root;

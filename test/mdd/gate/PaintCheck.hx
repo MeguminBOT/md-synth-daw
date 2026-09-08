@@ -39,7 +39,7 @@ class PaintCheck {
 			return 1;
 		}
 
-		renderer = Sdl.createRenderer(window, 0);
+		renderer = Sdl.createRenderer(window, 0, mdd.App.PINNED);
 		if (renderer == null) {
 			Sys.println("    no renderer: " + Sdl.error());
 			Sdl.destroyWindow(window);

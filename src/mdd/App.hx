@@ -129,6 +129,8 @@ class App {
 		} catch (held:haxe.Exception) {}
 	}
 
+	public static inline final PINNED = #if windows "direct3d11" #else "" #end;
+
 	static final DRIVERS:Array<String> = ["--dx11", "direct3d11", "--d3d11", "direct3d11",
 		"--dx12", "direct3d12", "--d3d12", "direct3d12", "--vulkan", "vulkan",
 		"--opengl", "opengl", "--opengles", "opengles2", "--software", "software"];
@@ -168,10 +170,14 @@ class App {
 			settings.load();
 		}
 
+		#if windows
+		stage.driver = PINNED;
+		#else
 		final asked = flagged(args);
 		final held = asked != "" ? asked : settings.of("renderer", "");
 
 		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : "";
+		#end
 
 		if (!stage.open()) return false;
 
@@ -297,7 +303,9 @@ class App {
 			session.say(stage.root.translate(Locale.RENDERER_RESTART));
 		};
 
+		#if !windows
 		panels.preferences.draws(offered(), stage.driver);
+		#end
 
 		update = new Update(Config.GITHUB, Config.VERSION);
 
