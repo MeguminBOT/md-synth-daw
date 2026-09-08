@@ -24,6 +24,9 @@ final class Mixdown {
 
 	public static inline final WHOLE = 1000;
 
+	var working:Null<Render> = null;
+	var feeding:Null<Stream> = null;
+
 	public final reached:AtomicInt = new AtomicInt(0);
 	public final stopping:AtomicInt = new AtomicInt(0);
 
@@ -86,7 +89,9 @@ final class Mixdown {
 
 		for (index in 0...samples.length) samples[index] = 0;
 
-		final stream = new Stream(roomFor(span));
+		feeding = new Stream(roomFor(span));
+
+		final stream = feeding;
 		final sequencer = new Sequencer(song);
 
 		sequencer.spanned(stream, 0, span);
@@ -98,19 +103,24 @@ final class Mixdown {
 		faded(mixing, ahead);
 		levelled(mixing);
 
+		working = null;
+		feeding = null;
+
 		reached.store(WHOLE);
 	}
 
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
-		final render = new Render(rate, Render.BLOCK);
+		working = new Render(rate, Render.BLOCK);
+
+		final render = working;
 		render.console = console;
 		var done = 0;
 		var told = 0;
 
-		cpp.vm.Gc.enterGCFreeZone();
-
 		while (done < many) {
 			if (stopped()) break;
+
+			cpp.vm.Gc.safePoint();
 
 			final from = Std.int(done * (Tempo.TICKS / rate));
 			final took = render.serve(stream, from, Render.BLOCK, 0);
@@ -142,8 +152,6 @@ final class Mixdown {
 				reached.store(held);
 			}
 		}
-
-		cpp.vm.Gc.exitGCFreeZone();
 	}
 
 	function faded(mixing:Mixing, ahead:Int):Void {
