@@ -225,14 +225,11 @@ class Project {
 						case "group":
 							for (one in held.elements()) {
 								if (one.nodeName != "icon" || !allowed(one)) continue;
-
-								icons.push({name: one.get("name"), from: one.get("from"),
-									group: held.get("name")});
+								drawn(one, held.get("name"));
 							}
 
 						case "icon":
-							icons.push({name: held.get("name"), from: held.get("from"),
-								group: ""});
+							drawn(held, "");
 
 						case _:
 					}
@@ -298,6 +295,24 @@ class Project {
 				}
 
 			case _:
+		}
+	}
+
+	function drawn(node:Xml, group:String):Void {
+		final many = node.get("names");
+
+		if (many == null || many == "") {
+			icons.push({name: node.get("name"), from: node.get("from"), group: group});
+			return;
+		}
+
+		final where = node.get("from");
+
+		for (part in many.split(",")) {
+			final name = StringTools.trim(part);
+			if (name == "") continue;
+
+			icons.push({name: name, from: where + "/" + name, group: group});
 		}
 	}
 

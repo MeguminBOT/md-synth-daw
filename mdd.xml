@@ -254,66 +254,22 @@
 			<icon name="tick" from="qlementine:shape/check-tick" />
 		</group>
 		<group name="audio">
-			<icon name="wave-sine" from="qlementine:audio/wave-sine" />
-			<icon name="wave-square" from="qlementine:audio/wave-square" />
-			<icon name="wave-triangle" from="qlementine:audio/wave-triangle" />
+			<icon from="qlementine:audio" names="wave-sine,wave-square,wave-triangle" />
 			<icon name="wave-saw" from="wave-saw" />
 			<icon name="wave-noise" from="wave-noise" />
 			<icon name="eq" from="qlementine:audio/eq-flat" />
 			<icon name="speaker" from="qlementine:audio/speaker-2" />
 			<icon name="buffer" from="qlementine:audio/buffer" />
 			<icon name="note" from="qlementine:misc/note-8th-simple" />
-			<icon name="notes" from="qlementine:misc/notes" />
-			<icon name="bell" from="qlementine:misc/bell" />
-			<icon name="headphones" from="qlementine:hardware/headphones" />
-			<icon name="microphone" from="qlementine:hardware/microphone" />
+			<icon from="qlementine:misc" names="notes,bell" />
+			<icon from="qlementine:hardware" names="headphones,microphone" />
 		</group>
 		<group name="instrument">
-			<icon name="piano" from="qlementine:instrument/piano" />
-			<icon name="synthesizer" from="qlementine:instrument/synthesizer" />
-			<icon name="guitar" from="qlementine:instrument/guitar" />
-			<icon name="guitar-folk" from="qlementine:instrument/guitar-folk" />
-			<icon name="guitar-classical" from="qlementine:instrument/guitar-classical" />
-			<icon name="guitar-strat" from="qlementine:instrument/guitar-strat" />
-			<icon name="guitar-tele" from="qlementine:instrument/guitar-tele" />
-			<icon name="guitar-jackson" from="qlementine:instrument/guitar-jackson" />
-			<icon name="guitar-12-strings" from="qlementine:instrument/guitar-12-strings" />
-			<icon name="bass" from="qlementine:instrument/bass" />
-			<icon name="ukulele" from="qlementine:instrument/ukulele" />
-			<icon name="banjo" from="qlementine:instrument/banjo" />
-			<icon name="mandolin" from="qlementine:instrument/mandolin" />
-			<icon name="sitar" from="qlementine:instrument/sitar" />
-			<icon name="shamisen" from="qlementine:instrument/shamisen" />
-			<icon name="harp" from="qlementine:instrument/harp" />
-			<icon name="violin" from="qlementine:instrument/violin" />
-			<icon name="cello" from="qlementine:instrument/cello" />
-			<icon name="accordion" from="qlementine:instrument/accordion" />
-			<icon name="harmonica" from="qlementine:instrument/harmonica" />
-			<icon name="saxophone" from="qlementine:instrument/saxophone" />
-			<icon name="trumpet" from="qlementine:instrument/trumpet" />
-			<icon name="trombone" from="qlementine:instrument/trombone" />
-			<icon name="tuba" from="qlementine:instrument/tuba" />
-			<icon name="woodwind" from="qlementine:instrument/woodwind" />
-			<icon name="pipe" from="qlementine:instrument/pipe" />
-			<icon name="amp" from="qlementine:instrument/amp" />
-			<icon name="pedal" from="qlementine:instrument/pedal" />
-			<icon name="pedalboard" from="qlementine:instrument/pedalboard" />
-			<icon name="drumkit" from="qlementine:instrument/drumkit" />
-			<icon name="kick" from="qlementine:instrument/kick" />
-			<icon name="snare" from="qlementine:instrument/snare" />
-			<icon name="tom" from="qlementine:instrument/tom" />
-			<icon name="hi-hat" from="qlementine:instrument/hi-hat" />
-			<icon name="cymbal" from="qlementine:instrument/cymbal" />
-			<icon name="cowbell" from="qlementine:instrument/cowbell" />
-			<icon name="bongos" from="qlementine:instrument/bongos" />
-			<icon name="tambourine" from="qlementine:instrument/tambourine" />
-			<icon name="shakers" from="qlementine:instrument/shakers" />
-			<icon name="clap" from="qlementine:instrument/clap" />
-			<icon name="drumsticks" from="qlementine:instrument/drumsticks" />
-			<icon name="drum-brushes" from="qlementine:instrument/drum-brushes" />
-			<icon name="idiophone" from="qlementine:instrument/idiophone" />
-			<icon name="tamtam" from="qlementine:instrument/tamtam" />
-			<icon name="mastering" from="qlementine:instrument/mastering" />
+			<icon from="qlementine:instrument" names="piano,synthesizer,guitar,guitar-folk,guitar-classical,
+				guitar-strat,guitar-tele,guitar-jackson,guitar-12-strings,bass,ukulele,banjo,mandolin,sitar,
+				shamisen,harp,violin,cello,accordion,harmonica,saxophone,trumpet,trombone,tuba,woodwind,pipe,
+				amp,pedal,pedalboard,drumkit,kick,snare,tom,hi-hat,cymbal,cowbell,bongos,tambourine,shakers,
+				clap,drumsticks,drum-brushes,idiophone,tamtam,mastering" />
 		</group>
 	</icons>
 
