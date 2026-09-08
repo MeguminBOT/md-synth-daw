@@ -54,15 +54,21 @@ class Run {
 			out.add("\t<include name=\"" + native(home) + "/.hxcpp_config.xml\" noerror=\"1\" />\n\n");
 		}
 
-		out.add("\t<compiler id=\"MSVC\" exe=\"clang-cl.exe\" if=\"windows\">\n");
-		out.add("\t\t<getversion value=\"clang-cl.exe -v\" />\n");
-		out.add("\t\t<objdir value=\"obj/clang-cl${OBJEXT}${OBJCACHE}${XPOBJ}\" />\n");
+		out.add("\t<section id=\"vars\">\n");
+		out.add("\t\t<set name=\"NO_PRECOMPILED_HEADERS\" value=\"1\" />\n");
+		out.add("\t</section>\n\n");
+
+		out.add("\t<section id=\"exes\">\n");
+		out.add("\t\t<compiler id=\"MSVC\" exe=\"clang-cl.exe\" if=\"windows\">\n");
+		out.add("\t\t\t<getversion value=\"clang-cl.exe -v\" />\n");
+		out.add("\t\t\t<objdir value=\"obj/clang-cl${OBJEXT}${OBJCACHE}${XPOBJ}\" />\n");
 
 		for (flag in CLANG_QUIET) {
-			out.add("\t\t<flag value=\"" + flag + "\" />\n");
+			out.add("\t\t\t<flag value=\"" + flag + "\" />\n");
 		}
 
-		out.add("\t</compiler>\n");
+		out.add("\t\t</compiler>\n");
+		out.add("\t</section>\n");
 
 		out.add("\n</xml>\n");
 
