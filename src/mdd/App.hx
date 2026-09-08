@@ -94,6 +94,7 @@ class App {
 		}
 
 		app.report();
+		app.forced();
 
 		try {
 			app.loop();
@@ -367,6 +368,22 @@ class App {
 		changed();
 	}
 
+	public function forced():Void {
+		for (arg in Sys.args()) {
+			if (!StringTools.startsWith(arg, "--export=")) continue;
+
+			final where = arg.substr(9);
+			if (where == "") continue;
+
+			Sys.println("  forcing an export to " + where);
+			renders(where);
+
+			return;
+		}
+
+		if (Sys.args().indexOf("--exporting") >= 0) panels.sounded();
+	}
+
 	function handed():Void {
 		for (arg in Sys.args()) {
 			if (StringTools.startsWith(arg, "-")) continue;
@@ -485,6 +502,7 @@ class App {
 	}
 
 	function settled():Void {
+		if (rendering != null) return;
 		if (panels.working == null || stage.root.sheet != panels.working) return;
 
 		task.ends(true);
@@ -492,6 +510,7 @@ class App {
 	}
 
 	function pulling(since:Float):Bool {
+		if (rendering != null) return false;
 		if (update == null || update.state() != Update.FETCHING) return false;
 
 		task.holds(update.pulling());
@@ -501,7 +520,7 @@ class App {
 	}
 
 	function watched():Bool {
-		if (update == null) return false;
+		if (update == null || rendering != null) return false;
 
 		switch (update.state()) {
 			case Update.WAITING:
