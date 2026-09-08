@@ -903,6 +903,21 @@ class SpineCheck {
 	}
 
 	static function mapped(tree:Root, held:mdd.view.overlay.Preferences):Void {
+		final fresh = new mdd.app.Mapping();
+		fresh.plain();
+
+		final turns:Array<String> = [];
+
+		for (slot in 0...mdd.app.Mapping.SLOTS) {
+			if (!fresh.bound(slot)) continue;
+			turns.push(fresh.controlOf(slot) + " to " + fresh.named(slot));
+		}
+
+		says("a keyboard arrives with something to turn",
+			turns.length == mdd.app.Mapping.SLOTS,
+			turns.length + " of " + mdd.app.Mapping.SLOTS + " slots are bound before anything"
+			+ " has been saved: " + turns.join(", "));
+
 		final mapping = new mdd.app.Mapping();
 		final patch = new mdd.song.Patch();
 

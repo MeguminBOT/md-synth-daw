@@ -734,7 +734,11 @@ class App {
 			settings.asWhole("presence", Presence.FULL));
 
 		bindings.reads(settings.of("keys", ""));
-		mapping.reads(settings.of("controls", ""));
+
+		final controls = settings.of("controls", "");
+
+		if (controls == "") mapping.plain();
+		else mapping.reads(controls);
 
 		stage.root.reshape();
 	}

@@ -12,6 +12,13 @@ final class Mapping {
 
 	static inline final CONTROLS = 128;
 
+	static final PLAIN_CONTROLS:Array<Int> = [1, 7, 74, 71, 73, 72, 75, 70];
+	static final PLAIN_KINDS:Array<Int> = [DIAL, OPERATOR, OPERATOR, DIAL, OPERATOR, OPERATOR,
+		OPERATOR, DIAL];
+	static final PLAIN_OPERATORS:Array<Int> = [0, 3, 0, 0, 3, 3, 3, 0];
+	static final PLAIN_ROWS:Array<Int> = [Patch.PMS, 0, 0, Patch.FEEDBACK, 1, 5, 2,
+		Patch.ALGORITHM];
+
 	final controls:Array<Int> = [];
 	final kinds:Array<Int> = [];
 	final operators:Array<Int> = [];
@@ -32,6 +39,15 @@ final class Mapping {
 			kinds.push(DIAL);
 			operators.push(0);
 			rows.push(0);
+		}
+	}
+
+	public function plain():Void {
+		forget();
+
+		for (slot in 0...SLOTS) {
+			drives(slot, PLAIN_KINDS[slot], PLAIN_OPERATORS[slot], PLAIN_ROWS[slot]);
+			hears(slot, PLAIN_CONTROLS[slot]);
 		}
 	}
 
