@@ -2,6 +2,7 @@
 #include "stb_truetype.h"
 
 #include "text.h"
+#include "vary.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@ namespace {
 
 	struct Face {
 		unsigned char *data;
+		long bytes;
 		stbtt_fontinfo info;
 		bool taken;
 	};
@@ -45,20 +47,40 @@ extern "C" int mdd_font_load(const char *path) {
 
 	if (read != static_cast<size_t>(size)) { free(data); return -1; }
 
+	long instanced = 0;
+	unsigned char *upright = mdd_vary_instance(data, size, 400.0f, &instanced);
+
+	if (upright != nullptr) {
+		free(data);
+		data = upright;
+	}
+
 	if (!stbtt_InitFont(&faces[slot].info, data, stbtt_GetFontOffsetForIndex(data, 0))) {
 		free(data);
 		return -1;
 	}
 
 	faces[slot].data = data;
+	faces[slot].bytes = upright != nullptr ? instanced : size;
 	faces[slot].taken = true;
 	return slot;
+}
+
+extern "C" int mdd_font_weight(int font) {
+	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
+	return mdd_vary_weight(faces[font].data, faces[font].bytes);
+}
+
+extern "C" int mdd_font_resting(int font) {
+	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
+	return mdd_vary_resting(faces[font].data, faces[font].bytes);
 }
 
 extern "C" void mdd_font_free(int font) {
 	if (font < 0 || font >= SLOTS || !faces[font].taken) return;
 	free(faces[font].data);
 	faces[font].data = nullptr;
+	faces[font].bytes = 0;
 	faces[font].taken = false;
 }
 

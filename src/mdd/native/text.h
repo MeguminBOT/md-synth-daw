@@ -9,6 +9,8 @@ extern "C" {
 
 int mdd_font_load(const char *path);
 void mdd_font_free(int font);
+int mdd_font_weight(int font);
+int mdd_font_resting(int font);
 
 float mdd_font_ascent(int font, float pixels);
 float mdd_font_descent(int font, float pixels);

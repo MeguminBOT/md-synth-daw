@@ -8,6 +8,12 @@ extern class Text {
 	@:native("mdd_font_free")
 	public static function free(font:Int):Void;
 
+	@:native("mdd_font_weight")
+	public static function weight(font:Int):Int;
+
+	@:native("mdd_font_resting")
+	public static function resting(font:Int):Int;
+
 	@:native("mdd_font_ascent")
 	public static function ascent(font:Int, pixels:Single):Single;
 
