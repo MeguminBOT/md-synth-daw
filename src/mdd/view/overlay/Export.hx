@@ -12,6 +12,7 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Button;
 import mdd.ui.control.Field;
+import mdd.ui.control.Number;
 
 @:unreflective
 final class Export extends Widget {
@@ -25,14 +26,19 @@ final class Export extends Widget {
 	public static inline final CEILING = 7;
 	static inline final DITHER = 8;
 	static inline final QUALITY = 9;
-	public static inline final KINDS = 10;
+	static inline final CONSOLE = 10;
+	public static inline final KINDS = 11;
 
 	public static inline final FIELDS = 5;
+	public static inline final TIMED = 3;
 
 	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
-		Locale.EXPORT_QUALITY];
+		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE];
+
+	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
+		Locale.EXPORT_FADE];
 
 	static final LABELS:Array<Locale> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
@@ -44,22 +50,24 @@ final class Export extends Widget {
 	static final SIDINGS:Array<Locale> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
 	static final SWITCHES:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
 
+	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
+		Locale.CONSOLE_TWO];
+
 	static final NOTHING:Array<String> = [];
 	static final NO_KEYS:Array<Locale> = [];
 	static final ONE_RATE:Array<String> = ["48000"];
 
 	static final SECONDS:Array<Float> = [0, 0.5, 1, 2];
 	static final TAILS:Array<Float> = [0, 1, 2, 4];
-	static final CEILINGS:Array<Float> = [0, -0.1, -0.3, -1, -3];
 
 	static final LEADS:Array<String> = ["0", "0.5 s", "1 s", "2 s"];
 	static final TAILED:Array<String> = ["0", "1 s", "2 s", "4 s"];
-	static final CEILED:Array<String> = ["", "-0.1 dB", "-0.3 dB", "-1 dB", "-3 dB"];
 
 	public var session:Session;
 	public final mixing:Mixing = new Mixing();
 
 	public final fields:Array<Field> = [];
+	public final timers:Array<Number> = [];
 	public final go:Button;
 	public final stop:Button;
 
@@ -92,6 +100,16 @@ final class Export extends Widget {
 			add(held);
 		}
 
+		for (index in 0...TIMED) {
+			final held = new Number("", 0, 0, 200);
+
+			held.derived = function(value:Int):String return spelt(value);
+			held.onChange = function(from:Number):Void timed(index, from.value);
+
+			timers.push(held);
+			add(held);
+		}
+
 		go = new Button("");
 		stop = new Button("");
 
@@ -112,10 +130,8 @@ final class Export extends Widget {
 		else showing.push(QUALITY);
 
 		showing.push(SIDES);
-		showing.push(LEAD);
-		showing.push(TAIL);
-		showing.push(FADE);
 		showing.push(CEILING);
+		showing.push(CONSOLE);
 
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
 	}
@@ -136,6 +152,8 @@ final class Export extends Widget {
 		fields[2].set(mixing.album);
 		fields[3].set(mixing.year);
 		fields[4].set(mixing.comment);
+
+		fills();
 
 		final root = root();
 		if (root == null) return;
@@ -189,7 +207,7 @@ final class Export extends Widget {
 
 		wantWidth = metrics == null ? 640 : metrics.whole(640);
 		wantHeight = metrics == null ? 620 : head() + rows() * rowTall()
-			+ metrics.whole(24) + FIELDS * fieldTall() + metrics.control
+			+ metrics.whole(24) + (FIELDS + TIMED) * fieldTall() + metrics.control
 			+ metrics.inset * 3;
 	}
 
@@ -202,6 +220,13 @@ final class Export extends Widget {
 		final label = small == null ? 12 : small.height;
 
 		var top = y + head() + rows() * rowTall() + metrics.whole(24);
+
+		for (index in 0...TIMED) {
+			timers[index].arrange(x + metrics.whole(120), top + label * 0.2,
+				metrics.whole(120), fieldTall() - metrics.gap * 2);
+
+			top += fieldTall();
+		}
 
 		for (index in 0...FIELDS) {
 			fields[index].arrange(x + metrics.whole(120), top + label * 0.2,
@@ -221,7 +246,8 @@ final class Export extends Widget {
 	public function labels(row:Int):Array<Locale> {
 		return switch (row) {
 			case SIDES: SIDINGS;
-			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, CEILING, QUALITY: NO_KEYS;
+			case CONSOLE: CONSOLES;
+			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY: NO_KEYS;
 			case _: SWITCHES;
 		}
 	}
@@ -233,7 +259,7 @@ final class Export extends Widget {
 			case DEPTH: depths();
 			case LEAD: LEADS;
 			case TAIL, FADE: TAILED;
-			case CEILING: CEILED;
+
 			case QUALITY: mixing.kind == Mixing.OPUS ? RATED : QUALITIES;
 			case _: NOTHING;
 		}
@@ -264,7 +290,8 @@ final class Export extends Widget {
 			case LEAD: closest(SECONDS, mixing.padStart);
 			case TAIL: closest(TAILS, mixing.padEnd);
 			case FADE: closest(TAILS, mixing.fade);
-			case CEILING: mixing.normalise ? closest(CEILINGS, mixing.ceiling) : 0;
+			case CEILING: mixing.normalise ? 1 : 0;
+			case CONSOLE: mixing.console;
 			case QUALITY: mixing.quality;
 			case _: mixing.dither ? 1 : 0;
 		}
@@ -305,7 +332,9 @@ final class Export extends Widget {
 
 			case CEILING:
 				mixing.normalise = which > 0;
-				if (which > 0) mixing.ceiling = CEILINGS[which];
+				mixing.ceiling = 0;
+
+			case CONSOLE: mixing.console = which;
 
 			case QUALITY: mixing.quality = which;
 			case _: mixing.dither = which == 1;
@@ -331,12 +360,14 @@ final class Export extends Widget {
 		final root = root();
 		if (root == null) return -1;
 
-		final held = choices(row);
+		final many = counted(row);
+		if (many <= 0) return -1;
+
 		final metrics = root.metrics;
-		final wide = (width - metrics.whole(120) - metrics.inset) / held.length;
+		final wide = (width - metrics.whole(120) - metrics.inset) / many;
 
 		final at = Std.int((px - x - metrics.whole(120)) / wide);
-		return at < 0 || at >= held.length ? -1 : at;
+		return at < 0 || at >= many ? -1 : at;
 	}
 
 	override function took(event:Input):Bool {
@@ -385,12 +416,32 @@ final class Export extends Widget {
 		super.hovered(on);
 	}
 
-	function shown(row:Int, which:Int):String {
-		if (row == CEILING) {
-			if (which == 0) return translate(Locale.EXPORT_OFF);
-			return which > 0 && which < CEILED.length ? CEILED[which] : "";
+	static function spelt(value:Int):String {
+		return value == 0 ? "0" : (Math.round(value * 5) / 100) + " s";
+	}
+
+	function timed(which:Int, value:Int):Void {
+		final held = value / 20.0;
+
+		switch (which) {
+			case 0: mixing.padStart = held;
+			case 1: mixing.padEnd = held;
+			case _: mixing.fade = held;
 		}
 
+		session.changed();
+		invalidate();
+	}
+
+	function fills():Void {
+		if (timers.length < TIMED) return;
+
+		timers[0].set(Math.round(mixing.padStart * 20));
+		timers[1].set(Math.round(mixing.padEnd * 20));
+		timers[2].set(Math.round(mixing.fade * 20));
+	}
+
+	function shown(row:Int, which:Int):String {
 		final keys = labels(row);
 
 		if (keys.length > 0) {
@@ -441,13 +492,15 @@ final class Export extends Widget {
 			paint.text(translate(NAMES[row]), x + metrics.inset,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.9);
 
-			final held = choices(row);
-			final wide = room / held.length;
+			final many = counted(row);
+			if (many <= 0) continue;
+
+			final wide = room / many;
 			final on = holding(row);
 			final button = tall - metrics.gap * 2;
 			final at = top + metrics.gap;
 
-			for (which in 0...held.length) {
+			for (which in 0...many) {
 				final where = left + which * wide;
 
 				paint.roundedRect(where + 1, at, wide - 2, button, metrics.radiusSmall,
@@ -469,8 +522,17 @@ final class Export extends Widget {
 
 		var top = y + head() + rows() * tall + metrics.whole(24);
 
+		paint.reface(small);
+
+		for (index in 0...TIMED) {
+			paint.text(translate(TIMINGS[index]), x + metrics.inset,
+				top + (fieldTall() - small.height) * 0.5 + small.ascent, theme.dim,
+				alpha * 0.9);
+
+			top += fieldTall();
+		}
+
 		for (index in 0...FIELDS) {
-			paint.reface(small);
 			paint.text(translate(LABELS[index]), x + metrics.inset,
 				top + (fieldTall() - small.height) * 0.5 + small.ascent, theme.dim,
 				alpha * 0.9);
@@ -478,6 +540,7 @@ final class Export extends Widget {
 			top += fieldTall();
 		}
 
+		for (held in timers) held.paint(paint);
 		for (held in fields) held.paint(paint);
 
 		go.label = translate(Locale.EXPORT_GO);
@@ -496,6 +559,7 @@ final class Export extends Widget {
 
 		return Math.round(seconds * 10) / 10 + " s   " + mixing.named() + "   "
 			+ mixing.rate + " Hz   " + (mixing.stereo ? "2" : "1") + " ch"
-			+ (mixing.whole() ? "   " + mixing.depth + " bit" : "");
+			+ (mixing.whole() ? "   " + mixing.depth + " bit" : "")
+			+ (mixing.rate < 44100 ? "   " + translate(Locale.EXPORT_COARSE) : "");
 	}
 }
