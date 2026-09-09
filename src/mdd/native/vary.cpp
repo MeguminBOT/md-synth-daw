@@ -1,3 +1,55 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
+
+/**
+ * Instancing a variable font at a weight, so a rasteriser with no variation support
+ * draws the face that was asked for.
+ *
+ * google/fonts ships only the variable file for several of the faces here, with no
+ * static directory to fetch instead, and their axes rest at 300, 200, 200 and 100. A
+ * rasteriser that cannot vary draws the resting instance, so CJK fallbacks came out as
+ * hairlines beside 400 weight Latin. This reads the variation tables, moves every
+ * point to the weight asked for, and writes a new font file at that instance. A face
+ * whose axis already rests at 400 is left alone, so most of what ships pays nothing.
+ *
+ * Three things here are easy to get wrong. A glyph with no outline still carries an
+ * advance delta in its phantom points, so a zero length entry has to be read rather
+ * than skipped. Where two reference points share a coordinate the inferred delta is
+ * zero unless both deltas agree, rather than the nearer one. And the coordinate the
+ * deltas are scaled by is F2Dot14, so normalising in wider precision than the format
+ * holds moves points that land on a half unit.
+ *
+ * It parses a file at every start, so it is bounded against a truncated download: an
+ * offset into the outline table and an offset measured from a table data offset are
+ * both untrustworthy until they are checked against the length of the table. Fuzzing
+ * aimed at those tables faulted five times in three hundred before they were.
+ */
 #include "vary.h"
 
 #include <math.h>

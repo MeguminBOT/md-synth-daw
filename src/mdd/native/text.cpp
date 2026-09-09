@@ -1,3 +1,12 @@
+/**
+ * Glyph rasterising, through stb_truetype.
+ *
+ * A font is loaded once and asked for glyphs at a size. With oversampling the packed
+ * rectangle is larger than the glyph is drawn, so the width to use is the difference
+ * of the offsets rather than the width of the rectangle: taking the rectangle draws
+ * every glyph at double width, which reads as a font that is subtly too wide rather
+ * than as a fault.
+ */
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
