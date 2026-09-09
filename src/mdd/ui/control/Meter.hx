@@ -1,20 +1,54 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A level meter, with a peak that falls back slowly so a transient can be seen.
+**/
 final class Meter extends Widget {
+	/**
+		The level now, 0 to 1.
+	**/
 	public var level(default, null):Float = 0;
+
+	/**
+		The highest recently, falling back.
+	**/
 	public var peak(default, null):Float = 0;
+
+	/**
+		What colour to draw it.
+	**/
 	public var tint:Colour = 0x3B6EA5;
+
+	/**
+		Whether it fills upwards rather than across.
+	**/
 	public var vertical:Bool = true;
+
+	/**
+		How many blocks to draw it in, or nought for a continuous bar.
+	**/
 	public var segments:Int = 0;
 
 	var held:Float = 0;
 
+	/**
+		Builds an empty meter.
+
+		@param tint What colour to draw it.
+	**/
 	public function new(tint:Colour) {
 		super();
 		this.tint = tint;
 	}
 
+	/**
+		Gives it a new level and lets the peak fall.
+
+		@param next The level now, 0 to 1.
+		@param seconds How long since the last call.
+	**/
 	public function feed(next:Float, seconds:Float):Void {
 		var value = next;
 		if (value < 0) value = 0;

@@ -3,45 +3,97 @@ package mdd.ui.control;
 import haxe.ds.Vector;
 
 @:unreflective
+
+/**
+	A tree of rows, drawn from `Item` models rather than from widgets.
+
+	Only the rows on screen are ever drawn, and folding a branch rebuilds the flat list
+	of what is shown rather than walking the tree on every frame.
+**/
 final class Tree extends Scroll {
+	/**
+		The rows at the top level.
+	**/
 	public final roots:Array<Item> = [];
 
+	/**
+		Which row is chosen, or null for none.
+	**/
 	public var chosen(default, null):Null<Item> = null;
+
+	/**
+		Called when a row is chosen.
+	**/
 	public var onChoose:Null<Item -> Void> = null;
+
+	/**
+		Called when a branch is folded or unfolded.
+	**/
 	public var onOpen:Null<Item -> Void> = null;
 
+	/**
+		How many rows the last frame drew, which is what proves only the visible ones cost
+		anything.
+	**/
 	public var painted(default, null):Int = 0;
+
+	/**
+		How tall a row is, or nought for the metrics one.
+	**/
 	public var rowHeight:Float = 0;
 
 	final shown:Array<Item> = [];
 	final arrow:Vector<Float> = new Vector<Float>(6);
 	var hoverAt:Int = -1;
 
+	/**
+		Builds an empty tree.
+	**/
 	public function new() {
 		super();
 		focusable = true;
 	}
 
+	/**
+		Adds a row at the top level.
+
+		@param item The row.
+		@return The same row.
+	**/
 	public function plant(item:Item):Item {
 		roots.push(item);
 		reflow();
 		return item;
 	}
 
+	/**
+		Throws every row away.
+	**/
 	public function clear():Void {
 		roots.resize(0);
 		chosen = null;
 		reflow();
 	}
 
+	/**
+		@return How many rows are shown, which is fewer than the tree holds where branches are
+			folded.
+	**/
 	public inline function rows():Int {
 		return shown.length;
 	}
 
+	/**
+		@param index A position in the shown rows.
+		@return The row there, or null.
+	**/
 	public function shownAt(index:Int):Null<Item> {
 		return index < 0 || index >= shown.length ? null : shown[index];
 	}
 
+	/**
+		Builds the flat list of what is shown again, which folding or adding a row needs.
+	**/
 	public function reflow():Void {
 		shown.resize(0);
 		for (item in roots) gather(item);
@@ -50,6 +102,11 @@ final class Tree extends Scroll {
 		invalidate();
 	}
 
+	/**
+		Adds a row and everything under it that is shown to the flat list.
+
+		@param item The row.
+	**/
 	function gather(item:Item):Void {
 		shown.push(item);
 		if (!item.open) return;
@@ -62,6 +119,12 @@ final class Tree extends Scroll {
 		return root == null ? 26 : root.metrics.whole(26);
 	}
 
+	/**
+		Folds or unfolds a branch.
+
+		@param item The row.
+		@param open Whether it should be open.
+	**/
 	public function fold(item:Item, open:Bool):Void {
 		if (!item.branch() || item.open == open) return;
 		item.open = open;
@@ -69,6 +132,13 @@ final class Tree extends Scroll {
 		if (onOpen != null) onOpen(item);
 	}
 
+	/**
+		Chooses a row without telling `onChoose`, which is what setting the state from
+		outside wants.
+
+		@param item The row, or null for none.
+		@return False where it was already chosen.
+	**/
 	public function select(item:Null<Item>):Bool {
 		if (item == chosen || (item != null && !item.enabled)) return false;
 		chosen = item;
@@ -76,13 +146,25 @@ final class Tree extends Scroll {
 		return true;
 	}
 
+	/**
+		Called on a right click, with the row and where it happened.
+	**/
 	public var onContext:Null<(Item, Float, Float) -> Void> = null;
 
+	/**
+		Chooses a row and tells `onChoose`.
+
+		@param item The row, or null for none.
+	**/
 	public function choose(item:Null<Item>):Void {
 		if (!select(item)) return;
 		if (chosen != null && onChoose != null) onChoose(chosen);
 	}
 
+	/**
+		@param py A point, down.
+		@return Which shown row is there, or -1 past the end.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y + offsetY) / step());
 		return at < 0 || at >= shown.length ? -1 : at;
@@ -92,6 +174,12 @@ final class Tree extends Scroll {
 		return metrics.inset + item.depth * metrics.whole(14);
 	}
 
+	/**
+		@param metrics The sizes to draw at.
+		@param item A row.
+		@param px A point, across.
+		@return Whether the point is on the triangle that folds it, as against the row.
+	**/
 	function onChevron(metrics:Metrics, item:Item, px:Float):Bool {
 		final left = x + indent(metrics, item) - metrics.whole(12);
 		return px >= left && px < left + metrics.whole(14);
@@ -141,6 +229,12 @@ final class Tree extends Scroll {
 		return false;
 	}
 
+	/**
+		Moves the choice with the arrow keys, folding and unfolding with left and right.
+
+		@param code Which key.
+		@return Whether it was taken.
+	**/
 	function steered(code:Key):Bool {
 		final at = chosen == null ? -1 : shown.indexOf(chosen);
 
@@ -184,6 +278,9 @@ final class Tree extends Scroll {
 		return false;
 	}
 
+	/**
+		Scrolls the chosen row into view, unfolding whatever hides it.
+	**/
 	public function reveal():Void {
 		if (chosen == null || height <= 0) return;
 
@@ -286,6 +383,17 @@ final class Tree extends Scroll {
 		bar(paint);
 	}
 
+	/**
+		Draws the triangle that folds a branch, turned by how open it is.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param metrics The sizes to draw at.
+		@param item The row.
+		@param left Where it goes, across.
+		@param top Where it goes, down.
+		@param tall How tall the row is.
+	**/
 	function chevron(paint:Paint, theme:Theme, metrics:Metrics, item:Item, left:Float, top:Float,
 			tall:Float):Void {
 		final size = metrics.whole(4);

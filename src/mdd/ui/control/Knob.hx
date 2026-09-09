@@ -1,19 +1,49 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A knob: a value in a range, turned by dragging up and down.
+
+	It implements `Range` through a property rather than a variable, because an
+	interface cannot expose a variable to an `@:unreflective` implementer on hxcpp: the
+	read answers null and nothing warns.
+**/
 final class Knob extends Widget implements Range {
 	static inline final TRAVEL = 128.0;
 	static inline final SWEEP = 4.712389;
 	static inline final BEGAN = 2.356194;
 
+	/**
+		Where it sits now.
+	**/
 	public var value(get, never):Int;
 
 	var carried:Int = 0;
+
+	/**
+		The smallest it goes.
+	**/
 	public var least(default, null):Int = 0;
+
+	/**
+		The largest.
+	**/
 	public var most(default, null):Int = 127;
 
+	/**
+		What it is called, drawn under it.
+	**/
 	public var label:String = "";
+
+	/**
+		Whether the sweep is drawn out from the middle, which is what a pan wants.
+	**/
 	public var centred:Bool = false;
+
+	/**
+		Called when the value changes.
+	**/
 	public var onChange:Null<Knob -> Void> = null;
 
 	var dragging:Bool = false;
@@ -21,6 +51,14 @@ final class Knob extends Widget implements Range {
 	var grabValue:Int = 0;
 	var fine:Bool = false;
 
+	/**
+		Builds a knob.
+
+		@param label What it is called.
+		@param value Where it starts.
+		@param least The smallest it goes.
+		@param most The largest.
+	**/
 	public function new(label:String, value:Int, least:Int, most:Int) {
 		super();
 		this.label = label;
@@ -32,19 +70,33 @@ final class Knob extends Widget implements Range {
 		set(value);
 	}
 
+	/**
+		@return How far it can move.
+	**/
 	public inline function span():Int {
 		return most - least;
 	}
 
+	/**
+		@return How far round it is, 0 to 1.
+	**/
 	public function share():Float {
 		final run = span();
 		return run == 0 ? 0 : (carried - least) / run;
 	}
 
+	/**
+		@return Where it sits now.
+	**/
 	function get_value():Int {
 		return carried;
 	}
 
+	/**
+		Moves it, clamped to the range, telling `onChange` only where it actually moved.
+
+		@param next Where to move it to.
+	**/
 	public function set(next:Int):Void {
 		var held = next;
 		if (held < least) held = least;

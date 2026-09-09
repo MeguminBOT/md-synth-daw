@@ -3,22 +3,65 @@ package mdd.ui.control;
 typedef Cell = (row:Int, column:Int) -> String;
 
 @:unreflective
+
+/**
+	A table of rows and columns, drawn from a callback rather than from stored cells.
+
+	A table of ten thousand rows costs the same as one of ten, because only the rows on
+	screen are ever asked for.
+**/
 final class Table extends Scroll {
+	/**
+		How many rows there are.
+	**/
 	public var rows(default, null):Int = 0;
+
+	/**
+		How many columns.
+	**/
 	public var columns(default, null):Int = 0;
 
+	/**
+		How wide each column is, as a share of the whole.
+	**/
 	public final widths:Array<Float> = [];
 	final headings:Array<String> = [];
 
+	/**
+		What answers with the text of a cell. Called only for the rows on screen.
+	**/
 	public var read:Null<Cell> = null;
+
+	/**
+		What answers with the colour of a row, where the rows are coloured.
+	**/
 	public var tint:Null<Int -> Colour> = null;
 
+	/**
+		Which row is chosen, or -1 for none.
+	**/
 	public var chosen(default, null):Int = -1;
+
+	/**
+		Called when a row is chosen.
+	**/
 	public var onChoose:Null<Int -> Void> = null;
 
+	/**
+		How many rows the last frame drew, which is what proves only the visible ones cost anything.
+	**/
 	public var painted(default, null):Int = 0;
+
+	/**
+		How tall a row is, or nought for the metrics one.
+	**/
 	public var rowHeight:Float = 0;
 
+	/**
+		Builds an empty table with columns of equal width.
+
+		@param columns How many columns.
+	**/
 	public function new(columns:Int) {
 		super();
 		this.columns = columns;
@@ -30,6 +73,11 @@ final class Table extends Scroll {
 		}
 	}
 
+	/**
+		Says how many rows there are, forgetting a choice that is now out of range.
+
+		@param rows How many rows.
+	**/
 	public function hold(rows:Int):Void {
 		this.rows = rows;
 		contentHeight = rows * step();
@@ -42,6 +90,11 @@ final class Table extends Scroll {
 		return root == null ? 18 : root.metrics.whole(18);
 	}
 
+	/**
+		Chooses a row and scrolls it into view.
+
+		@param row Which row, or -1 for none.
+	**/
 	public function choose(row:Int):Void {
 		if (row < 0 || row >= rows || row == chosen) return;
 		chosen = row;
@@ -49,6 +102,10 @@ final class Table extends Scroll {
 		if (onChoose != null) onChoose(row);
 	}
 
+	/**
+		@param py A point, down.
+		@return The row there, or -1 where it is past the end.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y + offsetY) / step());
 		return at < 0 || at >= rows ? -1 : at;
@@ -90,6 +147,9 @@ final class Table extends Scroll {
 		return false;
 	}
 
+	/**
+		Scrolls the chosen row into view.
+	**/
 	function reveal():Void {
 		if (chosen < 0) return;
 

@@ -1,15 +1,38 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A strip of tabs, squeezed to fit and then cut where there is still not room.
+**/
 final class Tabs extends Widget {
+	/**
+		What each tab says.
+	**/
 	public final labels:Array<String> = [];
+
+	/**
+		Which tab is chosen.
+	**/
 	public var chosen(default, null):Int = 0;
+
+	/**
+		Called when a tab is chosen.
+	**/
 	public var onChoose:Null<Int -> Void> = null;
 
+	/**
+		How many tabs would not fit and are not drawn.
+	**/
 	public var overflowed(default, null):Int = 0;
 
 	var hoverAt:Int = -1;
 
+	/**
+		Builds a strip.
+
+		@param labels What each tab says.
+	**/
 	public function new(labels:Array<String>) {
 		super();
 		for (label in labels) this.labels.push(label);
@@ -17,11 +40,23 @@ final class Tabs extends Widget {
 		opaque = true;
 	}
 
+	/**
+		Chooses a tab and tells `onChoose`.
+
+		@param which Which tab.
+	**/
 	public function choose(which:Int):Void {
 		if (!select(which)) return;
 		if (onChoose != null) onChoose(which);
 	}
 
+	/**
+		Chooses a tab without telling `onChoose`, which is what setting the state from
+		outside wants.
+
+		@param which Which tab.
+		@return False where it was already chosen or out of range.
+	**/
 	public function select(which:Int):Bool {
 		if (which < 0 || which >= labels.length || which == chosen) return false;
 
@@ -31,10 +66,22 @@ final class Tabs extends Widget {
 		return true;
 	}
 
+	/**
+		@param font The face the labels draw in.
+		@param metrics The sizes to draw at.
+		@param which Which tab.
+		@param squeeze How much to take off it.
+		@return How wide that tab draws.
+	**/
 	function widthOf(font:Font, metrics:Metrics, which:Int, squeeze:Float = 0):Float {
 		return squeeze > 0 ? squeeze : font.measure(labels[which]) + metrics.inset * 2;
 	}
 
+	/**
+		@param font The face the labels draw in.
+		@param metrics The sizes to draw at.
+		@return How much to take off every tab so they all fit.
+	**/
 	function squeezed(font:Font, metrics:Metrics):Float {
 		if (labels.length == 0) return 0;
 
@@ -44,6 +91,10 @@ final class Tabs extends Widget {
 		return total <= width ? 0 : width / labels.length;
 	}
 
+	/**
+		@param px A point, across.
+		@return The tab there, or -1.
+	**/
 	public function at(px:Float):Int {
 		final root = root();
 		if (root == null || root.metrics.body == null) return -1;

@@ -1,18 +1,43 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	The one tooltip, which every widget borrows rather than owning one.
+
+	It carries three lines: what the thing is, a detail, and the chord that reaches it.
+	The detail is what makes a parameter tooltip worth having here, because it is where
+	the register address and the derived value go.
+**/
 final class Tooltip extends Widget {
+	/**
+		How far from the pointer it sits, so it never covers what it is about.
+	**/
 	public static inline final CLEAR = 6.0;
 
+	/**
+		What it is describing, or null.
+	**/
 	public var subject(default, null):Null<Widget> = null;
 
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Builds a tooltip that is not showing.
+	**/
 	public function new() {
 		super();
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Takes its three lines from a widget and sizes itself to them.
+
+		@param subject The widget it is about, or null to clear it.
+	**/
 	public function describe(subject:Null<Widget>):Void {
 		this.subject = subject;
 		relayout();

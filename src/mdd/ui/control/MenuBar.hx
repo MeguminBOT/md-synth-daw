@@ -1,18 +1,45 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	The bar across the top: named menus on the left, and a few labels on the right.
+
+	Once one menu is open, moving across the bar opens the next rather than needing a
+	second click.
+**/
 final class MenuBar extends Widget {
+	/**
+		What each menu is called.
+	**/
 	public final labels:Array<String> = [];
+
+	/**
+		The menus themselves.
+	**/
 	public final menus:Array<Menu> = [];
 
+	/**
+		The labels on the right.
+	**/
 	public final trailing:Array<String> = [];
+
+	/**
+		Called when one of those is clicked.
+	**/
 	public var onTrailing:Null<Int -> Void> = null;
 
+	/**
+		Which menu is open, or -1 for none.
+	**/
 	public var openAt(default, null):Int = -1;
 	var overTrailing:Int = -1;
 
 	var hoverAt:Int = -1;
 
+	/**
+		Builds an empty bar.
+	**/
 	public function new() {
 		super();
 
@@ -20,6 +47,13 @@ final class MenuBar extends Widget {
 		opaque = true;
 	}
 
+	/**
+		Adds a menu to the bar.
+
+		@param label What to call it.
+		@param menu The menu.
+		@return The same menu.
+	**/
 	public function offer(label:String, menu:Menu):Menu {
 		labels.push(label);
 		menus.push(menu);
@@ -28,17 +62,32 @@ final class MenuBar extends Widget {
 		return menu;
 	}
 
+	/**
+		Forgets which menu is open once its fade has finished. It is called through a
+		closure rather than as a method reference, because a method reference on an
+		`@:unreflective` class lowers to a wrapper the metadata removes.
+
+		@param fade The fade that finished.
+	**/
 	function shed(fade:Motion):Void {
 		if (openAt < 0) return;
 		openAt = -1;
 		invalidate();
 	}
 
+	/**
+		@return How much room a menu name takes beyond its text.
+	**/
 	public function cell():Float {
 		final root = root();
 		return root == null ? 22 : root.metrics.whole(22);
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which trailing label is there, or -1.
+	**/
 	function trailingAt(px:Float, py:Float):Int {
 		if (trailing.length == 0) return -1;
 
@@ -61,10 +110,20 @@ final class MenuBar extends Widget {
 		return -1;
 	}
 
+	/**
+		@param font The face the labels draw in.
+		@param metrics The sizes to draw at.
+		@param which Which menu.
+		@return How wide its name draws.
+	**/
 	function widthOf(font:Font, metrics:Metrics, which:Int):Float {
 		return font.measure(labels[which]) + metrics.gap * 2;
 	}
 
+	/**
+		@param px A point, across.
+		@return Which menu name is there, or -1.
+	**/
 	public function at(px:Float):Int {
 		final root = root();
 		if (root == null || root.metrics.body == null) return -1;
@@ -82,6 +141,10 @@ final class MenuBar extends Widget {
 		return -1;
 	}
 
+	/**
+		@param which A menu.
+		@return Where its name starts, across.
+	**/
 	public function penOf(which:Int):Float {
 		final root = root();
 		if (root == null || root.metrics.body == null) return x;
@@ -94,6 +157,11 @@ final class MenuBar extends Widget {
 		return pen;
 	}
 
+	/**
+		Opens a menu under its name, closing whichever was open.
+
+		@param which Which menu.
+	**/
 	public function open(which:Int):Void {
 		final root = root();
 		if (root == null || which < 0 || which >= menus.length) return;
@@ -105,6 +173,9 @@ final class MenuBar extends Widget {
 		invalidate();
 	}
 
+	/**
+		Closes whichever menu is open.
+	**/
 	public function close():Void {
 		final root = root();
 		if (root == null || openAt < 0) return;
@@ -216,6 +287,17 @@ final class MenuBar extends Widget {
 		}
 	}
 
+	/**
+		Draws one of the trailing marks on the right, lit where it is hovered.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param metrics The sizes to draw at.
+		@param index Which trailing mark.
+		@param at Where it goes, across.
+		@param top Where it goes, down.
+		@param size How large to draw the mark.
+	**/
 	function mark(paint:Paint, theme:Theme, metrics:Metrics, index:Int, at:Float,
 			top:Float, size:Float):Void {
 		final ink = index == overTrailing ? theme.ink : theme.dim;

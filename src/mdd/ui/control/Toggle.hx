@@ -1,11 +1,32 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A checkbox: a label and a state that flips when it is clicked.
+**/
 final class Toggle extends Widget {
+	/**
+		What it says.
+	**/
 	public var label:String;
+
+	/**
+		Whether it is checked.
+	**/
 	public var on(default, null):Bool = false;
+
+	/**
+		Called when the state changes.
+	**/
 	public var onChange:Null<Toggle -> Void> = null;
 
+	/**
+		Builds a checkbox.
+
+		@param label What it says.
+		@param on Whether it starts checked.
+	**/
 	public function new(label:String, on:Bool = false) {
 		super();
 		this.label = label;
@@ -14,6 +35,11 @@ final class Toggle extends Widget {
 		opaque = true;
 	}
 
+	/**
+		Sets the state, telling `onChange` only where it actually moved.
+
+		@param next The new state.
+	**/
 	public function set(next:Bool):Void {
 		if (next == on) return;
 		on = next;

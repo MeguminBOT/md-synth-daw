@@ -1,17 +1,48 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A button, which can also be a latch that stays down.
+**/
 final class Button extends Widget {
+	/**
+		What it says.
+	**/
 	public var label:String;
+
+	/**
+		Whether the pointer is down on it.
+	**/
 	public var pressed(default, null):Bool = false;
+
+	/**
+		Whether it is drawn pressed, which a latch stays.
+	**/
 	public var down(default, null):Bool = false;
+
+	/**
+		Whether it latches rather than springing back.
+	**/
 	public var toggle:Bool = false;
+
+	/**
+		Whether a latch is on.
+	**/
 	public var on:Bool = false;
 
+	/**
+		What to do when it is pressed.
+	**/
 	public var onFire:Null<Button -> Void> = null;
 
 	var inside:Bool = false;
 
+	/**
+		Builds a button.
+
+		@param label What it says.
+	**/
 	public function new(label:String) {
 		super();
 		this.label = label;
@@ -64,6 +95,9 @@ final class Button extends Widget {
 		return false;
 	}
 
+	/**
+		Flips a latch and calls `onFire`.
+	**/
 	function fire():Void {
 		pressed = true;
 		invalidate();

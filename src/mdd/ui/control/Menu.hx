@@ -3,29 +3,78 @@ package mdd.ui.control;
 import haxe.ds.Vector;
 
 @:unreflective
+
+/**
+	A menu: a list of entries, some of which open menus of their own.
+
+	It is a widget rather than a system menu, so it draws in the theme and carries a
+	shortcut and a reason on every entry. The root owns the stack of open menus; this
+	owns only whichever one it opened itself.
+**/
 final class Menu extends Widget {
+	/**
+		How many entries fit before the menu is called crowded and drawn in two columns.
+	**/
 	public static inline final CEILING = 9;
 	static inline final DWELL = 0.200;
 	static inline final RISE = 4.0;
 
+	/**
+		The entries, in order.
+	**/
 	public final choices:Array<Choice> = [];
 
+	/**
+		Called when an entry is chosen, before its own handler.
+	**/
 	public var onChoose:Null<Choice -> Void> = null;
+
+	/**
+		Called once the closing fade has finished.
+	**/
 	public var onClose:Null<Motion -> Void> = null;
 
+	/**
+		Which entry the pointer is over, or -1.
+	**/
 	public var hoverAt(default, null):Int = -1;
+
+	/**
+		The menu this one opened, where it has one open.
+	**/
 	public var opened(default, null):Null<Menu> = null;
+
+	/**
+		Whether it is fading out. It still draws while it is.
+	**/
 	public var closing(default, null):Bool = false;
 
+	/**
+		Where it was asked to open, across.
+	**/
 	public var anchorX(default, null):Float = 0;
+
+	/**
+		Where it was asked to open, down.
+	**/
 	public var anchorY(default, null):Float = 0;
 
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
+
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
 
 	final arrow:Vector<Float> = new Vector<Float>(6);
 	var dwelt:Float = 0;
 
+	/**
+		Builds an empty menu.
+	**/
 	public function new() {
 		super();
 		opaque = true;
@@ -34,31 +83,55 @@ final class Menu extends Widget {
 		rise = new Motion(this, 0, true);
 	}
 
+	/**
+		Adds an entry.
+
+		@param choice The entry.
+		@return The same entry.
+	**/
 	public function offer(choice:Choice):Choice {
 		choices.push(choice);
 		relayout();
 		return choice;
 	}
 
+	/**
+		Adds a line between groups.
+	**/
 	public function divide():Void {
 		offer(Choice.divider());
 	}
 
+	/**
+		@return How many entries can actually be chosen, dividers left out.
+	**/
 	public function commands():Int {
 		var count = 0;
 		for (choice in choices) if (!choice.divides) count++;
 		return count;
 	}
 
+	/**
+		@return Whether there are more entries than fit in one column.
+	**/
 	public inline function crowded():Bool {
 		return commands() > CEILING;
 	}
 
+	/**
+		Records where it was asked to open, which is not always where it fits.
+
+		@param px Where, across.
+		@param py Where, down.
+	**/
 	public function anchor(px:Float, py:Float):Void {
 		anchorX = px;
 		anchorY = py;
 	}
 
+	/**
+		Starts the fade and the rise.
+	**/
 	public function arrive():Void {
 		closing = false;
 		fade.hold(0);
@@ -67,11 +140,20 @@ final class Menu extends Widget {
 		dwelt = 0;
 	}
 
+	/**
+		Starts fading out. It keeps drawing until the fade finishes, and `onClose` is called
+		then.
+	**/
 	public function leaving():Void {
 		closing = true;
 		shutSubmenu();
 	}
 
+	/**
+		@param metrics The sizes to draw at.
+		@param choice An entry.
+		@return How tall it draws, which is less for a divider.
+	**/
 	function rowHeight(metrics:Metrics, choice:Choice):Float {
 		if (choice.divides) return metrics.whole(9);
 
@@ -80,6 +162,10 @@ final class Menu extends Widget {
 		return tall;
 	}
 
+	/**
+		@param index An entry.
+		@return Where it sits, down.
+	**/
 	public function topOf(index:Int):Float {
 		final root = root();
 		if (root == null) return 0;
@@ -89,6 +175,10 @@ final class Menu extends Widget {
 		return top;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which entry is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -153,6 +243,11 @@ final class Menu extends Widget {
 		if (dwelt >= DWELL) expand(hoverAt);
 	}
 
+	/**
+		Opens the menu an entry carries, beside it.
+
+		@param at Which entry.
+	**/
 	function expand(at:Int):Void {
 		final root = root();
 		if (root == null || at < 0 || at >= choices.length) return;
@@ -167,6 +262,9 @@ final class Menu extends Widget {
 		root.pop(sub, x + width - root.metrics.unit, y + topOf(at));
 	}
 
+	/**
+		Closes whichever menu this one opened.
+	**/
 	function shutSubmenu():Void {
 		if (opened == null) return;
 
@@ -175,6 +273,11 @@ final class Menu extends Widget {
 		opened = null;
 	}
 
+	/**
+		Moves the hover, opening or closing a nested menu as it goes.
+
+		@param at Which entry, or -1 for none.
+	**/
 	function hoverOn(at:Int):Void {
 		if (at == hoverAt) return;
 
@@ -184,6 +287,12 @@ final class Menu extends Widget {
 		invalidate();
 	}
 
+	/**
+		Chooses an entry: tells `onChoose`, then the entry's own handler, then closes the
+		whole stack.
+
+		@param at Which entry.
+	**/
 	public function fire(at:Int):Void {
 		if (at < 0 || at >= choices.length) return;
 
@@ -227,6 +336,14 @@ final class Menu extends Widget {
 		return false;
 	}
 
+	/**
+		Moves the hover with the arrow keys, opens a nested menu with right, closes with
+		left, and chooses with enter.
+
+		@param code Which key.
+		@param root The root the menu is open in.
+		@return Whether it was taken.
+	**/
 	function steered(code:Key, root:Root):Bool {
 		switch (code) {
 			case Key.Up:
@@ -258,6 +375,11 @@ final class Menu extends Widget {
 		return false;
 	}
 
+	/**
+		@param from Where to start.
+		@param by One forwards, minus one backwards.
+		@return The next entry that can be chosen, skipping dividers and disabled ones.
+	**/
 	function near(from:Int, by:Int):Int {
 		if (choices.length == 0) return -1;
 
@@ -340,6 +462,15 @@ final class Menu extends Widget {
 		paint.popTransform();
 	}
 
+	/**
+		Draws the triangle that says an entry opens a menu of its own.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param metrics The sizes to draw at.
+		@param top Where the entry sits, down.
+		@param alpha How opaque to draw it.
+	**/
 	function chevron(paint:Paint, theme:Theme, metrics:Metrics, top:Float, alpha:Float):Void {
 		final size = metrics.whole(4);
 		final cx = x + width - metrics.inset - size;

@@ -1,17 +1,50 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A number that can be dragged or typed into.
+
+	Typing is what makes it worth having over a knob: a fade of exactly two seconds is
+	a thing to type, not a thing to find by dragging. `derived` is what turns the raw
+	value into what it means, which is how a total level shows its decibels.
+**/
 final class Number extends Widget implements Range {
+	/**
+		What it is called.
+	**/
 	public var label:String;
+
+	/**
+		What the number is in, drawn after it.
+	**/
 	public var unit:String = "";
 
+	/**
+		Where it sits now.
+	**/
 	public var value(get, never):Int;
 
 	var carried:Int = 0;
+
+	/**
+		The smallest it goes.
+	**/
 	public var least(default, null):Int = 0;
+
+	/**
+		The largest.
+	**/
 	public var most(default, null):Int = 127;
 
+	/**
+		Called when the value changes.
+	**/
 	public var onChange:Null<Number -> Void> = null;
+
+	/**
+		What turns the raw value into what it means, for the tooltip.
+	**/
 	public var derived:Null<Int -> String> = null;
 
 	var dragging:Bool = false;
@@ -21,6 +54,14 @@ final class Number extends Widget implements Range {
 
 	var entry:String = "";
 
+	/**
+		Builds a number.
+
+		@param label What it is called.
+		@param value Where it starts.
+		@param least The smallest it goes.
+		@param most The largest.
+	**/
 	public function new(label:String, value:Int, least:Int, most:Int) {
 		super();
 		this.label = label;
@@ -31,6 +72,12 @@ final class Number extends Widget implements Range {
 		set(value);
 	}
 
+	/**
+		Changes the range, clamping the value into it.
+
+		@param least The smallest it goes.
+		@param most The largest.
+	**/
 	public function spans(least:Int, most:Int):Void {
 		if (this.least == least && this.most == most) return;
 
@@ -41,19 +88,33 @@ final class Number extends Widget implements Range {
 		invalidate();
 	}
 
+	/**
+		@return How far it can move.
+	**/
 	public inline function span():Int {
 		return most - least;
 	}
 
+	/**
+		@return How far along it is, 0 to 1.
+	**/
 	public function share():Float {
 		final run = span();
 		return run == 0 ? 0 : (carried - least) / run;
 	}
 
+	/**
+		@return Where it sits now.
+	**/
 	function get_value():Int {
 		return carried;
 	}
 
+	/**
+		Moves it, clamped to the range, telling `onChange` only where it actually moved.
+
+		@param next Where to move it to.
+	**/
 	public function set(next:Int):Void {
 		var held = next;
 		if (held < least) held = least;
@@ -114,6 +175,12 @@ final class Number extends Widget implements Range {
 		return false;
 	}
 
+	/**
+		Handles typing into it: digits, a minus sign, backspace, enter and escape.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	function keyed(event:Input):Bool {
 		if (typing) {
 			switch (event.code) {
@@ -153,6 +220,9 @@ final class Number extends Widget implements Range {
 		return false;
 	}
 
+	/**
+		@return How wide it needs to be for the widest value it could show.
+	**/
 	public function fits():Float {
 		final root = root();
 		if (root == null) return 70;

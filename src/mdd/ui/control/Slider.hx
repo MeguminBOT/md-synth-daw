@@ -1,18 +1,47 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A slider: a value in a range, dragged along a track.
+**/
 final class Slider extends Widget implements Range {
+	/**
+		Where it sits now.
+	**/
 	public var value(get, never):Int;
 
 	var carried:Int = 0;
+
+	/**
+		The smallest it goes.
+	**/
 	public var least(default, null):Int = 0;
+
+	/**
+		The largest.
+	**/
 	public var most(default, null):Int = 127;
 
+	/**
+		Whether the track runs up rather than across.
+	**/
 	public var vertical:Bool = false;
+
+	/**
+		Called when the value changes.
+	**/
 	public var onChange:Null<Slider -> Void> = null;
 
 	var dragging:Bool = false;
 
+	/**
+		Builds a slider.
+
+		@param value Where it starts.
+		@param least The smallest it goes.
+		@param most The largest.
+	**/
 	public function new(value:Int, least:Int, most:Int) {
 		super();
 		this.least = least;
@@ -23,19 +52,33 @@ final class Slider extends Widget implements Range {
 		set(value);
 	}
 
+	/**
+		@return How far it can move.
+	**/
 	public inline function span():Int {
 		return most - least;
 	}
 
+	/**
+		@return How far along it is, 0 to 1.
+	**/
 	public function share():Float {
 		final run = span();
 		return run == 0 ? 0 : (carried - least) / run;
 	}
 
+	/**
+		@return Where it sits now.
+	**/
 	function get_value():Int {
 		return carried;
 	}
 
+	/**
+		Moves it, clamped to the range, telling `onChange` only where it actually moved.
+
+		@param next Where to move it to.
+	**/
 	public function set(next:Int):Void {
 		var held = next;
 		if (held < least) held = least;
@@ -47,6 +90,12 @@ final class Slider extends Widget implements Range {
 		if (onChange != null) onChange(this);
 	}
 
+	/**
+		Moves the value to wherever a point along the track is.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
 	function reach(px:Float, py:Float):Void {
 		final along = vertical ? 1 - (py - y) / height : (px - x) / width;
 		set(least + Math.round(along * span()));

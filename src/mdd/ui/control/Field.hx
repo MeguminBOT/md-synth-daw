@@ -1,19 +1,54 @@
 package mdd.ui.control;
 
 @:unreflective
+
+/**
+	A single line of editable text, with a caret, a selection and the four editing
+	commands.
+
+	It keeps its plain keys while a modified chord still reaches past it, which is what
+	lets playback be stopped while a track is being renamed and a typed space not start
+	it.
+**/
 final class Field extends Widget {
+	/**
+		What is in it.
+	**/
 	public var value(default, null):String = "";
 	var caret(default, null):Int = 0;
+
+	/**
+		What is drawn when it is empty.
+	**/
 	public var hint:String = "";
+
+	/**
+		Where the selection started. The caret is the other end of it.
+	**/
 	public var mark(default, null):Int = 0;
 
+	/**
+		Called on every change, for something that follows as it is typed.
+	**/
 	public var onChange:Null<String -> Void> = null;
+
+	/**
+		Called when enter is pressed or the keyboard leaves.
+	**/
 	public var onCommit:Null<String -> Void> = null;
 
+	/**
+		What cut and copy write to and paste reads from.
+	**/
 	public var clipboard:String = "";
 
 	var dragging:Bool = false;
 
+	/**
+		Builds a field.
+
+		@param value What to start with.
+	**/
 	public function new(value:String = "") {
 		super();
 		focusable = true;
@@ -22,6 +57,11 @@ final class Field extends Widget {
 		set(value);
 	}
 
+	/**
+		Replaces the whole contents and puts the caret at the end.
+
+		@param next The new contents.
+	**/
 	public function set(next:String):Void {
 		value = next;
 		caret = next.length;
@@ -33,18 +73,33 @@ final class Field extends Widget {
 		return caret != mark;
 	}
 
+	/**
+		@return Where the selection starts.
+	**/
 	public inline function from():Int {
 		return caret < mark ? caret : mark;
 	}
 
+	/**
+		@return Where it ends.
+	**/
 	public inline function to():Int {
 		return caret < mark ? mark : caret;
 	}
 
+	/**
+		@return The selected text, or an empty string.
+	**/
 	public function selected():String {
 		return selecting() ? value.substring(from(), to()) : "";
 	}
 
+	/**
+		Moves the caret.
+
+		@param at Where to put it.
+		@param keep Whether to keep the selection, which is what shift does.
+	**/
 	function place(at:Int, keep:Bool):Void {
 		var next = at;
 		if (next < 0) next = 0;
@@ -55,6 +110,11 @@ final class Field extends Widget {
 		invalidate();
 	}
 
+	/**
+		Removes the selection.
+
+		@return Whether there was one.
+	**/
 	function drop():Bool {
 		if (!selecting()) return false;
 
@@ -66,6 +126,11 @@ final class Field extends Widget {
 		return true;
 	}
 
+	/**
+		Puts text in over the selection.
+
+		@param text What to put in.
+	**/
 	function put(text:String):Void {
 		drop();
 		value = value.substring(0, caret) + text + value.substring(caret);
@@ -74,6 +139,9 @@ final class Field extends Widget {
 		changed();
 	}
 
+	/**
+		Tells `onChange` and asks for a redraw.
+	**/
 	function changed():Void {
 		invalidate();
 		if (onChange != null) onChange(value);
@@ -116,6 +184,13 @@ final class Field extends Widget {
 		return false;
 	}
 
+	/**
+		Handles a pointer press: places the caret, and selects a word or everything on
+		a second or third click.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	function pressed(event:Input):Bool {
 		final keep = event.shift();
 
@@ -194,6 +269,10 @@ final class Field extends Widget {
 		return false;
 	}
 
+	/**
+		@param px A point, across.
+		@return Which character is there.
+	**/
 	function index(px:Float):Int {
 		final root = root();
 		if (root == null || root.metrics.mono == null) return value.length;
