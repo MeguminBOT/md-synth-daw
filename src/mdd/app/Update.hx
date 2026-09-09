@@ -22,6 +22,7 @@ final class Update {
 	public var running(default, null):String;
 	public var platform(default, null):String;
 	public var machine(default, null):String;
+	public var portable(default, null):Bool;
 
 	public var offered(default, null):String = "";
 	public var saidAt(default, null):String = "";
@@ -33,11 +34,12 @@ final class Update {
 	final held:AtomicInt = new AtomicInt(IDLE);
 
 	public function new(repository:String, running:String, platform:String = "",
-			machine:String = "") {
+			machine:String = "", portable:Null<Bool> = null) {
 		this.repository = repository;
 		this.running = running;
 		this.platform = platform == "" ? Paths.platform() : platform;
 		this.machine = machine == "" ? Paths.machine() : machine;
+		this.portable = portable == null ? Paths.portable() : portable;
 	}
 
 	public inline function state():Int {
@@ -143,8 +145,17 @@ final class Update {
 		if (name.indexOf(platform) >= 0) score += 2;
 		if (name.indexOf(machine) >= 0) score += 2;
 		if (StringTools.endsWith(name, ending)) score += 2;
-		if (name.indexOf(installer) >= 0) score += 3;
-		if (name.indexOf("portable") >= 0) score += 1;
+
+		final carries = name.indexOf("portable") >= 0;
+		final installs = name.indexOf(installer) >= 0;
+
+		if (portable) {
+			if (carries) score += 4;
+			else if (installs) score -= 2;
+		} else {
+			if (installs) score += 4;
+			else if (carries) score -= 2;
+		}
 
 		if (platform != "windows" && StringTools.endsWith(name, ".exe")) return 0;
 		if (platform != "mac" && StringTools.endsWith(name, ".dmg")) return 0;
