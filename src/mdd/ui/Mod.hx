@@ -1,5 +1,8 @@
 package mdd.ui;
 
+/**
+	Which modifier keys are held, as bits, so several can be at once.
+**/
 enum abstract Mod(Int) from Int to Int {
 	var None = 0;
 	var Shift = 1;

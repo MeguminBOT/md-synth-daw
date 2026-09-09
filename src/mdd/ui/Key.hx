@@ -1,5 +1,9 @@
 package mdd.ui;
 
+/**
+	Every key the application can be told about, by physical position rather than by
+	what is printed on it.
+**/
 enum abstract Key(Int) from Int to Int {
 	var Unknown = 0;
 
@@ -60,6 +64,9 @@ enum abstract Key(Int) from Int to Int {
 	var Down = 81;
 	var Up = 82;
 
+	/**
+		@return What the key is called, which is never translated.
+	**/
 	public function name():String {
 		return switch (cast this : Key) {
 			case Return: "Return";
@@ -87,6 +94,12 @@ enum abstract Key(Int) from Int to Int {
 		}
 	}
 
+	/**
+		Spells a chord the way it is shown in a menu.
+
+		@param mods Which modifiers are held with it.
+		@return The chord as text.
+	**/
 	public function shortcut(mods:Mod):String {
 		var out = "";
 		if ((mods & Mod.Ctrl) != 0) out += "Ctrl+";
