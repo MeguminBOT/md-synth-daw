@@ -32,6 +32,7 @@ class Run {
 			case "run": start(root, project, args.slice(1), debug);
 			case "gate": gate(root, project, args.slice(1));
 			case "package": packaged(root, project, args.slice(1));
+			case "notes": if (!Notes.write(root, project, args.slice(1))) Sys.exit(1);
 			case "clean": clean(root, project);
 			case "help", "--help", "-h": usage(project);
 			case unknown:
@@ -170,6 +171,7 @@ class Run {
 			+ " 6972");
 		Sys.println("  mdd gate [name]       every check, in order, or one by name");
 		Sys.println("  mdd package [kind]    portable, installer, or both");
+		Sys.println("  mdd notes [tag]       write the release notes for a tag into export/");
 		Sys.println("  mdd display           write the editor's completion files again");
 		Sys.println("  mdd clean             delete the output directory");
 		Sys.println("");

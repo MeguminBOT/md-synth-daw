@@ -48,6 +48,51 @@ jobs:
           fi
           echo "Running as ${{ github.repository_owner }}."
 
+      - uses: actions/checkout@v7.0.1
+
+      # Every built file carries the version out of mdd.xml, so a tag that says
+      # something else puts v0.2.0 on a release full of 0.1.0 files. Cheaper to
+      # find here than after five platforms have built.
+      - name: Refuse a tag that is not the version being built
+        run: |
+          asked="${{ inputs.tag }}"
+          asked="${asked#v}"
+          built="$(grep '<meta ' mdd.xml | grep -o 'version="[^"]*"' | head -1 | cut -d'"' -f2)"
+
+          if [ "$asked" != "$built" ]; then
+            echo "The tag asks for $asked and mdd.xml carries $built."
+            echo "Edit the version in mdd.xml, or pass the tag that matches it."
+            exit 1
+          fi
+          echo "Publishing $built."
+
+  notes:
+    name: Write the release notes
+    needs: owner
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history, because the notes are the commit log since the
+      # previous tag.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: krdlab/setup-haxe@v2.1.0
+        with:
+          haxe-version: 4.3.7
+
+      - name: Write them
+        shell: bash
+        run: |
+          ./mdd notes "${{ inputs.tag }}"
+          cat export/NOTES.md
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-notes
+          path: export/NOTES.md
+          if-no-files-found: error
+
   build:
     name: ${{ matrix.name }}
     needs: owner
@@ -196,14 +241,22 @@ jobs:
 
   publish:
     name: Publish ${{ inputs.tag }}
-    needs: build
+    needs: [build, notes]
     runs-on: ubuntu-latest
     steps:
       - name: Collect every platform
         uses: actions/download-artifact@v8.0.1
         with:
+          pattern: mdd-*
           path: packages
           merge-multiple: true
+
+      # Kept out of packages: the notes are the release body, not a download.
+      - name: Collect the release notes
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: release-notes
+          path: notes
 
       - name: Say what is going out
         run: ls -la packages
@@ -253,9 +306,10 @@ jobs:
         with:
           tag_name: ${{ inputs.tag }}
           name: MD Synth DAW ${{ inputs.tag }}
+          target_commitish: ${{ github.sha }}
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
-          generate_release_notes: true
+          body_path: notes/NOTES.md
           fail_on_unmatched_files: true
           files: packages/*
 
@@ -282,4 +336,8 @@ jobs:
             echo '```'
             ls -1 packages
             echo '```'
+            echo ""
+            echo "### The release body it would have carried"
+            echo ""
+            cat notes/NOTES.md
           } >> "$GITHUB_STEP_SUMMARY"
