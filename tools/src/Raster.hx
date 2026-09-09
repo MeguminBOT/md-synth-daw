@@ -1,8 +1,18 @@
 import haxe.io.Bytes;
 
+/**
+	Turns a parsed SVG into pixels, with antialiasing.
+**/
 class Raster {
 	public static inline final SAMPLES = 5;
 
+	/**
+		Draws every shape in an SVG at a size.
+
+		@param svg The parsed drawing.
+		@param size How large to draw it.
+		@return The pixels, four bytes each.
+	**/
 	public static function paint(svg:Svg, size:Int):Bytes {
 		final out = Bytes.alloc(size * size * 4);
 		final one:Array<Svg.Shape> = [];
@@ -38,6 +48,14 @@ class Raster {
 		return out;
 	}
 
+	/**
+		Draws the same shapes filled solid, whatever their own colours say, which is
+		what an icon tinted at run time needs.
+
+		@param svg The parsed drawing.
+		@param size How large to draw it.
+		@return The pixels, four bytes each.
+	**/
 	public static function fill(svg:Svg, size:Int):Bytes {
 		return covered(svg.shapes, svg.width, svg.height, size);
 	}

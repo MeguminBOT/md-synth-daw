@@ -1,7 +1,18 @@
 import haxe.io.Bytes;
 import haxe.io.BytesOutput;
 
+/**
+	Writes a PNG. It is the smallest writer that produces a valid file, because the
+	only thing it writes is an icon that is about to be read back by the build.
+**/
 class Png {
+	/**
+		Writes square pixels as a PNG.
+
+		@param rgba The pixels, four bytes each.
+		@param size How wide and tall the image is.
+		@return The file.
+	**/
 	public static function write(rgba:Bytes, size:Int):Bytes {
 		final out = new BytesOutput();
 		out.bigEndian = true;

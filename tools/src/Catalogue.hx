@@ -1,7 +1,21 @@
 import sys.FileSystem;
 import sys.io.File;
 
+/**
+	Generates the string keys the interface looks its text up by.
+
+	A key is a number rather than a name at run time, so a lookup is an array index and
+	not a search, and the numbers come from here so nothing can drift.
+**/
 class Catalogue {
+	/**
+		Reads the language files and writes the key list.
+
+		@param project What the build file declares.
+		@param root The repository root.
+		@param into The folder the generated file goes in.
+		@return How many keys there are.
+	**/
 	public static function named(project:Project, root:String, into:String):Int {
 		final from = root + "/" + project.languages + "/" + reference(root, project);
 		if (!FileSystem.exists(from)) return 0;
@@ -49,6 +63,10 @@ class Catalogue {
 		return "";
 	}
 
+	/**
+		@param key A string key, as it appears in a language file.
+		@return The name it is generated under.
+	**/
 	public static function shouted(key:String):String {
 		final out = new StringBuf();
 

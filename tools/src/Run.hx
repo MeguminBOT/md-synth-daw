@@ -1,6 +1,15 @@
 import sys.FileSystem;
 import sys.io.File;
 
+/**
+	The one command this repository is driven by: setup, check, build, run, gate,
+	package, notes, display and clean.
+
+	It reads the build file, fetches what the vendor folder is missing, generates the
+	configuration, the native build file and the editor completion files, and drives
+	the compiler. Nothing here is written by hand twice: every option lives in the
+	build file and everything generated from it is thrown away by `clean`.
+**/
 class Run {
 	static inline final SDL_VERSION = "3.4.14";
 	static inline final MINIAUDIO_COMMIT = "9634bedb5b5a2ca38c1ee7108a9358a4e233f14d";
@@ -12,6 +21,9 @@ class Run {
 	static inline final PRESENCE:Int = 1024;
 
 
+	/**
+		Reads the arguments and runs one command. Exits nonzero on anything that failed.
+	**/
 	public static function main():Void {
 		final args = Sys.args();
 		final root = native(Sys.getCwd());

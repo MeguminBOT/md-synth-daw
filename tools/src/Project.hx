@@ -1,11 +1,18 @@
 import sys.io.File;
 
+/**
+	One thing that can be built: its identifier, its entry point, and any source paths
+	it adds beyond the shared ones.
+**/
 typedef Target = {
 	final id:String;
 	final main:String;
 	final sources:Array<String>;
 }
 
+/**
+	One source fetched into the vendor folder, and how to tell whether it is there.
+**/
 typedef Vendor = {
 	final name:String;
 	final present:String;
@@ -15,36 +22,68 @@ typedef Vendor = {
 	final about:String;
 }
 
+/**
+	A name and a value, for a path or an icon mapping.
+**/
 typedef Named = {
 	final name:String;
 	final value:String;
 }
 
+/**
+	One interface icon: what it is called and where it is fetched from.
+**/
 typedef Icon = {
 	final name:String;
 	final from:String;
 	final group:String;
 }
 
+/**
+	One compiler that could build this, and what to look for on the path to know it is
+	installed.
+**/
 typedef Toolchain = {
 	var name:String;
 	var probe:String;
 	var about:String;
 }
 
+/**
+	One typeface file: its name, its file and its weight.
+**/
 typedef Face = {
 	final name:String;
 	final from:String;
 }
 
+/**
+	One pairing offered in preferences: which faces it uses for body, small, mono and
+	headings.
+**/
 typedef Typeface = {
 	final name:String;
 	final sans:String;
 	final mono:String;
 }
 
+/**
+	Everything the build file declares, read once.
+
+	It is the one file a person edits to change how this builds: the window, the
+	targets, the defines, the vendored sources, the native sources, the include paths
+	and what each platform links against. Nothing else is written by hand, and none of
+	what is generated from this is tracked.
+**/
 class Project {
+	/**
+		What the application is called, in a window title and an installer.
+	**/
 	public var title(default, null):String = "mdd";
+
+	/**
+		What the command, the executable and the settings folder are called.
+	**/
 	public var short(default, null):String = "mdd";
 	public var company(default, null):String = "";
 	public var github(default, null):String = "";
@@ -53,7 +92,15 @@ class Project {
 	public var discordPlaying(default, null):String = "";
 	public var discordStopped(default, null):String = "";
 	public var discordWorking(default, null):String = "";
+
+	/**
+		The version, which every packaged file name carries.
+	**/
 	public var version(default, null):String = "0.0.0";
+
+	/**
+		One line saying what the application is.
+	**/
 	public var description(default, null):String = "";
 
 	public var formatSuffix(default, null):String = "";
@@ -68,7 +115,14 @@ class Project {
 	public var resizable(default, null):Bool = true;
 	public var highDpi(default, null):Bool = true;
 
+	/**
+		The source paths every target compiles.
+	**/
 	public var sources(default, null):Array<String> = [];
+
+	/**
+		Where the generated Haxe goes.
+	**/
 	public var generated(default, null):String = "export/haxe";
 	public var languages(default, null):String = "assets/lang";
 	public var appIcon(default, null):String = "assets/icon";
@@ -82,8 +136,15 @@ class Project {
 	public var iconSizes(default, null):Array<Int> = [];
 	public var iconFrom(default, null):Array<Named> = [];
 	public var icons(default, null):Array<Icon> = [];
+
+	/**
+		Where everything built goes.
+	**/
 	public var output(default, null):String = "export";
 
+	/**
+		Everything that can be built.
+	**/
 	public var targets(default, null):Array<Target> = [];
 	public var defines(default, null):Array<String> = [];
 	public var dce(default, null):String = "";
@@ -91,6 +152,10 @@ class Project {
 	public var compileFlags(default, null):Array<String> = [];
 	public var stripped(default, null):Array<String> = [];
 	public var libraries(default, null):Array<String> = [];
+
+	/**
+		Everything `mdd setup` fetches.
+	**/
 	public var vendors(default, null):Array<Vendor> = [];
 	public var paths(default, null):Array<Named> = [];
 	public var includes(default, null):Array<String> = [];
@@ -99,17 +164,40 @@ class Project {
 
 	public var nativePath(default, null):String = "native";
 	public var nativeFiles(default, null):Array<String> = [];
+
+	/**
+		Folders of native sources named as trees.
+	**/
 	public var nativeTrees(default, null):Array<Grove> = [];
 	public var nativeFlags(default, null):Array<String> = [];
 
+	/**
+		The compilers that could build this, in preference order. The first whose probe is found on the path is used.
+	**/
 	public var toolchains(default, null):Array<Toolchain> = [];
+
+	/**
+		Which one was chosen.
+	**/
 	public var toolchain(default, null):String = "";
 
 	final os:String;
 	final debug:Bool;
 
+	/**
+		Which architecture is being built for.
+	**/
 	public final arch:String;
 
+	/**
+		Reads the build file, keeping only the elements whose conditions hold.
+
+		@param path The build file.
+		@param os Which platform is being built for.
+		@param debug Whether this is a debug build.
+		@param toolchain Which compiler to use, or an empty string to choose.
+		@param arch Which architecture is being built for.
+	**/
 	public function new(path:String, os:String, debug:Bool, toolchain:String = "",
 			arch:String = "x86_64") {
 		this.os = os;
@@ -365,27 +453,49 @@ class Project {
 		}
 	}
 
+	/**
+		Puts the declared values into a string, so a path can name the version or the
+		output folder without repeating them.
+
+		@param value A string with placeholders in it.
+		@return It with every placeholder filled in.
+	**/
 	public function fill(value:String):String {
 		var out = value;
 		for (one in paths) out = StringTools.replace(out, "${" + one.name + "}", one.value);
 		return out;
 	}
 
+	/**
+		@param name A named path.
+		@return Where it points, or an empty string where nothing declares it.
+	**/
 	public function pathOf(name:String):String {
 		for (one in paths) if (one.name == name) return one.value;
 		return "";
 	}
 
+	/**
+		@param id A target identifier.
+		@return That target, or null where nothing declares it.
+	**/
 	public function targetOf(id:String):Null<Target> {
 		for (one in targets) if (one.id == id) return one;
 		return null;
 	}
 
+	/**
+		@param id A target identifier.
+		@return Every source path it compiles, the shared ones included.
+	**/
 	public function sourcesOf(id:String):Array<String> {
 		final one = targetOf(id);
 		return one == null ? sources.copy() : sources.concat(one.sources);
 	}
 
+	/**
+		@return What every target is called, for a usage line.
+	**/
 	public function names():Array<String> {
 		return [for (one in targets) one.id];
 	}

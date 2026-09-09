@@ -2,12 +2,28 @@ import haxe.io.Bytes;
 import sys.FileSystem;
 import sys.io.File;
 
+/**
+	Rasterises the interface icons into atlases at build time.
+
+	They are drawn from SVG here rather than at start, so the application only has to
+	upload a texture.
+**/
 class Icons {
 	public static inline final MARK = "MDDI";
 	public static inline final VERSION = 1;
 	public static inline final HEADER = 14;
 	public static inline final ENTRY = 8;
 
+	/**
+		Rasterises every icon at every size the build asks for and packs each size into
+		an atlas.
+
+		@param root The repository root.
+		@param project What the build file declares.
+		@param into The folder the atlases go in.
+		@param report Whether to print what was drawn.
+		@return How many icons were drawn.
+	**/
 	public static function built(root:String, project:Project, into:String, report:Bool):Int {
 		if (project.icons.length == 0 || project.iconSizes.length == 0) return 0;
 
@@ -116,6 +132,12 @@ class Icons {
 		return out;
 	}
 
+	/**
+		Writes the generated names the code refers to icons by.
+
+		@param project What the build file declares.
+		@param into The folder the generated file goes in.
+	**/
 	public static function named(project:Project, into:String):Void {
 		final out = new StringBuf();
 
@@ -167,6 +189,12 @@ class Icons {
 		File.saveContent(into + "/mdd/Icon.hx", out.toString());
 	}
 
+	/**
+		Writes the generated names the code refers to typeface pairings by.
+
+		@param project What the build file declares.
+		@param into The folder the generated file goes in.
+	**/
 	public static function typefaces(project:Project, into:String):Void {
 		final out = new StringBuf();
 

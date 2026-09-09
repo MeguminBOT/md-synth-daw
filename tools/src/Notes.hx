@@ -1,6 +1,14 @@
 import sys.FileSystem;
 import sys.io.File;
 
+/**
+	Writes the release notes for a tag out of the commit log.
+
+	It groups the subjects by the category prefix they carry, and puts the downloads
+	table and the verification commands above them. The same command run locally writes
+	the same file the release workflow uploads, so the notes can be read before
+	anything is published.
+**/
 class Notes {
 	static inline final WALL = 60;
 	static inline final COLUMNS = 92;
@@ -29,6 +37,16 @@ class Notes {
 		{title: "macOS arm64", stamp: "mac-arm64", installed: ".dmg"}
 	];
 
+	/**
+		Writes the notes for a tag. A tag whose version is not the one the build file
+		carries is refused, because every packaged file name carries that version and a
+		release that disagrees with them is worse than no release.
+
+		@param root The repository root.
+		@param project What the build file declares.
+		@param args The command arguments. The first that is not a flag is the tag.
+		@return False where the tag is wrong or there is nothing to write.
+	**/
 	public static function write(root:String, project:Project, args:Array<String>):Bool {
 		var tag = "";
 		for (arg in args) {

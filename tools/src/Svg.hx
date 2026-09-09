@@ -1,7 +1,13 @@
+/**
+	One closed run of points inside a shape.
+**/
 typedef Contour = {
 	final points:Array<Float>;
 };
 
+/**
+	One path: its contours and the colour it is filled with.
+**/
 typedef Shape = {
 	final contours:Array<Contour>;
 	final evenOdd:Bool;
@@ -9,16 +15,37 @@ typedef Shape = {
 	final colour:Int;
 };
 
+/**
+	Reads the part of SVG the interface icons actually use: paths, their fills, and the
+	view box they are drawn in.
+
+	It is not a general reader and does not try to be. An icon set that needed more
+	than this would be the wrong icon set.
+**/
 class Svg {
+	/**
+		How wide the drawing declares itself.
+	**/
 	public var width(default, null):Float = 16;
+
+	/**
+		How tall.
+	**/
 	public var height(default, null):Float = 16;
 
+	/**
+		Every path in it.
+	**/
 	public final shapes:Array<Shape> = [];
 
 	static inline final STEPS = 12;
 
 	function new() {}
 
+	/**
+		@param fill A fill as the file writes it.
+		@return It as a packed colour.
+	**/
 	public static function painted(fill:String):Int {
 		if (fill == "" || fill.charAt(0) != "#") return 0;
 
@@ -52,6 +79,12 @@ class Svg {
 		return 0;
 	}
 
+	/**
+		Reads a drawing.
+
+		@param said The file.
+		@return What it held.
+	**/
 	public static function read(said:String):Svg {
 		final out = new Svg();
 
@@ -250,10 +283,21 @@ private class Steps {
 	final said:String;
 	var at:Int = 0;
 
+	/**
+		Private in effect: use `read`.
+
+		@param said The file.
+	**/
 	public function new(said:String) {
 		this.said = said;
 	}
 
+	/**
+		Takes the next command letter out of a path.
+
+		@param repeat The command to repeat where the path leaves one out.
+		@return The command, or an empty string at the end.
+	**/
 	public function next(repeat:String):String {
 		skip();
 		if (at >= said.length) return "";
@@ -268,6 +312,9 @@ private class Steps {
 		return repeat;
 	}
 
+	/**
+		@return The next number in the path being read.
+	**/
 	public function number():Float {
 		skip();
 
