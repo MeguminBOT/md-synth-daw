@@ -28,26 +28,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # haxe says where Haxe comes from. The action publishes x86-64 builds
+          # only, so anything arm64 takes it from a package manager instead.
           - name: Windows x86-64
             runs-on: windows-latest
+            haxe: action
             artifact: mdd-windows-x86_64
 
           - name: Linux x86-64
             runs-on: ubuntu-latest
             container: debian:trixie
+            haxe: apt
             artifact: mdd-linux-x86_64
 
           - name: Linux arm64
             runs-on: ubuntu-24.04-arm
             container: debian:trixie
+            haxe: apt
             artifact: mdd-linux-arm64
 
           - name: macOS x86-64
             runs-on: macos-15-intel
+            haxe: brew
             artifact: mdd-macos-x86_64
 
           - name: macOS arm64
             runs-on: macos-latest
+            haxe: brew
             artifact: mdd-macos-arm64
 
     defaults:
@@ -56,27 +63,40 @@ jobs:
 
     steps:
       # The Debian container is bare, and even checkout needs git in it.
+      # Debian carries Haxe and SDL3 for both architectures, which is why the
+      # Linux jobs run in a container rather than on the runner image.
       - name: Prepare the container
-        if: matrix.container != ''
+        if: matrix.haxe == 'apt'
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
             ca-certificates curl git unzip xz-utils \
-            clang lld llvm g++ make libsdl3-dev
+            clang lld llvm g++ make \
+            libsdl3-dev haxe neko
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: krdlab/setup-haxe@v1
+      - name: Install Haxe and SDL3
+        if: matrix.haxe == 'brew'
+        run: brew install haxe sdl3
+
+      - uses: krdlab/setup-haxe@v2.1.0
+        if: matrix.haxe == 'action'
         with:
           haxe-version: 4.3.7
 
+      # The action arranges this itself; a package manager does not.
+      - name: Point haxelib somewhere
+        if: matrix.haxe != 'action'
+        run: haxelib setup ~/haxelib
+
+      - name: Say what is installed
+        run: |
+          haxe --version
+          haxelib version
+
       - name: Install hxcpp
         run: haxelib install hxcpp --quiet --always
-
-      # SDL3 is a system package off Windows. On Windows mdd setup fetches it.
-      - name: Install SDL3
-        if: startsWith(matrix.name, 'macOS')
-        run: brew install sdl3
 
       - name: Fetch the vendored sources
         run: ./mdd setup
@@ -99,7 +119,7 @@ jobs:
         run: ./mdd package portable
 
       - name: Keep the build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ matrix.artifact }}
           path: export/package/
