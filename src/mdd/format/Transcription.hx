@@ -1,3 +1,31 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
 package mdd.format;
 
 import haxe.ds.Vector;
@@ -16,15 +44,64 @@ import mdd.song.Tempo;
 import mdd.song.Track;
 
 @:unreflective
+
+/**
+	Turns a register stream back into a song: notes, patches, square envelopes, samples
+	and automation.
+
+	Reading the file is `Vgm` or `Xgm` and gives back exactly what was written. This is
+	the separate step that decides what those writes meant, and it is separate because
+	a guess must never reach the register stream.
+
+	Three things it has to get right. A key on is read as the nearest semitone, and
+	writing that semitone back gives a frequency word one or two units from a game's own
+	table, so the exact word is recorded beside the note wherever the two differ. A note
+	model cannot hold what happens between key ons, so every frequency the driver
+	writes while a note sounds becomes an automation lane rather than being thrown
+	away. And channel three's second mode is written to by files that never use it, so a
+	first write of zero is ignored rather than growing three lanes that write nothing.
+**/
 final class Transcription {
+	/**
+		Operator slot to register offset. The part lays operators out 1, 3, 2, 4.
+	**/
 	static final GROUP:Vector<Int> = Vector.fromArrayCopy([0, 2, 1, 3]);
 
+	/**
+		The song that was read out of the stream.
+	**/
 	public var song(default, null):Song;
+
+	/**
+		How many notes were placed.
+	**/
 	public var notes(default, null):Int = 0;
+
+	/**
+		The largest disagreement between a written frequency word and the note it was read
+		as, in cents. It is a fraction of a cent in practice, and it is why the exact word
+		is kept.
+	**/
 	public var worstCents(default, null):Float = 0;
+
+	/**
+		How many notes did not land on the guessed grid.
+	**/
 	public var offGrid(default, null):Int = 0;
+
+	/**
+		How many did.
+	**/
 	public var onGrid(default, null):Int = 0;
+
+	/**
+		How many key ons were seen.
+	**/
 	public var sounded(default, null):Int = 0;
+
+	/**
+		The tempo that was guessed.
+	**/
 	public var beats(default, null):Float = 150;
 
 	final shadow:Vector<Int> = new Vector<Int>(512);
@@ -43,7 +120,14 @@ final class Transcription {
 	final psgFrom:Vector<Int> = new Vector<Int>(4);
 	final psgNote:Vector<Int> = new Vector<Int>(4);
 
+	/**
+		How many samples one square envelope step lasts.
+	**/
 	static inline final ENVELOPE_TICKS = 735;
+
+	/**
+		The most steps a recovered square envelope may have.
+	**/
 	static inline final ENVELOPE_STEPS = 96;
 
 	final psgWhen:Array<Array<Int>> = [[], [], [], []];
@@ -58,8 +142,23 @@ final class Transcription {
 
 	static inline final PER_TICK = 1;
 
+	/**
+		How long a gap between converter writes counts as the sample ending rather than as
+		a pause inside it.
+	**/
 	static inline final DAC_GAP = 2205;
+
+	/**
+		How long a gap counts as a pause that must be left out of the rate measurement. A
+		run measured end to end reads far slower than it was written, because the driver
+		stops writing during a rest, and playing it back at that mean stretches everything
+		after the pause.
+	**/
 	static inline final DAC_PAUSE = 256;
+
+	/**
+		The fewest bytes a run must have to count as a sample at all.
+	**/
 	static inline final DAC_LEAST = 128;
 	static inline final STALL_REACH = 48;
 	static inline final STEADY = 32;
@@ -80,18 +179,40 @@ final class Transcription {
 	var perTick:Float = 183.75;
 	var pattern:Pattern;
 
+	/**
+		Private: use `of`.
+	**/
 	function new() {}
 
+	/**
+		Reads a register stream into a song.
+
+		@param stream The writes to read.
+		@param rate The rate their positions are in.
+		@param name What to call the song.
+		@return The transcription, with the song in `song` and the counts beside it.
+	**/
 	public static function of(stream:Stream, rate:Int, name:String):Transcription {
 		final made = new Transcription();
 		made.take(stream, rate, name);
 		return made;
 	}
 
+	/**
+		@param rate A sample rate.
+		@return A tempo to fall back on where none can be found.
+	**/
 	static function tempoFor(rate:Int):Float {
 		return rate == 50 ? 125 : 150;
 	}
 
+	/**
+		Walks every write, then splits what was found into patterns and tracks.
+
+		@param stream The writes to read.
+		@param rate The rate their positions are in.
+		@param name What to call the song.
+	**/
 	function take(stream:Stream, rate:Int, name:String):Void {
 		beats = Pulse.of(stream, rate, tempoFor(rate));
 
@@ -172,10 +293,22 @@ final class Transcription {
 		settle();
 	}
 
+	/**
+		@param sample A sample position.
+		@return The tick it falls on, at the guessed tempo.
+	**/
 	inline function ticked(sample:Int):Int {
 		return Math.round(sample / perTick);
 	}
 
+	/**
+		Follows one FM register write and decides what it means.
+
+		@param at The sample the write happens at.
+		@param half Which half of the register file, 0 or 1.
+		@param address The register address within that half.
+		@param value The byte written.
+	**/
 	function applied(at:Int, half:Int, address:Int, value:Int):Void {
 		if (half == 0 && address == 0x28) {
 			final within = value & 3;
@@ -280,6 +413,14 @@ final class Transcription {
 	final stereos:Vector<Int> = new Vector<Int>(6);
 	final tunes:Vector<Int> = new Vector<Int>(6);
 
+	/**
+		Follows a write to register `$B4`, which carries the stereo bits and both LFO
+		sensitivities in one byte.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+		@param value The byte written.
+	**/
 	function sided(at:Int, channel:Int, value:Int):Void {
 		if (stereos[channel] == value) return;
 
@@ -294,6 +435,15 @@ final class Transcription {
 
 	final operators:Vector<Int> = new Vector<Int>(4);
 
+	/**
+		Follows a write to one of channel three's separate operator frequencies. A first
+		write of zero is the driver clearing the registers rather than the mode being
+		used, and is ignored.
+
+		@param at The sample the write happens at.
+		@param slot Which of the three, 0 to 2.
+		@param word The block and frequency word written.
+	**/
 	function operated(at:Int, slot:Int, word:Int):Void {
 		if (operators[slot] == word) return;
 		if (operators[slot] < 0 && word == 0) return;
@@ -306,6 +456,14 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), word));
 	}
 
+	/**
+		Follows a frequency write while a note is already sounding, which is a vibrato
+		or a slide and becomes an automation point rather than being lost.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+		@param word The block and frequency word written.
+	**/
 	function bent(at:Int, channel:Int, word:Int):Void {
 		final was = tunes[channel];
 		tunes[channel] = word;
@@ -321,6 +479,15 @@ final class Transcription {
 
 	static inline final SEEDLESS = 0x40000000;
 
+	/**
+		Finds or creates the automation lane a run of writes belongs to.
+
+		@param channel Which channel, 0 to 5.
+		@param target Which channel the lane drives.
+		@param slot Which lane of it.
+		@param first The value to seed a new lane with.
+		@return The lane, or null where none can be made.
+	**/
 	function lined(channel:Int, target:Int, slot:Int, first:Int):Null<mdd.song.Automation> {
 		final lane = pattern.lane(channel);
 
@@ -342,6 +509,14 @@ final class Transcription {
 		mdd.song.Automation.SUSTAIN, mdd.song.Automation.RELEASE,
 		mdd.song.Automation.LOOP];
 
+	/**
+		Follows a write to an operator envelope register while a note sounds.
+
+		@param at The sample the write happens at.
+		@param half Which half of the register file.
+		@param address The register address.
+		@param value The byte written.
+	**/
 	function envelope(at:Int, half:Int, address:Int, value:Int):Void {
 		final base = (address >> 4) - 3;
 		if (base < 0 || base > 6 || base == 1) return;
@@ -366,6 +541,13 @@ final class Transcription {
 
 	final wirings:Vector<Int> = new Vector<Int>(6);
 
+	/**
+		Follows a write to the algorithm and feedback register.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+		@param value The byte written.
+	**/
 	function wired(at:Int, channel:Int, value:Int):Void {
 		if (wirings[channel] == value) return;
 
@@ -380,6 +562,15 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), value));
 	}
 
+	/**
+		Follows a total level write, which is either the patch being set up or the note
+		being made louder or quieter while it sounds.
+
+		@param at The sample the write happens at.
+		@param half Which half of the register file.
+		@param address The register address.
+		@param value The byte written.
+	**/
 	function levelled(at:Int, half:Int, address:Int, value:Int):Void {
 		final channel = half * 3 + (address & 3);
 		final slot = GROUP_OF[(address - 0x40) >> 2];
@@ -399,6 +590,17 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), value - keyedLevel[which]));
 	}
 
+	/**
+		Puts one note into the pattern being built.
+
+		@param part Which part it sounds on.
+		@param from The tick it starts on.
+		@param until The tick it ends on.
+		@param pitch Its MIDI note number.
+		@param instrument Which instrument plays it.
+		@param velocity How hard it is played.
+		@param tied Whether the note after it runs straight on.
+	**/
 	function placed(part:Part, from:Int, until:Int, pitch:Int, instrument:Int,
 			velocity:Int = 127, tied:Bool = false):Void {
 		final lane = pattern.lane(part);
@@ -426,6 +628,12 @@ final class Transcription {
 		notes++;
 	}
 
+	/**
+		Begins a note on an FM channel, taking the patch as it stands.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+	**/
 	function start(at:Int, channel:Int):Void {
 		everKeyed[channel] = true;
 		startedAt[channel] = at;
@@ -444,6 +652,13 @@ final class Transcription {
 		exact(at, channel);
 	}
 
+	/**
+		Records the frequency word the driver actually wrote at a key on, wherever it
+		differs from the word this would write for the same note.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+	**/
 	function exact(at:Int, channel:Int):Void {
 		final word = tunes[channel];
 		if (word < 0) return;
@@ -459,6 +674,10 @@ final class Transcription {
 		line.add(new mdd.song.Point(when, offset));
 	}
 
+	/**
+		@param channel Which channel, 0 to 5.
+		@return Whether the channel has been given a frequency yet.
+	**/
 	function tuned(channel:Int):Bool {
 		for (held in pattern.lane(channel).automation) {
 			if (held.held(mdd.song.Automation.TUNE, 0)) return true;
@@ -467,6 +686,12 @@ final class Transcription {
 		return false;
 	}
 
+	/**
+		Ends a note on an FM channel and places it.
+
+		@param at The sample the write happens at.
+		@param channel Which channel, 0 to 5.
+	**/
 	function finish(at:Int, channel:Int):Void {
 		final from = ticked(startedAt[channel]);
 		var until = ticked(at);
@@ -478,6 +703,11 @@ final class Transcription {
 			? instrumentFor(channel) : startedWith[channel], 127, started[channel]);
 	}
 
+	/**
+		Follows one converter write, gathering a run of them into a sample.
+
+		@param at The sample the write happens at.
+	**/
 	function sampled(at:Int):Void {
 		if (dacHead < 0) return;
 
@@ -493,6 +723,10 @@ final class Transcription {
 		dacWhen.resize(0);
 	}
 
+	/**
+		@return The median gap between converter writes, with real pauses left out, which is what
+			the sample rate is taken from.
+	**/
 	function spacing():Int {
 		final many = dacWhen.length;
 		if (many < 2) return 6;
@@ -505,6 +739,10 @@ final class Transcription {
 		return middle < 1 ? 1 : middle;
 	}
 
+	/**
+		Finds where the driver stopped writing for long enough to hear, and records it, so
+		a piece can be played back the way it sounded on hardware that was busy elsewhere.
+	**/
 	function stalled():Void {
 		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
 		final seed = Tempo.TICKS / rate;
@@ -578,6 +816,10 @@ final class Transcription {
 		song.stallEvery = bestEvery;
 	}
 
+	/**
+		@param every A candidate stall period, in samples.
+		@return How well the gaps in the stream fit it.
+	**/
 	function borne(every:Float):Int {
 		final middle = spacing();
 		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
@@ -611,6 +853,11 @@ final class Transcription {
 
 		return Math.round(each[each.length >> 1]);
 	}
+
+	/**
+		Breaks the one pattern everything was read into one pattern per part, each on its
+		own track.
+	**/
 	function split():Void {
 		final middle = spacing();
 		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
@@ -632,6 +879,10 @@ final class Transcription {
 		}
 	}
 
+	/**
+		@param at A write, by index.
+		@return Whether it is a frequency write that moves a sounding note.
+	**/
 	function shifts(at:Int):Bool {
 		if (at + STEADY >= dacWhen.length) return false;
 
@@ -645,6 +896,12 @@ final class Transcription {
 
 	final steadied:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(STEADY);
 
+	/**
+		@param from The first converter write of a run.
+		@param many How many writes it holds.
+		@return How evenly spaced that run is, which says whether it is one sample or several run
+			together.
+	**/
 	function steady(from:Int, many:Int):Float {
 		var held = 0;
 
@@ -675,6 +932,12 @@ final class Transcription {
 		return kept < 1 ? -1 : total / kept;
 	}
 
+	/**
+		@param head The first converter write of a run.
+		@param last The last.
+		@return The rate the run was written at, in hertz, from the gaps between writes with pauses
+			left out.
+	**/
 	function paced(head:Int, last:Int):Int {
 		if (song.stallAt < 0) {
 			final span = dacWhen[last] - dacWhen[head];
@@ -715,6 +978,15 @@ final class Transcription {
 		final rate = Math.round(counted * (Tempo.TICKS / total));
 		return rate < 2000 ? 2000 : (rate > Tempo.TICKS ? Tempo.TICKS : rate);
 	}
+
+	/**
+		Turns one run of converter writes into a sample and a note that plays it.
+
+		@param head The first write of the run.
+		@param last The last.
+		@param ends The sample the run finishes at.
+		@param rate The rate it was written at.
+	**/
 	function hit(head:Int, last:Int, ends:Int, rate:Int):Void {
 		if (last - head + 1 < DAC_LEAST) return;
 
@@ -731,11 +1003,24 @@ final class Transcription {
 		placed(Part.Dac, from, until, 60, which);
 	}
 
+	/**
+		Fills in the gaps of a run so the sample is evenly spaced, which is what playing
+		it back at one rate needs.
+
+		@param head The first write of the run.
+		@param last The last.
+	**/
 	function evened(head:Int, last:Int):Void {
 		dacTake.resize(0);
 		for (index in head...last + 1) dacTake.push(dacBytes[index]);
 	}
 
+	/**
+		Follows one square part write, which may be half of a two byte period.
+
+		@param at The sample the write happens at.
+		@param value The byte written.
+	**/
 	function square(at:Int, value:Int):Void {
 		if ((value & 0x80) != 0) {
 			latched = (value >> 4) & 0x07;
@@ -763,6 +1048,12 @@ final class Transcription {
 		slid(at, channel);
 	}
 
+	/**
+		Follows the sample channel being turned on or off.
+
+		@param at The sample the write happens at.
+		@param on Whether it took channel six.
+	**/
 	function switched(at:Int, on:Bool):Void {
 		final line = lined(10, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
@@ -770,6 +1061,12 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), on ? 1 : 0));
 	}
 
+	/**
+		Follows a write to the noise control register.
+
+		@param at The sample the write happens at.
+		@param value The nibble written.
+	**/
 	function hissed(at:Int, value:Int):Void {
 		final was = noiseMode;
 		noiseMode = value;
@@ -780,6 +1077,13 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), value));
 	}
 
+	/**
+		Follows a square period change while a note sounds, which becomes an automation
+		point rather than a new note.
+
+		@param at The sample the write happens at.
+		@param channel Which square channel, 0 to 3.
+	**/
 	function slid(at:Int, channel:Int):Void {
 		final line = lined(6 + channel, mdd.song.Automation.TUNE, 0, SEEDLESS);
 		if (line == null) return;
@@ -791,6 +1095,14 @@ final class Transcription {
 		line.add(new mdd.song.Point(ticked(at), offset));
 	}
 
+	/**
+		Follows a square attenuation write, which is how a driver runs an envelope by
+		hand, and gathers the run of them into one.
+
+		@param at The sample the write happens at.
+		@param channel Which square channel, 0 to 3.
+		@param level The attenuation written.
+	**/
 	function attenuated(at:Int, channel:Int, level:Int):Void {
 		final was = psgLevel[channel];
 		psgLevel[channel] = level;

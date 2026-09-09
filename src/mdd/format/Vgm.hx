@@ -1,3 +1,31 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
 package mdd.format;
 
 import haxe.io.Bytes;
@@ -6,54 +34,169 @@ import haxe.ds.Vector;
 import mdd.play.Stream;
 
 @:unreflective
+
+/**
+	The VGM register log: a header, then a stream of writes and waits.
+
+	Reading one gives back exactly the writes the file carries, at exactly the samples
+	it carries them at. Nothing is guessed on the way in: turning those writes into
+	notes is `Transcription`, and it is a separate step for that reason.
+**/
 final class Vgm {
+	/**
+		The four bytes a VGM file begins with.
+	**/
 	public static inline final MARK = "Vgm ";
+
+	/**
+		How long the oldest header is.
+	**/
 	public static inline final HEADER = 0x40;
+
+	/**
+		The rate a VGM counts its waits in.
+	**/
 	public static inline final TICKS = 44100;
 
+	/**
+		Command: one byte to the square part.
+	**/
 	public static inline final PSG = 0x50;
+
+	/**
+		Command: an address and a value in the first half of the FM registers.
+	**/
 	public static inline final YM_LOW = 0x52;
+
+	/**
+		Command: the same in the second half.
+	**/
 	public static inline final YM_HIGH = 0x53;
+
+	/**
+		Command: wait a given number of samples.
+	**/
 	public static inline final WAIT = 0x61;
 	static inline final WAIT_60 = 0x62;
 	static inline final WAIT_50 = 0x63;
+
+	/**
+		Command: the stream ends here.
+	**/
 	public static inline final END = 0x66;
+
+	/**
+		Command: a block of sample data follows.
+	**/
 	public static inline final BLOCK = 0x67;
 	static inline final SEEK = 0xE0;
 	static inline final STEREO = 0x4F;
 
+	/**
+		The version the header declares.
+	**/
 	public var version(default, null):Int = 0x150;
 	var snClock(default, null):Int = 0;
 	var ymClock(default, null):Int = 0;
+
+	/**
+		How long the file is, in samples.
+	**/
 	public var samples(default, null):Int = 0;
+
+	/**
+		Where the loop returns to, in samples, or -1 for none.
+	**/
 	public var loopAt(default, null):Int = -1;
 	var loopSamples(default, null):Int = 0;
+
+	/**
+		Frames a second the file was recorded at.
+	**/
 	public var rate(default, null):Int = 60;
 
+	/**
+		The title tag.
+	**/
 	public var title(default, null):String = "";
+
+	/**
+		The game tag.
+	**/
 	public var game(default, null):String = "";
+
+	/**
+		The author tag.
+	**/
 	public var author(default, null):String = "";
+
+	/**
+		The release date tag.
+	**/
 	public var released(default, null):String = "";
+
+	/**
+		The notes tag.
+	**/
 	public var notes(default, null):String = "";
 
+	/**
+		How many commands were read.
+	**/
 	public var commands(default, null):Int = 0;
+
+	/**
+		How many of them were waits.
+	**/
 	public var waits(default, null):Int = 0;
+
+	/**
+		How many sample blocks were read.
+	**/
 	public var blocks(default, null):Int = 0;
+
+	/**
+		How many bytes those blocks held.
+	**/
 	public var blockBytes(default, null):Int = 0;
 	var seeks(default, null):Int = 0;
+
+	/**
+		How many stereo commands were seen. They belong to a part this does not carry.
+	**/
 	public var stereo(default, null):Int = 0;
+
+	/**
+		How many commands were skipped because they belong to a chip this does not have.
+	**/
 	public var unknown(default, null):Int = 0;
 
+	/**
+		Which write the loop returns to, by index into the stream.
+	**/
 	public var loopWrite(default, null):Int = -1;
 
 	public function new() {}
 
+	/**
+		Reads a file and puts its writes into a stream.
+
+		@param bytes The file.
+		@param into Where the register writes read out of it go.
+		@return What the header and the walk found.
+	**/
 	public static function read(bytes:Bytes, into:Stream):Vgm {
 		final vgm = new Vgm();
 		vgm.take(bytes, into);
 		return vgm;
 	}
 
+	/**
+		Reads the header, then walks the commands.
+
+		@param bytes The file.
+		@param into Where the register writes read out of it go.
+	**/
 	function take(bytes:Bytes, into:Stream):Void {
 		if (bytes.length < HEADER || bytes.getString(0, 4) != MARK) {
 			throw "not a vgm: the first four bytes are not '" + MARK + "'";
@@ -82,6 +225,12 @@ final class Vgm {
 		walk(bytes, at, into);
 	}
 
+	/**
+		Reads the tag block, which is UTF-16.
+
+		@param bytes The file.
+		@param at Where the block starts.
+	**/
 	function tags(bytes:Bytes, at:Int):Void {
 		if (at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
 
@@ -109,6 +258,13 @@ final class Vgm {
 		notes = held.length > 10 ? held[10] : "";
 	}
 
+	/**
+		Walks every command, keeping the sample position as the waits move it.
+
+		@param bytes The file.
+		@param from Where the commands start.
+		@param into Where the register writes read out of it go.
+	**/
 	function walk(bytes:Bytes, from:Int, into:Stream):Void {
 		var at = from;
 		var tick = 0;
@@ -194,6 +350,10 @@ final class Vgm {
 		}
 	}
 
+	/**
+		@param code A command byte.
+		@return How many bytes to step over for a command belonging to another chip.
+	**/
 	static function skip(code:Int):Int {
 		if (code >= 0x30 && code <= 0x3F) return 1;
 		if (code >= 0x40 && code <= 0x4E) return 2;
@@ -209,6 +369,14 @@ final class Vgm {
 	var pcmHeld:Int = 0;
 	var pcmAt:Int = 0;
 
+	/**
+		Keeps a block of sample data for the converter to read from.
+
+		@param bytes The file.
+		@param at Where the block starts.
+		@param length How long it is.
+		@param kind Which chip it belongs to.
+	**/
 	function pcm(bytes:Bytes, at:Int, length:Int, kind:Int):Void {
 		if (kind != 0) return;
 
@@ -222,10 +390,18 @@ final class Vgm {
 		pcmHeld = want;
 	}
 
+	/**
+		Moves the read position inside the sample block.
+
+		@param where The offset to move to.
+	**/
 	function seekTo(where:Int):Void {
 		pcmAt = where;
 	}
 
+	/**
+		@return The next byte of the sample block, or the middle value where it has run out.
+	**/
 	function sampleByte():Int {
 		if (pcmAt < 0 || pcmAt >= pcmHeld) return 0x80;
 
@@ -234,6 +410,17 @@ final class Vgm {
 		return value;
 	}
 
+	/**
+		Writes a register stream out as a VGM file.
+
+		@param stream The writes to put in it.
+		@param from The first sample to write.
+		@param to One past the last.
+		@param rate Frames a second to declare.
+		@param title The title tag.
+		@param author The author tag.
+		@return The file.
+	**/
 	public static function write(stream:Stream, from:Int, to:Int, rate:Int = 60,
 			title:String = "", author:String = ""):Bytes {
 		final body = new BytesOutput();
@@ -313,6 +500,13 @@ final class Vgm {
 		return out;
 	}
 
+	/**
+		Writes the tag block, in UTF-16 as the format wants it.
+
+		@param title The title tag.
+		@param author The author tag.
+		@return The block.
+	**/
 	static function tagging(title:String, author:String):Bytes {
 		if (title == "" && author == "") return Bytes.alloc(0);
 
