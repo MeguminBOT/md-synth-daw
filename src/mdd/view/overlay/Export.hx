@@ -63,9 +63,14 @@ final class Export extends Widget {
 	static inline final OPUS_BITRATE = 13;
 
 	/**
+		Row: whether one file per part is written beside the mix.
+	**/
+	public static inline final STEMS = 14;
+
+	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 14;
+	public static inline final KINDS = 15;
 
 	/**
 		How many metadata fields there are.
@@ -81,7 +86,7 @@ final class Export extends Widget {
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
 		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE, Locale.EXPORT_OPUS_MODE,
-		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE];
+		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -239,6 +244,8 @@ final class Export extends Widget {
 		}
 
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
+
+		showing.push(STEMS);
 	}
 
 	/**
@@ -436,6 +443,7 @@ final class Export extends Widget {
 			case OPUS_BITRATE: mixing.opusBitrateMode;
 			case OPUS_SPAN: spanAt();
 			case QUALITY: mixing.quality;
+			case STEMS: mixing.stems ? 1 : 0;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -499,6 +507,7 @@ final class Export extends Widget {
 			case OPUS_SPAN: mixing.opusSpan = SPANS[which];
 
 			case QUALITY: mixing.quality = which;
+			case STEMS: mixing.stems = which == 1;
 			case _: mixing.dither = which == 1;
 		}
 
