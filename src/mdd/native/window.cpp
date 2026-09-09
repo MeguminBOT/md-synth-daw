@@ -1,3 +1,15 @@
+/**
+ * The window, the renderer and the clock, through SDL3.
+ *
+ * Windows is pinned to direct3d11 and the choice sits behind a platform gate rather
+ * than being deleted: all six SDL backends open a window and paint a still interface
+ * correctly, and the fault in two of them appears only once the transport is running
+ * and the playhead, the scope and the meters are redrawing every frame.
+ *
+ * The clock is at full precision and the sleep asks the operating system for a fine
+ * enough scheduler tick first, because a timestamp rounded to whole milliseconds is
+ * useless for a frame of 16.688 of them and an unimproved sleep quantises to 15.6.
+ */
 #include "window.h"
 
 #ifdef _WIN32

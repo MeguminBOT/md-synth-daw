@@ -38,8 +38,15 @@ enum {
 	MDD_BUTTON_RIGHT = 3
 };
 
+/**
+ * How much typed text one event can carry.
+ */
 #define MDD_EVENT_TEXT_BYTES 512
 
+/**
+ * One event, filled in by mdd_poll_event. It is a plain structure the Haxe side owns,
+ * so polling allocates nothing.
+ */
 typedef struct {
 	int type;
 	unsigned int windowID;
@@ -51,14 +58,46 @@ typedef struct {
 	char text[MDD_EVENT_TEXT_BYTES];
 } MddEvent;
 
+/**
+ * Takes the next SDL event and translates it into the small set this application
+ * cares about.
+ *
+ * @param out Filled in with the event.
+ * @return Nonzero where one was taken.
+ */
 int mdd_poll_event(MddEvent *out);
+
+/**
+ * @param event A typing event.
+ * @return The text it carried.
+ */
 const char *mdd_event_text(const MddEvent *event);
 
+/**
+ * @return Which modifier keys are held now, as MDD_MOD_ bits.
+ */
 int mdd_mods(void);
+
+/**
+ * @return Where the pointer is, across.
+ */
 float mdd_mouse_x(void);
+
+/**
+ * @return Where the pointer is, down.
+ */
 float mdd_mouse_y(void);
 
+/**
+ * Puts text on the clipboard.
+ *
+ * @param text What to put there.
+ */
 void mdd_clipboard_set(const char *text);
+
+/**
+ * @return What is on the clipboard, or an empty string.
+ */
 const char *mdd_clipboard_get(void);
 
 #ifdef __cplusplus

@@ -1,3 +1,9 @@
+/**
+ * SDL events, translated into the small set this application cares about.
+ *
+ * SDL3 renames a good deal of what SDL2 called something else: a display scale change
+ * arrives as an event rather than being polled for, which is why it is in the list.
+ */
 #include "events.h"
 #include "window.h"
 
