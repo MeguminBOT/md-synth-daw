@@ -1,3 +1,50 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
+
+/**
+ * The crash handler: what turns a fault into a report naming the Haxe line.
+ *
+ * A release build keeps no Haxe stack. The line markers hxcpp writes expand to nothing
+ * without the debug defines, so haxe.CallStack is empty in one. The text is still in
+ * the generated C++ beside a frame naming the .hx file, and the debug information
+ * carries the generated file and line for every address, so reading the generated file
+ * at the line the symbols name and taking the last marker at or before it turns a
+ * native address into a Haxe line for nothing at run time.
+ *
+ * A frame in an optimized build is several functions. The symbol server names the one
+ * the linker kept, and the ones the compiler inlined into it are only reachable
+ * through the inline trace calls: without them the report blames the call site, which
+ * is the wrong line and looks like a working answer.
+ *
+ * A stack overflow leaves no room to report a stack overflow, so the last of every
+ * thread stack is reserved for the handler before anything else runs on it.
+ */
 #include "crash.h"
 
 #include <stdio.h>
