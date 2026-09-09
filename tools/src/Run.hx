@@ -507,6 +507,8 @@ class Run {
 		}
 
 		for (path in project.includes) {
+			if (rooted(path) && !FileSystem.exists(path)) continue;
+
 			final where = rooted(path) ? path : root + "/" + path;
 			flags.add("\t\t<compilerflag value=\"-I" + native(where) + "\" />\n");
 		}
@@ -590,6 +592,9 @@ class Run {
 			for (part in link.split(" ")) {
 				final one = StringTools.trim(part);
 				if (one == "") continue;
+
+				if (StringTools.startsWith(one, "-L/")
+						&& !FileSystem.exists(one.substr(2))) continue;
 
 				out.add("\t\t<lib name=\"" + one + "\" />\n");
 			}
