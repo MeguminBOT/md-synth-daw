@@ -5,6 +5,17 @@ import haxe.ds.Vector;
 import mdd.song.Song;
 import mdd.song.Tempo;
 
+/**
+	The offline render an export is: the whole song through the same sequencer, the
+	same register stream and the same render path playback uses, into one float buffer.
+
+	It runs on a worker thread while the interface keeps drawing, so every long loop in
+	it reaches a collector safe point. A thread that never allocates never lets the
+	collector run, and telling the collector to ignore the thread instead frees what
+	only that thread is holding: a bounce came back marked stopped with nothing having
+	stopped it. The render and the stream are held in fields here for the same reason,
+	because a field is traced and a register may not be.
+**/
 @:unreflective
 final class Mixdown {
 	public static inline final PER_SECOND = 32768;
@@ -31,10 +42,17 @@ final class Mixdown {
 	public final reached:AtomicInt = new AtomicInt(0);
 	public final stopping:AtomicInt = new AtomicInt(0);
 
+	/**
+		Private: use `of` or `made`.
+	**/
 	function new() {
 		samples = new Vector<cpp.Float32>(0);
 	}
 
+	/**
+		@param span How many samples the export covers.
+		@return How many floats a buffer needs to hold it, in stereo.
+	**/
 	public static function roomFor(span:Int):Int {
 		final seconds = span / Tempo.TICKS;
 		final want = Std.int(seconds * PER_SECOND);
@@ -42,10 +60,20 @@ final class Mixdown {
 		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
 	}
 
+	/**
+		@return How long the rendered audio is, in seconds.
+	**/
 	public inline function seconds():Float {
 		return frames / rate;
 	}
 
+	/**
+		Builds a mixdown and runs it, which is the whole of an export render.
+
+		@param song The song to render.
+		@param mixing What the export is set to.
+		@return The finished mixdown, with its samples in place.
+	**/
 	public static function of(song:Song, mixing:Mixing):Mixdown {
 		final made = new Mixdown();
 		made.runs(song, mixing);
@@ -53,22 +81,46 @@ final class Mixdown {
 		return made;
 	}
 
+	/**
+		Builds an empty mixdown for a caller that will drive `runs` itself. Construction
+		goes through a static because hxcpp emits a dynamic constructor for every class
+		and a `Dynamic` cannot unbox into a `cpp.Star`.
+
+		@return An empty mixdown.
+	**/
 	public static function made():Mixdown {
 		return new Mixdown();
 	}
 
+	/**
+		@return How far through the render is, 0 to 1, for a progress bar to read from another
+			thread.
+	**/
 	public inline function reach():Float {
 		return reached.load() / WHOLE;
 	}
 
+	/**
+		Asks the render to stop at the next block. Safe from another thread.
+	**/
 	public inline function stops():Void {
 		stopping.store(1);
 	}
 
+	/**
+		@return Whether it was asked to stop.
+	**/
 	public inline function stopped():Bool {
 		return stopping.load() != 0;
 	}
 
+	/**
+		Renders the whole song: sequence it, render it, pad it, fade it and normalise
+		it. This is the worker thread.
+
+		@param song The song to render.
+		@param mixing What the export is set to.
+	**/
 	public function runs(song:Song, mixing:Mixing):Void {
 		rate = mixing.worksAt();
 		channels = mixing.channels();
@@ -121,6 +173,14 @@ final class Mixdown {
 		reached.store(WHOLE);
 	}
 
+	/**
+		Renders one span of the stream into the samples buffer, a block at a time, with
+		a collector safe point between blocks.
+
+		@param stream The register writes for the span.
+		@param ahead How many samples of silence come before the piece.
+		@param many How many samples this span covers.
+	**/
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
 		working = new Render(rate, Render.BLOCK);
 
@@ -166,6 +226,12 @@ final class Mixdown {
 		}
 	}
 
+	/**
+		Applies the fade at the end of the piece.
+
+		@param mixing What the export is set to.
+		@param ahead How many samples of silence come before the piece.
+	**/
 	function faded(mixing:Mixing, ahead:Int):Void {
 		if (mixing.fade <= 0) return;
 
@@ -191,6 +257,11 @@ final class Mixdown {
 		}
 	}
 
+	/**
+		Finds the peak and scales the whole buffer so it lands on the ceiling.
+
+		@param mixing What the export is set to.
+	**/
 	function levelled(mixing:Mixing):Void {
 		peak = 0;
 
