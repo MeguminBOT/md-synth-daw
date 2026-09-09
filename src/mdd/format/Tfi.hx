@@ -4,9 +4,25 @@ import haxe.io.Bytes;
 import mdd.song.Patch;
 
 @:unreflective
+
+/**
+	The TFI patch format: forty two bytes of FM register values, and nothing else.
+
+	The importer reads the operators in the order the chip lays them out rather than in
+	numeric order, and masks each field to the bits its register actually has.
+**/
 final class Tfi {
+	/**
+		How long a TFI file is.
+	**/
 	public static inline final BYTES = 42;
 
+	/**
+		Reads a patch out of a TFI file.
+
+		@param bytes The file.
+		@return The patch, or null where the file is not the right length.
+	**/
 	public static function read(bytes:Bytes):Null<Patch> {
 		if (bytes == null || bytes.length < BYTES) return null;
 
@@ -33,6 +49,12 @@ final class Tfi {
 		return out;
 	}
 
+	/**
+		Writes a patch as a TFI file.
+
+		@param patch The patch to write.
+		@return The forty two bytes.
+	**/
 	public static function write(patch:Patch):Bytes {
 		final out = Bytes.alloc(BYTES);
 
@@ -57,6 +79,11 @@ final class Tfi {
 		return out;
 	}
 
+	/**
+		@param one A patch.
+		@param two Another.
+		@return Whether every field matches, which is what a round trip check compares.
+	**/
 	public static function same(one:Patch, two:Patch):Bool {
 		if (one.algorithm != two.algorithm || one.feedback != two.feedback) return false;
 

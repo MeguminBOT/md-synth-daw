@@ -1,16 +1,32 @@
 package mdd.format;
 
+/**
+	Writes JSON, and reads it back through `parse`.
+
+	It is written here rather than taken from the standard library because a project
+	file has to be byte identical between two saves of the same song, which means the
+	writer decides the key order rather than a map deciding it.
+**/
 class Json {
 	final out:StringBuf = new StringBuf();
 	final filled:Array<Bool> = [];
 	var keyed:Bool = false;
 
+	/**
+		Builds an empty writer.
+	**/
 	public function new() {}
 
+	/**
+		@return Everything written so far.
+	**/
 	public function toString():String {
 		return out.toString();
 	}
 
+	/**
+		Writes the comma and the indentation before the next value.
+	**/
 	function lead():Void {
 		if (keyed) {
 			keyed = false;
@@ -26,6 +42,11 @@ class Json {
 		for (i in 0...filled.length) out.add("  ");
 	}
 
+	/**
+		Closes a table or a list.
+
+		@param mark The closing bracket to write.
+	**/
 	function shut(mark:String):Void {
 		final had = filled.pop();
 
@@ -37,26 +58,43 @@ class Json {
 		out.add(mark);
 	}
 
+	/**
+		Opens a table.
+	**/
 	public function open():Void {
 		lead();
 		out.add("{");
 		filled.push(false);
 	}
 
+	/**
+		Closes a table.
+	**/
 	public function close():Void {
 		shut("}");
 	}
 
+	/**
+		Opens a list.
+	**/
 	public function list():Void {
 		lead();
 		out.add("[");
 		filled.push(false);
 	}
 
+	/**
+		Closes a list.
+	**/
 	public function ends():Void {
 		shut("]");
 	}
 
+	/**
+		Writes a key. The value comes next.
+
+		@param name The key.
+	**/
 	public function key(name:String):Void {
 		lead();
 		out.add(quoted(name));
@@ -66,37 +104,76 @@ class Json {
 		keyed = true;
 	}
 
+	/**
+		Writes a value already in its written form.
+
+		@param text The value as it should appear.
+	**/
 	function value(text:String):Void {
 		lead();
 		out.add(text);
 	}
 
+	/**
+		Writes a string, escaped.
+
+		@param said The text.
+	**/
 	public function text(said:String):Void {
 		value(quoted(said));
 	}
 
+	/**
+		Writes a whole number.
+
+		@param said The number.
+	**/
 	public function whole(said:Int):Void {
 		value(Std.string(said));
 	}
 
+	/**
+		Writes a number, with no trailing nought where it is whole, so two saves of the
+		same song give the same bytes.
+
+		@param said The number.
+	**/
 	public function number(said:Float):Void {
 		value(said == Std.int(said) ? Std.string(Std.int(said)) : Std.string(said));
 	}
 
+	/**
+		Writes true or false.
+
+		@param said The flag.
+	**/
 	public function flag(said:Bool):Void {
 		value(said ? "true" : "false");
 	}
 
+	/**
+		Writes null.
+	**/
 	public function nothing():Void {
 		value("null");
 	}
 
+	/**
+		Writes a list of whole numbers on one line, which is what a long run of sample
+		bytes wants.
+
+		@param said The numbers.
+	**/
 	public function wholes(said:Array<Int>):Void {
 		list();
 		for (one in said) whole(one);
 		ends();
 	}
 
+	/**
+		@param said Some text.
+		@return It as a JSON string, quotes and escapes included.
+	**/
 	public static function quoted(said:String):String {
 		final out = new StringBuf();
 		out.add("\"");
@@ -122,6 +199,12 @@ class Json {
 		return out.toString();
 	}
 
+	/**
+		Reads a document.
+
+		@param text The document.
+		@return Its root node.
+	**/
 	public static function parse(text:String):Node {
 		final reader = new Reader(text);
 		final node = reader.value();

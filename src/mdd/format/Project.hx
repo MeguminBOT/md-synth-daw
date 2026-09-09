@@ -18,6 +18,15 @@ import mdd.song.Track;
 import sys.FileSystem;
 import sys.io.File;
 
+/**
+	The project file: the song as JSON, with the samples beside it.
+
+	It is written to be byte identical between two saves of the same song, which is
+	why the key order is decided here rather than by a map, and why a packed project
+	carries a fixed 1980 date rather than a real timestamp. A zip date field cannot
+	hold anything before 1980 anyway, and `haxe.zip.Writer` throws rather than saying
+	so.
+**/
 class Project {
 	public static inline final VERSION = 1;
 	static inline final STRUCTURE = "project.json";
@@ -26,6 +35,12 @@ class Project {
 
 	static final EPOCH:Date = new Date(1980, 0, 1, 0, 0, 0);
 
+	/**
+		Writes the song as a JSON document, without the sample bytes.
+
+		@param song The song to write.
+		@return The document.
+	**/
 	public static function text(song:Song):String {
 		final out = new Json();
 
@@ -210,6 +225,12 @@ class Project {
 		return out.toString();
 	}
 
+	/**
+		Writes one instrument.
+
+		@param out Where it goes.
+		@param instrument The instrument.
+	**/
 	static function wroteInstrument(out:Json, instrument:Instrument):Void {
 		out.open();
 
@@ -300,6 +321,12 @@ class Project {
 		out.close();
 	}
 
+	/**
+		Writes one pattern and every lane in it.
+
+		@param out Where it goes.
+		@param pattern The pattern.
+	**/
 	static function wrotePattern(out:Json, pattern:Pattern):Void {
 		out.open();
 
@@ -371,6 +398,12 @@ class Project {
 		out.close();
 	}
 
+	/**
+		Reads a song out of a JSON document.
+
+		@param said The document.
+		@return The song. A missing field reads as its default rather than faulting.
+	**/
 	public static function read(said:String):Song {
 		final node = Json.parse(said);
 		final song = new Song(node.get("name").saying("untitled"));
@@ -493,6 +526,10 @@ class Project {
 		return song;
 	}
 
+	/**
+		@param node One instrument out of the document.
+		@return The instrument.
+	**/
 	static function readInstrument(node:Node):Instrument {
 		final kind:Part = node.get("kind").whole(0);
 		final instrument = new Instrument(node.get("name").saying(""), kind);
@@ -558,6 +595,13 @@ class Project {
 		return instrument;
 	}
 
+	/**
+		Writes one automation point, leaving out whatever is at its default so the file
+		stays small.
+
+		@param out Where it goes.
+		@param point The point.
+	**/
 	static function written(out:Json, point:Point):Void {
 		out.open();
 		out.key("at");
@@ -583,6 +627,10 @@ class Project {
 		out.close();
 	}
 
+	/**
+		@param node One point out of the document.
+		@return The point.
+	**/
 	static function taken(node:Node):Point {
 		final made = new Point(node.get("at").whole(0), node.get("value").whole(0));
 
@@ -593,6 +641,10 @@ class Project {
 		return made;
 	}
 
+	/**
+		@param node One pattern out of the document.
+		@return The pattern, with every lane it carried.
+	**/
 	static function readPattern(node:Node):Pattern {
 		final pattern = new Pattern(node.get("name").saying(""), node.get("length").whole(384),
 			node.get("colour").whole(-1));
@@ -639,6 +691,13 @@ class Project {
 		return pattern;
 	}
 
+	/**
+		Writes every sample the song carries into one block, so the JSON does not have
+		to carry them.
+
+		@param song The song.
+		@return The block.
+	**/
 	public static function bulk(song:Song):Bytes {
 		final chunks = new Chunks();
 
@@ -655,6 +714,13 @@ class Project {
 		return chunks.bytes();
 	}
 
+	/**
+		Reads that block back into the song samples.
+
+		@param song The song, with its samples already declared.
+		@param bytes The block.
+		@return How many samples were filled in.
+	**/
 	public static function unbulk(song:Song, bytes:Bytes):Int {
 		var taken = 0;
 
@@ -675,12 +741,22 @@ class Project {
 		return taken;
 	}
 
+	/**
+		@param sample A sample.
+		@return Its bytes.
+	**/
 	public static function sampleBytes(sample:Sample):Bytes {
 		final out = Bytes.alloc(sample.length());
 		for (i in 0...sample.length()) out.set(i, sample.bytes[i] & 0xFF);
 		return out;
 	}
 
+	/**
+		Writes a song as a folder: the document, and one file per sample.
+
+		@param song The song to write.
+		@param into The folder to write into.
+	**/
 	public static function saveFolder(song:Song, into:String):Void {
 		tree(into);
 		tree(into + "/chunks");
@@ -695,6 +771,12 @@ class Project {
 		}
 	}
 
+	/**
+		Reads a song written as a folder.
+
+		@param from The folder.
+		@return The song.
+	**/
 	public static function openFolder(from:String):Song {
 		final song = read(File.getContent(from + "/" + STRUCTURE));
 
@@ -712,6 +794,12 @@ class Project {
 		return song;
 	}
 
+	/**
+		Writes a song as a single zip.
+
+		@param song The song to write.
+		@param into The file to write.
+	**/
 	public static function savePacked(song:Song, into:String):Void {
 		final entries = new List<haxe.zip.Entry>();
 
@@ -742,12 +830,26 @@ class Project {
 
 	static inline final PARTIAL = ".part";
 
+	/**
+		Removes the sample files of a previous save that this one does not write, so a
+		folder does not accumulate what is no longer used.
+
+		@param where The folder.
+	**/
 	static function swept(where:String):Void {
 		try {
 			if (FileSystem.exists(where)) FileSystem.deleteFile(where);
 		} catch (e:Dynamic) {}
 	}
 
+	/**
+		Builds one zip entry with a fixed date, so two saves of the same song give the
+		same bytes.
+
+		@param name The name inside the archive.
+		@param body Its contents.
+		@return The entry.
+	**/
 	static function entry(name:String, body:Bytes):haxe.zip.Entry {
 		return {
 			fileName: name,
@@ -761,6 +863,12 @@ class Project {
 		};
 	}
 
+	/**
+		Reads a song written as a single zip.
+
+		@param from The file.
+		@return The song.
+	**/
 	public static function openPacked(from:String):Song {
 		final entries = haxe.zip.Reader.readZip(new haxe.io.BytesInput(File.getBytes(from)));
 
@@ -789,6 +897,12 @@ class Project {
 		return song;
 	}
 
+	/**
+		Writes a song, as a folder or as a zip depending on the path.
+
+		@param song The song to write.
+		@param into Where to write it.
+	**/
 	public static function save(song:Song, into:String):Void {
 		if (StringTools.endsWith(into.toLowerCase(), "." + mdd.Config.SUFFIX)) {
 			savePacked(song, into);
@@ -797,11 +911,22 @@ class Project {
 		}
 	}
 
+	/**
+		Reads a song, from a folder or a zip depending on the path.
+
+		@param from Where to read it from.
+		@return The song.
+	**/
 	public static function open(from:String):Song {
 		if (FileSystem.exists(from) && FileSystem.isDirectory(from)) return openFolder(from);
 		return openPacked(from);
 	}
 
+	/**
+		Makes a folder and every folder above it.
+
+		@param path The folder.
+	**/
 	static function tree(path:String):Void {
 		if (FileSystem.exists(path)) return;
 
