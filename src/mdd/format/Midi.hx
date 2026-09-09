@@ -363,11 +363,13 @@ final class Midi {
 				if (open[pitch] < 0) continue;
 
 				final length = tick - since[pitch];
+				final struck = open[pitch];
 				open[pitch] = -1;
 
 				if (length <= 0) continue;
 
-				pattern.lane(part).add(new Note(since[pitch], length, pitch, 100, channel));
+				pattern.lane(part).add(new Note(since[pitch], length, pitch, struck,
+					channel));
 				if (tick > longest) longest = tick;
 				continue;
 			}
