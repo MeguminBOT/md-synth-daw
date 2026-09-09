@@ -129,6 +129,8 @@ class UiCheck {
 		shortcuts();
 		saying();
 		modal();
+		banded();
+		notices();
 		remembers();
 		updates();
 		shells(renderer, face, monoFace);
@@ -884,6 +886,111 @@ class UiCheck {
 		says("and falls back to the release page", bare.offered == "0.2.0"
 			&& bare.saidAt == "https://example/page" && bare.assets == 0,
 			"a release with no assets sends the reader to the page instead");
+	}
+
+	static function banded():Void {
+		final root = shaped();
+		root.resize(800, 600);
+		root.flow = Flow.None;
+
+		final progress = new Widget();
+		progress.focusable = true;
+		progress.opaque = true;
+
+		root.bands(progress);
+		progress.arrange(250, 250, 300, 100);
+
+		says("a band is a slot of its own", root.band == progress && root.sheet == null,
+			"what has to be seen is not where the sheets go");
+
+		final sheet = new Widget();
+		sheet.focusable = true;
+		sheet.opaque = true;
+
+		root.raise(sheet);
+		sheet.arrange(100, 100, 600, 400);
+
+		says("raising a sheet leaves it up", root.band == progress && root.sheet == sheet,
+			"both are up at once");
+
+		says("and it is picked before the sheet", root.pick(400, 300) == progress,
+			"a point inside the band reaches the band and not what covers it");
+
+		root.lower();
+
+		says("lowering the sheet leaves it up", root.band == progress && root.sheet == null,
+			"lower never reaches the band");
+
+		root.raise(sheet);
+		root.key(true, Key.Escape, Mod.None);
+
+		says("and escape does not reach it either", root.band == progress,
+			"the progress bar cannot be closed by a keypress meant for a sheet");
+
+		root.raise(sheet);
+		root.bands(null);
+
+		says("only bands(null) takes it down", root.band == null && root.sheet == sheet,
+			"cleared on purpose, with the sheet still where it was");
+	}
+
+	static function notices():Void {
+		final root = shaped();
+		root.resize(800, 600);
+		root.flow = Flow.None;
+
+		final session = new mdd.app.Session(new mdd.song.Song());
+		final update = new mdd.app.Update("owner/name", "0.1.0", "windows",
+			"x86_64", false);
+
+		update.read('{"tag_name":"v0.9.0","html_url":"https://example/rel","assets":['
+			+ '{"name":"mdd-0.9.0-windows-x86_64-setup.exe",'
+			+ '"browser_download_url":"https://example/setup"}]}');
+
+		final notice = new mdd.view.overlay.Notice(session);
+		notice.update = update;
+
+		var took = 0;
+		notice.onTake = function():Void took++;
+
+		root.raise(notice);
+		notice.arrive();
+		notice.arrange(180, 200, 440, 190);
+
+		says("the update notice is the sheet", root.sheet == notice && root.focus == notice,
+			"raised and focused, so the keyboard reaches it");
+
+		root.advance(1);
+		root.advance(1);
+
+		says("and it fades all the way in", notice.fade.value > 0.99
+			&& notice.rise.value > 0.99,
+			"fade " + round(notice.fade.value, 2) + ", rise "
+			+ round(notice.rise.value, 2));
+
+		final wide = (440 - root.metrics.inset * 2 - root.metrics.gap * 2) / 3;
+		final tall = root.metrics.whole(32);
+		final middle = 200 + 190 - root.metrics.inset - tall * 0.5;
+
+		final first = notice.buttonAt(180 + root.metrics.inset + wide * 0.5, middle);
+		final last = notice.buttonAt(180 + 440 - root.metrics.inset - wide * 0.5, middle);
+		final above = notice.buttonAt(400, 220);
+
+		says("its three buttons are where it draws them",
+			first == 0 && last == 2 && above < 0,
+			"take, later and never, and nothing above the row");
+
+		notice.press(0);
+
+		says("taking the update asks for it and closes", took == 1 && root.sheet == null,
+			"one request, and the notice is down");
+
+		root.raise(notice);
+		notice.press(mdd.view.overlay.Notice.LATER);
+
+		says("and leaving it stops the updater asking again",
+			update.state() == mdd.app.Update.CURRENT && root.sheet == null,
+			"nothing is downloaded and nothing asks twice");
 	}
 
 	static function saying():Void {
