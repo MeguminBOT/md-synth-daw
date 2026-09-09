@@ -1,17 +1,55 @@
 package mdd.song;
 
+/**
+	The default bank, built in code rather than read from a file, so a new song has
+	something to play before anything is loaded.
+
+	The FM patches here are register values, and the square and noise entries are
+	envelopes: lists of attenuation steps a driver would write on a frame timer.
+**/
 @:unreflective
 final class Shipped {
+	/**
+		Field 0 of a packed patch: detune.
+	**/
 	public static inline final DETUNE = 0;
 	static inline final MULTIPLE = 1;
+
+	/**
+		Field 2 of a packed patch: total level.
+	**/
 	public static inline final LEVEL = 2;
 	static inline final SCALING = 3;
+
+	/**
+		Field 4 of a packed patch: attack rate.
+	**/
 	public static inline final ATTACK = 4;
+
+	/**
+		Field 5 of a packed patch: decay rate.
+	**/
 	public static inline final DECAY = 5;
+
+	/**
+		Field 6 of a packed patch: sustain rate.
+	**/
 	public static inline final SUSTAIN = 6;
 	static inline final SUSTAIN_LEVEL = 7;
+
+	/**
+		Field 8 of a packed patch: release rate.
+	**/
 	public static inline final RELEASE = 8;
+
+	/**
+		Field 9 of a packed patch: the SSG-EG nibble.
+	**/
 	public static inline final SSG = 9;
+
+	/**
+		How many fields each operator takes.
+	**/
 	public static inline final FIELDS = 10;
 
 	static final FM_NAMES:Array<String> = ["Grand", "Electric piano", "Round bass",
@@ -155,6 +193,12 @@ final class Shipped {
 
 	static final NOISE_ICONS:Array<Int> = [mdd.Icon.HI_HAT, mdd.Icon.SNARE, mdd.Icon.WAVE_NOISE];
 
+	/**
+		Puts every default instrument into a song and gathers them into one bank.
+
+		@param song The song to add them to.
+		@return The bank they were gathered into.
+	**/
 	public static function into(song:Song):Bank {
 		final bank = song.banked("Default");
 
@@ -200,6 +244,12 @@ final class Shipped {
 		return bank;
 	}
 
+	/**
+		Unpacks one of the tables above into a patch.
+
+		@param fields The algorithm, the feedback, and ten fields per operator.
+		@return The patch.
+	**/
 	public static function patched(fields:Array<Int>):Patch {
 		final patch = new Patch();
 
@@ -226,6 +276,10 @@ final class Shipped {
 		return patch;
 	}
 
+	/**
+		@param song The song to look in.
+		@return The first FM instrument, by index, or -1 where there is none.
+	**/
 	public static function firstFm(song:Song):Int {
 		for (index in 0...song.instruments.length) {
 			if (song.instruments[index].patch != null) return index;
@@ -234,6 +288,10 @@ final class Shipped {
 		return -1;
 	}
 
+	/**
+		@param song The song to look in.
+		@return The first square instrument, by index, or -1 where there is none.
+	**/
 	public static function firstSquare(song:Song):Int {
 		for (index in 0...song.instruments.length) {
 			final held = song.instruments[index];
@@ -243,6 +301,10 @@ final class Shipped {
 		return -1;
 	}
 
+	/**
+		@param song The song to look in.
+		@return The first noise instrument, by index, or -1 where there is none.
+	**/
 	public static function firstNoise(song:Song):Int {
 		for (index in 0...song.instruments.length) {
 			final held = song.instruments[index];

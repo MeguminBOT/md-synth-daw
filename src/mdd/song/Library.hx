@@ -3,16 +3,42 @@ package mdd.song;
 import mdd.format.Json;
 import mdd.format.Tfi;
 
+/**
+	The preset banks: what ships inside the binary, and what a reader has put in their
+	own presets folder.
+
+	A library is read once and copied into a song, so a song never depends on a bank
+	being installed to open.
+**/
 @:unreflective
 final class Library {
+	/**
+		The name of each bank.
+	**/
 	public final names:Array<String> = [];
+
+	/**
+		The instruments in each bank.
+	**/
 	public final instruments:Array<Array<Instrument>> = [];
+
+	/**
+		The sample each instrument needs, where it needs one.
+	**/
 	public final samples:Array<Array<Null<Sample>>> = [];
 
 	public function new() {}
 
+	/**
+		What a bank resource is called inside the binary.
+	**/
 	public static inline final PREFIX = "bank.";
 
+	/**
+		Reads every bank compiled into the binary.
+
+		@return The library those banks make up.
+	**/
 	public static function embedded():Library {
 		final out = new Library();
 		final held:Array<String> = [];
@@ -33,6 +59,12 @@ final class Library {
 		return out;
 	}
 
+	/**
+		Reads one bank document and adds it.
+
+		@param said The bank as JSON.
+		@return How many instruments it carried.
+	**/
 	public function reads(said:String):Int {
 		final node = Json.parse(said);
 		if (node == null) return 0;
@@ -84,6 +116,13 @@ final class Library {
 		return made.length;
 	}
 
+	/**
+		Copies every bank into a song, with its own instruments and samples, so nothing
+		is shared with the library afterwards.
+
+		@param song The song to copy into.
+		@return How many instruments were added.
+	**/
 	public function into(song:Song):Int {
 		var many = 0;
 
@@ -126,6 +165,14 @@ final class Library {
 	public static inline final SUFFIX = ".json";
 	public static inline final PATCH = ".tfi";
 
+	/**
+		Reads a folder of bank documents and loose patch files, so a reader's own presets
+		load beside the shipped ones rather than replacing them.
+
+		@param where The folder to read.
+		@param saved The name of the bank loose patches go into.
+		@return How many instruments were read.
+	**/
 	public function within(where:String, saved:String):Int {
 		if (where == "" || !sys.FileSystem.exists(where)) return 0;
 		if (!sys.FileSystem.isDirectory(where)) return 0;
@@ -181,11 +228,24 @@ final class Library {
 		return many + made.length;
 	}
 
+	/**
+		@param name A file name.
+		@return It without its suffix.
+	**/
 	static function stem(name:String):String {
 		final dot = name.lastIndexOf(".");
 		return dot > 0 ? name.substring(0, dot) : name;
 	}
 
+	/**
+		Reads a sample out of a bank document.
+
+		@param named What to call it.
+		@param said The bytes, base64 encoded.
+		@param rate The rate they were written at.
+		@param root The MIDI note it sounds at that rate.
+		@return The sample, or null where the text was not readable.
+	**/
 	public static function sampled(named:String, said:String, rate:Int, root:Int):Null<Sample> {
 		if (said == "") return null;
 
@@ -205,6 +265,12 @@ final class Library {
 		}
 	}
 
+	/**
+		Reads a patch out of a bank document, in the same layout a TFI file uses.
+
+		@param said The patch as hexadecimal.
+		@return The patch, or null where the text was not readable.
+	**/
 	public static function patched(said:String):Null<Patch> {
 		if (said.length < Tfi.BYTES * 2) return null;
 
@@ -217,6 +283,11 @@ final class Library {
 		return Tfi.read(out);
 	}
 
+	/**
+		@param said A string of hexadecimal.
+		@param at Which character.
+		@return Its value, or -1 where it is not a hexadecimal digit.
+	**/
 	static function digit(said:String, at:Int):Int {
 		final code = said.charCodeAt(at);
 		if (code == null) return 0;
@@ -228,6 +299,9 @@ final class Library {
 		return 0;
 	}
 
+	/**
+		@return How many instruments the whole library holds.
+	**/
 	public function count():Int {
 		var many = 0;
 		for (held in instruments) many += held.length;
