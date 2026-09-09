@@ -1,3 +1,31 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
 package mdd.format;
 
 import haxe.io.Bytes;
@@ -9,49 +37,185 @@ import mdd.song.Song;
 import mdd.song.Tempo;
 
 @:unreflective
+
+/**
+	The XGM driver format: commands grouped into frames, with the samples in a bank of
+	sixty three slots.
+
+	It is a driver format rather than a log, so its timing is frame quantised where a
+	VGM sample timing is not: two writes three samples apart land in the same frame.
+	The format description in SGDK is ambiguous in places, and where it disagrees with
+	the tool that writes the files, this follows the tool, because the tool is what
+	reads them back.
+**/
 final class Xgm {
+	/**
+		The four bytes an XGM file begins with.
+	**/
 	public static inline final MARK = "XGM ";
+
+	/**
+		Where the sample table starts.
+	**/
 	public static inline final TABLE = 0x0004;
+
+	/**
+		How many sample slots the format has.
+	**/
 	public static inline final SLOTS = 63;
+
+	/**
+		What sample data is aligned to.
+	**/
 	public static inline final ALIGN = 256;
 	static inline final MUSIC = 0x0108;
 
+	/**
+		The rate the driver plays samples at, in hertz.
+	**/
 	public static inline final PCM_RATE = 14000;
+
+	/**
+		How many samples can sound at once.
+	**/
 	public static inline final VOICES = 4;
+
+	/**
+		The value silence is at, unsigned.
+	**/
 	public static inline final CENTRE = 0x80;
 	static inline final READS = 1;
 
+	/**
+		Command: end the frame.
+	**/
 	public static inline final WAIT = 0x00;
+
+	/**
+		Command: writes to the square part.
+	**/
 	public static inline final PSG = 0x10;
+
+	/**
+		Command: writes to the first half of the FM registers.
+	**/
 	public static inline final YM_LOW = 0x20;
+
+	/**
+		Command: the same in the second half.
+	**/
 	public static inline final YM_HIGH = 0x30;
+
+	/**
+		Command: key on or off.
+	**/
 	public static inline final KEY = 0x40;
+
+	/**
+		Command: start a sample on a voice.
+	**/
 	public static inline final PCM = 0x50;
+
+	/**
+		Command: return to a frame.
+	**/
 	public static inline final LOOP = 0x7E;
+
+	/**
+		Command: the music ends here.
+	**/
 	public static inline final END = 0x7F;
 
+	/**
+		The version the header declares.
+	**/
 	public var version(default, null):Int = 1;
 	var pal(default, null):Bool = false;
+
+	/**
+		Frames a second, 60 on NTSC and 50 on PAL.
+	**/
 	public var rate(default, null):Int = 60;
 	var multi(default, null):Bool = false;
 
+	/**
+		How many bytes of samples were read.
+	**/
 	public var sampleBytes(default, null):Int = 0;
+
+	/**
+		How many sample slots were filled.
+	**/
 	public var samples(default, null):Int = 0;
+
+	/**
+		How many commands were read.
+	**/
 	public var commands(default, null):Int = 0;
+
+	/**
+		How many frames the music runs for.
+	**/
 	public var frames(default, null):Int = 0;
+
+	/**
+		How many samples were started.
+	**/
 	public var struck(default, null):Int = 0;
+
+	/**
+		How many were refused because every voice was busy.
+	**/
 	public var refused(default, null):Int = 0;
+
+	/**
+		How many commands were not understood.
+	**/
 	public var unknown(default, null):Int = 0;
+
+	/**
+		Which frame the music ends on, or -1 where it does not.
+	**/
 	public var stopped(default, null):Int = -1;
+
+	/**
+		How many times more samples were wanted than the format has slots.
+	**/
 	public var crowded(default, null):Int = 0;
+
+	/**
+		Which frame the loop returns to, or -1 for none.
+	**/
 	public var loopAt(default, null):Int = -1;
 
+	/**
+		The file, after a write.
+	**/
 	public var written(default, null):Null<Bytes> = null;
 
+	/**
+		The title tag.
+	**/
 	public var title(default, null):String = "";
+
+	/**
+		The game tag.
+	**/
 	public var game(default, null):String = "";
+
+	/**
+		The author tag.
+	**/
 	public var author(default, null):String = "";
+
+	/**
+		The release date tag.
+	**/
 	public var released(default, null):String = "";
+
+	/**
+		The notes tag.
+	**/
 	public var notes(default, null):String = "";
 
 	final starts:Vector<Int> = new Vector<Int>(SLOTS);
@@ -65,6 +229,9 @@ final class Xgm {
 	var sounding:Bool = false;
 	var poured:Float = 0;
 
+	/**
+		Private: use `read` or `write`.
+	**/
 	function new() {
 		for (index in 0...SLOTS) {
 			starts[index] = -1;
@@ -78,6 +245,14 @@ final class Xgm {
 		}
 	}
 
+	/**
+		Reads a file and puts its writes into a stream, expanding each frame back into
+		sample positions.
+
+		@param bytes The file.
+		@param into Where the register writes read out of it go.
+		@return What the header and the walk found.
+	**/
 	public static function read(bytes:Bytes, into:Stream):Xgm {
 		final made = new Xgm();
 		made.take(bytes, into);
@@ -85,6 +260,12 @@ final class Xgm {
 		return made;
 	}
 
+	/**
+		Reads the header and the sample table, then walks the frames.
+
+		@param bytes The file.
+		@param into Where the register writes read out of it go.
+	**/
 	function take(bytes:Bytes, into:Stream):Void {
 		if (bytes.length < MUSIC || bytes.getString(0, 4) != MARK) {
 			throw "this is not an xgm file";
@@ -132,6 +313,12 @@ final class Xgm {
 		walk(bytes, music + 4, many < 1 ? bytes.length - music - 4 : many, into);
 	}
 
+	/**
+		Reads the tag block.
+
+		@param bytes The file.
+		@param at Where the block starts.
+	**/
 	function tags(bytes:Bytes, at:Int):Void {
 		if (at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
 
@@ -159,6 +346,14 @@ final class Xgm {
 		notes = held.length > 10 ? held[10] : "";
 	}
 
+	/**
+		Walks every frame, turning each command into writes at the frame position.
+
+		@param bytes The file.
+		@param from Where the music starts.
+		@param many How many bytes of it there are.
+		@param into Where the register writes read out of it go.
+	**/
 	function walk(bytes:Bytes, from:Int, many:Int, into:Stream):Void {
 		final step = Tempo.TICKS / rate;
 		final ends = from + many > bytes.length ? bytes.length : from + many;
@@ -238,6 +433,14 @@ final class Xgm {
 		if (sounding) into.ym(Math.round(tick), 0, 0x2A, CENTRE);
 	}
 
+	/**
+		Starts a sample on a voice, or refuses it where the voice is busy with a higher
+		priority one.
+
+		@param voice Which of the four voices.
+		@param rank Its priority.
+		@param id Which sample slot.
+	**/
 	function played(voice:Int, rank:Int, id:Int):Void {
 		if (id == 0) {
 			voiceSample[voice] = -1;
@@ -258,6 +461,14 @@ final class Xgm {
 		voiceRank[voice] = rank;
 	}
 
+	/**
+		Writes the converter bytes the sounding voices produce across a span, mixed
+		together the way the driver mixes them.
+
+		@param into Where the register writes read out of it go.
+		@param from The first sample of the span.
+		@param until One past the last.
+	**/
 	function mixed(into:Stream, from:Float, until:Float):Void {
 		final held = block;
 		if (held == null) return;
@@ -307,6 +518,17 @@ final class Xgm {
 		}
 	}
 
+	/**
+		Writes a register stream out as an XGM file, gathering the samples it uses into
+		the bank.
+
+		@param song The song the samples come from.
+		@param stream The writes to put in it.
+		@param from The first sample to write.
+		@param to One past the last.
+		@param rate Frames a second to declare.
+		@return What was written, with the file in `written`.
+	**/
 	public static function write(song:Song, stream:Stream, from:Int, to:Int,
 			rate:Int = 60):Xgm {
 		final made = new Xgm();
@@ -431,6 +653,12 @@ final class Xgm {
 		return made;
 	}
 
+	/**
+		Writes the tag block.
+
+		@param song The song the tags come from.
+		@return The block.
+	**/
 	static function tagging(song:Song):Bytes {
 		if (song.name == "" && song.author == "") return Bytes.alloc(0);
 
@@ -455,6 +683,15 @@ final class Xgm {
 		return out;
 	}
 
+	/**
+		Writes one command and the bytes it carries, splitting a run that is longer than
+		one command can hold.
+
+		@param body Where the command goes.
+		@param code The command byte.
+		@param held The bytes it carries.
+		@param width How many bytes each entry takes.
+	**/
 	static function bytes(body:BytesOutput, code:Int, held:Array<Int>, width:Int):Void {
 		var at = 0;
 
@@ -471,6 +708,11 @@ final class Xgm {
 }
 
 @:unreflective
+
+/**
+	The sample bank an XGM file carries: sixty three slots, each holding one sample
+	aligned to a boundary.
+**/
 private class Bank {
 	public var count(default, null):Int = 0;
 	public var dropped(default, null):Int = 0;
