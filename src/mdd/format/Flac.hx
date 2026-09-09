@@ -200,7 +200,7 @@ final class Flac {
 		out.writeByte((rate >> 4) & 0xFF);
 		out.writeByte((((rate & 0x0F) << 4) | (((channels - 1) & 7) << 1)
 			| (((depth - 1) >> 4) & 1)) & 0xFF);
-		out.writeByte(((((depth - 1) & 0x0F) << 4) | ((frames >> 32) & 0x0F)) & 0xFF);
+		out.writeByte((((depth - 1) & 0x0F) << 4) & 0xFF);
 
 		out.writeByte((frames >> 24) & 0xFF);
 		out.writeByte((frames >> 16) & 0xFF);
