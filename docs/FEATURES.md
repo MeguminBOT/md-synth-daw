@@ -24,8 +24,7 @@ there.
 
 ### The playlist
 
-Clips laid over named tracks. A track carries its own name, colour and icon, and a clip that has no
-colour of its own borrows the track's, so an arrangement reads at a glance.
+Clips laid over named tracks, each track carrying its own name, colour and icon.
 
 Right clicking a track header offers: rename, auto name, auto name the clips, recolour, pick an
 icon, clone, insert above, reset, mute, merge the clips, and delete. Clips can be dragged between
