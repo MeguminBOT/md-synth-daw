@@ -21,6 +21,7 @@ final class Update {
 	public var repository(default, null):String;
 	public var running(default, null):String;
 	public var platform(default, null):String;
+	public var machine(default, null):String;
 
 	public var offered(default, null):String = "";
 	public var saidAt(default, null):String = "";
@@ -31,10 +32,12 @@ final class Update {
 
 	final held:AtomicInt = new AtomicInt(IDLE);
 
-	public function new(repository:String, running:String, platform:String = "") {
+	public function new(repository:String, running:String, platform:String = "",
+			machine:String = "") {
 		this.repository = repository;
 		this.running = running;
 		this.platform = platform == "" ? Paths.platform() : platform;
+		this.machine = machine == "" ? Paths.machine() : machine;
 	}
 
 	public inline function state():Int {
@@ -132,9 +135,13 @@ final class Update {
 		final ending = platform == "windows" ? ".exe"
 			: (platform == "mac" ? ".dmg" : ".tar.gz");
 
+		final other = machine == "arm64" ? "x86_64" : "arm64";
+		if (name.indexOf(other) >= 0) return 0;
+
 		var score = 0;
 
 		if (name.indexOf(platform) >= 0) score += 2;
+		if (name.indexOf(machine) >= 0) score += 2;
 		if (StringTools.endsWith(name, ending)) score += 2;
 		if (name.indexOf(installer) >= 0) score += 3;
 		if (name.indexOf("portable") >= 0) score += 1;

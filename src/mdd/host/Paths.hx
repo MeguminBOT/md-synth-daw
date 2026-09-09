@@ -48,6 +48,14 @@ class Paths {
 		#end
 	}
 
+	public static function machine():String {
+		#if HXCPP_ARM64
+		return "arm64";
+		#else
+		return "x86_64";
+		#end
+	}
+
 
 	public static function portable():Bool {
 		return sys.FileSystem.exists(beside() + "/portable.txt")

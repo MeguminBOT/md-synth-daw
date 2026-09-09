@@ -804,6 +804,39 @@ class UiCheck {
 		says("and takes the first line of the notes", held.notes == "Faster import",
 			"the release body's first line is what the notice shows: " + held.notes);
 
+		final split = '{"tag_name":"v0.4.0","html_url":"https://example/rel","assets":['
+			+ '{"name":"mdd-0.4.0-linux-x86_64-portable.tar.gz","browser_download_url":"https://example/lx64p"},'
+			+ '{"name":"mdd-0.4.0-linux-arm64-portable.tar.gz","browser_download_url":"https://example/larmp"},'
+			+ '{"name":"mdd-0.4.0-linux-x86_64-installer.tar.gz","browser_download_url":"https://example/lx64i"},'
+			+ '{"name":"mdd-0.4.0-linux-arm64-installer.tar.gz","browser_download_url":"https://example/larmi"},'
+			+ '{"name":"mdd-0.4.0-windows-x86_64-setup.exe","browser_download_url":"https://example/wx64"},'
+			+ '{"name":"mdd-0.4.0-mac-arm64.dmg","browser_download_url":"https://example/marm"},'
+			+ '{"name":"mdd-0.4.0-mac-x86_64.dmg","browser_download_url":"https://example/mx64"}]}';
+
+		final armed = new mdd.app.Update("owner/name", "0.1.0", "linux", "arm64");
+		armed.read(split);
+
+		final wide = new mdd.app.Update("owner/name", "0.1.0", "linux", "x86_64");
+		wide.read(split);
+
+		final apple = new mdd.app.Update("owner/name", "0.1.0", "mac", "arm64");
+		apple.read(split);
+
+		says("a release with both architectures gives each its own",
+			armed.saidAt == "https://example/larmi"
+			&& wide.saidAt == "https://example/lx64i"
+			&& apple.saidAt == "https://example/marm",
+			"of 7 assets linux arm64 took " + armed.saidAt.split("/").pop()
+			+ ", linux x86_64 took " + wide.saidAt.split("/").pop()
+			+ " and mac arm64 took " + apple.saidAt.split("/").pop());
+
+		says("and the other architecture is never offered",
+			armed.suits("mdd-0.4.0-linux-x86_64-installer.tar.gz") == 0
+			&& wide.suits("mdd-0.4.0-linux-arm64-installer.tar.gz") == 0
+			&& apple.suits("mdd-0.4.0-mac-x86_64.dmg") == 0,
+			"an asset naming the wrong architecture scores nothing at all, so it"
+			+ " cannot win on any other part of its name");
+
 		final bare = new mdd.app.Update("owner/name", "0.1.0", "mac");
 		bare.read('{"tag_name":"0.2.0","html_url":"https://example/page","assets":[]}');
 
