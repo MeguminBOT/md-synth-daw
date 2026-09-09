@@ -15,13 +15,31 @@ import mdd.ui.Scroll;
 import mdd.ui.Theme;
 
 @:unreflective
+
+/**
+	The register timeline: every write, which part took it, and what it meant.
+
+	It reads the same stream playback and the export read, so what it shows is what
+	the hardware would have been given and not a second account of it.
+**/
 final class Registers extends Scroll {
 	static inline final KEPT = 512;
 	static inline final SEEN = 256;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		How many writes are held.
+	**/
 	public var writes(default, null):Int = 0;
+
+	/**
+		How many rows the last frame drew, which is what proves only the visible ones cost
+		anything.
+	**/
 	public var painted(default, null):Int = 0;
 	var following:Bool = true;
 
@@ -37,6 +55,11 @@ final class Registers extends Scroll {
 
 	var at:Int = 0;
 
+	/**
+		Builds the timeline.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -55,6 +78,9 @@ final class Registers extends Scroll {
 		for (index in 0...4) psgSeen[index] = -1;
 	}
 
+	/**
+		Throws every held write away.
+	**/
 	public function forget():Void {
 		writes = 0;
 		at = 0;
@@ -66,6 +92,14 @@ final class Registers extends Scroll {
 		invalidate();
 	}
 
+	/**
+		Reads a span of the stream and keeps it, dropping the oldest where the timeline
+		is full.
+
+		@param stream The stream to read.
+		@param from Where to start.
+		@return How far it read to, to pass back next time.
+	**/
 	public function take(stream:Stream, from:Int):Int {
 		final many = stream.count;
 		if (from >= many) return many;
@@ -99,11 +133,17 @@ final class Registers extends Scroll {
 		if (held > 1) return;
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 22 : root.metrics.whole(22);
 	}
 
+	/**
+		@return How many rows there are.
+	**/
 	public function rows():Int {
 		return writes < KEPT ? writes : KEPT;
 	}
@@ -145,6 +185,10 @@ final class Registers extends Scroll {
 		return at < 0 || at >= rows() ? -1 : at;
 	}
 
+	/**
+		@param row A row.
+		@return The register and the value, as the documentation writes them.
+	**/
 	public function said(row:Int):String {
 		final index = indexOf(row);
 		if (values[index] < 0) return "";
@@ -156,6 +200,10 @@ final class Registers extends Scroll {
 			+ "  " + named(kinds[index], ports[index], values[index]);
 	}
 
+	/**
+		@param row A row.
+		@return What that write actually did, in words.
+	**/
 	public function command(row:Int):String {
 		final index = indexOf(row);
 		if (values[index] < 0) return "";

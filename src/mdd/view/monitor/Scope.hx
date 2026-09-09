@@ -17,26 +17,70 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The scope: one lane per part, showing either the waveform or the spectrum.
+**/
 final class Scope extends Widget {
+	/**
+		How many lanes are stacked down.
+	**/
 	public static inline final ROWS = 6;
+
+	/**
+		How many are laid out across.
+	**/
 	public static inline final COLUMNS = 2;
+
+	/**
+		How many samples one lane holds.
+	**/
 	public static inline final SPAN = 512;
+
+	/**
+		How many bars the spectrum is drawn as.
+	**/
 	public static inline final BARS = 24;
 
+	/**
+		Showing: the samples over time.
+	**/
 	public static inline final WAVEFORM = 0;
+
+	/**
+		Showing: what is in them.
+	**/
 	public static inline final SPECTRUM = 1;
 
 	static final ORDER:Vector<Int> = Vector.fromArrayCopy([
 		0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 5
 	]);
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
 	final traces:Vector<Float> = new Vector<Float>(Part.COUNT * SPAN);
+
+	/**
+		How many samples each lane holds.
+	**/
 	public final written:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		Which note each part is sounding, for the label.
+	**/
 	public final notes:Vector<Int> = new Vector<Int>(Part.COUNT);
 
+	/**
+		How many lanes the last frame drew.
+	**/
 	public var painted(default, null):Int = 0;
+
+	/**
+		Which of the two is shown.
+	**/
 	public var showing(default, null):Int = WAVEFORM;
 
 	var menu:Null<Menu> = null;
@@ -45,6 +89,11 @@ final class Scope extends Widget {
 	final bins:Vector<Float> = new Vector<Float>(BARS);
 	final turns:Vector<Float> = new Vector<Float>(BARS * 2);
 
+	/**
+		Builds the scope.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -65,6 +114,12 @@ final class Scope extends Widget {
 		}
 	}
 
+	/**
+		Adds one sample to a lane.
+
+		@param part Which part.
+		@param value The sample.
+	**/
 	public function feed(part:Int, value:Float):Void {
 		final at = part * SPAN + written[part];
 
@@ -72,6 +127,12 @@ final class Scope extends Widget {
 		written[part] = (written[part] + 1) % SPAN;
 	}
 
+	/**
+		Says which note a part is sounding.
+
+		@param part Which part.
+		@param note A MIDI note number, or -1 for none.
+	**/
 	public function sang(part:Int, note:Int):Void {
 		notes[part] = note;
 	}
@@ -96,6 +157,11 @@ final class Scope extends Widget {
 		return from;
 	}
 
+	/**
+		Switches between the waveform and the spectrum.
+
+		@param which `WAVEFORM` or `SPECTRUM`.
+	**/
 	public function shows(which:Int):Void {
 		if (which == showing) return;
 
@@ -103,11 +169,19 @@ final class Scope extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return How tall the title band is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.head;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which part lane is there, or -1.
+	**/
 	public function laneAt(px:Float, py:Float):Int {
 		final top = head();
 		if (py < y + top) return -1;

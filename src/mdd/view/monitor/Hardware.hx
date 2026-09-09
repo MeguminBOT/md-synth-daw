@@ -10,31 +10,67 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The hardware meter: how much of each part the piece is asking for, against what the
+	machine actually has.
+**/
 final class Hardware extends Widget {
+	/**
+		How many rows the parts are grouped into: FM, squares, noise and samples.
+	**/
 	public static inline final ROWS = 4;
+
+	/**
+		How loud a part has to be before it counts as sounding.
+	**/
 	public static inline final AUDIBLE = 0.02;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		What says how much of each part is in use and what the machine has.
+	**/
 	public var budget:Null<Budget> = null;
+
+	/**
+		How loud each part is now, for the lights.
+	**/
 	public var levels:Null<Vector<Float>> = null;
 
+	/**
+		Builds the meter.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
 		opaque = true;
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function step():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.whole(26);
 	}
 
+	/**
+		@return How tall the title band is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.head;
 	}
 
+	/**
+		@return How tall the whole meter is, which is what the rail lays it out to.
+	**/
 	public function tall():Float {
 		final root = root();
 		final inset = root == null ? 8.0 : root.metrics.inset;
@@ -42,6 +78,9 @@ final class Hardware extends Widget {
 		return head() + step() * Math.ceil(ROWS / 2) + inset;
 	}
 
+	/**
+		@return Whether anything is sounding now, so the lights are worth drawing.
+	**/
 	public function live():Bool {
 		return levels != null && session.transport.playing;
 	}

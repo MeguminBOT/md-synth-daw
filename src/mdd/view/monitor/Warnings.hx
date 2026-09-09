@@ -14,35 +14,75 @@ import mdd.ui.Scroll;
 import mdd.ui.Theme;
 
 @:unreflective
+
+/**
+	Everything the song asks of the hardware that the hardware will not do, listed with
+	what would fix it.
+
+	Clicking one selects the channel and the note that caused it rather than leaving
+	the reader to find them.
+**/
 final class Warnings extends Scroll {
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Where the warnings come from.
+	**/
 	public var budget:Null<Budget> = null;
+
+	/**
+		Which warning is chosen, or -1.
+	**/
 	public var chosen(default, null):Int = -1;
+
+	/**
+		How many rows the last frame drew.
+	**/
 	public var painted(default, null):Int = 0;
 
 	var hoverAt:Int = -1;
 
+	/**
+		Builds the list.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
 		focusable = true;
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 30 : root.metrics.whole(30);
 	}
 
+	/**
+		@return How many warnings there are.
+	**/
 	public function found():Int {
 		return budget == null ? 0 : budget.found.length;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which warning is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y + offsetY) / rowTall());
 		return at < 0 || at >= found() ? -1 : at;
 	}
 
+	/**
+		Reads the warnings again, forgetting a choice that is no longer there.
+	**/
 	public function fit():Void {
 		contentHeight = found() * rowTall();
 		invalidate();
