@@ -216,7 +216,12 @@ jobs:
 
       # Provenance says which workflow, at which commit, produced these files.
       # Verify with: gh attestation verify <file> --repo ${{ github.repository }}
+      #
+      # GitHub refuses to store an attestation for a user-owned private
+      # repository and fails the step rather than skipping it, which took the
+      # whole release down with it. It comes back on its own once public.
       - name: Attest the build provenance
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
