@@ -34,6 +34,7 @@ class MixCheck {
 		gridded();
 		nudged();
 		parted();
+		stemmed();
 		singly();
 		furnished();
 		threaded();
@@ -666,6 +667,113 @@ class MixCheck {
 	static function away(at:Int, grid:Int):Int {
 		final over = at % grid;
 		return over > grid - over ? grid - over : over;
+	}
+
+	static function stemmed():Void {
+		final song = new Song("stems", 96, 140);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+
+		final track = song.track(new mdd.song.Track("all"));
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		mdd.song.Shipped.into(song);
+
+		final fm = mdd.song.Shipped.firstFm(song);
+		final square = mdd.song.Shipped.firstSquare(song);
+
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 192, 60, 127, fm));
+		pattern.lane(mdd.song.Part.Fm2).add(new mdd.song.Note(96, 192, 64, 100, fm));
+		pattern.lane(mdd.song.Part.Psg1).add(new mdd.song.Note(0, 96, 72, 127, square));
+
+		final carried:Array<Int> = [];
+		for (index in 0...mdd.song.Part.COUNT) if (song.carries(index)) carried.push(index);
+
+		says("only the parts that sound get a stem", carried.length == 3
+			&& carried[0] == mdd.song.Part.Fm1.index()
+			&& carried[1] == mdd.song.Part.Fm2.index()
+			&& carried[2] == mdd.song.Part.Psg1.index(),
+			carried.length + " of " + mdd.song.Part.COUNT + " parts carry a note");
+
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0.25;
+		mixing.normalise = true;
+		mixing.ceiling = -1;
+
+		final mix = Mixdown.of(song, mixing);
+		final many = mix.frames * mix.channels;
+
+		final summed = new Vector<cpp.Float32>(many);
+		for (index in 0...many) summed[index] = 0;
+
+		var quietest = 1.0;
+		var empty = 0.0;
+
+		for (part in carried) {
+			final stem = Mixdown.made();
+
+			stem.reached.store(0);
+			stem.onlyPart = part;
+			stem.sharedGain = mix.gain;
+			stem.runs(song, mixing);
+
+			var loudest = 0.0;
+
+			for (index in 0...many) {
+				if (index >= stem.frames * stem.channels) break;
+
+				final value = stem.samples[index];
+				summed[index] = summed[index] + value;
+
+				final much = value < 0 ? -value : value;
+				if (much > loudest) loudest = much;
+			}
+
+			if (loudest < quietest) quietest = loudest;
+		}
+
+		final away = Mixdown.made();
+
+		away.onlyPart = mdd.song.Part.Fm6.index();
+		away.sharedGain = mix.gain;
+		away.runs(song, mixing);
+
+		final quiet = Std.int(away.rate * 0.25) * away.channels;
+
+		for (index in quiet...away.frames * away.channels) {
+			final value = away.samples[index];
+			final much = value < 0 ? -value : value;
+			if (much > empty) empty = much;
+		}
+
+		says("every stem carries something", quietest > 0.001,
+			"the quietest of " + carried.length + " reaches " + round(quietest, 4));
+
+		says("and a part with no notes is silent", empty < 0.0005,
+			((mdd.song.Part.Fm6 : mdd.song.Part).name()) + " peaks at "
+			+ round(empty, 6) + " once the coupling filter has settled");
+		var worst = 0.0;
+		var settled = 0.0;
+		final after = Std.int(mix.rate * 0.25) * mix.channels;
+
+		for (index in 0...many) {
+			final apart = summed[index] - mix.samples[index];
+			final much = apart < 0 ? -apart : apart;
+
+			if (much > worst) worst = much;
+			if (index >= after && much > settled) settled = much;
+		}
+
+		says("the stems sum back to the mix", worst < 0.0005 && settled < 0.0005,
+			"worst " + decibels(worst) + " dB, and " + decibels(settled)
+			+ " dB once the coupling filter has settled");
+
+		says("and every stem took the gain the mix worked out",
+			mix.gain > 0 && away.gain == mix.gain,
+			"a gain of " + round(mix.gain, 4) + " on the mix and on each stem, so nothing"
+			+ " is normalised twice");
 	}
 
 	static function parted():Void {
