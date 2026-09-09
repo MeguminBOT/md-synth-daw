@@ -18,12 +18,32 @@ import mdd.ui.control.Menu;
 import mdd.ui.control.Number;
 
 @:unreflective
+
+/**
+	The bar under the menus: play, stop, loop, the tempo and the grid, the pattern
+	picker, the output stage, the monitoring volume and the meter.
+**/
 final class TransportBar extends Widget {
+	/**
+		Button: play or pause.
+	**/
 	public static inline final PLAY = 0;
+
+	/**
+		Button: stop and rewind.
+	**/
 	public static inline final STOP = 1;
 	static inline final RECORD = 2;
 	static inline final REWIND = 3;
+
+	/**
+		Button: loop.
+	**/
 	public static inline final LOOP = 4;
+
+	/**
+		How many buttons there are.
+	**/
 	public static inline final BUTTONS = 5;
 
 	static final SNAPS:Array<Int> = [16, 8, 4, 2, 1];
@@ -33,17 +53,39 @@ final class TransportBar extends Widget {
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
 	static final SHORTCUTS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		The tempo, typed or dragged.
+	**/
 	public final tempo:Number;
+
+	/**
+		How far the whole piece is moved in time.
+	**/
 	public final offset:Number;
+
+	/**
+		Whether changing the tempo moves the music with it, so the piece sounds the same,
+		rather than moving the grid under it.
+	**/
 	public var regrids:Bool = false;
 	final resolution:Number;
 	final video:Number;
+
+	/**
+		What the editors snap to.
+	**/
 	public final snap:Number;
 
 	final held:Array<Number>;
 
+	/**
+		Called when the monitoring volume moves.
+	**/
 	public var onMaster:Null<Int -> Void> = null;
 
 	var hoverAt:Int = -1;
@@ -54,6 +96,11 @@ final class TransportBar extends Widget {
 	var menu:Null<Menu> = null;
 	var settling:Bool = false;
 
+	/**
+		Builds the bar and every field on it.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -89,10 +136,16 @@ final class TransportBar extends Widget {
 		offset.onChange = function(from:Number):Void offsetChanged(from);
 	}
 
+	/**
+		@return Every typed field on the bar, so the keyboard can step between them.
+	**/
 	public function fields():Array<Number> {
 		return held;
 	}
 
+	/**
+		@return Which of the snap steps is chosen.
+	**/
 	function snapIndex():Int {
 		final ppqn = session.song.tempo.ppqn;
 
@@ -103,6 +156,9 @@ final class TransportBar extends Widget {
 		return 0;
 	}
 
+	/**
+		Reads the piece again into every field, which loading one needs.
+	**/
 	public function settles():Void {
 		if (settling) return;
 		settling = true;
@@ -116,12 +172,22 @@ final class TransportBar extends Widget {
 		settling = false;
 	}
 
+	/**
+		Applies a new tempo, moving the music with it where `regrids` is set.
+
+		@param from The field that changed.
+	**/
 	function tempoChanged(from:Number):Void {
 		if (settling) return;
 		if (regrids) session.does(new mdd.song.edit.SetGrid(from.value));
 		else session.does(new SetTempo(0, from.value));
 	}
 
+	/**
+		Moves the whole piece in time.
+
+		@param from The field that changed.
+	**/
 	function offsetChanged(from:Number):Void {
 		if (settling) return;
 
@@ -131,6 +197,11 @@ final class TransportBar extends Widget {
 		session.does(new mdd.song.edit.ShiftSong(by));
 	}
 
+	/**
+		Changes the tick resolution, moving everything to keep the music where it was.
+
+		@param from The field that changed.
+	**/
 	function resolutionChanged(from:Number):Void {
 		if (settling) return;
 
@@ -139,6 +210,12 @@ final class TransportBar extends Widget {
 		session.changed();
 	}
 
+	/**
+		Switches between the two frame rates, which changes how a driver paces an
+		export.
+
+		@param from The field that changed.
+	**/
 	function videoChanged(from:Number):Void {
 		if (settling) return;
 
@@ -146,6 +223,11 @@ final class TransportBar extends Widget {
 		session.changed();
 	}
 
+	/**
+		Changes what the editors snap to.
+
+		@param from The field that changed.
+	**/
 	function snapChanged(from:Number):Void {
 		if (settling) return;
 
@@ -153,6 +235,11 @@ final class TransportBar extends Widget {
 		session.changed();
 	}
 
+	/**
+		Puts a line in the status bar about whichever field is hovered.
+
+		@param which Which field.
+	**/
 	function described(which:Int):Void {
 		if (which < 0) {
 			tip = "";
@@ -175,6 +262,11 @@ final class TransportBar extends Widget {
 		return root == null ? 30 : root.metrics.whole(30);
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which button is there, or -1.
+	**/
 	public function buttonAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -236,8 +328,16 @@ final class TransportBar extends Widget {
 		return root == null ? 150 : root.metrics.whole(150);
 	}
 
+	/**
+		What the meter is showing.
+	**/
 	public var peak(default, null):Float = 0;
 
+	/**
+		Gives the meter a new level.
+
+		@param much The level, 0 to 1.
+	**/
 	public function metered(much:Float):Void {
 		if (Math.abs(much - peak) < 0.01) return;
 
@@ -382,6 +482,9 @@ final class TransportBar extends Widget {
 		return false;
 	}
 
+	/**
+		Called when a pattern is chosen from the picker.
+	**/
 	public var onPatterns:Null<Int -> Void> = null;
 
 	public static inline final ADD = 0;
@@ -453,6 +556,11 @@ final class TransportBar extends Widget {
 		return choice;
 	}
 
+	/**
+		Presses a button.
+
+		@param which Which button.
+	**/
 	public function press(which:Int):Void {
 		final transport = session.transport;
 
@@ -808,6 +916,10 @@ final class TransportBar extends Widget {
 			+ StringTools.lpad(Std.string(parts), "0", 3);
 	}
 
+	/**
+		@param tick A position in the piece.
+		@return It as a bar, a beat and a tick, for the readout.
+	**/
 	public function bar(tick:Int):String {
 		final beat = session.song.tempo.ppqn;
 		final span = beat * 4;

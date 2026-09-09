@@ -6,13 +6,38 @@ import mdd.ui.Paint;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The bar along the bottom: what just happened, what the machine is costing, and how
+	many warnings there are.
+**/
 final class Status extends Widget {
+	/**
+		The session to read.
+	**/
 	public final session:Session;
+
+	/**
+		The warnings panel, so the count can be shown and clicked through to.
+	**/
 	public final warnings:mdd.view.monitor.Warnings;
 
+	/**
+		The line about what just happened.
+	**/
 	public var said:String = "";
+
+	/**
+		What this process is costing the machine.
+	**/
 	public var usage:String = "";
 
+	/**
+		Builds the status bar.
+
+		@param session The session to read.
+		@param warnings The warnings panel to count and reach.
+	**/
 	public function new(session:Session, warnings:mdd.view.monitor.Warnings) {
 		super();
 

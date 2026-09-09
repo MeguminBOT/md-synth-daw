@@ -10,13 +10,30 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The tool buttons: select, draw, erase, slice, pan, and the snap.
+
+	Not every editor allows every tool, so `allowed` says which are offered and the
+	rest are left out rather than drawn dead.
+**/
 final class Tools extends Widget {
+	/**
+		The snap button, which sits after the tools.
+	**/
 	public static inline final SNAP = Session.TOOLS;
 	static inline final GHOSTS = Session.TOOLS + 1;
 	static inline final CELLS = Session.TOOLS + 2;
 
+	/**
+		Which chord reaches each tool, for the tooltips.
+	**/
 	public var bindings:Null<mdd.app.Bindings> = null;
 
+	/**
+		@param index Which button.
+		@return The chord that reaches it, as text.
+	**/
 	function shortcutAt(index:Int):String {
 		if (bindings == null || index < 0 || index > 4) return "";
 		return bindings.shortcut(mdd.app.Bindings.SELECT + index);
@@ -28,15 +45,26 @@ final class Tools extends Widget {
 	static final TIPS:Array<Locale> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
 		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS];
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
 	var hoverAt:Int = -1;
 
+	/**
+		Builds the tool buttons.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
 	}
 
+	/**
+		@return How wide one button is.
+	**/
 	public function cell():Float {
 		final root = root();
 		if (root == null) return 24;
@@ -47,6 +75,9 @@ final class Tools extends Widget {
 		return tall < 12 ? metrics.whole(24) : tall;
 	}
 
+	/**
+		@return Where the buttons start, down.
+	**/
 	public function top():Float {
 		final root = root();
 		if (root == null) return y;
@@ -54,14 +85,26 @@ final class Tools extends Widget {
 		return y + root.metrics.whole(3) + root.metrics.unit;
 	}
 
+	/**
+		How much room the buttons have.
+	**/
 	public var room:Float = 0;
 
+	/**
+		Every tool allowed, as bits.
+	**/
 	public static inline final EVERY = (1 << (Session.TOOLS + 3)) - 1;
 
+	/**
+		Which tools this editor offers, as bits.
+	**/
 	public var allowed:Int = EVERY;
 
 	final order:Array<Int> = [];
 
+	/**
+		@return Which buttons to draw, in order, leaving out the ones this editor does not offer.
+	**/
 	function orders():Array<Int> {
 		order.resize(0);
 		for (index in 0...CELLS) if (allowed & (1 << index) != 0) order.push(index);
@@ -69,6 +112,9 @@ final class Tools extends Widget {
 		return order;
 	}
 
+	/**
+		@return How many buttons are drawn.
+	**/
 	public function shown():Int {
 		final many = orders().length;
 		if (many == 0) return 0;
@@ -85,16 +131,26 @@ final class Tools extends Widget {
 		return fits;
 	}
 
+	/**
+		@param which A position in the drawn buttons.
+		@return Which tool is there.
+	**/
 	public function toolAt(which:Int):Int {
 		final held = orders();
 		return which < 0 || which >= held.length ? -1 : held[which];
 	}
 
+	/**
+		@return Where the buttons start, across.
+	**/
 	public function lead():Float {
 		final root = root();
 		return root == null ? 8.0 : root.metrics.inset * 0.5;
 	}
 
+	/**
+		@return How wide the whole row is.
+	**/
 	public function wide():Float {
 		final many = shown();
 		if (many == 0) return 0;
@@ -105,6 +161,11 @@ final class Tools extends Widget {
 		return cell() * many + gap * (many - 1) + lead() * 2;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which button is there, or -1.
+	**/
 	function cellAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -124,6 +185,10 @@ final class Tools extends Widget {
 		return -1;
 	}
 
+	/**
+		@param index Which button.
+		@return Whether it is the tool in hand.
+	**/
 	function lit(index:Int):Bool {
 		return switch (index) {
 			case SNAP: session.snap > 0;
@@ -132,6 +197,11 @@ final class Tools extends Widget {
 		}
 	}
 
+	/**
+		Puts a tool in hand, or steps the snap.
+
+		@param index Which button.
+	**/
 	public function press(index:Int):Void {
 		switch (index) {
 			case SNAP:
@@ -218,6 +288,19 @@ final class Tools extends Widget {
 		}
 	}
 
+	/**
+		Draws the mark on one button, which is a shape rather than an icon so it stays
+		sharp at any density.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param metrics The sizes to draw at.
+		@param index Which button.
+		@param at Where it goes, across.
+		@param top Where it goes, down.
+		@param size How large to draw it.
+		@param on Whether this is the tool in hand, which decides the colour.
+	**/
 	function glyph(paint:Paint, theme:Theme, metrics:Metrics, index:Int, at:Float, top:Float,
 			size:Float, on:Bool):Void {
 		final ink = on ? theme.ink : theme.dim;

@@ -11,21 +11,70 @@ import mdd.view.editor.PsgEditor;
 import mdd.view.editor.Samples;
 
 @:unreflective
+
+/**
+	The panel down the right: the editor for whichever kind of part is chosen, or the
+	preset browser.
+
+	Which editor it shows follows the chosen part rather than being picked, so choosing
+	a square channel puts the square editor up without anybody asking for it.
+**/
 final class Inspector extends Widget {
+	/**
+		Tab: the editor for the chosen part.
+	**/
 	public static inline final CHANNEL = 0;
+
+	/**
+		Tab: the preset browser.
+	**/
 	public static inline final PRESETS = 1;
+
+	/**
+		How many tabs there are.
+	**/
 	public static inline final TABS = 2;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		The tab strip.
+	**/
 	public final tabs:Tabs;
+
+	/**
+		The FM operator editor.
+	**/
 	public final fm:FmEditor;
+
+	/**
+		The square editor.
+	**/
 	public final psg:PsgEditor;
+
+	/**
+		The sample editor.
+	**/
 	public final samples:Samples;
+
+	/**
+		The preset browser.
+	**/
 	public final presets:Presets;
 
+	/**
+		Which tab is showing.
+	**/
 	public var showing(default, null):Int = CHANNEL;
 
+	/**
+		Builds the inspector and every editor in it.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -49,6 +98,11 @@ final class Inspector extends Widget {
 		tabs.onChoose = function(which:Int):Void show(which);
 	}
 
+	/**
+		Shows one tab.
+
+		@param which Which tab.
+	**/
 	public function show(which:Int):Void {
 		if (which < 0 || which >= TABS) return;
 
@@ -57,6 +111,9 @@ final class Inspector extends Widget {
 		follow();
 	}
 
+	/**
+		Shows the editor that goes with the chosen part.
+	**/
 	public function follow():Void {
 		final part = session.part;
 		final square = part.square() || part.noise();
@@ -82,6 +139,9 @@ final class Inspector extends Widget {
 		relayout();
 	}
 
+	/**
+		@return How tall the tab strip is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 30 : root.metrics.tab;
