@@ -180,6 +180,7 @@ jobs:
           path: |
             export/package/*.zip
             export/package/*.tar.gz
+            export/package/*.dmg
             export/package/*setup.exe
           if-no-files-found: error
 
@@ -211,6 +212,7 @@ jobs:
           subject-path: |
             packages/*.zip
             packages/*.tar.gz
+            packages/*.dmg
             packages/*setup.exe
 
       - name: Install cosign
