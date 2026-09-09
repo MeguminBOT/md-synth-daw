@@ -36,6 +36,21 @@ final class Mixdown {
 	public static inline final WHOLE = 1000;
 	static inline final RESTS = 1 << 16;
 
+	/**
+		How long the output stage is run before anything is recorded, in seconds.
+
+		The coupling capacitor is a high pass, and a render that starts with it at rest
+		steps its own resting offset through it: the six channels each sit at a constant
+		offset even in silence, and the sum of those is a step at sample nought. Running
+		it through silence first settles the filter, so a bounce begins where a console
+		that has been switched on for a while begins.
+
+		It matters most for stems: every stem holds a different number of resting
+		channels, so without this each one carries a different thump and the set of them
+		no longer sums to the mix.
+	**/
+	static inline final SETTLE = 0.100;
+
 	var working:Null<Render> = null;
 	var feeding:Null<Stream> = null;
 
@@ -186,6 +201,17 @@ final class Mixdown {
 
 		final render = working;
 		render.console = console;
+
+		var warmed = 0;
+		final warming = Std.int(rate * SETTLE);
+
+		while (warmed < warming) {
+			final took = render.fill(Render.BLOCK);
+			if (took <= 0) break;
+
+			warmed += took;
+		}
+
 		var done = 0;
 		var told = 0;
 
