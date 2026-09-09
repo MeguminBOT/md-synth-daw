@@ -784,7 +784,8 @@ class UiCheck {
 			&& quiet.state() == mdd.app.Update.IDLE,
 			"an updater with no repository configured never reaches the network");
 
-		final held = new mdd.app.Update("MeguminBOT/md-synth-daw", "0.1.0", "windows");
+		final held = new mdd.app.Update("MeguminBOT/md-synth-daw", "0.1.0", "windows",
+			"x86_64", false);
 
 		says("it reads github releases", held.checkAt()
 			== "https://api.github.com/repos/MeguminBOT/md-synth-daw/releases/latest",
@@ -813,13 +814,13 @@ class UiCheck {
 			+ '{"name":"mdd-0.4.0-mac-arm64.dmg","browser_download_url":"https://example/marm"},'
 			+ '{"name":"mdd-0.4.0-mac-x86_64.dmg","browser_download_url":"https://example/mx64"}]}';
 
-		final armed = new mdd.app.Update("owner/name", "0.1.0", "linux", "arm64");
+		final armed = new mdd.app.Update("owner/name", "0.1.0", "linux", "arm64", false);
 		armed.read(split);
 
-		final wide = new mdd.app.Update("owner/name", "0.1.0", "linux", "x86_64");
+		final wide = new mdd.app.Update("owner/name", "0.1.0", "linux", "x86_64", false);
 		wide.read(split);
 
-		final apple = new mdd.app.Update("owner/name", "0.1.0", "mac", "arm64");
+		final apple = new mdd.app.Update("owner/name", "0.1.0", "mac", "arm64", false);
 		apple.read(split);
 
 		says("a release with both architectures gives each its own",
@@ -836,6 +837,46 @@ class UiCheck {
 			&& apple.suits("mdd-0.4.0-mac-x86_64.dmg") == 0,
 			"an asset naming the wrong architecture scores nothing at all, so it"
 			+ " cannot win on any other part of its name");
+
+		final both = '{"tag_name":"v0.5.0","html_url":"https://example/rel","assets":['
+			+ '{"name":"mdd-0.5.0-windows-x86_64-portable.zip","browser_download_url":"https://example/winzip"},'
+			+ '{"name":"mdd-0.5.0-windows-x86_64-setup.exe","browser_download_url":"https://example/winexe"},'
+			+ '{"name":"mdd-0.5.0-linux-x86_64-portable.tar.gz","browser_download_url":"https://example/lintar"},'
+			+ '{"name":"mdd-0.5.0-linux-x86_64-installer.tar.gz","browser_download_url":"https://example/lininst"},'
+			+ '{"name":"mdd-0.5.0-mac-x86_64-portable.tar.gz","browser_download_url":"https://example/mactar"},'
+			+ '{"name":"mdd-0.5.0-mac-x86_64.dmg","browser_download_url":"https://example/macdmg"}]}';
+
+		final kinds:Array<{name:String, portable:Bool, wanted:String}> = [
+			{name: "windows", portable: true, wanted: "winzip"},
+			{name: "windows", portable: false, wanted: "winexe"},
+			{name: "linux", portable: true, wanted: "lintar"},
+			{name: "linux", portable: false, wanted: "lininst"},
+			{name: "mac", portable: true, wanted: "mactar"},
+			{name: "mac", portable: false, wanted: "macdmg"}
+		];
+
+		var missed = 0;
+		var told = "";
+
+		for (kind in kinds) {
+			final one = new mdd.app.Update("owner/name", "0.1.0", kind.name, "x86_64",
+				kind.portable);
+
+			one.read(both);
+
+			final took = one.saidAt.split("/").pop();
+			if (took != kind.wanted) {
+				missed++;
+				if (told != "") told += ", ";
+				told += kind.name + (kind.portable ? " portable" : " installed")
+					+ " took " + took + " rather than " + kind.wanted;
+			}
+		}
+
+		says("a copy is offered the kind it already is", missed == 0, missed == 0
+			? "a portable copy is offered the archive and an installed one the"
+				+ " installer, on all three platforms"
+			: missed + " of 6 chose wrong: " + told);
 
 		final bare = new mdd.app.Update("owner/name", "0.1.0", "mac");
 		bare.read('{"tag_name":"0.2.0","html_url":"https://example/page","assets":[]}');
