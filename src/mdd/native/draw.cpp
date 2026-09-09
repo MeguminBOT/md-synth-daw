@@ -1,3 +1,9 @@
+/**
+ * Textures and the drawing calls that use them, through SDL.
+ *
+ * Every filled shape and every run of glyphs comes down to one geometry call, and the
+ * count of those calls is kept so a check can measure what an idle frame costs.
+ */
 #include "draw.h"
 
 namespace {
