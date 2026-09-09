@@ -81,7 +81,8 @@
 
 	<!-- sources -->
 
-	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h" system="/usr/include/SDL3/SDL.h"
+	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h"
+		system="/usr/include/SDL3/SDL.h,/opt/homebrew/include/SDL3/SDL.h,/usr/local/include/SDL3/SDL.h"
 		size="12 MB"
 		about="the window and its events, called directly. A system package off Windows" />
 	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
@@ -149,6 +150,12 @@
 	</native>
 
 	<include value="${SDL3PATH}/include" if="windows" />
+
+	<!-- homebrew is /opt/homebrew on apple silicon and /usr/local on intel, and
+	     clang searches neither by default. A path that is not there costs nothing.
+	     Linux needs none of this: apt puts SDL3 where the compiler already looks. -->
+	<include value="/opt/homebrew/include" if="mac" />
+	<include value="/usr/local/include" if="mac" />
 	<include value="${MINIAUDIOPATH}" />
 	<include value="${STBPATH}" />
 	<include value="${NATIVEPATH}" />
@@ -180,6 +187,8 @@
 
 	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
 	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
+	<link value="-L/opt/homebrew/lib" if="mac" />
+	<link value="-L/usr/local/lib" if="mac" />
 	<link value="-lSDL3" unless="windows" />
 
 	<!-- what Windows itself supplies: the crash report reads dbghelp, the scheduler tick

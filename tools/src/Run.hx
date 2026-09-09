@@ -191,7 +191,13 @@ class Run {
 
 	static function vendored(root:String, source:{final present:String; final system:String;}):Bool {
 		if (FileSystem.exists(root + "/vendor/" + source.present)) return true;
-		return source.system != "" && FileSystem.exists(source.system);
+		if (source.system == "") return false;
+
+		for (where in source.system.split(",")) {
+			if (FileSystem.exists(StringTools.trim(where))) return true;
+		}
+
+		return false;
 	}
 
 	static function asked(args:Array<String>, flag:String):Bool {
