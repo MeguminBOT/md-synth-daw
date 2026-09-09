@@ -130,6 +130,14 @@ writes with real pauses excluded, rather than from the run measured end to end.
   the chip was set to.
 - Your own patches load beside the shipped ones rather than replacing them.
 
+A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
+channel volume apart from the voice and adds it in at every key on. Loading one therefore
+sets its carriers to the level a driver rests at, which is 22, so that a velocity has
+somewhere to go and six channels together leave room above them. Measured across 112 register
+logs and 120300 key ons, a carrier stands at 22 when the note arrives, and only 18 of those
+key ons were at the top of the range. A patch read out of a recording or out of a TFI file is
+left exactly as it was written, because it already carries the level it was played at.
+
 ---
 
 ## Watching the hardware

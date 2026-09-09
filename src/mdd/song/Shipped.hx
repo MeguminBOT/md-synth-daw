@@ -271,7 +271,7 @@ final class Shipped {
 			patch.ssg[slot] = fields[at + SSG] & 0x0F;
 		}
 
-		patch.raises();
+		patch.rests();
 
 		return patch;
 	}

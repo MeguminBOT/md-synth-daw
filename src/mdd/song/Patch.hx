@@ -113,6 +113,18 @@ final class Patch {
 	public final totalLevel:Vector<Int> = new Vector<Int>(SLOTS);
 
 	/**
+		Where a carrier rests before a velocity is applied.
+
+		A driver keeps its channel volume apart from the voice and adds it to the carrier
+		levels at every key on, so a voice ripped out of a game is a timbre with no
+		loudness attached to it. Playing one at nought puts a single channel at the
+		loudest the part goes, which no driver does: measured across the register logs,
+		a carrier stands at 22 when a key on arrives. That is the number a channel is
+		built around, and it is what leaves room for the other five.
+	**/
+	public static inline final REST = 22;
+
+	/**
 		How much the key code scales the rates, per operator.
 	**/
 	public final keyScale:Vector<Int> = new Vector<Int>(SLOTS);
@@ -159,7 +171,7 @@ final class Patch {
 		for (i in 0...SLOTS) {
 			detune[i] = 0;
 			multiple[i] = 1;
-			totalLevel[i] = i == SLOTS - 1 ? 0 : 127;
+			totalLevel[i] = i == SLOTS - 1 ? REST : 127;
 			keyScale[i] = 0;
 			attack[i] = 31;
 			decay[i] = 0;
@@ -288,8 +300,8 @@ final class Patch {
 	}
 
 	/**
-		Brings every carrier up so the loudest sits at full, which is what a patch read out
-		of a recording needs before it can be played at a velocity.
+		Brings every carrier up so the loudest sits at full, which is what two patches
+		from different sources have to be put through before they can be compared.
 	**/
 	public function raises():Void {
 		var least = 127;
@@ -304,6 +316,26 @@ final class Patch {
 		for (slot in 0...SLOTS) {
 			if (!carries(slot)) continue;
 			totalLevel[slot] -= least;
+		}
+	}
+
+	/**
+		Moves every carrier so the loudest sits at the resting level, keeping whatever
+		balance the carriers had between them.
+
+		This is what a voice needs before it can be played at a velocity. A voice arrives
+		as a timbre with no loudness attached, and a velocity only ever attenuates, so
+		one played as it arrives has nowhere above it to go and sits far louder than the
+		driver it came from ever put it.
+	**/
+	public function rests():Void {
+		raises();
+
+		for (slot in 0...SLOTS) {
+			if (!carries(slot)) continue;
+
+			final want = totalLevel[slot] + REST;
+			totalLevel[slot] = want > 127 ? 127 : want;
 		}
 	}
 
