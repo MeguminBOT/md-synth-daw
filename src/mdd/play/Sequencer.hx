@@ -87,6 +87,16 @@ final class Sequencer {
 	public final voices:Voices;
 
 	/**
+		Sequence only this part, or -1 for every part.
+
+		This is what makes a stem a stem. The events of every other part are never
+		gathered, so the chips render nothing else rather than rendering it and having
+		it muted afterwards, and what a stem carries is what that part would have
+		been given on its own.
+	**/
+	public var onlyPart:Int = -1;
+
+	/**
 		Sequence only this pattern, or -1 for the whole arrangement. This is a pattern
 		index and not a track: there is no per track render.
 	**/
@@ -218,6 +228,15 @@ final class Sequencer {
 	}
 
 	/**
+		@param part A part.
+		@return Whether this render should sound it, which takes the mixer and the stem
+			filter both into account.
+	**/
+	inline function wanted(part:Part):Bool {
+		return song.audible(part) && (onlyPart < 0 || part.index() == onlyPart);
+	}
+
+	/**
 		Walks the arrangement and collects every event that falls inside the span.
 
 		@param fromSample The first sample of the span.
@@ -317,7 +336,7 @@ final class Sequencer {
 		if (line == null || line.points.length == 0) return;
 
 		final part:Part = clip.part;
-		if (!song.audible(part)) return;
+		if (!wanted(part)) return;
 
 		final tempo = song.tempo;
 		final riding = rides(part, line);
@@ -442,7 +461,7 @@ final class Sequencer {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			if (!song.audible(part)) continue;
+			if (!wanted(part)) continue;
 
 			final lane = pattern.lane(part);
 			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
@@ -872,7 +891,7 @@ final class Sequencer {
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			if (!song.audible(part)) continue;
+			if (!wanted(part)) continue;
 
 			primed(part, tick, fromSample);
 		}
