@@ -1,5 +1,11 @@
 package mdd.song.edit;
 
+/**
+	Clears a track back to an empty one under a given name.
+
+	One step on the undo stack. `apply` does it and `revert` puts the song back
+	exactly as it was, which is why anything it overwrites is kept here.
+**/
 final class ResetTrack implements Command {
 	final at:Int;
 	final name:String;
@@ -11,11 +17,22 @@ final class ResetTrack implements Command {
 
 	final held:Array<Clip> = [];
 
+	/**
+		Records what to do. Nothing changes until `apply` is called.
+
+		@param at Which one, by index.
+		@param name The new name.
+	**/
 	public function new(at:Int, name:String) {
 		this.at = at;
 		this.name = name;
 	}
 
+	/**
+		Does it, keeping whatever `revert` will need to put back.
+
+		@param song The song to act on.
+	**/
 	public function apply(song:Song):Void {
 		if (at < 0 || at >= song.tracks.length) return;
 
@@ -36,6 +53,11 @@ final class ResetTrack implements Command {
 		track.clips.resize(0);
 	}
 
+	/**
+		Puts the song back as it was.
+
+		@param song The song to act on.
+	**/
 	public function revert(song:Song):Void {
 		if (at < 0 || at >= song.tracks.length) return;
 
@@ -50,6 +72,9 @@ final class ResetTrack implements Command {
 		for (clip in held) track.clips.push(clip);
 	}
 
+	/**
+		@return What the undo entry is called, in lower case.
+	**/
 	public function label():String {
 		return "reset a track";
 	}

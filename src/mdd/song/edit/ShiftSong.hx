@@ -1,5 +1,11 @@
 package mdd.song.edit;
 
+/**
+	Moves the whole song along in time.
+
+	One step on the undo stack. `apply` does it and `revert` puts the song back
+	exactly as it was, which is why anything it overwrites is kept here.
+**/
 final class ShiftSong implements Command {
 	final by:Int;
 
@@ -14,10 +20,20 @@ final class ShiftSong implements Command {
 	final marks:Array<Int> = [];
 	final wereMarks:Array<Int> = [];
 
+	/**
+		Records what to do. Nothing changes until `apply` is called.
+
+		@param by How far to move it, in ticks.
+	**/
 	public function new(by:Int) {
 		this.by = by;
 	}
 
+	/**
+		Does it, keeping whatever `revert` will need to put back.
+
+		@param song The song to act on.
+	**/
 	public function apply(song:Song):Void {
 		lengths.resize(0);
 		for (pattern in song.patterns) lengths.push(pattern.length);
@@ -26,6 +42,11 @@ final class ShiftSong implements Command {
 		went = song.shift(by);
 	}
 
+	/**
+		Puts the song back as it was.
+
+		@param song The song to act on.
+	**/
 	public function revert(song:Song):Void {
 		if (went == 0) return;
 
@@ -92,6 +113,9 @@ final class ShiftSong implements Command {
 		}
 	}
 
+	/**
+		@return What the undo entry is called, in lower case.
+	**/
 	public function label():String {
 		return by < 0 ? "nudge the song earlier" : "nudge the song later";
 	}

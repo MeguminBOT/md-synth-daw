@@ -1,5 +1,11 @@
 package mdd.song.edit;
 
+/**
+	Moves a pattern onto another part.
+
+	One step on the undo stack. `apply` does it and `revert` puts the song back
+	exactly as it was, which is why anything it overwrites is kept here.
+**/
 final class MovePattern implements Command {
 	final at:Int;
 	final part:Int;
@@ -10,11 +16,22 @@ final class MovePattern implements Command {
 	final moved:Array<Note> = [];
 	final lines:Array<Automation> = [];
 
+	/**
+		Records what to do. Nothing changes until `apply` is called.
+
+		@param at Which one, by index.
+		@param part Which part of the pattern.
+	**/
 	public function new(at:Int, part:Int) {
 		this.at = at;
 		this.part = part;
 	}
 
+	/**
+		Does it, keeping whatever `revert` will need to put back.
+
+		@param song The song to act on.
+	**/
 	public function apply(song:Song):Void {
 		final pattern = song.patterns[at];
 		if (pattern == null) return;
@@ -27,6 +44,11 @@ final class MovePattern implements Command {
 		pattern.part = part;
 	}
 
+	/**
+		Puts the song back as it was.
+
+		@param song The song to act on.
+	**/
 	public function revert(song:Song):Void {
 		final pattern = song.patterns[at];
 		if (pattern == null || was < 0) return;
@@ -87,6 +109,9 @@ final class MovePattern implements Command {
 		two.sort();
 	}
 
+	/**
+		@return What the undo entry is called, in lower case.
+	**/
 	public function label():String {
 		return "move the pattern to another channel";
 	}

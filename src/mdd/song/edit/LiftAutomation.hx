@@ -1,5 +1,11 @@
 package mdd.song.edit;
 
+/**
+	Takes an automation lane off a channel and hands it to the caller.
+
+	One step on the undo stack. `apply` does it and `revert` puts the song back
+	exactly as it was, which is why anything it overwrites is kept here.
+**/
 final class LiftAutomation implements Command {
 	final pattern:Int;
 	final part:Part;
@@ -10,6 +16,14 @@ final class LiftAutomation implements Command {
 	var clip:Null<Clip> = null;
 	var track:Null<Track> = null;
 
+	/**
+		Records what to do. Nothing changes until `apply` is called.
+
+		@param pattern Which pattern, by index.
+		@param part Which part of the pattern.
+		@param target Which channel the lane belongs to, or -1 for the part's own.
+		@param slot Which lane of that channel.
+	**/
 	public function new(pattern:Int, part:Part, target:Int, slot:Int) {
 		this.pattern = pattern;
 		this.part = part;
@@ -17,6 +31,11 @@ final class LiftAutomation implements Command {
 		this.slot = slot;
 	}
 
+	/**
+		Does it, keeping whatever `revert` will need to put back.
+
+		@param song The song to act on.
+	**/
 	public function apply(song:Song):Void {
 		final held = song.patternAt(pattern);
 		if (held == null) return;
@@ -60,6 +79,11 @@ final class LiftAutomation implements Command {
 		return 0;
 	}
 
+	/**
+		Puts the song back as it was.
+
+		@param song The song to act on.
+	**/
 	public function revert(song:Song):Void {
 		final held = song.patternAt(pattern);
 		final found = line;
@@ -72,6 +96,9 @@ final class LiftAutomation implements Command {
 		if (held != null && found != null) held.lane(part).automation.push(found);
 	}
 
+	/**
+		@return What the undo entry is called, in lower case.
+	**/
 	public function label():String {
 		return "move automation to the playlist";
 	}

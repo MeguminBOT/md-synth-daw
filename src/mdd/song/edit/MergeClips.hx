@@ -2,6 +2,12 @@ package mdd.song.edit;
 
 import mdd.song.Part;
 
+/**
+	Folds every clip on a track into one pattern and one clip.
+
+	One step on the undo stack. `apply` does it and `revert` puts the song back
+	exactly as it was, which is why anything it overwrites is kept here.
+**/
 final class MergeClips implements Command {
 	final track:Int;
 	final name:String;
@@ -11,6 +17,12 @@ final class MergeClips implements Command {
 	var made:Null<Clip> = null;
 	var pattern:Int = -1;
 
+	/**
+		Records what to do. Nothing changes until `apply` is called.
+
+		@param track Which track, by index.
+		@param name The new name.
+	**/
 	public function new(track:Int, name:String) {
 		this.track = track;
 		this.name = name;
@@ -23,6 +35,11 @@ final class MergeClips implements Command {
 		return many > 1;
 	}
 
+	/**
+		Does it, keeping whatever `revert` will need to put back.
+
+		@param song The song to act on.
+	**/
 	public function apply(song:Song):Void {
 		if (track < 0 || track >= song.tracks.length) return;
 
@@ -104,6 +121,11 @@ final class MergeClips implements Command {
 		held.add(made);
 	}
 
+	/**
+		Puts the song back as it was.
+
+		@param song The song to act on.
+	**/
 	public function revert(song:Song):Void {
 		if (track < 0 || track >= song.tracks.length) return;
 		if (pattern < 0) return;
@@ -119,6 +141,9 @@ final class MergeClips implements Command {
 		pattern = -1;
 	}
 
+	/**
+		@return What the undo entry is called, in lower case.
+	**/
 	public function label():String {
 		return "merge clips";
 	}
