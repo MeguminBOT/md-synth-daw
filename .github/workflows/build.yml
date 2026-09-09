@@ -30,34 +30,29 @@ jobs:
         include:
           - name: Windows x86-64
             runs-on: windows-latest
-            shell: bash
             artifact: mdd-windows-x86_64
 
           - name: Linux x86-64
             runs-on: ubuntu-latest
             container: debian:trixie
-            shell: bash
             artifact: mdd-linux-x86_64
 
           - name: Linux arm64
             runs-on: ubuntu-24.04-arm
             container: debian:trixie
-            shell: bash
             artifact: mdd-linux-arm64
 
           - name: macOS x86-64
             runs-on: macos-15-intel
-            shell: bash
             artifact: mdd-macos-x86_64
 
           - name: macOS arm64
             runs-on: macos-latest
-            shell: bash
             artifact: mdd-macos-arm64
 
     defaults:
       run:
-        shell: ${{ matrix.shell }}
+        shell: bash
 
     steps:
       # The Debian container is bare, and even checkout needs git in it.
