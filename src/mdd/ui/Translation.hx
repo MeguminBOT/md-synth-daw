@@ -1,15 +1,40 @@
 package mdd.ui;
 
 @:unreflective
+
+/**
+	The table every string the interface shows comes from.
+
+	A string is looked up by a number rather than by name, so a lookup is an array
+	index and not a search. Hardware and format names are deliberately not in the
+	table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation writes them in every
+	language.
+**/
 final class Translation {
+	/**
+		Which language is loaded.
+	**/
 	public var language(default, null):String = "en";
+
+	/**
+		How many keys the loaded language did not carry, and so fell back for.
+	**/
 	public var missing(default, null):Int = 0;
 
 	final keys:Array<String> = [];
 	final said:Array<String> = [];
 
+	/**
+		Builds an empty table.
+	**/
 	public function new() {}
 
+	/**
+		Sets one string.
+
+		@param key The key.
+		@param saying What it says.
+	**/
 	public function put(key:String, saying:String):Void {
 		final at = keys.indexOf(key);
 
@@ -22,6 +47,10 @@ final class Translation {
 		said.push(saying);
 	}
 
+	/**
+		@param id A string key, as a number.
+		@return What it says, or the key name where the language does not carry it.
+	**/
 	public function of(id:Int):String {
 		if (id >= 0 && id < said.length) return said[id];
 
@@ -29,31 +58,60 @@ final class Translation {
 		return "";
 	}
 
+	/**
+		@param key A string key, by name.
+		@return What it says.
+	**/
 	public function named(key:String):String {
 		final at = keys.indexOf(key);
 		return at < 0 ? key : said[at];
 	}
 
+	/**
+		@param key A string key, by name.
+		@return Whether the table carries it.
+	**/
 	public function has(key:String):Bool {
 		return keys.indexOf(key) >= 0;
 	}
 
+	/**
+		@return How many strings are held.
+	**/
 	public inline function count():Int {
 		return keys.length;
 	}
 
+	/**
+		@param index A position in the table.
+		@return The key there.
+	**/
 	public function keyAt(index:Int):String {
 		return index < 0 || index >= keys.length ? "" : keys[index];
 	}
 
+	/**
+		Throws every string away.
+	**/
 	public function forget():Void {
 		missing = 0;
 	}
 
+	/**
+		Records which language is loaded. It does not load one.
+
+		@param language The language code.
+	**/
 	public function speak(language:String):Void {
 		this.language = language;
 	}
 
+	/**
+		Reads a language file.
+
+		@param bytes The file.
+		@return How many strings it carried.
+	**/
 	public function take(bytes:haxe.io.Bytes):Int {
 		if (bytes == null || bytes.length < 8 || bytes.getString(0, 4) != "MDL1") return 0;
 
@@ -81,6 +139,13 @@ final class Translation {
 		return taken;
 	}
 
+	/**
+		Reads a language document, ignoring blank lines and lines that begin with a
+		hash.
+
+		@param text The document.
+		@return How many strings it carried.
+	**/
 	public function read(text:String):Int {
 		var taken = 0;
 
@@ -98,6 +163,9 @@ final class Translation {
 		return taken;
 	}
 
+	/**
+		@return The whole table as a document, keys in order.
+	**/
 	public function write():String {
 		final out = new StringBuf();
 
