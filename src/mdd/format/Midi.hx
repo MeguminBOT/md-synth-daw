@@ -11,9 +11,26 @@ import mdd.song.Song;
 import mdd.song.Track;
 
 @:unreflective
+
+/**
+	Standard MIDI files, read and written.
+
+	A MIDI file carries notes and a tempo map and nothing about the chips, so a write
+	is a lossy view of a song and a read produces something that has to be given
+	instruments before it sounds.
+**/
 final class Midi {
+	/**
+		Ticks per quarter note in a written file.
+	**/
 	public static inline final PPQN = 960;
 
+	/**
+		Writes a song as a type one file: a tempo track, then one track per part.
+
+		@param song The song to write.
+		@return The file.
+	**/
 	public static function write(song:Song):Bytes {
 		final flat = song.unshared();
 		final out = new BytesOutput();
@@ -35,21 +52,44 @@ final class Midi {
 		return out.getBytes();
 	}
 
+	/**
+		Writes one track chunk, tag and length included.
+
+		@param out Where it goes.
+		@param body The track events.
+	**/
 	static function chunk(out:BytesOutput, body:Bytes):Void {
 		out.writeString("MTrk");
 		out.writeInt32(body.length);
 		out.write(body);
 	}
 
+	/**
+		@param bytes The file.
+		@param at A position in it.
+		@return The two byte value there, most significant byte first.
+	**/
 	static inline function wide(bytes:Bytes, at:Int):Int {
 		return (bytes.get(at) << 8) | bytes.get(at + 1);
 	}
 
+	/**
+		@param bytes The file.
+		@param at A position in it.
+		@return The four byte value there, most significant byte first.
+	**/
 	static inline function whole(bytes:Bytes, at:Int):Int {
 		return (bytes.get(at) << 24) | (bytes.get(at + 1) << 16)
 			| (bytes.get(at + 2) << 8) | bytes.get(at + 3);
 	}
 
+	/**
+		Writes the tempo track, which carries every tempo change in the map.
+
+		@param song The song to write.
+		@param scale What to multiply a tick by to reach MIDI ticks.
+		@return The track.
+	**/
 	static function tempoTrack(song:Song, scale:Float):Bytes {
 		final out = new BytesOutput();
 		var last = 0;
@@ -78,6 +118,14 @@ final class Midi {
 		return out.getBytes();
 	}
 
+	/**
+		Writes one part as a track, with its notes and its name.
+
+		@param song The song to write.
+		@param index Which part.
+		@param scale What to multiply a tick by to reach MIDI ticks.
+		@return The track, or an empty one where the part carries nothing.
+	**/
 	static function partTrack(song:Song, index:Int, scale:Float):Bytes {
 		final part:Part = index;
 		final out = new BytesOutput();
@@ -145,6 +193,12 @@ final class Midi {
 		return out.getBytes();
 	}
 
+	/**
+		Writes a value in the variable length form MIDI uses for a delta time.
+
+		@param out Where it goes.
+		@param value The value.
+	**/
 	static function variable(out:BytesOutput, value:Int):Void {
 		var held = value < 0 ? 0 : value;
 		var buffer = held & 0x7F;
@@ -163,6 +217,13 @@ final class Midi {
 		}
 	}
 
+	/**
+		Reads a file into a song, one pattern carrying every track.
+
+		@param bytes The file.
+		@param name What to call the song.
+		@return The song.
+	**/
 	public static function read(bytes:Bytes, name:String):Song {
 		if (bytes.length < 14 || bytes.getString(0, 4) != "MThd") {
 			throw "not a midi: the header chunk is not there";
@@ -211,6 +272,16 @@ final class Midi {
 		return song;
 	}
 
+	/**
+		Walks one track, turning note on and note off pairs into notes.
+
+		@param bytes The file.
+		@param from Where the track starts.
+		@param to One past its end.
+		@param song The song being built.
+		@param pattern The pattern its notes go into.
+		@return How many notes were read.
+	**/
 	static function walk(bytes:Bytes, from:Int, to:Int, song:Song, pattern:Pattern):Int {
 		var at = from;
 		var tick = 0;
@@ -311,6 +382,14 @@ final class Midi {
 		return longest;
 	}
 
+	/**
+		Steps over an event that is not a note or a tempo.
+
+		@param bytes The file.
+		@param at Where the event starts.
+		@param to One past the end of the track.
+		@return Where the next event starts.
+	**/
 	static function skip(bytes:Bytes, at:Int, to:Int):Int {
 		var pen = at;
 		var length = 0;
