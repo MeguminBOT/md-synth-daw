@@ -279,6 +279,33 @@ final class Song {
 	}
 
 	/**
+		Whether the arrangement ever sounds a part, which is what decides whether it is
+		worth a stem of its own. A muted track carries nothing, and neither does a part
+		the mixer has silenced.
+
+		@param part A part.
+		@return Whether any placed clip writes a note on it.
+	**/
+	public function carries(part:Part):Bool {
+		if (!audible(part)) return false;
+
+		for (track in tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.automates()) continue;
+
+				final pattern = patternAt(clip.pattern);
+				if (pattern == null) continue;
+
+				if (pattern.lane(part).notes.length > 0) return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 		@return Whether any part is soloed.
 	**/
 	function soloing():Bool {
