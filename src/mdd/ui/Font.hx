@@ -7,8 +7,25 @@ import mdd.host.Text;
 import mdd.host.Texture;
 
 @:unreflective
+
+/**
+	One face at one size: an atlas of glyphs on the card, and where each one sits in
+	it.
+
+	The Latin range is baked in one pass at load, and anything outside it is drawn into
+	a free corner of the atlas the first time it is asked for. A glyph the face does
+	not have is looked for in the fallback faces, which are not read until the first
+	miss.
+**/
 final class Font {
+	/**
+		The first codepoint baked at load.
+	**/
 	public static inline final FIRST = 32;
+
+	/**
+		The last.
+	**/
 	public static inline final LAST = 255;
 	static inline final GLYPHS = LAST - FIRST + 1;
 	static inline final WIDEST = 2048;
@@ -16,26 +33,74 @@ final class Font {
 
 	static inline final CACHE = 1024;
 	static inline final SCRATCH = 192;
+
+	/**
+		What `slotOf` answers for a glyph nobody has.
+	**/
 	public static inline final NONE = -1;
 
 	static inline final FLOATS = 9;
 	static inline final SOLID = 8;
 
+	/**
+		The size the face was baked at.
+	**/
 	public var pixels(default, null):Float;
+
+	/**
+		How far above the baseline it reaches.
+	**/
 	public var ascent(default, null):Float;
+
+	/**
+		How far below.
+	**/
 	public var descent(default, null):Float;
+
+	/**
+		How far apart two lines sit.
+	**/
 	public var line(default, null):Float;
+
+	/**
+		Ascent plus descent.
+	**/
 	public var height(default, null):Float;
 
+	/**
+		How wide the atlas is.
+	**/
 	public var atlasWidth(default, null):Int;
+
+	/**
+		How tall it is.
+	**/
 	public var atlasHeight(default, null):Int;
 
+	/**
+		Where the one opaque pixel sits in the atlas, across. Every filled shape samples it,
+		so a rectangle and a run of glyphs are the same draw call.
+	**/
 	public var solidU(default, null):Float;
+
+	/**
+		Where it sits, down.
+	**/
 	public var solidV(default, null):Float;
 
+	/**
+		How many glyphs are in the atlas.
+	**/
 	public var kept(default, null):Int = 0;
+
+	/**
+		How many were asked for that nobody had.
+	**/
 	public var missed(default, null):Int = 0;
 
+	/**
+		The atlas on the card.
+	**/
 	public var texture(default, null):cpp.Star<Texture>;
 
 	final metrics:Vector<Single> = new Vector<Single>((GLYPHS + CACHE) * FLOATS);
@@ -51,8 +116,19 @@ final class Font {
 	var shelfY:Int = 0;
 	var shelfTall:Int = 0;
 
+	/**
+		Private: use `bake`.
+	**/
 	function new() {}
 
+	/**
+		Reads a face, bakes the Latin range into an atlas, and uploads it.
+
+		@param renderer The renderer to upload to.
+		@param path The font file.
+		@param pixels The size to bake at.
+		@return The face, or null where it would not read.
+	**/
 	public static function bake(renderer:cpp.Star<Canvas>, path:String, pixels:Float):Null<Font> {
 		final face = Text.load(path);
 		if (face < 0) return null;
@@ -106,6 +182,10 @@ final class Font {
 		return font;
 	}
 
+	/**
+		Halves the atlas where the baked range left most of it empty, so a small face does
+		not hold a large texture.
+	**/
 	function halves():Void {
 		for (index in 0...GLYPHS) {
 			final base = index * FLOATS;
@@ -115,6 +195,9 @@ final class Font {
 		}
 	}
 
+	/**
+		Puts one opaque pixel in the atlas, which every filled shape samples.
+	**/
 	function solid():Void {
 		for (index in 0...SOLID * SOLID) {
 			scratch[index * 4] = 255;
@@ -132,6 +215,11 @@ final class Font {
 		solidV = (top + SOLID * 0.5) / atlasHeight;
 	}
 
+	/**
+		Gives this face the list to look in when it does not have a glyph.
+
+		@param next The fallback faces, or null for none.
+	**/
 	public function chains(next:Null<Fallback>):Void {
 		beside = next;
 
@@ -146,10 +234,22 @@ final class Font {
 		missed = 0;
 	}
 
+	/**
+		Finds a glyph, drawing it into the atlas if it is not there yet.
+
+		@param code A codepoint.
+		@return Its slot, or `NONE` where nobody has it.
+	**/
 	public inline function slotOf(code:Int):Int {
 		return code >= FIRST && code <= LAST ? (code - FIRST) * FLOATS : extra(code);
 	}
 
+	/**
+		Finds a glyph outside the baked range.
+
+		@param code A codepoint.
+		@return Its slot, or `NONE`.
+	**/
 	function extra(code:Int):Int {
 		if (code < FIRST) return NONE;
 
@@ -165,6 +265,12 @@ final class Font {
 		return slot;
 	}
 
+	/**
+		Draws a glyph from this face into the atlas.
+
+		@param code A codepoint.
+		@return Its slot, or `NONE` where this face does not have it.
+	**/
 	function takes(code:Int):Int {
 		if (kept >= CACHE) return NONE;
 
@@ -176,6 +282,13 @@ final class Font {
 		return cuts(face, code);
 	}
 
+	/**
+		Draws a glyph from a fallback face into the atlas.
+
+		@param from The fallback face.
+		@param code A codepoint.
+		@return Its slot, or `NONE`.
+	**/
 	function cuts(from:Int, code:Int):Int {
 		final wide = asked[0];
 		final tall = asked[1];
@@ -202,6 +315,12 @@ final class Font {
 		return base;
 	}
 
+	/**
+		Looks for a glyph in every fallback face in turn.
+
+		@param code A codepoint.
+		@return Its slot, or `NONE` where nobody has it.
+	**/
 	function borrows(code:Int):Int {
 		final spare = beside;
 		if (spare == null) return NONE;
@@ -220,6 +339,13 @@ final class Font {
 		return NONE;
 	}
 
+	/**
+		Finds room in the atlas for a glyph, growing it where there is none.
+
+		@param wide How wide the glyph is.
+		@param tall How tall.
+		@return False where the atlas is full and cannot grow.
+	**/
 	function room(wide:Int, tall:Int):Bool {
 		if (shelfX + wide > atlasWidth) {
 			shelfX = 0;
@@ -230,6 +356,11 @@ final class Font {
 		return shelfY + tall <= atlasHeight - SOLID;
 	}
 
+	/**
+		@param text Some text.
+		@param index A position in it.
+		@return The codepoint there, joining a surrogate pair into one.
+	**/
 	public static inline function codeAt(text:String, index:Int):Int {
 		final one = StringTools.fastCodeAt(text, index);
 		if (one < 0xD800 || one > 0xDBFF || index + 1 >= text.length) return one;
@@ -240,6 +371,11 @@ final class Font {
 		return PAIRED + ((one - 0xD800) << 10) + (two - 0xDC00);
 	}
 
+	/**
+		@param code A codepoint.
+		@return How far to move along the string past it, which is two for anything above the basic
+			plane.
+	**/
 	public static inline function step(code:Int):Int {
 		return code < PAIRED ? 1 : 2;
 	}
@@ -256,6 +392,10 @@ final class Font {
 
 	public inline function tall(slot:Int):Float return metrics[slot + 8];
 
+	/**
+		@param text Some text.
+		@return How wide it draws, kerning included.
+	**/
 	public function measure(text:String):Float {
 		var pen = 0.0;
 		var index = 0;
@@ -273,6 +413,11 @@ final class Font {
 		return pen;
 	}
 
+	/**
+		@param text Some text.
+		@param room How much room there is.
+		@return How many characters fit, for cutting a label that is too long.
+	**/
 	public function fits(text:String, room:Float):Int {
 		var pen = 0.0;
 		var index = 0;
@@ -293,6 +438,9 @@ final class Font {
 		return text.length;
 	}
 
+	/**
+		Gives the atlas back.
+	**/
 	public function shut():Void {
 		if (texture != null) Draw.destroyTexture(texture);
 		if (face >= 0) Text.free(face);

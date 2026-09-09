@@ -7,24 +7,68 @@ import mdd.host.Draw;
 import mdd.host.Texture;
 
 @:unreflective
+
+/**
+	The interface icons: one atlas, and where each icon sits in it.
+
+	They are rasterised from SVG at build time rather than at start, so the atlas is a
+	file the application only has to upload.
+**/
 final class Icons {
+	/**
+		How long the atlas file header is.
+	**/
 	public static inline final HEADER = 14;
+
+	/**
+		How long one icon entry in it is.
+	**/
 	public static inline final ENTRY = 8;
 
+	/**
+		How large each icon is drawn.
+	**/
 	public var pixels(default, null):Int = 0;
+
+	/**
+		How many icons the atlas holds.
+	**/
 	public var count(default, null):Int = 0;
+
+	/**
+		How wide the atlas is.
+	**/
 	public var atlasWidth(default, null):Int = 0;
+
+	/**
+		How tall it is.
+	**/
 	public var atlasHeight(default, null):Int = 0;
 
+	/**
+		The atlas on the card.
+	**/
 	public var texture(default, null):cpp.Star<Texture> = null;
 
 	final bounds:Vector<Single>;
 
+	/**
+		Private: use `read`.
+
+		@param count How many icons to make room for.
+	**/
 	function new(count:Int) {
 		this.count = count;
 		bounds = new Vector<Single>(count * 6);
 	}
 
+	/**
+		Reads an atlas file and uploads it.
+
+		@param renderer The renderer to upload to.
+		@param where The atlas file.
+		@return The icons, or null where the file would not read.
+	**/
 	public static function read(renderer:cpp.Star<Canvas>, where:String):Null<Icons> {
 		if (!sys.FileSystem.exists(where)) return null;
 
@@ -67,6 +111,15 @@ final class Icons {
 		return out;
 	}
 
+	/**
+		Uploads the atlas pixels to the card.
+
+		@param renderer The renderer to upload to.
+		@param held The atlas file.
+		@param from Where the pixels start in it.
+		@param across How wide the atlas is.
+		@param down How tall it is.
+	**/
 	function upload(renderer:cpp.Star<Canvas>, held:Bytes, from:Int, across:Int, down:Int):Void {
 		final rgba = new Vector<cpp.UInt8>(across * down * 4);
 
@@ -84,6 +137,10 @@ final class Icons {
 		Draw.updateTexture(texture, cpp.Pointer.arrayElem(rgba.toData(), 0).constRaw, across, down);
 	}
 
+	/**
+		@param which An icon.
+		@return Whether the atlas carries it.
+	**/
 	public inline function has(which:Int):Bool {
 		return which >= 0 && which < count;
 	}
@@ -95,6 +152,9 @@ final class Icons {
 	public inline function wide(which:Int):Float return bounds[which * 6 + 4];
 	public inline function tall(which:Int):Float return bounds[which * 6 + 5];
 
+	/**
+		Gives the atlas back.
+	**/
 	public function shut():Void {
 		if (texture == null) return;
 

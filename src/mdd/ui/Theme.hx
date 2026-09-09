@@ -3,7 +3,17 @@ package mdd.ui;
 import haxe.ds.Vector;
 
 @:unreflective
+
+/**
+	Every colour the interface draws in, and the eleven a part is drawn in.
+
+	A part keeps one colour everywhere it appears, which is what lets the rack, the
+	playlist, the roll, the scope and the register timeline be read together.
+**/
 final class Theme {
+	/**
+		The colour of the first FM channel.
+	**/
 	public static inline final FM1 = 0xFF5252;
 	public static inline final FM2 = 0xFF9029;
 	public static inline final FM3 = 0xFFD029;
@@ -16,10 +26,16 @@ final class Theme {
 	public static inline final NOISE = 0x9E9E9E;
 	public static inline final DAC = 0xF050A0;
 
+	/**
+		One colour per part, in part order. Shared and never written to.
+	**/
 	public static final PARTS:Vector<Colour> = Vector.fromArrayCopy([
 		FM1, FM2, FM3, FM4, FM5, FM6, PSG1, PSG2, PSG3, NOISE, DAC
 	]);
 
+	/**
+		The dark theme.
+	**/
 	public static inline final MIDNIGHT = 0;
 	static inline final RACK = 1;
 	static inline final SLATE = 2;
@@ -37,26 +53,90 @@ final class Theme {
 
 	static inline final SPAN = 13;
 
+	/**
+		The colour behind everything.
+	**/
 	public var sink(default, null):Colour;
+
+	/**
+		The colour of the working area.
+	**/
 	public var ground(default, null):Colour;
+
+	/**
+		The colour of a panel.
+	**/
 	public var panel(default, null):Colour;
+
+	/**
+		One step above the panel.
+	**/
 	public var raise1(default, null):Colour;
+
+	/**
+		The colour of a title band.
+	**/
 	public var bar(default, null):Colour;
+
+	/**
+		Two steps above the panel.
+	**/
 	public var raise2(default, null):Colour;
+
+	/**
+		The colour of an outline.
+	**/
 	public var frame(default, null):Colour;
+
+	/**
+		The colour of a grid line.
+	**/
 	public var grid(default, null):Colour;
+
+	/**
+		The colour of ordinary text.
+	**/
 	public var ink(default, null):Colour;
+
+	/**
+		The colour of secondary text.
+	**/
 	public var dim(default, null):Colour;
+
+	/**
+		The colour of anything chosen or active.
+	**/
 	public var accent(default, null):Colour;
+
+	/**
+		The colour of a warning.
+	**/
 	public var warn(default, null):Colour;
+
+	/**
+		The colour drawn over a scrim.
+	**/
 	public var over(default, null):Colour;
 
+	/**
+		Which theme is worn.
+	**/
 	public var which(default, null):Colour;
 
+	/**
+		Builds a theme.
+
+		@param which Which theme to wear.
+	**/
 	public function new(which:Int = MIDNIGHT) {
 		wear(which);
 	}
 
+	/**
+		Changes every colour to another theme.
+
+		@param which Which theme to wear.
+	**/
 	public function wear(which:Int):Void {
 		final at = (which < 0 || which > SLATE ? MIDNIGHT : which) * SPAN;
 		this.which = which;
@@ -76,14 +156,33 @@ final class Theme {
 		over = SURFACES[at + 12];
 	}
 
+	/**
+		@param index A part, 0 to 10.
+		@return Its colour.
+	**/
 	public inline function part(index:Int):Colour {
 		return index < 0 || index >= PARTS.length ? dim : PARTS[index];
 	}
 
+	/**
+		How much a hovered thing is lifted.
+	**/
 	public static inline final HOVER = 0.10;
+
+	/**
+		How much a pressed thing is lifted.
+	**/
 	public static inline final PRESS = 0.18;
+
+	/**
+		How much a chosen thing is lifted.
+	**/
 	public static inline final SELECT = 0.24;
 
+	/**
+		@param colour A colour.
+		@return It faded towards the ground, for something disabled.
+	**/
 	public inline function ghost(colour:Colour):Colour {
 		return colour.mix(panel, 0.70);
 	}

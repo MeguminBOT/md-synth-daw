@@ -7,10 +7,29 @@ import mdd.host.Sdl;
 import mdd.host.Texture;
 
 @:unreflective
+
+/**
+	Every shape the interface draws, batched into as few draw calls as possible.
+
+	Nothing here draws immediately. A shape becomes triangles in a growing buffer, and
+	the buffer is handed to the card in one call whenever the texture, the clip or the
+	transform has to change. A rectangle samples one opaque pixel in the glyph atlas,
+	so a filled shape and a run of text are the same call and never split it.
+
+	Timing a frame here without presenting measures the driver queue rather than the
+	frame. Rendering six hundred frames into a texture as fast as they would build
+	showed a deterministic forty millisecond spike inside a clip flush, which is where
+	the card finally blocked waiting for everything queued behind it. The same six
+	hundred with a real present at the end of each ran at 0.34 ms mean.
+**/
 final class Paint {
 	static inline final FLOATS = 8;
 	static inline final DEPTH = 16;
 
+	/**
+		The face text is drawn in, and the atlas every filled shape samples its opaque
+		pixel from.
+	**/
 	public var font(default, null):Font;
 
 	var renderer:cpp.Star<Canvas>;
@@ -46,8 +65,18 @@ final class Paint {
 
 	final corners:Vector<Int> = new Vector<Int>(512);
 
+	/**
+		Private: use `on`.
+	**/
 	function new() {}
 
+	/**
+		Builds a painter for a renderer.
+
+		@param renderer The renderer to draw to.
+		@param font The face to start with.
+		@return The painter.
+	**/
 	public static function on(renderer:cpp.Star<Canvas>, font:Font):Paint {
 		final paint = new Paint();
 		paint.renderer = renderer;
@@ -57,25 +86,60 @@ final class Paint {
 		return paint;
 	}
 
+	/**
+		Makes a texture that can be drawn into.
+
+		@param width How wide.
+		@param height How tall.
+		@return The texture, or null.
+	**/
 	public function sheet(width:Int, height:Int):cpp.Star<Texture> {
 		return Draw.createTarget(renderer, width, height);
 	}
 
+	/**
+		Draws into a texture from here, or back into the window when given null.
+
+		@param texture The target, or null for the window.
+	**/
 	public function target(texture:cpp.Star<Texture>):Void {
 		flush();
 		Draw.setTarget(renderer, texture);
 	}
 
+	/**
+		Fills the whole target with a colour.
+
+		@param red Red, 0 to 1.
+		@param green Green.
+		@param blue Blue.
+		@param alpha Alpha.
+	**/
 	public function clear(red:Float, green:Float, blue:Float, alpha:Float):Void {
 		Sdl.renderClear(renderer, red, green, blue, alpha);
 	}
 
+	/**
+		Draws a whole texture into a rectangle. This flushes, because it is not a
+		triangle batch.
+
+		@param texture The texture.
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+	**/
 	public function blit(texture:cpp.Star<Texture>, x:Float, y:Float, width:Float,
 			height:Float):Void {
 		flush();
 		Draw.texture(renderer, texture, at(x), down(y), width * scaleX, height * scaleY, opacity);
 	}
 
+	/**
+		Multiplies everything drawn until the matching pop by an opacity.
+
+		@param amount How opaque, 0 to 1.
+	**/
 	public function pushOpacity(amount:Float):Void {
 		if (veiled >= DEPTH) {
 			skippedVeils++;
@@ -88,6 +152,9 @@ final class Paint {
 		opacity *= amount < 0 ? 0 : (amount > 1 ? 1 : amount);
 	}
 
+	/**
+		Takes the last opacity back off.
+	**/
 	public function popOpacity():Void {
 		if (skippedVeils > 0) {
 			skippedVeils--;
@@ -100,12 +167,28 @@ final class Paint {
 		opacity = opacities[veiled];
 	}
 
+	/**
+		Changes the face text is drawn in, flushing first because the atlas changes.
+
+		@param font The face to draw in.
+	**/
 	public function reface(font:Font):Void {
 		flush();
 		this.font = font;
 		bound = font.texture;
 	}
 
+	/**
+		Draws one icon, tinted.
+
+		@param icons The atlas.
+		@param which Which icon.
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param size How large to draw it.
+		@param colour What to tint it.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function icon(icons:Icons, which:Int, x:Float, y:Float, size:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		if (icons == null || !icons.has(which) || size <= 0) return;
@@ -144,14 +227,25 @@ final class Paint {
 		}
 	}
 
+	/**
+		@return How deep the clip and transform stacks are, which a check reads to prove they are
+			balanced.
+	**/
 	public inline function nesting():Int {
 		return clipped + deep + veiled + skippedClips + skippedDeep + skippedVeils;
 	}
 
+	/**
+		@return How many floats are waiting to be handed to the card.
+	**/
 	public inline function pending():Int {
 		return Std.int(used / FLOATS);
 	}
 
+	/**
+		Hands whatever is waiting to the card. Called whenever the texture, the clip or the
+		transform has to change, and at the end of a frame.
+	**/
 	public function flush():Void {
 		if (used == 0) return;
 		Draw.geometry(renderer, bound == null ? font.texture : bound,
@@ -159,6 +253,11 @@ final class Paint {
 		used = 0;
 	}
 
+	/**
+		Makes sure there is room for more vertices, flushing or growing the buffer.
+
+		@param floats How many floats are about to be written.
+	**/
 	function room(floats:Int):Void {
 		if (used + floats <= batch.length) return;
 
@@ -197,6 +296,18 @@ final class Paint {
 		used = at + FLOATS;
 	}
 
+	/**
+		Adds one flat triangle.
+
+		@param x0 First corner, across.
+		@param y0 First corner, down.
+		@param x1 Second corner, across.
+		@param y1 Second corner, down.
+		@param x2 Third corner, across.
+		@param y2 Third corner, down.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function triangle(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, colour:Colour,
 			alpha:Float):Void {
 		binds(font.texture);
@@ -214,6 +325,20 @@ final class Paint {
 		push(at(x2), down(y2), r, g, b, a, u, v);
 	}
 
+	/**
+		Adds one flat quadrilateral, as two triangles.
+
+		@param x0 First corner, across.
+		@param y0 First corner, down.
+		@param x1 Second corner, across.
+		@param y1 Second corner, down.
+		@param x2 Third corner, across.
+		@param y2 Third corner, down.
+		@param x3 Fourth corner, across.
+		@param y3 Fourth corner, down.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function quad(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float,
 			colour:Colour, alpha:Float):Void {
 		binds(font.texture);
@@ -244,6 +369,16 @@ final class Paint {
 		push(dx, dy, r, g, b, a, u, v);
 	}
 
+	/**
+		Draws a filled rectangle.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function rect(x:Float, y:Float, width:Float, height:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
@@ -260,6 +395,19 @@ final class Paint {
 		quad(left, top, right, top, right, bottom, left, bottom, colour, alpha);
 	}
 
+	/**
+		Draws a rounded rectangle filled with a vertical gradient.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param radius How round the corners are.
+		@param top The colour at the top.
+		@param bottom The colour at the bottom.
+		@param alpha How opaque, 0 to 1.
+		@param share How much of the height to fill, 0 to 1, for a meter.
+	**/
 	public function roundedGradient(x:Float, y:Float, width:Float, height:Float,
 			radius:Float, top:Colour, bottom:Colour, alpha:Float = 1, share:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
@@ -302,6 +450,17 @@ final class Paint {
 		bend(left + r, lower - r, r, 90, 180, top, bottom, upper, tall, alpha);
 	}
 
+	/**
+		Draws a rectangle filled with a vertical gradient.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param top The colour at the top.
+		@param bottom The colour at the bottom.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function gradient(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
 			alpha:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
@@ -315,6 +474,20 @@ final class Paint {
 		return top.mix(bottom, t < 0 ? 0 : (t > 1 ? 1 : t));
 	}
 
+	/**
+		Draws a gradient rectangle whose colours come from a span larger than itself, so
+		several pieces share one gradient.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param top The colour at the top of the span.
+		@param bottom The colour at the bottom.
+		@param from Where the span starts.
+		@param span How tall the span is.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function shaded(x:Float, y:Float, width:Float, height:Float, top:Colour, bottom:Colour,
 			from:Float, span:Float, alpha:Float):Void {
 		if (width <= 0 || height <= 0) return;
@@ -335,6 +508,20 @@ final class Paint {
 		wedge(left, upper, above, right, lower, below, left, lower, below, alpha);
 	}
 
+	/**
+		Draws a rounded corner filled from a gradient span.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param r The corner radius.
+		@param starts The angle it starts at.
+		@param ends The angle it ends at.
+		@param top The colour at the top of the span.
+		@param bottom The colour at the bottom.
+		@param from Where the span starts.
+		@param span How tall the span is.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function bend(cx:Float, cy:Float, r:Float, starts:Float, ends:Float, top:Colour,
 			bottom:Colour, from:Float, span:Float, alpha:Float):Void {
 		var count = Math.ceil(r * 1.2);
@@ -359,6 +546,20 @@ final class Paint {
 		}
 	}
 
+	/**
+		Adds one triangle with a different opacity at each corner.
+
+		@param x0 First corner, across.
+		@param y0 First corner, down.
+		@param a0 Its opacity.
+		@param x1 Second corner, across.
+		@param y1 Second corner, down.
+		@param a1 Its opacity.
+		@param x2 Third corner, across.
+		@param y2 Third corner, down.
+		@param a2 Its opacity.
+		@param colour The colour to draw it in.
+	**/
 	function faded(x0:Float, y0:Float, a0:Float, x1:Float, y1:Float, a1:Float, x2:Float,
 			y2:Float, a2:Float, colour:Colour):Void {
 		binds(font.texture);
@@ -376,6 +577,19 @@ final class Paint {
 		push(at(x2), down(y2), r, g, b, a2 * held, u, v);
 	}
 
+	/**
+		Draws part of a ring, as a fan of quadrilaterals.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param inner The inner radius.
+		@param outer The outer radius.
+		@param from The angle it starts at.
+		@param to The angle it ends at.
+		@param count How many segments to use.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function band(cx:Float, cy:Float, inner:Float, outer:Float, from:Float, to:Float,
 			count:Int, colour:Colour, alpha:Float):Void {
 		final step = (to - from) / count;
@@ -406,6 +620,20 @@ final class Paint {
 		return want > half ? half : (want < 1 ? 0 : want);
 	}
 
+	/**
+		Adds one triangle with a different colour at each corner.
+
+		@param x0 First corner, across.
+		@param y0 First corner, down.
+		@param c0 Its colour.
+		@param x1 Second corner, across.
+		@param y1 Second corner, down.
+		@param c1 Its colour.
+		@param x2 Third corner, across.
+		@param y2 Third corner, down.
+		@param c2 Its colour.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function wedge(x0:Float, y0:Float, c0:Colour, x1:Float, y1:Float, c1:Colour, x2:Float,
 			y2:Float, c2:Colour, alpha:Float):Void {
 		binds(font.texture);
@@ -420,6 +648,18 @@ final class Paint {
 		push(at(x2), down(y2), c2.red * CHANNEL, c2.green * CHANNEL, c2.blue * CHANNEL, a, u, v);
 	}
 
+	/**
+		Draws the outline of a rectangle, rounded where asked.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param colour The colour to draw it in.
+		@param weight How thick the line is.
+		@param alpha How opaque, 0 to 1.
+		@param radius How round the corners are, or nought for square.
+	**/
 	public function outline(x:Float, y:Float, width:Float, height:Float, colour:Colour,
 			weight:Float = 1, alpha:Float = 1, radius:Float = 0):Void {
 		if (width <= 0 || height <= 0) return;
@@ -450,6 +690,18 @@ final class Paint {
 		arc(x + r, y + height - r, r, half, Math.PI, weight, colour, alpha);
 	}
 
+	/**
+		Draws a filled rounded rectangle.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param radius How round the corners are.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+		@param share How much of the height to fill, 0 to 1, for a meter.
+	**/
 	public function roundedRect(x:Float, y:Float, width:Float, height:Float, radius:Float,
 			colour:Colour, alpha:Float = 1, share:Float = 1):Void {
 		if (width <= 0 || height <= 0) return;
@@ -492,6 +744,17 @@ final class Paint {
 		corner(left + r, bottom - r, r, 90, 180, colour, alpha);
 	}
 
+	/**
+		Draws one filled rounded corner, as a fan.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param r The corner radius.
+		@param from The angle it starts at.
+		@param to The angle it ends at.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	function corner(cx:Float, cy:Float, r:Float, from:Float, to:Float, colour:Colour,
 			alpha:Float):Void {
 		var count = Math.ceil(r * 2);
@@ -520,6 +783,15 @@ final class Paint {
 		return want < 12 ? 12 : (want > 128 ? 128 : want);
 	}
 
+	/**
+		Draws a filled circle.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param radius How large.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function circle(cx:Float, cy:Float, radius:Float, colour:Colour, alpha:Float = 1):Void {
 		if (radius <= 0) return;
 
@@ -539,6 +811,18 @@ final class Paint {
 		}
 	}
 
+	/**
+		Draws part of a circle as a stroked line, which is what a knob sweep is.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param radius How large.
+		@param from The angle it starts at.
+		@param to The angle it ends at.
+		@param weight How thick the line is.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function arc(cx:Float, cy:Float, radius:Float, from:Float, to:Float, weight:Float,
 			colour:Colour, alpha:Float = 1):Void {
 		if (radius <= 0 || weight <= 0) return;
@@ -568,11 +852,32 @@ final class Paint {
 		}
 	}
 
+	/**
+		Draws a whole circle as a stroked line.
+
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param radius How large.
+		@param weight How thick the line is.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public inline function ring(cx:Float, cy:Float, radius:Float, weight:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		arc(cx, cy, radius, 0, Math.PI * 2, weight, colour, alpha);
 	}
 
+	/**
+		Draws a straight line.
+
+		@param x0 Where it starts, across.
+		@param y0 Where it starts, down.
+		@param x1 Where it ends, across.
+		@param y1 Where it ends, down.
+		@param weight How thick.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function line(x0:Float, y0:Float, x1:Float, y1:Float, weight:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		final dx = x1 - x0;
@@ -589,6 +894,15 @@ final class Paint {
 
 	static inline final JOIN = 0.35;
 
+	/**
+		Draws a run of joined lines.
+
+		@param points The points, two floats each.
+		@param count How many points.
+		@param weight How thick.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function polyline(points:Vector<Float>, count:Int, weight:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		if (count < 2) return;
@@ -621,6 +935,14 @@ final class Paint {
 		}
 	}
 
+	/**
+		Fills a polygon, cutting it into triangles as it goes.
+
+		@param points The points, two floats each, in order round the shape.
+		@param count How many points.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function polygon(points:Vector<Float>, count:Int, colour:Colour, alpha:Float = 1):Void {
 		if (count < 3) return;
 
@@ -663,6 +985,14 @@ final class Paint {
 		}
 	}
 
+	/**
+		@param points The points of a polygon.
+		@param a The first corner of a candidate triangle.
+		@param b The second.
+		@param c The third.
+		@param left How many points are still in the polygon.
+		@return Whether that triangle can be cut off without crossing the shape.
+	**/
 	function ear(points:Vector<Float>, a:Int, b:Int, c:Int, left:Int):Bool {
 		final ax = points[a * 2];
 		final ay = points[a * 2 + 1];
@@ -691,6 +1021,21 @@ final class Paint {
 		return (one >= 0 && two >= 0 && three >= 0) || (one <= 0 && two <= 0 && three <= 0);
 	}
 
+	/**
+		Draws a cubic curve as a stroked line, with as many segments as its size needs.
+
+		@param x0 Where it starts, across.
+		@param y0 Where it starts, down.
+		@param x1 First control point, across.
+		@param y1 First control point, down.
+		@param x2 Second control point, across.
+		@param y2 Second control point, down.
+		@param x3 Where it ends, across.
+		@param y3 Where it ends, down.
+		@param weight How thick.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function curve(x0:Float, y0:Float, x1:Float, y1:Float, x2:Float, y2:Float, x3:Float,
 			y3:Float, weight:Float, colour:Colour, alpha:Float = 1):Void {
 		final rough = Math.abs(x1 - x0) + Math.abs(y1 - y0) + Math.abs(x2 - x1)
@@ -720,6 +1065,21 @@ final class Paint {
 		}
 	}
 
+	/**
+		Draws a waveform, one column per pixel, reduced to the lowest and highest sample
+		in each. A column narrower than one sample has no peak to peak and draws a flat
+		line, correctly.
+
+		@param samples The audio.
+		@param from The first sample to draw.
+		@param to One past the last.
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public function waveform(samples:Vector<Float>, from:Int, to:Int, x:Float, y:Float,
 			width:Float, height:Float, colour:Colour, alpha:Float = 1):Void {
 		final span = to - from;
@@ -751,6 +1111,16 @@ final class Paint {
 		}
 	}
 
+	/**
+		Draws text at a baseline.
+
+		@param value The text.
+		@param x Where it starts, across.
+		@param y The baseline.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+		@return Where it ended, across.
+	**/
 	public function text(value:String, x:Float, y:Float, colour:Colour, alpha:Float = 1):Float {
 		binds(font.texture);
 		room(FLOATS * 6 * value.length);
@@ -794,20 +1164,51 @@ final class Paint {
 		return pen;
 	}
 
+	/**
+		Draws text ending at a position.
+
+		@param value The text.
+		@param right Where it ends, across.
+		@param y The baseline.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public inline function textRight(value:String, right:Float, y:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		text(value, right - font.measure(value), y, colour, alpha);
 	}
 
+	/**
+		Draws text centred on a position.
+
+		@param value The text.
+		@param centre Where its middle goes, across.
+		@param y The baseline.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
 	public inline function textCentred(value:String, centre:Float, y:Float, colour:Colour,
 			alpha:Float = 1):Void {
 		text(value, centre - font.measure(value) * 0.5, y, colour, alpha);
 	}
 
+	/**
+		@param value Some text.
+		@return How wide it draws in the current face.
+	**/
 	public inline function measure(value:String):Float {
 		return font.measure(value);
 	}
 
+	/**
+		Limits drawing to a rectangle until the matching pop. Clips nest by taking the
+		overlap rather than replacing.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+	**/
 	public function pushClip(x:Float, y:Float, width:Float, height:Float):Void {
 		if (clipped >= DEPTH) {
 			skippedClips++;
@@ -846,6 +1247,9 @@ final class Paint {
 			Std.int(bottom - top));
 	}
 
+	/**
+		Takes the last clip back off.
+	**/
 	public function popClip():Void {
 		if (skippedClips > 0) {
 			skippedClips--;
@@ -866,6 +1270,14 @@ final class Paint {
 			Std.int(clipW[clipped - 1]), Std.int(clipH[clipped - 1]));
 	}
 
+	/**
+		Moves and scales everything drawn until the matching pop.
+
+		@param dx How far to move, across.
+		@param dy How far to move, down.
+		@param sx What to scale by, across.
+		@param sy What to scale by, down.
+	**/
 	public function pushTransform(dx:Float, dy:Float, sx:Float = 1, sy:Float = 1):Void {
 		if (deep >= DEPTH) {
 			skippedDeep++;
@@ -885,6 +1297,9 @@ final class Paint {
 		scaleY *= sy;
 	}
 
+	/**
+		Takes the last transform back off.
+	**/
 	public function popTransform():Void {
 		if (skippedDeep > 0) {
 			skippedDeep--;
@@ -900,6 +1315,10 @@ final class Paint {
 		scaleY = stackSy[deep];
 	}
 
+	/**
+		Empties the buffer and every stack, which a frame that faulted part way through
+		needs before the next one.
+	**/
 	public function reset():Void {
 		deep = 0;
 		veiled = 0;
