@@ -468,8 +468,7 @@ class App {
 	}
 
 	function fetching():Void {
-		final into = Paths.within("updates") + "/" + Config.SHORT + "-" + update.offered
-			+ Paths.suffix();
+		final into = Paths.within("updates") + "/" + update.named();
 
 		if (!update.take(into)) {
 			session.say("that update cannot be downloaded");
@@ -477,32 +476,68 @@ class App {
 			return;
 		}
 
-		if (panels.working == null) {
-			session.say("downloading to " + into);
+		shows(Locale.WORKING_DOWNLOADING, Files.name(into));
+		session.changed();
+	}
+
+	function shows(label:Locale, detail:String):Void {
+		task.begins(label, detail);
+
+		stage.root.bands(progress);
+		progress.arrive(task);
+		progress.rise.hold(1);
+		progress.fade.hold(1);
+		progress.onCancel = null;
+
+		stage.root.soil();
+	}
+
+	function settled():Void {
+		if (stage.root.band != progress) return;
+
+		task.ends(true);
+		stage.root.bands(null);
+		stage.root.soil();
+	}
+
+	function applying():Void {
+		shows(Locale.WORKING_INSTALLING, update.offered);
+
+		if (!update.applies(Paths.beside())) {
+			update.forget();
+			settled();
+			session.say(stage.root.translate(Locale.UPDATE_BROKEN));
+		}
+
+		session.changed();
+	}
+
+	function handing():Void {
+		session.say(stage.root.translate(Locale.UPDATE_APPLIED));
+		session.changed();
+
+		stage.root.soil();
+		stage.draw();
+
+		if (!update.hands()) {
+			update.forget();
+			settled();
+			session.say(stage.root.translate(Locale.UPDATE_BROKEN));
 			session.changed();
 			return;
 		}
 
-		task.begins(Locale.WORKING_DOWNLOADING, Files.name(into));
-		stage.root.raise(panels.working);
-		panels.working.arrive(task);
-
-		panels.working.onCancel = null;
-		session.changed();
-	}
-
-	function settled():Void {
-		if (panels.working == null || stage.root.sheet != panels.working) return;
-
-		task.ends(true);
-		stage.root.lower();
+		running = false;
 	}
 
 	function pulling(since:Float):Bool {
-		if (update == null || update.state() != Update.FETCHING) return false;
+		if (update == null) return false;
 
-		task.holds(update.pulling());
-		if (panels.working != null) panels.working.advance(since);
+		final now = update.state();
+		if (now != Update.FETCHING && now != Update.APPLYING) return false;
+
+		task.holds(now == Update.FETCHING ? update.pulling() : -1);
+		progress.advance(since);
 
 		return true;
 	}
@@ -534,9 +569,18 @@ class App {
 				return true;
 
 			case Update.FETCHED:
+				applying();
+				return true;
+
+			case Update.APPLIED:
+				handing();
+				return true;
+
+			case Update.BROKEN:
 				update.forget();
 				settled();
-				session.say(stage.root.translate(Locale.UPDATE_FETCHED) + " " + update.into);
+				session.say(stage.root.translate(Locale.UPDATE_BROKEN)
+					+ (update.wrong == "" ? "" : ": " + update.wrong));
 				session.changed();
 				return true;
 

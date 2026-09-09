@@ -84,6 +84,24 @@ class Paths {
 		} catch (e:Dynamic) {}
 	}
 
+	public static function clear(where:String):Void {
+		if (where == "" || !FileSystem.exists(where)) return;
+
+		if (!FileSystem.isDirectory(where)) {
+			try {
+				FileSystem.deleteFile(where);
+			} catch (e:Dynamic) {}
+
+			return;
+		}
+
+		for (entry in FileSystem.readDirectory(where)) clear(where + "/" + entry);
+
+		try {
+			FileSystem.deleteDirectory(where);
+		} catch (e:Dynamic) {}
+	}
+
 	public static function beside():String {
 		final exe = Sys.programPath();
 		final held = exe == "" ? Sys.getCwd() : haxe.io.Path.directory(exe);
