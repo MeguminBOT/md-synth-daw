@@ -4,7 +4,17 @@ import mdd.ui.Key;
 import mdd.ui.Mod;
 
 @:unreflective
+
+/**
+	Which chord runs which action, and what a menu shows beside its entries.
+
+	Every binding can be changed and put back, and the defaults live here rather than
+	being scattered across the menus that show them.
+**/
 final class Bindings {
+	/**
+		No action.
+	**/
 	public static inline final NONE = -1;
 
 	public static inline final UNDO = 0;
@@ -29,6 +39,10 @@ final class Bindings {
 	public static inline final COPY = 19;
 	public static inline final CUT = 20;
 	public static inline final PASTE = 21;
+
+	/**
+		How many actions there are.
+	**/
 	public static inline final COUNT = 22;
 
 	static final KEYS:Array<Key> = [
@@ -47,6 +61,9 @@ final class Bindings {
 		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl
 	];
 
+	/**
+		What each action is called, in order.
+	**/
 	public static final NAMES:Array<Locale> = [
 		Locale.BIND_UNDO, Locale.BIND_REDO, Locale.BIND_NEW, Locale.BIND_OPEN,
 		Locale.BIND_SAVE, Locale.BIND_PREFERENCES, Locale.BIND_PLAY, Locale.BIND_STOP,
@@ -60,10 +77,16 @@ final class Bindings {
 	final keys:Array<Key> = [];
 	final mods:Array<Int> = [];
 
+	/**
+		Builds the bindings at their defaults.
+	**/
 	public function new() {
 		forget();
 	}
 
+	/**
+		Puts every binding back to its default.
+	**/
 	public function forget():Void {
 		keys.resize(0);
 		mods.resize(0);
@@ -74,6 +97,10 @@ final class Bindings {
 		}
 	}
 
+	/**
+		@param action Which action, one of the constants above.
+		@return Which key runs it.
+	**/
 	public inline function keyOf(action:Int):Key {
 		return keys[action];
 	}
@@ -82,15 +109,31 @@ final class Bindings {
 		return mods[action];
 	}
 
+	/**
+		@param held The bindings, or null.
+		@param action Which action, one of the constants above.
+		@return The chord as text, or an empty string where there are no bindings.
+	**/
 	public static function of(held:Null<Bindings>, action:Int):String {
 		return held == null ? "" : held.shortcut(action);
 	}
 
+	/**
+		@param action Which action, one of the constants above.
+		@return The chord as text, spelt the way a menu shows it.
+	**/
 	public function shortcut(action:Int):String {
 		if (action < 0 || action >= COUNT) return "";
 		return keys[action].shortcut(mods[action]);
 	}
 
+	/**
+		Changes a binding, taking the chord off whatever else had it.
+
+		@param action Which action, one of the constants above.
+		@param key The key.
+		@param mod Which modifiers go with it.
+	**/
 	public function binds(action:Int, key:Key, mod:Int):Void {
 		if (action < 0 || action >= COUNT) return;
 
@@ -106,11 +149,20 @@ final class Bindings {
 		mods[action] = mod;
 	}
 
+	/**
+		Puts one binding back to its default.
+
+		@param action Which action, one of the constants above.
+	**/
 	public function restores(action:Int):Void {
 		if (action < 0 || action >= COUNT) return;
 		binds(action, KEYS[action], MODS[action]);
 	}
 
+	/**
+		@param action Which action, one of the constants above.
+		@return Whether anything reaches it.
+	**/
 	public inline function bound(action:Int):Bool {
 		return action >= 0 && action < COUNT && keys[action] != Key.Unknown;
 	}

@@ -12,15 +12,53 @@ import mdd.view.Tools;
 import mdd.view.TransportBar;
 
 @:unreflective
+
+/**
+	The menu bar: every entry, what it is called, what chord reaches it, and what it
+	does.
+
+	An entry that is off says why rather than only being grey, and everything here is
+	named through the string table so a menu reads in the language in force.
+**/
 final class Menus {
+	/**
+		The bar these entries are built into.
+	**/
 	public var bar:Null<MenuBar> = null;
+
+	/**
+		The updater, so the help menu can say why looking is disabled.
+	**/
 	public var update:Null<Update> = null;
 
+	/**
+		Called to open a file dialog.
+	**/
 	public var onAsk:Null<Int -> Void> = null;
+
+	/**
+		Called to save.
+	**/
 	public var onSave:Null<Void -> Void> = null;
+
+	/**
+		Called to quit.
+	**/
 	public var onQuit:Null<Void -> Void> = null;
+
+	/**
+		Called to undo.
+	**/
 	public var onUndo:Null<Void -> Void> = null;
+
+	/**
+		Called to redo.
+	**/
 	public var onRedo:Null<Void -> Void> = null;
+
+	/**
+		Called when the entries have to be built again, which changing language does.
+	**/
 	public var onRelabel:Null<Void -> Void> = null;
 
 	final stage:Stage;
@@ -28,13 +66,28 @@ final class Menus {
 
 	var session:Null<Session> = null;
 
+	/**
+		Which chord reaches which action, for the labels.
+	**/
 	public var bindings:Null<Bindings> = null;
 
+	/**
+		Builds the menus over a window and its panels.
+
+		@param stage The window.
+		@param panels The panels the entries act on.
+	**/
 	public function new(stage:Stage, panels:Panels) {
 		this.stage = stage;
 		this.panels = panels;
 	}
 
+	/**
+		Builds every menu again, in the language in force. Called at start and whenever
+		the language changes.
+
+		@param session The session the entries act on.
+	**/
 	public function dress(session:Session):Void {
 		this.session = session;
 
@@ -47,10 +100,17 @@ final class Menus {
 		commands();
 	}
 
+	/**
+		@param key A string key.
+		@return What it says in the language in force.
+	**/
 	inline function said(key:Locale):String {
 		return stage.root.translate(key);
 	}
 
+	/**
+		Builds the file and edit menus.
+	**/
 	function commands():Void {
 		final file = new Menu();
 
@@ -130,6 +190,9 @@ final class Menus {
 		};
 	}
 
+	/**
+		@return The pattern menu.
+	**/
 	function patternMenu():Menu {
 		final held = new Menu();
 
@@ -152,6 +215,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		@return The menu of parts, for choosing one.
+	**/
 	function parted():Menu {
 		final out = new Menu();
 
@@ -168,12 +234,21 @@ final class Menus {
 		return out;
 	}
 
+	/**
+		Wires a part entry to choosing that part.
+
+		@param choice The entry.
+		@param part Which part.
+	**/
 	function fires(choice:Choice, part:Int):Void {
 		choice.onFire = function(from:Choice):Void {
 			if (onPart != null) onPart(part);
 		};
 	}
 
+	/**
+		@return The channels menu.
+	**/
 	function channelsMenu():Menu {
 		final held = new Menu();
 
@@ -202,6 +277,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		@return The instrument menu.
+	**/
 	function instrumentMenu():Menu {
 		final held = new Menu();
 
@@ -225,6 +303,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		@return The import menu.
+	**/
 	function importMenu():Menu {
 		final held = new Menu();
 
@@ -247,12 +328,34 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		Called to read every patch file in the presets folder into the library.
+	**/
 	public var onLift:Null<Void -> Int> = null;
+
+	/**
+		Called to start a new piece.
+	**/
 	public var onNew:Null<Void -> Void> = null;
+
+	/**
+		Called to move the piece in time.
+	**/
 	public var onNudge:Null<Int -> Void> = null;
+
+	/**
+		Called with an editing command.
+	**/
 	public var onEdit:Null<Int -> Void> = null;
+
+	/**
+		Called to choose a part.
+	**/
 	public var onPart:Null<Int -> Void> = null;
 
+	/**
+		Reads every patch file in the presets folder and says how many were new.
+	**/
 	function lifted():Void {
 		final many = onLift == null ? 0 : onLift();
 
@@ -262,6 +365,9 @@ final class Menus {
 		session.changed();
 	}
 
+	/**
+		@return The export menu.
+	**/
 	function exportMenu():Menu {
 		final held = new Menu();
 
@@ -282,6 +388,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		@return The view menu.
+	**/
 	function viewMenu():Menu {
 		final held = new Menu();
 
@@ -304,6 +413,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		Opens or closes a panel from the view menu.
+	**/
 	function shows():Void {
 		if (panels.about == null || panels.stage == null) return;
 
@@ -311,6 +423,9 @@ final class Menus {
 		panels.about.arrive();
 	}
 
+	/**
+		@return The help menu.
+	**/
 	function helpMenu():Menu {
 		final held = new Menu();
 
@@ -328,6 +443,9 @@ final class Menus {
 		return held;
 	}
 
+	/**
+		Asks the updater to look now, saying why where it cannot.
+	**/
 	function looks():Void {
 		if (!update.look()) {
 			session.say(update.state() == Update.LOOKING ? "already looking"
@@ -340,6 +458,9 @@ final class Menus {
 		session.changed();
 	}
 
+	/**
+		Clears every note out of the chosen pattern.
+	**/
 	function emptied():Void {
 		final held = session.current();
 		if (held == null) return;
@@ -354,6 +475,9 @@ final class Menus {
 		}
 	}
 
+	/**
+		Clears the chosen channel.
+	**/
 	function cleared():Void {
 		final held = session.current();
 		if (held == null) return;
@@ -366,6 +490,9 @@ final class Menus {
 		}
 	}
 
+	/**
+		Copies the chosen patch.
+	**/
 	function copiedPatch():Void {
 		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
 		if (held == null || held.patch == null) return;
@@ -375,6 +502,9 @@ final class Menus {
 		session.changed();
 	}
 
+	/**
+		Pastes a patch onto the chosen channel.
+	**/
 	function pastedPatch():Void {
 		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
 		if (held == null || session.copiedPatch == null) return;
@@ -383,6 +513,9 @@ final class Menus {
 		session.changed();
 	}
 
+	/**
+		Puts the chosen patch back to silence.
+	**/
 	function resetPatch():Void {
 		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
 		if (held == null) return;
@@ -391,18 +524,36 @@ final class Menus {
 		session.changed();
 	}
 
+	/**
+		Moves the whole piece in time.
+
+		@param way How far, in ticks.
+	**/
 	inline function nudges(way:Int):Void {
 		if (onNudge != null) onNudge(way);
 	}
 
+	/**
+		Sends an editing command to whatever has the keyboard.
+
+		@param what One of the `Edit` values.
+	**/
 	inline function edits(what:Int):Void {
 		if (onEdit != null) onEdit(what);
 	}
 
+	/**
+		Opens a file dialog.
+
+		@param which Which dialog.
+	**/
 	inline function asks(which:Int):Void {
 		if (onAsk != null) onAsk(which);
 	}
 
+	/**
+		Saves the piece.
+	**/
 	inline function saves():Void {
 		if (onSave != null) onSave();
 	}

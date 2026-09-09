@@ -3,11 +3,32 @@ package mdd.app;
 import mdd.song.Patch;
 
 @:unreflective
+
+/**
+	Which MIDI controller turns which FM parameter, in eight slots.
+
+	A slot names a channel wide dial or one field of one operator, so a knob box can be
+	wired to a patch without anything in the editor knowing about MIDI.
+**/
 final class Mapping {
+	/**
+		How many slots there are.
+	**/
 	public static inline final SLOTS = 8;
+
+	/**
+		A slot that is not wired to anything.
+	**/
 	public static inline final NONE = -1;
 
+	/**
+		The slot drives a channel wide dial.
+	**/
 	public static inline final DIAL = 0;
+
+	/**
+		The slot drives one field of one operator.
+	**/
 	public static inline final OPERATOR = 1;
 
 	static inline final CONTROLS = 128;
@@ -24,10 +45,16 @@ final class Mapping {
 	final operators:Array<Int> = [];
 	final rows:Array<Int> = [];
 
+	/**
+		Builds the mapping at its defaults.
+	**/
 	public function new() {
 		forget();
 	}
 
+	/**
+		Clears every slot.
+	**/
 	public function forget():Void {
 		controls.resize(0);
 		kinds.resize(0);
@@ -42,6 +69,9 @@ final class Mapping {
 		}
 	}
 
+	/**
+		Puts every slot back to a sensible default wiring.
+	**/
 	public function plain():Void {
 		forget();
 
@@ -51,26 +81,52 @@ final class Mapping {
 		}
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return Which controller turns it, or `NONE`.
+	**/
 	public inline function controlOf(slot:Int):Int {
 		return controls[slot];
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return `DIAL` or `OPERATOR`.
+	**/
 	public inline function kindOf(slot:Int):Int {
 		return kinds[slot];
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return Which operator it drives, for an operator slot.
+	**/
 	public inline function operatorOf(slot:Int):Int {
 		return operators[slot];
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return Which field it drives.
+	**/
 	public inline function rowOf(slot:Int):Int {
 		return rows[slot];
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return Whether a controller reaches it.
+	**/
 	public inline function bound(slot:Int):Bool {
 		return slot >= 0 && slot < SLOTS && controls[slot] != NONE;
 	}
 
+	/**
+		Wires a controller to a slot, taking it off whatever else had it.
+
+		@param slot Which slot, 0 to 7.
+		@param control Which controller.
+	**/
 	public function hears(slot:Int, control:Int):Void {
 		if (slot < 0 || slot >= SLOTS) return;
 		if (control < 0 || control >= CONTROLS) return;
@@ -82,6 +138,14 @@ final class Mapping {
 		controls[slot] = control;
 	}
 
+	/**
+		Says what a slot turns.
+
+		@param slot Which slot, 0 to 7.
+		@param kind `DIAL` or `OPERATOR`.
+		@param op Which operator, for an operator slot.
+		@param row Which field.
+	**/
 	public function drives(slot:Int, kind:Int, op:Int, row:Int):Void {
 		if (slot < 0 || slot >= SLOTS) return;
 
@@ -93,6 +157,11 @@ final class Mapping {
 		rows[slot] = row < 0 ? 0 : (row >= most ? most - 1 : row);
 	}
 
+	/**
+		Unwires a slot.
+
+		@param slot Which slot, 0 to 7.
+	**/
 	public function clears(slot:Int):Void {
 		if (slot < 0 || slot >= SLOTS) return;
 
@@ -102,16 +171,29 @@ final class Mapping {
 		rows[slot] = 0;
 	}
 
+	/**
+		@param control A controller.
+		@return Which slot it turns, or `NONE`.
+	**/
 	public function slotFor(control:Int):Int {
 		for (index in 0...SLOTS) if (controls[index] == control) return index;
 		return NONE;
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return The largest value the field it drives takes.
+	**/
 	public function most(slot:Int):Int {
 		if (slot < 0 || slot >= SLOTS) return 0;
 		return kinds[slot] == DIAL ? Patch.mostDial(rows[slot]) : Patch.mostOf(rows[slot]);
 	}
 
+	/**
+		@param patch The patch being turned.
+		@param slot Which slot, 0 to 7.
+		@return What the field it drives holds now.
+	**/
 	public function valueOf(patch:Patch, slot:Int):Int {
 		if (slot < 0 || slot >= SLOTS) return 0;
 
@@ -119,6 +201,14 @@ final class Mapping {
 			: patch.reads(operators[slot], rows[slot]);
 	}
 
+	/**
+		Turns the field a slot drives.
+
+		@param patch The patch to turn.
+		@param slot Which slot, 0 to 7.
+		@param value The controller value, 0 to 127.
+		@return What the field ended up at.
+	**/
 	public function turns(patch:Patch, slot:Int, value:Int):Int {
 		if (slot < 0 || slot >= SLOTS) return 0;
 
@@ -130,6 +220,11 @@ final class Mapping {
 		return want;
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@param value A controller value, 0 to 127.
+		@return It scaled into the range the field takes.
+	**/
 	public function scaled(slot:Int, value:Int):Int {
 		final held = value < 0 ? 0 : (value > 127 ? 127 : value);
 		final span = most(slot);
@@ -137,6 +232,10 @@ final class Mapping {
 		return Math.round(held * span / 127.0);
 	}
 
+	/**
+		@param slot Which slot, 0 to 7.
+		@return What the field it drives is called.
+	**/
 	public function named(slot:Int):String {
 		if (slot < 0 || slot >= SLOTS) return "";
 
@@ -144,6 +243,9 @@ final class Mapping {
 		return Patch.SPELT[rows[slot]] + " " + (operators[slot] + 1);
 	}
 
+	/**
+		@return The whole mapping as one line, for the settings file.
+	**/
 	public function said():String {
 		final out = new StringBuf();
 
@@ -159,6 +261,11 @@ final class Mapping {
 		return out.toString();
 	}
 
+	/**
+		Reads a mapping back out of that line.
+
+		@param from The line.
+	**/
 	public function reads(from:String):Void {
 		forget();
 
