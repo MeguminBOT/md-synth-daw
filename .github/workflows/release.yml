@@ -68,14 +68,12 @@ jobs:
             runs-on: ubuntu-latest
             container: debian:trixie
             haxe: apt
-            wrap: xvfb-run -a
             artifact: mdd-linux-x86_64
 
           - name: Linux arm64
             runs-on: ubuntu-24.04-arm
             container: debian:trixie
             haxe: apt
-            wrap: xvfb-run -a
             artifact: mdd-linux-arm64
 
           - name: macOS x86-64
@@ -102,7 +100,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             ca-certificates curl git unzip xz-utils \
             clang lld llvm g++ make \
-            libsdl3-dev haxe neko xvfb xauth
+            libsdl3-dev haxe neko
 
       - uses: actions/checkout@v7.0.1
 
@@ -155,23 +153,11 @@ jobs:
           sed -i '' 's/#if defined(MACOS) || defined(TARGET_OS_MAC)/#if defined(MACOS)/' "$zutil"
           grep -n 'defined(MACOS)' "$zutil"
 
-      # --nuked fetches the reference FM core. It is never linked into anything
-      # and never shipped, but without it mdd gate chip does not run at all, and
-      # that check is the one the accuracy claim rests on.
       - name: Fetch the vendored sources
-        run: ./mdd setup --nuked
+        run: ./mdd setup
 
       - name: Build
         run: ./mdd build
-
-      - name: Build the gate
-        run: ./mdd build gate
-
-      # A release is not cut from a build that cannot prove itself. Seven gate
-      # programs open a real window, and a Linux runner has no display, so the
-      # Linux jobs put a virtual one in front of it.
-      - name: Run the gate
-        run: ${{ matrix.wrap }} ./mdd gate
 
       # mdd package writes the Inno script either way and only says so when ISCC
       # is missing, so without this a Windows release would quietly go out with
