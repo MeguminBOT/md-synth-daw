@@ -28,23 +28,79 @@ import mdd.view.Palette;
 import mdd.view.Picked;
 
 @:unreflective
+
+/**
+	The arrangement: clips over named tracks, in time.
+
+	A clip carries where inside its pattern it starts, so slicing one keeps the music
+	where it was. A clip with no colour of its own takes the track colour, and only
+	then the theme.
+**/
 final class Playlist extends Widget {
+	/**
+		How many empty tracks to keep below the last used one, so there is always somewhere
+		to drop a clip.
+	**/
 	public static inline final SPARE = 4;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		How many pixels a tick is, which is the zoom.
+	**/
 	public var perTick:Float = 0.25;
+
+	/**
+		How far the view is scrolled, across.
+	**/
 	public var offsetX:Float = 0;
+
+	/**
+		How far it is scrolled, down.
+	**/
 	public var offsetY:Float = 0;
 
+	/**
+		How tall one track row is.
+	**/
 	public var rowTall:Float = 0;
+
+	/**
+		Where the playhead is, or -1 for nowhere.
+	**/
 	public var playhead:Int = -1;
+
+	/**
+		Which clip is chosen.
+	**/
 	public var chosen(default, null):Null<Clip> = null;
+
+	/**
+		Which clips are selected.
+	**/
 	public final picked:Picked<Clip> = new Picked<Clip>();
+
+	/**
+		How many clips the last frame drew.
+	**/
 	public var painted(default, null):Int = 0;
+
+	/**
+		Which chord reaches each tool, for the tooltips.
+	**/
 	public var bindings:Null<mdd.app.Bindings> = null;
 
+	/**
+		Called to rename a track.
+	**/
 	public var onRename:Null<Int -> Void> = null;
+
+	/**
+		Called to open a clip in the roll or the automation editor.
+	**/
 	public var onOpen:Null<Clip -> Void> = null;
 
 	var chosenTrack:Int = -1;
@@ -76,6 +132,11 @@ final class Playlist extends Widget {
 	var grabRow:Int = 0;
 	var haulRows:Int = 0;
 
+	/**
+		Builds the playlist.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -84,7 +145,14 @@ final class Playlist extends Widget {
 		opaque = true;
 	}
 
+	/**
+		The shortest a track row may be drawn.
+	**/
 	public static inline final LEAST_ROW = 16;
+
+	/**
+		The tallest.
+	**/
 	public static inline final MOST_ROW = 180;
 
 	function trackTall():Float {
@@ -119,32 +187,58 @@ final class Playlist extends Widget {
 		return which;
 	}
 
+	/**
+		@return How wide the track headers down the side are.
+	**/
 	public function names():Float {
 		final root = root();
 		return root == null ? 148 : root.metrics.whole(148);
 	}
 
+	/**
+		@return How tall the ruler across the top is.
+	**/
 	public function ruler():Float {
 		final root = root();
 		return root == null ? 24 : root.metrics.ruler;
 	}
 
+	/**
+		@return How many track rows to draw, which is the tracks plus a few spare.
+	**/
 	public function rows():Int {
 		return session.song.tracks.length + SPARE;
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+		@return The tick snapped, or left alone.
+	**/
 	public inline function freely(tick:Int, free:Bool):Int {
 		return free ? tick : session.snapped(tick);
 	}
 
+	/**
+		@param px A point, across.
+		@return Which tick is there.
+	**/
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - names() + offsetX) / perTick);
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@return Where it draws, across.
+	**/
 	public inline function atTick(tick:Int):Float {
 		return x + names() + tick * perTick - offsetX;
 	}
 
+	/**
+		@param which A track.
+		@return Where its row draws, down.
+	**/
 	public inline function atTrack(which:Int):Float {
 		return y + ruler() + which * trackTall() - offsetY;
 	}
@@ -164,11 +258,19 @@ final class Playlist extends Widget {
 		return px >= left && px < left + metrics.whole(18);
 	}
 
+	/**
+		@return How near the end of a clip counts as its edge, for resizing.
+	**/
 	public function edge():Float {
 		final root = root();
 		return root == null ? 6 : root.metrics.whole(6);
 	}
 
+	/**
+		@param clip A clip.
+		@param px A point, across.
+		@return Whether the point is on its edge rather than its body.
+	**/
 	public function onEdge(clip:Clip, px:Float):Bool {
 		final right = atTick(clip.ends());
 		final reach = edge();
@@ -176,6 +278,13 @@ final class Playlist extends Widget {
 		return px >= right - reach && px <= right + reach;
 	}
 
+	/**
+		Changes how long a clip is.
+
+		@param clip The clip.
+		@param to The tick it should end on.
+		@param free Whether to ignore the snap, which holding alt does.
+	**/
 	public function resized(clip:Clip, to:Int, free:Bool = false):Void {
 		final least = free || session.snap < 1 ? 1 : session.snap;
 		var want = freely(to, free) - clip.at;
@@ -186,6 +295,11 @@ final class Playlist extends Widget {
 		clip.length = want;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return The clip there, or null.
+	**/
 	public function clipAt(px:Float, py:Float):Null<Clip> {
 		final which = trackAt(py);
 		if (which < 0 || which >= session.song.tracks.length) return null;
@@ -202,6 +316,9 @@ final class Playlist extends Widget {
 
 	var framedFor:Int = -1;
 
+	/**
+		Zooms and scrolls so the whole piece fits.
+	**/
 	public function framed():Void {
 		if (width <= 0) return;
 
@@ -214,6 +331,9 @@ final class Playlist extends Widget {
 		scrollTo(0);
 	}
 
+	/**
+		@return The tick the last clip on any track finishes on.
+	**/
 	public function reach():Int {
 		final bar = session.song.tempo.ppqn * 4;
 		final length = session.song.ends();
@@ -221,11 +341,20 @@ final class Playlist extends Widget {
 		return (length < bar ? bar : length) + bar * SPARE;
 	}
 
+	/**
+		@return The zoom at which the piece exactly fills the view.
+	**/
 	public function widest():Float {
 		final fits = (width - names()) / reach();
 		return fits > 0.01 ? 0.01 : fits;
 	}
 
+	/**
+		Zooms in or out, keeping a point where it was.
+
+		@param by What to multiply the zoom by.
+		@param around The point to keep still, across.
+	**/
 	public function zoom(by:Float, around:Float):Void {
 		final tick = tickAt(around);
 		final want = perTick * by;
@@ -235,17 +364,30 @@ final class Playlist extends Widget {
 		scrollTo(tick * perTick - (around - x - names()));
 	}
 
+	/**
+		Makes the track rows as tall as they can be while every one still fits.
+	**/
 	public function fit():Void {
 		perTick = widest();
 		scrollTo(0);
 	}
 
+	/**
+		Scrolls across, clamped to the piece.
+
+		@param px How far across.
+	**/
 	public function scrollTo(px:Float):Void {
 		final most = reach() * perTick - (width - names());
 		offsetX = px < 0 ? 0 : (px > most ? (most < 0 ? 0 : most) : px);
 		invalidate();
 	}
 
+	/**
+		Scrolls down, clamped to the tracks.
+
+		@param py How far down.
+	**/
 	public function scrollDown(py:Float):Void {
 		final most = rows() * trackTall() - (height - ruler());
 		offsetY = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
@@ -404,6 +546,11 @@ final class Playlist extends Widget {
 		return false;
 	}
 
+	/**
+		Moves the playhead to a point on the ruler.
+
+		@param px A point, across.
+	**/
 	public function scrubbed(px:Float):Void {
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
@@ -526,6 +673,9 @@ final class Playlist extends Widget {
 		return many + (many == 1 ? " clip" : " clips");
 	}
 
+	/**
+		@return The selected clips, or the chosen one where nothing is selected.
+	**/
 	public function held():Array<Clip> {
 		final out:Array<Clip> = [];
 
@@ -555,6 +705,11 @@ final class Playlist extends Widget {
 		return out;
 	}
 
+	/**
+		Selects every clip.
+
+		@return Whether anything was selected.
+	**/
 	public function picksAll():Bool {
 		final all = everything();
 		final many = all.length;
@@ -944,11 +1099,21 @@ final class Playlist extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return How large the corner triangle on a clip is.
+	**/
 	public function cornerSize():Float {
 		final root = root();
 		return root == null ? 12 : root.metrics.whole(12);
 	}
 
+	/**
+		@param clip A clip.
+		@param track Which track it is on.
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on its corner, which is what opens its menu.
+	**/
 	public function onCorner(clip:Clip, track:Int, px:Float, py:Float):Bool {
 		final size = cornerSize();
 		final wide = clip.length * perTick;
@@ -1410,6 +1575,9 @@ final class Playlist extends Widget {
 		return held < least ? least : held;
 	}
 
+	/**
+		@return How tall the strip along the bottom is.
+	**/
 	public function reinTall():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);
