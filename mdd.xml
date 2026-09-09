@@ -133,7 +133,9 @@
 		<flag value="-DOPUS_BUILD" />
 		<flag value="-DUSE_ALLOCA" />
 		<flag value="-DOPUS_HAVE_RTCD=0" />
+		<flag value="-DHAVE_LRINTF" />
 		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
+		<flag value="-Wno-unused-command-line-argument" unless="msvc" />
 
 		<tree path="vendor/libogg/src" suffix=".c" />
 
@@ -171,6 +173,8 @@
 	     5350912. ICF stays off. LTCG has already folded what it would fold, so it saves
 	     nothing here, and it would leave a stack trace naming whichever of two identical
 	     functions the linker happened to keep -->
+
+	<compileflag value="-Wno-parentheses-equality" unless="msvc" />
 
 	<linkflag value="-OPT:REF" if="windows" unless="mingw,debug" />
 
