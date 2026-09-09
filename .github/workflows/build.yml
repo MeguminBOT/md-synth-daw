@@ -152,13 +152,14 @@ jobs:
       - name: Package
         run: ./mdd package portable
 
-      # build.yml packages the portable copy only, so the name says so.
-      - name: Keep the portable archive
+      # The staged folder rather than the archive of it. GitHub zips an artifact
+      # whatever it is given, so uploading a tar.gz here would mean unpacking a
+      # zip, then a tar.gz, then a tar, then a folder to reach one binary.
+      - name: Keep the portable build
         uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ matrix.artifact }}-portable
-          path: |
-            export/package/*-portable.zip
-            export/package/*-portable.tar.gz
+          path: export/package/*-portable/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
