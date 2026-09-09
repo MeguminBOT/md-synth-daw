@@ -115,9 +115,40 @@ final class Session {
 	public var theme:Int = 0;
 
 	/**
-		The monitoring volume.
+		Where the monitoring fader stands, nought silent and 127 the top of its travel.
+
+		This is heard and never written. An export takes no notice of it, and what makes
+		a written file reach the ceiling is the normalising in `mdd.play.Mixing`.
 	**/
-	public var master:Int = Song.LOUDEST;
+	public var master:Int = UNITY;
+
+	/**
+		The fader position that passes the render through at the level it was made at.
+
+		The travel above it is make up, because a channel now rests well below the top
+		of the part and six of them together reach nothing like it. The travel below is
+		half a decibel a step, so the bottom of the fader is 43 decibels down.
+	**/
+	public static inline final UNITY = 87;
+
+	/**
+		What one step of the fader is worth, in decibels.
+	**/
+	static inline final STEP = 0.5;
+
+	/**
+		The most the fader asks for, which is what the top of its travel stands for.
+	**/
+	public static final MOST:Float = gainOf(Song.LOUDEST);
+
+	/**
+		@param fader A fader position, 0 to 127.
+		@return The gain it stands for, nought at the bottom of the travel.
+	**/
+	public static function gainOf(fader:Int):Float {
+		if (fader <= 0) return 0;
+		return Math.pow(10, (fader - UNITY) * STEP / 20.0);
+	}
 
 	/**
 		Automation is edited as lanes under the roll.

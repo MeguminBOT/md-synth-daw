@@ -242,7 +242,7 @@ class App {
 		panels.about.onShut = function():Void stage.root.lower();
 
 		panels.onMaster = function(much:Int):Void {
-			sound.monitors(much / mdd.song.Song.LOUDEST);
+			sound.monitors(Session.gainOf(much));
 			keeps();
 		};
 
@@ -449,7 +449,7 @@ class App {
 		@param song The piece.
 	**/
 	function loaded(song:Song):Void {
-		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
+		final held = session == null ? Session.UNITY : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
 
 		sound.stop();
@@ -908,7 +908,7 @@ class App {
 		final backups = settings.asWhole("backups", 3);
 		final backupAge = settings.asWhole("backupAge", 2);
 		final looks = settings.asFlag("update", true);
-		final master = settings.asWhole("master", mdd.song.Song.LOUDEST);
+		final master = settings.asWhole("monitor", Session.UNITY);
 		final automating = settings.asWhole("automating", Session.LANES);
 
 		if (looks && update.possible()) update.look();
@@ -938,7 +938,7 @@ class App {
 		session.master = master < 0 ? 0 : (master > mdd.song.Song.LOUDEST
 			? mdd.song.Song.LOUDEST : master);
 
-		sound.monitors(session.master / mdd.song.Song.LOUDEST);
+		sound.monitors(Session.gainOf(session.master));
 		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
 
 		stage.root.theme.wear(which);
@@ -990,7 +990,7 @@ class App {
 		settings.whole("theme", session.theme);
 		settings.whole("typeface", session.typeface);
 		settings.whole("motion", session.motion);
-		settings.whole("master", session.master);
+		settings.whole("monitor", session.master);
 		settings.whole("automating", session.automating);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("tail", panels.preferences.tail);

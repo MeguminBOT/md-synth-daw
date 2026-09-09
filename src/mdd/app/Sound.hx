@@ -90,10 +90,12 @@ final class Sound {
 		Sets the monitoring gain, which changes what is heard and never what is
 		exported.
 
-		@param much The gain.
+		@param much The gain, held to what the fader is able to ask for.
 	**/
 	public function monitors(much:Float):Void {
-		if (render != null) render.monitor = much < 0 ? 0 : (much > 1 ? 1 : much);
+		if (render != null) {
+			render.monitor = much < 0 ? 0 : (much > Session.MOST ? Session.MOST : much);
+		}
 	}
 
 	/**

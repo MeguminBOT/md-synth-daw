@@ -165,6 +165,9 @@ and the checks compare the live stream against the offline one on every run.
   **stealing**, where the oldest voice gives way; and **arpeggio**, where notes beyond the channel
   count are cycled through it.
 - Velocity mapping and tuning per part.
+- A monitoring fader with 20 dB of make up above unity, so a piece sitting in its headroom
+  can still be listened to at the top of the scale. It is heard and never written: what
+  makes an exported file loud is the normalising in the export panel.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve.
 - The audio device is opened stopped and primed with 100 ms before it starts, because a WASAPI
