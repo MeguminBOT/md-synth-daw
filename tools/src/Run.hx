@@ -116,6 +116,11 @@ class Run {
 		}
 	}
 
+	static function stamp(project:Project):String {
+		return project.short + "-" + project.version + "-"
+			+ system() + "-" + machine();
+	}
+
 	static function machine():String {
 		for (arg in Sys.args()) {
 			if (arg == "--arm64") return "arm64";
@@ -1090,7 +1095,7 @@ class Run {
 	}
 
 	static function portable(root:String, project:Project):Void {
-		final name = project.short + "-" + project.version + "-" + system() + "-portable";
+		final name = stamp(project) + "-portable";
 		final into = root + "/" + project.output + "/package/" + name;
 
 		staged(root, project, into);
@@ -1156,8 +1161,8 @@ class Run {
 		out.add("UninstallDisplayIcon={app}\\" + project.short + ".exe\n");
 		out.add("OutputDir=" + StringTools.replace(root + "/" + project.output + "/package",
 			"/", "\\") + "\n");
-		out.add("OutputBaseFilename=" + project.short + "-" + project.version
-			+ "-windows-setup\n");
+		out.add("OutputBaseFilename=" + stamp(project)
+			+ "-setup\n");
 		out.add("Compression=lzma2/max\n");
 		out.add("SolidCompression=yes\n");
 		out.add("ArchitecturesInstallIn64BitMode=x64compatible\n");
@@ -1299,8 +1304,8 @@ class Run {
 			return;
 		}
 
-		Sys.println("  " + pad("installer") + project.output + "/package/" + project.short + "-"
-			+ project.version + "-windows-setup.exe");
+		Sys.println("  " + pad("installer") + project.output + "/package/"
+			+ stamp(project) + "-setup.exe");
 	}
 
 	static function identity(project:Project):String {
@@ -1377,8 +1382,8 @@ class Run {
 
 		File.saveContent(inside + "/Info.plist", out.toString());
 
-		final image = root + "/" + project.output + "/package/" + project.short + "-"
-			+ project.version + ".dmg";
+		final image = root + "/" + project.output + "/package/"
+			+ stamp(project) + ".dmg";
 
 		if (FileSystem.exists(image)) FileSystem.deleteFile(image);
 
@@ -1396,8 +1401,8 @@ class Run {
 	}
 
 	static function desktop(root:String, project:Project):Void {
-		final into = root + "/" + project.output + "/package/" + project.short + "-"
-			+ project.version;
+		final into = root + "/" + project.output + "/package/"
+			+ stamp(project) + "-installer";
 
 		staged(root, project, into);
 
@@ -1478,7 +1483,7 @@ class Run {
 		final archive = into + ".tar.gz";
 		if (FileSystem.exists(archive)) FileSystem.deleteFile(archive);
 
-		final held = project.short + "-" + project.version;
+		final held = stamp(project) + "-installer";
 		final made = archived(root + "/" + project.output + "/package", held, held + ".tar.gz");
 
 		Sys.println("  " + pad("installer") + (made == 0
