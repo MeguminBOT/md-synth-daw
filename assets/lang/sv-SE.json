@@ -97,6 +97,7 @@
   "export.quality": "Kvalitet",
   "export.rate": "Samplingsfrekvens",
   "export.sides": "Kanaler",
+  "export.stems": "En fil per kanal vid sidan av mixen",
   "export.stereo": "Stereo",
   "export.tail": "Tystnad efter",
   "export.title": "Titel",

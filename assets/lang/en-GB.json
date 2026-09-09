@@ -97,6 +97,7 @@
   "export.quality": "Quality",
   "export.rate": "Sample rate",
   "export.sides": "Channels",
+  "export.stems": "One file per part beside the mix",
   "export.stereo": "Stereo",
   "export.tail": "Silence after",
   "export.title": "Title",
