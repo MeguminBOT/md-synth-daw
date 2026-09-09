@@ -1007,6 +1007,16 @@ class Run {
 			if (StringTools.startsWith(held, "gate")) continue;
 			if (StringTools.startsWith(held, "opn2")) continue;
 
+			if (held == "portable.txt") continue;
+			if (StringTools.endsWith(held, "setup.exe")) continue;
+
+			if (windows()) {
+				if (held == project.short) continue;
+			} else if (StringTools.endsWith(held, ".exe")
+					|| StringTools.endsWith(held, ".dll")) {
+				continue;
+			}
+
 			copyFile(from, into + "/" + entry);
 		}
 
