@@ -1,3 +1,11 @@
+/**
+ * The audio device, through miniaudio.
+ *
+ * A device owns a ring the render thread writes into and the callback reads out of,
+ * so the two never wait on each other. It is opened stopped, and nothing is played
+ * until the ring has been primed, because a WASAPI device asks for more in its first
+ * few callbacks than the buffer size it reports.
+ */
 #define MA_NO_DECODING
 #define MA_NO_ENCODING
 #define MA_NO_WAV
