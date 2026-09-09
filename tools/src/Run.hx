@@ -108,11 +108,37 @@ class Run {
 		}
 
 		try {
-			return new Project(path, system(), debug, toolchain);
+			return new Project(path, system(), debug, toolchain, machine());
 		} catch (e:Dynamic) {
 			Sys.println("mdd: mdd.xml would not read: " + e);
 			Sys.exit(1);
 			return null;
+		}
+	}
+
+	static function machine():String {
+		for (arg in Sys.args()) {
+			if (arg == "--arm64") return "arm64";
+			if (arg == "--x86_64") return "x86_64";
+		}
+
+		final told = Sys.getEnv("MDD_ARCH");
+		if (told != null && told != "") return told;
+
+		if (windows()) {
+			final held = Sys.getEnv("PROCESSOR_ARCHITECTURE");
+			final over = Sys.getEnv("PROCESSOR_ARCHITEW6432");
+			final name = over != null && over != "" ? over : (held == null ? "" : held);
+			return name.toUpperCase() == "ARM64" ? "arm64" : "x86_64";
+		}
+
+		try {
+			final out = new sys.io.Process("uname", ["-m"]);
+			final said = StringTools.trim(out.stdout.readAll().toString());
+			out.close();
+			return said == "aarch64" || said == "arm64" ? "arm64" : "x86_64";
+		} catch (e:Dynamic) {
+			return "x86_64";
 		}
 	}
 

@@ -72,7 +72,8 @@
 	<define name="analyzer-optimize" />
 	<define name="HXCPP_OPTIMIZE_LINK" />
 	<define name="HXCPP_GC_GENERATIONAL" />
-	<define name="HXCPP_M64" />
+	<define name="HXCPP_M64" if="x86_64" />
+	<define name="HXCPP_ARM64" if="arm64" />
 	<define name="HXCPP_CHECK_POINTER" if="debug" />
 	<define name="HXCPP_STACK_LINE" if="debug" />
 	<define name="HXCPP_DEBUG_LINK" />

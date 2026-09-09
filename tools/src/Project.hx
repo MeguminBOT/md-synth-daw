@@ -108,8 +108,12 @@ class Project {
 	final os:String;
 	final debug:Bool;
 
-	public function new(path:String, os:String, debug:Bool, toolchain:String = "") {
+	public final arch:String;
+
+	public function new(path:String, os:String, debug:Bool, toolchain:String = "",
+			arch:String = "x86_64") {
 		this.os = os;
+		this.arch = arch;
 		this.debug = debug;
 		this.toolchain = toolchain;
 
@@ -352,6 +356,7 @@ class Project {
 	function holds(term:String):Bool {
 		return switch (term) {
 			case "windows", "linux", "mac": os == term;
+			case "x86_64", "arm64": arch == term;
 			case "desktop": true;
 			case "debug": debug;
 			case "release": !debug;
