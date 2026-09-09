@@ -10,6 +10,10 @@ on:
         description: "Tag to publish, for example v0.1.0"
         type: string
         required: true
+      dry_run:
+        description: "Rehearse only: build, gate and sign, but publish nothing"
+        type: boolean
+        default: false
       draft:
         description: "Publish as a draft"
         type: boolean
@@ -175,6 +179,7 @@ jobs:
           ls -la
 
       - name: Publish the release
+        if: ${{ !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
@@ -184,3 +189,28 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: packages/*
+
+      # A dry run has done everything a real one does except create the release
+      # and its tag, so the files are kept where they can be looked at instead.
+      - name: Keep the signed files instead
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-${{ inputs.tag }}
+          path: packages/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Say what a real run would have published
+        if: ${{ inputs.dry_run }}
+        run: |
+          {
+            echo "## Dry run for ${{ inputs.tag }}"
+            echo ""
+            echo "No release and no tag were created. Every file below was built,"
+            echo "passed the gate, and was signed exactly as a real run signs them."
+            echo ""
+            echo '```'
+            ls -1 packages
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
