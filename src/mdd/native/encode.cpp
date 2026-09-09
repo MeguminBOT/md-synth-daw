@@ -1,3 +1,14 @@
+/**
+ * The Ogg Vorbis and Opus encoders: the header packets, the encode loop, and the ogg
+ * pages the packets are framed into.
+ *
+ * Three things here cost a build each. libvorbis and libopus both define mdct_lookup,
+ * so putting the vorbis library directory on the include path makes the two headers
+ * fight and the error names a line in opus that has nothing to do with it. Opus tests
+ * DISABLE_FLOAT_API with ifndef, so defining it to zero to keep the float API turns it
+ * off. And opus stops with an error unless it is told how to allocate temporaries,
+ * which on MSVC has to be alloca because there are no variable length arrays.
+ */
 #include "encode.h"
 
 #include <stdlib.h>

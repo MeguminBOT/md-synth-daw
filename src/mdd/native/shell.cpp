@@ -1,3 +1,12 @@
+/**
+ * Registering the project suffix with the desktop, and taking that back again.
+ *
+ * On Windows it writes under the user's own classes rather than the machine, so it needs
+ * no elevation and touches nothing another account can see. Elsewhere it writes a
+ * desktop entry and a mime type under the account's share directory. Everything it
+ * writes is recorded so unregistering can remove exactly that and no more, and
+ * mdd_shell_leftovers is what proves it did.
+ */
 #include "shell.h"
 
 #include <stdio.h>

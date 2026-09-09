@@ -1,3 +1,9 @@
+/**
+ * One instance at a time: a named lock the second copy finds already taken.
+ *
+ * On Windows it is a named mutex. Elsewhere it is a lock file under the run directory,
+ * held open for the life of the process so the kernel releases it on a crash.
+ */
 #include "instance.h"
 
 #include <stdio.h>

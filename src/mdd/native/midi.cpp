@@ -1,3 +1,9 @@
+/**
+ * MIDI input: opening a port and queueing what arrives on it.
+ *
+ * Messages arrive on the driver's own thread, so they go into a small lock free ring
+ * the main thread takes from. Input only; nothing here sends.
+ */
 #include "midi.h"
 
 #include <atomic>

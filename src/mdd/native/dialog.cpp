@@ -1,3 +1,10 @@
+/**
+ * The system file dialogs, through SDL.
+ *
+ * SDL answers a dialog on its own thread, so the result is kept in a small structure
+ * the caller asks for the state of on a later frame. Nothing here blocks, which is
+ * what lets the interface keep drawing and the audio keep playing while one is open.
+ */
 #include "dialog.h"
 
 #include <atomic>

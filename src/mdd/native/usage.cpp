@@ -1,3 +1,10 @@
+/**
+ * What this process is costing the machine: processor, memory and graphics memory.
+ *
+ * Processor use is a difference of two readings rather than an instant, so the first
+ * call after starting answers nothing useful and the ones after it are a mean over the
+ * gap.
+ */
 #include "usage.h"
 
 #ifdef _WIN32
