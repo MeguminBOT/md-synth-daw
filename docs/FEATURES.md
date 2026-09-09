@@ -13,7 +13,7 @@ there.
 - [Importing](#importing)
 - [Exporting](#exporting)
 - [The project file](#the-project-file)
-- [Living with it](#living-with-it)
+- [Other](#other)
 - [Keyboard](#keyboard)
 - [What it deliberately is not](#what-it-deliberately-is-not)
 - [What is not built yet](#what-is-not-built-yet)
@@ -221,7 +221,7 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
 
 ---
 
-## Living with it
+## Other
 
 - **Portable mode.** A `portable.txt` beside the executable, which the portable archive ships,
   keeps settings, projects and presets in a `userdata` folder next to the program rather than in
@@ -234,7 +234,10 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
   the new copy.
-- **Three languages**, English in two spellings and Swedish, picked on the first run.
+- **A translatable interface.** Every string it shows comes from one table rather than from
+  the code, so adding a language is a file rather than a change to the program. Hardware and
+  format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation
+  writes them in every language.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
 - **One instance.** Opening a second project hands it to the copy already running.

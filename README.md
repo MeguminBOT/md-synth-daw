@@ -43,7 +43,7 @@ it.**
   - [Watching The Hardware](#watching-the-hardware)
   - [Importing](#importing)
   - [Exporting](#exporting)
-  - [Day To Day](#day-to-day)
+  - [Other](#other)
 - [Usage](#usage)
 - [Chip Accuracy](#chip-accuracy)
 - [What It Deliberately Is Not](#what-it-deliberately-is-not)
@@ -220,13 +220,14 @@ application does, and an honest list of what it does not do and why.
   listening. The FLAC encoder is this repository's own.
 - **A project as a zip or as a folder**, byte identical between runs.
 
-### Day To Day
+### Other
 
 - **Plug in a MIDI keyboard** and it plays the channel you have selected.
 - **It saves on its own** every five minutes by default, and only once something has changed.
 - **Portable mode.** Drop a `portable.txt` beside the executable and it keeps its settings there
   instead of in your account directory.
-- **Three languages**, English in two spellings and Swedish, picked on the first run.
+- **A translatable interface.** Every string it shows comes from one table rather than from
+  the code, so adding a language is a file rather than a change to the program.
 - **Crash reports that name the Haxe line**, from a release build carrying no stack frames, written
   where your settings live.
 
