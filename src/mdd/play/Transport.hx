@@ -5,31 +5,94 @@ import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
 
+/**
+	Play, stop, seek, loop and audition, and the position everything else reads.
+
+	It owns the sequencer and the stream the render thread consumes, so a caller moving
+	the playhead and a render reading it are kept apart by one mutex rather than by
+	hoping. Auditioning a note goes through here too, and so through the same stream,
+	which is what stops a panel writing to a chip on its own.
+**/
 @:unreflective
 final class Transport {
+	/**
+		The song being played.
+	**/
 	public final song:Song;
+
+	/**
+		What turns that song into register writes.
+	**/
 	public final sequencer:Sequencer;
+
+	/**
+		Where those writes are put for the render to read.
+	**/
 	public final stream:Stream;
 
+	/**
+		Whether the transport is running.
+	**/
 	public var playing(get, never):Bool;
+
+	/**
+		Where the playhead is, in output samples.
+	**/
 	public var position(default, null):Int = 0;
 
 	final running:AtomicInt = new AtomicInt(0);
 	final hushing:AtomicInt = new AtomicInt(0);
 
+	/**
+		Whether playback wraps at `loopTo`.
+	**/
 	public var looping:Bool = false;
+
+	/**
+		How many seconds to keep rendering past the end of the song, so a release is heard.
+	**/
 	public var tail:Int = 1;
+
+	/**
+		The tick the loop returns to.
+	**/
 	public var loopFrom:Int = 0;
+
+	/**
+		The tick the loop wraps at.
+	**/
 	public var loopTo:Int = 0;
 
+	/**
+		How many frames have been asked for.
+	**/
 	public var served(default, null):Int = 0;
+
+	/**
+		How many times the loop has wrapped.
+	**/
 	public var wrapped(default, null):Int = 0;
+
+	/**
+		How many spans have been sequenced.
+	**/
 	public var stepped(default, null):Int = 0;
+
+	/**
+		How many auditions are waiting to be woven in.
+	**/
 	public var entering(default, null):Int = 0;
 
 	final gate:sys.thread.Mutex = new sys.thread.Mutex();
 
+	/**
+		How long an audition sounds for, in blocks, when it is not held.
+	**/
 	static inline final AUDITION_BLOCKS = 90;
+
+	/**
+		The velocity an audition uses when none is given.
+	**/
 	static inline final AUDITION_VELOCITY = 100;
 
 	var heardPart:Int = -1;
@@ -45,6 +108,12 @@ final class Transport {
 
 	var carried:Int = 0;
 
+	/**
+		Builds a transport over a song.
+
+		@param song The song to play.
+		@param capacity How many register writes the stream may hold per span.
+	**/
 	public function new(song:Song, capacity:Int = 8192) {
 		this.song = song;
 		sequencer = new Sequencer(song);
@@ -52,38 +121,72 @@ final class Transport {
 		stream = new Stream(capacity);
 	}
 
+	/**
+		@return Whether the transport is running.
+	**/
 	function get_playing():Bool {
 		return running.load() == 1;
 	}
 
+	/**
+		Starts playing from wherever the playhead is.
+	**/
 	public function play():Void {
 		running.store(1);
 	}
 
+	/**
+		Stops, and asks for every part to be silenced on the next span.
+	**/
 	public function stop():Void {
 		running.store(0);
 		hushing.store(1);
 	}
 
+	/**
+		Moves the playhead, forgetting what the chips are holding so the next span writes every register again.
+
+		@param tick Where to move it to, in ticks.
+	**/
 	public function seek(tick:Int):Void {
 		position = tick < 0 ? 0 : tick;
 		hushing.store(1);
 	}
 
+	/**
+		Sets the loop and turns looping on. A range that is not a range turns it off.
+
+		@param fromTick The tick to return to.
+		@param toTick The tick to wrap at.
+	**/
 	public function loop(fromTick:Int, toTick:Int):Void {
 		loopFrom = fromTick < 0 ? 0 : fromTick;
 		loopTo = toTick;
 		looping = toTick > loopFrom;
 	}
 
+	/**
+		Takes the lock the render thread also takes, so a caller can change the song
+		safely. Every `holds` needs a `frees`.
+	**/
 	public inline function holds():Void {
 		gate.acquire();
 	}
 
+	/**
+		Gives that lock back.
+	**/
 	public inline function frees():Void {
 		gate.release();
 	}
 
+	/**
+		Sequences the next span into `stream`. Called from the render thread.
+
+		@param frames How many output frames the span covers.
+		@param rate The output rate in hertz.
+		@return How many register writes the span produced.
+	**/
 	public function advance(frames:Int, rate:Int):Int {
 		stream.clear();
 		entering = carried;
@@ -150,6 +253,9 @@ final class Transport {
 		return from;
 	}
 
+	/**
+		@return The sample the song finishes at, including the tail.
+	**/
 	function ends():Int {
 		final alone = sequencer.alone;
 
@@ -164,6 +270,14 @@ final class Transport {
 		return song.tempo.samplesAt(last + song.tempo.ppqn * tail);
 	}
 
+	/**
+		Sounds one note on one part, through the same stream playback uses.
+
+		@param part Which part to sound it on.
+		@param note The MIDI note number.
+		@param velocity The velocity, 0 to 127.
+		@param held Whether it sounds until `releases` rather than for a fixed length.
+	**/
 	public function auditions(part:Part, note:Int, velocity:Int = AUDITION_VELOCITY,
 			held:Bool = false):Void {
 		gate.acquire();
@@ -178,6 +292,11 @@ final class Transport {
 		gate.release();
 	}
 
+	/**
+		Ends a held audition.
+
+		@param part The part it was sounding on.
+	**/
 	public function releases(part:Part):Void {
 		gate.acquire();
 
@@ -189,6 +308,12 @@ final class Transport {
 		gate.release();
 	}
 
+	/**
+		Weaves a waiting audition into the span being sequenced.
+
+		@param at The first sample of the span.
+		@param span How many samples it covers.
+	**/
 	function auditioned(at:Int, span:Int):Void {
 		if (heardPart < 0) return;
 
@@ -237,6 +362,12 @@ final class Transport {
 		heardPart = -1;
 	}
 
+	/**
+		Writes the sample channel bytes that fall inside the span.
+
+		@param at The first sample of the span.
+		@param span How many samples it covers.
+	**/
 	function sampled(at:Int, span:Int):Void {
 		final instrument = song.instrumentAt(song.rack[heardPart]);
 		final sample = instrument == null ? null : song.sampleAt(instrument.sample);
@@ -274,6 +405,9 @@ final class Transport {
 		heardPart = -1;
 	}
 
+	/**
+		Notices parts that stopped sounding and lets the audition state go with them.
+	**/
 	function watched():Void {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
@@ -288,6 +422,9 @@ final class Transport {
 		}
 	}
 
+	/**
+		Back to the start, silencing everything on the way.
+	**/
 	public function rewind():Void {
 		stream.forget();
 		position = 0;
@@ -298,14 +435,23 @@ final class Transport {
 		wrapped = 0;
 	}
 
+	/**
+		Silences every part without moving the playhead.
+	**/
 	public function silence():Void {
 		hushing.store(1);
 	}
 
+	/**
+		@return Where the playhead is, in seconds.
+	**/
 	public inline function seconds():Float {
 		return position / Tempo.TICKS;
 	}
 
+	/**
+		@return Where the playhead is, in ticks.
+	**/
 	public inline function tick():Int {
 		return song.tempo.tickAt(position);
 	}
