@@ -173,15 +173,25 @@ jobs:
         if: runner.os == 'Windows'
         run: test -f export/package/*setup.exe
 
-      - name: Keep the build
+      # Kept apart: a portable copy and an installed one behave differently, and
+      # nobody downloading one wants the other inside the same archive.
+      - name: Keep the portable archive
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: ${{ matrix.artifact }}
+          name: ${{ matrix.artifact }}-portable
           path: |
-            export/package/*.zip
-            export/package/*.tar.gz
+            export/package/*-portable.zip
+            export/package/*-portable.tar.gz
+          if-no-files-found: error
+
+      - name: Keep the installer
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ matrix.artifact }}-installer
+          path: |
+            export/package/*-setup.exe
+            export/package/*-installer.tar.gz
             export/package/*.dmg
-            export/package/*setup.exe
           if-no-files-found: error
 
   publish:

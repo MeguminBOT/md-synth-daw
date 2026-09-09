@@ -152,10 +152,13 @@ jobs:
       - name: Package
         run: ./mdd package portable
 
-      - name: Keep the build
+      # build.yml packages the portable copy only, so the name says so.
+      - name: Keep the portable archive
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: ${{ matrix.artifact }}
-          path: export/package/
+          name: ${{ matrix.artifact }}-portable
+          path: |
+            export/package/*-portable.zip
+            export/package/*-portable.tar.gz
           if-no-files-found: error
           retention-days: 14
