@@ -1,3 +1,31 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
 package mdd.format;
 
 import haxe.io.Bytes;
@@ -5,14 +33,52 @@ import haxe.io.BytesOutput;
 import haxe.ds.Vector;
 
 @:unreflective
+
+/**
+	A FLAC encoder, written here from the format specification, with no libFLAC
+	anywhere.
+
+	It writes STREAMINFO, a comment block and then fixed blocks of 4096 samples. A
+	stereo block is coded independently, as mid and side, as left and side or as side
+	and right, whichever costs least. Each subframe is constant where the block does
+	not move, and otherwise the cheaper of a fixed predictor and a fitted one of order
+	up to twelve, with the residuals Rice coded across partitions.
+
+	Two things the format description makes easy to get wrong are paid for here. The
+	blocking strategy bit decides what the coded frame number means, and writing the
+	frame index with the bit set produces a file every decoder rejects. The frame CRC
+	covers the whole frame including the header and the header's own CRC, and resetting
+	it after the header gives a file that decodes and then fails verification.
+**/
 final class Flac {
+	/**
+		The four bytes a FLAC file begins with.
+	**/
 	public static inline final MARK = "fLaC";
+
+	/**
+		Samples per block.
+	**/
 	public static inline final BLOCK = 4096;
+
+	/**
+		How many fixed predictor orders there are, 0 to 4.
+	**/
 	public static inline final ORDERS = 5;
 
+	/**
+		The table the frame header CRC is built from.
+	**/
 	static final CRC8:Vector<Int> = made8();
+
+	/**
+		The table the whole frame CRC is built from.
+	**/
 	static final CRC16:Vector<Int> = made16();
 
+	/**
+		@return The 256 entry table for the header CRC.
+	**/
 	static function made8():Vector<Int> {
 		final held = new Vector<Int>(256);
 
@@ -30,6 +96,9 @@ final class Flac {
 		return held;
 	}
 
+	/**
+		@return The 256 entry table for the frame CRC.
+	**/
 	static function made16():Vector<Int> {
 		final held = new Vector<Int>(256);
 
@@ -55,10 +124,21 @@ final class Flac {
 	var crc8:Int = 0;
 	var crc16:Int = 0;
 
+	/**
+		How long the finished file is.
+	**/
 	public var bytes(default, null):Int = 0;
 
+	/**
+		Private: use `write`.
+	**/
 	function new() {}
 
+	/**
+		Writes one byte and folds it into both running checksums.
+
+		@param value The byte.
+	**/
 	inline function byte(value:Int):Void {
 		final holding = value & 0xFF;
 
@@ -69,6 +149,12 @@ final class Flac {
 		crc16 = ((crc16 << 8) & 0xFFFF) ^ CRC16[((crc16 >> 8) ^ holding) & 0xFF];
 	}
 
+	/**
+		Writes a value as a number of bits, most significant first.
+
+		@param value The value.
+		@param width How many bits to write.
+	**/
 	function put(value:Int, width:Int):Void {
 		var left = width;
 
@@ -90,6 +176,11 @@ final class Flac {
 		}
 	}
 
+	/**
+		Writes a run of zero bits.
+
+		@param count How many.
+	**/
 	function zeros(count:Int):Void {
 		var left = count;
 
@@ -100,16 +191,30 @@ final class Flac {
 		}
 	}
 
+	/**
+		Pads the current byte with zeros and writes it.
+	**/
 	function flush():Void {
 		if (filled == 0) return;
 
 		put(0, 8 - filled);
 	}
 
+	/**
+		@param value A signed residual.
+		@return It folded so that small negatives are small unsigned numbers, which is what Rice
+			coding wants.
+	**/
 	static inline function zigzag(value:Int):Int {
 		return value < 0 ? (((-value - 1) << 1) | 1) : (value << 1);
 	}
 
+	/**
+		Writes one residual Rice coded.
+
+		@param value The residual.
+		@param parameter How many bits go in the remainder.
+	**/
 	function rice(value:Int, parameter:Int):Void {
 		final folded = zigzag(value);
 		final quotient = folded >>> parameter;
@@ -120,12 +225,35 @@ final class Flac {
 		if (parameter > 0) put(folded & ((1 << parameter) - 1), parameter);
 	}
 
+	/**
+		Encodes a FLAC file. Anything but 24 bit is written at 16, because the format
+		carries whole samples and nothing above 24 is asked for here.
+
+		@param samples The audio, interleaved, at plus or minus one.
+		@param frames How many frames it holds.
+		@param channels One or two.
+		@param rate The sample rate in hertz.
+		@param depth Bits per sample, 16 or 24.
+		@param tags The metadata, each entry a name and a value separated by an equals sign.
+		@return The file.
+	**/
 	public static function write(samples:Vector<cpp.Float32>, frames:Int, channels:Int,
 			rate:Int, depth:Int, tags:Array<String>):Bytes {
 		final made = new Flac();
 		return made.take(samples, frames, channels, rate, depth == 24 ? 24 : 16, tags);
 	}
 
+	/**
+		Writes the whole file: the mark, the metadata blocks, then every frame.
+
+		@param samples The audio, interleaved, at plus or minus one.
+		@param frames How many frames it holds.
+		@param channels One or two.
+		@param rate The sample rate in hertz.
+		@param depth Bits per sample.
+		@param tags The metadata, each entry a name and a value separated by an equals sign.
+		@return The file.
+	**/
 	function take(samples:Vector<cpp.Float32>, frames:Int, channels:Int, rate:Int,
 			depth:Int, tags:Array<String>):Bytes {
 		out.writeString(MARK);
@@ -181,8 +309,20 @@ final class Flac {
 		return made;
 	}
 
+	/**
+		Where the MD5 signature sits inside the STREAMINFO block, so it can be written back
+		once every sample has been seen.
+	**/
 	public static inline final SIGNED = 26;
 
+	/**
+		Writes the STREAMINFO block. The sample count is a 36 bit field, and the high four bits of it are written with the block sizes rather than by shifting a 32 bit count, which is undefined.
+
+		@param frames How many frames it holds.
+		@param channels One or two.
+		@param rate The sample rate in hertz.
+		@param depth Bits per sample.
+	**/
 	function streaminfo(frames:Int, channels:Int, rate:Int, depth:Int):Void {
 		out.writeByte(0x00);
 		out.writeByte(0);
@@ -210,6 +350,11 @@ final class Flac {
 		for (index in 0...16) out.writeByte(0);
 	}
 
+	/**
+		Writes the comment block that carries the metadata.
+
+		@param tags The metadata, each entry a name and a value separated by an equals sign.
+	**/
 	function comments(tags:Array<String>):Void {
 		final maker = Bytes.ofString("md-synth-daw");
 		var room = 4 + maker.length + 4;
@@ -238,6 +383,12 @@ final class Flac {
 		}
 	}
 
+	/**
+		Writes a four byte value least significant byte first, which is what the comment
+		block uses even though the rest of the format is the other way round.
+
+		@param value The value.
+	**/
 	inline function little(value:Int):Void {
 		out.writeByte(value & 0xFF);
 		out.writeByte((value >> 8) & 0xFF);
@@ -248,6 +399,11 @@ final class Flac {
 	final mid:Vector<Int> = new Vector<Int>(BLOCK);
 	final side:Vector<Int> = new Vector<Int>(BLOCK);
 
+	/**
+		@param values One channel of a block.
+		@param many How many samples.
+		@return Roughly how many bits that channel would cost, for choosing a stereo mode.
+	**/
 	function guessed(values:Vector<Int>, many:Int):Float {
 		var least = 0.0;
 
@@ -261,6 +417,15 @@ final class Flac {
 		return least;
 	}
 
+	/**
+		Chooses how a stereo block is coded by pricing all four ways. Mid and side is
+		far the largest of the savings on music, worth thirteen points on its own.
+
+		@param one The left channel.
+		@param two The right.
+		@param many How many samples.
+		@return The channel assignment to write in the frame header.
+	**/
 	function paired(one:Vector<Int>, two:Vector<Int>, many:Int):Int {
 		for (index in 0...many) {
 			mid[index] = (one[index] + two[index]) >> 1;
@@ -290,6 +455,17 @@ final class Flac {
 		return mode;
 	}
 
+	/**
+		Writes one frame, header, subframes and checksum.
+
+		@param number Which frame this is.
+		@param many How many samples it holds.
+		@param channels One or two.
+		@param rate The sample rate in hertz.
+		@param depth Bits per sample.
+		@param one The first channel.
+		@param two The second, where there is one.
+	**/
 	function frame(number:Int, many:Int, channels:Int, rate:Int, depth:Int,
 			one:Vector<Int>, two:Vector<Int>):Void {
 		final mode = channels == 2 ? paired(one, two, many) : channels - 1;
@@ -340,6 +516,11 @@ final class Flac {
 		bytes += 2;
 	}
 
+	/**
+		Writes a frame number in the extended UTF-8 form the format uses for it.
+
+		@param value The number.
+	**/
 	function utf8(value:Int):Void {
 		if (value < 0x80) {
 			put(value, 8);
@@ -381,6 +562,12 @@ final class Flac {
 
 	var curved:Int = 0;
 
+	/**
+		Applies a window before the autocorrelation, which is what stops the ends of a
+		block dominating the fit.
+
+		@param many How many samples.
+	**/
 	function windowed(many:Int):Void {
 		if (curved == many) return;
 
@@ -391,6 +578,12 @@ final class Flac {
 		curved = many;
 	}
 
+	/**
+		Works out the autocorrelation the predictor is fitted from.
+
+		@param values One channel of a block.
+		@param many How many samples.
+	**/
 	function correlated(values:Vector<Int>, many:Int):Void {
 		windowed(many);
 
@@ -404,6 +597,11 @@ final class Flac {
 		}
 	}
 
+	/**
+		Solves for the predictor coefficients at every order up to a limit.
+
+		@param most The highest order to solve for.
+	**/
 	function laddered(most:Int):Void {
 		var error = auto[0];
 		rest[0] = error;
@@ -428,6 +626,12 @@ final class Flac {
 		}
 	}
 
+	/**
+		Quantises the fitted coefficients to whole numbers the format can carry.
+
+		@param order Which order to quantise.
+		@return How far right the coefficients are shifted.
+	**/
 	function fixedUp(order:Int):Int {
 		var most = 0.0;
 
@@ -466,6 +670,14 @@ final class Flac {
 		return shift;
 	}
 
+	/**
+		Works out the residuals a fitted predictor leaves behind.
+
+		@param values One channel of a block.
+		@param many How many samples.
+		@param order The predictor order.
+		@param shift How far right the coefficients are shifted.
+	**/
 	function modelled(values:Vector<Int>, many:Int, order:Int, shift:Int):Void {
 		final scale = Math.pow(2, shift);
 
@@ -477,6 +689,14 @@ final class Flac {
 		}
 	}
 
+	/**
+		Writes one channel of one block, choosing between a constant, a fixed predictor
+		and a fitted one by which costs least.
+
+		@param values The channel.
+		@param many How many samples.
+		@param depth Bits per sample.
+	**/
 	function subframe(values:Vector<Int>, many:Int, depth:Int):Void {
 		var flat = true;
 		for (index in 1...many) if (values[index] != values[0]) flat = false;
@@ -577,6 +797,13 @@ final class Flac {
 		coded(many, best);
 	}
 
+	/**
+		Works out the residuals a fixed predictor leaves behind.
+
+		@param values One channel of a block.
+		@param many How many samples.
+		@param order The predictor order, 0 to 4.
+	**/
 	function predicted(values:Vector<Int>, many:Int, order:Int):Void {
 		for (index in order...many) {
 			residual[index] = switch (order) {
@@ -591,6 +818,13 @@ final class Flac {
 		}
 	}
 
+	/**
+		@param values One channel of a block.
+		@param many How many samples.
+		@param order A fixed predictor order.
+		@return The sum of the absolute residuals at that order, which is what the cheapest one is
+			chosen by.
+	**/
 	function weighed(values:Vector<Int>, many:Int, order:Int):Float {
 		predicted(values, many, order);
 
@@ -609,6 +843,12 @@ final class Flac {
 
 	final sums:Vector<Float> = new Vector<Float>(1 << MOST_PARTS);
 
+	/**
+		Writes the residuals, partitioned, each partition with its own Rice parameter.
+
+		@param many How many samples.
+		@param order The predictor order.
+	**/
 	function coded(many:Int, order:Int):Void {
 		var most = 0;
 
@@ -646,6 +886,14 @@ final class Flac {
 		}
 	}
 
+	/**
+		Sums the residuals of every partition at every partition order, so the cheapest
+		split can be found without coding each one.
+
+		@param many How many samples.
+		@param order The predictor order.
+		@param most The deepest partition order to consider.
+	**/
 	function gathered(many:Int, order:Int, most:Int):Void {
 		final parts = 1 << most;
 		final each = many >> most;
@@ -661,6 +909,12 @@ final class Flac {
 		}
 	}
 
+	/**
+		@param many How many samples.
+		@param order The predictor order.
+		@param level A partition order.
+		@return How many bits the residuals would cost at that partition order.
+	**/
 	function costed(many:Int, order:Int, level:Int):Float {
 		final parts = 1 << level;
 		final each = many >> level;
@@ -680,6 +934,11 @@ final class Flac {
 		return total;
 	}
 
+	/**
+		@param total The sum of the folded residuals in a partition.
+		@param count How many residuals it holds.
+		@return How many bits that partition costs at its best Rice parameter.
+	**/
 	static function priced(total:Float, count:Int):Float {
 		if (count < 1) return 0;
 
@@ -693,6 +952,11 @@ final class Flac {
 		return least;
 	}
 
+	/**
+		@param from The first residual of a partition.
+		@param until One past the last.
+		@return The Rice parameter that codes it most cheaply.
+	**/
 	function fitted(from:Int, until:Int):Int {
 		final count = until - from;
 		if (count < 1) return 0;

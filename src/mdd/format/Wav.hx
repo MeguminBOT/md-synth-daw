@@ -5,23 +5,58 @@ import haxe.io.Bytes;
 import haxe.io.BytesOutput;
 
 @:unreflective
+
+/**
+	Reads and writes RIFF wave files.
+
+	It is the plain format everything else is checked against: an encoder is believed
+	when what it writes decodes to the same samples this wrote.
+**/
 final class Wav {
+	/**
+		The rate of the file that was read.
+	**/
 	public var rate(default, null):Int = 44100;
+
+	/**
+		How many channels it carried.
+	**/
 	public var channels(default, null):Int = 1;
+
+	/**
+		How many frames it carried.
+	**/
 	public var frames(default, null):Int = 0;
 
+	/**
+		The audio, interleaved, at plus or minus one.
+	**/
 	public var samples(default, null):Vector<Float> = new Vector<Float>(0);
 
 	public function new() {}
 
+	/**
+		@param depth Bits per sample.
+		@return What a whole numbered sample of that depth is divided by to reach plus or minus one.
+	**/
 	public static inline function scale(depth:Int):Float {
 		return depth == 24 ? 8388608.0 : 32768.0;
 	}
 
+	/**
+		@param value A whole numbered sample.
+		@param depth Bits per sample.
+		@return It as a number between plus and minus one.
+	**/
 	public static inline function floated(value:Int, depth:Int):Float {
 		return value / scale(depth);
 	}
 
+	/**
+		@param value A sample between plus and minus one.
+		@param depth Bits per sample.
+		@return It as a whole numbered sample of that depth, clamped.
+	**/
 	public static inline function whole(value:Float, depth:Int):Int {
 		final ceiling = scale(depth);
 		final held = Math.round(value * ceiling);
@@ -32,12 +67,23 @@ final class Wav {
 		return held > most ? most : (held < least ? least : held);
 	}
 
+	/**
+		Reads a wave file.
+
+		@param bytes The file.
+		@return What it held. A file that will not read comes back empty rather than throwing.
+	**/
 	public static function read(bytes:Bytes):Wav {
 		final wav = new Wav();
 		wav.take(bytes);
 		return wav;
 	}
 
+	/**
+		Walks the chunks of a file and keeps the format and the audio.
+
+		@param bytes The file.
+	**/
 	function take(bytes:Bytes):Void {
 		if (bytes.length < 44 || bytes.getString(0, 4) != "RIFF"
 				|| bytes.getString(8, 4) != "WAVE") {
@@ -103,6 +149,9 @@ final class Wav {
 		}
 	}
 
+	/**
+		@return The audio as one channel, averaging the sides where there are two.
+	**/
 	public function mono():Vector<Float> {
 		if (channels == 1) return samples;
 
@@ -117,6 +166,13 @@ final class Wav {
 		return out;
 	}
 
+	/**
+		Resamples the audio to a rate and reduces it to the unsigned bytes the sample
+		channel takes.
+
+		@param into The rate to resample to, in hertz.
+		@return The bytes.
+	**/
 	public function bytes(into:Int):Vector<Int> {
 		final held = mono();
 		final step = into <= 0 || rate <= 0 ? 1.0 : rate / into;
@@ -134,6 +190,17 @@ final class Wav {
 		return out;
 	}
 
+	/**
+		Writes a wave file.
+
+		@param samples The audio, interleaved, at plus or minus one.
+		@param frames How many frames it holds.
+		@param channels One or two.
+		@param rate The sample rate in hertz.
+		@param depth Bits per sample: 16, 24, or 32 for floating point.
+		@param dither Whether to dither on the way down to whole numbers.
+		@return The file.
+	**/
 	public static function write(samples:Vector<cpp.Float32>, frames:Int, channels:Int,
 			rate:Int, depth:Int = 16, dither:Bool = false):Bytes {
 		final out = new BytesOutput();
