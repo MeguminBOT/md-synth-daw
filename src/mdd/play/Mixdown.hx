@@ -54,6 +54,31 @@ final class Mixdown {
 	var working:Null<Render> = null;
 	var feeding:Null<Stream> = null;
 
+	/**
+		Which part this render is of, or -1 for the whole mix.
+	**/
+	public var onlyPart:Int = -1;
+
+	/**
+		The gain to scale by instead of working one out, or nought to work one out.
+
+		A stem takes the gain the mix arrived at, so the stems sum back to the mix. A
+		stem normalised on its own would come back at whatever loudness it happened to
+		reach, and the set of them would sum to something else entirely.
+	**/
+	public var sharedGain:Float = 0;
+
+	/**
+		How many renders this job is, so a progress bar spans all of them rather than
+		jumping back to nothing at every stem.
+	**/
+	public final passes:AtomicInt = new AtomicInt(1);
+
+	/**
+		Which of those renders is running.
+	**/
+	public final pass:AtomicInt = new AtomicInt(0);
+
 	public final reached:AtomicInt = new AtomicInt(0);
 	public final stopping:AtomicInt = new AtomicInt(0);
 
@@ -108,11 +133,14 @@ final class Mixdown {
 	}
 
 	/**
-		@return How far through the render is, 0 to 1, for a progress bar to read from another
-			thread.
+		@return How far through the whole job is, 0 to 1, for a progress bar to read from
+			another thread. Where the job is several renders this spans all of them.
 	**/
-	public inline function reach():Float {
-		return reached.load() / WHOLE;
+	public function reach():Float {
+		final many = passes.load();
+		final inner = reached.load() / WHOLE;
+
+		return many <= 1 ? inner : (pass.load() + inner) / many;
 	}
 
 	/**
@@ -172,6 +200,7 @@ final class Mixdown {
 
 		final stream = feeding;
 		final sequencer = new Sequencer(song);
+		sequencer.onlyPart = onlyPart;
 
 		sequencer.spanned(stream, 0, span);
 
@@ -310,10 +339,13 @@ final class Mixdown {
 
 		gain = 1;
 
-		if (!mixing.normalise || peak <= 0) return;
+		if (sharedGain > 0) gain = sharedGain;
+		else {
+			if (!mixing.normalise || peak <= 0) return;
+			gain = Math.pow(10, mixing.ceiling / 20.0) / peak;
+		}
 
-		final want = Math.pow(10, mixing.ceiling / 20.0);
-		gain = want / peak;
+		if (gain == 1) return;
 
 		var scaled = 0;
 
@@ -328,6 +360,6 @@ final class Mixdown {
 			cpp.vm.Gc.safePoint();
 		}
 
-		peak = want;
+		peak *= gain;
 	}
 }

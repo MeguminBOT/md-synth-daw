@@ -149,6 +149,15 @@ final class Mixing {
 	public var console:Int = mdd.play.Render.MODEL_ONE;
 
 	/**
+		Whether the export writes one file per part beside the mix.
+
+		Every stem is scaled by the gain the mix worked out rather than normalised on its
+		own, so the stems sum back to the mix instead of each arriving at its own
+		loudness.
+	**/
+	public var stems:Bool = false;
+
+	/**
 		Tag written into the file, where the format has tags.
 	**/
 	public var title:String = "";
@@ -233,6 +242,7 @@ final class Mixing {
 		out.ceiling = ceiling;
 		out.dither = dither;
 		out.console = console;
+		out.stems = stems;
 		out.title = title;
 		out.artist = artist;
 		out.album = album;
