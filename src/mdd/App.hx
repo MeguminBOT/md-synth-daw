@@ -38,6 +38,14 @@ import mdd.view.overlay.Welcome;
 import mdd.view.overlay.Working;
 
 @:unreflective
+
+/**
+	The application: the frame loop, and the wiring between every part of it.
+
+	It owns the window, the session, the sound, the panels, the menus, the file
+	operations and the updater, and it is where they are told about each other. It has
+	no logic of its own beyond that: what a thing does lives in the thing.
+**/
 class App {
 	static inline final LOCK = "-running";
 
@@ -67,6 +75,9 @@ class App {
 	var running:Bool = true;
 	var last:Float = 0;
 
+	/**
+		Private: the application is started by `main`.
+	**/
 	function new() {}
 
 	public static function main():Void {
@@ -132,6 +143,13 @@ class App {
 		} catch (held:haxe.Exception) {}
 	}
 
+	/**
+		Which renderer backend Windows is pinned to. All six SDL backends open a window and
+		paint a still interface correctly; the fault in two of them appears only once the
+		transport is running and the playhead, the scope and the meters are redrawing every
+		frame. The choice sits behind a platform gate rather than being deleted, because
+		the plumbing is right and only the backends are not.
+	**/
 	public static inline final PINNED = #if windows "direct3d11" #else "" #end;
 
 	static final DRIVERS:Array<String> = ["--dx11", "direct3d11", "--d3d11", "direct3d11",
@@ -161,6 +179,11 @@ class App {
 		return out;
 	}
 
+	/**
+		Opens the window, the sound and the session, and reads the settings back.
+
+		@return False where any of that would not work.
+	**/
 	function open():Bool {
 		final args = Sys.args();
 
@@ -193,6 +216,9 @@ class App {
 		return true;
 	}
 
+	/**
+		Builds the panels and the menus and wires every callback between them.
+	**/
 	function dress():Void {
 		library.within(mdd.host.Paths.within("presets"),
 			stage.root.translate(Locale.PRESET_SAVED));
@@ -385,6 +411,9 @@ class App {
 		if (Sys.args().indexOf("--exporting") >= 0) panels.sounded();
 	}
 
+	/**
+		Opens whatever file the application was started with.
+	**/
 	function handed():Void {
 		for (arg in Sys.args()) {
 			if (StringTools.startsWith(arg, "-")) continue;
@@ -412,6 +441,13 @@ class App {
 		changed();
 	}
 
+	/**
+		Takes a piece that has just been read: points the session, the sound, the
+		panels and the file operations at it rather than building new ones, because a
+		rebuilt object silently drops every callback nobody re-attached.
+
+		@param song The piece.
+	**/
 	function loaded(song:Song):Void {
 		final held = session == null ? mdd.song.Song.LOUDEST : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
@@ -443,6 +479,9 @@ class App {
 		collector.sweeps(true);
 	}
 
+	/**
+		Redraws and rechecks whatever the session says has moved.
+	**/
 	function changed():Void {
 		if (panels == null || panels.budget == null || session == null) return;
 
@@ -459,6 +498,11 @@ class App {
 		}
 	}
 
+	/**
+		Shows the note a warning is about, which is what clicking one does.
+
+		@param found The warning.
+	**/
 	function revealed(found:mdd.check.Diagnostic):Void {
 		if (panels.centre == null || found.note == null) return;
 
@@ -467,6 +511,9 @@ class App {
 		panels.centre.roll.choose(found.note);
 	}
 
+	/**
+		Starts downloading an update and raises the progress bar over it.
+	**/
 	function fetching():Void {
 		final into = Paths.within("updates") + "/" + update.named();
 
@@ -480,6 +527,13 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Puts the progress bar up in the band, which is the one slot nothing else can
+		claim.
+
+		@param label What the task is called.
+		@param detail A second line.
+	**/
 	function shows(label:Locale, detail:String):Void {
 		task.begins(label, detail);
 
@@ -492,6 +546,9 @@ class App {
 		stage.root.soil();
 	}
 
+	/**
+		Takes the progress bar down.
+	**/
 	function settled():Void {
 		if (stage.root.band != progress) return;
 
@@ -500,6 +557,9 @@ class App {
 		stage.root.soil();
 	}
 
+	/**
+		Unpacks the downloaded update and writes the handover script.
+	**/
 	function applying():Void {
 		shows(Locale.WORKING_INSTALLING, update.offered);
 
@@ -512,6 +572,10 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Launches the handover script and closes the application, which is the only way a
+		running program can have its own files replaced.
+	**/
 	function handing():Void {
 		session.say(stage.root.translate(Locale.UPDATE_APPLIED));
 		session.changed();
@@ -530,6 +594,12 @@ class App {
 		running = false;
 	}
 
+	/**
+		Moves the progress bar on while a download or an install is running.
+
+		@param since How long since the last frame.
+		@return Whether anything is running.
+	**/
 	function pulling(since:Float):Bool {
 		if (update == null) return false;
 
@@ -542,6 +612,11 @@ class App {
 		return true;
 	}
 
+	/**
+		Acts on whatever the updater has got to since the last frame.
+
+		@return Whether anything happened.
+	**/
 	function watched():Bool {
 		if (update == null || rendering != null) return false;
 
@@ -589,6 +664,9 @@ class App {
 		}
 	}
 
+	/**
+		Loads the language the settings ask for.
+	**/
 	function spoken():Void {
 		final held = settings.of("language", "");
 		final code = held != "" && Languages.known(held) ? held : Languages.guessed();
@@ -597,6 +675,9 @@ class App {
 		panels.preferences.speaks(Languages.shipped(), code);
 	}
 
+	/**
+		Raises the first run sheet, which asks for a language.
+	**/
 	function greeting():Void {
 		if (!firstRun) return;
 
@@ -628,10 +709,20 @@ class App {
 		welcome.arrive(stage.root.translation.language);
 	}
 
+	/**
+		Builds the menus again, which changing the language needs.
+	**/
 	function relabel():Void {
 		menus.dress(session);
 	}
 
+	/**
+		Puts the progress bar up for something long that runs on this thread, and draws
+		one frame so it is actually seen before the work starts.
+
+		@param label What the task is called.
+		@param detail A second line.
+	**/
 	function busy(label:Locale, detail:String):Void {
 		if (panels.working == null) return;
 
@@ -643,6 +734,9 @@ class App {
 		stage.draw();
 	}
 
+	/**
+		Takes that progress bar down.
+	**/
 	function idle():Void {
 		task.ends(true);
 
@@ -650,6 +744,11 @@ class App {
 		stage.root.soil();
 	}
 
+	/**
+		Starts a bounce on a worker thread and puts the progress bar up in the band.
+
+		@param where The file to write.
+	**/
 	function renders(where:String):Void {
 		rendering = files.renders(where);
 
@@ -668,6 +767,12 @@ class App {
 		stage.draw();
 	}
 
+	/**
+		Follows a running bounce, and writes the file when it finishes.
+
+		@param since How long since the last frame.
+		@return Whether one is running.
+	**/
 	function rendered(since:Float):Bool {
 		if (rendering == null) return false;
 
@@ -698,6 +803,10 @@ class App {
 	var usageAt:Float = 0;
 	var usageSaid:String = "";
 
+	/**
+		@return What this process is costing the machine, for the status bar, worked out no more
+			often than twice a second.
+	**/
 	function measured():String {
 		final now = Sdl.ticks();
 		if (now - usageAt < USAGE_EVERY) return usageSaid;
@@ -726,6 +835,9 @@ class App {
 		return usageSaid;
 	}
 
+	/**
+		Removes the backups that are too old or too many.
+	**/
 	function backing():Void {
 		final held = panels.preferences;
 
@@ -738,6 +850,11 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Asks for a folder and remembers it as where projects or presets live.
+
+		@param row Which of the two.
+	**/
 	function folder(row:Int):Void {
 		if (asking != null) return;
 
@@ -746,6 +863,9 @@ class App {
 			row == Preferences.PROJECTS ? files.within("projects") : files.within("presets"));
 	}
 
+	/**
+		Takes the folder a dialog answered with.
+	**/
 	function folded():Void {
 		if (asking == null) return;
 
@@ -774,6 +894,10 @@ class App {
 		asking = null;
 	}
 
+	/**
+		Reads every setting back and applies it: the theme, the faces, the density, the
+		language, the bindings, the mapping, the folders and the rest.
+	**/
 	function remembered():Void {
 		final which = settings.asWhole("theme", 0);
 		final typeface = settings.asWhole("typeface", 0);
@@ -849,11 +973,17 @@ class App {
 		stage.root.reshape();
 	}
 
+	/**
+		Bakes the faces again and lays the interface out, which changing the pairing needs.
+	**/
 	function redressed():Void {
 		stage.typeface = session == null ? 0 : session.typeface;
 		stage.redressed();
 	}
 
+	/**
+		Writes every setting out.
+	**/
 	function keeps():Void {
 		if (settings == null) return;
 
@@ -884,6 +1014,9 @@ class App {
 		settings.save();
 	}
 
+	/**
+		Writes out only the settings that change often.
+	**/
 	function keeping():Void {
 		if (files.path == "") {
 			files.ask(stage.window, Files.SAVE);
@@ -899,6 +1032,9 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Takes the last edit back and redraws.
+	**/
 	function undone():Void {
 		if (session.undo()) session.say(stage.root.translate(Locale.SAID_UNDONE));
 		else session.say(stage.root.translate(Locale.SAID_NOTHING_UNDO));
@@ -906,6 +1042,9 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Puts it back.
+	**/
 	function redone():Void {
 		if (session.redo()) session.say(stage.root.translate(Locale.SAID_REDONE));
 		else session.say(stage.root.translate(Locale.SAID_NOTHING_REDO));
@@ -913,6 +1052,9 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Starts a new piece.
+	**/
 	function fresh():Void {
 		loaded(Session.empty(library));
 		files.forget();
@@ -924,6 +1066,14 @@ class App {
 	final mapping:Mapping = new Mapping();
 	final collector:Collector = new Collector();
 
+	/**
+		Acts on a chord the focus chain declined, which is what lets a field keep its
+		plain keys while a chord still reaches past it.
+
+		@param code Which key.
+		@param mods Which modifiers were held.
+		@return Whether anything took it.
+	**/
 	function commanded(code:Key, mods:Mod):Bool {
 		if (code == Key.Z && (mods & Mod.Ctrl) != 0 && (mods & Mod.Shift) != 0) {
 			redone();
@@ -961,6 +1111,9 @@ class App {
 		return true;
 	}
 
+	/**
+		Puts the bindings into the menus, so they show the chords.
+	**/
 	function bound():Void {
 		if (panels == null || panels.centre == null) return;
 
@@ -970,15 +1123,32 @@ class App {
 		panels.centre.playlist.bindings = bindings;
 	}
 
+	/**
+		Sends an editing command to whatever has the keyboard.
+
+		@param what One of the `Edit` values.
+		@return Whether anything took it.
+	**/
 	function edited(what:Int):Bool {
 		return stage.root.edits(what);
 	}
 
+	/**
+		Moves the whole piece in time.
+
+		@param way How far, in ticks.
+	**/
 	function nudged(way:Int):Void {
 		session.does(new mdd.song.edit.ShiftSong(way));
 		session.say(stage.root.translate(way < 0 ? Locale.EDIT_EARLIER : Locale.EDIT_LATER));
 	}
 
+	/**
+		Puts a tool in hand.
+
+		@param which Which tool.
+		@return Whether it changed.
+	**/
 	function tooled(which:Int):Bool {
 		final tools = panels.centre == null ? null : panels.centre.tools;
 
@@ -991,6 +1161,11 @@ class App {
 		return true;
 	}
 
+	/**
+		Prints what opened and what did not: the window, the renderer, the faces, the
+		device, the settings, the updater and the presence. It is the first thing to read
+		when something is wrong on a machine that is not to hand.
+	**/
 	function report():Void {
 		Sys.println("  " + Config.TITLE + " " + Config.VERSION);
 		Sys.println("  renderer      " + Sdl.rendererName(stage.renderer));
@@ -1024,6 +1199,10 @@ class App {
 		Sys.println("  presence      " + presence.said());
 	}
 
+	/**
+		The frame loop: take events, advance motion, poll the files, follow a bounce or a
+		download, draw a frame if anything changed, and sleep if nothing did.
+	**/
 	function loop():Void {
 		final event = new Event();
 		last = Sdl.ticks();
@@ -1060,11 +1239,20 @@ class App {
 		}
 	}
 
+	/**
+		Changes which output stage is monitored, and tells the export panel so it keeps
+		its own rather than following this.
+
+		@param which Which output stage.
+	**/
 	function consoled(which:Int):Void {
 		if (sound.render != null) sound.render.console = which;
 		if (panels != null && panels.exporting != null) panels.exporting.follows(which);
 	}
 
+	/**
+		Opens the MIDI port the settings name.
+	**/
 	function keyboards():Void {
 		final held = panels.preferences.keyboards;
 
@@ -1085,6 +1273,12 @@ class App {
 		keyboard.forces = velocity != 0;
 	}
 
+	/**
+		Turns whatever a MIDI controller is mapped to.
+
+		@param control Which controller.
+		@param value Its value, 0 to 127.
+	**/
 	function turned(control:Int, value:Int):Void {
 		if (panels != null && panels.preferences != null
 			&& panels.preferences.hears(control)) return;
@@ -1103,11 +1297,22 @@ class App {
 		session.changed();
 	}
 
+	/**
+		Takes whatever the MIDI keyboard has played.
+
+		@return Whether anything arrived.
+	**/
 	function keyed():Bool {
 		if (!mdd.host.Midi.holding()) return false;
 		return keyboard.drains() > 0;
 	}
 
+	/**
+		Opens a MIDI port by name.
+
+		@param want What the port is called, or an empty string for none.
+		@return Whether one opened.
+	**/
 	function listens(want:String):Bool {
 		mdd.host.Midi.close();
 
@@ -1140,6 +1345,9 @@ class App {
 	var midiAt:Int = -1;
 	var midiSaid:String = "";
 
+	/**
+		Keeps the status bar, the meters, the scope and the presence up to date.
+	**/
 	function watch():Void {
 		if (session == null || panels == null) return;
 
@@ -1192,6 +1400,12 @@ class App {
 		centre.scope.invalidate();
 	}
 
+	/**
+		Claims the one instance lock, and hands the file to the copy already running
+		where one has it.
+
+		@return False where another copy is already running.
+	**/
 	function shared():Bool {
 		if (panels == null || panels.preferences == null) return false;
 		if (stage.root.sheet != panels.preferences) return false;
@@ -1208,6 +1422,9 @@ class App {
 		return true;
 	}
 
+	/**
+		Writes the settings, stops the sound, gives the window back and releases the lock.
+	**/
 	function shut():Void {
 		keeps();
 

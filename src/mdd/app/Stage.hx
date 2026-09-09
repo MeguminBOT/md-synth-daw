@@ -18,23 +18,69 @@ import mdd.ui.Shell;
 import mdd.ui.Theme;
 
 @:unreflective
+
+/**
+	The window, the renderer, the faces and the root: everything between the operating
+	system and the widget tree.
+
+	It presents only a frame that was actually drawn. A flip model swap chain rotates
+	buffers, so presenting a frame nothing was drawn into puts a frame from two
+	presents ago on screen, and alternating the two reads as heavy flicker.
+**/
 final class Stage {
 	static inline final IDLE = 0.002;
 	static inline final ICON = 64;
 	static inline final ROW = 16;
 
+	/**
+		The window.
+	**/
 	public var window:cpp.Star<Window> = null;
+
+	/**
+		The renderer.
+	**/
 	public var renderer:cpp.Star<Canvas> = null;
 
+	/**
+		What everything is drawn with.
+	**/
 	public var paint:Paint;
+
+	/**
+		The top of the widget tree.
+	**/
 	public var root:Root;
+
+	/**
+		The zones the interface is laid out in.
+	**/
 	public var shell:Shell;
 
+	/**
+		What every size is multiplied by.
+	**/
 	public var scale:Float = 1;
+
+	/**
+		Which window events belong to.
+	**/
 	public var windowID:Int = 0;
+
+	/**
+		Which typeface pairing is chosen.
+	**/
 	public var typeface:Int = 0;
 
+	/**
+		Which icon atlas was loaded, or an empty string.
+	**/
 	public var iconsAt(default, null):String = "";
+
+	/**
+		Whether the window has been shown yet. It is created hidden so nothing appears
+		before the first frame is drawn.
+	**/
 	public var shown(default, null):Bool = false;
 
 	var icons:Null<Icons> = null;
@@ -46,10 +92,22 @@ final class Stage {
 	var mono:Null<Font> = null;
 	var large:Null<Font> = null;
 
+	/**
+		Builds a stage with nothing open.
+	**/
 	public function new() {}
 
+	/**
+		Which renderer backend to ask for, or an empty string for whichever SDL picks.
+	**/
 	public var driver:String = "";
 
+	/**
+		Starts SDL, opens the window and the renderer, loads the faces and the icons,
+		and builds the root.
+
+		@return False where any of that would not work.
+	**/
 	public function open():Bool {
 		window = Sdl.createWindow(Config.TITLE, Config.WIDTH, Config.HEIGHT,
 			Config.RESIZABLE ? 1 : 0, Config.HIGH_DPI ? 1 : 0);
@@ -85,6 +143,9 @@ final class Stage {
 		return true;
 	}
 
+	/**
+		Lays the interface out for the size and density the window actually opened at.
+	**/
 	public function drawn():Void {
 		final want = Math.round(metrics().whole(ROW));
 		if (icons != null && icons.pixels == want) return;
@@ -109,10 +170,16 @@ final class Stage {
 		root.icons = made;
 	}
 
+	/**
+		@return The sizes the interface draws at.
+	**/
 	inline function metrics():Metrics {
 		return root.metrics;
 	}
 
+	/**
+		@return Which icon atlas to load, from the density the window opened at.
+	**/
 	function atlases():String {
 		for (where in [Paths.beside() + "/icons", Sys.getCwd() + "/export/icons",
 				Paths.beside() + "/../../icons"]) {
@@ -122,6 +189,11 @@ final class Stage {
 		return "";
 	}
 
+	/**
+		@param where The folder the atlases are in.
+		@param want The size wanted, in pixels.
+		@return The size that is actually there and closest to it.
+	**/
 	function nearest(where:String, want:Int):Int {
 		var best = 0;
 
@@ -140,6 +212,9 @@ final class Stage {
 		return best;
 	}
 
+	/**
+		Loads the faces the chosen pairing names.
+	**/
 	function faced():Void {
 		final held = haxe.Resource.getBytes("icon");
 		if (held == null || held.length != ICON * ICON * 4) return;
@@ -147,6 +222,11 @@ final class Stage {
 		Sdl.windowIcon(window, cpp.NativeArray.address(held.getData(), 0).constRaw, ICON, ICON);
 	}
 
+	/**
+		Shows the window, once there is a frame to show.
+
+		@param maximised Whether to open it maximised.
+	**/
 	public function show(maximised:Bool):Void {
 		Sdl.showWindow(window);
 		if (maximised) Sdl.maximiseWindow(window);
@@ -159,10 +239,16 @@ final class Stage {
 		measured();
 	}
 
+	/**
+		@return Whether the window is maximised.
+	**/
 	public function maximised():Bool {
 		return Sdl.windowMaximised(window) != 0;
 	}
 
+	/**
+		@return The folder the faces are in.
+	**/
 	public function fonts():String {
 		for (where in [Paths.beside() + "/fonts", Sys.getCwd() + "/vendor/fonts",
 				Paths.beside() + "/../../vendor/fonts"]) {
@@ -173,6 +259,10 @@ final class Stage {
 		return "";
 	}
 
+	/**
+		@param where The folder the faces are in.
+		@return Which pairing is actually present, falling back where the chosen one is not there.
+	**/
 	function paired(where:String):Int {
 		if (typeface < 0 || typeface >= Typeface.COUNT) return 0;
 
@@ -182,6 +272,12 @@ final class Stage {
 		return typeface;
 	}
 
+	/**
+		Bakes the four faces at the current density and hands them to the metrics.
+
+		@param metrics The sizes to dress.
+		@return False where any of them would not bake.
+	**/
 	public function faces(metrics:Metrics):Bool {
 		final where = fonts();
 
@@ -218,6 +314,9 @@ final class Stage {
 		return true;
 	}
 
+	/**
+		Gives the baked faces back.
+	**/
 	function shed():Void {
 		if (body != null) body.shut();
 		if (small != null) small.shut();
@@ -230,11 +329,17 @@ final class Stage {
 		large = null;
 	}
 
+	/**
+		Reads the window size again and lays the interface out to it.
+	**/
 	public function measured():Void {
 		root.resize(Sdl.outputWidth(renderer), Sdl.outputHeight(renderer));
 		shell.fit(root.metrics);
 	}
 
+	/**
+		Bakes the faces again, which changing the pairing or the density needs.
+	**/
 	public function redressed():Void {
 		if (!faces(root.metrics)) return;
 
@@ -243,6 +348,11 @@ final class Stage {
 		root.reshape();
 	}
 
+	/**
+		Changes the density everything is drawn at.
+
+		@param much The new scale.
+	**/
 	public function densified(much:Float):Void {
 		root.rescale(scale * much);
 		faces(root.metrics);
@@ -250,6 +360,9 @@ final class Stage {
 		measured();
 	}
 
+	/**
+		Bakes the faces and reloads the icons at the new density, and lays out again.
+	**/
 	function rescaled():Void {
 		final next = Sdl.windowDisplayScale(window);
 		if (next == scale) return;
@@ -261,6 +374,12 @@ final class Stage {
 		measured();
 	}
 
+	/**
+		Turns one system event into whatever the interface should do with it.
+
+		@param event The event.
+		@return False where the event was the window closing.
+	**/
 	public function took(event:Event):Bool {
 		switch (event.type) {
 			case Sdl.EVENT_QUIT:
@@ -305,6 +424,11 @@ final class Stage {
 		return true;
 	}
 
+	/**
+		Draws one frame and presents it, and does neither where nothing changed.
+
+		@return Whether a frame was actually drawn.
+	**/
 	public function draw():Bool {
 		if (!root.stale()) {
 			Sdl.sleep(IDLE);
@@ -319,6 +443,9 @@ final class Stage {
 		return true;
 	}
 
+	/**
+		Gives the faces, the icons, the renderer and the window back, in that order.
+	**/
 	public function shut():Void {
 		if (icons != null) icons.shut();
 
