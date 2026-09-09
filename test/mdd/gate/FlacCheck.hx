@@ -39,6 +39,7 @@ class FlacCheck {
 
 		scaled();
 		signed();
+		declared();
 		packed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -119,6 +120,57 @@ class FlacCheck {
 
 		says("a flac carries the signature of its audio", same && !blank,
 			"the sixteen bytes at " + Flac.SIGNED + " are the md5 of the samples that went in");
+	}
+
+	static function declared():Void {
+		final rates = [44100, 48000];
+		final depths = [16, 24];
+		final counts = [4095, 4096, 4101, 65535];
+
+		var wrong = 0;
+		var said = "";
+
+		for (rate in rates) {
+			for (depth in depths) {
+				for (frames in counts) {
+					final held = new Vector<cpp.Float32>(frames * 2);
+					for (index in 0...frames) {
+						final value = Math.sin(index * 0.017);
+						held[index * 2] = value;
+						held[index * 2 + 1] = value;
+					}
+
+					final made = Flac.write(held, frames, 2, rate, depth, []);
+
+					final info = 8;
+					final saidRate = (made.get(info + 10) << 12)
+						| (made.get(info + 11) << 4) | (made.get(info + 12) >> 4);
+					final saidChannels = ((made.get(info + 12) >> 1) & 7) + 1;
+					final saidDepth = ((((made.get(info + 12) & 1) << 4)
+						| (made.get(info + 13) >> 4)) & 0x1F) + 1;
+					final top = made.get(info + 13) & 0x0F;
+					final saidFrames = (made.get(info + 14) << 24)
+						| (made.get(info + 15) << 16) | (made.get(info + 16) << 8)
+						| made.get(info + 17);
+
+					if (saidRate == rate && saidChannels == 2 && saidDepth == depth
+						&& top == 0 && saidFrames == frames) continue;
+
+					wrong++;
+					if (said == "") {
+						said = frames + " frames at " + rate + " and " + depth
+							+ " bit reads back as " + saidFrames + " at " + saidRate
+							+ " and " + saidDepth + " bit, top nibble " + top;
+					}
+				}
+			}
+		}
+
+		says("the header says what the file holds", wrong == 0, wrong == 0
+			? "16 files across two rates, two depths and four lengths declare their own"
+				+ " rate, channels, depth and length, and none of them overflows the"
+				+ " four bits above a 32 bit count"
+			: wrong + " of 16 disagree, the first being " + said);
 	}
 
 	static function packed():Void {
