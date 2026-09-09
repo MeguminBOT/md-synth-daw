@@ -1,3 +1,45 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
+
+/**
+ * Discord presence, over the local IPC socket.
+ *
+ * There is no vendored library because neither candidate could be one: the old client
+ * is archived and the newer one is a closed binary whose licence binds
+ * redistribution. The protocol underneath both is a socket, an eight byte header of
+ * opcode and length, and a JSON payload, which is less to carry than either
+ * dependency. Presence is a one way announcement, so nothing here needs the rest of
+ * what an SDK would bring.
+ *
+ * Ten sockets are tried in turn, because the client numbers them and a second client
+ * takes the next. Reading never blocks, and a ping is answered as it arrives.
+ */
 #include "discord.h"
 
 #include <cstdio>
