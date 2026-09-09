@@ -576,9 +576,18 @@ class Run {
 		}
 
 		for (link in project.links) {
-			out.add("\t\t<lib name=\""
-				+ (loose(link) ? link : native(root + "/" + link))
-				+ "\" />\n");
+			if (!loose(link)) {
+				out.add("\t\t<lib name=\"" + native(root + "/" + link)
+					+ "\" />\n");
+				continue;
+			}
+
+			for (part in link.split(" ")) {
+				final one = StringTools.trim(part);
+				if (one == "") continue;
+
+				out.add("\t\t<lib name=\"" + one + "\" />\n");
+			}
 		}
 
 		out.add("\t\t<files id=\"mdd_native\" />\n");
