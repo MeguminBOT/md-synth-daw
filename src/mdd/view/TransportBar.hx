@@ -768,6 +768,11 @@ final class TransportBar extends Widget {
 
 		paint.roundedRect(left, line, room, track, track * 0.5, theme.ink, 0.55, want);
 
+		final notch = metrics.whole(2);
+		final unity = left + room * (Session.UNITY / Song.LOUDEST);
+
+		paint.rect(unity - notch * 0.5, middle - track, notch, track * 2, theme.dim, 0.7);
+
 		final grip = metrics.whole(12);
 		final at = left + room * want;
 
