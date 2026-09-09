@@ -1,0 +1,151 @@
+# Builds every platform and publishes a GitHub release from the results.
+# Only the repository owner can run it. Ordinary test builds live in build.yml.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish, for example v0.1.0"
+        type: string
+        required: true
+      draft:
+        description: "Publish as a draft"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark as a prerelease"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # Nothing else runs until this passes, so a stranger with write access
+  # cannot cut a release even if they can reach the Actions tab.
+  owner:
+    name: Check who asked
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse anybody but the owner
+        run: |
+          if [ "${{ github.actor }}" != "${{ github.repository_owner }}" ]; then
+            echo "${{ github.actor }} is not ${{ github.repository_owner }}."
+            echo "Only the repository owner publishes releases."
+            exit 1
+          fi
+          echo "Running as ${{ github.repository_owner }}."
+
+  build:
+    name: ${{ matrix.name }}
+    needs: owner
+    runs-on: ${{ matrix.runs-on }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Windows x86-64
+            runs-on: windows-latest
+            artifact: mdd-windows-x86_64
+
+          - name: Linux x86-64
+            runs-on: ubuntu-latest
+            container: debian:trixie
+            artifact: mdd-linux-x86_64
+
+          - name: Linux arm64
+            runs-on: ubuntu-24.04-arm
+            container: debian:trixie
+            artifact: mdd-linux-arm64
+
+          - name: macOS x86-64
+            runs-on: macos-15-intel
+            artifact: mdd-macos-x86_64
+
+          - name: macOS arm64
+            runs-on: macos-latest
+            artifact: mdd-macos-arm64
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Prepare the container
+        if: matrix.container != ''
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git unzip xz-utils \
+            clang lld llvm g++ make libsdl3-dev
+
+      - uses: actions/checkout@v4
+
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.7
+
+      - name: Install hxcpp
+        run: haxelib install hxcpp --quiet --always
+
+      - name: Install SDL3
+        if: startsWith(matrix.name, 'macOS')
+        run: brew install sdl3
+
+      - name: Fetch the vendored sources
+        run: ./mdd setup
+
+      - name: Build
+        run: ./mdd build
+
+      - name: Build the gate
+        run: ./mdd build gate
+
+      # A release is not cut from a build that cannot prove itself.
+      - name: Run the gate
+        run: ./mdd gate
+
+      - name: Package
+        run: ./mdd package
+
+      - name: Keep the build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            export/package/*.zip
+            export/package/*.tar.gz
+            export/package/*setup.exe
+          if-no-files-found: error
+
+  publish:
+    name: Publish ${{ inputs.tag }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect every platform
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Say what is going out
+        run: ls -la packages
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: MD Synth DAW ${{ inputs.tag }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: packages/*
