@@ -8,25 +8,66 @@ import mdd.song.Pattern;
 import mdd.song.Song;
 
 @:unreflective
+
+/**
+	What the song is asking of the hardware, and everything it asks that the hardware
+	will not do.
+
+	It is checked two ways, and both are needed. Reading the song finds what a person
+	wrote that cannot sound, and reading the register stream finds what the sequencer
+	actually produced: a note that fits on its own can still be refused because three
+	others were already sounding.
+**/
 final class Budget {
+	/**
+		Which machine is being checked against.
+	**/
 	public final profile:Profile;
 
+	/**
+		Everything the last check found.
+	**/
 	public final found:Array<Diagnostic> = [];
 	final troubles:Array<Note> = [];
 
+	/**
+		How many frames the register writes are counted over, for the per frame limit.
+	**/
 	public static inline final FRAMES = 60;
 
+	/**
+		How much of each part is in use, 0 to 100, which is what the hardware meter draws.
+	**/
 	public final busy:Vector<Int> = new Vector<Int>(Part.COUNT);
 
+	/**
+		How many FM operators are sounding at the busiest moment.
+	**/
 	public var operators(default, null):Int = 0;
+
+	/**
+		How many bytes of samples the song carries.
+	**/
 	public var sampleBytes(default, null):Int = 0;
+
+	/**
+		How many of the diagnostics are faults rather than warnings.
+	**/
 	public var faults(default, null):Int = 0;
 
+	/**
+		Builds a budget against one machine.
+
+		@param profile The machine to check against.
+	**/
 	public function new(profile:Profile) {
 		this.profile = profile;
 		for (i in 0...Part.COUNT) busy[i] = 0;
 	}
 
+	/**
+		Throws away the last check.
+	**/
 	public function clear():Void {
 		found.resize(0);
 		troubles.resize(0);
@@ -37,15 +78,34 @@ final class Budget {
 		for (i in 0...Part.COUNT) busy[i] = 0;
 	}
 
+	/**
+		@return How many of the diagnostics are warnings rather than faults.
+	**/
 	public inline function warnings():Int {
 		return found.length;
 	}
 
+	/**
+		@param note A note.
+		@return Whether anything found points at it, which is what hatches it in the roll.
+	**/
 	public function troubled(note:Note):Bool {
 		for (held in troubles) if (held == note) return true;
 		return false;
 	}
 
+	/**
+		Records one diagnostic.
+
+		@param severity `Diagnostic.WARNING` or `Diagnostic.FAULT`.
+		@param part Which part it is about.
+		@param at Where in the song, in ticks.
+		@param saying What is wrong.
+		@param reason Why.
+		@param remedy What would fix it.
+		@param pattern Which pattern, or -1.
+		@param note The note that caused it, or null.
+	**/
 	function raise(severity:Int, part:Part, at:Int, saying:String, reason:String,
 			remedy:String = "", pattern:Int = -1, note:Null<Note> = null):Void {
 		found.push(new Diagnostic(severity, part, at, saying, reason, remedy, pattern, note));
@@ -53,6 +113,14 @@ final class Budget {
 		if (note != null) troubles.push(note);
 	}
 
+	/**
+		Checks what a person wrote: notes on parts the machine does not have, notes
+		outside what a part can reach, more overlapping than a part has channels, and
+		more sample data than there is room for.
+
+		@param song The song to check.
+		@return How many diagnostics were found.
+	**/
 	public function overSong(song:Song):Int {
 		clear();
 
@@ -70,6 +138,12 @@ final class Budget {
 		return found.length;
 	}
 
+	/**
+		Checks one pattern.
+
+		@param song The song it belongs to.
+		@param index Which pattern.
+	**/
 	function overPattern(song:Song, index:Int):Void {
 		final pattern = song.patterns[index];
 
@@ -120,6 +194,13 @@ final class Budget {
 		}
 	}
 
+	/**
+		Finds where more notes overlap on one part than it has channels.
+
+		@param pattern Which pattern.
+		@param part Which part.
+		@param notes Its notes, in tick order.
+	**/
 	function overlapping(pattern:Int, part:Part, notes:Array<Note>):Void {
 		var sounding = -1;
 		var held:Null<Note> = null;
@@ -140,6 +221,13 @@ final class Budget {
 		}
 	}
 
+	/**
+		Finds notes outside what the part can reach.
+
+		@param pattern Which pattern.
+		@param part Which part.
+		@param notes Its notes.
+	**/
 	function ranged(pattern:Int, part:Part, notes:Array<Note>):Void {
 		for (note in notes) {
 			if (part.square()) {
@@ -162,6 +250,13 @@ final class Budget {
 		}
 	}
 
+	/**
+		Checks what the sequencer actually produced: writes to parts the machine does
+		not have, and more writes in a frame than a driver could make.
+
+		@param stream The register writes to check.
+		@return How many diagnostics were found.
+	**/
 	public function overStream(stream:Stream):Int {
 		clear();
 
@@ -241,12 +336,21 @@ final class Budget {
 		return found.length;
 	}
 
+	/**
+		@param select A byte written to the key on register.
+		@return Which part it names.
+	**/
 	static function keyedPart(select:Int):Part {
 		final within = select & 3;
 		if (within == 3) return Part.Fm1;
 		return within + ((select & 4) != 0 ? 3 : 0);
 	}
 
+	/**
+		@param half Which half of the FM register file.
+		@param address The register address within it.
+		@return Which part that register belongs to.
+	**/
 	static function halfPart(half:Int, address:Int):Part {
 		final held = Stream.ymPart(half, address);
 		return held < 0 ? Part.Fm1 : held;
