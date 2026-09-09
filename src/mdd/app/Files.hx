@@ -743,6 +743,7 @@ final class Files {
 	public function renders(where:String):Mixdown {
 		final made = Mixdown.made();
 		final song = session.song;
+		final parts = mixing.stems ? stemParts(song) : [];
 
 		mixdown = made;
 
@@ -751,11 +752,17 @@ final class Files {
 		wroteWrong = "";
 
 		writing.store(0);
+		made.passes.store(1 + parts.length);
+		made.pass.store(0);
 
 		sys.thread.Thread.create(function():Void {
 			try {
 				made.runs(song, mixing);
-				if (!made.stopped()) wroteAs = wrote(where, made);
+
+				if (!made.stopped()) {
+					wroteAs = wrote(where, made);
+					if (parts.length > 0) stemsInto(where, song, made, parts);
+				}
 			} catch (e:Dynamic) {
 				wroteWrong = Std.string(e);
 			}
@@ -764,6 +771,74 @@ final class Files {
 		});
 
 		return made;
+	}
+
+	/**
+		@param song The piece.
+		@return Which parts are worth a stem, which is every one the arrangement
+			actually sounds.
+	**/
+	function stemParts(song:mdd.song.Song):Array<Int> {
+		final out:Array<Int> = [];
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			if (song.carries(index)) out.push(index);
+		}
+
+		return out;
+	}
+
+	/**
+		@param where The file the mix was written to.
+		@return The folder the stems go in, which is that file name and the word stems.
+	**/
+	function stemFolder(where:String):String {
+		return haxe.io.Path.withoutExtension(suffixed(where, mixing.suffix()))
+			+ " stems";
+	}
+
+	/**
+		Renders one file per part beside the mix, on the thread the mix was rendered on.
+
+		Every stem takes the gain the mix arrived at rather than being normalised on its
+		own, so the set of them sums back to the mix.
+
+		@param where The file the mix was written to.
+		@param song The piece.
+		@param made The bounce the mix was rendered with, reused for every stem.
+		@param parts Which parts to render.
+	**/
+	function stemsInto(where:String, song:mdd.song.Song, made:Mixdown,
+			parts:Array<Int>):Void {
+		final into = stemFolder(where);
+		final gain = made.gain;
+		final mix = wroteSaid;
+
+		mdd.host.Paths.make(into);
+
+		var written = 0;
+
+		for (index in parts) {
+			if (made.stopped()) break;
+
+			made.pass.store(written + 1);
+			made.reached.store(0);
+			made.onlyPart = index;
+			made.sharedGain = gain;
+
+			made.runs(song, mixing);
+			if (made.stopped()) break;
+
+			final part:mdd.song.Part = index;
+			wrote(into + "/" + part.name(), made);
+
+			written++;
+		}
+
+		made.onlyPart = -1;
+		made.sharedGain = 0;
+
+		wroteSaid = mix + ", and " + written + " stems into " + name(into);
 	}
 
 	/**
@@ -909,7 +984,14 @@ final class Files {
 		@return What to say about it.
 	**/
 	public function exportAudio(where:String):String {
-		final named = wrote(where, Mixdown.of(session.song, mixing));
+		final song = session.song;
+		final made = Mixdown.of(song, mixing);
+		final named = wrote(where, made);
+
+		if (mixing.stems) {
+			final parts = stemParts(song);
+			if (parts.length > 0) stemsInto(where, song, made, parts);
+		}
 
 		session.say(wroteSaid);
 		return named;
