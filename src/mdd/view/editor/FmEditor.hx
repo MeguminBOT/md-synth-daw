@@ -16,6 +16,16 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The FM operator editor: four operators of ten fields each, the four channel dials,
+	the algorithm drawn as wires, and an envelope per operator.
+
+	The algorithm is drawn as separate wires rather than one line through every box, so
+	which operator modulates which is visible instead of implied. Every field says the
+	register it writes, the raw value and what that value means, which is the whole
+	reason a tooltip is worth having here.
+**/
 final class FmEditor extends Widget {
 	static final NAMES:Array<String> = Patch.NAMES;
 
@@ -36,20 +46,53 @@ final class FmEditor extends Widget {
 		[]
 	];
 
+	/**
+		Dial: which of the eight operator wirings.
+	**/
 	public static inline final ALGORITHM = Patch.ALGORITHM;
+
+	/**
+		Dial: how much operator one feeds back.
+	**/
 	public static inline final FEEDBACK = Patch.FEEDBACK;
+
+	/**
+		Dial: how far the LFO swings the amplitude.
+	**/
 	public static inline final AMS = Patch.AMS;
+
+	/**
+		Dial: how far it swings the pitch.
+	**/
 	public static inline final PMS = Patch.PMS;
+
+	/**
+		How many dials there are.
+	**/
 	public static inline final DIALS = Patch.DIALS;
 
 	static final DIAL_NAMES:Array<String> = Patch.DIAL_NAMES;
 
 	static final DIAL_SPELT:Array<String> = Patch.DIAL_SPELT;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Which field the pointer is over, or -1.
+	**/
 	public var held(default, null):Int = -1;
+
+	/**
+		Which operator that field belongs to, or -1.
+	**/
 	public var slot(default, null):Int = -1;
+
+	/**
+		Which dial the pointer is over, or -1.
+	**/
 	public var dial(default, null):Int = -1;
 
 	final points:Vector<Float> = new Vector<Float>(64);
@@ -59,6 +102,11 @@ final class FmEditor extends Widget {
 	var grabWas:Int = 0;
 	var turning:Int = -1;
 
+	/**
+		Builds the editor.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -67,6 +115,9 @@ final class FmEditor extends Widget {
 		opaque = true;
 	}
 
+	/**
+		@return The patch of the chosen part, or null where it has none.
+	**/
 	public function patch():Null<Patch> {
 		if (!session.part.fm()) return null;
 
@@ -92,6 +143,11 @@ final class FmEditor extends Widget {
 		return y + head() - dialTall() - (root() == null ? 4.0 : root().metrics.unit);
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which dial is there, or -1.
+	**/
 	public function dialAt(px:Float, py:Float):Int {
 		final top = dialsTop();
 		final tall = dialTall();
@@ -108,10 +164,22 @@ final class FmEditor extends Widget {
 		return at < 0 || at >= DIALS ? -1 : at;
 	}
 
+	/**
+		@param patch The patch being edited.
+		@param which Which dial.
+		@return What it holds.
+	**/
 	public function dialOf(patch:Patch, which:Int):Int {
 		return patch.dial(which);
 	}
 
+	/**
+		Turns one dial, through the command stack so it undoes.
+
+		@param patch The patch being edited.
+		@param which Which dial.
+		@param value What to turn it to.
+	**/
 	public function turnTo(patch:Patch, which:Int, value:Int):Void {
 		patch.turns(which, value);
 	}
@@ -150,10 +218,20 @@ final class FmEditor extends Widget {
 		return column * NAMES.length + row;
 	}
 
+	/**
+		@param patch The patch being edited.
+		@param slot Which operator, 0 to 3.
+		@param row Which field of it, 0 to 9.
+		@return What that field holds.
+	**/
 	public function valueOf(patch:Patch, slot:Int, row:Int):Int {
 		return patch.reads(slot, row);
 	}
 
+	/**
+		@param row Which field of it, 0 to 9.
+		@return The largest value it takes, which is the width of its register field.
+	**/
 	public function most(row:Int):Int {
 		return Patch.mostOf(row);
 	}
@@ -162,15 +240,33 @@ final class FmEditor extends Widget {
 		patch.writes(slot, row, value);
 	}
 
+	/**
+		@param slot Which operator, 0 to 3.
+		@param row Which field of it, 0 to 9.
+		@return The register address that field writes, which is what the tooltip shows.
+	**/
 	public function registerOf(slot:Int, row:Int):Int {
 		final group = GROUP[slot];
 		return BASES[row] + group * 4 + (session.part.index() % 3);
 	}
 
+	/**
+		@param patch The patch being edited.
+		@param slot Which operator, 0 to 3.
+		@param row Which field of it, 0 to 9.
+		@return The first line of the tooltip: what the field is called.
+	**/
 	public function saying(patch:Patch, slot:Int, row:Int):String {
 		return SPELT[row] + "   OP" + (slot + 1);
 	}
 
+	/**
+		@param patch The patch being edited.
+		@param slot Which operator, 0 to 3.
+		@param row Which field of it, 0 to 9.
+		@return The second line: the register, the raw value, and what that value means in decibels
+			or in milliseconds.
+	**/
 	public function detailOf(patch:Patch, slot:Int, row:Int):String {
 		final at = registerOf(slot, row);
 		final half = session.part.index() >= 3 ? 1 : 0;

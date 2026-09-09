@@ -14,19 +14,51 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The square editor: an envelope drawn as steps, and the three dials that decide how
+	it runs.
+
+	The FM part has envelopes in hardware and the squares do not, so an envelope here
+	is the list of attenuation writes a driver would make on a frame timer.
+**/
 final class PsgEditor extends Widget {
+	/**
+		How many steps an envelope may have.
+	**/
 	public static inline final STEPS = 32;
 
+	/**
+		Dial: which step to return to, or none to stop at the end.
+	**/
 	public static inline final LOOP = 0;
 	static inline final SPEED = 1;
+
+	/**
+		Dial: the noise control nibble, for an envelope on the noise channel.
+	**/
 	public static inline final NOISE = 2;
+
+	/**
+		How many dials there are.
+	**/
 	public static inline final DIALS = 3;
 
 	static final DIAL_NAMES:Array<String> = ["LOOP", "SPEED", "NOISE"];
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Which step the pointer is over, or -1.
+	**/
 	public var held(default, null):Int = -1;
+
+	/**
+		Which dial the pointer is over, or -1.
+	**/
 	public var dial(default, null):Int = -1;
 
 	var grabbing:Bool = false;
@@ -34,6 +66,11 @@ final class PsgEditor extends Widget {
 	var grabAt:Float = 0;
 	var grabWas:Int = 0;
 
+	/**
+		Builds the editor.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -42,6 +79,9 @@ final class PsgEditor extends Widget {
 		opaque = true;
 	}
 
+	/**
+		@return The envelope of the chosen part, or null where it has none.
+	**/
 	public function envelope():Null<Envelope> {
 		if (!session.part.square() && !session.part.noise()) return null;
 
@@ -67,6 +107,11 @@ final class PsgEditor extends Widget {
 		return session.part.noise() ? DIALS : DIALS - 1;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which dial is there, or -1.
+	**/
 	public function dialAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -83,6 +128,11 @@ final class PsgEditor extends Widget {
 		return at < 0 || at >= dialCount() ? -1 : at;
 	}
 
+	/**
+		@param envelope The envelope.
+		@param which Which dial.
+		@return What it holds.
+	**/
 	public function dialOf(envelope:Envelope, which:Int):Int {
 		return switch (which) {
 			case LOOP: envelope.loop;
@@ -91,6 +141,13 @@ final class PsgEditor extends Widget {
 		}
 	}
 
+	/**
+		Turns one dial, clamped to what it takes.
+
+		@param envelope The envelope.
+		@param which Which dial.
+		@param value What to turn it to.
+	**/
 	public function turnTo(envelope:Envelope, which:Int, value:Int):Void {
 		switch (which) {
 			case LOOP:

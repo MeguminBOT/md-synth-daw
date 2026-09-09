@@ -5,22 +5,78 @@ import mdd.song.Automation;
 import mdd.song.Part;
 
 @:unreflective
+
+/**
+	One thing about a channel that can be automated: which register it writes, what it
+	is called, what range it takes, and what a value means.
+
+	This is where the framework and the hardware meet. A control in `mdd.ui` knows
+	nothing about a total level; this is what tells it that a value of 12 on operator
+	four is register `$4C` and nine decibels down, which is what the tooltip shows.
+**/
 final class Parameter {
+	/**
+		Which lane of the channel it is, from `Automation`.
+	**/
 	public var target(default, null):Int;
+
+	/**
+		Which operator, for a per operator parameter.
+	**/
 	public var slot(default, null):Int;
 
+	/**
+		The smallest value it takes.
+	**/
 	public var low(default, null):Int;
+
+	/**
+		The largest.
+	**/
 	public var high(default, null):Int;
 
+	/**
+		Whether the value is a difference from the note rather than a value in its own
+		right, which pitch is.
+	**/
 	public var offset(default, null):Bool;
+
+	/**
+		Whether a ramp between two values sounds continuous, which decides the shape a new
+		point gets.
+	**/
 	public var smooth(default, null):Bool;
+
+	/**
+		Whether there is one of these per operator rather than one per channel.
+	**/
 	public var operators(default, null):Bool;
 
+	/**
+		What it is called, as the documentation writes it, which is never translated.
+	**/
 	public var name(default, null):String;
+
+	/**
+		A line saying what it does.
+	**/
 	public var about(default, null):Locale;
 
+	/**
+		What one step is worth in decibels, for a parameter that attenuates.
+	**/
 	public var decibels(default, null):Float;
 
+	/**
+		Private: the list is built by `of`.
+
+		@param target Which lane.
+		@param slot Which operator.
+		@param low The smallest value.
+		@param high The largest.
+		@param name What it is called.
+		@param about A line saying what it does.
+	**/
 	function new(target:Int, slot:Int, low:Int, high:Int, name:String, about:Locale) {
 		this.target = target;
 		this.slot = slot;
@@ -40,38 +96,69 @@ final class Parameter {
 		return new Parameter(target, slot, low, high, name, about);
 	}
 
+	/**
+		@return The same parameter marked as one that changes a sounding note rather than setting
+			one up.
+	**/
 	function rides():Parameter {
 		offset = true;
 		return this;
 	}
 
+	/**
+		@return The same parameter marked as one a ramp sounds continuous on.
+	**/
 	function ramps():Parameter {
 		smooth = true;
 		return this;
 	}
 
+	/**
+		@return The same parameter marked as one there is one of per operator.
+	**/
 	function slotted():Parameter {
 		operators = true;
 		return this;
 	}
 
+	/**
+		@param much What one step is worth in decibels.
+		@return The same parameter, marked as attenuating.
+	**/
 	function quiets(much:Float):Parameter {
 		decibels = much;
 		return this;
 	}
 
+	/**
+		@param slot Which operator.
+		@return What to call it here, with the operator number where there is one of these per
+			operator.
+	**/
 	public function titled(slot:Int):String {
 		return operators ? name + " " + (slot + 1) : name;
 	}
 
+	/**
+		@return Whether a value of it means a number of decibels.
+	**/
 	public function attenuates():Bool {
 		return decibels != 0;
 	}
 
+	/**
+		@param value A value.
+		@return It held inside the range.
+	**/
 	public function holds(value:Int):Int {
 		return value < low ? low : (value > high ? high : value);
 	}
 
+	/**
+		@param value A value.
+		@return What it means: the raw number, and the decibels or the semitones where the parameter
+			has them.
+	**/
 	public function said(value:Int):String {
 		if (decibels == 0) return (offset && value > 0 ? "+" : "") + value;
 
@@ -89,6 +176,10 @@ final class Parameter {
 
 	static final NONE:Array<Parameter> = [];
 
+	/**
+		@param part A part.
+		@return Every parameter that part has, built once per call.
+	**/
 	public static function of(part:Part):Array<Parameter> {
 		if (part.fm()) return FM;
 		if (part.square()) return SQUARE;
@@ -98,6 +189,12 @@ final class Parameter {
 		return NONE;
 	}
 
+	/**
+		@param part A part.
+		@param target Which lane.
+		@param slot Which operator.
+		@return That parameter, or null where the part does not have it.
+	**/
 	public static function found(part:Part, target:Int, slot:Int):Null<Parameter> {
 		for (held in of(part)) {
 			if (held.target != target) continue;

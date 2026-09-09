@@ -16,26 +16,78 @@ import mdd.ui.Widget;
 import mdd.view.Kits;
 
 @:unreflective
+
+/**
+	The preset browser: every instrument the piece carries, searchable by name or by
+	tag, and orderable by bank, by name or by tag.
+**/
 final class Presets extends Widget {
+	/**
+		The session to read.
+	**/
 	public final session:Session;
+
+	/**
+		The rows.
+	**/
 	public final tree:Tree;
+
+	/**
+		What is typed into the search.
+	**/
 	public final search:mdd.ui.control.Field;
 
+	/**
+		Order: grouped by the bank they came from.
+	**/
 	public static inline final BY_BANK = 0;
+
+	/**
+		Order: by name.
+	**/
 	public static inline final BY_NAME = 1;
+
+	/**
+		Order: grouped by tag.
+	**/
 	public static inline final BY_TAG = 2;
+
+	/**
+		How many orders there are.
+	**/
 	public static inline final ORDERS = 3;
 
 	static final ORDER_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
 		Locale.PRESET_BY_TAG];
 
+	/**
+		Which order is chosen.
+	**/
 	public var order(default, null):Int = BY_BANK;
 
+	/**
+		How many instruments are shown.
+	**/
 	public var listed(default, null):Int = 0;
+
+	/**
+		How many groups they are in.
+	**/
 	public var banks(default, null):Int = 0;
 
+	/**
+		Called to rename a preset.
+	**/
 	public var onRename:Null<Int -> Void> = null;
+
+	/**
+		Called to edit its tags.
+	**/
 	public var onTags:Null<Int -> Void> = null;
+
+	/**
+		Called to lift the chosen patch into the library.
+	**/
 	public var onSave:Null<Void -> Void> = null;
 
 	var menu:Null<Menu> = null;
@@ -58,6 +110,11 @@ final class Presets extends Widget {
 	var sought:String = "";
 	var pending:Bool = false;
 
+	/**
+		Builds the browser.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -348,6 +405,10 @@ final class Presets extends Widget {
 		});
 	}
 
+	/**
+		@param item A row.
+		@return Which instrument it is, by index, or -1 for a group heading.
+	**/
 	public function instrumentOf(item:Item):Int {
 		final at = held.indexOf(item);
 		return at < 0 ? -1 : named[at];
@@ -355,6 +416,11 @@ final class Presets extends Widget {
 
 	static final KINDS:Array<Part> = [Part.Fm1, Part.Psg1, Part.Noise, Part.Dac];
 
+	/**
+		Changes the order and builds the rows again.
+
+		@param which Which order.
+	**/
 	public function sorts(which:Int):Void {
 		final want = which < 0 ? 0 : (which >= ORDERS ? ORDERS - 1 : which);
 		if (want == order) return;
@@ -368,15 +434,24 @@ final class Presets extends Widget {
 		invalidate();
 	}
 
+	/**
+		Steps to the next order.
+	**/
 	public function turns():Void {
 		sorts((order + 1) % ORDERS);
 	}
 
+	/**
+		@return How wide the order button is.
+	**/
 	public function orderWide():Float {
 		final root = root();
 		return root == null ? 62 : root.metrics.whole(62);
 	}
 
+	/**
+		@return Where it sits, across.
+	**/
 	public function orderLeft():Float {
 		final root = root();
 		if (root == null) return x;
@@ -388,6 +463,11 @@ final class Presets extends Widget {
 			- metrics.gap - orderWide();
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the order button.
+	**/
 	public function onOrder(px:Float, py:Float):Bool {
 		final root = root();
 		if (root == null) return false;
@@ -445,6 +525,9 @@ final class Presets extends Widget {
 		});
 	}
 
+	/**
+		Builds the rows again from the piece and whatever is typed in the search.
+	**/
 	public function fit():Void {
 		tree.clear();
 
@@ -608,6 +691,9 @@ final class Presets extends Widget {
 		reveals();
 	}
 
+	/**
+		@return What is typed into the search.
+	**/
 	public inline function seeking():String {
 		return StringTools.trim(search.value);
 	}
