@@ -13,26 +13,67 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The update notice: which version is running, which is offered, and three answers.
+
+	Nothing is downloaded until the reader chooses to, which is what the notice says as
+	well as what the updater does.
+**/
 final class Notice extends Widget {
 	static inline final TAKE = 0;
+
+	/**
+		Button: leave it for now.
+	**/
 	public static inline final LATER = 1;
 	static inline final NEVER = 2;
+
+	/**
+		How many buttons there are.
+	**/
 	public static inline final BUTTONS = 3;
 
 	static final LABELS:Array<Locale> = [Locale.UPDATE_TAKE, Locale.UPDATE_LATER,
 		Locale.UPDATE_NEVER];
 
+	/**
+		The session to read.
+	**/
 	public var session:Session;
+
+	/**
+		The updater, which is where the versions and the notes come from.
+	**/
 	public var update:Null<Update> = null;
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Called to take the update.
+	**/
 	public var onTake:Null<Void -> Void> = null;
+
+	/**
+		Called to stop looking for updates.
+	**/
 	public var onNever:Null<Void -> Void> = null;
 
 	var hoverAt:Int = -1;
 
+	/**
+		Builds the notice.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -44,6 +85,9 @@ final class Notice extends Widget {
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Starts the fade and the rise.
+	**/
 	public function arrive():Void {
 		final root = root();
 		if (root == null) return;
@@ -68,6 +112,11 @@ final class Notice extends Widget {
 		return root == null ? 32 : root.metrics.whole(32);
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which button is there, or -1.
+	**/
 	public function buttonAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -111,6 +160,11 @@ final class Notice extends Widget {
 		return true;
 	}
 
+	/**
+		Presses a button and closes the notice.
+
+		@param which Which button.
+	**/
 	public function press(which:Int):Void {
 		final root = root();
 

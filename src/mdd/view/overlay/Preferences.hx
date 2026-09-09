@@ -18,6 +18,14 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The preferences sheet: the look, the files, the MIDI ports and mapping, the sound,
+	and every keyboard chord.
+
+	Nothing here is written until it is accepted, and a chord being learnt takes the
+	next key pressed rather than being typed.
+**/
 final class Preferences extends Widget {
 	public static inline final THEME = 0;
 	static inline final TYPEFACE = 1;
@@ -40,16 +48,43 @@ final class Preferences extends Widget {
 	public static inline final PRESENCE = 18;
 	public static inline final ASSOCIATE = 19;
 	public static inline final RENDERER = 20;
+
+	/**
+		How many rows there are in all.
+	**/
 	public static inline final ROWS = 21;
 
+	/**
+		Group: the theme, the faces and the density.
+	**/
 	public static inline final LOOK = 0;
 	static inline final EDITING = 1;
+
+	/**
+		Group: saving, backups and where things live.
+	**/
 	public static inline final FILES = 2;
 	static inline final CHECKING = 3;
+
+	/**
+		Group: the port, the channel and the mapping.
+	**/
 	public static inline final MIDI = 4;
+
+	/**
+		Group: the output stage and the tempo.
+	**/
 	public static inline final SOUND = 5;
+
+	/**
+		Group: every chord.
+	**/
 	public static inline final KEYBOARD = 6;
 	static inline final SHARING = 7;
+
+	/**
+		How many groups there are.
+	**/
 	public static inline final GROUPS = 8;
 
 	static final GROUP_NAMES:Array<Locale> = [Locale.GROUP_LOOK, Locale.GROUP_EDITING,
@@ -75,8 +110,14 @@ final class Preferences extends Widget {
 		[PRESENCE]
 	];
 
+	/**
+		Which group is showing.
+	**/
 	public var group(default, null):Int = LOOK;
 
+	/**
+		Called when the sheet closes.
+	**/
 	public var onShut:Null<Void -> Void> = null;
 
 	final was:Array<Int> = [];
@@ -142,61 +183,231 @@ final class Preferences extends Widget {
 	static final DENSITIES:Array<Locale> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
 		Locale.DENSITY_ROOMY];
 
+	/**
+		The session to read.
+	**/
 	public var session:Session;
+
+	/**
+		The languages that ship.
+	**/
 	public final languages:Array<String> = [];
+
+	/**
+		The renderer backends SDL was built with.
+	**/
 	public final renderers:Array<String> = [];
+
+	/**
+		What each language is called, in itself.
+	**/
 	public final spoken:Array<String> = [];
 
+	/**
+		Which row is chosen.
+	**/
 	public var chosen(default, null):Int = 0;
+
+	/**
+		Which interface density is chosen.
+	**/
 	public var density(default, null):Int = 1;
+
+	/**
+		Which language is chosen.
+	**/
 	public var language(default, null):Int = 0;
+
+	/**
+		Which renderer backend is chosen.
+	**/
 	public var renderer:Int = 0;
+
+	/**
+		Called when the backend changes, which takes a restart to apply.
+	**/
 	public var onRenderer:Null<String -> Void> = null;
+
+	/**
+		How often to save on its own.
+	**/
 	public var keeping(default, null):Int = 2;
+
+	/**
+		How much room the backups may take.
+	**/
 	public var backups(default, null):Int = 3;
+
+	/**
+		How long a backup is kept.
+	**/
 	public var backupAge(default, null):Int = 2;
+
+	/**
+		Whether to look for updates at start.
+	**/
 	public var updates(default, null):Int = 1;
+
+	/**
+		How long to keep rendering past the end of a piece, so a release is heard.
+	**/
 	public var tail(default, null):Int = 1;
 
+	/**
+		Where projects are kept.
+	**/
 	public var projectsAt:String = "";
+
+	/**
+		Where presets are kept.
+	**/
 	public var presetsAt:String = "";
 
+	/**
+		The MIDI input ports the machine has.
+	**/
 	public final keyboards:Array<String> = [];
 
 	var keyboardAt(default, null):Int = 0;
+
+	/**
+		Which MIDI channel to listen on, or every one.
+	**/
 	public var keyboardChannel(default, null):Int = 0;
+
+	/**
+		Whether every note sounds at one velocity rather than the one played.
+	**/
 	public var keyboardVelocity(default, null):Int = 0;
+
+	/**
+		Which output stage is monitored.
+	**/
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
+
+	/**
+		Which frame rate the machine runs at.
+	**/
 	public var tempo(default, null):Int = 0;
+
+	/**
+		How much Discord is told.
+	**/
 	public var presence(default, null):Int = mdd.app.Presence.FULL;
 
+	/**
+		What the presence connection is doing.
+	**/
 	public var presenceSaid:String = "";
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Called when the density changes.
+	**/
 	public var onScale:Null<Float -> Void> = null;
+
+	/**
+		Called when the typeface pairing changes.
+	**/
 	public var onTypeface:Null<Int -> Void> = null;
+
+	/**
+		Called to write the settings out.
+	**/
 	public var onKeep:Null<Void -> Void> = null;
+
+	/**
+		Called when how often to save on its own changes.
+	**/
 	public var onKeeping:Null<Float -> Void> = null;
+
+	/**
+		Called when the backup limits change.
+	**/
 	public var onBackups:Null<Void -> Void> = null;
+
+	/**
+		Called when looking for updates is turned on or off.
+	**/
 	public var onUpdates:Null<Bool -> Void> = null;
+
+	/**
+		Called when automation moves between lanes and clips.
+	**/
 	public var onAutomating:Null<Int -> Void> = null;
+
+	/**
+		Called to ask for a folder for projects or presets.
+	**/
 	public var onFolder:Null<Int -> Void> = null;
+
+	/**
+		Called when the MIDI port changes.
+	**/
 	public var onKeyboard:Null<Int -> Void> = null;
+
+	/**
+		Called when the MIDI channel changes.
+	**/
 	public var onKeyboardChannel:Null<Int -> Void> = null;
+
+	/**
+		Called when the velocity handling changes.
+	**/
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
+
+	/**
+		Called when the monitored output stage changes.
+	**/
 	public var onConsole:Null<Int -> Void> = null;
+
+	/**
+		Called when the frame rate changes.
+	**/
 	public var onTempo:Null<Int -> Void> = null;
+
+	/**
+		Called when how much Discord is told changes.
+	**/
 	public var onPresence:Null<Int -> Void> = null;
+
+	/**
+		Called when a chord changes.
+	**/
 	public var onRebind:Null<Void -> Void> = null;
 
+	/**
+		Which chord reaches which action.
+	**/
 	public var bindings:Null<mdd.app.Bindings> = null;
+
+	/**
+		Which action is waiting for a chord to be pressed, or -1.
+	**/
 	public var catching(default, null):Int = -1;
 
+	/**
+		Which MIDI controller turns which parameter.
+	**/
 	public var mapping:Null<mdd.app.Mapping> = null;
+
+	/**
+		Which mapping slot is waiting for a controller to move, or -1.
+	**/
 	public var learning(default, null):Int = -1;
 
+	/**
+		Called when the mapping changes.
+	**/
 	public var onRemap:Null<Void -> Void> = null;
 
 	var wasKeys:String = "";
@@ -207,6 +418,11 @@ final class Preferences extends Widget {
 	var hoverGroup:Int = -1;
 	var menu:Null<Menu> = null;
 
+	/**
+		Builds the sheet.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -218,8 +434,17 @@ final class Preferences extends Widget {
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Called as a language is picked, so the sheet reads in it at once.
+	**/
 	public var onSpeak:Null<String -> Void> = null;
 
+	/**
+		Takes the renderer backends SDL was built with.
+
+		@param names The backends.
+		@param held Which one is in use now.
+	**/
 	public function draws(names:Array<String>, held:String):Void {
 		renderers.resize(0);
 		renderers.push(translate(Locale.RENDERER_AUTO));
@@ -232,6 +457,12 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
+	/**
+		Takes the languages that ship.
+
+		@param codes The language codes.
+		@param code Which one is spoken now.
+	**/
 	public function speaks(codes:Array<String>, code:String):Void {
 		languages.resize(0);
 		spoken.resize(0);
@@ -247,6 +478,9 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
+	/**
+		Shows the sheet and starts the fade.
+	**/
 	public function arrive():Void {
 		final root = root();
 
@@ -273,6 +507,9 @@ final class Preferences extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	/**
+		Accepts the settings and closes.
+	**/
 	public function saves():Void {
 		catching = -1;
 		learning = -1;
@@ -281,6 +518,9 @@ final class Preferences extends Widget {
 		if (onShut != null) onShut();
 	}
 
+	/**
+		Closes without accepting.
+	**/
 	public function cancels():Void {
 		for (row in 0...ROWS) {
 			if (row >= was.length || folded(row)) continue;
@@ -307,6 +547,11 @@ final class Preferences extends Widget {
 		if (onShut != null) onShut();
 	}
 
+	/**
+		Shows one group.
+
+		@param which Which group.
+	**/
 	public function shows(which:Int):Void {
 		if (which < 0 || which >= GROUPS || which == group) return;
 
@@ -318,10 +563,17 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return Whether there is a mapping to edit.
+	**/
 	public inline function mapped():Bool {
 		return group == MIDI && mapping != null;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which mapping slot is there, or -1.
+	**/
 	public function slotAt(py:Float):Int {
 		if (!mapped()) return -1;
 		if (py < y + head() || py >= y + head() + room()) return -1;
@@ -330,11 +582,22 @@ final class Preferences extends Widget {
 		return at < 0 || at >= mdd.app.Mapping.SLOTS ? -1 : at;
 	}
 
+	/**
+		Waits for a controller to move, and wires it to a slot.
+
+		@param slot Which slot.
+	**/
 	public function listens(slot:Int):Void {
 		learning = learning == slot ? -1 : slot;
 		invalidate();
 	}
 
+	/**
+		Takes a controller that moved while a slot was waiting.
+
+		@param control Which controller.
+		@return Whether it was wired to anything.
+	**/
 	public function hears(control:Int):Bool {
 		final held = mapping;
 
@@ -349,6 +612,11 @@ final class Preferences extends Widget {
 		return true;
 	}
 
+	/**
+		Unwires a mapping slot.
+
+		@param slot Which slot.
+	**/
 	public function forgets(slot:Int):Void {
 		final held = mapping;
 		if (held == null || slot < 0) return;
@@ -374,6 +642,10 @@ final class Preferences extends Widget {
 		return group == KEYBOARD && bindings != null;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which action is there, or -1.
+	**/
 	public function bindAt(py:Float):Int {
 		if (!binding()) return -1;
 		if (py < y + head() || py >= y + head() + room()) return -1;
@@ -382,11 +654,23 @@ final class Preferences extends Widget {
 		return at < 0 || at >= mdd.app.Bindings.COUNT ? -1 : at;
 	}
 
+	/**
+		Waits for a chord to be pressed, and gives it to an action.
+
+		@param action Which action.
+	**/
 	public function catches(action:Int):Void {
 		catching = catching == action ? -1 : action;
 		invalidate();
 	}
 
+	/**
+		Takes a chord that was pressed while an action was waiting.
+
+		@param code Which key.
+		@param mods Which modifiers were held.
+		@return Whether it was taken.
+	**/
 	public function binds(code:mdd.ui.Key, mods:Int):Bool {
 		if (bindings == null || catching < 0) return false;
 
@@ -403,6 +687,11 @@ final class Preferences extends Widget {
 		return true;
 	}
 
+	/**
+		Puts one chord back to its default.
+
+		@param action Which action.
+	**/
 	public function restores(action:Int):Void {
 		if (bindings == null || action < 0) return;
 
@@ -413,6 +702,9 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return Which rows the showing group holds.
+	**/
 	public inline function rowsIn():Array<Int> {
 		return GROUPED[group];
 	}
@@ -422,15 +714,24 @@ final class Preferences extends Widget {
 		return root == null ? 150 : root.metrics.whole(150);
 	}
 
+	/**
+		@return How tall the buttons along the bottom are.
+	**/
 	public function foot():Float {
 		final root = root();
 		return root == null ? 56 : root.metrics.whole(56);
 	}
 
+	/**
+		@return How much room the rows have.
+	**/
 	public function room():Float {
 		return height - head() - foot();
 	}
 
+	/**
+		@return How tall the rows are together, which decides whether it scrolls.
+	**/
 	public function content():Float {
 		if (binding()) return mdd.app.Bindings.COUNT * rowTall();
 
@@ -438,6 +739,11 @@ final class Preferences extends Widget {
 		return rows * rowTall();
 	}
 
+	/**
+		Scrolls the rows, clamped to them.
+
+		@param py How far down.
+	**/
 	public function scrollTo(py:Float):Void {
 		final most = content() - room();
 
@@ -458,20 +764,34 @@ final class Preferences extends Widget {
 		wantHeight = metrics == null ? 300 : head() + most * rowTall() + foot();
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 44 : root.metrics.whole(44);
 	}
 
+	/**
+		@return How tall the title band is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 46 : root.metrics.whole(46);
 	}
 
+	/**
+		@param row Which row.
+		@return Where that row draws in the showing group, or -1 where it is not in it.
+	**/
 	public function showing(row:Int):Int {
 		return holding(row);
 	}
 
+	/**
+		@param py A point, down.
+		@return Which row is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		if (py < y + head() || py >= y + head() + room()) return -1;
 
@@ -488,11 +808,17 @@ final class Preferences extends Widget {
 		return at < 0 || at >= GROUPS ? -1 : at;
 	}
 
+	/**
+		@return How wide a bottom button is.
+	**/
 	public function buttonWide():Float {
 		final root = root();
 		return root == null ? 110 : root.metrics.whole(110);
 	}
 
+	/**
+		@return How tall it is.
+	**/
 	public function buttonTall():Float {
 		final root = root();
 		return root == null ? 32 : root.metrics.control;
@@ -502,6 +828,11 @@ final class Preferences extends Widget {
 		return y + height - foot() + (foot() - buttonTall()) * 0.5;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which bottom button is there, or -1.
+	**/
 	public function buttonAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -521,6 +852,14 @@ final class Preferences extends Widget {
 		return -1;
 	}
 
+	/**
+		Shows what the MIDI port just sent, so a reader can see the port is the one
+		they meant.
+
+		@param at A MIDI note number.
+		@param channel Which channel it arrived on.
+		@param velocity How hard it was played.
+	**/
 	public function keyed(at:Int, channel:Int, velocity:Int):Void {
 		keyboardAt = at < 0 ? 0 : at;
 		keyboardChannel = channel < 0 ? 0 : channel;
@@ -534,6 +873,10 @@ final class Preferences extends Widget {
 		return out;
 	}
 
+	/**
+		@param row Which row.
+		@return What each choice on it is called.
+	**/
 	public function labels(row:Int):Array<Locale> {
 		return switch (row) {
 			case THEME: THEMES;
@@ -553,6 +896,10 @@ final class Preferences extends Widget {
 		}
 	}
 
+	/**
+		@param row Which row.
+		@return The choices on it that are not translated, such as the port names.
+	**/
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case TYPEFACE: Typeface.NAMES;
@@ -567,15 +914,28 @@ final class Preferences extends Widget {
 		}
 	}
 
+	/**
+		@param row Which row.
+		@return How many choices it offers.
+	**/
 	public function counted(row:Int):Int {
 		final keys = labels(row);
 		return keys.length > 0 ? keys.length : choices(row).length;
 	}
 
+	/**
+		@param row Which row.
+		@return Whether it is a folder rather than a set of choices.
+	**/
 	public inline function folded(row:Int):Bool {
 		return row == PROJECTS || row == PRESETS;
 	}
 
+	/**
+		@param row Which row.
+		@param which Which choice.
+		@return What that choice says.
+	**/
 	public function said(row:Int, which:Int):String {
 		if (folded(row)) {
 			final held = row == PROJECTS ? projectsAt : presetsAt;
@@ -599,6 +959,9 @@ final class Preferences extends Widget {
 		return which < 0 || which >= held.length ? "" : held[which];
 	}
 
+	/**
+		@return Where the choices start, across.
+	**/
 	public function fieldLeft():Float {
 		final root = root();
 		final metrics = root == null ? null : root.metrics;
@@ -607,6 +970,9 @@ final class Preferences extends Widget {
 		return x + sidebar() + (width - sidebar()) * 0.42 + inset;
 	}
 
+	/**
+		@return How wide they are.
+	**/
 	public function fieldWide():Float {
 		final root = root();
 		final metrics = root == null ? null : root.metrics;
@@ -615,11 +981,18 @@ final class Preferences extends Widget {
 		return x + width - inset - fieldLeft();
 	}
 
+	/**
+		@return How tall one is.
+	**/
 	public function fieldTall():Float {
 		final root = root();
 		return root == null ? 28 : root.metrics.whole(28);
 	}
 
+	/**
+		@param row Which row.
+		@return Which choice is taken.
+	**/
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case THEME: session.theme;
@@ -645,6 +1018,12 @@ final class Preferences extends Widget {
 		}
 	}
 
+	/**
+		Takes a choice on a row and applies it at once, so the sheet shows what it did.
+
+		@param row Which row.
+		@param which Which choice.
+	**/
 	public function chose(row:Int, which:Int):Void {
 		final root = root();
 
@@ -748,6 +1127,11 @@ final class Preferences extends Widget {
 		if (onKeep != null) onKeep();
 	}
 
+	/**
+		Asks for a folder for a row that names one.
+
+		@param row Which row.
+	**/
 	public function opens(row:Int):Void {
 		final root = root();
 		if (root == null || row < 0 || row >= ROWS) return;
@@ -830,6 +1214,10 @@ final class Preferences extends Widget {
 			- offsetY, this);
 	}
 
+	/**
+		@param row Which row.
+		@return Where it draws, down.
+	**/
 	public function rowTop(row:Int):Float {
 		final at = rowsIn().indexOf(row);
 		final which = at < 0 ? 0 : at;

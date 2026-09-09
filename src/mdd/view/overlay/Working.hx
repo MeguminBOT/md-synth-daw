@@ -11,19 +11,49 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The progress bar: what is running, how far through it is, and a way to stop it.
+
+	It lives in the band rather than the sheet layer, which is the one slot nothing
+	else can claim: raising any other overlay would otherwise lower it, and a progress
+	bar that can be lowered by something else is a window that looks frozen.
+
+	A task that does not know how far through it is sweeps instead of filling.
+**/
 final class Working extends Widget {
+	/**
+		How long one sweep takes, in seconds, for a task that cannot say how far through it
+		is.
+	**/
 	public static inline final SWEEP = 1.1;
 
+	/**
+		What is running.
+	**/
 	public var task:Null<Task> = null;
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		What to do when it is stopped, or null where it cannot be.
+	**/
 	public var onCancel:Null<Void -> Void> = null;
 
 	var over:Bool = false;
 	var swept:Float = 0;
 
+	/**
+		Builds a progress bar with nothing running.
+	**/
 	public function new() {
 		super();
 
@@ -35,6 +65,12 @@ final class Working extends Widget {
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Takes a task and starts the fade. With no root to animate against it is put
+		straight up, so a caller that draws one frame and then works sees it.
+
+		@param task What is running.
+	**/
 	public function arrive(task:Task):Void {
 		final root = root();
 
@@ -55,6 +91,12 @@ final class Working extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	/**
+		Moves the sweep on. Call once a frame.
+
+		@param since How long since the last call.
+		@return Whether the task is one that sweeps rather than fills.
+	**/
 	public function advance(since:Float):Bool {
 		if (task == null) return false;
 
@@ -86,6 +128,11 @@ final class Working extends Widget {
 		return root == null ? 120 : root.metrics.whole(120);
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the stop button.
+	**/
 	public function onButton(px:Float, py:Float):Bool {
 		if (!cancels()) return false;
 
@@ -123,6 +170,9 @@ final class Working extends Widget {
 		return true;
 	}
 
+	/**
+		Asks the task to stop.
+	**/
 	public function stops():Void {
 		if (task == null || !task.cancellable) return;
 
@@ -132,6 +182,9 @@ final class Working extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return How tall the bar itself is.
+	**/
 	public function barTall():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);

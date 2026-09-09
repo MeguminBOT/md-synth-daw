@@ -10,13 +10,35 @@ import mdd.ui.Widget;
 import mdd.ui.control.Field;
 
 @:unreflective
+
+/**
+	The sheet that asks for one line of text: a name for a pattern, a track, a preset
+	or its tags.
+**/
 final class Naming extends Widget {
+	/**
+		What is typed.
+	**/
 	public final field:Field;
 
+	/**
+		What is being asked for.
+	**/
 	public var asking(default, null):String = "";
+
+	/**
+		Called with what was typed, where it was accepted.
+	**/
 	public var onName:Null<String -> Void> = null;
+
+	/**
+		Called when it closes either way.
+	**/
 	public var onShut:Null<Void -> Void> = null;
 
+	/**
+		Builds an empty sheet.
+	**/
 	public function new() {
 		super();
 
@@ -29,6 +51,13 @@ final class Naming extends Widget {
 		field.onCommit = function(said:String):Void committed(said);
 	}
 
+	/**
+		Asks for a line, with the whole of what is there already selected so typing
+		replaces it.
+
+		@param asking What is being asked for.
+		@param value What is there now.
+	**/
 	public function ask(asking:String, value:String):Void {
 		this.asking = asking;
 

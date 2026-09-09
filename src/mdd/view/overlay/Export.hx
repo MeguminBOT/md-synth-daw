@@ -15,14 +15,45 @@ import mdd.ui.control.Field;
 import mdd.ui.control.Number;
 
 @:unreflective
+
+/**
+	The export sheet: the format, the rate, the depth, the padding, the fade, the
+	normalising, the output stage and the metadata.
+
+	It carries its own `Mixing` rather than reading the one in preferences, so choosing
+	a different output stage for one export does not change what is monitored.
+**/
 final class Export extends Widget {
+	/**
+		Row: which format to write.
+	**/
 	public static inline final FORMAT = 0;
+
+	/**
+		Row: the sample rate.
+	**/
 	public static inline final RATE = 1;
+
+	/**
+		Row: bits per sample.
+	**/
 	public static inline final DEPTH = 2;
+
+	/**
+		Row: mono or stereo.
+	**/
 	public static inline final SIDES = 3;
 	static inline final LEAD = 4;
+
+	/**
+		Row: how much silence after the piece.
+	**/
 	public static inline final TAIL = 5;
 	static inline final FADE = 6;
+
+	/**
+		Row: where the loudest sample lands.
+	**/
 	public static inline final CEILING = 7;
 	static inline final DITHER = 8;
 	static inline final QUALITY = 9;
@@ -30,9 +61,20 @@ final class Export extends Widget {
 	static inline final OPUS_MODE = 11;
 	static inline final OPUS_SPAN = 12;
 	static inline final OPUS_BITRATE = 13;
+
+	/**
+		How many rows there are.
+	**/
 	public static inline final KINDS = 14;
 
+	/**
+		How many metadata fields there are.
+	**/
 	public static inline final FIELDS = 5;
+
+	/**
+		How many of the rows are times typed in seconds rather than chosen.
+	**/
 	public static inline final TIMED = 3;
 
 	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
@@ -77,20 +119,56 @@ final class Export extends Widget {
 	static final LEADS:Array<String> = ["0", "0.5 s", "1 s", "2 s"];
 	static final TAILED:Array<String> = ["0", "1 s", "2 s", "4 s"];
 
+	/**
+		The session to read.
+	**/
 	public var session:Session;
+
+	/**
+		What this export is set to. It is this sheet's own copy.
+	**/
 	public final mixing:Mixing = new Mixing();
 
 	var picked:Bool = false;
 
+	/**
+		The metadata fields.
+	**/
 	public final fields:Array<Field> = [];
+
+	/**
+		The typed times.
+	**/
 	public final timers:Array<Number> = [];
+
+	/**
+		The button that starts the export.
+	**/
 	public final go:Button;
+
+	/**
+		The button that closes the sheet.
+	**/
 	public final stop:Button;
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Called with the settings when the export is started.
+	**/
 	public var onExport:Null<Mixing -> Void> = null;
+
+	/**
+		Called when the sheet closes.
+	**/
 	public var onShut:Null<Void -> Void> = null;
 
 	var hoverAt:Int = -1;
@@ -98,6 +176,11 @@ final class Export extends Widget {
 
 	final showing:Array<Int> = [];
 
+	/**
+		Builds the sheet and every field on it.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -158,11 +241,18 @@ final class Export extends Widget {
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
 	}
 
+	/**
+		@return How many rows are shown, which depends on the format: bit depth and dither mean
+			nothing to a format that does not carry whole samples.
+	**/
 	public function rows():Int {
 		if (showing.length == 0) ordered();
 		return showing.length;
 	}
 
+	/**
+		Shows the sheet and reads the settings into it.
+	**/
 	public function ask():Void {
 		ordered();
 
@@ -208,16 +298,25 @@ final class Export extends Widget {
 		if (onShut != null) onShut();
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 42 : root.metrics.whole(42);
 	}
 
+	/**
+		@return How tall a metadata field is.
+	**/
 	public function fieldTall():Float {
 		final root = root();
 		return root == null ? 40 : root.metrics.whole(40);
 	}
 
+	/**
+		@return How tall the title band is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 46 : root.metrics.whole(46);
@@ -265,6 +364,10 @@ final class Export extends Widget {
 		go.arrange(x + width - metrics.inset - wide, bottom, wide, metrics.control);
 	}
 
+	/**
+		@param row Which row.
+		@return What each choice on it is called.
+	**/
 	public function labels(row:Int):Array<Locale> {
 		return switch (row) {
 			case SIDES: SIDINGS;
@@ -276,6 +379,10 @@ final class Export extends Widget {
 		}
 	}
 
+	/**
+		@param row Which row.
+		@return The choices on it that are not translated, such as the rates.
+	**/
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
@@ -290,6 +397,10 @@ final class Export extends Widget {
 		}
 	}
 
+	/**
+		@param row Which row.
+		@return How many choices it offers.
+	**/
 	public function counted(row:Int):Int {
 		final keys = labels(row);
 		return keys.length > 0 ? keys.length : choices(row).length;
@@ -306,6 +417,10 @@ final class Export extends Widget {
 		return ["16", "24", "32"];
 	}
 
+	/**
+		@param row Which row.
+		@return Which choice is taken.
+	**/
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case FORMAT: mixing.kind;
@@ -347,10 +462,22 @@ final class Export extends Widget {
 		return best;
 	}
 
+	/**
+		Takes the output stage the preferences are set to, for a sheet that has not
+		been given one of its own yet.
+
+		@param which Which output stage.
+	**/
 	public function follows(which:Int):Void {
 		if (!picked) mixing.console = which;
 	}
 
+	/**
+		Takes a choice on a row, and hides the rows it makes meaningless.
+
+		@param row Which row.
+		@param which Which choice.
+	**/
 	public function chose(row:Int, which:Int):Void {
 		switch (row) {
 			case FORMAT: mixing.kind = which;
@@ -384,6 +511,10 @@ final class Export extends Widget {
 		relayout();
 	}
 
+	/**
+		@param py A point, down.
+		@return Which row is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y - head()) / rowTall());
 		if (at < 0 || at >= rows()) return -1;

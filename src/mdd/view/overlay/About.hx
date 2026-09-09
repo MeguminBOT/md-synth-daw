@@ -11,6 +11,11 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The about sheet: what this is, what it was built with, and what it ships that it
+	did not write.
+**/
 final class About extends Widget {
 	static final SOURCES:Array<String> = ["SDL3", "miniaudio", "stb_truetype", "libogg",
 		"libvorbis", "libopus"];
@@ -18,11 +23,24 @@ final class About extends Widget {
 	static final LICENCES:Array<String> = ["zlib", "MIT-0", "public domain", "BSD-3", "BSD-3",
 		"BSD-3"];
 
+	/**
+		Called when it closes.
+	**/
 	public var onShut:Null<Void -> Void> = null;
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Builds the sheet.
+	**/
 	public function new() {
 		super();
 
@@ -33,6 +51,9 @@ final class About extends Widget {
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Starts the fade and the rise.
+	**/
 	public function arrive():Void {
 		final root = root();
 		if (root == null) return;
@@ -44,11 +65,17 @@ final class About extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	/**
+		@return How tall the title band is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 58 : root.metrics.whole(58);
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 20 : root.metrics.whole(20);

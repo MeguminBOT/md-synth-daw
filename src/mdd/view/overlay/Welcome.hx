@@ -13,24 +13,62 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The first run sheet: which language to speak, and whether automation is edited as
+	lanes or as clips.
+**/
 final class Welcome extends Widget {
+	/**
+		The session to read.
+	**/
 	public var session:Session;
+
+	/**
+		The languages that ship, in order.
+	**/
 	public final languages:Array<String> = Languages.shipped();
 
+	/**
+		Which language is chosen.
+	**/
 	public var chosen(default, null):Int = 0;
+
+	/**
+		Which way automation is edited.
+	**/
 	public var automating(default, null):Int = Session.LANES;
 
 	static inline final WAYS = 2;
 
+	/**
+		How far it has risen into place.
+	**/
 	public final rise:Motion;
+
+	/**
+		How far it has faded in.
+	**/
 	public final fade:Motion;
 
+	/**
+		Called as the language is picked, so the sheet reads in it at once.
+	**/
 	public var onChoose:Null<String -> Void> = null;
+
+	/**
+		Called when the sheet is closed and the answers are kept.
+	**/
 	public var onStart:Null<String -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var hoverStart:Bool = false;
 
+	/**
+		Builds the sheet.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -42,6 +80,11 @@ final class Welcome extends Widget {
 		fade = new Motion(this, 0, false);
 	}
 
+	/**
+		Shows the sheet with a language already picked.
+
+		@param code The language to start on.
+	**/
 	public function arrive(code:String):Void {
 		final root = root();
 		if (root == null) return;
@@ -56,6 +99,9 @@ final class Welcome extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	/**
+		@return The chosen language code.
+	**/
 	public function code():String {
 		return languages.length == 0 ? "en-GB" : languages[chosen];
 	}
@@ -70,6 +116,9 @@ final class Welcome extends Widget {
 			+ metrics.whole(60);
 	}
 
+	/**
+		@return How tall one language row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 34 : root.metrics.whole(34);
@@ -85,6 +134,10 @@ final class Welcome extends Widget {
 		return root == null ? 34 : root.metrics.whole(34);
 	}
 
+	/**
+		@param py A point, down.
+		@return Which language is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y - head()) / rowTall());
 		return at < 0 || at >= languages.length ? -1 : at;
@@ -109,6 +162,11 @@ final class Welcome extends Widget {
 		return at < 0 || at >= WAYS ? -1 : at;
 	}
 
+	/**
+		Picks a language and speaks it at once, so the sheet is read in it.
+
+		@param which Which language.
+	**/
 	public function picks(which:Int):Void {
 		if (which < 0 || which >= WAYS) return;
 
@@ -118,6 +176,11 @@ final class Welcome extends Widget {
 		invalidate();
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the button that closes the sheet.
+	**/
 	public function onButton(px:Float, py:Float):Bool {
 		final root = root();
 		if (root == null) return false;
