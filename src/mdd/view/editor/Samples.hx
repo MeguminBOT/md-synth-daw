@@ -16,15 +16,40 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The sample editor: the waveform, where it starts and ends, and the slots of the
+	kit it belongs to.
+**/
 final class Samples extends Widget {
+	/**
+		How many columns the waveform is reduced to, whatever it holds.
+	**/
 	public static inline final COLUMNS = 512;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Which slot of the kit is chosen.
+	**/
 	public var chosen(default, null):Int = 0;
+
+	/**
+		Where the sample starts, in bytes.
+	**/
 	public var start:Int = 0;
+
+	/**
+		Where it ends, or -1 for the whole of it.
+	**/
 	public var ends:Int = -1;
 
+	/**
+		How many columns the last frame drew.
+	**/
 	public var painted(default, null):Int = 0;
 
 	final drawn:Vector<Float> = new Vector<Float>(COLUMNS * 2);
@@ -32,6 +57,11 @@ final class Samples extends Widget {
 	var grabbing:Int = -1;
 	var hoverAt:Int = -1;
 
+	/**
+		Builds the editor.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -40,20 +70,33 @@ final class Samples extends Widget {
 		opaque = true;
 	}
 
+	/**
+		@return The chosen sample, or null where the slot is empty.
+	**/
 	public function sample():Null<Sample> {
 		return session.song.sampleAt(chosen);
 	}
 
+	/**
+		@return How tall the header is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.head;
 	}
 
+	/**
+		@return How tall the slot list is.
+	**/
 	public function slots():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.row;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which slot is there, or -1.
+	**/
 	public function slotAt(py:Float):Int {
 		final at = Std.int((py - y - head()) / slots());
 		return at < 0 || at >= session.song.samples.length ? -1 : at;
@@ -76,6 +119,9 @@ final class Samples extends Widget {
 		return listed < floor ? listed : floor;
 	}
 
+	/**
+		What says how much sample room the machine has, so the bar can show what is left.
+	**/
 	public var budget:Null<mdd.check.Budget> = null;
 	var menu:Null<Menu> = null;
 
@@ -83,6 +129,9 @@ final class Samples extends Widget {
 		return Math.round(bytes / 1024 * 10) / 10;
 	}
 
+	/**
+		Called to import a wave file into the chosen slot.
+	**/
 	public var onImport:Null<Void -> Void> = null;
 
 	function popped(slot:Int, px:Float, py:Float):Void {
@@ -150,6 +199,9 @@ final class Samples extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return The instrument in the chosen slot, by index, or -1.
+	**/
 	public function held():Int {
 		var total = 0;
 		for (sample in session.song.samples) total += sample.length();
@@ -228,6 +280,9 @@ final class Samples extends Widget {
 		return false;
 	}
 
+	/**
+		Cuts the sample down to what is between the start and the end.
+	**/
 	public function trim():Void {
 		final sample = sample();
 		if (sample == null) return;
@@ -251,6 +306,9 @@ final class Samples extends Widget {
 		invalidate();
 	}
 
+	/**
+		Scales the sample so its loudest byte reaches full.
+	**/
 	public function normalise():Void {
 		final sample = sample();
 		if (sample == null || sample.length() == 0) return;

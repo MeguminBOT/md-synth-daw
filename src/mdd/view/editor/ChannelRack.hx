@@ -19,11 +19,25 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The eleven parts down the side: what each plays, whether it is muted or soloed, its
+	volume and pan, and how loud it is now.
+**/
 final class ChannelRack extends Widget {
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		How loud each part is, for the meters.
+	**/
 	public final levels:Vector<Float> = new Vector<Float>(Part.COUNT);
 
+	/**
+		How far the rack is scrolled.
+	**/
 	public var offsetY:Float = 0;
 
 	static inline final PAN = 128;
@@ -37,6 +51,11 @@ final class ChannelRack extends Widget {
 	var menu:Null<Menu> = null;
 	var menuFor:Int = -1;
 
+	/**
+		Builds the rack.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -56,6 +75,11 @@ final class ChannelRack extends Widget {
 		return px >= left && px < left + metrics.whole(from == PAN ? PAN_WIDE : MARK);
 	}
 
+	/**
+		Opens the menu for one part.
+
+		@param at Which part.
+	**/
 	public function turned(at:Int):Void {
 		final part:Part = at;
 		if (!part.fm()) return;
@@ -79,6 +103,9 @@ final class ChannelRack extends Widget {
 		}
 	}
 
+	/**
+		@return How tall one part row is.
+	**/
 	public function rowHeight():Float {
 		final root = root();
 		if (root == null) return 34;
@@ -92,6 +119,10 @@ final class ChannelRack extends Widget {
 		return room < floor ? floor : Math.ffloor(room);
 	}
 
+	/**
+		@param py A point, down.
+		@return Which part is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		if (py < y + header()) return -1;
 
@@ -99,6 +130,10 @@ final class ChannelRack extends Widget {
 		return at < 0 || at >= Part.COUNT ? -1 : at;
 	}
 
+	/**
+		@param index Which part.
+		@return Where its row draws, down.
+	**/
 	public inline function atRow(index:Int):Float {
 		return y + header() + index * rowHeight() - offsetY;
 	}
@@ -107,6 +142,11 @@ final class ChannelRack extends Widget {
 		return Part.COUNT * rowHeight();
 	}
 
+	/**
+		Scrolls the rack, clamped to its contents.
+
+		@param py How far down.
+	**/
 	public function scrollTo(py:Float):Void {
 		final most = contentTall() - (height - header());
 
