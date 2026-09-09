@@ -39,12 +39,14 @@ jobs:
             runs-on: ubuntu-latest
             container: debian:trixie
             haxe: apt
+            wrap: xvfb-run -a
             artifact: mdd-linux-x86_64
 
           - name: Linux arm64
             runs-on: ubuntu-24.04-arm
             container: debian:trixie
             haxe: apt
+            wrap: xvfb-run -a
             artifact: mdd-linux-arm64
 
           - name: macOS x86-64
@@ -72,7 +74,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             ca-certificates curl git unzip xz-utils \
             clang lld llvm g++ make \
-            libsdl3-dev haxe neko
+            libsdl3-dev haxe neko xvfb xauth
 
       - uses: actions/checkout@v7.0.1
 
@@ -111,8 +113,11 @@ jobs:
           sed -i '' 's/#if defined(MACOS) || defined(TARGET_OS_MAC)/#if defined(MACOS)/' "$zutil"
           grep -n 'defined(MACOS)' "$zutil"
 
+      # --nuked fetches the reference FM core. It is never linked into anything
+      # and never shipped, but without it mdd gate chip does not run at all, and
+      # that check is the one the accuracy claim rests on.
       - name: Fetch the vendored sources
-        run: ./mdd setup
+        run: ./mdd setup --nuked
 
       - name: Report what is present
         run: ./mdd check
@@ -124,9 +129,11 @@ jobs:
         if: inputs.gate
         run: ./mdd build gate ${{ inputs.debug && '-debug' || '' }}
 
+      # Seven gate programs open a real window, and a Linux runner has no display,
+      # so SDL finds no video device and the gate fails rather than being skipped.
       - name: Run the gate
         if: inputs.gate
-        run: ./mdd gate
+        run: ${{ matrix.wrap }} ./mdd gate
 
       - name: Package
         run: ./mdd package portable
