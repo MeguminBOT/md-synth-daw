@@ -30,6 +30,7 @@ class MixCheck {
 		kitted();
 		consoled(into);
 		voiced();
+		rested();
 		ceilinged();
 		gridded();
 		nudged();
@@ -578,9 +579,61 @@ class MixCheck {
 			if (size > loudest) loudest = size;
 		}
 
-		says("six channels of shipped patches fill the range", loudest > 0.3,
+		says("six channels of shipped patches leave room above them",
+			loudest > 0.02 && loudest < 0.5,
 			"a shortcut across every fm channel using the built in patches peaks at "
-			+ decibels(loudest) + " dBFS");
+			+ decibels(loudest) + " dBFS, which the monitoring fader can lift to the top");
+	}
+
+	static function rested():Void {
+		final song = new Song("rest", 96, 120);
+		mdd.song.Shipped.into(song);
+
+		var loudest = 127;
+		var counted = 0;
+		var first:mdd.song.Patch = null;
+
+		for (instrument in song.instruments) {
+			final patch = instrument.patch;
+			if (patch == null) continue;
+
+			if (first == null) first = patch;
+			counted++;
+
+			for (slot in 0...mdd.song.Patch.SLOTS) {
+				if (!patch.carries(slot)) continue;
+				if (patch.totalLevel[slot] < loudest) loudest = patch.totalLevel[slot];
+			}
+		}
+
+		says("a preset rests where a driver rests",
+			counted > 0 && loudest == mdd.song.Patch.REST,
+			counted + " presets, and the loudest carrier across all of them stands at "
+			+ loudest + " against the " + mdd.song.Patch.REST + " a key on is measured at");
+
+		var slot = 0;
+		while (slot < mdd.song.Patch.SLOTS && !first.carries(slot)) slot++;
+
+		final full = mdd.play.Stream.levelOf(first, slot, 127);
+		final played = mdd.play.Stream.levelOf(first, slot, 100);
+
+		says("and a velocity attenuates from there",
+			full == mdd.song.Patch.REST && played > full,
+			"a full velocity keys on at " + full + " and a velocity of 100 at "
+			+ played + ", which is " + round((played - full) * 0.75, 2)
+			+ " dB under it");
+
+		final made = new mdd.song.Patch();
+		var built = 127;
+
+		for (which in 0...mdd.song.Patch.SLOTS) {
+			if (!made.carries(which)) continue;
+			if (made.totalLevel[which] < built) built = made.totalLevel[which];
+		}
+
+		says("and a patch built from nothing starts there too",
+			built == mdd.song.Patch.REST,
+			"a new patch carries " + built + " on its carrier");
 	}
 
 	static function gridded():Void {
