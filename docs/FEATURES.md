@@ -4,6 +4,11 @@ The README is the short version. This is the long one: every feature the applica
 honest list of what it does not have and why. If something is not on this page, assume it is not
 there.
 
+The workflow draws on FL Studio: patterns written once and placed as clips on a playlist, a channel
+rack down the side, and a piano roll with parameter lanes underneath it. If you have written music
+that way before, you already know where things are. What those parts are wired to is the Mega
+Drive, and that is where the resemblance stops.
+
 - [Composing](#composing)
 - [The eleven parts](#the-eleven-parts)
 - [Instrument editors](#instrument-editors)
