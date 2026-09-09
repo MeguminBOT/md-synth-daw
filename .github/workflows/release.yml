@@ -126,6 +126,19 @@ jobs:
       - name: Install hxcpp
         run: haxelib install hxcpp --quiet --always
 
+      # hxcpp bundles zlib 1.2.11 and builds it from source on macOS, where there
+      # is no prebuilt runtime for arm64. That zlib poisons fdopen whenever
+      # TARGET_OS_MAC is defined, which every current Apple SDK does, and the
+      # poisoned macro then breaks the declaration in <stdio.h>. Upstream fixed
+      # it in 1.2.12; drop this step once hxcpp ships a zlib that new.
+      - name: Unpoison the zlib hxcpp bundles
+        if: matrix.haxe == 'brew'
+        run: |
+          zutil="$(haxelib path hxcpp | head -1)/project/thirdparty/zlib-1.2.11/zutil.h"
+          test -f "$zutil"
+          sed -i '' 's/#if defined(MACOS) || defined(TARGET_OS_MAC)/#if defined(MACOS)/' "$zutil"
+          grep -n 'defined(MACOS)' "$zutil"
+
       - name: Fetch the vendored sources
         run: ./mdd setup
 
