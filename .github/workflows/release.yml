@@ -110,6 +110,20 @@ jobs:
         if: matrix.haxe == 'brew'
         run: brew install haxe sdl3
 
+      # If macOS breaks again, this is what the next round needs to know, so the
+      # log answers it rather than costing another run to find out.
+      - name: Say where SDL3 landed
+        if: matrix.haxe == 'brew'
+        run: |
+          echo "brew prefix: $(brew --prefix)"
+          echo "sdl3 prefix: $(brew --prefix sdl3 2>&1)"
+          echo "header:"
+          ls -l "$(brew --prefix)/include/SDL3/SDL.h" 2>&1 || true
+          ls -l "$(brew --prefix sdl3)/include/SDL3/SDL.h" 2>&1 || true
+          echo "library:"
+          ls -l "$(brew --prefix)/lib/libSDL3"* 2>&1 || true
+          echo "sdk: $(xcrun --show-sdk-path 2>&1), version $(xcrun --show-sdk-version 2>&1)"
+
       - uses: krdlab/setup-haxe@v2.1.0
         if: matrix.haxe == 'action'
         with:
