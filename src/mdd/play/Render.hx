@@ -1,3 +1,31 @@
+/*
+	MD Synth DAW
+	https://github.com/MeguminBOT/md-synth-daw
+
+	MIT License
+
+	Copyright (c) 2026 MeguminBOT and the md-synth-daw contributors
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+	SPDX-License-Identifier: MIT
+*/
 package mdd.play;
 
 import haxe.ds.Vector;
@@ -8,16 +36,56 @@ import mdd.host.Device;
 import mdd.host.Sdl;
 import mdd.song.Tempo;
 
+/**
+	The render thread: two chips, a resampler, the output stage the console puts after
+	them, and the device the result is served to.
+
+	Everything reachable from `serve` runs on the audio thread, and it allocates
+	nothing: `haxe.ds.Vector` for all state, no closures, no `Dynamic`, no array
+	growth, no string building. A pause here is heard. It reaches a collector safe
+	point once per block rather than declaring itself outside the collector, which
+	frees what only this thread is holding.
+
+	The same class does the offline render an export needs, which is what makes an
+	export the same sound as playback rather than a second path that could drift.
+**/
 @:unreflective
 final class Render {
+	/**
+		Frames per block, which is the unit everything here works in.
+	**/
 	public static inline final BLOCK = 128;
+
+	/**
+		The corner of the coupling capacitor on the real board, in hertz. It is the one
+		filter here that is not an effect: the hardware has it whether or not anyone wants
+		it.
+	**/
 	static inline final COUPLED = 17.569;
 
+	/**
+		Output stage: the chips alone, with nothing after them.
+	**/
 	public static inline final CHIP = 0;
+
+	/**
+		Output stage: a Mega Drive, which rolls off above three and a bit kilohertz.
+	**/
 	public static inline final MODEL_ONE = 1;
+
+	/**
+		Output stage: a Mega Drive 2, which rolls off much higher and so sounds brighter.
+	**/
 	public static inline final MODEL_TWO = 2;
+
+	/**
+		How many output stages there are.
+	**/
 	public static inline final CONSOLES = 3;
 
+	/**
+		The roll off corner of each output stage, in hertz. Nought means no roll off.
+	**/
 	static final CORNERS:Array<Float> = [0, 3300.0, 7100.0];
 
 	static inline final MATCHED = 0.8;
@@ -33,6 +101,10 @@ final class Render {
 	var rawLeft:Float = 0;
 	var rawRight:Float = 0;
 
+	/**
+		Which output stage the render goes through. Setting it refits the filter, and a
+		value outside the range is clamped rather than refused.
+	**/
 	public var console(default, set):Int = MODEL_ONE;
 
 	function set_console(want:Int):Int {
@@ -42,6 +114,9 @@ final class Render {
 		return console;
 	}
 
+	/**
+		Refits the roll off filter for the current output stage and rate.
+	**/
 	function rolled():Void {
 		if (rate <= 0) return;
 
@@ -81,49 +156,144 @@ final class Render {
 		rollZero = zero;
 		rollGain = (1 - pole) / (1 - zero);
 	}
+
+	/**
+		What the summed chips reach at their loudest, and so what the float output is
+		scaled by.
+	**/
 	public static inline final FULL_SCALE = 2560.0;
 	static inline final SCALE = 1.0 / FULL_SCALE;
+
+	/**
+		How much audio is written before the device is started. A WASAPI device asks for
+		more in its first few callbacks than the buffer size it reports, and priming
+		exactly the reported size underran three times in the first quarter second, every
+		run, and never again after.
+	**/
 	static inline final PRIMED = 0.100;
 
+	/**
+		How many samples the scope can read back.
+	**/
 	public static inline final TAPS = 2048;
+
+	/**
+		One in this many samples is kept for the scope.
+	**/
 	public static inline final TAP_EVERY = 4;
 	static inline final FM_TAP = 1.0 / 200.0;
 	static inline final PSG_TAP = 1.0 / 340.0;
 
+	/**
+		The ring the scope reads. Written on the render thread and read on the main one,
+		which is safe because a stale sample in a waveform is not a fault.
+	**/
 	public final taps:haxe.ds.Vector<cpp.Float32> =
 		new haxe.ds.Vector<cpp.Float32>(mdd.song.Part.COUNT * TAPS);
 
+	/**
+		How many samples have been put in `taps` since the start.
+	**/
 	public var tapped(default, null):Int = 0;
+
+	/**
+		How many frames the device has in hand.
+	**/
 	public var cushion(default, null):Int = 0;
+
+	/**
+		How many times the device asked for audio that was not there. Anything but nought
+		is an underrun and is heard.
+	**/
 	public var dropped(default, null):Int = 0;
+
+	/**
+		The smallest the cushion has been since it was last forgotten.
+	**/
 	public var leastHeld(default, null):Int = 0;
 	var tapNext:Int = 0;
 
+	/**
+		The FM part this render drives.
+	**/
 	public final ym:Ym2612 = new Ym2612();
+
+	/**
+		The square part this render drives.
+	**/
 	public final psg:Sn76489 = new Sn76489();
+
+	/**
+		Where register writes arrive from the main thread.
+	**/
 	public final queue:Queue;
 
+	/**
+		The output rate in hertz. Both chips run at their own rates and are resampled to
+		this one.
+	**/
 	public var rate(default, null):Int;
+
+	/**
+		Frames per block for this render.
+	**/
 	public var frames(default, null):Int;
 
+	/**
+		How many frames have been produced since the start.
+	**/
 	public var made(default, null):Int = 0;
+
+	/**
+		Where in the song the device is actually playing, which is behind what has been
+		produced by whatever the cushion holds.
+	**/
 	public var heardAt(default, null):Int = 0;
 
+	/**
+		The loudest sample since the peak was last forgotten.
+	**/
 	public var peak(default, null):Float = 0;
+
+	/**
+		How many samples went past full scale.
+	**/
 	public var clipped(default, null):Int = 0;
+
+	/**
+		Monitoring gain. It changes what is heard and never what is exported.
+	**/
 	public var monitor:Float = 1;
 
+	/**
+		How many keyed state snapshots are kept, one per block.
+	**/
 	public static inline final SNAPS = 96;
 
+	/**
+		What is keyed right now, for the meters and the channel rack.
+	**/
 	public final sounding:Sounding = new Sounding();
 
 	final snapAt:Vector<Int> = new Vector<Int>(SNAPS);
 	final snapNote:Vector<Int> = new Vector<Int>(SNAPS * mdd.song.Part.COUNT);
 	final snapKeyed:Vector<Bool> = new Vector<Bool>(SNAPS * mdd.song.Part.COUNT);
 	var snapNext:Int = 0;
+
+	/**
+		How many register writes this render has taken.
+	**/
 	public var writes(default, null):Int = 0;
+
+	/**
+		How far through the stream an offline render has read. Held as a field rather than
+		a local because the collector traces a field and may not trace a register.
+	**/
 	public var poured(default, null):Int = 0;
 
+	/**
+		The block being filled, interleaved stereo.
+	**/
 	public final block:Vector<cpp.Float32>;
 
 	final fmStep:Float;
@@ -140,19 +310,38 @@ final class Render {
 	var heldLeft:Float = 0;
 	var heldRight:Float = 0;
 
+	/**
+		The transport this render reports its position to, where there is one.
+	**/
 	public var transport:Null<Transport> = null;
 
 	var device:cpp.Star<Device> = null;
 	var alive:Bool = false;
 
+	/**
+		Whether the device is started.
+	**/
 	public var running(default, null):Bool = false;
+
+	/**
+		How many blocks have been served.
+	**/
 	public var blocks(default, null):Int = 0;
 	var worstHeld(default, null):Int = 0;
 
+	/**
+		The resampler pass band, in hertz.
+	**/
 	static inline final BAND = 19845.0;
 
+	/**
+		How many fractional phases the resampler kernel is built for.
+	**/
 	static inline final PHASES = 32;
 
+	/**
+		Taps per phase of the resampler kernel.
+	**/
 	static inline final WEIGHTS = 512;
 
 	static inline final SQUARES = 384;
@@ -168,6 +357,13 @@ final class Render {
 
 	var squareAt:Int = 0;
 
+	/**
+		Builds a render and its resampler kernel.
+
+		@param rate The output rate in hertz. Anything at or below nought becomes 48000.
+		@param frames Frames per block. Anything at or below nought becomes `BLOCK`.
+		@param queue Where register writes arrive from, or null for a queue of its own.
+	**/
 	public function new(rate:Int, frames:Int = BLOCK, queue:Null<Queue> = null) {
 		this.rate = rate <= 0 ? 48000 : rate;
 		this.frames = frames <= 0 ? BLOCK : frames;
@@ -183,6 +379,9 @@ final class Render {
 		shaped();
 	}
 
+	/**
+		Builds the resampler kernel, once, in the constructor.
+	**/
 	function shaped():Void {
 		final chip = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
 
@@ -250,6 +449,9 @@ final class Render {
 		for (index in 0...SQUARES) squarePast[index] = 0;
 	}
 
+	/**
+		Both chips back to power on, the filters cleared, and every counter at nought.
+	**/
 	public function reset():Void {
 		ym.reset();
 		psg.reset();
@@ -282,6 +484,11 @@ final class Render {
 		for (index in 0...SNAPS) snapAt[index] = -1;
 	}
 
+	/**
+		Takes everything waiting in the queue and applies it to the chips.
+
+		@return How many writes were taken.
+	**/
 	public function drain():Int {
 		var took = 0;
 
@@ -299,10 +506,32 @@ final class Render {
 		return took;
 	}
 
+	/**
+		Renders frames with no register writes at all, which is what silence needs.
+
+		@param count How many frames to render, capped at one block.
+		@return How many frames were actually rendered.
+	**/
 	public function fill(count:Int):Int {
 		return serve(null, 0, count);
 	}
 
+	/**
+		Renders one span into `block`. Runs both chips at their own rates, applies each
+		register write at its own sample, resamples to the output rate, and puts the
+		result through the output stage.
+	
+		This is the audio thread. It allocates nothing and it reaches a collector safe
+		point once a block.
+
+		@param stream The writes to apply, or null to render silence.
+		@param from Where in the span the first frame sits, in output samples.
+		@param count How many frames to render, capped at one block.
+		@param carry How many samples of the previous span to carry over, for a render that is not
+			starting fresh.
+		@param fresh Whether to start reading the stream from its beginning again.
+		@return How many frames were rendered.
+	**/
 	public function serve(stream:Null<Stream>, from:Int, count:Int, carry:Int = 0,
 			fresh:Bool = false):Int {
 		final many = count > frames ? frames : count;
@@ -451,6 +680,10 @@ final class Render {
 		writes++;
 	}
 
+	/**
+		Records what is keyed now, so the interface can read back what was sounding at a
+		position the device has already played.
+	**/
 	public function snapped():Void {
 		final at = snapNext % SNAPS;
 		snapAt[at] = made;
@@ -463,6 +696,14 @@ final class Render {
 		snapNext++;
 	}
 
+	/**
+		Reads back the keyed state at a position, from the snapshots.
+
+		@param position A position in output samples from the start.
+		@param into Filled in with what was keyed there.
+		@return False where the position is older than anything still kept, leaving `into`
+			untouched.
+	**/
 	public function litAt(position:Int, into:Sounding):Bool {
 		var best = -1;
 		var found = -1;
@@ -500,19 +741,36 @@ final class Render {
 		tapped++;
 	}
 
+	/**
+		Forgets the peak and the clip count.
+	**/
 	public function forgetPeak():Void {
 		peak = 0;
 		clipped = 0;
 	}
 
+	/**
+		@param value A sample.
+		@return The same sample held to plus or minus one.
+	**/
 	static inline function clamped(value:Float):cpp.Float32 {
 		return value > 1 ? 1 : (value < -1 ? -1 : value);
 	}
 
+	/**
+		@return A raw pointer to the block, for the device to read without copying.
+	**/
 	public inline function pointer():cpp.RawConstPointer<cpp.Float32> {
 		return cpp.Pointer.arrayElem(block.toData(), 0).constRaw;
 	}
 
+	/**
+		Primes the ring and starts the device. The device is opened stopped, so it never
+		plays what has not been written yet.
+
+		@param device The audio device to serve.
+		@return False where it is already running or the device is null.
+	**/
 	public function start(device:cpp.Star<Device>):Bool {
 		if (running || device == null) return false;
 
@@ -546,6 +804,9 @@ final class Render {
 		return true;
 	}
 
+	/**
+		Stops the device and lets the render thread finish.
+	**/
 	public function stop():Void {
 		alive = false;
 		while (running) Sdl.sleep(0.0005);
@@ -554,6 +815,9 @@ final class Render {
 		device = null;
 	}
 
+	/**
+		Hands whatever is ready to the device.
+	**/
 	function deliver():Void {
 		final held = transport;
 
@@ -574,6 +838,9 @@ final class Render {
 		blocks++;
 	}
 
+	/**
+		Keeps the ring full while the device is running.
+	**/
 	function feed():Void {
 		final aim = cushion > 0 ? cushion : Audio.period(device) * 2;
 
