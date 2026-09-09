@@ -6,32 +6,116 @@ import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
 
+/**
+	Turns a song into events, sorts them, and plays them into a register stream.
+
+	It is the only thing that decides when a note happens. It never touches a chip: it
+	asks `Stream` for every write, which is what makes playback and an export the same
+	sound rather than two paths that could drift.
+
+	Events are held as parallel vectors of plain numbers rather than as objects,
+	because a span is gathered and sorted once per block and the render thread is
+	waiting.
+**/
 @:unreflective
 final class Sequencer {
+	/**
+		Event: key a part off.
+	**/
 	public static inline final OFF = 0;
+
+	/**
+		Event: write a whole patch to a part.
+	**/
 	public static inline final PATCH = 1;
+
+	/**
+		Event: write one automated register.
+	**/
 	static inline final TWEAK = 2;
+
+	/**
+		Event: tune a part to a note.
+	**/
 	public static inline final TUNE = 3;
+
+	/**
+		Event: one byte to the sample channel.
+	**/
 	public static inline final DATA = 4;
+
+	/**
+		Event: key a part on.
+	**/
 	public static inline final ON = 5;
+
+	/**
+		Event: the writes that put a part in a known state before anything sounds.
+	**/
 	static inline final SETUP = 6;
 
+	/**
+		A `DATA` event carrying a sample byte.
+	**/
 	static inline final DAC_BYTE = 0;
+
+	/**
+		A `DATA` event carrying a square envelope step.
+	**/
 	static inline final PSG_STEP = 1;
 
+	/**
+		How many output samples one square envelope step lasts, which is a sixtieth of a
+		second at 44100.
+	**/
 	public static inline final ENVELOPE_TICKS = 735;
+
+	/**
+		How many samples to leave between a key off and the key on after it. Nought, since
+		the part does not need one.
+	**/
 	static inline final GUARD = 0;
 
+	/**
+		The song being read.
+	**/
 	public final song:Song;
+
+	/**
+		What resolves a lane into the voices a part can sound.
+	**/
 	public final voices:Voices;
 
+	/**
+		Sequence only this pattern, or -1 for the whole arrangement. This is a pattern
+		index and not a track: there is no per track render.
+	**/
 	public var alone:Int = -1;
 
+	/**
+		How many ticks are gathered between collector safe points, so a long span does not
+		hold the collector off.
+	**/
 	public static inline final CHUNK = 8192;
 
+	/**
+		How many events one span may hold.
+	**/
 	public var capacity(default, null):Int;
+
+	/**
+		How many events the last span produced.
+	**/
 	public var count(default, null):Int = 0;
+
+	/**
+		How many events were thrown away for want of room in the event buffer.
+	**/
 	public var dropped(default, null):Int = 0;
+
+	/**
+		How many notes were never sounded because the part had no channel free.
+	**/
 	public var lost(default, null):Int = 0;
 
 	final ticks:Vector<Int>;
@@ -42,6 +126,13 @@ final class Sequencer {
 	final order:Vector<Int>;
 	final lines:Vector<Null<mdd.song.Automation>> = new Vector<Null<mdd.song.Automation>>(4);
 
+	/**
+		Builds a sequencer over a song.
+
+		@param song The song to read.
+		@param voices The voice resolver to use, or null for one of its own.
+		@param capacity How many events a span may hold. Anything below 64 becomes 64.
+	**/
 	public function new(song:Song, voices:Null<Voices> = null, capacity:Int = 16384) {
 		this.song = song;
 		this.voices = voices == null ? new Voices() : voices;
@@ -55,6 +146,14 @@ final class Sequencer {
 		order = new Vector<Int>(this.capacity);
 	}
 
+	/**
+		Sequences a span given in ticks, which is what an offline render works in.
+
+		@param stream Where the register writes go.
+		@param from The first tick.
+		@param until One past the last tick.
+		@return How many register writes were produced.
+	**/
 	public function spanned(stream:Stream, from:Int, until:Int):Int {
 		lost = 0;
 
@@ -79,6 +178,15 @@ final class Sequencer {
 
 	var paced:Null<Stream> = null;
 
+	/**
+		Sequences a span given in output samples, which is what the render thread works
+		in. Gathers the events, sorts them, and plays them into the stream.
+
+		@param stream Where the register writes go.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+		@return How many register writes were produced.
+	**/
 	public function emit(stream:Stream, fromSample:Int, toSample:Int):Int {
 		count = 0;
 		dropped = 0;
@@ -109,6 +217,12 @@ final class Sequencer {
 		return count;
 	}
 
+	/**
+		Walks the arrangement and collects every event that falls inside the span.
+
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function gather(fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
 
@@ -155,6 +269,11 @@ final class Sequencer {
 
 	var underTranspose:Int = 0;
 
+	/**
+		@param part Which part.
+		@param tick A tick.
+		@return The note sounding on that part at that tick, or null for none.
+	**/
 	function noteUnder(part:Part, tick:Int):Null<mdd.song.Note> {
 		var found:Null<mdd.song.Note> = null;
 		underTranspose = 0;
@@ -183,6 +302,15 @@ final class Sequencer {
 		return found;
 	}
 
+	/**
+		Collects the automation a clip drives on a part it does not otherwise own.
+
+		@param clip The clip being read.
+		@param low The first tick of the clip inside the span.
+		@param high One past the last.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function drove(clip:mdd.song.Clip, low:Int, high:Int, fromSample:Int,
 			toSample:Int):Void {
 		final line = clip.line;
@@ -224,6 +352,18 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Collects the steps of one automation ramp between two points.
+
+		@param clip The clip being read.
+		@param part Which part it plays on.
+		@param line The automation lane being read.
+		@param from The point the ramp starts at.
+		@param to The point it reaches.
+		@param riding Whether the lane rides a sounding note rather than setting up a new one.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function ramping(clip:mdd.song.Clip, part:Part, line:mdd.song.Automation,
 			from:mdd.song.Point, to:mdd.song.Point, riding:Bool, fromSample:Int,
 			toSample:Int):Void {
@@ -254,6 +394,16 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Records one automation write as an event.
+
+		@param at The sample it happens at.
+		@param part Which part it plays on.
+		@param line The automation lane being read.
+		@param value The value the lane holds there.
+		@param tick The tick it happens at.
+		@param riding Whether the lane rides a sounding note.
+	**/
 	function drives(at:Int, part:Part, line:mdd.song.Automation, value:Int, tick:Int,
 			riding:Bool):Void {
 		final note = riding ? noteUnder(part, tick) : null;
@@ -273,6 +423,19 @@ final class Sequencer {
 			note.instrument);
 	}
 
+	/**
+		Walks one pattern and collects every lane in it.
+
+		@param pattern The pattern to read.
+		@param origin Where the clip starts, in ticks.
+		@param from The first tick inside the pattern to read.
+		@param until One past the last.
+		@param transpose Semitones to shift every note by.
+		@param low The first tick of the span, in ticks.
+		@param high One past the last.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function walk(pattern:mdd.song.Pattern, origin:Int, from:Int, until:Int, transpose:Int,
 			low:Int, high:Int, fromSample:Int, toSample:Int):Void {
 		if (from > high || until <= low) return;
@@ -294,6 +457,19 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Resolves one lane into voices and collects a key on, a tune and a key off for
+		each of them.
+
+		@param lane The lane to read.
+		@param origin Where the clip starts, in ticks.
+		@param from The first tick to read.
+		@param until One past the last.
+		@param transpose Semitones to shift every note by.
+		@param part Which part it plays on.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function sound(lane:mdd.song.Lane, origin:Int, from:Int, until:Int, transpose:Int, part:Part,
 			fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
@@ -386,6 +562,11 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		@param part Which part.
+		@param line The automation lane being read.
+		@return True where that lane is one the part can actually take.
+	**/
 	inline function carries(part:Part, line:mdd.song.Automation):Bool {
 		final level = line.target == mdd.song.Automation.LEVEL;
 		final tune = line.target == mdd.song.Automation.TUNE;
@@ -398,6 +579,19 @@ final class Sequencer {
 		return part.fm() || level || tune;
 	}
 
+	/**
+		Turns one automation value into the register write it means, which depends on
+		which lane it is and on what the part is playing.
+
+		@param at The sample it happens at.
+		@param part Which part it plays on.
+		@param line The automation lane being read.
+		@param value The value the lane holds.
+		@param transpose Semitones to shift every note by.
+		@param pitch The note sounding, for a lane that bends it.
+		@param velocity The velocity sounding, for a lane that scales it.
+		@param named Which instrument the note plays.
+	**/
 	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
 			pitch:Int, velocity:Int, named:Int):Void {
 		final level = line.target == mdd.song.Automation.LEVEL;
@@ -432,6 +626,11 @@ final class Sequencer {
 		} else push(at, part, TUNE, worded(value, pitch, transpose), 1);
 	}
 
+	/**
+		@param part Which part.
+		@param line The automation lane being read.
+		@return True where that lane changes a note already sounding rather than setting one up.
+	**/
 	inline function rides(part:Part, line:mdd.song.Automation):Bool {
 		if (line.target == mdd.song.Automation.LEVEL) return true;
 
@@ -439,17 +638,34 @@ final class Sequencer {
 			&& (part.fm() || part.square());
 	}
 
+	/**
+		@param pitch A MIDI note number.
+		@param transpose Semitones to shift every note by.
+		@return It transposed and held to 0 to 127.
+	**/
 	inline function pitched(pitch:Int, transpose:Int):Int {
 		final want = pitch + transpose;
 		return want < 0 ? 0 : (want > 127 ? 127 : want);
 	}
 
+	/**
+		@param offset A recorded tuning offset in frequency word units.
+		@param pitch The note sounding.
+		@param transpose Semitones to shift every note by.
+		@return The FM block and frequency word to write.
+	**/
 	function worded(offset:Int, pitch:Int, transpose:Int):Int {
 		if (pitch < 0) return offset & 0x3FFF;
 
 		return Tuning.word(offset, pitched(pitch, transpose));
 	}
 
+	/**
+		@param offset A recorded tuning offset in period units.
+		@param pitch The note sounding.
+		@param transpose Semitones to shift every note by.
+		@return The square period to write.
+	**/
 	function periodic(offset:Int, pitch:Int, transpose:Int):Int {
 		if (pitch < 0) return offset & 0x3FF;
 
@@ -457,6 +673,15 @@ final class Sequencer {
 		return want < 0 ? 0 : (want > 0x3FF ? 0x3FF : want);
 	}
 
+	/**
+		@param part Which part it plays on.
+		@param slot Which operator, 0 to 3.
+		@param offset The automated total level.
+		@param velocity The velocity sounding.
+		@param named Which instrument the note plays.
+		@return The total level to write, which is the automated one for a modulator and the
+			velocity scaled one for a carrier.
+	**/
 	function attenuated(part:Part, slot:Int, offset:Int, velocity:Int, named:Int):Int {
 		if (velocity < 0) return part.fm() ? (offset & 0x7F) : (offset & 0x0F);
 
@@ -476,6 +701,10 @@ final class Sequencer {
 		return held < 0 ? 0 : (held > 127 ? 127 : held);
 	}
 
+	/**
+		@param tick A tick.
+		@return Whether a note begins on it.
+	**/
 	inline function starts(tick:Int):Bool {
 		final under = sounding(tick);
 		return under >= 0 && voices.startAt(under) == tick;
@@ -484,6 +713,17 @@ final class Sequencer {
 	var wroteValue:Int = 0;
 	var wroteUnder:Int = -2;
 
+	/**
+		Records one automation value, reading whatever note is sounding under it.
+
+		@param at The sample it happens at.
+		@param part Which part it plays on.
+		@param line The automation lane being read.
+		@param value The value the lane holds.
+		@param transpose Semitones to shift every note by.
+		@param riding Whether the lane rides a sounding note.
+		@param tick The tick it happens at.
+	**/
 	function put(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
 			riding:Bool, tick:Int):Void {
 		final under = riding ? sounding(tick) : -1;
@@ -499,6 +739,19 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Collects the steps of one ramp for a lane the part owns.
+
+		@param part Which part it plays on.
+		@param line The automation lane being read.
+		@param from The point the ramp starts at.
+		@param to The point it reaches.
+		@param base Where the lane sits in ticks.
+		@param transpose Semitones to shift every note by.
+		@param riding Whether the lane rides a sounding note.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function ramped(part:Part, line:mdd.song.Automation, from:mdd.song.Point,
 			to:mdd.song.Point, base:Int, transpose:Int, riding:Bool, fromSample:Int,
 			toSample:Int):Void {
@@ -532,6 +785,10 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		@param tick A tick.
+		@return The sample that tick falls on, through the tempo map.
+	**/
 	function sounding(tick:Int):Int {
 		var found = -1;
 
@@ -543,6 +800,18 @@ final class Sequencer {
 		return found;
 	}
 
+	/**
+		Collects the per note automation a lane carries, as against a channel wide lane.
+
+		@param lane The lane to read.
+		@param origin Where the clip starts, in ticks.
+		@param part Which part it plays on.
+		@param head The first tick to read.
+		@param tail One past the last.
+		@param transpose Semitones to shift every note by.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function tweaked(lane:mdd.song.Lane, origin:Int, part:Part, head:Int, tail:Int,
 			transpose:Int, fromSample:Int, toSample:Int):Void {
 		if (lane.automation.length == 0) return;
@@ -582,6 +851,13 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Writes everything a part needs to be in the state the song says it is in at a
+		position, which is what makes a seek land on the same sound as playing up to it.
+
+		@param stream Where the register writes go.
+		@param fromSample The sample being seeked to.
+	**/
 	public function prime(stream:Stream, fromSample:Int):Void {
 		count = 0;
 		dropped = 0;
@@ -605,6 +881,13 @@ final class Sequencer {
 		play(stream);
 	}
 
+	/**
+		Collects the setup events for one part at a position.
+
+		@param part Which part.
+		@param tick The tick being seeked to.
+		@param at The sample it falls on.
+	**/
 	function primed(part:Part, tick:Int, at:Int):Void {
 		var lane:Null<mdd.song.Lane> = null;
 		var local = 0;
@@ -686,6 +969,13 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		@param part Which part it plays on.
+		@param line The lane to read, or null for the instrument default.
+		@param tick The tick to read it at.
+		@param named Which instrument the note plays.
+		@return The value that lane holds there.
+	**/
 	function spread(part:Part, line:Null<mdd.song.Automation>, tick:Int, named:Int):Int {
 		var value = line == null ? -1 : line.heldAt(tick);
 
@@ -700,6 +990,11 @@ final class Sequencer {
 		return masked(part, value);
 	}
 
+	/**
+		@param word A packed block and frequency word.
+		@param semitones How far to move it.
+		@return The word moved by that many semitones, carrying between blocks where it has to.
+	**/
 	static function shifted(word:Int, semitones:Int):Int {
 		final held = word & 0x3FFF;
 		if (semitones == 0) return held;
@@ -724,11 +1019,26 @@ final class Sequencer {
 		return (block << 11) | found;
 	}
 
+	/**
+		@param part Which part.
+		@param value A register value.
+		@return It held to the bits that part actually uses.
+	**/
 	inline function masked(part:Part, value:Int):Int {
 		final pan = song.pan[part.index()] & 3;
 		return (value & 0x3F) | ((((value >> 6) & pan) & 3) << 6);
 	}
 
+	/**
+		Collects the sample channel bytes one note plays, at the rate the sample was
+		recorded at.
+
+		@param onSample Where the note begins.
+		@param offSample Where it ends.
+		@param named Which instrument the note plays.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function sampled(onSample:Int, offSample:Int, named:Int, fromSample:Int, toSample:Int):Void {
 		final instrument = instrumentOf(named, Part.Dac);
 		if (instrument == null) return;
@@ -770,6 +1080,17 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Collects the steps of a square envelope across one note.
+
+		@param onSample Where the note begins.
+		@param offSample Where it ends.
+		@param part Which part it plays on.
+		@param named Which instrument the note plays.
+		@param velocity The velocity it sounds at.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function shaped(onSample:Int, offSample:Int, part:Part, named:Int, velocity:Int,
 			fromSample:Int, toSample:Int):Void {
 		final instrument = instrumentOf(named, part);
@@ -798,6 +1119,10 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		@param value An attenuation.
+		@return It held to the four bits the square part has.
+	**/
 	inline function quieter(value:Int):Int {
 		final held = song.volume[Part.Dac.index()];
 		if (held >= Song.LOUDEST) return value;
@@ -806,15 +1131,34 @@ final class Sequencer {
 		return want < 0 ? 0 : (want > 255 ? 255 : want);
 	}
 
+	/**
+		@param part Which part.
+		@param velocity A velocity, 0 to 127.
+		@return The attenuation that velocity means on that part.
+	**/
 	inline function louder(part:Part, velocity:Int):Int {
 		return Velocity.scaled(velocity, song.volume[part.index()]);
 	}
 
+	/**
+		@param named An instrument index, or -1 for the part default.
+		@param part Which part.
+		@return The instrument, or null where there is none.
+	**/
 	function instrumentOf(named:Int, part:Part):Null<Instrument> {
 		final want = named >= 0 ? named : song.rack[part.index()];
 		return song.instrumentAt(want);
 	}
 
+	/**
+		Adds one event, or counts it in `dropped` where the buffer is full.
+
+		@param tick The sample it happens at.
+		@param part Which part it is for.
+		@param kind Which event, `OFF` to `SETUP`.
+		@param first The first value the event carries.
+		@param second The second, where it carries one.
+	**/
 	function push(tick:Int, part:Part, kind:Int, first:Int, second:Int):Void {
 		if (count >= capacity) {
 			dropped++;
@@ -830,6 +1174,12 @@ final class Sequencer {
 		count++;
 	}
 
+	/**
+		@param left An event index.
+		@param right Another.
+		@return Whether the first must be played before the second. Events at the same sample are
+			ordered by kind, so a key off never lands after the key on that replaced it.
+	**/
 	inline function before(left:Int, right:Int):Bool {
 		if (ticks[left] != ticks[right]) return ticks[left] < ticks[right];
 		if (parts[left] != parts[right]) return parts[left] < parts[right];
@@ -840,6 +1190,9 @@ final class Sequencer {
 		return left < right;
 	}
 
+	/**
+		Sorts the span into playing order, into `order` rather than by moving the events.
+	**/
 	function sort():Void {
 		var start = Std.int(count / 2);
 
@@ -861,6 +1214,12 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Sorts one run of the order array.
+
+		@param from The first index.
+		@param until One past the last.
+	**/
 	function sift(from:Int, until:Int):Void {
 		var root = from;
 
@@ -878,6 +1237,11 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		Turns every event of the sorted span into register writes.
+
+		@param stream Where those writes go.
+	**/
 	function play(stream:Stream):Void {
 		for (index in 0...count) {
 			final at = order[index];
