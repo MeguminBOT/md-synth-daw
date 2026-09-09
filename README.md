@@ -218,6 +218,8 @@ application does, and an honest list of what it does not do and why.
   dither, leading and trailing silence, fade and metadata tags all set per export. Opus exposes its
   application mode, frame size and bitrate mode, so a file can be aimed at streaming or at local
   listening. The FLAC encoder is this repository's own.
+- **Stems**, one file per part beside the mix, each scaled by the gain the mix worked out so
+  the set of them sums back to it.
 - **A project as a zip or as a folder**, byte identical between runs.
 
 ### Other

@@ -193,6 +193,7 @@ WAV, FLAC, Ogg Vorbis and Opus. Set per export:
 - encoder quality, and for Opus the application mode, frame size and bitrate mode
 - which output stage the render goes through
 - title, artist, album, year and comment, written into the file as tags
+- **stems**: one file per part beside the mix, in a folder named after it
 
 The FLAC encoder is this repository's own, written in Haxe from the format specification: LPC
 prediction, partitioned Rice coding, stereo decorrelation and the MD5 signature, with no libFLAC
@@ -200,6 +201,14 @@ anywhere. Its files decode byte identical to the WAV written from the same sampl
 signature matches libFLAC's.
 
 The export is rendered offline at the rate asked for, not resampled from a 44.1 kHz render.
+
+A stem is that part rendered on its own, not the mix with everything else muted: the events of every
+other part never reach the chips. Every stem takes the gain the mix worked out rather than being
+normalised on its own, so the set of them sums back to the mix. Measured on a three part piece, the
+stems sum to within -111 dB of the mix at worst and -138 dB once the output stage has settled.
+
+Only the parts the arrangement actually sounds get a stem, so a piece using four channels gives four
+files rather than eleven.
 
 ### Register and note formats
 
@@ -296,7 +305,6 @@ These are decisions, not gaps, and they are not going to change.
 
 Wanted, not present, and named here rather than implied by silence.
 
-- **Stems.** There is no per-track or per-channel render yet. An export is the whole mix.
 - **ROM and driver export.** Nothing produces a playable ROM or an SGDK driver blob.
 - **Real hardware playback.** No link to a real Mega Drive, and no live parameter editing on one.
 - **MIDI out.** A MIDI keyboard plays into the program; the program does not play out to a device.
