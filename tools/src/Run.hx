@@ -180,6 +180,11 @@ class Run {
 		return link.indexOf("/") < 0 && link.indexOf("\\") < 0;
 	}
 
+	static function rooted(path:String):Bool {
+		if (StringTools.startsWith(path, "/")) return true;
+		return path.length > 2 && path.charAt(1) == ":";
+	}
+
 	static function native(path:String):String {
 		return haxe.io.Path.removeTrailingSlashes(
 			StringTools.replace(FileSystem.absolutePath(path), "\\", "/"));
@@ -497,7 +502,8 @@ class Run {
 		}
 
 		for (path in project.includes) {
-			flags.add("\t\t<compilerflag value=\"-I" + native(root + "/" + path) + "\" />\n");
+			final where = rooted(path) ? path : root + "/" + path;
+			flags.add("\t\t<compilerflag value=\"-I" + native(where) + "\" />\n");
 		}
 
 		final script = windows() ? resourceScript(root, project) : "";
