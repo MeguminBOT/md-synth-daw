@@ -24,7 +24,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write      # create the release
+  id-token: write      # the OIDC token Sigstore signs against
+  attestations: write  # store the build provenance
 
 jobs:
   # Nothing else runs until this passes, so a stranger with write access
@@ -138,6 +140,39 @@ jobs:
 
       - name: Say what is going out
         run: ls -la packages
+
+      - name: Write the checksums
+        working-directory: packages
+        run: |
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      # Provenance says which workflow, at which commit, produced these files.
+      # Verify with: gh attestation verify <file> --repo ${{ github.repository }}
+      - name: Attest the build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            packages/*.zip
+            packages/*.tar.gz
+            packages/*setup.exe
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      # Keyless Sigstore signatures, one bundle per file, so a download can be
+      # checked with cosign alone and without the GitHub CLI.
+      - name: Sign every file
+        working-directory: packages
+        run: |
+          for file in *; do
+            case "$file" in
+              *.sigstore) continue ;;
+            esac
+            echo "signing $file"
+            cosign sign-blob --yes --bundle "$file.sigstore" "$file"
+          done
+          ls -la
 
       - name: Publish the release
         uses: softprops/action-gh-release@v2
