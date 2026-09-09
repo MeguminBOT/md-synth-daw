@@ -5,13 +5,33 @@ import mdd.song.Pattern;
 import mdd.song.edit.AddPattern;
 
 @:unreflective
+
+/**
+	What the pattern list does when a button on it is pressed: add, duplicate, rename,
+	insert and remove.
+
+	Everything here goes through the command stack, so all of it undoes.
+**/
 final class Patterns {
+	/**
+		The session it acts on.
+	**/
 	public final session:Session;
 
+	/**
+		Binds the pattern actions to a session.
+
+		@param session The session to act on.
+	**/
 	public function new(session:Session) {
 		this.session = session;
 	}
 
+	/**
+		Adds an empty pattern and chooses it.
+
+		@param name What to call it.
+	**/
 	public function added(name:String):Void {
 		final held = session.current();
 		final length = held == null ? session.song.tempo.ppqn * 4 : held.length;
@@ -20,6 +40,11 @@ final class Patterns {
 		session.chooses(session.song.patterns.length - 1);
 	}
 
+	/**
+		Copies a pattern and everything in it, and chooses the copy.
+
+		@param at Which pattern, by index.
+	**/
 	public function duplicated(at:Int):Void {
 		final from = session.song.patternAt(at);
 		if (from == null) return;
@@ -40,6 +65,12 @@ final class Patterns {
 		session.chooses(session.song.patterns.length - 1);
 	}
 
+	/**
+		Renames a pattern.
+
+		@param at Which pattern, by index.
+		@param to The new name.
+	**/
 	public function renamed(at:Int, to:String):Void {
 		final held = session.song.patternAt(at);
 		if (held == null || to == "" || to == held.name) return;
@@ -47,6 +78,11 @@ final class Patterns {
 		session.does(new mdd.song.edit.RenamePattern(at, to));
 	}
 
+	/**
+		Puts a new empty pattern after one.
+
+		@param at Which pattern to insert after, by index.
+	**/
 	public function inserted(at:Int):Void {
 		final held = session.song.patternAt(at);
 		final track = session.song.tracks[0];
@@ -58,6 +94,11 @@ final class Patterns {
 		session.does(new mdd.song.edit.AddClip(0, new mdd.song.Clip(at, ends, held.length)));
 	}
 
+	/**
+		Removes a pattern and every clip that played it.
+
+		@param at Which pattern, by index.
+	**/
 	public function dropped(at:Int):Void {
 		if (session.song.patterns.length <= 1) return;
 

@@ -2,12 +2,22 @@ package mdd.app;
 
 import mdd.ui.Translation;
 
+/**
+	Which languages ship, what they are called, and which one to start in.
+**/
 class Languages {
+	/**
+		@return The language codes that ship, in order.
+	**/
 	public static function shipped():Array<String> {
 		final held = mdd.Config.SPOKEN;
 		return held == "" ? [] : held.split(",");
 	}
 
+	/**
+		@param code A language code.
+		@return What that language is called, in itself rather than in English.
+	**/
 	public static function named(code:String):String {
 		return switch (code) {
 			case "en-GB": "English (United Kingdom)";
@@ -17,6 +27,14 @@ class Languages {
 		}
 	}
 
+	/**
+		Loads a language into a table, falling back to the first for any key it does not
+		carry.
+
+		@param held The table to load into.
+		@param code Which language.
+		@return How many strings it carried.
+	**/
 	public static function speak(held:Translation, code:String):Int {
 		final bytes = haxe.Resource.getBytes("lang." + code);
 		if (bytes == null) return 0;
@@ -27,15 +45,26 @@ class Languages {
 		return taken;
 	}
 
+	/**
+		@return The language everything falls back to.
+	**/
 	public static function first():String {
 		final held = shipped();
 		return held.length == 0 ? "en-GB" : held[0];
 	}
 
+	/**
+		@param code A language code.
+		@return Whether it ships.
+	**/
 	public static function known(code:String):Bool {
 		return shipped().indexOf(code) >= 0;
 	}
 
+	/**
+		@return Which language to start in, from what the account is set to, or the fallback where
+			that is not one that ships.
+	**/
 	public static function guessed():String {
 		final held = shipped();
 		if (held.length == 0) return "en-GB";

@@ -23,58 +23,205 @@ import sys.FileSystem;
 import mdd.song.Tempo;
 
 @:unreflective
+
+/**
+	Everything that reads or writes a file: opening, saving, importing, exporting,
+	saving on its own, and the backups.
+
+	A dialog is asked for rather than blocked on, so the interface keeps drawing and
+	the audio keeps playing while one is open. There is one of these for the life of
+	the application and loading a song calls `follows` rather than building another:
+	rebuilding it once dropped every callback nobody re-attached, and a null render
+	callback is not an error but a bounce that runs on the main thread.
+**/
 final class Files {
+	/**
+		No dialog is open.
+	**/
 	public static inline final NOTHING = 0;
+
+	/**
+		Dialog: open a project.
+	**/
 	public static inline final OPEN = 1;
+
+	/**
+		Dialog: save a project.
+	**/
 	public static inline final SAVE = 2;
+
+	/**
+		Dialog: export a register log.
+	**/
 	public static inline final VGM = 3;
+
+	/**
+		Dialog: export a wave file.
+	**/
 	public static inline final WAV = 4;
+
+	/**
+		Dialog: export a midi file.
+	**/
 	public static inline final MIDI = 5;
+
+	/**
+		Dialog: import a register log.
+	**/
 	public static inline final READ_VGM = 6;
+
+	/**
+		Dialog: import a midi file.
+	**/
 	public static inline final READ_MIDI = 7;
+
+	/**
+		Dialog: import a sample.
+	**/
 	public static inline final READ_WAV = 8;
+
+	/**
+		Dialog: export a driver file.
+	**/
 	public static inline final XGM = 9;
+
+	/**
+		Dialog: import one.
+	**/
 	public static inline final READ_XGM = 10;
+
+	/**
+		Dialog: export audio.
+	**/
 	public static inline final AUDIO = 11;
+
+	/**
+		Dialog: export a patch.
+	**/
 	public static inline final TFI = 12;
+
+	/**
+		Dialog: import one.
+	**/
 	public static inline final READ_TFI = 13;
 
+	/**
+		The rate an import is measured at.
+	**/
 	public static inline final RATE = 44100;
 	static inline final DAC_RATE = 8000;
 
+	/**
+		Where the piece was last saved, or an empty string where it never was.
+	**/
 	public var path(default, null):String = "";
+
+	/**
+		Which dialog is open.
+	**/
 	public var asking(default, null):Int = NOTHING;
 
+	/**
+		How often to save on its own, in seconds, or nought for never.
+	**/
 	public var every:Float = 0;
+
+	/**
+		How long since the last one.
+	**/
 	public var since(default, null):Float = 0;
+
+	/**
+		How many times it has saved on its own.
+	**/
 	public var kept(default, null):Int = 0;
+
+	/**
+		Where a piece that was never saved by hand went, so it is not lost.
+	**/
 	public var recovered(default, null):String = "";
 
+	/**
+		How much room the backups may take before the oldest are removed.
+	**/
 	public var backupRoom:Float = 250 * 1024 * 1024;
+
+	/**
+		How long a backup is kept.
+	**/
 	public var backupDays:Int = 30;
 
+	/**
+		Where a dialog starts looking for projects.
+	**/
 	public var projectsAt:String = "";
+
+	/**
+		Where it starts looking for presets.
+	**/
 	public var presetsAt:String = "";
 
 	var stamp:Int = -1;
 
+	/**
+		Called when a piece has been read.
+	**/
 	public var onLoad:Null<Song -> Void> = null;
+
+	/**
+		Where the last save went.
+	**/
 	public var savedInto:String = "";
+
+	/**
+		Called when something long starts, so a progress bar can be raised.
+	**/
 	public var onBusy:Null<(Locale, String) -> Void> = null;
+
+	/**
+		Called when it finishes.
+	**/
 	public var onIdle:Null<Void -> Void> = null;
+
+	/**
+		Called to start a bounce on a worker thread. A null here is not an error and is
+		worse than one: the bounce runs on the main thread instead and the window freezes
+		for its whole length.
+	**/
 	public var onRender:Null<String -> Void> = null;
 
+	/**
+		The session being read and written.
+	**/
 	public var session(default, null):Session;
 	var chooser:cpp.Star<Chooser> = null;
 
+	/**
+		Binds the file operations to a session.
+
+		@param session The session.
+	**/
 	public function new(session:Session) {
 		this.session = session;
 	}
 
+	/**
+		Points this at another session, which loading a piece needs. It is this rather
+		than a new instance so no callback is dropped.
+
+		@param session The session to follow.
+	**/
 	public function follows(session:Session):Void {
 		this.session = session;
 	}
 
+	/**
+		Counts down to the next save on its own and takes one when it is due and
+		anything has changed. Call once a frame.
+
+		@param seconds How long since the last call.
+		@return Whether anything happened.
+	**/
 	public function tick(seconds:Float):Bool {
 		if (every <= 0) return false;
 
@@ -85,6 +232,10 @@ final class Files {
 		return keep();
 	}
 
+	/**
+		@return How deep the undo stack was at the last save, which is what says whether anything
+			has changed since.
+	**/
 	public function marked():Int {
 		final said = haxe.io.Bytes.ofString(Project.text(session.song));
 		final bulk = Project.bulk(session.song);
@@ -92,6 +243,12 @@ final class Files {
 		return haxe.crypto.Crc32.make(said) ^ haxe.crypto.Crc32.make(bulk);
 	}
 
+	/**
+		Saves on its own, to the piece's own file or to a recovery file where it has
+		never been saved by hand.
+
+		@return Whether it saved.
+	**/
 	public function keep():Bool {
 		final now = marked();
 		if (now == stamp) return false;
@@ -115,10 +272,19 @@ final class Files {
 		return true;
 	}
 
+	/**
+		@return Where a piece that was never saved by hand goes.
+	**/
 	public function recovery():String {
 		return within("projects") + "/recovered." + mdd.Config.SUFFIX;
 	}
 
+	/**
+		Finds a folder under the userdata folder, making it if it is not there.
+
+		@param what The folder name.
+		@return Its full path.
+	**/
 	public function within(what:String):String {
 		final held = what == "projects" ? projectsAt : (what == "presets" ? presetsAt : "");
 
@@ -128,10 +294,18 @@ final class Files {
 		return held;
 	}
 
+	/**
+		@return Where the backups are kept.
+	**/
 	public function backups():String {
 		return Paths.within("backups");
 	}
 
+	/**
+		Copies a file into the backups before it is overwritten.
+
+		@param from The file about to be written.
+	**/
 	function backed(from:String):Void {
 		if (backupRoom <= 0 || !FileSystem.exists(from)) return;
 
@@ -151,6 +325,11 @@ final class Files {
 		pruned();
 	}
 
+	/**
+		Removes the backups that are too old or that push the folder past its room.
+
+		@return How many were removed.
+	**/
 	public function pruned():Int {
 		final where = backups();
 		if (!FileSystem.exists(where)) return 0;
@@ -210,6 +389,9 @@ final class Files {
 		return gone;
 	}
 
+	/**
+		@return How much room the backups take, in bytes.
+	**/
 	function backedUp():Float {
 		final where = backups();
 		if (!FileSystem.exists(where)) return 0;
@@ -224,11 +406,20 @@ final class Files {
 		return held;
 	}
 
+	/**
+		Forgets where the piece was saved, which starting a new one needs.
+	**/
 	public function forget():Void {
 		stamp = marked();
 		since = 0;
 	}
 
+	/**
+		Opens a dialog. It does not block: `poll` finds out what happened.
+
+		@param window The window it belongs to.
+		@param what Which dialog, one of the constants above.
+	**/
 	public function ask(window:cpp.Star<Window>, what:Int):Void {
 		if (asking != NOTHING) return;
 
@@ -256,6 +447,12 @@ final class Files {
 		if (chooser == null) asking = NOTHING;
 	}
 
+	/**
+		Finds out whether an open dialog has been answered, and acts on it. Call once a
+		frame.
+
+		@return Whether anything happened.
+	**/
 	public function poll():Bool {
 		if (asking == NOTHING || chooser == null) return false;
 
@@ -291,6 +488,10 @@ final class Files {
 		return true;
 	}
 
+	/**
+		@param what A dialog.
+		@return What to call it.
+	**/
 	public static function labelled(what:Int):Locale {
 		return switch (what) {
 			case OPEN: Locale.WORKING_OPENING;
@@ -300,6 +501,12 @@ final class Files {
 		}
 	}
 
+	/**
+		Acts on a path a dialog answered with.
+
+		@param what Which dialog.
+		@param where The path.
+	**/
 	function took(what:Int, where:String):Void {
 		try {
 			switch (what) {
@@ -325,6 +532,11 @@ final class Files {
 		session.changed();
 	}
 
+	/**
+		Reads a project and hands it to `onLoad`.
+
+		@param where The file to read.
+	**/
 	public function load(where:String):Void {
 		final song = Project.open(where);
 
@@ -337,6 +549,11 @@ final class Files {
 			+ song.instruments.length + " instruments");
 	}
 
+	/**
+		Imports a register log: reads the writes, then works out what they meant.
+
+		@param where The file to read.
+	**/
 	public function readVgm(where:String):Void {
 		final into = new Stream(1 << 22);
 		final vgm = Vgm.read(sys.io.File.getBytes(where), into);
@@ -353,6 +570,11 @@ final class Files {
 			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
 	}
 
+	/**
+		Imports a driver file the same way.
+
+		@param where The file to read.
+	**/
 	function readXgm(where:String):Void {
 		final into = new Stream(1 << 22);
 		final xgm = Xgm.read(sys.io.File.getBytes(where), into);
@@ -372,6 +594,12 @@ final class Files {
 			+ StringTools.hex(xgm.stopped, 2)));
 	}
 
+	/**
+		Imports a wave file as a sample, resampled to the rate the export asks for.
+
+		@param where The file to read.
+		@return The sample.
+	**/
 	public function readWav(where:String):mdd.song.Sample {
 		final wav = Wav.read(sys.io.File.getBytes(where));
 		final made = new mdd.song.Sample(name(where), DAC_RATE);
@@ -388,6 +616,11 @@ final class Files {
 		return made;
 	}
 
+	/**
+		Imports a midi file as notes and a tempo map.
+
+		@param where The file to read.
+	**/
 	public function readMidi(where:String):Void {
 		final song = Midi.read(sys.io.File.getBytes(where), name(where));
 
@@ -400,6 +633,12 @@ final class Files {
 			+ song.instruments.length + " instruments");
 	}
 
+	/**
+		Writes the project, backing up whatever was there first.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	public function save(where:String):String {
 		final named = suffixed(where, mdd.Config.SUFFIX);
 
@@ -411,10 +650,25 @@ final class Files {
 		return named;
 	}
 
+	/**
+		How many register writes a second to make room for in an export.
+	**/
 	public static inline final PER_SECOND = 32768;
+
+	/**
+		The smallest an export stream buffer is.
+	**/
 	public static inline final LEAST_ROOM = 1 << 20;
+
+	/**
+		The largest.
+	**/
 	public static inline final MOST_ROOM = 1 << 25;
 
+	/**
+		@param span How many samples the export covers.
+		@return How many register writes to make room for.
+	**/
 	public static function roomFor(span:Int):Int {
 		final seconds = span / Tempo.TICKS;
 		final want = Std.int(seconds * PER_SECOND);
@@ -422,6 +676,12 @@ final class Files {
 		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
 	}
 
+	/**
+		Writes the whole piece out as a register log.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	public function exportVgm(where:String):String {
 		final named = suffixed(where, "vgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
@@ -439,20 +699,47 @@ final class Files {
 		return named;
 	}
 
+	/**
+		What the next audio export is set to.
+	**/
 	public var mixing:Mixing = new Mixing();
 
+	/**
+		The bounce running now, where one is.
+	**/
 	public var mixdown:Null<Mixdown> = null;
 
 	final writing:haxe.atomic.AtomicInt = new haxe.atomic.AtomicInt(1);
 
+	/**
+		Where the last export went.
+	**/
 	public var wroteAs(default, null):String = "";
+
+	/**
+		What it said about it.
+	**/
 	public var wroteSaid(default, null):String = "";
+
+	/**
+		What went wrong, or an empty string where nothing did.
+	**/
 	public var wroteWrong(default, null):String = "";
 
+	/**
+		@return Whether the bounce that was running has finished.
+	**/
 	public inline function wroteYet():Bool {
 		return writing.load() == 1;
 	}
 
+	/**
+		Starts a bounce on a worker thread and answers with it, so a progress bar can
+		follow it.
+
+		@param where The file to write.
+		@return The bounce.
+	**/
 	public function renders(where:String):Mixdown {
 		final made = Mixdown.made();
 		final song = session.song;
@@ -479,6 +766,11 @@ final class Files {
 		return made;
 	}
 
+	/**
+		Imports a patch file into the library.
+
+		@param where The file to read.
+	**/
 	function readTfi(where:String):Void {
 		final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
 
@@ -513,6 +805,12 @@ final class Files {
 		session.say(name(where));
 	}
 
+	/**
+		Writes the chosen patch out as a patch file.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	function writeTfi(where:String):String {
 		final at = session.song.rack[session.part.index()];
 		final held = session.song.instrumentAt(at);
@@ -529,6 +827,12 @@ final class Files {
 		return named;
 	}
 
+	/**
+		Reads every patch file in the presets folder into the library, skipping any that
+		is already there.
+
+		@return How many were read.
+	**/
 	public function liftsPatches():Int {
 		final where = within("presets");
 		final song = session.song;
@@ -563,6 +867,11 @@ final class Files {
 		return many;
 	}
 
+	/**
+		@param where A patch file.
+		@param patch A patch.
+		@return Whether the file already holds that patch.
+	**/
 	function sameTfi(where:String, patch:mdd.song.Patch):Bool {
 		try {
 			final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
@@ -572,6 +881,10 @@ final class Files {
 		}
 	}
 
+	/**
+		@param said A name.
+		@return It with anything a file name cannot carry taken out.
+	**/
 	static function safely(said:String):String {
 		var out = "";
 
@@ -589,6 +902,12 @@ final class Files {
 		return held == "" ? "patch" : held;
 	}
 
+	/**
+		Writes the finished bounce out in whichever format the export is set to.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	public function exportAudio(where:String):String {
 		final named = wrote(where, Mixdown.of(session.song, mixing));
 
@@ -596,6 +915,13 @@ final class Files {
 		return named;
 	}
 
+	/**
+		Encodes a finished bounce and writes it.
+
+		@param where The file to write.
+		@param made The bounce.
+		@return What to say about it.
+	**/
 	public function wrote(where:String, made:Mixdown):String {
 		final named = suffixed(where, mixing.suffix());
 
@@ -633,6 +959,9 @@ final class Files {
 		return named;
 	}
 
+	/**
+		@return The metadata to write into the file, one entry a name and a value.
+	**/
 	function tagged():Array<String> {
 		final held:Array<String> = [];
 
@@ -649,6 +978,12 @@ final class Files {
 		return held;
 	}
 
+	/**
+		Writes the piece out as a driver file.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	function exportXgm(where:String):String {
 		final named = suffixed(where, "xgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
@@ -671,6 +1006,12 @@ final class Files {
 		return named;
 	}
 
+	/**
+		Writes the piece out as a midi file.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	public function exportMidi(where:String):String {
 		final named = suffixed(where, "mid");
 
@@ -679,6 +1020,12 @@ final class Files {
 		return named;
 	}
 
+	/**
+		Renders the piece and writes it as a wave file, on this thread.
+
+		@param where The file to write.
+		@return What to say about it.
+	**/
 	public function exportWav(where:String):String {
 		final named = suffixed(where, "wav");
 		final span = session.song.tempo.samplesAt(session.song.ends());
@@ -717,11 +1064,20 @@ final class Files {
 		return named;
 	}
 
+	/**
+		@param where A path.
+		@param suffix A file suffix, with no dot.
+		@return The path with that suffix, whatever it had before.
+	**/
 	public static function suffixed(where:String, suffix:String):String {
 		final held = haxe.io.Path.extension(where).toLowerCase();
 		return held == suffix ? where : where + "." + suffix;
 	}
 
+	/**
+		@param where A path.
+		@return Just the file name.
+	**/
 	public static function name(where:String):String {
 		return haxe.io.Path.withoutDirectory(where);
 	}

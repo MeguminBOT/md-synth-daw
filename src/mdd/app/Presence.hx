@@ -6,31 +6,100 @@ import mdd.song.Part;
 import mdd.song.Song;
 
 @:unreflective
+
+/**
+	What Discord is told about what is being worked on.
+
+	It is off unless it is turned on, it is a one way announcement, and it says only
+	what the level allows: the piece name and the transport at full, nothing but the
+	application at plain, and nothing at all when hidden.
+**/
 final class Presence {
+	/**
+		Level: say nothing.
+	**/
 	public static inline final HIDDEN = 0;
+
+	/**
+		Level: say the application and no more.
+	**/
 	public static inline final PLAIN = 1;
+
+	/**
+		Level: say the piece and what it is doing.
+	**/
 	public static inline final FULL = 2;
 
+	/**
+		How often to try the socket again while no client answers, in seconds.
+	**/
 	public static inline final DIAL_EVERY = 12.0;
+
+	/**
+		How often presence is sent at most, in seconds. Discord rejects more than this.
+	**/
 	public static inline final SEND_EVERY = 5.0;
 	static inline final LOOK_EVERY = 1.0;
 
+	/**
+		The longest a presence line may be before Discord refuses it.
+	**/
 	public static inline final MOST = 118;
 	static inline final LABEL = 30;
 
+	/**
+		How much to say.
+	**/
 	public var level:Int = FULL;
+
+	/**
+		What long thing is running, shown instead of the transport while it is.
+	**/
 	public var busy:String = "";
 
+	/**
+		The application identifier.
+	**/
 	public var application:String = Config.DISCORD;
+
+	/**
+		The large image asset name.
+	**/
 	public var cover:String = Config.DISCORD_COVER;
+
+	/**
+		The small image shown while playing.
+	**/
 	public var badgePlaying:String = Config.DISCORD_PLAYING;
+
+	/**
+		The one shown while stopped.
+	**/
 	public var badgeStopped:String = Config.DISCORD_STOPPED;
+
+	/**
+		The one shown while something long is running.
+	**/
 	public var badgeWorking:String = Config.DISCORD_WORKING;
 
+	/**
+		How many presence updates have been sent.
+	**/
 	public var sent(default, null):Int = 0;
+
+	/**
+		How many times the socket has been tried.
+	**/
 	public var dials(default, null):Int = 0;
+
+	/**
+		The last payload that was sent.
+	**/
 	public var wanted(default, null):String = "";
 
+	/**
+		The session being described, or null.
+	**/
 	public var session(default, null):Null<Session> = null;
 
 	var looked:Float = 0;
@@ -40,10 +109,18 @@ final class Presence {
 	var began:Float = 0;
 	var nonce:Int = 0;
 
+	/**
+		Builds a presence that is not connected.
+	**/
 	public function new() {
 		began = Date.now().getTime();
 	}
 
+	/**
+		Points it at another session, which loading a piece needs.
+
+		@param held The session to describe.
+	**/
 	public function follows(held:Session):Void {
 		session = held;
 
@@ -52,22 +129,38 @@ final class Presence {
 		waited = SEND_EVERY;
 	}
 
+	/**
+		@return Whether an application identifier is configured at all.
+	**/
 	public inline function possible():Bool {
 		return application != "";
 	}
 
+	/**
+		@return Whether a client is connected.
+	**/
 	public inline function live():Bool {
 		return Discord.ready();
 	}
 
+	/**
+		@return Who the client is signed in as, or an empty string.
+	**/
 	public function user():String {
 		return Std.string(Discord.user());
 	}
 
+	/**
+		@return What went wrong last, or an empty string.
+	**/
 	public function fault():String {
 		return Std.string(Discord.fault());
 	}
 
+	/**
+		@return A line for the status report: whether it is connected, who as, and how many updates
+			have gone out.
+	**/
 	public function said():String {
 		if (!possible()) return "no application id, never connects";
 		if (level == HIDDEN) return "off";
@@ -83,12 +176,21 @@ final class Presence {
 		return (who == "" ? "connected" : "connected as " + who) + ", " + sent + " sent";
 	}
 
+	/**
+		Closes the connection.
+	**/
 	public function shut():Void {
 		if (Discord.live()) Discord.shut();
 
 		wanted = "";
 	}
 
+	/**
+		Tries the socket where nothing is connected, reads whatever arrived, and sends
+		presence where it is due and has changed. Call once a frame.
+
+		@param seconds How long since the last call.
+	**/
 	public function tick(seconds:Float):Void {
 		if (level == HIDDEN || !possible()) {
 			shut();
@@ -133,6 +235,12 @@ final class Presence {
 		sent++;
 	}
 
+	/**
+		Counts down to the next attempt at the socket.
+
+		@param seconds How long since the last call.
+		@return Whether it is time to try again.
+	**/
 	public function redials(seconds:Float):Bool {
 		dialled += seconds;
 		if (dialled < DIAL_EVERY) return false;
@@ -141,6 +249,12 @@ final class Presence {
 		return true;
 	}
 
+	/**
+		Counts down to the next read.
+
+		@param seconds How long since the last call.
+		@return Whether it is time to read.
+	**/
 	public function looks(seconds:Float):Bool {
 		looked += seconds;
 		if (looked < LOOK_EVERY) return false;
@@ -149,6 +263,12 @@ final class Presence {
 		return true;
 	}
 
+	/**
+		Counts down to the next send.
+
+		@param seconds How long since the last call.
+		@return Whether it is time to send.
+	**/
 	public function due(seconds:Float):Bool {
 		waited += seconds;
 		if (waited < SEND_EVERY) return false;
@@ -157,6 +277,9 @@ final class Presence {
 		return true;
 	}
 
+	/**
+		@return The whole presence payload as JSON, or an empty string where nothing should be said.
+	**/
 	public function activity():String {
 		final out = new StringBuf();
 
@@ -181,6 +304,11 @@ final class Presence {
 		return out.toString();
 	}
 
+	/**
+		Writes the image names into the payload.
+
+		@param out Where the payload is written.
+	**/
 	function shelved(out:StringBuf):Void {
 		out.add(",\"assets\":{\"large_text\":");
 		out.add(quoted(shelf(), MOST));
@@ -202,6 +330,9 @@ final class Presence {
 		out.add("}");
 	}
 
+	/**
+		@return The first line of the presence: what is being worked on.
+	**/
 	function details():String {
 		final held = session;
 		if (held == null || level < FULL) return "Making Mega Drive music";
@@ -210,6 +341,9 @@ final class Presence {
 		return held.song.author == "" ? name : name + ", by " + held.song.author;
 	}
 
+	/**
+		@return The second line: what it is doing.
+	**/
 	function state():String {
 		if (busy != "") return busy;
 
@@ -225,6 +359,9 @@ final class Presence {
 			+ held.song.patterns.length;
 	}
 
+	/**
+		@return What the large image tooltip says.
+	**/
 	function shelf():String {
 		if (level < FULL) return Config.TITLE + " " + Config.VERSION;
 
@@ -254,6 +391,9 @@ final class Presence {
 			+ ", " + bars + counted(bars, " bar", " bars");
 	}
 
+	/**
+		@return The tempo and the parts in use, for the second line.
+	**/
 	function pace():String {
 		final held = session;
 		if (held == null) return Config.TITLE + " " + Config.VERSION;
@@ -277,6 +417,9 @@ final class Presence {
 		return out.toString();
 	}
 
+	/**
+		@return Which small image to show, from what the transport is doing.
+	**/
 	function badge():String {
 		final held = session;
 
@@ -284,6 +427,11 @@ final class Presence {
 		return held != null && held.transport.playing ? badgePlaying : badgeStopped;
 	}
 
+	/**
+		Writes the timestamps into the payload, so Discord counts up or down.
+
+		@param out Where the payload is written.
+	**/
 	function timed(out:StringBuf):Void {
 		final held = session;
 		final now = Date.now().getTime();
@@ -310,6 +458,11 @@ final class Presence {
 		out.add("}");
 	}
 
+	/**
+		Writes which parts are in use into the payload.
+
+		@param out Where the payload is written.
+	**/
 	function parted(out:StringBuf):Void {
 		final held = session;
 		if (held == null || level < FULL) return;
@@ -326,6 +479,10 @@ final class Presence {
 		out.add("]}");
 	}
 
+	/**
+		@param held The session.
+		@return When the piece finishes, so Discord can count down to it.
+	**/
 	function ending(held:Session):Float {
 		final last = held.song.ends();
 		if (last < 1) return 0;
