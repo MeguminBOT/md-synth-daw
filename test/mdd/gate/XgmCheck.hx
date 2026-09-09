@@ -24,8 +24,8 @@ class XgmCheck {
 		final where = Gate.root + "/vendor/vgm";
 
 		if (!sys.FileSystem.isDirectory(where)) {
-			Sys.println("    no vgm beside the build to make a song from");
-			return 1;
+			Sys.println("    not run: no vgm beside the build to make a song from");
+			return Gate.SKIPPED;
 		}
 
 		final name = Fixtures.found("Green Hill");

@@ -24,9 +24,9 @@ class VgmCheck {
 			? args[0] : Gate.root + "/vendor/vgm";
 
 		if (!FileSystem.exists(where)) {
-			Sys.println("    no corpus at " + where);
+			Sys.println("    not run: no corpus at " + where);
 			Sys.println("    put vgm files there, or name a directory: mdd gate vgm <path>");
-			return 1;
+			return Gate.SKIPPED;
 		}
 
 		final files = args.length > 0 && !StringTools.startsWith(args[0], "--")
