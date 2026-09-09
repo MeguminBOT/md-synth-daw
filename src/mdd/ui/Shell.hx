@@ -1,13 +1,49 @@
 package mdd.ui;
 
 @:unreflective
+
+/**
+	The whole window: the menu bar, the transport, the side rail, the centre, the
+	inspector and the status bar, and the seams between them.
+
+	Each zone can be opened and closed and the seams dragged, and what that leaves is
+	kept as a share of the window rather than a number of pixels, so resizing keeps the
+	proportions the reader chose.
+**/
 final class Shell extends Widget {
+	/**
+		Zone: the menu bar across the top.
+	**/
 	public static inline final MENU = 0;
+
+	/**
+		Zone: the transport bar under it.
+	**/
 	public static inline final TRANSPORT = 1;
+
+	/**
+		Zone: the rail down the left.
+	**/
 	public static inline final RAIL = 2;
+
+	/**
+		Zone: the working area.
+	**/
 	public static inline final CENTRE = 3;
+
+	/**
+		Zone: the inspector down the right.
+	**/
 	public static inline final INSPECTOR = 4;
+
+	/**
+		Zone: the status bar along the bottom.
+	**/
 	public static inline final STATUS = 5;
+
+	/**
+		How many zones there are.
+	**/
 	public static inline final ZONES = 6;
 
 	var railWide:Float = 0;
@@ -21,11 +57,17 @@ final class Shell extends Widget {
 
 	final zones:Array<Widget> = [];
 
+	/**
+		Which seam is being dragged, or -1 for none.
+	**/
 	public var dragging(default, null):Int = -1;
 
 	var grabAt:Float = 0;
 	var grabSize:Float = 0;
 
+	/**
+		Builds a shell with an empty widget in every zone.
+	**/
 	public function new() {
 		super();
 
@@ -39,10 +81,19 @@ final class Shell extends Widget {
 		}
 	}
 
+	/**
+		@param which A zone.
+		@return The widget in it, to put contents inside.
+	**/
 	public function zone(which:Int):Widget {
 		return zones[which];
 	}
 
+	/**
+		Takes the fixed heights of the bars from the metrics.
+
+		@param metrics The sizes to lay out at.
+	**/
 	public function fit(metrics:Metrics):Void {
 		railWide = metrics.rail;
 		inspectorWide = metrics.inspector;
@@ -51,10 +102,18 @@ final class Shell extends Widget {
 		inspectorSize.hold(inspectorOpen ? inspectorWide : strip(metrics));
 	}
 
+	/**
+		@param metrics The sizes to lay out at.
+		@return How wide a seam is.
+	**/
 	static inline function strip(metrics:Metrics):Float {
 		return metrics.whole(24);
 	}
 
+	/**
+		@param which A zone.
+		@return Whether it is open.
+	**/
 	public inline function openAt(which:Int):Bool {
 		return switch (which) {
 			case RAIL: railOpen;
@@ -63,6 +122,12 @@ final class Shell extends Widget {
 		}
 	}
 
+	/**
+		Opens or closes a zone, animating it.
+
+		@param which A zone.
+		@param on Whether it should be open.
+	**/
 	public function open(which:Int, on:Bool):Void {
 		final root = root();
 		if (root == null || openAt(which) == on) return;
@@ -86,6 +151,10 @@ final class Shell extends Widget {
 		relayout();
 	}
 
+	/**
+		@param which A zone.
+		@return How much of the window it takes, 0 to 1.
+	**/
 	public function share(which:Int):Float {
 		final root = root();
 		if (root == null) return 1;
@@ -99,6 +168,12 @@ final class Shell extends Widget {
 		}
 	}
 
+	/**
+		@param value A number.
+		@param least The floor.
+		@param most The ceiling.
+		@return It held between the two.
+	**/
 	static function reach(value:Float, least:Float, most:Float):Float {
 		if (most <= least) return 1;
 
@@ -106,6 +181,9 @@ final class Shell extends Widget {
 		return part < 0 ? 0 : (part > 1 ? 1 : part);
 	}
 
+	/**
+		Places every zone from the fixed heights and the shares.
+	**/
 	override function layout():Void {
 		final root = root();
 		if (root == null) return;
@@ -138,6 +216,10 @@ final class Shell extends Widget {
 		zones[STATUS].arrange(x, bodyTop + bodyTall + hair, width, dock);
 	}
 
+	/**
+		@param which A seam.
+		@return Where it sits.
+	**/
 	public function divider(which:Int):Float {
 		final root = root();
 		final hair = root == null ? 1 : root.metrics.whole(1);
@@ -154,6 +236,11 @@ final class Shell extends Widget {
 		}
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which seam is under it, or -1 for none.
+	**/
 	function nearDivider(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -169,6 +256,12 @@ final class Shell extends Widget {
 		return -1;
 	}
 
+	/**
+		Drags a seam.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:
@@ -224,6 +317,11 @@ final class Shell extends Widget {
 
 	var overDivider:Int = -1;
 
+	/**
+		Forgets which seam was under the pointer when it leaves.
+
+		@param on Whether the pointer is over the shell.
+	**/
 	override function hovered(on:Bool):Void {
 		if (!on && overDivider >= 0) {
 			overDivider = -1;
@@ -233,6 +331,18 @@ final class Shell extends Widget {
 		super.hovered(on);
 	}
 
+	/**
+		Draws one seam, brighter while it is hovered or dragged.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param which Which seam.
+		@param at Where it sits.
+		@param from Where it starts along its length.
+		@param span How long it is.
+		@param hair How thick the seam line is.
+		@param upright Whether it runs down rather than across.
+	**/
 	function seam(paint:Paint, theme:Theme, which:Int, at:Float, from:Float, span:Float,
 			hair:Float, upright:Bool):Void {
 		final lit = dragging == which || (dragging < 0 && overDivider == which);
@@ -244,10 +354,21 @@ final class Shell extends Widget {
 		else paint.rect(from, back, span, thick, colour, lit ? 0.9 : 1);
 	}
 
+	/**
+		@param value A number.
+		@param least The floor.
+		@param most The ceiling.
+		@return It held between the two.
+	**/
 	static inline function hold(value:Float, least:Float, most:Float):Float {
 		return value < least ? least : (value > most ? most : value);
 	}
 
+	/**
+		Draws every open zone and the seams between them.
+
+		@param paint What to draw with.
+	**/
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null) return;

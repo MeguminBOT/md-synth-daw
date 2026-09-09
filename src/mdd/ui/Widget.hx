@@ -1,36 +1,121 @@
 package mdd.ui;
 
 @:unreflective
+
+/**
+	Everything on screen is one of these: a rectangle that measures itself, lays out
+	what it holds, draws itself, and takes input.
+
+	It knows nothing about the Mega Drive. A control that knows what a total level is
+	belongs in `mdd.view`, and this package draws and handles input and does nothing
+	else.
+**/
 class Widget {
+	/**
+		Where it sits, across.
+	**/
 	public var x(default, null):Float = 0;
+
+	/**
+		Where it sits, down.
+	**/
 	public var y(default, null):Float = 0;
+
+	/**
+		How wide it is.
+	**/
 	public var width(default, null):Float = 0;
+
+	/**
+		How tall it is.
+	**/
 	public var height(default, null):Float = 0;
 
+	/**
+		How wide it asked to be, filled in by `measure`.
+	**/
 	public var wantWidth(default, null):Float = 0;
+
+	/**
+		How tall it asked to be.
+	**/
 	public var wantHeight(default, null):Float = 0;
 
+	/**
+		What its tooltip says.
+	**/
 	public var tip:String = "";
+
+	/**
+		A second line for the tooltip.
+	**/
 	public var detail:String = "";
+
+	/**
+		The key the tooltip shows beside the label.
+	**/
 	public var shortcut:String = "";
 
+	/**
+		Whether it is drawn and hit at all.
+	**/
 	public var visible:Bool = true;
+
+	/**
+		Whether it can be used.
+	**/
 	public var enabled:Bool = true;
+
+	/**
+		Whether the keyboard can reach it.
+	**/
 	public var focusable:Bool = false;
+
+	/**
+		Whether it stops a hit rather than letting it through to what is behind.
+	**/
 	public var opaque:Bool = false;
+
+	/**
+		Whether input stops here rather than reaching its children.
+	**/
 	public var sealed:Bool = false;
+
+	/**
+		Whether it wants a tick every frame even when nothing changed.
+	**/
 	public var drives:Bool = false;
+
+	/**
+		Whether it is taking typed text, so the keyboard should be on.
+	**/
 	public var typing:Bool = false;
 
+	/**
+		What holds it, or null where nothing does.
+	**/
 	public var parent(default, null):Null<Widget> = null;
+
+	/**
+		What it holds, in drawing order.
+	**/
 	public final children:Array<Widget> = [];
 
 	var dirty(default, null):Bool = true;
 
 	var owner:Null<Root> = null;
 
+	/**
+		Builds an empty widget at nought by nought.
+	**/
 	public function new() {}
 
+	/**
+		Puts a widget inside this one, taking it out of whatever held it before.
+
+		@param child The widget to add.
+		@return The same widget.
+	**/
 	public function add(child:Widget):Widget {
 		if (child.parent != null) child.parent.remove(child);
 		child.parent = this;
@@ -40,6 +125,11 @@ class Widget {
 		return child;
 	}
 
+	/**
+		Takes a widget out.
+
+		@param child The widget to remove.
+	**/
 	public function remove(child:Widget):Void {
 		if (!children.remove(child)) return;
 		child.parent = null;
@@ -47,30 +137,55 @@ class Widget {
 		invalidate();
 	}
 
+	/**
+		Tells this widget and everything in it which root they belong to.
+
+		@param root The root, or null when they are taken out of one.
+	**/
 	function attach(root:Null<Root>):Void {
 		owner = root;
 		for (child in children) child.attach(root);
 	}
 
+	/**
+		@return The root this belongs to, or null where it is not in one.
+	**/
 	public function root():Null<Root> {
 		return owner;
 	}
 
+	/**
+		Says the appearance changed, so the next frame draws it again.
+	**/
 	public function invalidate():Void {
 		dirty = true;
 		if (owner != null) owner.soil();
 	}
 
+	/**
+		Says the size or the contents changed, so the next frame lays it out again.
+	**/
 	public function relayout():Void {
 		if (owner != null) owner.reshape();
 		invalidate();
 	}
 
+	/**
+		Lays this widget out now rather than next frame, which a caller needs when it is
+		about to measure what it just built.
+	**/
 	public function settle():Void {
 		dirty = false;
 		for (child in children) child.settle();
 	}
 
+	/**
+		Works out how large this widget wants to be, into `wantWidth` and `wantHeight`.
+		Override this.
+
+		@param availableWidth How much room there is, across.
+		@param availableHeight How much room there is, down.
+	**/
 	public function measure(availableWidth:Float, availableHeight:Float):Void {
 		wantWidth = availableWidth;
 		wantHeight = availableHeight;
@@ -80,6 +195,14 @@ class Widget {
 		}
 	}
 
+	/**
+		Puts this widget where it is going and lays out what it holds.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+	**/
 	public function arrange(x:Float, y:Float, width:Float, height:Float):Void {
 		final left = Math.round(x);
 		final top = Math.round(y);
@@ -94,20 +217,41 @@ class Widget {
 		layout();
 	}
 
+	/**
+		Places the children inside this widget. Override this rather than `arrange`.
+	**/
 	function layout():Void {
 		for (child in children) {
 			if (child.visible) child.arrange(x, y, width, height);
 		}
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether it is inside this widget rectangle.
+	**/
 	public inline function holds(px:Float, py:Float):Bool {
 		return px >= x && px < x + width && py >= y && py < y + height;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether this widget takes a hit there. Override for a shape that is not its
+			rectangle.
+	**/
 	public function accepts(px:Float, py:Float):Bool {
 		return visible && holds(px, py);
 	}
 
+	/**
+		Finds what is under a point, deepest first.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return The widget there, or null where nothing takes it.
+	**/
 	public function hit(px:Float, py:Float):Null<Widget> {
 		if (!accepts(px, py)) return null;
 
@@ -129,22 +273,53 @@ class Widget {
 		return found != null ? found : this;
 	}
 
+	/**
+		Draws this widget and everything in it. Override this.
+
+		@param paint What to draw with.
+	**/
 	public function paint(paint:Paint):Void {
 		for (child in children) {
 			if (child.visible) child.paint(paint);
 		}
 	}
 
+	/**
+		Handles one event. Override this.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	public function took(event:Input):Bool {
 		return false;
 	}
 
+	/**
+		Handles one editing command, from a key or a menu.
+
+		@param what One of the `Edit` values.
+		@return Whether it was taken.
+	**/
 	public function edited(what:Int):Bool {
 		return false;
 	}
 
+	/**
+		Called once a frame while `drives` is set.
+
+		@param seconds How long since the last call.
+	**/
 	public function tick(seconds:Float):Void {}
 
+	/**
+		Wires a menu entry to something to do. It takes a closure rather than a method
+		reference, because a method reference on an `@:unreflective` class lowers to a
+		dynamic wrapper the metadata removes, and the compiler names a method nobody
+		wrote.
+
+		@param choice The menu entry.
+		@param what What to do when it is chosen.
+	**/
 	public function fires(choice:mdd.ui.control.Choice, what:Void -> Void):Void {
 		choice.onFire = function(from:mdd.ui.control.Choice):Void {
 			what();
@@ -152,19 +327,39 @@ class Widget {
 		};
 	}
 
+	/**
+		@param key A string key.
+		@return What it says in the language in force, or the key itself where this widget is not in
+			a root.
+	**/
 	public function translate(key:Int):String {
 		final held = root();
 		return held == null ? "" : held.translate(key);
 	}
 
+	/**
+		Told when the keyboard arrives or leaves.
+
+		@param on Whether it now has the keyboard.
+	**/
 	public function focused(on:Bool):Void {
 		invalidate();
 	}
 
+	/**
+		Told when the pointer arrives or leaves.
+
+		@param on Whether the pointer is now over it.
+	**/
 	public function hovered(on:Bool):Void {
 		invalidate();
 	}
 
+	/**
+		Collects this widget and everything in it, in order.
+
+		@param into Where they go.
+	**/
 	public function walk(into:Array<Widget>):Void {
 		if (!visible) return;
 		if (focusable && enabled) into.push(this);

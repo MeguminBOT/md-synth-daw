@@ -1,10 +1,29 @@
 package mdd.ui;
 
 @:unreflective
+
+/**
+	The draggable line between two panes.
+**/
 final class Splitter extends Widget {
+	/**
+		Whether the line is vertical, so it splits left from right.
+	**/
 	public var vertical:Bool = false;
+
+	/**
+		Where the line sits.
+	**/
 	public var position(default, null):Float = 0;
+
+	/**
+		The smallest the first pane may be dragged to.
+	**/
 	public var least:Float = 60;
+
+	/**
+		The largest.
+	**/
 	public var most:Float = 1e9;
 
 	var onMove:Null<Splitter -> Void> = null;
@@ -13,11 +32,21 @@ final class Splitter extends Widget {
 	var grabAt:Float = 0;
 	var grabPosition:Float = 0;
 
+	/**
+		Builds a splitter.
+
+		@param position Where the line starts.
+	**/
 	public function new(position:Float) {
 		super();
 		this.position = position;
 	}
 
+	/**
+		Moves the line, held between the two limits.
+
+		@param next Where to move it to.
+	**/
 	public function place(next:Float):Void {
 		var held = next;
 		if (held < least) held = least;
@@ -29,6 +58,12 @@ final class Splitter extends Widget {
 		relayout();
 	}
 
+	/**
+		Drags the line.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:
@@ -53,6 +88,11 @@ final class Splitter extends Widget {
 		return false;
 	}
 
+	/**
+		Draws the line, brighter while it is hovered or dragged.
+
+		@param paint What to draw with.
+	**/
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null) return;

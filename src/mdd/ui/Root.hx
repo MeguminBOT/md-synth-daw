@@ -3,44 +3,137 @@ package mdd.ui;
 import mdd.ui.control.Menu;
 import mdd.ui.control.Tooltip;
 @:unreflective
+
+/**
+	The top of the widget tree: what has the keyboard, what is under the pointer, what
+	is animating, and every layer drawn over the interface.
+
+	There are three layers above the tree and they are not the same slot. `sheet` holds
+	one modal, and raising anything there lowers whatever was in it. `band` is a second
+	slot painted after the sheet, the popups and the tooltip, and hit tested before all
+	three: `raise` and `lower` never touch it, which is what a progress bar needs. Menus
+	are their own stack on top of the sheet.
+
+	It draws only when something says it changed. Presenting a frame that was not drawn
+	shows the buffer from two presents ago, so the idle path sleeps rather than
+	presenting nothing.
+**/
 final class Root {
 	static inline final STILL = 0.450;
 	static inline final GRACE = 0.250;
 
+	/**
+		The widget the whole interface hangs from.
+	**/
 	public var top(default, null):Widget;
+
+	/**
+		The sizes everything draws at.
+	**/
 	public var metrics(default, null):Metrics;
+
+	/**
+		The colours everything draws in.
+	**/
 	public var theme(default, null):Theme;
+
+	/**
+		The icon atlas, where one is loaded.
+	**/
 	public var icons:Null<Icons> = null;
 
+	/**
+		How much motion is allowed. `None` makes every animation jump, which is what a
+		check wants.
+	**/
 	public var flow:Flow = Flow.Full;
 
+	/**
+		Called with a chord the focus chain declined, so the application can act on it. This
+		is what lets a chord reach past a field being typed into while a plain key does not.
+	**/
 	public var onShortcut:Null<(Key, Mod) -> Bool> = null;
+
+	/**
+		Called when the interface starts or stops wanting typed text.
+	**/
 	public var onTyping:Null<Bool -> Void> = null;
 
 	var typingNow:Bool = false;
 
+	/**
+		What has the keyboard, or null for nothing.
+	**/
 	public var focus(default, null):Null<Widget> = null;
+
+	/**
+		What has taken the pointer for a drag, so every move reaches it until the button
+		comes up.
+	**/
 	public var capture(default, null):Null<Widget> = null;
+
+	/**
+		What the pointer is over.
+	**/
 	public var over(default, null):Null<Widget> = null;
 
 	var pointerX(default, null):Float = 0;
 	var pointerY(default, null):Float = 0;
+
+	/**
+		Which modifiers were last held.
+	**/
 	public var mods(default, null):Mod = Mod.None;
 
+	/**
+		How wide the interface is.
+	**/
 	public var width(default, null):Float = 0;
+
+	/**
+		How tall it is.
+	**/
 	public var height(default, null):Float = 0;
 
+	/**
+		How many frames have been drawn.
+	**/
 	public var painted(default, null):Int = 0;
 
+	/**
+		The menus that are open, innermost last.
+	**/
 	public final popups:Array<Menu> = [];
+
+	/**
+		The one tooltip.
+	**/
 	public final tooltip:Tooltip = new Tooltip();
+
+	/**
+		Where every string the interface shows comes from.
+	**/
 	public final translation:Translation = new Translation();
 
+	/**
+		The one modal layer. Raising anything here lowers whatever was in it.
+	**/
 	public var sheet(default, null):Null<Widget> = null;
+
+	/**
+		A second layer nothing else can claim, for a widget that has to be seen: `raise`
+		and `lower` never reach it, and it is painted last and hit tested first.
+	**/
 	public var band(default, null):Null<Widget> = null;
 
+	/**
+		How dark the sheet layer dims what is behind it.
+	**/
 	public final scrim:Motion;
 
+	/**
+		Whether the tooltip is showing.
+	**/
 	public var tipUp(default, null):Bool = false;
 
 	var soiled:Bool = true;
@@ -59,6 +152,13 @@ final class Root {
 	final order:Array<Widget> = [];
 	final running:Array<Motion> = [];
 
+	/**
+		Builds a root over a widget tree.
+
+		@param top The widget everything hangs from.
+		@param metrics The sizes to draw at.
+		@param theme The colours to draw in.
+	**/
 	public function new(top:Widget, metrics:Metrics, theme:Theme) {
 		this.top = top;
 		this.metrics = metrics;
@@ -69,19 +169,35 @@ final class Root {
 		scrim = new Motion(null, 0, false);
 	}
 
+	/**
+		Says the next frame has to be drawn.
+	**/
 	public function soil():Void {
 		soiled = true;
 	}
 
+	/**
+		Says the next frame has to be laid out as well.
+	**/
 	public function reshape():Void {
 		reshaped = true;
 		soiled = true;
 	}
 
+	/**
+		@return Whether anything has changed since the last frame, so a frame is worth drawing at
+			all.
+	**/
 	public inline function stale():Bool {
 		return soiled;
 	}
 
+	/**
+		Resizes the interface and lays it out again.
+
+		@param width How wide.
+		@param height How tall.
+	**/
 	public function resize(width:Float, height:Float):Void {
 		if (this.width == width && this.height == height) return;
 		this.width = width;
@@ -89,21 +205,43 @@ final class Root {
 		reshape();
 	}
 
+	/**
+		Changes the density every size is worked out from.
+
+		@param scale The new scale.
+	**/
 	public function rescale(scale:Float):Void {
 		if (metrics.scale == scale) return;
 		metrics.wear(scale);
 		reshape();
 	}
 
+	/**
+		@return How many motions are running, so a caller knows whether to keep drawing.
+	**/
 	public inline function animating():Int {
 		return running.length;
 	}
 
+	/**
+		Starts a motion under this root, so it is advanced every frame while it runs.
+
+		@param motion The motion to run.
+		@param to Where it should go.
+		@param duration How long to take.
+	**/
 	public function start(motion:Motion, to:Float, duration:Float):Void {
 		if (motion.run(to, duration, flow) && running.indexOf(motion) < 0) running.push(motion);
 		soil();
 	}
 
+	/**
+		Moves every running motion on, and decides whether the tooltip should appear.
+		Call once a frame.
+
+		@param seconds How long since the last call.
+		@return Whether anything changed.
+	**/
 	public function advance(seconds:Float):Bool {
 		var moved = false;
 
@@ -150,6 +288,12 @@ final class Root {
 		return moved;
 	}
 
+	/**
+		Counts down to the tooltip and shows or hides it.
+
+		@param seconds How long since the last call.
+		@return Whether anything changed.
+	**/
 	function hint(seconds:Float):Bool {
 		if (capture != null || blocked) {
 			if (tipUp) hideTip();
@@ -186,6 +330,11 @@ final class Root {
 		return true;
 	}
 
+	/**
+		Shows the tooltip for a widget.
+
+		@param want The widget it is about.
+	**/
 	function showTip(want:Widget):Void {
 		tooltip.describe(want);
 		tooltip.measure(width, height);
@@ -198,6 +347,9 @@ final class Root {
 		start(tooltip.fade, 1, Motion.ENTER);
 	}
 
+	/**
+		Hides the tooltip.
+	**/
 	function hideTip():Void {
 		if (!tipUp) return;
 
@@ -206,6 +358,10 @@ final class Root {
 		start(tooltip.fade, 0, Motion.leaving(Motion.ENTER));
 	}
 
+	/**
+		Puts the tooltip where it fits, which is under the pointer unless that would put it
+		off the edge.
+	**/
 	function placeTip():Void {
 		final want = tooltip.subject;
 		if (want == null) return;
@@ -228,10 +384,20 @@ final class Root {
 		tooltip.arrange(px, py, wide, tall);
 	}
 
+	/**
+		@param key A string key.
+		@return What it says in the language in force.
+	**/
 	public inline function translate(key:Int):String {
 		return translation.of(key);
 	}
 
+	/**
+		Puts a widget in the band layer, or clears it. This is the only way in or out
+		of that layer.
+
+		@param widget The widget, or null to clear it.
+	**/
 	public function bands(widget:Null<Widget>):Void {
 		if (band == widget) return;
 
@@ -255,6 +421,12 @@ final class Root {
 		reshape();
 	}
 
+	/**
+		Puts a widget in the sheet layer, lowering whatever was there and dimming what
+		is behind it.
+
+		@param widget The widget to raise.
+	**/
 	public function raise(widget:Widget):Void {
 		if (sheet == widget) return;
 
@@ -271,6 +443,9 @@ final class Root {
 		if (widget.focusable) focusOn(widget);
 	}
 
+	/**
+		Takes the sheet down and lets the scrim fade.
+	**/
 	public function lower():Void {
 		if (sheet == null) return;
 
@@ -282,6 +457,15 @@ final class Root {
 		focusOn(null);
 	}
 
+	/**
+		Opens a menu at a point, nested under whichever is already open where it came
+		from one.
+
+		@param menu The menu to open.
+		@param px Where it goes, across.
+		@param py Where it goes, down.
+		@param from The widget it came from, or null.
+	**/
 	public function pop(menu:Menu, px:Float, py:Float, from:Null<Widget> = null):Void {
 		if (popups.indexOf(menu) < 0 && !nested(menu)) dismiss();
 
@@ -306,6 +490,11 @@ final class Root {
 		soil();
 	}
 
+	/**
+		Closes a menu and everything nested under it.
+
+		@param menu The menu to close.
+	**/
 	public function shut(menu:Menu):Void {
 		final at = popups.indexOf(menu);
 		if (at < 0) return;
@@ -319,11 +508,17 @@ final class Root {
 		sweep();
 	}
 
+	/**
+		Closes every open menu.
+	**/
 	public function dismiss():Void {
 		if (popups.length == 0) return;
 		shut(popups[0]);
 	}
 
+	/**
+		@return How many menus are open.
+	**/
 	public function opened():Int {
 		var many = 0;
 		for (held in popups) if (!held.closing) many++;
@@ -331,12 +526,21 @@ final class Root {
 		return many;
 	}
 
+	/**
+		@param menu A menu.
+		@return Whether it was opened from another one.
+	**/
 	function nested(menu:Menu):Bool {
 		for (held in popups) if (!held.closing && held.opened == menu) return true;
 
 		return false;
 	}
 
+	/**
+		Takes a menu out of the stack and lets go of what it held.
+
+		@param menu The menu.
+	**/
 	function leave(menu:Menu):Void {
 		if (menu.closing) return;
 
@@ -345,6 +549,9 @@ final class Root {
 		soil();
 	}
 
+	/**
+		Lays the whole interface out again, from the top down.
+	**/
 	function sweep():Void {
 		if (popups.length == 0) return;
 
@@ -377,6 +584,11 @@ final class Root {
 		}
 	}
 
+	/**
+		Lays one layer out inside the window, centred where it asked to be smaller.
+
+		@param widget The widget to lay out.
+	**/
 	function spread(widget:Widget):Void {
 		widget.measure(width, height);
 
@@ -389,6 +601,11 @@ final class Root {
 		widget.arrange((width - held) * 0.5, (height - deep) * 0.5, held, deep);
 	}
 
+	/**
+		Puts a menu where it fits, flipping it where it would go off the edge.
+
+		@param menu The menu.
+	**/
 	function place(menu:Menu):Void {
 		menu.measure(width, height);
 
@@ -407,6 +624,14 @@ final class Root {
 		menu.arrange(px, py, wide, tall);
 	}
 
+	/**
+		Finds what a point belongs to, layer by layer: the band first, then the menus,
+		then the sheet, then the tree.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return The widget there, or null.
+	**/
 	public function pick(px:Float, py:Float):Null<Widget> {
 		if (band != null) {
 			final caught = band.hit(px, py);
@@ -434,6 +659,10 @@ final class Root {
 		return top.hit(px, py);
 	}
 
+	/**
+		@param widget A widget, or null.
+		@return Whether it is inside the sheet, so a press on it does not close the sheet.
+	**/
 	function owns(widget:Null<Widget>):Bool {
 		if (widget == null || opener == null || !opener.drives) return false;
 
@@ -445,6 +674,10 @@ final class Root {
 		return false;
 	}
 
+	/**
+		@param widget A widget, or null.
+		@return Whether it is inside an open menu.
+	**/
 	function popped(widget:Null<Widget>):Bool {
 		if (widget == null) return false;
 
@@ -455,6 +688,14 @@ final class Root {
 		return false;
 	}
 
+	/**
+		Lays out where it has to and draws one frame: the tree, the scrim, the sheet,
+		the menus, the tooltip, then the band.
+
+		@param paint What to draw with.
+		@return False where nothing had changed and nothing was drawn, in which case the caller must
+			not present either.
+	**/
 	public function frame(paint:Paint):Bool {
 		if (!soiled) return false;
 
@@ -500,6 +741,13 @@ final class Root {
 		return true;
 	}
 
+	/**
+		Takes a pointer move, keeping it with whatever captured the pointer.
+
+		@param x Where, across.
+		@param y Where, down.
+		@param mods Which modifier keys are held.
+	**/
 	public function moved(x:Float, y:Float, mods:Mod):Void {
 		if (x != pointerX || y != pointerY) {
 			still = 0;
@@ -524,6 +772,11 @@ final class Root {
 		}
 	}
 
+	/**
+		Moves the hover from one widget to another, telling both.
+
+		@param next What is under the pointer now, or null.
+	**/
 	function hover(next:Null<Widget>):Void {
 		if (next == over) return;
 
@@ -542,6 +795,16 @@ final class Root {
 		}
 	}
 
+	/**
+		Takes a pointer press. A press outside an open menu closes it, and a press
+		outside the sheet lowers it.
+
+		@param x Where, across.
+		@param y Where, down.
+		@param button Which button.
+		@param mods Which modifier keys are held.
+		@param clicks How many clicks in quick succession.
+	**/
 	public function pressed(x:Float, y:Float, button:Pointer, mods:Mod, clicks:Int = 1):Void {
 		pointerX = x;
 		pointerY = y;
@@ -578,6 +841,14 @@ final class Root {
 		send(under, event);
 	}
 
+	/**
+		Takes a pointer release and gives up the capture.
+
+		@param x Where, across.
+		@param y Where, down.
+		@param button Which button.
+		@param mods Which modifier keys are held.
+	**/
 	public function released(x:Float, y:Float, button:Pointer, mods:Mod):Void {
 		pointerX = x;
 		pointerY = y;
@@ -594,6 +865,13 @@ final class Root {
 		hover(pick(x, y));
 	}
 
+	/**
+		Takes a wheel turn, to whatever is under the pointer.
+
+		@param dx How far, across.
+		@param dy How far, down.
+		@param mods Which modifier keys are held.
+	**/
 	public function turned(dx:Float, dy:Float, mods:Mod):Void {
 		this.mods = mods;
 
@@ -604,6 +882,17 @@ final class Root {
 		send(under, event);
 	}
 
+	/**
+		Takes a key. It goes to the focus first, then up the chain, and only then to
+		`onShortcut`, which is what lets a field keep its plain keys while a chord
+		still reaches past it.
+
+		@param down Whether the key went down.
+		@param code Which key.
+		@param mods Which modifier keys are held.
+		@param repeat Whether it is repeating.
+		@return Whether anything took it.
+	**/
 	public function key(down:Bool, code:Key, mods:Mod, repeat:Bool = false):Bool {
 		this.mods = mods;
 
@@ -636,6 +925,9 @@ final class Root {
 		return onShortcut(code, mods);
 	}
 
+	/**
+		Tells the application whether the keyboard is wanted, where that changed.
+	**/
 	public function reports():Void {
 		final want = typed();
 		if (want == typingNow) return;
@@ -644,14 +936,27 @@ final class Root {
 		if (onTyping != null) onTyping(want);
 	}
 
+	/**
+		@return Whether whatever has the keyboard is taking typed text.
+	**/
 	public inline function typed():Bool {
 		return focus != null && focus.typing;
 	}
 
+	/**
+		@return What an editing command should go to, which is the focus unless a menu is open over
+			it.
+	**/
 	function acting():Null<Widget> {
 		return popups.length > 0 && returnFocus != null ? returnFocus : focus;
 	}
 
+	/**
+		Sends an editing command to whatever should have it.
+
+		@param what One of the `Edit` values.
+		@return Whether anything took it.
+	**/
 	public function edits(what:Int):Bool {
 		if (typed()) return false;
 
@@ -665,6 +970,13 @@ final class Root {
 		return false;
 	}
 
+	/**
+		Sends typed text to the focus.
+
+		@param text The text.
+		@param mods Which modifier keys are held.
+		@return Whether it was taken.
+	**/
 	public function said(text:String, mods:Mod):Bool {
 		if (focus == null) return false;
 
@@ -672,6 +984,12 @@ final class Root {
 		return focus.enabled && focus.took(event);
 	}
 
+	/**
+		Sends an event to a widget and then up its chain until something takes it.
+
+		@param to Where to start.
+		@param event The event.
+	**/
 	function send(to:Widget, event:Input):Void {
 		var at:Null<Widget> = to;
 
@@ -682,6 +1000,11 @@ final class Root {
 		}
 	}
 
+	/**
+		Moves the keyboard to a widget, telling both it and whatever had it.
+
+		@param next The widget, or null for nothing.
+	**/
 	public function focusOn(next:Null<Widget>):Void {
 		if (next == focus) return;
 
@@ -692,6 +1015,12 @@ final class Root {
 		soil();
 	}
 
+	/**
+		Moves the keyboard to the next or previous widget that can take it, wrapping at
+		the ends.
+
+		@param by One forwards, minus one backwards.
+	**/
 	public function step(by:Int):Void {
 		order.resize(0);
 		top.walk(order);
@@ -710,6 +1039,9 @@ final class Root {
 		focusOn(order[at]);
 	}
 
+	/**
+		@return How many widgets can take the keyboard now.
+	**/
 	public function focusable():Int {
 		order.resize(0);
 		top.walk(order);

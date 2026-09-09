@@ -1,32 +1,68 @@
 package mdd.ui;
 
 @:unreflective
+
+/**
+	A widget whose contents are larger than it is, with a bar down the side or along
+	the bottom.
+**/
 class Scroll extends Widget {
+	/**
+		How far down the contents are scrolled.
+	**/
 	public var offsetY(default, null):Float = 0;
+
+	/**
+		How far across.
+	**/
 	public var offsetX(default, null):Float = 0;
 
+	/**
+		How tall the contents are.
+	**/
 	public var contentHeight:Float = 0;
+
+	/**
+		How wide they are.
+	**/
 	public var contentWidth:Float = 0;
 
+	/**
+		Whether the wheel scrolls across rather than down.
+	**/
 	public var sideways:Bool = false;
 
 	var scrubbing:Bool = false;
 	var grabAt:Float = 0;
 	var grabOffset:Float = 0;
 
+	/**
+		Builds an empty scroller.
+	**/
 	public function new() {
 		super();
 		opaque = true;
 	}
 
+	/**
+		@return Whether the contents are taller than the room for them.
+	**/
 	inline function downwards():Bool {
 		return contentHeight > height + 0.5;
 	}
 
+	/**
+		@return Whether they are wider than the room for them.
+	**/
 	public inline function across():Bool {
 		return sideways && contentWidth > width + 0.5;
 	}
 
+	/**
+		Scrolls down to a position, clamped to the contents.
+
+		@param y How far down to scroll.
+	**/
 	public function scrollTo(y:Float):Void {
 		var next = y;
 		final most = contentHeight - height;
@@ -39,6 +75,11 @@ class Scroll extends Widget {
 		invalidate();
 	}
 
+	/**
+		Scrolls across to a position, clamped to the contents.
+
+		@param x How far across to scroll.
+	**/
 	function scrollAcross(x:Float):Void {
 		var next = x;
 		final most = contentWidth - width;
@@ -51,11 +92,17 @@ class Scroll extends Widget {
 		invalidate();
 	}
 
+	/**
+		@return How wide the bar is.
+	**/
 	function thickness():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);
 	}
 
+	/**
+		@return How long the thumb is, from how much of the contents is visible.
+	**/
 	function thumb():Float {
 		if (!downwards()) return height;
 		final share = height / contentHeight;
@@ -64,12 +111,21 @@ class Scroll extends Widget {
 		return want < least ? least : want;
 	}
 
+	/**
+		@return Where the thumb sits.
+	**/
 	function thumbAt():Float {
 		final travel = height - thumb();
 		final most = contentHeight - height;
 		return most <= 0 ? y : y + travel * (offsetY / most);
 	}
 
+	/**
+		Scrolls on the wheel, and drags the thumb.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.Wheel:
@@ -116,6 +172,14 @@ class Scroll extends Widget {
 		return false;
 	}
 
+	/**
+		Finds what is under a point, taking the scroll offset into account and keeping
+		a hit on the bar for itself.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return The widget there, or null.
+	**/
 	override function hit(px:Float, py:Float):Null<Widget> {
 		if (!accepts(px, py)) return null;
 
@@ -139,6 +203,11 @@ class Scroll extends Widget {
 		return found != null ? found : this;
 	}
 
+	/**
+		Draws the contents clipped and offset, then the bars.
+
+		@param paint What to draw with.
+	**/
 	override function paint(paint:Paint):Void {
 		paint.pushClip(x, y, width, height);
 		paint.pushTransform(-offsetX, -offsetY);
@@ -153,6 +222,11 @@ class Scroll extends Widget {
 		bar(paint);
 	}
 
+	/**
+		Draws the bars, where the contents need them.
+
+		@param paint What to draw with.
+	**/
 	function bar(paint:Paint):Void {
 		if (!downwards()) return;
 
