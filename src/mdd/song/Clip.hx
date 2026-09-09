@@ -97,9 +97,10 @@ final class Clip {
 	}
 
 	/**
-		@return Whether this clip plays a pattern, as against driving automation.
+		@return Whether this clip drives an automation lane, as against playing a
+			pattern.
 	**/
-	public inline function drawn():Bool {
+	public inline function automates():Bool {
 		return kind == AUTOMATION && line != null;
 	}
 

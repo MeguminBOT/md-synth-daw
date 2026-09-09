@@ -260,7 +260,7 @@ final class Sequencer {
 
 			for (clip in track.clips) {
 				if (clip.at > high || clip.ends() <= low) continue;
-				if (!clip.drawn()) continue;
+				if (!clip.automates()) continue;
 
 				drove(clip, low, high, fromSample, toSample);
 			}

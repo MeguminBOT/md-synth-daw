@@ -209,7 +209,7 @@ class ShotCheck {
 		if (centreTab == Centre.AUTOMATION) {
 			for (track in session.song.tracks) {
 				for (found in track.clips) {
-					if (found.drawn()) centre.automation.follows(found);
+					if (found.automates()) centre.automation.follows(found);
 				}
 			}
 		}

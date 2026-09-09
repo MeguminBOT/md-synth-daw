@@ -28,7 +28,7 @@ final class SliceClip implements Command {
 	}
 
 	public static function splits(clip:Clip, at:Int):Bool {
-		return !clip.drawn() && at > clip.at && at < clip.ends();
+		return !clip.automates() && at > clip.at && at < clip.ends();
 	}
 
 	/**

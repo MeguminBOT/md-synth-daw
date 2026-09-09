@@ -440,7 +440,7 @@ final class Playlist extends Widget {
 				if (event.clicks > 1 && event.button == Pointer.Left) {
 					final under = clipAt(event.x, event.y);
 
-					if (under != null && under.drawn() && onOpen != null) {
+					if (under != null && under.automates() && onOpen != null) {
 						chosen = under;
 						chosenTrack = trackAt(event.y);
 
@@ -1694,7 +1694,7 @@ final class Playlist extends Widget {
 
 				painted++;
 
-				if (clip.drawn()) {
+				if (clip.automates()) {
 					curved(paint, theme, metrics, clip, at, row, wide, tall, track.muted);
 					continue;
 				}

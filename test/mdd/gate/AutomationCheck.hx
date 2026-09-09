@@ -682,7 +682,7 @@ class AutomationCheck {
 
 		if (twice != null) {
 			for (track in twice.tracks) {
-				for (found in track.clips) if (found.drawn()) one = found;
+				for (found in track.clips) if (found.automates()) one = found;
 			}
 		}
 
