@@ -19,21 +19,61 @@ import mdd.ui.control.Menu;
 import mdd.view.Parameter;
 
 @:unreflective
+
+/**
+	The automation editor: one clip driving one lane, drawn large.
+
+	It shows what the lanes under the piano roll show, with the room to place points
+	precisely. Both draw the same `Lanes`, so a point moved in either is the same point.
+**/
 final class AutomationEditor extends Widget {
+	/**
+		The session to read.
+	**/
 	public final session:Session;
+
+	/**
+		The lanes, which do the drawing and the editing.
+	**/
 	public final stack:Lanes;
 
+	/**
+		How many pixels a tick is, which is the zoom.
+	**/
 	public var perTick:Float = 0.25;
+
+	/**
+		How far the view is scrolled, across.
+	**/
 	public var offsetX:Float = 0;
+
+	/**
+		Where the playhead is, or -1 for nowhere.
+	**/
 	public var playhead:Int = -1;
 
+	/**
+		The clip being edited, where one automation clip is open rather than a pattern.
+	**/
 	public var holding:Null<Clip> = null;
 
+	/**
+		Which lane is shown.
+	**/
 	public var target:Int = Automation.LEVEL;
+
+	/**
+		Which operator, for a per operator lane.
+	**/
 	public var slot:Int = 0;
 
 	var menu:Null<Menu> = null;
 
+	/**
+		Builds the editor.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -50,21 +90,35 @@ final class AutomationEditor extends Widget {
 		add(stack);
 	}
 
+	/**
+		@return How tall the header is.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.head;
 	}
 
+	/**
+		@return How tall the ruler across the top is.
+	**/
 	public function ruler():Float {
 		final root = root();
 		return root == null ? 24 : root.metrics.ruler;
 	}
 
+	/**
+		@return How wide the lane names down the side are.
+	**/
 	public function gutter():Float {
 		final root = root();
 		return root == null ? 110 : root.metrics.whole(110);
 	}
 
+	/**
+		Opens one automation clip, or goes back to the chosen pattern.
+
+		@param clip The clip, or null for the pattern.
+	**/
 	public function follows(clip:Null<Clip>):Void {
 		holding = clip;
 
@@ -73,6 +127,12 @@ final class AutomationEditor extends Widget {
 		relayout();
 	}
 
+	/**
+		Shows one lane.
+
+		@param target Which lane, from `Automation`.
+		@param slot Which operator, for a per operator lane.
+	**/
 	public function shows(target:Int, slot:Int):Void {
 		holding = null;
 
@@ -87,6 +147,9 @@ final class AutomationEditor extends Widget {
 		relayout();
 	}
 
+	/**
+		@return How long the thing being edited is, in ticks.
+	**/
 	public function span():Int {
 		if (holding != null) return holding.length;
 
@@ -94,10 +157,17 @@ final class AutomationEditor extends Widget {
 		return pattern == null ? session.song.tempo.ppqn * 16 : pattern.length;
 	}
 
+	/**
+		@return Which part the lane drives, which is the clip target for an automation clip and the
+			chosen part otherwise.
+	**/
 	public function drivenPart():Part {
 		return holding == null ? session.part : (holding.part:Part);
 	}
 
+	/**
+		@return What the shown lane actually is, or null where the part does not have it.
+	**/
 	public function held():Null<Parameter> {
 		if (holding == null) return Parameter.found(session.part, target, slot);
 
@@ -105,6 +175,10 @@ final class AutomationEditor extends Widget {
 		return line == null ? null : Parameter.found(drivenPart(), line.target, line.slot);
 	}
 
+	/**
+		@param row Which lane row.
+		@return What that lane is, or null.
+	**/
 	public function heldAt(row:Int):Null<Parameter> {
 		return holding == null ? stack.parameterOf(row) : held();
 	}
@@ -112,6 +186,9 @@ final class AutomationEditor extends Widget {
 	var framedFor:Float = -1;
 	var framedSpan:Int = -1;
 
+	/**
+		Zooms and scrolls so the whole thing fits.
+	**/
 	public function framed():Void {
 		final room = width - gutter();
 		final reach = span();
@@ -126,15 +203,24 @@ final class AutomationEditor extends Widget {
 		offsetX = 0;
 	}
 
+	/**
+		@return How tall the strip along the bottom is.
+	**/
 	public function reinTall():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);
 	}
 
+	/**
+		@return Whether the lanes are taller than the room for them.
+	**/
 	public function across():Bool {
 		return span() * perTick > width - gutter() + 0.5;
 	}
 
+	/**
+		@return How much room is left for the lanes once the strips are taken off.
+	**/
 	public function reined():Float {
 		return across() ? reinTall() : 0;
 	}
@@ -255,10 +341,17 @@ final class AutomationEditor extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@return Where it draws, across.
+	**/
 	public inline function atTick(tick:Int):Float {
 		return x + gutter() - offsetX + tick * perTick;
 	}
 
+	/**
+		@return The zoom at which the thing exactly fills the view.
+	**/
 	public function widest():Float {
 		final reach = span();
 		final room = width - gutter();
@@ -267,6 +360,12 @@ final class AutomationEditor extends Widget {
 		return room / reach;
 	}
 
+	/**
+		Zooms in or out, keeping a point where it was.
+
+		@param by What to multiply the zoom by.
+		@param around The point to keep still, across.
+	**/
 	public function zoom(by:Float, around:Float):Void {
 		final tick = Math.round((around - x - gutter() + offsetX) / perTick);
 		final want = perTick * by;
@@ -276,8 +375,16 @@ final class AutomationEditor extends Widget {
 		scrollTo(tick * perTick - (around - x - gutter()));
 	}
 
+	/**
+		How far the view is scrolled, down.
+	**/
 	public var offsetDown:Float = 0;
 
+	/**
+		Scrolls down, clamped to the lanes.
+
+		@param py How far down.
+	**/
 	public function scrollDown(py:Float):Void {
 		final most = stack.wants() - (height - head() - ruler() - reined());
 
@@ -285,6 +392,11 @@ final class AutomationEditor extends Widget {
 		relayout();
 	}
 
+	/**
+		Scrolls across, clamped to the thing being edited.
+
+		@param px How far across.
+	**/
 	public function scrollTo(px:Float):Void {
 		final most = span() * perTick - (width - gutter());
 
@@ -292,10 +404,19 @@ final class AutomationEditor extends Widget {
 		relayout();
 	}
 
+	/**
+		@param px A point, across.
+		@return Which tick is there.
+	**/
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - gutter() + offsetX) / perTick);
 	}
 
+	/**
+		Moves the playhead to a point on the ruler.
+
+		@param px A point, across.
+	**/
 	public function scrubbed(px:Float):Void {
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
@@ -315,6 +436,11 @@ final class AutomationEditor extends Widget {
 	var scrubbing:Bool = false;
 	var dragging:Bool = false;
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the strip along the bottom.
+	**/
 	public function onRein(px:Float, py:Float):Bool {
 		if (!across()) return false;
 

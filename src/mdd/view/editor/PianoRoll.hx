@@ -26,6 +26,15 @@ import mdd.view.Parameter;
 import mdd.view.Picked;
 
 @:unreflective
+
+/**
+	The piano roll: notes against pitch and time, with the parameter lanes underneath
+	and the velocities between them.
+
+	A note the chip cannot sound is hatched as soon as it is written, from the same
+	budget the warnings panel reads, so the limit is seen while the music is being
+	written rather than found at export.
+**/
 final class PianoRoll extends Widget {
 
 
@@ -36,28 +45,83 @@ final class PianoRoll extends Widget {
 	static final BLACK:Array<Bool> = [false, true, false, true, false, false, true, false, true,
 		false, true, false];
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		How many pixels a tick is, which is the zoom.
+	**/
 	public var perTick:Float = 0.25;
+
+	/**
+		How tall one semitone row is.
+	**/
 	public var rowTall:Float = 12;
 
+	/**
+		How far the view is scrolled, across.
+	**/
 	public var offsetX:Float = 0;
+
+	/**
+		How far it is scrolled, down.
+	**/
 	public var offsetY:Float = 0;
 
+	/**
+		Where the playhead is, or -1 for nowhere.
+	**/
 	public var playhead:Int = -1;
+
+	/**
+		What says which notes the hardware will not sound, so they can be hatched.
+	**/
 	public var budget:Null<Budget> = null;
 
+	/**
+		How many notes the last frame drew, which is what proves only the visible ones cost
+		anything.
+	**/
 	public var painted(default, null):Int = 0;
+
+	/**
+		Which note is chosen.
+	**/
 	public var chosen(default, null):Null<Note> = null;
+
+	/**
+		Which notes are selected.
+	**/
 	public final picked:Picked<Note> = new Picked<Note>();
 
+	/**
+		Called to sound a note, which goes through the transport rather than a chip.
+	**/
 	public var onAudition:Null<(Part, Int) -> Void> = null;
+
+	/**
+		Whether the parameter lanes are shown.
+	**/
 	public var showLanes:Bool = true;
+
+	/**
+		Which lane is shown under the velocities.
+	**/
 	public var showing:Int = 0;
 	var stalking:Null<Note> = null;
 	var litNote:Int = -1;
 	var litOn:Bool = false;
+
+	/**
+		The parameter lanes.
+	**/
 	public final stack:Lanes;
+
+	/**
+		Called to open a lane for a parameter.
+	**/
 	public var onAutomate:Null<(Int, Int) -> Void> = null;
 
 	var banding:Bool = false;
@@ -101,6 +165,11 @@ final class PianoRoll extends Widget {
 	var settledOn:Int = -1;
 	var settledPart:Int = -1;
 
+	/**
+		Builds the roll.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -238,10 +307,17 @@ final class PianoRoll extends Widget {
 		root.pop(menu, px, py, this);
 	}
 
+	/**
+		@return Whether the chosen part plays samples, in which case the rows are a kit rather than
+			a keyboard.
+	**/
 	public inline function kitting():Bool {
 		return session.part.sampled();
 	}
 
+	/**
+		Reads the kit again, which changing the bank needs.
+	**/
 	public function kitted():Void {
 		kit.resize(0);
 
@@ -279,10 +355,16 @@ final class PianoRoll extends Widget {
 		rowTall = want;
 	}
 
+	/**
+		@return The lowest row shown.
+	**/
 	public function lowest():Int {
 		return kitting() ? KIT_BASE : LOWEST;
 	}
 
+	/**
+		@return The highest.
+	**/
 	public function highest():Int {
 		if (!kitting()) return HIGHEST;
 		return KIT_BASE + (kit.length < 1 ? 0 : kit.length - 1);
@@ -339,16 +421,25 @@ final class PianoRoll extends Widget {
 			new mdd.song.Note(at, length, pitch)));
 	}
 
+	/**
+		@return How wide the keyboard down the side is.
+	**/
 	public function gutter():Float {
 		final root = root();
 		return root == null ? 56 : root.metrics.whole(56);
 	}
 
+	/**
+		@return How tall the ruler across the top is.
+	**/
 	public function ruler():Float {
 		final root = root();
 		return root == null ? 24 : root.metrics.ruler;
 	}
 
+	/**
+		@return How tall the velocity strip is.
+	**/
 	public function velocityTall():Float {
 		if (!showLanes || showing != 0) return 0;
 
@@ -356,15 +447,26 @@ final class PianoRoll extends Widget {
 		return root == null ? 108 : root.metrics.whole(108);
 	}
 
+	/**
+		@return How tall the parameter lanes are.
+	**/
 	public function lanes():Float {
 		if (!showLanes) return 0;
 		return showing == 0 ? velocityTall() : stack.wants();
 	}
 
+	/**
+		@return How many lanes the chosen part has to offer.
+	**/
 	public function choices():Int {
 		return Parameter.of(session.part).length + 1;
 	}
 
+	/**
+		Steps to the next or previous lane.
+
+		@param by One forwards, minus one backwards.
+	**/
 	public function cycles(by:Int):Void {
 		final many = choices();
 		var want = (showing + by) % many;
@@ -373,6 +475,11 @@ final class PianoRoll extends Widget {
 		shows(want);
 	}
 
+	/**
+		Shows one lane under the velocities.
+
+		@param want Which lane.
+	**/
 	public function shows(want:Int):Void {
 		if (want == showing || want < 0 || want >= choices()) return;
 
@@ -398,39 +505,74 @@ final class PianoRoll extends Widget {
 		return py >= top && py < top + stripHead();
 	}
 
+	/**
+		@return How wide one grid step draws.
+	**/
 	public inline function grid():Float {
 		return height - ruler() - lanes();
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+		@return The tick snapped, or left alone.
+	**/
 	public inline function freely(tick:Int, free:Bool):Int {
 		return free ? tick : session.snapped(tick);
 	}
 
+	/**
+		@param px A point, across.
+		@return Which tick is there.
+	**/
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - gutter() + offsetX) / perTick);
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@return Where it draws, across.
+	**/
 	public inline function atTick(tick:Int):Float {
 		return x + gutter() + tick * perTick - offsetX;
 	}
 
+	/**
+		@param py A point, down.
+		@return Which pitch is there.
+	**/
 	public inline function pitchAt(py:Float):Int {
 		return highest() - Std.int((py - y - ruler() + offsetY) / rowTall);
 	}
 
+	/**
+		@param pitch A MIDI note number.
+		@return Where it draws, down.
+	**/
 	public inline function atPitch(pitch:Int):Float {
 		return y + ruler() + (highest() - pitch) * rowTall - offsetY;
 	}
 
+	/**
+		@return How wide the whole pattern draws.
+	**/
 	public function contentWidth():Float {
 		final pattern = session.current();
 		return pattern == null ? 0 : pattern.length * perTick;
 	}
 
+	/**
+		@return How tall every row draws.
+	**/
 	public function contentHeight():Float {
 		return (highest() - lowest() + 1) * rowTall;
 	}
 
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return The note there, or null.
+	**/
 	public function noteAt(px:Float, py:Float):Null<Note> {
 		final pattern = session.current();
 		if (pattern == null) return null;
@@ -680,6 +822,11 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	/**
+		Moves the playhead to a point on the ruler.
+
+		@param px A point, across.
+	**/
 	public function scrubbed(px:Float):Void {
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
@@ -690,6 +837,12 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	/**
+		Scrolls a position into view, which clicking a warning does.
+
+		@param tick A position in the piece, in ticks.
+		@param pitch A MIDI note number.
+	**/
 	public function reveal(tick:Int, pitch:Int):Void {
 		final wide = width - gutter();
 		final tall = grid();
@@ -697,6 +850,11 @@ final class PianoRoll extends Widget {
 		scrollTo(tick * perTick - wide * 0.3, (highest() - pitch) * rowTall - tall * 0.5);
 	}
 
+	/**
+		Chooses a note and shows it in the inspector.
+
+		@param note The note, or null for none.
+	**/
 	public function choose(note:Null<Note>):Void {
 		chosen = note;
 
@@ -706,6 +864,11 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	/**
+		Selects every note in the pattern.
+
+		@return Whether anything was selected.
+	**/
 	public function picksAll():Bool {
 		final pattern = session.current();
 		if (pattern == null) return false;
@@ -752,6 +915,9 @@ final class PianoRoll extends Widget {
 		return many + (many == 1 ? " note" : " notes");
 	}
 
+	/**
+		@return The selected notes, or the chosen one where nothing is selected.
+	**/
 	public function held():Array<Note> {
 		final pattern = session.current();
 		final out:Array<Note> = [];
@@ -775,6 +941,12 @@ final class PianoRoll extends Widget {
 		return pattern == null ? [] : pattern.lane(session.part).notes;
 	}
 
+	/**
+		Scrolls to a position, clamped to the pattern.
+
+		@param px How far across.
+		@param py How far down.
+	**/
 	public function scrollTo(px:Float, py:Float):Void {
 		final mostX = contentWidth() - (width - gutter());
 		final mostY = contentHeight() - grid();
@@ -787,6 +959,9 @@ final class PianoRoll extends Widget {
 
 	var framedFor:Int = -1;
 
+	/**
+		Zooms and scrolls so the whole pattern fits.
+	**/
 	public function framed():Void {
 		final pattern = session.current();
 		if (pattern == null || width <= 0) return;
@@ -805,6 +980,9 @@ final class PianoRoll extends Widget {
 		scrollTo(0, offsetY);
 	}
 
+	/**
+		@return The zoom at which the pattern exactly fills the view.
+	**/
 	public function widest():Float {
 		final pattern = session.current();
 		final length = pattern == null ? 0 : pattern.length;
@@ -815,6 +993,12 @@ final class PianoRoll extends Widget {
 		return fits < 0.02 ? fits : 0.02;
 	}
 
+	/**
+		Zooms in or out, keeping a point where it was.
+
+		@param by What to multiply the zoom by.
+		@param around The point to keep still, across.
+	**/
 	public function zoom(by:Float, around:Float):Void {
 		final tick = tickAt(around);
 		final want = perTick * by;
@@ -1149,6 +1333,9 @@ final class PianoRoll extends Widget {
 		return null;
 	}
 
+	/**
+		Which chord reaches each tool, for the tooltips.
+	**/
 	public var bindings:Null<mdd.app.Bindings> = null;
 
 	function copies():Bool {
@@ -1489,6 +1676,9 @@ final class PianoRoll extends Widget {
 
 	var reining:Int = 0;
 
+	/**
+		@return How tall the strip that folds the lanes is.
+	**/
 	public function reinTall():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);
@@ -1567,6 +1757,9 @@ final class PianoRoll extends Widget {
 		scrollTo(offsetX, want * (contentHeight() - tall));
 	}
 
+	/**
+		@return How tall the velocity strip header is.
+	**/
 	public function stripHead():Float {
 		final root = root();
 		return root == null ? 17 : root.metrics.whole(17);
@@ -1642,6 +1835,9 @@ final class PianoRoll extends Widget {
 
 
 
+	/**
+		Forgets the selection and the chosen note.
+	**/
 	public function forgets():Void {
 		drawn = 0;
 		gridded = -1;
@@ -1650,6 +1846,13 @@ final class PianoRoll extends Widget {
 		chosen = null;
 	}
 
+	/**
+		Writes a note, which is what the draw tool does.
+
+		@param at A position in the piece, in ticks.
+		@param pitch A MIDI note number.
+		@return The note, or null where the pattern would not take it.
+	**/
 	public function draws(at:Int, pitch:Int):Null<Note> {
 		final pattern = session.current();
 		if (pattern == null) return null;
@@ -1671,11 +1874,17 @@ final class PianoRoll extends Widget {
 		return note;
 	}
 
+	/**
+		@return How many ticks a sixteenth is, which is the default note length.
+	**/
 	public function sixteenth():Int {
 		final held = Std.int(session.song.tempo.ppqn / 4);
 		return held < 1 ? 1 : held;
 	}
 
+	/**
+		@return How many ticks one grid step is.
+	**/
 	public function stepped():Int {
 		final least = sixteenth();
 		final held = session.snap < 1 ? least : session.snap;
@@ -1683,11 +1892,19 @@ final class PianoRoll extends Widget {
 		return held < least ? least : held;
 	}
 
+	/**
+		@return How near the end of a note counts as its edge, for resizing.
+	**/
 	public function edge():Float {
 		final root = root();
 		return root == null ? 6 : root.metrics.whole(6);
 	}
 
+	/**
+		@param note A note.
+		@param px A point, across.
+		@return Whether the point is on its edge rather than its body.
+	**/
 	public function onEdge(note:Note, px:Float):Bool {
 		final right = atTick(note.at + note.length);
 		final reach = edge();
@@ -1695,6 +1912,13 @@ final class PianoRoll extends Widget {
 		return px >= right - reach && px <= right + reach;
 	}
 
+	/**
+		Changes how long a note is.
+
+		@param note The note.
+		@param to The tick it should end on.
+		@param free Whether to ignore the snap, which holding alt does.
+	**/
 	public function resized(note:Note, to:Int, free:Bool = false):Void {
 		final least = free || session.snap < 1 ? 1 : session.snap;
 		var want = freely(to, free) - note.at;
@@ -1927,6 +2151,12 @@ final class PianoRoll extends Widget {
 		}
 	}
 
+	/**
+		Lights the keys that are sounding now, read back out of the register stream
+		rather than asked of the sequencer.
+
+		@param sounding What is keyed.
+	**/
 	public function lights(sounding:mdd.play.Sounding):Void {
 		final which = session.part.index();
 		final on = sounding.keyed[which];

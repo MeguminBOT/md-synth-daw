@@ -16,6 +16,13 @@ import mdd.ui.Theme;
 import mdd.ui.Widget;
 
 @:unreflective
+
+/**
+	The same pattern as hexadecimal rows, one column per part.
+
+	It is a view of the same notes the roll draws, not a second model, so an edit in
+	either shows up in the other at once.
+**/
 final class Tracker extends Widget {
 	static final NAMES:Array<String> = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#",
 		"A-", "A#", "B-"];
@@ -28,22 +35,64 @@ final class Tracker extends Widget {
 
 	static final DIVISIONS:Array<Int> = [4, 8, 16, 32];
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Which octave a typed note lands in.
+	**/
 	public var octave:Int = 4;
+
+	/**
+		Where the cursor is, down.
+	**/
 	public var row(default, null):Int = 0;
+
+	/**
+		Where it is, across.
+	**/
 	public var column(default, null):Int = 0;
+
+	/**
+		How far the view is scrolled, down.
+	**/
 	public var offsetY:Float = 0;
+
+	/**
+		How far it is scrolled, across.
+	**/
 	public var offsetX:Float = 0;
 
+	/**
+		How many rows one bar is cut into.
+	**/
 	public var division:Int = 16;
+
+	/**
+		How many rows the cursor moves after a note is typed.
+	**/
 	public var advance:Int = 1;
 
+	/**
+		How many rows the last frame drew.
+	**/
 	public var painted(default, null):Int = 0;
 
+	/**
+		Whether a value is being typed into a cell.
+	**/
 	public var entering(default, null):Bool = false;
+
+	/**
+		What has been typed so far.
+	**/
 	public var entered(default, null):String = "";
 
+	/**
+		Called to sound a note as it is typed.
+	**/
 	public var onAudition:Null<(Part, Int) -> Void> = null;
 
 	static final LETTERS:Array<String> = ["C", "D", "E", "F", "G", "A", "B"];
@@ -51,6 +100,11 @@ final class Tracker extends Widget {
 
 	static inline final MOST_TYPED = 7;
 
+	/**
+		Builds the tracker.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -59,21 +113,33 @@ final class Tracker extends Widget {
 		opaque = true;
 	}
 
+	/**
+		@return How tall one row is.
+	**/
 	public function rowTall():Float {
 		final root = root();
 		return root == null ? 18 : root.metrics.whole(18);
 	}
 
+	/**
+		@return How wide the row numbers down the side are.
+	**/
 	public function numbers():Float {
 		final root = root();
 		return root == null ? 84 : root.metrics.whole(84);
 	}
 
+	/**
+		@return How tall the column headers are.
+	**/
 	public function head():Float {
 		final root = root();
 		return root == null ? 26 : root.metrics.head;
 	}
 
+	/**
+		@return How wide one column is.
+	**/
 	public function columnWide():Float {
 		final root = root();
 		final want = root == null ? 96.0 : root.metrics.whole(96);
@@ -82,10 +148,16 @@ final class Tracker extends Widget {
 		return room > want ? room : want;
 	}
 
+	/**
+		@return How wide every column draws together.
+	**/
 	public function reach():Float {
 		return columnWide() * Part.COUNT;
 	}
 
+	/**
+		@return How many ticks one row is.
+	**/
 	public function step():Int {
 		final ppqn = session.song.tempo.ppqn;
 		final held = Math.round(ppqn * 4 / division);
@@ -97,6 +169,9 @@ final class Tracker extends Widget {
 		return !session.alone && session.song.tracks.length > 0;
 	}
 
+	/**
+		@return How many rows the pattern has.
+	**/
 	public function rows():Int {
 		final span = songly() ? session.song.ends() : lengthOf();
 		final many = Math.ceil(span / step());
@@ -109,6 +184,11 @@ final class Tracker extends Widget {
 		return pattern == null ? 0 : pattern.length;
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param part Which part.
+		@return The clip playing there, or null.
+	**/
 	public function clipAt(tick:Int, part:Part):Null<mdd.song.Clip> {
 		for (track in session.song.tracks) {
 			if (track.muted) continue;
@@ -141,6 +221,11 @@ final class Tracker extends Widget {
 		return null;
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param part Which part.
+		@return The lane the notes there live in, or null.
+	**/
 	public function laneAt(tick:Int, part:Part):Null<mdd.song.Lane> {
 		if (!songly()) {
 			final pattern = session.current();
@@ -165,6 +250,10 @@ final class Tracker extends Widget {
 		return row * step();
 	}
 
+	/**
+		@param py A point, down.
+		@return Which row is there.
+	**/
 	public function rowAt(py:Float):Int {
 		final at = Std.int((py - y - head() + offsetY) / rowTall());
 		return at < 0 || at >= rows() ? -1 : at;
@@ -175,12 +264,24 @@ final class Tracker extends Widget {
 		return at < 0 || at >= Part.COUNT ? -1 : at;
 	}
 
+	/**
+		@param which A column.
+		@return Where it draws, across.
+	**/
 	public inline function atColumn(which:Int):Float {
 		return x + numbers() + which * columnWide() - offsetX;
 	}
 
+	/**
+		Whether the cell under the cursor is a held note rather than a new one.
+	**/
 	public var carried(default, null):Bool = false;
 
+	/**
+		@param row A row.
+		@param column A column.
+		@return The note that starts in that cell, or null.
+	**/
 	public function noteOf(row:Int, column:Int):Null<Note> {
 		carried = false;
 
@@ -221,6 +322,11 @@ final class Tracker extends Widget {
 		return null;
 	}
 
+	/**
+		@param row A row.
+		@param column A column.
+		@return The note sounding in that cell, which may have started higher up.
+	**/
 	public function noteAt(row:Int, column:Int):Null<Note> {
 		if (row < 0 || column < 0) return null;
 
@@ -239,6 +345,11 @@ final class Tracker extends Widget {
 		return null;
 	}
 
+	/**
+		@param row A row.
+		@param column A column.
+		@return Whether a note is being held through that cell rather than starting in it.
+	**/
 	public function holding(row:Int, column:Int):Bool {
 		if (row < 0 || column < 0) return false;
 
@@ -257,6 +368,9 @@ final class Tracker extends Widget {
 		return false;
 	}
 
+	/**
+		Scrolls the cursor into view.
+	**/
 	public function reveal():Void {
 		final tall = rowTall();
 		final top = row * tall;
@@ -283,6 +397,12 @@ final class Tracker extends Widget {
 		invalidate();
 	}
 
+	/**
+		Moves the cursor.
+
+		@param row A row.
+		@param column A column.
+	**/
 	public function at(row:Int, column:Int):Void {
 		this.row = row < 0 ? 0 : row;
 		this.column = column < 0 ? 0 : (column >= Part.COUNT ? Part.COUNT - 1 : column);
@@ -290,6 +410,11 @@ final class Tracker extends Widget {
 		reveal();
 	}
 
+	/**
+		Moves the cursor to follow the playhead.
+
+		@param at A position in the piece, in ticks.
+	**/
 	public function follow(at:Int):Void {
 		if (at < 0 || at >= rows() || at == row) return;
 
@@ -306,6 +431,12 @@ final class Tracker extends Widget {
 		reveal();
 	}
 
+	/**
+		Writes a note in the cell under the cursor and steps on.
+
+		@param pitch A MIDI note number.
+		@return The note, or null where it would not go there.
+	**/
 	public function place(pitch:Int):Null<Note> {
 		final part:Part = column;
 		final tick = tickOf(row);
@@ -376,6 +507,9 @@ final class Tracker extends Widget {
 		return true;
 	}
 
+	/**
+		Starts typing a value into the cell.
+	**/
 	public function opens():Void {
 		if (entering) return;
 
@@ -388,6 +522,11 @@ final class Tracker extends Widget {
 		reveal();
 	}
 
+	/**
+		Stops typing.
+
+		@param keep Whether to apply what was typed.
+	**/
 	public function shuts(keep:Bool):Void {
 		if (!entering) return;
 
@@ -471,6 +610,11 @@ final class Tracker extends Widget {
 		return want < 1 ? 1 : (want > 127 ? 127 : want);
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param part Which part.
+		@return Which pattern a note written there would go into.
+	**/
 	public function writing(tick:Int, part:Part):Int {
 		if (!songly()) return session.pattern;
 
@@ -491,6 +635,9 @@ final class Tracker extends Widget {
 		return clip == null ? 0 : clip.at;
 	}
 
+	/**
+		Removes the note under the cursor.
+	**/
 	public function cut():Void {
 		final part:Part = column;
 		final tick = tickOf(row);

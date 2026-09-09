@@ -23,9 +23,29 @@ import mdd.view.Parameter;
 import mdd.view.Picked;
 
 @:unreflective
+
+/**
+	The automation lanes: several parameters at once, each a row of points over time.
+
+	The piano roll and the automation editor both draw this, so a point is the same
+	point in either. A point carries a curve that reaches the next one rather than only
+	stepping or ramping, and the row header is where a lane is chosen, folded or
+	swapped for another.
+**/
 final class Lanes extends Widget {
+	/**
+		The shortest a lane row may be drawn.
+	**/
 	public static inline final LEAST_ROW = 40;
+
+	/**
+		The tallest.
+	**/
 	public static inline final MOST_ROW = 220;
+
+	/**
+		How tall a row is by default.
+	**/
 	public static inline final ROW = 92;
 
 	static inline final REACH = 8;
@@ -34,29 +54,79 @@ final class Lanes extends Widget {
 
 	static inline final FINE = 0.125;
 
+	/**
+		The session to read.
+	**/
 	public final session:Session;
 
+	/**
+		Which lanes are shown, packed as a target and a slot.
+	**/
 	public final targets:Array<Int> = [];
 
+	/**
+		How many pixels a tick is, which is the zoom.
+	**/
 	public var perTick:Float = 0.25;
+
+	/**
+		How far the view is scrolled, across.
+	**/
 	public var offsetX:Float = 0;
+
+	/**
+		Where the plot starts, across, past the row headers.
+	**/
 	public var left:Float = 0;
+
+	/**
+		How tall one row is.
+	**/
 	public var rowTall:Float = 0;
+
+	/**
+		Whether clicking empty space adds a point rather than only selecting.
+	**/
 	public var adding:Bool = true;
 
+	/**
+		How far the view is scrolled, down.
+	**/
 	public var offsetY:Float = 0;
 
 	final heights:Array<Float> = [];
 	final remembered:Map<Int, Float> = new Map<Int, Float>();
 	final shut:Map<Int, Bool> = new Map<Int, Bool>();
 
+	/**
+		Called to open the menu that chooses which lane a row shows.
+	**/
 	public var onOffer:Null<(Lanes, Int, Float, Float) -> Void> = null;
+
+	/**
+		Called to open the menu that chooses a point curve.
+	**/
 	public var onShape:Null<(Lanes, Int, Point, Float, Float) -> Void> = null;
 
+	/**
+		The automation clip being edited, where one is.
+	**/
 	public var holding:Null<mdd.song.Clip> = null;
+
+	/**
+		Where the playhead is, or -1 for nowhere.
+	**/
 	public var playhead:Int = -1;
+
+	/**
+		Which point is chosen.
+	**/
 	public var chosen(default, null):Null<Point> = null;
 	var chosenAt(default, null):Int = -1;
+
+	/**
+		Which points are selected.
+	**/
 	public final picked:Picked<Point> = new Picked<Point>();
 
 	static inline final STACK = -2;
@@ -106,16 +176,40 @@ final class Lanes extends Widget {
 
 	final trace:Vector<Float> = new Vector<Float>(TRACE * 2);
 
+	/**
+		The chosen point position, typed or dragged.
+	**/
 	public final position:Number;
+
+	/**
+		Its value.
+	**/
 	public final amount:Number;
+
+	/**
+		Which curve reaches the next point.
+	**/
 	public final shape:Number;
+
+	/**
+		How hard that curve bends.
+	**/
 	public final bend:Number;
+
+	/**
+		How many steps a stepped curve takes.
+	**/
 	public final steps:Number;
 
 	final fields:Array<Number>;
 
 	var settling:Bool = false;
 
+	/**
+		Builds the lanes and the fields that edit a point.
+
+		@param session The session to read.
+	**/
 	public function new(session:Session) {
 		super();
 		this.session = session;
@@ -254,6 +348,9 @@ final class Lanes extends Widget {
 		}
 	}
 
+	/**
+		@return How many lane rows are shown.
+	**/
 	public inline function rows():Int {
 		return holding == null ? targets.length : 1;
 	}
@@ -266,10 +363,17 @@ final class Lanes extends Widget {
 		return holding == null ? session.part : (holding.part:Part);
 	}
 
+	/**
+		@return How tall an unfolded row is.
+	**/
 	public function rowHeight():Float {
 		return heightOf(0);
 	}
 
+	/**
+		@param row Which lane row.
+		@return How tall it draws, which is the header alone where it is folded.
+	**/
 	public function heightOf(row:Int):Float {
 		if (folded(row)) return headTall();
 		if (rowTall > 0) return rowTall;
@@ -280,11 +384,20 @@ final class Lanes extends Widget {
 		return root == null ? ROW : root.metrics.whole(ROW);
 	}
 
+	/**
+		@param row Which lane row.
+		@return Whether it is folded away.
+	**/
 	public function folded(row:Int):Bool {
 		if (row < 0 || row >= targets.length) return false;
 		return shut.exists(targets[row]) && shut.get(targets[row]);
 	}
 
+	/**
+		Folds a row away, or unfolds it.
+
+		@param row Which lane row.
+	**/
 	public function folds(row:Int):Void {
 		if (row < 0 || row >= targets.length) return;
 
@@ -313,6 +426,11 @@ final class Lanes extends Widget {
 
 	var spreadFor:Int = -1;
 
+	/**
+		Shares the room between the unfolded rows.
+
+		@param room How much room there is, down.
+	**/
 	public function spreads(room:Float):Void {
 		if (rowTall > 0) return;
 
@@ -351,6 +469,9 @@ final class Lanes extends Widget {
 		heights[row] = want >= 0 && remembered.exists(want) ? remembered.get(want) : 0;
 	}
 
+	/**
+		@return How tall a row header is.
+	**/
 	public function headTall():Float {
 		final root = root();
 		return root == null ? 17 : root.metrics.whole(17);
@@ -361,6 +482,9 @@ final class Lanes extends Widget {
 		return root == null ? 32 : root.metrics.whole(32);
 	}
 
+	/**
+		@return How tall every row together would like to be.
+	**/
 	public function wants():Float {
 		var much = holding == null ? footTall() : 0.0;
 		for (row in 0...rows()) much += heightOf(row);
@@ -368,10 +492,18 @@ final class Lanes extends Widget {
 		return much;
 	}
 
+	/**
+		@param row Which lane row.
+		@return Where its plot starts, down, past its header.
+	**/
 	public inline function plotTop(row:Int):Float {
 		return rowTop(row) + headTall();
 	}
 
+	/**
+		@param row Which lane row.
+		@return How tall its plot is.
+	**/
 	public inline function plotTall(row:Int):Float {
 		return heightOf(row) - headTall();
 	}
@@ -383,6 +515,10 @@ final class Lanes extends Widget {
 		return much;
 	}
 
+	/**
+		@param row Which lane row.
+		@return Which lane it shows.
+	**/
 	public inline function targetOf(row:Int):Int {
 		return targets[row] >> 8;
 	}
@@ -397,14 +533,29 @@ final class Lanes extends Widget {
 		return line == null ? slotOf(row) : line.slot;
 	}
 
+	/**
+		@param row Which lane row.
+		@return Which operator it shows, for a per operator lane.
+	**/
 	public inline function slotOf(row:Int):Int {
 		return targets[row] & 0xFF;
 	}
 
+	/**
+		@param target Which lane, from `Automation`.
+		@param slot Which operator, for a per operator lane.
+		@return Whether a row is already showing that lane.
+	**/
 	public function shows(target:Int, slot:Int):Bool {
 		return targets.indexOf((target << 8) | slot) >= 0;
 	}
 
+	/**
+		Adds a row for a lane, unless one is already showing it.
+
+		@param target Which lane, from `Automation`.
+		@param slot Which operator, for a per operator lane.
+	**/
 	public function show(target:Int, slot:Int):Void {
 		final want = (target << 8) | slot;
 		if (targets.indexOf(want) >= 0) return;
@@ -415,6 +566,11 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
+	/**
+		Takes a row away.
+
+		@param row Which lane row.
+	**/
 	public function hide(row:Int):Void {
 		if (row < 0 || row >= targets.length) return;
 
@@ -426,6 +582,13 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
+	/**
+		Points a row at another lane.
+
+		@param row Which lane row.
+		@param target Which lane, from `Automation`.
+		@param slot Which operator, for a per operator lane.
+	**/
 	public function swap(row:Int, target:Int, slot:Int):Void {
 		if (row < 0 || row >= targets.length) return;
 
@@ -437,10 +600,16 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
+	/**
+		How many rows may be shown at once.
+	**/
 	public var opens:Int = 64;
 
 	var filledFor:Int = -1;
 
+	/**
+		Reads the chosen point into the fields that edit it.
+	**/
 	public function settles():Void {
 		if (holding != null) return;
 
@@ -451,6 +620,11 @@ final class Lanes extends Widget {
 		fills(false);
 	}
 
+	/**
+		Works out which rows to show from what the part actually carries.
+
+		@param again Whether to throw away the rows that are already shown.
+	**/
 	public function fills(again:Bool = true):Void {
 		if (holding != null) return;
 
@@ -490,6 +664,11 @@ final class Lanes extends Widget {
 		if (again) relayout();
 	}
 
+	/**
+		@param target Which lane, from `Automation`.
+		@param slot Which operator, for a per operator lane.
+		@return How many points that lane holds.
+	**/
 	public function carries(target:Int, slot:Int):Int {
 		final pattern = session.current();
 		if (pattern == null) return 0;
@@ -501,6 +680,12 @@ final class Lanes extends Widget {
 		return 0;
 	}
 
+	/**
+		Chooses a point and reads it into the fields.
+
+		@param point The point.
+		@param row Which lane row.
+	**/
 	public function picks(point:Point, row:Int):Void {
 		chosen = point;
 		chosenAt = row;
@@ -538,6 +723,11 @@ final class Lanes extends Widget {
 		chosenAt = -1;
 	}
 
+	/**
+		Selects every point in the shown rows.
+
+		@return Whether anything was selected.
+	**/
 	public function picksAll():Bool {
 		final row = chosenAt < 0 ? 0 : chosenAt;
 		final line = lineOf(row);
@@ -645,6 +835,9 @@ final class Lanes extends Widget {
 		return true;
 	}
 
+	/**
+		@return How near a point counts as being on it, for dragging.
+	**/
 	public function edge():Float {
 		final root = root();
 		return root == null ? 5 : root.metrics.whole(5);
@@ -681,6 +874,10 @@ final class Lanes extends Widget {
 		raised(sizing, grabTall + py - grabY);
 	}
 
+	/**
+		@param py A point, down.
+		@return Which row is there, or -1.
+	**/
 	public function rowAt(py:Float):Int {
 		var top = y - offsetY;
 
@@ -694,6 +891,10 @@ final class Lanes extends Widget {
 		return -1;
 	}
 
+	/**
+		@param row Which lane row.
+		@return Where it starts, down.
+	**/
 	public function rowTop(row:Int):Float {
 		var top = y - offsetY;
 		for (before in 0...row) top += heightOf(before);
@@ -701,18 +902,35 @@ final class Lanes extends Widget {
 		return top;
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+		@return The tick snapped, or left alone.
+	**/
 	public inline function freely(tick:Int, free:Bool):Int {
 		return free ? tick : session.snapped(tick);
 	}
 
+	/**
+		@param px A point, across.
+		@return Which tick is there.
+	**/
 	public inline function tickAt(px:Float):Int {
 		return Math.round((px - x - left + offsetX) / perTick);
 	}
 
+	/**
+		@param tick A position in the piece, in ticks.
+		@return Where it draws, across.
+	**/
 	public inline function atTick(tick:Int):Float {
 		return x + left - offsetX + tick * perTick;
 	}
 
+	/**
+		@param row Which lane row.
+		@return What that lane actually is, or null where the part does not have it.
+	**/
 	public function parameterOf(row:Int):Null<Parameter> {
 		if (row < 0 || row >= rows()) return null;
 
@@ -722,6 +940,10 @@ final class Lanes extends Widget {
 		return Parameter.found(session.part, targetOf(row), slotOf(row));
 	}
 
+	/**
+		@param row Which lane row.
+		@return The lane itself, or null where nothing has been written to it yet.
+	**/
 	public function lineOf(row:Int):Null<Automation> {
 		if (holding != null) return row == 0 ? holding.line : null;
 
@@ -1493,6 +1715,9 @@ final class Lanes extends Widget {
 		}
 	}
 
+	/**
+		@return How long the thing being edited is, in ticks.
+	**/
 	public function span():Int {
 		final pattern = session.current();
 		return pattern == null ? session.song.tempo.ppqn * 16 : pattern.length;
@@ -1511,6 +1736,11 @@ final class Lanes extends Widget {
 			+ metrics.whole(7) + metrics.gap;
 	}
 
+	/**
+		@param row Which lane row.
+		@param px A point, across.
+		@return Whether the point is on the row name, which is what opens the lane menu.
+	**/
 	public function onName(row:Int, px:Float):Bool {
 		return px >= x && px < x + nameWide(row);
 	}
