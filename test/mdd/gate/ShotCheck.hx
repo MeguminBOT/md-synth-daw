@@ -30,7 +30,7 @@ class ShotCheck {
 	public static function run(args:Array<String>):Int {
 		final root = Gate.root;
 
-		var into = "R:/tmp/shot.png";
+		var into = root + "/export/shot.png";
 		var wide = 1600;
 		var tall = 1000;
 		var centreTab = Centre.PLAYLIST;

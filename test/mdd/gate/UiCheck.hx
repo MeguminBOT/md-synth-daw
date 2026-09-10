@@ -379,7 +379,7 @@ class UiCheck {
 
 		root.pressed(20, 20, Pointer.Left, Mod.None, 2);
 		root.released(20, 20, Pointer.Left, Mod.None);
-		root.said("7", Mod.None);
+		root.said("3", Mod.None);
 
 		final other = new Number("", 0, 0, 10);
 		root.top.add(other);
@@ -387,9 +387,9 @@ class UiCheck {
 		root.focusOn(other);
 
 		says("and typing ends when the keyboard goes elsewhere",
-			number.value == 140,
-			"the 7 that was typed landed as " + number.value
-			+ " rather than leaving a caret sitting in the field");
+			number.value == 60,
+			"the 3 that was typed landed as " + number.value
+			+ ", where 40 would mean the caret was left sitting in the field");
 	}
 
 	static function gestures():Void {
@@ -832,7 +832,7 @@ class UiCheck {
 		settings.whole("density", 0);
 		settings.flag("ghosts", false);
 		settings.number("gain", 0.75);
-		settings.put("song", "R:/a song.mdsyn");
+		settings.put("song", "C:/music/a song.mdsyn");
 
 		says("and it writes", settings.save() && sys.FileSystem.exists(path),
 			settings.count() + " settings written to " + path.substr(path.length - 12));
@@ -842,7 +842,7 @@ class UiCheck {
 
 		says("and reads back", back.asWhole("theme") == 2 && back.asWhole("density") == 0
 			&& !back.asFlag("ghosts", true) && back.asNumber("gain") == 0.75
-			&& back.of("song") == "R:/a song.mdsyn",
+			&& back.of("song") == "C:/music/a song.mdsyn",
 			back.read + " settings come back with their types, including a path with a space");
 
 		says("and an absent one falls back", back.asWhole("nothing", 7) == 7
