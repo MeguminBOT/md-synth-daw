@@ -279,6 +279,8 @@
   "rack.clear": "清空此通道",
   "rack.copyPreset": "复制预设",
   "rack.dac": "转换器，发声期间会占用 FM6",
+  "rack.drums": "作为鼓组播放",
+  "rack.drumsOff": "播放通道所持的音色",
   "rack.fm": "四算子 FM",
   "rack.mute": "静音",
   "rack.noPreset": "没有四算子预设",

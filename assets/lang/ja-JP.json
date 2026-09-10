@@ -279,6 +279,8 @@
   "rack.clear": "このチャンネルを空にする",
   "rack.copyPreset": "プリセットをコピー",
   "rack.dac": "コンバーター。鳴っている間はFM6を占有します",
+  "rack.drums": "ドラムキットとして鳴らす",
+  "rack.drumsOff": "チャンネルの音色を鳴らす",
   "rack.fm": "4オペレーターFM",
   "rack.mute": "ミュート",
   "rack.noPreset": "には4オペレーターのプリセットがありません",

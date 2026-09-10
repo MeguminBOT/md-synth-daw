@@ -279,6 +279,8 @@
   "rack.clear": "Vaciar este canal",
   "rack.copyPreset": "Copiar el preset",
   "rack.dac": "el convertidor, y ocupa FM6 mientras suena",
+  "rack.drums": "Reproducir como kit de batería",
+  "rack.drumsOff": "Reproducir lo que tiene el canal",
   "rack.fm": "FM de cuatro operadores",
   "rack.mute": "Silenciar",
   "rack.noPreset": "no tiene un preset de cuatro operadores",

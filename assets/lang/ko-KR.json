@@ -279,6 +279,8 @@
   "rack.clear": "이 채널 비우기",
   "rack.copyPreset": "프리셋 복사",
   "rack.dac": "컨버터, 소리가 나는 동안 FM6를 차지합니다",
+  "rack.drums": "드럼 킷으로 재생",
+  "rack.drumsOff": "채널이 가진 음색으로 재생",
   "rack.fm": "4 오퍼레이터 FM",
   "rack.mute": "음소거",
   "rack.noPreset": "에는 4 오퍼레이터 프리셋이 없습니다",

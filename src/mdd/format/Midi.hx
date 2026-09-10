@@ -26,6 +26,14 @@ final class Midi {
 	public static inline final PPQN = 960;
 
 	/**
+		The channel a general MIDI file puts its drums on, counted from nought.
+
+		A note there names a drum rather than a pitch, so the channel goes to the
+		converter and the converter is read as a kit: the pitch picks the sample.
+	**/
+	public static inline final DRUMS = 9;
+
+	/**
 		Writes a song as a type one file: a tempo track, then one track per part.
 
 		@param song The song to write.
@@ -352,7 +360,10 @@ final class Midi {
 				at += 2;
 
 				final on = kind == 0x90 && velocity > 0;
-				final part:Part = channel >= Part.COUNT ? Part.COUNT - 1 : channel;
+				final part:Part = channel == DRUMS ? Part.Dac
+					: (channel >= Part.COUNT ? Part.COUNT - 1 : channel);
+
+				if (channel == DRUMS) song.drums = true;
 
 				if (on) {
 					open[pitch] = velocity;

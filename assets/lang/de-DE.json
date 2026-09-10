@@ -279,6 +279,8 @@
   "rack.clear": "Diesen Kanal leeren",
   "rack.copyPreset": "Preset kopieren",
   "rack.dac": "der Wandler, er belegt FM6, solange er klingt",
+  "rack.drums": "Als Drumkit abspielen",
+  "rack.drumsOff": "Abspielen, was der Kanal hält",
   "rack.fm": "FM mit vier Operatoren",
   "rack.mute": "Stumm",
   "rack.noPreset": "hat kein Preset mit vier Operatoren",

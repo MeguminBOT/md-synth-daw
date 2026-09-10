@@ -48,6 +48,18 @@ final class Song {
 	public var stallAt:Int = -1;
 
 	/**
+		Whether the converter is played as a drum kit.
+
+		The converter holds one sample at a time like every other part, and a note
+		on it plays whatever the channel holds. A kit reads the note instead: the
+		pitch picks which sample sounds, from the sample roots, so a drum pattern
+		written across a row for each drum plays as it was written. A note whose
+		pitch matches no sample falls back to what the channel holds, so turning
+		this on never silences a piece that was written without it.
+	**/
+	public var drums:Bool = false;
+
+	/**
 		How long that stall lasts.
 	**/
 	public var stallFor:Int = 0;
@@ -276,6 +288,27 @@ final class Song {
 	public function chosen(part:Part, note:Note):Null<Instrument> {
 		final named = note.instrument >= 0 ? note.instrument : rack[part.index()];
 		return instrumentAt(named);
+	}
+
+	/**
+		Which sample a drum kit sounds for a pitch.
+
+		@param pitch A MIDI note number.
+		@return The instrument whose sample sits at that pitch, by index, or -1
+			where none does.
+	**/
+	public function drumAt(pitch:Int):Int {
+		for (index in 0...instruments.length) {
+			final instrument = instruments[index];
+			if (!instrument.kind.sampled()) continue;
+
+			final sample = sampleAt(instrument.sample);
+			if (sample == null || sample.root != pitch) continue;
+
+			return index;
+		}
+
+		return -1;
 	}
 
 	/**

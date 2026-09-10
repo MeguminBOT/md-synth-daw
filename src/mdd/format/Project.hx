@@ -67,6 +67,9 @@ class Project {
 		out.key("driving");
 		out.flag(song.driving);
 
+		out.key("drums");
+		out.flag(song.drums);
+
 		out.key("stall");
 		out.list();
 		out.whole(song.stallAt);
@@ -417,6 +420,7 @@ class Project {
 
 		final stall = node.get("stall");
 		song.driving = node.get("driving").truth(false);
+		song.drums = node.get("drums").truth(false);
 		song.stallAt = stall.at(0).whole(-1);
 		song.stallFor = stall.at(1).whole(0);
 		song.stallEvery = stall.at(2).real(735);

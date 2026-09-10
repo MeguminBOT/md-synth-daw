@@ -279,6 +279,8 @@
   "rack.clear": "Rensa den här kanalen",
   "rack.copyPreset": "Kopiera förinställning",
   "rack.dac": "omvandlaren, som tar över FM6 medan den ljuder",
+  "rack.drums": "Spela som ett trumset",
+  "rack.drumsOff": "Spela det kanalen håller",
   "rack.fm": "FM med fyra operatorer",
   "rack.mute": "Tysta",
   "rack.noPreset": "har ingen förinställning med fyra operatorer",

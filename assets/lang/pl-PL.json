@@ -279,6 +279,8 @@
   "rack.clear": "Wyczyść ten kanał",
   "rack.copyPreset": "Kopiuj preset",
   "rack.dac": "przetwornik, zajmuje FM6, dopóki gra",
+  "rack.drums": "Odtwarzaj jako zestaw perkusyjny",
+  "rack.drumsOff": "Odtwarzaj to, co ma kanał",
   "rack.fm": "FM na czterech operatorach",
   "rack.mute": "Wycisz",
   "rack.noPreset": "nie ma presetu na cztery operatory",

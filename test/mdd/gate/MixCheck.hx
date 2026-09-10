@@ -722,6 +722,49 @@ class MixCheck {
 		return over > grid - over ? grid - over : over;
 	}
 
+	/**
+		@return A one track general MIDI file with three drum notes on channel
+			ten, which is where a drum pattern arrives.
+	**/
+	static function drumFile():haxe.io.Bytes {
+		final out = new haxe.io.BytesOutput();
+		out.bigEndian = true;
+
+		out.writeString("MThd");
+		out.writeInt32(6);
+		out.writeUInt16(0);
+		out.writeUInt16(1);
+		out.writeUInt16(96);
+
+		final body = new haxe.io.BytesOutput();
+		body.bigEndian = true;
+
+		for (pitch in [36, 38, 42]) {
+			body.writeByte(0);
+			body.writeByte(0x99);
+			body.writeByte(pitch);
+			body.writeByte(100);
+
+			body.writeByte(24);
+			body.writeByte(0x89);
+			body.writeByte(pitch);
+			body.writeByte(0);
+		}
+
+		body.writeByte(0);
+		body.writeByte(0xFF);
+		body.writeByte(0x2F);
+		body.writeByte(0);
+
+		final held = body.getBytes();
+
+		out.writeString("MTrk");
+		out.writeInt32(held.length);
+		out.write(held);
+
+		return out.getBytes();
+	}
+
 	static function stemmed():Void {
 		final song = new Song("stems", 96, 140);
 		final pattern = song.add(new mdd.song.Pattern("one", 384));
@@ -1384,6 +1427,54 @@ class MixCheck {
 			back.patterns.length > 1 && single == lanes && back.tracks.length == lanes,
 			back.patterns.length + " patterns hold notes on one part each, laid out over "
 			+ back.tracks.length + " tracks, against the one pattern a midi used to become");
+
+		final drummed = mdd.format.Midi.read(drumFile(), "drums");
+
+		var onDac = 0;
+		var elsewhere = 0;
+
+		for (pattern in drummed.patterns) {
+			for (index in 0...mdd.song.Part.COUNT) {
+				final many = pattern.lane(index).notes.length;
+
+				if (index == mdd.song.Part.Dac.index()) onDac += many;
+				else elsewhere += many;
+			}
+		}
+
+		says("a general midi drum track lands on the converter",
+			onDac == 3 && elsewhere == 0 && drummed.drums,
+			onDac + " notes on the converter and " + elsewhere + " anywhere else,"
+			+ " with the kit switched " + (drummed.drums ? "on" : "off"));
+
+		final kinds = ["kick", "snare"];
+		final roots = [36, 38];
+
+		for (which in 0...kinds.length) {
+			final sample = new mdd.song.Sample(kinds[which], 8000, roots[which]);
+
+			final bytes = new Vector<Int>(8);
+			for (at in 0...8) bytes[at] = 128;
+
+			sample.hold(bytes);
+
+			final instrument = new mdd.song.Instrument(kinds[which],
+				mdd.song.Part.Dac);
+
+			drummed.sample(sample);
+			instrument.sample = drummed.samples.length - 1;
+			drummed.instrument(instrument);
+		}
+
+		final kick = drummed.drumAt(36);
+		final snare = drummed.drumAt(38);
+		final absent = drummed.drumAt(99);
+
+		says("and each drum note reaches a sample of its own",
+			kick >= 0 && snare >= 0 && kick != snare && absent < 0,
+			"36 reaches " + drummed.instrumentAt(kick).name + ", 38 reaches "
+			+ drummed.instrumentAt(snare).name
+			+ ", and a pitch with no sample falls back to the channel");
 
 		final packed = into + "/round." + mdd.Config.SUFFIX;
 		mdd.format.Project.save(song, packed);

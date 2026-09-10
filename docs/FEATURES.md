@@ -126,6 +126,15 @@ offers.
 
 ### Samples
 
+The converter plays one sample at a time like every other part. Switched to a drum kit from
+its row in the channel rack, it reads the note instead: the pitch picks which sample sounds,
+from the pitch each sample sits at. A pitch with no sample of its own falls back to what the
+channel holds, so turning it on never silences a piece written without it.
+
+That is what lets a general MIDI drum pattern arrive intact. Channel ten of an imported file
+goes to the converter with the kit already on, and the shipped samples sit at their General
+MIDI drum notes, so a kick lands on the kick.
+
 WAV files import into the sample channel, resampled to the rate you ask for. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between
 writes with real pauses excluded, rather than from the run measured end to end.

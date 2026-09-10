@@ -298,6 +298,17 @@ final class ChannelRack extends Widget {
 			session.say((song.soloed[at] ? "soloed " : "unsoloed ") + part.name());
 		});
 
+		if (part.sampled()) {
+			final kit = menu.offer(new Choice(translate(song.drums
+				? Locale.RACK_DRUMS_OFF : Locale.RACK_DRUMS)));
+
+			fires(kit, function():Void {
+				session.does(new mdd.song.edit.KitDrums(!song.drums));
+				session.say(song.drums ? "the converter is a drum kit"
+					: "the converter plays what the channel holds");
+			});
+		}
+
 		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void {
 			final group = new mdd.song.edit.Together("solo one channel");
 

@@ -279,6 +279,8 @@
   "rack.clear": "Clear this channel",
   "rack.copyPreset": "Copy preset",
   "rack.dac": "the converter, and it holds FM6 while it sounds",
+  "rack.drums": "Play as a drum kit",
+  "rack.drumsOff": "Play what the channel holds",
   "rack.fm": "four operator FM",
   "rack.mute": "Mute",
   "rack.noPreset": "has no four operator preset",

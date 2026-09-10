@@ -574,7 +574,9 @@ final class Sequencer {
 				push(offSample, part, OFF, 0, 0);
 			}
 
-			if (part.sampled()) sampled(onSample, offSample, named, fromSample, toSample);
+			if (part.sampled()) {
+				sampled(onSample, offSample, named, pitch, fromSample, toSample);
+			}
 			else if ((part.square() || part.noise()) && lines[0] == null) {
 				shaped(onSample, offSample, part, named, velocity, fromSample, toSample);
 			}
@@ -1058,8 +1060,11 @@ final class Sequencer {
 		@param fromSample The first sample of the span.
 		@param toSample One past the last sample of the span.
 	**/
-	function sampled(onSample:Int, offSample:Int, named:Int, fromSample:Int, toSample:Int):Void {
-		final instrument = instrumentOf(named, Part.Dac);
+	function sampled(onSample:Int, offSample:Int, named:Int, pitch:Int,
+			fromSample:Int, toSample:Int):Void {
+		final kit = song.drums ? song.drumAt(pitch) : -1;
+		final instrument = kit >= 0 ? song.instrumentAt(kit)
+			: instrumentOf(named, Part.Dac);
 		if (instrument == null) return;
 
 		final sample = song.sampleAt(instrument.sample);
