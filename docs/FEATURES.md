@@ -40,7 +40,9 @@ A track can also drive one automation lane of a channel it does not otherwise ow
 
 ### The piano roll
 
-- Click to write a note, drag to move it, drag an edge to resize it.
+- Click to write a note, drag to move it, drag either end to resize it. A note too narrow to
+  hold three handles keeps only the one on its end, so a short note can always be taken hold
+  of and moved.
 - Nine scales and twelve roots, chosen from the roll's own right click menu. Rows outside the scale
   are darkened and the root row takes the channel's colour.
 - Snap to a bar, a beat, an eighth or a sixteenth, with `Alt` held to drop the grid mid
@@ -71,7 +73,9 @@ whole byte so nothing else can fight it.
 
 Undo and redo cover everything, drags included. A drag lands as one step rather than one step per
 frame. Renames, recolours, icon changes, track moves, pattern removals, channel changes, tempo
-changes, nudges and slices are all on the same stack.
+changes, nudges and slices are all on the same stack, and so is everything the synth editors do:
+every operator field, every dial, a whole envelope stroke, and mute, solo, pan and the channel
+faders.
 
 ---
 
@@ -104,7 +108,8 @@ modulates which is visible instead of implied. Envelopes are drawn per operator.
 
 Every parameter is a bar you drag across, and it follows the pointer: the bar goes where you
 take it rather than counting how far you moved. A click on one selects it without changing
-it, and the wheel steps a value four at a time, or one with `Ctrl` held.
+it, a double click puts it back where a fresh patch has it, and the wheel steps a value four
+at a time, or one with `Ctrl` held. The dials above the operators work the same way.
 
 Hover any parameter and a tooltip names the register it writes, the raw value, and what the value
 means:
@@ -272,6 +277,9 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   the README.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
+- **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line
+  between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
+  pointed arrow with the pan tool in hand.
 - **One instance.** Opening a second project hands it to the copy already running.
 - **Discord presence**, off by default, speaking Discord's local IPC directly rather than through
   an SDK.
