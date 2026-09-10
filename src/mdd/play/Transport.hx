@@ -1,6 +1,7 @@
 package mdd.play;
 
 import haxe.atomic.AtomicInt;
+import mdd.song.Instrument;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
@@ -309,6 +310,20 @@ final class Transport {
 	}
 
 	/**
+		@return The instrument an audition should sound: the drum the note names where the
+			converter is a kit, and whatever the part holds otherwise. Playback picks a
+			drum the same way, so a kit auditions as it plays.
+	**/
+	function heard():Null<Instrument> {
+		if (song.drums) {
+			final kit = song.drumAt(heardNote);
+			if (kit >= 0) return song.instrumentAt(kit);
+		}
+
+		return song.instrumentAt(song.rack[heardPart]);
+	}
+
+	/**
 		Weaves a waiting audition into the span being sequenced.
 
 		@param at The first sample of the span.
@@ -327,7 +342,7 @@ final class Transport {
 		if (heardFresh) {
 			heardFresh = false;
 
-			final instrument = song.instrumentAt(song.rack[heardPart]);
+			final instrument = heard();
 			final velocity = Velocity.scaled(heardVelocity, song.volume[heardPart]);
 
 			if (part.fm()) {
@@ -369,7 +384,7 @@ final class Transport {
 		@param span How many samples it covers.
 	**/
 	function sampled(at:Int, span:Int):Void {
-		final instrument = song.instrumentAt(song.rack[heardPart]);
+		final instrument = heard();
 		final sample = instrument == null ? null : song.sampleAt(instrument.sample);
 
 		if (sample == null || sample.length() == 0) {

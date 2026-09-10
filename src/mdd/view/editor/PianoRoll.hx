@@ -1176,7 +1176,9 @@ final class PianoRoll extends Widget {
 					final seat = pitch - KIT_BASE;
 
 					if (kitting() && seat >= 0 && seat < kit.length) {
+						session.holds();
 						session.song.rack[session.part.index()] = kit[seat];
+						session.frees();
 						session.changed();
 					}
 
