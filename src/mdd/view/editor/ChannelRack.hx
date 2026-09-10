@@ -42,9 +42,15 @@ final class ChannelRack extends Widget {
 
 	static inline final PAN = 128;
 	static inline final PAN_WIDE = 30;
-	static inline final MUTE = 96;
+	/**
+		Slot: the mute button, measured back from the right edge.
+	**/
+	public static inline final MUTE = 96;
 	static inline final SOLO = 72;
-	static inline final METER = 44;
+	/**
+		Slot: the fader and its meter, measured back from the right edge.
+	**/
+	public static inline final METER = 44;
 	static inline final MARK = 18;
 
 	var hoverAt:Int = -1;
@@ -66,6 +72,18 @@ final class ChannelRack extends Widget {
 		for (i in 0...Part.COUNT) levels[i] = 0;
 	}
 
+	/**
+		@param from Which slot, one of the offsets back from the right edge.
+		@return Where that slot begins, across, at the size the interface is drawn
+			at now.
+	**/
+	public function slotMiddle(from:Int):Float {
+		final root = root();
+		if (root == null) return x;
+
+		return slotAt(root.metrics, from) + root.metrics.whole(4);
+	}
+
 	inline function slotAt(metrics:Metrics, from:Int):Float {
 		return x + width - metrics.whole(from);
 	}
@@ -84,14 +102,14 @@ final class ChannelRack extends Widget {
 		final part:Part = at;
 		if (!part.fm()) return;
 
-		session.song.pan[at] = switch (session.song.pan[at]) {
+		final want = switch (session.song.pan[at]) {
 			case Song.BOTH: Song.LEFT;
 			case Song.LEFT: Song.RIGHT;
 			case _: Song.BOTH;
 		}
 
+		session.does(new mdd.song.edit.PanPart(at, want));
 		session.say(part.name() + "  " + sided(session.song.pan[at]));
-		session.changed();
 		invalidate();
 	}
 
@@ -184,6 +202,7 @@ final class ChannelRack extends Widget {
 				if (event.x >= slotAt(metrics, METER)) {
 					session.choose(part);
 					sliding = at;
+					leanedWas = session.song.volume[at];
 					leaned(at, metrics, event.x);
 					return true;
 				}
@@ -195,15 +214,17 @@ final class ChannelRack extends Widget {
 				}
 
 				if (slotHolds(metrics, MUTE, event.x)) {
-					session.song.muted[at] = !session.song.muted[at];
-					session.changed();
+					session.does(new mdd.song.edit.MutePart(at,
+						!session.song.muted[at]));
+
 					invalidate();
 					return true;
 				}
 
 				if (slotHolds(metrics, SOLO, event.x)) {
-					session.song.soloed[at] = !session.song.soloed[at];
-					session.changed();
+					session.does(new mdd.song.edit.SoloPart(at,
+						!session.song.soloed[at]));
+
 					invalidate();
 					return true;
 				}
@@ -230,6 +251,16 @@ final class ChannelRack extends Widget {
 			case Kind.PointerUp:
 				if (sliding < 0) return false;
 
+				final now = session.song.volume[sliding];
+
+				if (now != leanedWas) {
+					session.holds();
+					session.song.volume[sliding] = leanedWas;
+					session.frees();
+
+					session.does(new mdd.song.edit.SetVolume(sliding, now));
+				}
+
 				sliding = -1;
 				invalidate();
 				return true;
@@ -251,21 +282,25 @@ final class ChannelRack extends Widget {
 		menuFor = at;
 
 		fires(menu.offer(new Choice(translate(song.muted[at] ? Locale.RACK_UNMUTE : Locale.RACK_MUTE))), function():Void {
-			song.muted[at] = !song.muted[at];
+			session.does(new mdd.song.edit.MutePart(at, !song.muted[at]));
 			session.say((song.muted[at] ? "muted " : "unmuted ") + part.name());
-			session.changed();
 		});
 
 		fires(menu.offer(new Choice(translate(song.soloed[at] ? Locale.RACK_UNSOLO : Locale.RACK_SOLO))), function():Void {
-			song.soloed[at] = !song.soloed[at];
+			session.does(new mdd.song.edit.SoloPart(at, !song.soloed[at]));
 			session.say((song.soloed[at] ? "soloed " : "unsoloed ") + part.name());
-			session.changed();
 		});
 
 		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void {
-			for (i in 0...Part.COUNT) song.soloed[i] = i == at;
+			final group = new mdd.song.edit.Together("solo one channel");
+
+			for (i in 0...Part.COUNT) {
+				if (song.soloed[i] == (i == at)) continue;
+				group.also(new mdd.song.edit.SoloPart(i, i == at));
+			}
+
+			session.does(group);
 			session.say("soloed " + part.name() + " alone");
-			session.changed();
 		});
 
 		menu.divide();
@@ -594,6 +629,7 @@ final class ChannelRack extends Widget {
 	}
 
 	var sliding:Int = -1;
+	var leanedWas:Int = 0;
 
 	function leaned(index:Int, metrics:Metrics, px:Float):Void {
 		final room = faderWide(metrics);
@@ -606,7 +642,9 @@ final class ChannelRack extends Widget {
 		final want = Math.round(much * Song.LOUDEST);
 		if (session.song.volume[index] == want) return;
 
+		session.holds();
 		session.song.volume[index] = want;
+		session.frees();
 
 		final part:Part = index;
 		session.say(part.name() + "  " + Math.round(want * 100 / Song.LOUDEST) + "%");

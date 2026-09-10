@@ -253,21 +253,39 @@ final class Menus {
 		final held = new Menu();
 
 		fired(held.offer(new Choice(said(Locale.CHANNELS_UNMUTE))), function():Void {
-			for (index in 0...Part.COUNT) session.song.muted[index] = false;
-			session.changed();
+			final group = new mdd.song.edit.Together("unmute every channel");
+
+			for (index in 0...Part.COUNT) {
+				if (!session.song.muted[index]) continue;
+				group.also(new mdd.song.edit.MutePart(index, false));
+			}
+
+			session.does(group);
 		});
 
 		fired(held.offer(new Choice(said(Locale.CHANNELS_UNSOLO))), function():Void {
-			for (index in 0...Part.COUNT) session.song.soloed[index] = false;
-			session.changed();
+			final group = new mdd.song.edit.Together("unsolo every channel");
+
+			for (index in 0...Part.COUNT) {
+				if (!session.song.soloed[index]) continue;
+				group.also(new mdd.song.edit.SoloPart(index, false));
+			}
+
+			session.does(group);
 		});
 
 		held.divide();
 
 		fired(held.offer(new Choice(said(Locale.CHANNELS_MUTE_REST))), function():Void {
 			final which = session.part.index();
-			for (index in 0...Part.COUNT) session.song.muted[index] = index != which;
-			session.changed();
+			final group = new mdd.song.edit.Together("mute the other channels");
+
+			for (index in 0...Part.COUNT) {
+				if (session.song.muted[index] == (index != which)) continue;
+				group.also(new mdd.song.edit.MutePart(index, index != which));
+			}
+
+			session.does(group);
 		});
 
 		held.divide();

@@ -98,6 +98,49 @@ class SpineCheck {
 			"a tick of 7 stays at 7");
 	}
 
+	static function racked(tree:Root, session:Session,
+			rack:mdd.view.editor.ChannelRack):Void {
+		session.history.clear();
+
+		final at = Part.Fm1.index();
+		final wasMuted = session.song.muted[at];
+		final wasVolume = session.song.volume[at];
+
+		final row = rack.atRow(at) + rack.rowHeight() * 0.5;
+		final mute = rack.slotMiddle(mdd.view.editor.ChannelRack.MUTE);
+
+		tree.pressed(mute, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(mute, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final muted = session.song.muted[at];
+		session.undo();
+
+		says("muting a channel undoes",
+			muted != wasMuted && session.song.muted[at] == wasMuted,
+			"the mute went on and undo took it back off");
+
+		session.history.clear();
+		final fader = rack.slotMiddle(mdd.view.editor.ChannelRack.METER);
+		final along = fader + (wasVolume > 60 ? -14 : 14);
+
+		tree.pressed(fader, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(along, row, mdd.ui.Mod.None);
+		tree.released(along, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final moved = session.song.volume[at];
+		final steps = session.history.depth();
+
+		session.undo();
+
+		says("and a fader lands as one step",
+			steps == 1 && moved != wasVolume
+			&& session.song.volume[at] == wasVolume,
+			"the volume went from " + wasVolume + " to " + moved + " in " + steps
+			+ " step, and undo put " + session.song.volume[at] + " back");
+
+		session.history.clear();
+	}
+
 	static function shaped(tree:Root, session:Session,
 			roll:mdd.view.editor.PianoRoll):Void {
 		final pattern = session.current();
@@ -2507,6 +2550,7 @@ class SpineCheck {
 		sheeted(tree, session);
 		synthed(tree, session, editor);
 		shaped(tree, session, centre.roll);
+		racked(tree, session, rack);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);
