@@ -91,14 +91,37 @@ final class Slider extends Widget implements Range {
 	}
 
 	/**
+		@return How wide the grip draws, which is also how much of the track it
+			takes away from the travel.
+	**/
+	public function grip():Float {
+		final root = root();
+		return root == null ? 11 : root.metrics.whole(11);
+	}
+
+	/**
 		Moves the value to wherever a point along the track is.
+
+		The grip is measured from its middle over the travel the paint draws it
+		across, not from the edge of the widget: mapping the whole width instead
+		puts the grip somewhere other than the pointer, worst at either end, so
+		taking hold of it moved it before the drag began.
 
 		@param px A point, across.
 		@param py A point, down.
 	**/
 	function reach(px:Float, py:Float):Void {
-		final along = vertical ? 1 - (py - y) / height : (px - x) / width;
-		set(least + Math.round(along * span()));
+		final held = grip();
+		final travel = (vertical ? height : width) - held;
+
+		if (travel <= 0) return;
+
+		final along = vertical
+			? 1 - (py - y - held * 0.5) / travel
+			: (px - x - held * 0.5) / travel;
+
+		final want = along < 0 ? 0.0 : (along > 1 ? 1.0 : along);
+		set(least + Math.round(want * span()));
 	}
 
 	override function took(event:Input):Bool {
@@ -153,7 +176,7 @@ final class Slider extends Widget implements Range {
 		final theme = root.theme;
 		final metrics = root.metrics;
 		final thick = metrics.whole(6);
-		final grip = metrics.whole(11);
+		final grip = grip();
 
 		if (vertical) {
 			final trackX = x + (width - thick) * 0.5;

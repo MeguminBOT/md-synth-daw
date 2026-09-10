@@ -158,6 +158,12 @@ final class Number extends Widget implements Range {
 			case Kind.PointerMove:
 				if (!dragging) return false;
 
+				if (event.ctrl() != fine) {
+					fine = event.ctrl();
+					grabY = event.y;
+					grabValue = carried;
+				}
+
 				final moved = grabY - event.y;
 				final step = fine ? 8.0 : 2.0;
 				set(grabValue + Std.int(moved / step));

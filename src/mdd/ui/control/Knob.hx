@@ -120,6 +120,13 @@ final class Knob extends Widget implements Range {
 
 			case Kind.PointerMove:
 				if (!dragging) return false;
+
+				if (event.ctrl() != fine) {
+					fine = event.ctrl();
+					grabY = event.y;
+					grabValue = carried;
+				}
+
 				final moved = (grabY - event.y) / (fine ? TRAVEL * 4 : TRAVEL);
 				set(grabValue + Math.round(moved * span()));
 				return true;

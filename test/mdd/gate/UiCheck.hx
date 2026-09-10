@@ -420,7 +420,33 @@ class UiCheck {
 
 		root.pressed(150, 12, Pointer.Left, Mod.None);
 		root.released(150, 12, Pointer.Left, Mod.None);
-		says("slider jumps", slider.value == 75, "clicked three quarters along, got " + slider.value);
+
+		says("a slider jumps to where the track was clicked",
+			slider.value > 70 && slider.value < 80,
+			"clicked three quarters along, got " + slider.value);
+
+		var carried = "";
+
+		for (want in [0, 17, 50, 83, 100]) {
+			slider.set(want);
+
+			final held = slider.grip();
+			final middle = slider.x + (slider.width - held) * slider.share()
+				+ held * 0.5;
+
+			root.pressed(middle, 12, Pointer.Left, Mod.None);
+			root.released(middle, 12, Pointer.Left, Mod.None);
+
+			if (slider.value != want) {
+				carried += want + " came back as " + slider.value + " ";
+			}
+		}
+
+		says("and taking hold of its grip does not move it", carried == "",
+			carried == ""
+				? "pressing on the middle of the grip leaves all of 0, 17, 50, 83 and 100"
+					+ " where they were"
+				: carried);
 
 		final knob = new Knob("FB", 50, 0, 100);
 		root.top.add(knob);
