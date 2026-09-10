@@ -522,6 +522,18 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
+		Where something placed at a point belongs, which is the step that was
+		pointed at rather than whichever line is nearest.
+
+		@param tick A position in the piece, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+		@return Where that step begins, or the tick left alone.
+	**/
+	public inline function placed(tick:Int, free:Bool):Int {
+		return free ? tick : session.begins(tick);
+	}
+
+	/**
 		@param px A point, across.
 		@return Which tick is there.
 	**/
@@ -1139,7 +1151,7 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				final at = freely(tickAt(event.x), event.alt());
+				final at = placed(tickAt(event.x), event.alt());
 				final pitch = pitchAt(event.y);
 				if (pitch < lowest() || pitch > highest()) return true;
 
@@ -2080,6 +2092,24 @@ final class PianoRoll extends Widget {
 		final beat = session.song.tempo.ppqn;
 		final bar = beat * 4;
 		final hair = metrics.whole(1);
+		final step = session.snap;
+
+		if (step > 0 && step < beat && step * perTick >= metrics.whole(5)) {
+			var fine = Std.int(tickAt(left) / step) * step;
+			if (fine < 0) fine = 0;
+
+			while (fine <= length) {
+				final at = atTick(fine);
+				if (at > x + width) break;
+
+				if (at > left && fine % beat != 0) {
+					paint.rect(at, top, hair, grid(), theme.frame, 0.14);
+				}
+
+				fine += step;
+			}
+		}
+
 		var tick = Std.int(tickAt(left) / beat) * beat;
 		if (tick < 0) tick = 0;
 

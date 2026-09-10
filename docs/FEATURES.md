@@ -46,6 +46,7 @@ A track can also drive one automation lane of a channel it does not otherwise ow
 - Snap to a bar, a beat, an eighth or a sixteenth, with `Alt` held to drop the grid mid
   drag. The grid is a division of a bar rather than a count of ticks, so it stays a
   sixteenth in a piece imported at 480 ticks a beat instead of becoming a sliver of one.
+  A note you place lands on the step you pointed at; one you drag goes to the nearest line.
 - Zoom to fit, `Ctrl` and the wheel to zoom, middle drag to pan.
 - Velocity per note.
 - Parameter lanes underneath the roll, folded and scrolled.
