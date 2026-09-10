@@ -201,8 +201,20 @@ final class Ym2612 {
 	var mode:Int = 0;
 	var csmKeyed:Bool = false;
 	var busyFor:Int = 0;
-	var frequencyLatch:Int = 0;
-	var operatorLatch:Int = 0;
+
+	/**
+		The high byte each channel is holding until its low byte arrives, one per channel
+		rather than one for the part. `$A4` to `$A6` are real registers on each half, so a
+		driver may write all six high bytes and then all six low bytes, and one latch
+		between them would give every channel the last high byte written.
+	**/
+	final frequencyLatch:Vector<Int> = new Vector<Int>(6);
+
+	/**
+		The same for channel three separate operator frequencies, which have three latches
+		of their own at `$AC` to `$AE`.
+	**/
+	final operatorLatch:Vector<Int> = new Vector<Int>(3);
 
 	public function new() {
 		for (i in 0...6) channels[i] = new Channel();
@@ -246,8 +258,8 @@ final class Ym2612 {
 		mode = 0;
 		csmKeyed = false;
 		busyFor = 0;
-		frequencyLatch = 0;
-		operatorLatch = 0;
+		for (index in 0...6) frequencyLatch[index] = 0;
+		for (index in 0...3) operatorLatch[index] = 0;
 		swell = 126;
 	}
 
@@ -344,24 +356,23 @@ final class Ym2612 {
 		}
 
 		if (at >= 0xA8 && at <= 0xAF) {
+			if (half != 0 || (at & 3) == 3) return;
+
 			if (at >= 0xAC) {
-				operatorLatch = value;
+				operatorLatch[at & 3] = value;
 				return;
 			}
 
-			if (half != 0 || (at & 3) == 3) return;
-
+			final held = operatorLatch[at & 3];
 			final which = APART[at & 3];
 			final third = channels[2];
 
-			third.setSeparate(which, (operatorLatch >> 3) & 7,
-				((operatorLatch & 7) << 8) | value);
-
+			third.setSeparate(which, (held >> 3) & 7, ((held & 7) << 8) | value);
 			return;
 		}
 
 		if (at >= 0xA4 && at <= 0xA7) {
-			frequencyLatch = value;
+			if ((at & 3) != 3) frequencyLatch[half * 3 + (at & 3)] = value;
 			return;
 		}
 
@@ -377,8 +388,10 @@ final class Ym2612 {
 		}
 
 		switch (at & 0xFC) {
-			case 0xA0: channel.setFrequency((frequencyLatch >> 3) & 7,
-				((frequencyLatch & 7) << 8) | value);
+			case 0xA0: {
+				final held = frequencyLatch[half * 3 + index];
+				channel.setFrequency((held >> 3) & 7, ((held & 7) << 8) | value);
+			}
 			case 0xB0:
 				channel.algorithm = value & 7;
 				channel.feedback = (value >> 3) & 7;
