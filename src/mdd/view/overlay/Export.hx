@@ -209,6 +209,7 @@ final class Export extends Widget {
 			final held = new Number("", 0, 0, 200);
 
 			held.derived = function(value:Int):String return spelt(value);
+			held.typed = function(said:String):Null<Int> return seconds(said);
 			held.onChange = function(from:Number):Void timed(index, from.value);
 
 			timers.push(held);
@@ -426,6 +427,28 @@ final class Export extends Widget {
 	}
 
 	/**
+		Whether one choice of a row is open to the format in hand.
+
+		Opus is written at one rate and nothing else, and a coded format carries
+		no bit depth at all, so those choices are shown and refused rather than
+		taken and quietly ignored.
+
+		@param row Which row.
+		@param which Which choice of it.
+		@return Whether it can be taken.
+	**/
+	public function allows(row:Int, which:Int):Bool {
+		return switch (row) {
+			case RATE: mixing.kind != Mixing.OPUS
+				|| Mixing.RATES[which] == mdd.format.Coded.OPUS_RATE;
+
+			case DEPTH: mixing.whole();
+			case DITHER: mixing.whole() && mixing.depth < 32;
+			case _: true;
+		}
+	}
+
+	/**
 		@param row Which row.
 		@return Which choice is taken.
 	**/
@@ -488,6 +511,8 @@ final class Export extends Widget {
 		@param which Which choice.
 	**/
 	public function chose(row:Int, which:Int):Void {
+		if (!allows(row, which)) return;
+
 		switch (row) {
 			case FORMAT: mixing.kind = which;
 			case RATE: mixing.rate = mixing.kind == Mixing.OPUS
@@ -519,6 +544,23 @@ final class Export extends Widget {
 
 		session.changed();
 		relayout();
+	}
+
+	/**
+		Reads a typed time back into the twentieths of a second the field holds,
+		so a reader who wants two seconds types 2 rather than 40.
+
+		@param said What was typed, in seconds.
+		@return The raw value, or null where it reads as no number.
+	**/
+	static function seconds(said:String):Null<Int> {
+		final held = StringTools.trim(StringTools.replace(said, "s", ""));
+		if (held == "") return null;
+
+		final read = Std.parseFloat(held);
+		if (Math.isNaN(read)) return null;
+
+		return Math.round(read * 20);
 	}
 
 	/**
@@ -684,11 +726,13 @@ final class Export extends Widget {
 			for (which in 0...many) {
 				final where = left + which * wide;
 
+				final open = allows(row, which);
+
 				paint.roundedRect(where + 1, at, wide - 2, button, metrics.radiusSmall,
 					which == on ? theme.accent : theme.raise2,
-					(which == on ? 0.85 : 1) * alpha);
+					(which == on ? 0.85 : 1) * alpha * (open ? 1 : 0.4));
 
-				if (row == hoverAt && which == hoverOn && which != on) {
+				if (open && row == hoverAt && which == hoverOn && which != on) {
 					paint.roundedRect(where + 1, at, wide - 2, button, metrics.radiusSmall,
 						theme.accent, Theme.HOVER * alpha);
 				}
@@ -696,7 +740,7 @@ final class Export extends Widget {
 				paint.pushClip(where + 1, at, wide - 2, button);
 				paint.textCentred(shown(row, which), where + wide * 0.5,
 					at + (button - small.height) * 0.5 + small.ascent,
-					which == on ? theme.ink : theme.dim, alpha);
+					which == on ? theme.ink : theme.dim, alpha * (open ? 1 : 0.45));
 				paint.popClip();
 			}
 		}
