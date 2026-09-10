@@ -671,7 +671,8 @@ final class Stream {
 		Sets one of channel three separate operator frequencies, high byte latched first.
 
 		@param tick When the write happens, in output samples from the start of the span.
-		@param slot Which of the three, 0 to 2.
+		@param slot Which of the three, 1 to 3, as the register addresses count them.
+			Anything outside that is ignored.
 		@param word Block and frequency packed as `wordOf` packs them.
 	**/
 	public function operatorFrequency(tick:Int, slot:Int, word:Int):Void {
