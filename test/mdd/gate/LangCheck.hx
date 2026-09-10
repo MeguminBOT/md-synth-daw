@@ -201,11 +201,10 @@ class LangCheck {
 	}
 
 	static function drawable(shipped:Array<String>, root:String):Void {
-		final where = root + "/vendor/fonts/Go-Regular.ttf";
-		final face = mdd.host.Text.load(where);
+		final faces = chain(root);
 
-		if (face < 0) {
-			says("every letter a language ships can be drawn", false, "no face at " + where);
+		if (faces.length == 0) {
+			says("every letter a language ships can be drawn", false, "no faces to ask");
 			return;
 		}
 
@@ -235,7 +234,7 @@ class LangCheck {
 					counted++;
 					if (one > widest) widest = one;
 
-					if (mdd.host.Text.extent(face, 15, one, wide, tall) != 0) continue;
+					if (covers(faces, one, wide, tall)) continue;
 
 					final shown = code + " " + key + " U+" + StringTools.hex(one, 4);
 					if (lost.indexOf(shown) < 0) lost.push(shown);
@@ -243,13 +242,14 @@ class LangCheck {
 			}
 		}
 
-		mdd.host.Text.free(face);
+		for (face in faces) mdd.host.Text.free(face);
 
 		says("every letter a language ships has a glyph", lost.length == 0,
 			lost.length == 0
 				? counted + " characters over " + shipped.length + " languages, the highest U+"
-					+ StringTools.hex(widest, 4) + ", every one of them cut by the face"
-				: lost.length + " the face has no glyph for: " + lost.slice(0, 4).join(", "));
+					+ StringTools.hex(widest, 4) + ", every one of them cut by the chain of "
+					+ faces.length + " faces"
+				: lost.length + " with no glyph anywhere: " + lost.slice(0, 4).join(", "));
 	}
 
 	static function matched(shipped:Array<String>):Void {
