@@ -43,6 +43,7 @@ final class About extends Widget {
 	**/
 	public function new() {
 		super();
+		modal = true;
 
 		opaque = true;
 		focusable = true;

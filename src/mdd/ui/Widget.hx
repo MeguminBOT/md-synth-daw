@@ -77,9 +77,20 @@ class Widget {
 	public var opaque:Bool = false;
 
 	/**
-		Whether input stops here rather than reaching its children.
+		Whether nothing dismisses it: neither a press outside it nor escape. A
+		progress bar is sealed, because there is nothing to go back to until the
+		work it is reporting has finished.
 	**/
 	public var sealed:Bool = false;
+
+	/**
+		Whether a press outside it is ignored rather than closing it.
+
+		A sheet carrying settings or a form is easy to lose by pressing a pixel
+		beside it, and what is lost is whatever was half filled in. Escape and the
+		sheet's own buttons still close it, which is what a reader reaches for.
+	**/
+	public var modal:Bool = false;
 
 	/**
 		Whether it wants a tick every frame even when nothing changed.

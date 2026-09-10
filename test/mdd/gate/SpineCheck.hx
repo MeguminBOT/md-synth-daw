@@ -1334,9 +1334,26 @@ class SpineCheck {
 
 		held.shows(mdd.view.overlay.Preferences.LOOK);
 		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(held.x - 20, held.y - 20, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
 
-		says("and a press beside it closes it", tree.sheet == null,
-			"a press on the scrim lowers the sheet");
+		says("and a press beside it leaves it up", tree.sheet == held,
+			"a sheet holding settings is not lost to a press a pixel beside it");
+
+		tree.key(true, mdd.ui.Key.Escape, mdd.ui.Mod.None);
+
+		says("and escape still closes it", tree.sheet == null,
+			"escape is what closes a sheet that a press outside will not");
+
+		final loose = new mdd.view.overlay.Naming();
+
+		tree.raise(loose);
+		tree.reshape();
+		tree.pressed(4, 4, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(4, 4, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("and a sheet that is not modal still goes", tree.sheet == null,
+			"the naming sheet closes on a press beside it as it always did");
 	}
 
 	static function mapped(tree:Root, held:mdd.view.overlay.Preferences):Void {

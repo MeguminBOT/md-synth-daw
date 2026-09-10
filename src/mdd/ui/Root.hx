@@ -845,7 +845,7 @@ final class Root {
 			return;
 		}
 
-		if (sheet != null && !sheet.sealed && !sheet.accepts(x, y)) {
+		if (sheet != null && !sheet.sealed && !sheet.modal && !sheet.accepts(x, y)) {
 			lower();
 			return;
 		}

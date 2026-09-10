@@ -188,6 +188,7 @@ final class Export extends Widget {
 	**/
 	public function new(session:Session) {
 		super();
+		modal = true;
 		this.session = session;
 
 		focusable = true;
