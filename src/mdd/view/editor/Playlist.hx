@@ -1076,9 +1076,8 @@ final class Playlist extends Widget {
 		if (muteAt(event.x)) {
 			final track = session.song.tracks[which];
 
-			track.muted = !track.muted;
+			session.does(new mdd.song.edit.MuteTrack(which, !track.muted));
 			session.say((track.muted ? "muted " : "unmuted ") + track.name);
-			session.changed();
 			invalidate();
 			return true;
 		}
