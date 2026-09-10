@@ -359,26 +359,33 @@ final class Root {
 	}
 
 	/**
-		Puts the tooltip where it fits, which is under the pointer unless that would put it
-		off the edge.
+		Puts the tooltip where it fits, which is under the pointer unless that would
+		put it off the edge.
+
+		It follows the pointer rather than the widget it is about, because a widget
+		is often the whole roll or the whole rack and its corner is nowhere near
+		what is being described. Several of them say something different for every
+		point inside them, which a corner cannot answer at all.
 	**/
 	function placeTip():Void {
-		final want = tooltip.subject;
-		if (want == null) return;
+		if (tooltip.subject == null) return;
 
 		tooltip.measure(width, height);
 
 		final clear = metrics.sizeOf(Tooltip.CLEAR);
+		final below = metrics.sizeOf(Tooltip.BELOW);
 		final wide = tooltip.wantWidth;
 		final tall = tooltip.wantHeight;
 
-		var px = want.x + clear;
-		var py = want.y + want.height + clear;
+		var px = pointerX + clear;
+		var py = pointerY + below;
 
-		if (px + wide > width) px = width - wide - clear;
+		if (px + wide > width) px = pointerX - wide - clear;
+		if (px + wide > width) px = width - wide;
 		if (px < 0) px = 0;
 
-		if (py + tall > height) py = want.y - tall - clear;
+		if (py + tall > height) py = pointerY - tall - clear;
+		if (py + tall > height) py = height - tall;
 		if (py < 0) py = 0;
 
 		tooltip.arrange(px, py, wide, tall);

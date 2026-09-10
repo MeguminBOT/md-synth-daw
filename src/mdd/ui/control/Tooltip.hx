@@ -16,6 +16,12 @@ final class Tooltip extends Widget {
 	public static inline final CLEAR = 6.0;
 
 	/**
+		How far under the pointer it sits, which has to clear the cursor itself or
+		the arrow stands on the first line of it.
+	**/
+	public static inline final BELOW = 21.0;
+
+	/**
 		What it is describing, or null.
 	**/
 	public var subject(default, null):Null<Widget> = null;

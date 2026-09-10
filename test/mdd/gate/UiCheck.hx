@@ -1412,14 +1412,37 @@ class UiCheck {
 		says("tooltip grace", again && closed && root.tipUp,
 			"the next one inside 250 ms shows without waiting again");
 
-		says("tooltip flips", root.tooltip.y + root.tooltip.height <= level.y,
-			"flipped above the control at the bottom edge, at " + root.tooltip.y);
+		says("tooltip flips", root.tooltip.y + root.tooltip.height <= 250
+			&& root.tooltip.y >= 0,
+			"flipped above the pointer near the bottom edge, at " + root.tooltip.y
+			+ " and ending at " + (root.tooltip.y + root.tooltip.height));
 
 		root.pressed(30, 250, Pointer.Left, Mod.None);
 		root.moved(35, 255, Mod.None);
 		root.advance(1.0);
 
 		says("tooltip drag", !root.tipUp, "none while a drag holds the pointer");
+
+		root.released(35, 255, Pointer.Left, Mod.None);
+		root.resize(800, 600);
+		top.arrange(0, 0, 800, 600);
+
+		final broad = new Button("");
+		broad.tip = "A panel that fills the window";
+		top.add(broad);
+		broad.arrange(0, 300, 800, 300);
+
+		root.moved(500, 450, Mod.None);
+		root.advance(1.0);
+
+		final near = root.tipUp
+			&& root.tooltip.x >= 500 && root.tooltip.x < 560
+			&& root.tooltip.y >= 450 && root.tooltip.y < 500;
+
+		says("a tooltip follows the pointer, not the corner of the widget", near,
+			"the pointer is at 500, 450 inside a panel whose corner is 0, 300, and the"
+				+ " tooltip is at " + Math.round(root.tooltip.x) + ", "
+				+ Math.round(root.tooltip.y));
 
 		body.shut();
 		mono.shut();
