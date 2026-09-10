@@ -1,0 +1,32 @@
+{
+  "name": "Mickey Mania",
+  "presets": [
+    {"name": "Bass 1", "icon": "bass", "tags": ["Well Done", "Get Ready", "EOL Boss 1", "Mad Doc 2", "Mad Doc 1", "EOL Boss 2", "Mad Doc 4", "Dungeon", "Ghosts 1", "Ghosts 2", "Tunnels", "Steps", "Table", "Library", "EOL Boss 3", "Whirlwind", "Game Over"], "tfi": "040704001e000a0000000000040700001f000300000006041b0010000b000100040504001f0004000000"},
+    {"name": "Bass 2", "icon": "bass", "tags": ["Get Ready", "EOL Boss 1", "Mad Doc 2", "Mad Doc 1", "Dungeon", "Ghosts 1", "Ghosts 2", "Garden", "Tunnels", "Steps", "Table", "Library", "Whirlwind"], "tfi": "040704021500080a00000200040700001f000300000006041c00100a0b000100040503001f0004000000"},
+    {"name": "Bass 3", "icon": "bass", "tags": ["Steamboat", "Wharf", "EOL Boss 1", "Mad Doc 2", "Mad Doc 1", "Ghosts 1", "Ghosts 2", "Tunnels", "Continue"], "tfi": "0407080008001f001700000004000a001f0f1f0004000c0016001f0016000000010000001f0f1f000400"},
+    {"name": "Bass 4", "icon": "bass", "tags": ["Well Done", "EOL Boss 2", "Dungeon", "Ghosts 2", "Tunnels", "Library", "EOL Boss 3", "Whirlwind"], "tfi": "04070f0000001f0000000000020008001f0012000000010014001e000e000000020000001f000b000000"},
+    {"name": "Bass 5", "icon": "bass", "tags": ["Well Done", "Get Ready", "Moose 1", "Ghosts 1", "Ghosts 2", "Library"], "tfi": "04070f0000001f0000000000000000001f0012000000000005001f0016000000010002001f0f1f000200"},
+    {"name": "Bass 6", "icon": "bass", "tags": ["Mad Doc 1", "Ghosts 2", "Steps"], "tfi": "0606020216001f0e00000100010300001f0005000000020704001f0005000000000700001f00050d0000"},
+    {"name": "Bass 7", "icon": "bass", "tags": ["Ghosts 1", "Steps"], "tfi": "0400010012001f0011000000020001001f0e1f000600020713001f000a000000020000001f0f1f000900"},
+    {"name": "Bass 8", "icon": "bass", "tags": ["Steps", "EOL Boss 3"], "tfi": "040001000d00180015000000000000001f0e1400030001001e001f0011000000000001001f0914000200"},
+    {"name": "Bass 9", "icon": "bass", "tags": ["Ghosts 2", "Garden"], "tfi": "020708002c001f0a000000000c002a001f0004000000080522001f0a000000000c0000001f0004000000"},
+    {"name": "Organ 1", "icon": "pipe", "tags": ["Well Done", "Steamboat", "Mad Doc 2", "Mad Doc 1", "Ghosts 1", "Ghosts 2", "Tunnels", "Steps", "Table", "Continue", "Game Over"], "tfi": "000000007f001f001f00000000007f001f001f00000000007f001f001f000000000000001f001f000000"},
+    {"name": "Organ 2", "icon": "pipe", "tags": ["Wharf", "Mad Doc 1", "Ghosts 2", "Garden"], "tfi": "040000000a001f0017000000000000001f0f14000500000025001f0007000000010004001f0d14000500"},
+    {"name": "Lead 1", "icon": "synthesizer", "tags": ["Well Done", "Get Ready", "Steamboat", "Mad Doc 1", "Dungeon", "Ghosts 2", "Garden"], "tfi": "0300020120021f000500000006031b0318000a00000000053c031f0001000000010700001f0d1f000a00"},
+    {"name": "Lead 2", "icon": "synthesizer", "tags": ["Mad Doc 4", "Moose 1", "Ghosts 2", "Garden", "Tunnels", "Steps"], "tfi": "0207020125021f0005000000040323031f0006000000000526031f0001000000000700001f0815000800"},
+    {"name": "Lead 3", "icon": "synthesizer", "tags": ["Steamboat", "Wharf", "Dungeon", "Ghosts 2", "Steps"], "tfi": "00070107080018120000060001001800120010000000020324001f000000000001000000110a17000100"},
+    {"name": "Lead 4", "icon": "synthesizer", "tags": ["Steamboat", "Wharf"], "tfi": "00070107080018120000060001001800120010000000020324001f000000000001000000110a14000200"},
+    {"name": "Guitar 1", "icon": "guitar", "tags": ["Steamboat", "Wharf", "EOL Boss 1", "Mad Doc 2", "Mad Doc 1", "EOL Boss 2", "Mad Doc 3", "Tunnels", "Steps", "Library", "EOL Boss 3"], "tfi": "050701071b0017100c00010002000a00140e1700030002070a001f001200000003050000140e19000400"},
+    {"name": "Guitar 2", "icon": "guitar", "tags": ["EOL Boss 1", "Mad Doc 2", "Mad Doc 3", "Ghosts 1", "Garden", "Steps", "EOL Boss 3", "Whirlwind", "Continue", "Game Over", "Options (Beta)"], "tfi": "040701032300120e0000010001000000130c1f000800050420000a00040000000207070011091f000800"},
+    {"name": "Guitar 3", "icon": "guitar", "tags": ["Mad Doc 2", "Mad Doc 3", "Ghosts 1", "EOL Boss 3", "Continue", "Game Over", "Options (Beta)"], "tfi": "040701032300120e0000010001000000130c1f000800050420000a00040000000207090011091f000800"},
+    {"name": "Guitar 4", "icon": "guitar", "tags": ["Wharf", "EOL Boss 1", "EOL Boss 2", "Tunnels", "Steps"], "tfi": "05070107190018130d00010004000100150f170003000407000014001200000001050100140e19000400"},
+    {"name": "Guitar 5", "icon": "guitar", "tags": ["Mad Doc 1", "Moose 1", "Ghosts 2", "EOL Boss 3", "Whirlwind"], "tfi": "05070107190018130d00010004000300150f170003000407010014001200000001050000140e19000400"},
+    {"name": "Guitar 6", "icon": "guitar", "tags": ["Mad Doc 2", "Mad Doc 4"], "tfi": "0207020125021f00050000000f0321031f0006000000010527030f000d00000000070000120b16000400"},
+    {"name": "Guitar 7", "icon": "guitar", "tags": ["Mad Doc 3"], "tfi": "0407010023001f000000000000000000120f1f09010001007f001f111f00010000005e001f091f010100"},
+    {"name": "Flute 1", "icon": "woodwind", "tags": ["Well Done", "Steamboat", "EOL Boss 1", "EOL Boss 2", "Dungeon", "Moose 1", "Ghosts 2", "Table", "Library", "Continue"], "tfi": "050601071a000f0d0000020004000700140b00000300010700001f000500000001050200120c00000400"},
+    {"name": "Flute 2", "icon": "woodwind", "tags": ["Get Ready", "EOL Boss 1", "Mad Doc 1", "Mad Doc 4", "Garden", "Tunnels", "Steps", "EOL Boss 3", "Game Over"], "tfi": "05070107200012030000000003000100140c00000500030709001f000a00000002050000120d00000600"},
+    {"name": "Flute 3", "icon": "woodwind", "tags": ["Well Done", "EOL Boss 2", "Mad Doc 4", "Dungeon", "Moose 1", "Table", "Library", "EOL Boss 3", "Continue"], "tfi": "050601001b000f0a0a00020002000200140b00000300010003001f000800000001050000120c00000400"},
+    {"name": "Flute 4", "icon": "woodwind", "tags": ["EOL Boss 1", "Mad Doc 1", "Steps", "EOL Boss 3"], "tfi": "050701071d000f0e0000010003000000140c00000500030708001f000a00000004050000120d00000600"},
+    {"name": "Flute 5", "icon": "woodwind", "tags": ["Mad Doc 3", "Ghosts 1"], "tfi": "030706022d00080a00000200080723001f00030000000c042f00100a0b00010004050000140004000000"}
+  ]
+}

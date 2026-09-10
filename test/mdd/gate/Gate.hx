@@ -81,6 +81,7 @@ class Gate {
 			case "update": UpdateCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "fault": FaultCheck.run(args);
+			case "gather": Gathered.run(args);
 			case "lift": LiftCheck.run(args);
 			case "drift": DriftCheck.run(args);
 			case "console": ConsoleCheck.run(args);

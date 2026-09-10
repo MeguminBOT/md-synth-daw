@@ -149,9 +149,11 @@ writes with real pauses excluded, rather than from the run measured end to end.
 - Search by name or by tag.
 - Any patch in a song can be lifted into the library.
 - Patches import from TFI files and export back to them.
-- Two banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks and
-  Mickey Mania. A patch is the value of a register at a key on, so forty two bytes of parameters
-  the chip was set to.
+- Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks
+  and Mickey Mania, 374 patches in all. A patch is the value of a register at a key on, so
+  forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
+  chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
+  came out of, so you can search for the sound you remember by where you heard it.
 - Your own patches load beside the shipped ones rather than replacing them.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
