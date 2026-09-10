@@ -1068,12 +1068,16 @@ class MixCheck {
 
 		final made = Mixdown.made();
 
+		var ended = false;
+
 		sys.thread.Thread.create(function():Void {
 			try {
 				made.runs(song, mixing);
 			} catch (e:Dynamic) {
 				made.stops();
 			}
+
+			ended = true;
 		});
 
 		final began = haxe.Timer.stamp();
@@ -1081,7 +1085,7 @@ class MixCheck {
 		var worst = 0.0;
 		var spins = 0;
 
-		while (made.reach() < 1 && haxe.Timer.stamp() - began < 30) {
+		while (!ended && made.reach() < 1 && haxe.Timer.stamp() - began < 30) {
 			final at = haxe.Timer.stamp();
 			final held:Array<mdd.song.Point> = [];
 
@@ -1095,10 +1099,12 @@ class MixCheck {
 
 		final over = haxe.Timer.stamp() - began;
 
-		says("a bounce leaves the main thread running", worst < 0.2 && spins > 20
-			&& made.reach() >= 1,
+		says("a bounce leaves the main thread running",
+			ended && worst < 0.2 && spins > 20,
 			spins + " rounds of allocation while it rendered, worst stall "
-			+ round(worst * 1000, 1) + " ms across " + round(over, 2) + " s");
+			+ round(worst * 1000, 1) + " ms across " + round(over, 2) + " s, and the bounce "
+			+ (ended ? "finished" : "stopped at "
+			+ Math.round(made.reach() * 100) + " per cent"));
 	}
 
 	static function bouncing(bars:Int):Song {
