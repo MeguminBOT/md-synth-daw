@@ -461,6 +461,7 @@ class App {
 	function loaded(song:Song):Void {
 		final held = session == null ? Session.UNITY : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
+		final snaps = session == null ? Session.SIXTEENTH : session.snapping;
 
 		sound.stop();
 
@@ -475,6 +476,7 @@ class App {
 
 		session.master = held;
 		session.automating = automates;
+		session.snapping = snaps;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -919,6 +921,7 @@ class App {
 		final looks = settings.asFlag("update", true);
 		final master = settings.asWhole("monitor", Session.UNITY);
 		final automating = settings.asWhole("automating", Session.LANES);
+		final snapping = settings.asWhole("snapping", Session.SIXTEENTH);
 
 		if (looks && update.possible()) update.look();
 
@@ -949,6 +952,7 @@ class App {
 
 		sound.monitors(Session.gainOf(session.master));
 		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
+		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
 
 		stage.root.theme.wear(which);
 		stage.root.flow = motion;
@@ -1001,6 +1005,7 @@ class App {
 		settings.whole("motion", session.motion);
 		settings.whole("monitor", session.master);
 		settings.whole("automating", session.automating);
+		settings.whole("snapping", session.snapping);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("tail", panels.preferences.tail);
 		settings.whole("keeping", panels.preferences.keeping);
