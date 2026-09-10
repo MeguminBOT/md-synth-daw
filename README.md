@@ -228,11 +228,40 @@ application does, and an honest list of what it does not do and why.
 - **It saves on its own** every five minutes by default, and only once something has changed.
 - **Portable mode.** Drop a `portable.txt` beside the executable and it keeps its settings there
   instead of in your account directory.
-- **Thirteen languages**, from English and Swedish to Japanese, Simplified Chinese, Korean and
-  Russian. Every string it shows comes from one table rather than from the code, so adding a
-  language is a file rather than a change to the program.
+- **A translatable interface.** Every string it shows comes from one table rather than from
+  the code, so adding a language is a file rather than a change to the program.
 - **Crash reports that name the Haxe line**, from a release build carrying no stack frames, written
   where your settings live.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Languages
+
+Pick one on the first run, or change it later in preferences. The interface falls back to
+English for anything a language does not carry.
+
+| Language | Code | Translated by |
+| --- | --- | --- |
+| English (United Kingdom) | `en-GB` | written here, and the language every other one is measured against |
+| English (United States) | `en-US` | written here |
+| Svenska | `sv-SE` | written by a speaker |
+| Deutsch | `de-DE` | machine translated |
+| Español | `es-ES` | machine translated |
+| Français | `fr-FR` | machine translated |
+| Polski | `pl-PL` | machine translated |
+| Português (Brasil) | `pt-BR` | machine translated |
+| Português (Portugal) | `pt-PT` | machine translated |
+| Русский | `ru-RU` | machine translated |
+| 日本語 | `ja-JP` | machine translated |
+| 简体中文 | `zh-CN` | machine translated |
+| 한국어 | `ko-KR` | machine translated |
+
+**Ten of these were translated by an AI and have not been read by a native speaker.** They
+were written to the terms each language's own music software uses rather than word by word
+from the English, and the wording is checked for nothing worse than that. Expect some of it to
+read oddly, and a few terms to be wrong outright. If one of them is your language, corrections
+are welcome and are a single file: `assets/lang/<code>.json`, one string per line, no code to
+touch and no build to understand.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
