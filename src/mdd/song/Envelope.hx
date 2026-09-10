@@ -29,7 +29,75 @@ final class Envelope {
 	**/
 	public var noise:Int = 4;
 
+	/**
+		How many steps an envelope may hold.
+	**/
+	public static inline final LENGTH = 32;
+
+	/**
+		Dial: which step to return to, or none to stop at the end.
+	**/
+	public static inline final LOOP = 0;
+
+	/**
+		Dial: how many frames each step lasts.
+	**/
+	public static inline final SPEED = 1;
+
+	/**
+		Dial: the noise control nibble, for an envelope on the noise channel.
+	**/
+	public static inline final NOISE = 2;
+
+	/**
+		How many dials there are.
+	**/
+	public static inline final DIALS = 3;
+
 	public function new() {}
+
+	/**
+		@param which Which dial.
+		@return The largest value it takes.
+	**/
+	public static function mostDial(which:Int):Int {
+		return switch (which) {
+			case LOOP: LENGTH - 1;
+			case SPEED: 16;
+			case _: 7;
+		}
+	}
+
+	/**
+		@param which Which dial.
+		@return What it holds. The loop answers -1 where the envelope stops at its end
+			rather than returning to a step.
+	**/
+	public function dial(which:Int):Int {
+		return switch (which) {
+			case LOOP: loop;
+			case SPEED: speed;
+			case _: noise;
+		}
+	}
+
+	/**
+		Turns one dial, holding the value to what that dial takes.
+
+		@param which Which dial.
+		@param value What to turn it to.
+	**/
+	public function turns(which:Int, value:Int):Void {
+		final most = mostDial(which);
+		final least = which == LOOP ? -1 : (which == SPEED ? 1 : 0);
+		final want = value < least ? least : (value > most ? most : value);
+
+		switch (which) {
+			case LOOP: loop = want;
+			case SPEED: speed = want;
+			case _: noise = want;
+		}
+	}
 
 	/**
 		@param step How far into the envelope, in steps.
