@@ -306,6 +306,32 @@ final class FmEditor extends Widget {
 		detail = detailOf(patch, slot, row);
 	}
 
+	/**
+		Where the bar of a field would stand if it reached a point, which is what
+		dragging one sets it to. Total level draws backwards, because the register
+		attenuates and the bar reads as loudness, and it is read back the same way.
+
+		@param px A point, across.
+		@param field Which field the bar belongs to.
+		@return The value that point stands for.
+	**/
+	function valueAt(px:Float, field:Int):Int {
+		final row = field % NAMES.length;
+		final wide = columns();
+		final left = x + Std.int(field / NAMES.length) * wide + 1;
+		final room = wide - 2;
+		final ceiling = most(row);
+
+		if (room <= 0 || ceiling <= 0) return 0;
+
+		var part = (px - left) / room;
+
+		if (part < 0) part = 0;
+		if (part > 1) part = 1;
+
+		return Math.round((row == 0 ? 1 - part : part) * ceiling);
+	}
+
 	override function took(event:Input):Bool {
 		final patch = patch();
 		if (patch == null) return false;
@@ -327,8 +353,6 @@ final class FmEditor extends Widget {
 				if (field < 0) return false;
 
 				grabbing = field;
-				grabAt = event.y;
-				grabWas = valueOf(patch, Std.int(field / NAMES.length), field % NAMES.length);
 
 				held = field;
 				slot = Std.int(field / NAMES.length);
@@ -347,9 +371,8 @@ final class FmEditor extends Widget {
 
 				if (grabbing < 0) return false;
 
-				final by = Std.int((grabAt - event.y) / (event.ctrl() ? 8 : 2));
 				setTo(patch, Std.int(grabbing / NAMES.length), grabbing % NAMES.length,
-					grabWas + by);
+					valueAt(event.x, grabbing));
 
 				invalidate();
 				return true;
