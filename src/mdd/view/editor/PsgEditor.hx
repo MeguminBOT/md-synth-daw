@@ -24,25 +24,25 @@ import mdd.ui.Widget;
 **/
 final class PsgEditor extends Widget {
 	/**
-		How many steps an envelope may have.
+		How many steps an envelope may have, which the model owns.
 	**/
-	public static inline final STEPS = 32;
+	public static inline final STEPS = Envelope.LENGTH;
 
 	/**
 		Dial: which step to return to, or none to stop at the end.
 	**/
-	public static inline final LOOP = 0;
-	static inline final SPEED = 1;
+	public static inline final LOOP = Envelope.LOOP;
+	static inline final SPEED = Envelope.SPEED;
 
 	/**
 		Dial: the noise control nibble, for an envelope on the noise channel.
 	**/
-	public static inline final NOISE = 2;
+	public static inline final NOISE = Envelope.NOISE;
 
 	/**
 		How many dials there are.
 	**/
-	public static inline final DIALS = 3;
+	public static inline final DIALS = Envelope.DIALS;
 
 	static final DIAL_NAMES:Array<String> = ["LOOP", "SPEED", "NOISE"];
 
@@ -63,8 +63,9 @@ final class PsgEditor extends Widget {
 
 	var grabbing:Bool = false;
 	var turning:Int = -1;
-	var grabAt:Float = 0;
 	var grabWas:Int = 0;
+
+	final wereSteps:Array<Int> = [];
 
 	/**
 		Builds the editor.
@@ -134,11 +135,7 @@ final class PsgEditor extends Widget {
 		@return What it holds.
 	**/
 	public function dialOf(envelope:Envelope, which:Int):Int {
-		return switch (which) {
-			case LOOP: envelope.loop;
-			case SPEED: envelope.speed;
-			case _: envelope.noise;
-		}
+		return envelope.dial(which);
 	}
 
 	/**
@@ -149,24 +146,11 @@ final class PsgEditor extends Widget {
 		@param value What to turn it to.
 	**/
 	public function turnTo(envelope:Envelope, which:Int, value:Int):Void {
-		switch (which) {
-			case LOOP:
-				envelope.loop = value < -1 ? -1 : (value >= STEPS ? STEPS - 1 : value);
-
-			case SPEED:
-				envelope.speed = value < 1 ? 1 : (value > 16 ? 16 : value);
-
-			case _:
-				envelope.noise = value < 0 ? 0 : (value > 7 ? 7 : value);
-		}
+		envelope.turns(which, value);
 	}
 
 	function dialSpan(which:Int):Float {
-		return switch (which) {
-			case LOOP: STEPS - 1;
-			case SPEED: 16;
-			case _: 7;
-		}
+		return Envelope.mostDial(which);
 	}
 
 	function stepWide():Float {
@@ -185,17 +169,46 @@ final class PsgEditor extends Widget {
 		return level < 0 ? 0 : (level > 15 ? 15 : level);
 	}
 
+	/**
+		Where a dial would stand if its bar reached a point, which is what dragging
+		one sets it to.
+
+		@param px A point, across.
+		@param which Which dial.
+		@return The value that point stands for.
+	**/
+	function dialValueAt(px:Float, which:Int):Int {
+		final root = root();
+		if (root == null) return 0;
+
+		final metrics = root.metrics;
+		final room = (width - metrics.inset * 2) / dialCount();
+		final left = x + metrics.inset + which * room;
+		final wide = room - metrics.unit;
+		final span = dialSpan(which);
+
+		if (wide <= 0 || span <= 0) return 0;
+
+		var part = (px - left) / wide;
+
+		if (part < 0) part = 0;
+		if (part > 1) part = 1;
+
+		return Math.round(part * span);
+	}
+
 	override function took(event:Input):Bool {
 		final envelope = envelope();
 		if (envelope == null) return false;
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				if (event.button != Pointer.Left) return false;
+
 				final turned = dialAt(event.x, event.y);
 
 				if (turned >= 0) {
 					turning = turned;
-					grabAt = event.x;
 					grabWas = dialOf(envelope, turned);
 					dial = turned;
 					invalidate();
@@ -205,13 +218,15 @@ final class PsgEditor extends Widget {
 				if (event.y < dialsTop()) return false;
 
 				grabbing = true;
+				wereSteps.resize(0);
+				for (value in envelope.steps) wereSteps.push(value);
+
 				drew(envelope, event);
 				return true;
 
 			case Kind.PointerMove:
 				if (turning >= 0) {
-					turnTo(envelope, turning,
-						grabWas + Std.int((event.x - grabAt) / (event.ctrl() ? 24 : 8)));
+					turnTo(envelope, turning, dialValueAt(event.x, turning));
 					invalidate();
 					return true;
 				}
@@ -230,23 +245,30 @@ final class PsgEditor extends Widget {
 
 			case Kind.PointerUp:
 				if (turning >= 0) {
+					final now = dialOf(envelope, turning);
+
+					if (now != grabWas) {
+						envelope.turns(turning, grabWas);
+						session.does(new mdd.song.edit.SetEnvelopeDial(envelope, turning, now));
+					}
+
 					turning = -1;
-					session.changed();
 					return true;
 				}
 
 				if (!grabbing) return false;
 
 				grabbing = false;
-				session.changed();
+				strokeEnded(envelope);
 				return true;
 
 			case Kind.Wheel:
 				final turned = dialAt(event.x, event.y);
 				if (turned < 0) return false;
 
-				turnTo(envelope, turned, dialOf(envelope, turned) + Std.int(event.dy));
-				session.changed();
+				session.does(new mdd.song.edit.SetEnvelopeDial(envelope, turned,
+					dialOf(envelope, turned) + Std.int(event.dy)));
+
 				invalidate();
 				return true;
 
@@ -264,6 +286,34 @@ final class PsgEditor extends Widget {
 		final most = root.metrics.whole(240);
 
 		return room > most ? most : room;
+	}
+
+	/**
+		Puts the stroke that has just ended on the undo stack as one step, by taking
+		the steps back to what they were at the press and letting the command draw
+		them again. They were written to live so the chips could be heard following
+		the pointer.
+
+		@param envelope The envelope that was drawn on.
+	**/
+	function strokeEnded(envelope:Envelope):Void {
+		final now = envelope.steps.copy();
+
+		if (now.length == wereSteps.length) {
+			var same = true;
+			for (index in 0...now.length) {
+				if (now[index] != wereSteps[index]) same = false;
+			}
+
+			if (same) return;
+		}
+
+		session.holds();
+		envelope.steps.resize(0);
+		for (value in wereSteps) envelope.steps.push(value);
+		session.frees();
+
+		session.does(new mdd.song.edit.DrawEnvelope(envelope, now));
 	}
 
 	function drew(envelope:Envelope, event:Input):Void {

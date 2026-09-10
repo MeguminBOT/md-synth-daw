@@ -98,7 +98,6 @@ final class FmEditor extends Widget {
 	final points:Vector<Float> = new Vector<Float>(64);
 
 	var grabbing:Int = -1;
-	var grabAt:Float = 0;
 	var grabWas:Int = 0;
 	var turning:Int = -1;
 
@@ -203,6 +202,14 @@ final class FmEditor extends Widget {
 		final most = metrics.whole(40);
 
 		return room < least ? least : (room > most ? most : room);
+	}
+
+	/**
+		@param row Which field of an operator, 0 to 9.
+		@return Where that row sits, down the panel, at its middle.
+	**/
+	public function rowMiddle(row:Int):Float {
+		return rowsTop() + (row + 0.5) * rowTall();
 	}
 
 	function fieldAt(px:Float, py:Float):Int {
@@ -332,17 +339,78 @@ final class FmEditor extends Widget {
 		return Math.round((row == 0 ? 1 - part : part) * ceiling);
 	}
 
+	/**
+		Where a dial would stand if its bar reached a point, which is what dragging
+		one sets it to.
+
+		@param px A point, across.
+		@param which Which dial.
+		@return The value that point stands for.
+	**/
+	function dialValueAt(px:Float, which:Int):Int {
+		final root = root();
+		if (root == null) return 0;
+
+		final metrics = root.metrics;
+		final room = (width - metrics.inset * 2) / DIALS;
+		final left = x + metrics.inset + which * room;
+		final wide = room - metrics.unit;
+		final ceiling = Patch.mostDial(which);
+
+		if (wide <= 0 || ceiling <= 0) return 0;
+
+		var part = (px - left) / wide;
+
+		if (part < 0) part = 0;
+		if (part > 1) part = 1;
+
+		return Math.round(part * ceiling);
+	}
+
+	/**
+		Puts the drag that has just ended on the undo stack as one step, by taking
+		the value back to what it was at the press and letting the command set it
+		again. The patch was written to live so the chips could be heard following
+		the pointer.
+
+		@param patch The patch being edited.
+	**/
+	function landed(patch:Patch):Void {
+		if (turning >= 0) {
+			final now = dialOf(patch, turning);
+
+			if (now != grabWas) {
+				patch.turns(turning, grabWas);
+				session.does(new mdd.song.edit.SetDial(patch, turning, now));
+			}
+
+		return;
+		}
+
+		if (grabbing < 0) return;
+
+		final slot = Std.int(grabbing / NAMES.length);
+		final row = grabbing % NAMES.length;
+		final now = valueOf(patch, slot, row);
+
+		if (now == grabWas) return;
+
+		patch.writes(slot, row, grabWas);
+		session.does(new mdd.song.edit.SetOperator(patch, slot, row, now));
+	}
+
 	override function took(event:Input):Bool {
 		final patch = patch();
 		if (patch == null) return false;
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				if (event.button != Pointer.Left) return false;
+
 				final turned = dialAt(event.x, event.y);
 
 				if (turned >= 0) {
 					turning = turned;
-					grabAt = event.x;
 					grabWas = dialOf(patch, turned);
 					dial = turned;
 					invalidate();
@@ -353,6 +421,8 @@ final class FmEditor extends Widget {
 				if (field < 0) return false;
 
 				grabbing = field;
+				grabWas = valueOf(patch, Std.int(field / NAMES.length),
+					field % NAMES.length);
 
 				held = field;
 				slot = Std.int(field / NAMES.length);
@@ -363,8 +433,7 @@ final class FmEditor extends Widget {
 				described(event.x, event.y);
 
 				if (turning >= 0) {
-					turnTo(patch, turning,
-						grabWas + Std.int((event.x - grabAt) / (event.ctrl() ? 24 : 8)));
+					turnTo(patch, turning, dialValueAt(event.x, turning));
 					invalidate();
 					return true;
 				}
@@ -378,24 +447,20 @@ final class FmEditor extends Widget {
 				return true;
 
 			case Kind.PointerUp:
-				if (turning >= 0) {
-					turning = -1;
-					session.changed();
-					return true;
-				}
+				if (turning < 0 && grabbing < 0) return false;
 
-				if (grabbing < 0) return false;
+				landed(patch);
 
+				turning = -1;
 				grabbing = -1;
-				session.changed();
 				return true;
 
 			case Kind.Wheel:
 				final turned = dialAt(event.x, event.y);
 
 				if (turned >= 0) {
-					turnTo(patch, turned, dialOf(patch, turned) + Std.int(event.dy));
-					session.changed();
+					session.does(new mdd.song.edit.SetDial(patch, turned,
+						dialOf(patch, turned) + Std.int(event.dy)));
 					invalidate();
 					return true;
 				}
@@ -407,8 +472,9 @@ final class FmEditor extends Widget {
 				final which = Std.int(field / NAMES.length);
 				final step = event.ctrl() ? 1 : 4;
 
-				setTo(patch, which, row, valueOf(patch, which, row) + Std.int(event.dy) * step);
-				session.changed();
+				session.does(new mdd.song.edit.SetOperator(patch, which, row,
+					valueOf(patch, which, row) + Std.int(event.dy) * step));
+
 				invalidate();
 				return true;
 
