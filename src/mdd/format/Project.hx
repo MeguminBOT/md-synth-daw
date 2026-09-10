@@ -696,8 +696,11 @@ class Project {
 	}
 
 	/**
-		Writes every sample the song carries into one block, so the JSON does not have
-		to carry them.
+		Writes every sample the song carries into one block.
+
+		A save writes one file per sample instead, and this is what says whether a
+		piece has changed since the last one. A piece saved before that carries the
+		block rather than the files, so `unbulk` still reads one back.
 
 		@param song The song.
 		@return The block.
@@ -763,16 +766,52 @@ class Project {
 	**/
 	public static function saveFolder(song:Song, into:String):Void {
 		tree(into);
-		tree(into + "/chunks");
 		tree(into + "/" + SAMPLES);
-
-		File.saveContent(into + "/" + STRUCTURE, text(song));
-		File.saveBytes(into + "/" + BULK, bulk(song));
 
 		for (index in 0...song.samples.length) {
 			File.saveBytes(into + "/" + SAMPLES + "/" + index + ".pcm",
 				sampleBytes(song.samples[index]));
 		}
+
+		sweeps(into + "/" + SAMPLES, song.samples.length);
+
+		final aside = into + "/" + STRUCTURE + PARTIAL;
+
+		File.saveContent(aside, text(song));
+		swaps(aside, into + "/" + STRUCTURE);
+	}
+
+	/**
+		Removes the sample files a previous save wrote that this one did not, so a
+		folder does not keep what is no longer named.
+
+		@param where The sample folder.
+		@param kept How many samples the piece now carries.
+	**/
+	static function sweeps(where:String, kept:Int):Void {
+		if (!FileSystem.exists(where)) return;
+
+		var index = kept;
+
+		while (true) {
+			final path = where + "/" + index + ".pcm";
+			if (!FileSystem.exists(path)) break;
+
+			swept(path);
+			index++;
+		}
+	}
+
+	/**
+		Puts a file written beside its name in place of it, which is what makes a save
+		either whole or not there at all.
+
+		@param aside The file that was just written.
+		@param onto What it replaces.
+	**/
+	static function swaps(aside:String, onto:String):Void {
+		if (FileSystem.exists(onto)) FileSystem.deleteFile(onto);
+		FileSystem.rename(aside, onto);
 	}
 
 	/**
@@ -783,6 +822,9 @@ class Project {
 	**/
 	public static function openFolder(from:String):Song {
 		final song = read(File.getContent(from + "/" + STRUCTURE));
+		final packed = from + "/" + BULK;
+
+		if (FileSystem.exists(packed)) unbulk(song, File.getBytes(packed));
 
 		for (index in 0...song.samples.length) {
 			final path = from + "/" + SAMPLES + "/" + index + ".pcm";
@@ -808,7 +850,6 @@ class Project {
 		final entries = new List<haxe.zip.Entry>();
 
 		entries.add(entry(STRUCTURE, Bytes.ofString(text(song))));
-		entries.add(entry(BULK, bulk(song)));
 
 		for (index in 0...song.samples.length) {
 			entries.add(entry(SAMPLES + "/" + index + ".pcm", sampleBytes(song.samples[index])));
@@ -828,17 +869,15 @@ class Project {
 
 		out.close();
 
-		if (FileSystem.exists(into)) FileSystem.deleteFile(into);
-		FileSystem.rename(aside, into);
+		swaps(aside, into);
 	}
 
 	static inline final PARTIAL = ".part";
 
 	/**
-		Removes the sample files of a previous save that this one does not write, so a
-		folder does not accumulate what is no longer used.
+		Deletes one file, and says nothing where it will not go.
 
-		@param where The folder.
+		@param where The file.
 	**/
 	static function swept(where:String):Void {
 		try {
@@ -886,6 +925,8 @@ class Project {
 		}
 
 		final song = read(said);
+
+		if (held.exists(BULK)) unbulk(song, held.get(BULK));
 
 		for (index in 0...song.samples.length) {
 			final name = SAMPLES + "/" + index + ".pcm";
