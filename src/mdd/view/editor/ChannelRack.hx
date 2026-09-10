@@ -201,6 +201,13 @@ final class ChannelRack extends Widget {
 
 				if (event.x >= slotAt(metrics, METER)) {
 					session.choose(part);
+
+					if (event.clicks >= 2) {
+						session.does(new mdd.song.edit.SetVolume(at, Song.LOUDEST));
+						invalidate();
+						return true;
+					}
+
 					sliding = at;
 					leanedWas = session.song.volume[at];
 					leaned(at, metrics, event.x);

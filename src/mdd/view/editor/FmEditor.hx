@@ -410,6 +410,14 @@ final class FmEditor extends Widget {
 				final turned = dialAt(event.x, event.y);
 
 				if (turned >= 0) {
+					if (event.clicks >= 2) {
+						session.does(new mdd.song.edit.SetDial(patch, turned,
+							new Patch().dial(turned)));
+
+						invalidate();
+						return true;
+					}
+
 					turning = turned;
 					grabWas = dialOf(patch, turned);
 					dial = turned;
@@ -419,6 +427,17 @@ final class FmEditor extends Widget {
 
 				final field = fieldAt(event.x, event.y);
 				if (field < 0) return false;
+
+				if (event.clicks >= 2) {
+					final slot = Std.int(field / NAMES.length);
+					final row = field % NAMES.length;
+
+					session.does(new mdd.song.edit.SetOperator(patch, slot, row,
+						new Patch().reads(slot, row)));
+
+					invalidate();
+					return true;
+				}
 
 				grabbing = field;
 				grabWas = valueOf(patch, Std.int(field / NAMES.length),

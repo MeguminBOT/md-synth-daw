@@ -307,6 +307,19 @@ class SpineCheck {
 			+ " back");
 
 		session.history.clear();
+
+		final fresh = new mdd.song.Patch().reads(slot, row);
+		patch.writes(slot, row, fresh == 0 ? 9 : 0);
+
+		tree.pressed(left + 4, middle, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 2);
+		tree.released(left + 4, middle, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("and a double click puts a field back where a fresh patch has it",
+			fm.valueOf(patch, slot, row) == fresh && session.history.depth() == 1,
+			"the field reads " + fm.valueOf(patch, slot, row) + " against the " + fresh
+			+ " a new patch carries, in one step");
+
+		session.history.clear();
 		session.choose(Part.Psg1);
 		editor.show(mdd.view.Inspector.CHANNEL);
 		tree.resize(tree.width, tree.height);
