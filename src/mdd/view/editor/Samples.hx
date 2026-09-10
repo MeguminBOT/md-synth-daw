@@ -4,6 +4,8 @@ import haxe.ds.Vector;
 import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Sample;
+import mdd.song.edit.LoudenSample;
+import mdd.song.edit.RemoveSample;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
@@ -156,53 +158,47 @@ final class Samples extends Widget {
 			loud.reason = translate(Locale.SAMPLE_EMPTY);
 			drop.reason = loud.reason;
 		} else {
-			fires(loud, function():Void normalised(held));
+			fires(loud, function():Void normalised(slot));
 			fires(drop, function():Void cleared(slot));
 		}
 
 		root.pop(menu, px, py, this);
 	}
 
-	function normalised(held:Sample):Void {
-		final bytes = held.bytes;
-		var most = 0;
+	/**
+		Scales a recording up to full scale, as one undoable step.
 
-		for (index in 0...bytes.length) {
-			final away = bytes[index] - 128;
-			final much = away < 0 ? -away : away;
-			if (much > most) most = much;
-		}
+		@param slot Which recording, by index.
+	**/
+	function normalised(slot:Int):Void {
+		final held = session.song.sampleAt(slot);
+		if (held == null || !LoudenSample.worth(held)) return;
 
-		if (most <= 0 || most >= 127) return;
-
-		final gain = 127 / most;
-
-		for (index in 0...bytes.length) {
-			final value = Math.round((bytes[index] - 128) * gain) + 128;
-			bytes[index] = value < 0 ? 0 : (value > 255 ? 255 : value);
-		}
-
+		session.does(new LoudenSample(slot));
 		session.say(translate(Locale.SAMPLE_NORMALISE));
-		session.changed();
-		invalidate();
-	}
-
-	function cleared(slot:Int):Void {
-		if (slot < 0 || slot >= session.song.samples.length) return;
-
-		session.holds();
-		session.song.samples.splice(slot, 1);
-		session.frees();
-		if (chosen >= session.song.samples.length) chosen = session.song.samples.length - 1;
-
-		session.changed();
 		invalidate();
 	}
 
 	/**
-		@return The instrument in the chosen slot, by index, or -1.
+		Takes a recording out, as one undoable step. Every instrument that named one
+		after it moves with it.
+
+		@param slot Which recording, by index.
 	**/
-	public function held():Int {
+	function cleared(slot:Int):Void {
+		if (slot < 0 || slot >= session.song.samples.length) return;
+
+		session.does(new RemoveSample(slot));
+
+		if (chosen >= session.song.samples.length) chosen = session.song.samples.length - 1;
+		invalidate();
+	}
+
+	/**
+		@return How many bytes every recording in the piece adds up to, which is what the
+			panel weighs against what the machine has room for.
+	**/
+	public function taken():Int {
 		var total = 0;
 		for (sample in session.song.samples) total += sample.length();
 		return total;
@@ -358,7 +354,7 @@ final class Samples extends Widget {
 		Panel.titled(paint, theme, metrics, translate(Locale.PANEL_SAMPLES), x, y, width,
 			head());
 		paint.reface(small);
-		final total = held();
+		final total = taken();
 		final ceiling = budget == null ? 65536 : budget.profile.sampleBytes;
 		final over = total > ceiling;
 
