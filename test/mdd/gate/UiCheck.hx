@@ -512,6 +512,35 @@ class UiCheck {
 
 		says("scroll", down > 0 && top == 0 && bottom == 900,
 			"down " + down + ", clamped to 0 and to " + bottom + " of 900");
+
+		scroll.scrollTo(0);
+
+		final bar = scroll.x + scroll.width - 4;
+		final low = scroll.y + scroll.height - 6;
+
+		root.pressed(bar, low, Pointer.Left, Mod.None);
+		root.released(bar, low, Pointer.Left, Mod.None);
+
+		final jumped = scroll.offsetY;
+
+		says("and a press on the empty track moves the thumb there",
+			jumped > 700,
+			"a press near the bottom of the bar went to " + Math.round(jumped)
+			+ " of 900, where it used to sit still until the pointer moved");
+
+		scroll.scrollTo(450);
+
+		final held = scroll.offsetY;
+		final onIt = scroll.thumbAt() + scroll.thumb() * 0.5;
+
+		root.pressed(bar, onIt, Pointer.Left, Mod.None);
+		final onThumb = scroll.offsetY;
+		root.released(bar, onIt, Pointer.Left, Mod.None);
+
+		says("and a press on the thumb itself leaves it alone",
+			onThumb == held,
+			"the view stayed at " + Math.round(onThumb)
+			+ " when the thumb was taken hold of where it stood");
 	}
 
 	static function tables():Void {

@@ -95,7 +95,7 @@ class Scroll extends Widget {
 	/**
 		@return How wide the bar is.
 	**/
-	function thickness():Float {
+	public function thickness():Float {
 		final root = root();
 		return root == null ? 8 : root.metrics.whole(8);
 	}
@@ -103,7 +103,7 @@ class Scroll extends Widget {
 	/**
 		@return How long the thumb is, from how much of the contents is visible.
 	**/
-	function thumb():Float {
+	public function thumb():Float {
 		if (!downwards()) return height;
 		final share = height / contentHeight;
 		final want = height * share;
@@ -114,10 +114,27 @@ class Scroll extends Widget {
 	/**
 		@return Where the thumb sits.
 	**/
-	function thumbAt():Float {
+	public function thumbAt():Float {
 		final travel = height - thumb();
 		final most = contentHeight - height;
 		return most <= 0 ? y : y + travel * (offsetY / most);
+	}
+
+	/**
+		Puts the thumb under a press that landed on the track rather than on it,
+		which is what a press below the thumb is asking for. Without this a press
+		on the empty part of the bar did nothing at all until the pointer moved.
+
+		@param py Where the press was, down.
+		@param long How long the thumb is.
+	**/
+	function jumps(py:Float, long:Float):Void {
+		final travel = height - long;
+		final most = contentHeight - height;
+
+		if (travel <= 0 || most <= 0) return;
+
+		scrollTo((py - y - long * 0.5) / travel * most);
 	}
 
 	/**
@@ -146,6 +163,11 @@ class Scroll extends Widget {
 
 				final bar = x + width - thickness();
 				if (event.x < bar) return false;
+
+				final top = thumbAt();
+				final long = thumb();
+
+				if (event.y < top || event.y >= top + long) jumps(event.y, long);
 
 				scrubbing = true;
 				grabAt = event.y;
