@@ -76,14 +76,14 @@ final class Collector {
 	}
 
 	/**
-		@return How much memory is in use, in megabytes.
+		@return How much memory is in use, in bytes, which is what the collector counts in.
 	**/
 	public inline function held():Float {
 		return cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
 	}
 
 	/**
-		@return How much has been allocated since the last collection, in megabytes.
+		@return How much has been allocated since the last collection, in bytes.
 	**/
 	public inline function loose():Float {
 		final now = held();
