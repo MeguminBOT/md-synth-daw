@@ -45,10 +45,12 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   of and moved.
 - Nine scales and twelve roots, chosen from the roll's own right click menu. Rows outside the scale
   are darkened and the root row takes the channel's colour.
-- Snap to a bar, a beat, an eighth or a sixteenth, with `Alt` held to drop the grid mid
-  drag. The grid is a division of a bar rather than a count of ticks, so it stays a
-  sixteenth in a piece imported at 480 ticks a beat instead of becoming a sliver of one.
-  A note you place lands on the step you pointed at; one you drag goes to the nearest line.
+- Snap to anything from a bar down to a sixty fourth, or to nothing at all, with `Alt`
+  held to drop the grid mid drag. The grid is a division of a bar rather than a count of
+  ticks, so it stays a sixteenth in a piece imported at 480 ticks a beat instead of
+  becoming a sliver of one. The roll and the transport bar offer the same divisions, and
+  the one you pick is kept between sessions. A note you place lands on the step you
+  pointed at; one you drag goes to the nearest line.
 - Zoom to fit, `Ctrl` and the wheel to zoom, middle drag to pan.
 - Velocity per note.
 - Parameter lanes underneath the roll, folded and scrolled.
@@ -75,7 +77,8 @@ Undo and redo cover everything, drags included. A drag lands as one step rather 
 frame. Renames, recolours, icon changes, track moves, pattern removals, channel changes, tempo
 changes, nudges and slices are all on the same stack, and so is everything the synth editors do:
 every operator field, every dial, a whole envelope stroke, and mute, solo, pan and the channel
-faders.
+faders. Taking a sample out and normalising one are steps too, and taking one out moves every
+instrument that named a later one along with it.
 
 ---
 
@@ -200,7 +203,7 @@ and the checks compare the live stream against the offline one on every run.
 
 | Format | What comes across |
 | --- | --- |
-| **VGM** | The register stream becomes notes, patches, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at. The exact frequency word is recorded at every key on, so vibrato and slides survive rather than being rounded to the nearest semitone |
+| **VGM** and **VGZ** | The register stream becomes notes, patches, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at. The exact frequency word is recorded at every key on, so vibrato and slides survive rather than being rounded to the nearest semitone |
 | **XGM** | Patterns and samples |
 | **MIDI** | Notes and tempo |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
@@ -208,6 +211,10 @@ and the checks compare the live stream against the offline one on every run.
 
 The VGM importer also analyses what it read: how many writes of each class the file makes, which
 channels are used, and where the driver writes registers a note model cannot hold.
+
+A `vgz` is a gzipped VGM and is read as one, which is the form most recordings are handed
+out in. Any of these opens by dropping the file on the window, by handing it to the program
+on the command line, or from the file menu.
 
 ---
 
