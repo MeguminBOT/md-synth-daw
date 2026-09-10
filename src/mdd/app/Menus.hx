@@ -418,13 +418,12 @@ final class Menus {
 		driving.reason = said(Locale.VIEW_DRIVEN_WHY);
 
 		fired(driving, function():Void {
-			session.song.driving = !session.song.driving;
+			session.does(new mdd.song.edit.DriveSong(!session.song.driving));
 			session.transport.silence();
 
 			session.say(said(session.song.driving ? Locale.VIEW_DRIVEN_ON
 				: Locale.VIEW_DRIVEN_OFF));
 
-			session.changed();
 			if (onRelabel != null) onRelabel();
 		});
 
