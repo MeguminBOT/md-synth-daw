@@ -575,7 +575,7 @@ final class Files {
 
 		@param where The file to read.
 	**/
-	function readXgm(where:String):Void {
+	public function readXgm(where:String):Void {
 		final into = new Stream(1 << 22);
 		final xgm = Xgm.read(sys.io.File.getBytes(where), into);
 		final made = Transcription.of(into, xgm.rate, name(where));
@@ -846,7 +846,7 @@ final class Files {
 
 		@param where The file to read.
 	**/
-	function readTfi(where:String):Void {
+	public function readTfi(where:String):Void {
 		final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
 
 		if (held == null) {

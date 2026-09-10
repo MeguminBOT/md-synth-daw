@@ -424,14 +424,22 @@ class App {
 		}
 	}
 
+	/**
+		Opens a file of any kind this reads, picked by its suffix. Anything else is
+		read as a piece.
+
+		@param where The file.
+	**/
 	public function opens(where:String):Void {
 		final suffix = haxe.io.Path.extension(where).toLowerCase();
 
 		try {
 			switch (suffix) {
 				case "vgm", "vgz": files.readVgm(where);
+				case "xgm": files.readXgm(where);
 				case "mid", "midi": files.readMidi(where);
 				case "wav": files.readWav(where);
+				case "tfi": files.readTfi(where);
 				case _: files.load(where);
 			}
 		} catch (e:Dynamic) {
