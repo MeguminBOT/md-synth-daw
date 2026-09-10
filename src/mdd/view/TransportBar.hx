@@ -46,9 +46,9 @@ final class TransportBar extends Widget {
 	**/
 	public static inline final BUTTONS = 5;
 
-	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1];
+	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1, 0];
 	static final SNAP_NAMES:Array<String> = ["1/64", "1/32", "1/16", "1/8", "1/4",
-		"1/2", "1/1"];
+		"1/2", "1/1", ""];
 
 	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
@@ -120,7 +120,8 @@ final class TransportBar extends Widget {
 		held = [tempo, resolution, video, snap, offset];
 
 		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
-		snap.derived = function(value:Int):String return SNAP_NAMES[value];
+		snap.derived = function(value:Int):String
+			return SNAPS[value] == 0 ? translate(Locale.EXPORT_OFF) : SNAP_NAMES[value];
 
 		tempo.label = "BPM";
 		resolution.label = "PPQN";
@@ -145,11 +146,17 @@ final class TransportBar extends Widget {
 	}
 
 	/**
-		@return Which of the snap steps is chosen.
+		@return Which of the snap steps is chosen, or the sixteenth where the piece names a
+			division this bar does not offer. Falling back to the first would read as a sixty
+			fourth, which is a finer grid than anything asked for.
 	**/
 	function snapIndex():Int {
 		for (index in 0...SNAPS.length) {
 			if (SNAPS[index] == session.snapping) return index;
+		}
+
+		for (index in 0...SNAPS.length) {
+			if (SNAPS[index] == Session.SIXTEENTH) return index;
 		}
 
 		return 0;

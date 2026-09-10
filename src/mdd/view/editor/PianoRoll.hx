@@ -46,6 +46,18 @@ final class PianoRoll extends Widget {
 		false, true, false];
 
 	/**
+		What the grid can divide a bar into, coarsening down the list, with no snap at
+		all last. The transport bar offers the same divisions, so the two controls
+		never disagree about what is on offer.
+	**/
+	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1, 0];
+
+	static final SNAP_NAMES:Array<Locale> = [Locale.ROLL_SNAP_SIXTY_FOURTH,
+		Locale.ROLL_SNAP_THIRTY_SECOND, Locale.ROLL_SNAP_SIXTEENTH,
+		Locale.ROLL_SNAP_EIGHTH, Locale.ROLL_SNAP_BEAT, Locale.ROLL_SNAP_HALF,
+		Locale.ROLL_SNAP_BAR, Locale.ROLL_SNAP_NONE];
+
+	/**
 		The session to read.
 	**/
 	public final session:Session;
@@ -1426,17 +1438,17 @@ final class PianoRoll extends Widget {
 
 			menu.divide();
 
+			final snaps = new Menu();
+
+			for (index in 0...SNAPS.length) {
+				final step = SNAPS[index];
+				final choice = snaps.offer(new Choice(translate(SNAP_NAMES[index])));
+
+				fires(choice, function():Void snapped(step));
+			}
+
 			fires(menu.offer(new Choice(translate(Locale.ROLL_FIT))), function():Void fitted());
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_SIXTEENTH))),
-				function():Void snapped(Session.SIXTEENTH));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_EIGHTH))),
-				function():Void snapped(8));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BEAT))),
-				function():Void snapped(4));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BAR))),
-				function():Void snapped(1));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_NONE))),
-				function():Void snapped(0));
+			menu.offer(new Choice(translate(Locale.TRANSPORT_SNAP))).submenu = snaps;
 		}
 
 		root.pop(menu, px, py, this);
