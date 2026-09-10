@@ -249,14 +249,12 @@ final class Scope extends Widget {
 
 		fires(menu.offer(new Choice(translate(song.soloed[part]
 			? Locale.RACK_UNSOLO : Locale.RACK_SOLO))), function():Void {
-			song.soloed[part] = !song.soloed[part];
-			session.changed();
+			session.does(new mdd.song.edit.SoloPart(part, !song.soloed[part]));
 		});
 
 		fires(menu.offer(new Choice(translate(song.muted[part]
 			? Locale.RACK_UNMUTE : Locale.RACK_MUTE))), function():Void {
-			song.muted[part] = !song.muted[part];
-			session.changed();
+			session.does(new mdd.song.edit.MutePart(part, !song.muted[part]));
 		});
 
 		menu.divide();
