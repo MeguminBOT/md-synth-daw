@@ -111,9 +111,12 @@ class SpineCheck {
 
 		session.uses(Session.DRAW);
 		session.history.clear();
+		roll.shows(0);
 		roll.choose(null);
 		roll.reveal(beat * 4, 60);
-		tree.resize(tree.width, tree.height);
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
 
 		final note = lane.notes[0];
 		final wasAt = note.at;
@@ -156,6 +159,125 @@ class SpineCheck {
 
 		lane.notes.resize(0);
 		session.history.clear();
+	}
+
+	/**
+		Every view that shows a playhead has to ask for a frame when it moves, or
+		the playhead only advances when something else happens to want one and it
+		is seen to stutter.
+	**/
+	static function chased(tree:Root, session:Session, centre:mdd.view.Centre,
+			paint:Paint, renderer:cpp.Star<Canvas>):Void {
+		session.transport.play();
+
+		final views = [mdd.view.Centre.PLAYLIST, mdd.view.Centre.ROLL,
+			mdd.view.Centre.AUTOMATION];
+
+		final names = ["the playlist", "the roll", "the automation editor"];
+
+		var stuck = "";
+		var asked = 0;
+
+		for (index in 0...views.length) {
+			centre.show(views[index]);
+			tree.reshape();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+
+			centre.playhead(session.song.tempo.ppqn * (index + 3));
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			final drew = tree.frame(paint);
+			Sdl.renderPresent(renderer);
+
+			if (drew) asked++;
+			else stuck += names[index] + " ";
+		}
+
+		session.transport.stop();
+		centre.show(mdd.view.Centre.ROLL);
+		tree.reshape();
+
+		says("every view redraws as the playhead moves", stuck == "",
+			stuck == ""
+				? asked + " of " + views.length + " asked for a frame of their own"
+				: stuck + "waited for something else to want one");
+	}
+
+	static function budgeted(tree:Root, session:Session,
+			budget:mdd.check.Budget, roll:mdd.view.editor.PianoRoll):Void {
+		var notes = 0;
+		for (pattern in session.song.patterns) {
+			for (index in 0...Part.COUNT) notes += pattern.lane(index).notes.length;
+		}
+
+		budget.overSong(session.song);
+
+		final began = Sdl.ticks();
+		final rounds = 20;
+
+		for (index in 0...rounds) budget.overSong(session.song);
+
+		final each = (Sdl.ticks() - began) / rounds * 1000;
+
+		says("reading the budget over a song is worth measuring", each >= 0,
+			round(each, 3) + " ms over " + notes + " notes in "
+			+ session.song.patterns.length + " patterns");
+
+		session.choose(Part.Fm1);
+		session.uses(Session.DRAW);
+
+		final held = mdd.view.Parameter.of(session.part);
+
+		for (index in 0...held.length) {
+			if (held[index].target != mdd.song.Automation.LEVEL) continue;
+
+			roll.shows(index + 1);
+			break;
+		}
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final stack = roll.stack;
+
+		says("an automation lane is up to drag on", stack.rows() > 0,
+			"" + stack.rows() + " lane on " + session.part.name());
+
+		if (stack.rows() == 0) return;
+
+		final beat = session.song.tempo.ppqn;
+		final top = stack.rowTop(0) + stack.rowHeight() * 0.5;
+		final from = stack.atTick(beat * 2);
+
+		stack.took(pressAt(from, top));
+
+		var worst = 0.0;
+		var spent = 0.0;
+		final moves = 60;
+
+		for (index in 0...moves) {
+			final at = from + index * 3;
+			final began = Sdl.ticks();
+
+			stack.took(moveAt(at, top + (index % 7) - 3));
+
+			final took = Sdl.ticks() - began;
+
+			spent += took;
+			if (took > worst) worst = took;
+		}
+
+		stack.took(releaseAt(from + moves * 3, top));
+
+		says("and dragging automation does not stall the frame",
+			worst * 1000 < 8,
+			round(spent / moves * 1000, 3) + " ms a move over " + moves
+			+ " moves, worst " + round(worst * 1000, 3)
+			+ " ms, against a 16.7 ms frame");
 	}
 
 	static function racked(tree:Root, session:Session,
@@ -1634,6 +1756,20 @@ class SpineCheck {
 		return event;
 	}
 
+	static function moveAt(px:Float, py:Float):mdd.ui.Input {
+		final event = new mdd.ui.Input();
+		event.pointer(mdd.ui.Kind.PointerMove, px, py, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+		return event;
+	}
+
+	static function releaseAt(px:Float, py:Float):mdd.ui.Input {
+		final event = new mdd.ui.Input();
+		event.pointer(mdd.ui.Kind.PointerUp, px, py, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+		return event;
+	}
+
 	static function keyAt(code:mdd.ui.Key):mdd.ui.Input {
 		final event = new mdd.ui.Input();
 		event.keyed(mdd.ui.Kind.KeyDown, code, mdd.ui.Mod.None, false);
@@ -2625,6 +2761,8 @@ class SpineCheck {
 		synthed(tree, session, editor);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
+		budgeted(tree, session, budget, centre.roll);
+		chased(tree, session, centre, paint, renderer);
 		restarted(tree, session, centre.roll);
 
 		tree.resize(900, 600);

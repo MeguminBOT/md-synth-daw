@@ -221,7 +221,8 @@ final class Centre extends Widget {
 		@param tick Where the playhead is.
 	**/
 	public function playhead(tick:Int):Void {
-		if (roll.playhead == tick && playlist.playhead == tick) return;
+		if (roll.playhead == tick && playlist.playhead == tick
+			&& automation.playhead == tick) return;
 
 		roll.playhead = tick;
 		playlist.playhead = tick;
@@ -231,6 +232,7 @@ final class Centre extends Widget {
 
 		if (roll.visible) roll.invalidate();
 		if (playlist.visible) playlist.invalidate();
+		if (automation.visible) automation.invalidate();
 
 		if (!tracker.visible) return;
 
