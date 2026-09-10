@@ -98,6 +98,114 @@ class SpineCheck {
 			"a tick of 7 stays at 7");
 	}
 
+	static function synthed(tree:Root, session:Session,
+			editor:mdd.view.Inspector):Void {
+		session.choose(Part.Fm1);
+		editor.show(mdd.view.Inspector.CHANNEL);
+		tree.resize(tree.width, tree.height);
+
+		final fm = editor.fm;
+		final patch = fm.patch();
+
+		if (patch == null || fm.width <= 0) {
+			says("an operator edit undoes", false, "the fm editor is not up");
+			return;
+		}
+
+		session.history.clear();
+
+		final slot = 0;
+		final row = 1;
+		final was = fm.valueOf(patch, slot, row);
+
+		final wide = fm.width / mdd.song.Patch.SLOTS;
+		final middle = fm.rowMiddle(row);
+		final left = fm.x + slot * wide;
+
+		tree.pressed(left + 4, middle, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.moved(left + wide * 0.8, middle, mdd.ui.Mod.None);
+		tree.released(left + wide * 0.8, middle, mdd.ui.Pointer.Right,
+			mdd.ui.Mod.None);
+
+		says("a right button never edits a patch",
+			fm.valueOf(patch, slot, row) == was && session.history.depth() == 0,
+			"the field is still " + was + " after a right drag across it");
+
+		tree.pressed(left + 4, middle, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(left + wide * 0.8, middle, mdd.ui.Mod.None);
+
+		final during = fm.valueOf(patch, slot, row);
+
+		tree.released(left + wide * 0.8, middle, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+
+		final after = fm.valueOf(patch, slot, row);
+
+		says("an operator bar follows the pointer", during != was && after == during,
+			"a drag across the bar took it from " + was + " to " + after
+			+ ", and the release left it there");
+
+		final steps = session.history.depth();
+		session.undo();
+
+		says("and the whole drag undoes as one step",
+			steps == 1 && fm.valueOf(patch, slot, row) == was,
+			"the drag left " + steps + " step on the stack and undo put " + was
+			+ " back");
+
+		session.history.clear();
+		session.choose(Part.Psg1);
+		editor.show(mdd.view.Inspector.CHANNEL);
+		tree.resize(tree.width, tree.height);
+
+		final psg = editor.psg;
+		final envelope = psg.envelope();
+
+		if (envelope == null || psg.width <= 0) {
+			says("an envelope stroke undoes", false, "the square editor is not up");
+			return;
+		}
+
+		final before = envelope.steps.copy();
+		final band = psg.y + psg.height * 0.5;
+		final step = psg.width / mdd.song.Envelope.LENGTH;
+
+		tree.pressed(psg.x + step * 2.5, band, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		for (index in 3...9) {
+			tree.moved(psg.x + step * (index + 0.5), band, mdd.ui.Mod.None);
+		}
+
+		tree.released(psg.x + step * 8.5, band, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final drawnSteps = session.history.depth();
+		final wrote = envelope.steps.copy();
+
+		var moved = wrote.length != before.length;
+		if (!moved) {
+			for (index in 0...wrote.length) {
+				if (wrote[index] != before[index]) moved = true;
+			}
+		}
+
+		session.undo();
+
+		var back = envelope.steps.length == before.length;
+		if (back) {
+			for (index in 0...before.length) {
+				if (envelope.steps[index] != before[index]) back = false;
+			}
+		}
+
+		says("an envelope stroke undoes as one step",
+			drawnSteps == 1 && moved && back,
+			"a stroke over 7 steps left " + drawnSteps + " step on the stack, wrote "
+			+ wrote.length + " steps against " + before.length
+			+ " before it, and undo put them all back");
+
+		session.history.clear();
+	}
+
 	static function sized(roll:mdd.view.editor.PianoRoll, session:mdd.app.Session):Void {
 		final pattern = session.current();
 		if (pattern == null) return;
@@ -2347,6 +2455,7 @@ class SpineCheck {
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
+		synthed(tree, session, editor);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);
