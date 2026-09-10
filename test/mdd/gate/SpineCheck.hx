@@ -96,12 +96,12 @@ class SpineCheck {
 
 		final lane = pattern.lane(session.part);
 		final beat = session.song.tempo.ppqn;
-		final wasSnap = session.snap;
+		final wasSnap = session.snapping;
 
 		lane.notes.resize(0);
 		roll.forgets();
 
-		session.snap = beat;
+		session.snapping = 4;
 		session.uses(mdd.app.Session.DRAW);
 
 		roll.draws(0, 60);
@@ -111,7 +111,7 @@ class SpineCheck {
 		says("a drawn note takes the grid", first == session.snap,
 			"drawn at a snap of " + session.snap + " ticks, the note is " + first + " long");
 
-		session.snap = Std.int(roll.sixteenth() / 2);
+		session.snapping = 32;
 		roll.draws(beat * 4, 62);
 
 		final tight = lane.notes.length < 2 ? 0 : lane.notes[1].length;
@@ -131,17 +131,17 @@ class SpineCheck {
 			"after one was pulled to " + (beat * 2) + " ticks the next drawn note is "
 			+ next);
 
-		session.snap = beat * 3;
+		session.snapping = 1;
 		roll.draws(beat * 12, 65);
 
 		final moved = lane.notes.length < 4 ? 0 : lane.notes[3].length;
 
-		says("and moving the grid takes the length back to it", moved == beat * 3
+		says("and moving the grid takes the length back to it", moved == beat * 4
 			&& moved != next,
 			"the grid moved to " + session.snap + " ticks and the next drawn note is "
 			+ moved + " rather than the " + next + " the one before it kept");
 
-		session.snap = wasSnap;
+		session.snapping = wasSnap;
 		lane.notes.resize(0);
 		roll.forgets();
 	}
@@ -1536,7 +1536,7 @@ class SpineCheck {
 		lane.notes.resize(0);
 		for (step in 0...3) lane.add(new Note(step * beat, 24, 60 + step, 100));
 
-		session.snap = beat * 2;
+		session.snapping = 2;
 		session.history.clear();
 
 		roll.choose(lane.notes[0]);
@@ -1565,7 +1565,7 @@ class SpineCheck {
 			"the lane reads " + lane.notes[0].at + ", " + lane.notes[1].at + ", "
 			+ lane.notes[2].at + " again");
 
-		session.snap = 24;
+		session.snapping = mdd.app.Session.SIXTEENTH;
 		lane.notes.resize(0);
 		session.history.clear();
 	}
@@ -1581,7 +1581,7 @@ class SpineCheck {
 		lane.add(new Note(beat, Std.int(beat / 2), 60, 100));
 
 		roll.choose(null);
-		session.snap = 24;
+		session.snapping = mdd.app.Session.SIXTEENTH;
 		session.uses(mdd.app.Session.DRAW);
 
 		final note = lane.notes[0];
@@ -2139,7 +2139,7 @@ class SpineCheck {
 		dragged(tree, roll, session, centre, paint, renderer);
 
 		centre.show(Centre.TRACKER);
-		session.snap = 24;
+		session.snapping = mdd.app.Session.SIXTEENTH;
 
 		final tracker = centre.tracker;
 		tracker.octave = 4;
@@ -2237,7 +2237,7 @@ class SpineCheck {
 		entered(tree, tracker, third);
 
 		centre.show(Centre.ROLL);
-		session.snap = 24;
+		session.snapping = mdd.app.Session.SIXTEENTH;
 
 		final rollMenus = popUnder(tree, roll, roll.x + 200, roll.y + 120);
 

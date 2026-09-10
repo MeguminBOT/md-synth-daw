@@ -43,7 +43,9 @@ A track can also drive one automation lane of a channel it does not otherwise ow
 - Click to write a note, drag to move it, drag an edge to resize it.
 - Nine scales and twelve roots, chosen from the roll's own right click menu. Rows outside the scale
   are darkened and the root row takes the channel's colour.
-- Snap, with `Alt` held to drop the grid mid drag.
+- Snap to a bar, a beat, an eighth or a sixteenth, with `Alt` held to drop the grid mid
+  drag. The grid is a division of a bar rather than a count of ticks, so it stays a
+  sixteenth in a piece imported at 480 ticks a beat instead of becoming a sliver of one.
 - Zoom to fit, `Ctrl` and the wheel to zoom, middle drag to pan.
 - Velocity per note.
 - Parameter lanes underneath the roll, folded and scrolled.
@@ -98,6 +100,10 @@ amplitude and pitch sensitivity, and stereo.
 
 The algorithm is drawn as separate wires rather than one line through every box, so which operator
 modulates which is visible instead of implied. Envelopes are drawn per operator.
+
+Every parameter is a bar you drag across, and it follows the pointer: the bar goes where you
+take it rather than counting how far you moved. A click on one selects it without changing
+it, and the wheel steps a value four at a time, or one with `Ctrl` held.
 
 Hover any parameter and a tooltip names the register it writes, the raw value, and what the value
 means:

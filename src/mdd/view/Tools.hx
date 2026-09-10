@@ -191,7 +191,7 @@ final class Tools extends Widget {
 	**/
 	function lit(index:Int):Bool {
 		return switch (index) {
-			case SNAP: session.snap > 0;
+			case SNAP: session.snapping > 0;
 			case GHOSTS: session.ghosts;
 			case _: session.tool == index;
 		}
@@ -205,7 +205,7 @@ final class Tools extends Widget {
 	public function press(index:Int):Void {
 		switch (index) {
 			case SNAP:
-				session.snap = session.snap > 0 ? 0 : Math.round(session.song.tempo.ppqn / 4);
+				session.snapping = session.snapping > 0 ? 0 : mdd.app.Session.SIXTEENTH;
 				session.changed();
 
 			case GHOSTS:

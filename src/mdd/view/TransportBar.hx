@@ -147,10 +147,8 @@ final class TransportBar extends Widget {
 		@return Which of the snap steps is chosen.
 	**/
 	function snapIndex():Int {
-		final ppqn = session.song.tempo.ppqn;
-
 		for (index in 0...SNAPS.length) {
-			if (Math.round(ppqn * 4 / SNAPS[index]) == session.snap) return index;
+			if (SNAPS[index] == session.snapping) return index;
 		}
 
 		return 0;
@@ -200,13 +198,14 @@ final class TransportBar extends Widget {
 	/**
 		Changes the tick resolution, moving everything to keep the music where it was.
 
+		The snap is held as a division of a bar, so it needs no help to follow this.
+
 		@param from The field that changed.
 	**/
 	function resolutionChanged(from:Number):Void {
 		if (settling) return;
 
 		session.song.retick(from.value);
-		session.snap = Math.round(from.value * 4 / SNAPS[snap.value]);
 		session.changed();
 	}
 
@@ -231,7 +230,7 @@ final class TransportBar extends Widget {
 	function snapChanged(from:Number):Void {
 		if (settling) return;
 
-		session.snap = Math.round(session.song.tempo.ppqn * 4 / SNAPS[from.value]);
+		session.snapping = SNAPS[from.value];
 		session.changed();
 	}
 

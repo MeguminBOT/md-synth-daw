@@ -1319,9 +1319,16 @@ final class PianoRoll extends Widget {
 			menu.divide();
 
 			fires(menu.offer(new Choice(translate(Locale.ROLL_FIT))), function():Void fitted());
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BEAT))), function():Void snapped(24));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BAR))), function():Void snapped(96));
-			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_NONE))), function():Void snapped(1));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_SIXTEENTH))),
+				function():Void snapped(Session.SIXTEENTH));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_EIGHTH))),
+				function():Void snapped(8));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BEAT))),
+				function():Void snapped(4));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_BAR))),
+				function():Void snapped(1));
+			fires(menu.offer(new Choice(translate(Locale.ROLL_SNAP_NONE))),
+				function():Void snapped(0));
 		}
 
 		root.pop(menu, px, py, this);
@@ -1472,9 +1479,13 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	/**
+		@param to How many steps a bar is cut into, or nought for no snap.
+	**/
 	function snapped(to:Int):Void {
-		session.snap = to;
-		session.say(to == 1 ? "no snap" : "snapping to " + to + " ticks");
+		session.snapping = to;
+		session.say(to < 1 ? "no snap"
+			: "snapping to 1/" + to + ", which is " + session.snap + " ticks");
 		session.changed();
 	}
 
@@ -2069,7 +2080,6 @@ final class PianoRoll extends Widget {
 		final beat = session.song.tempo.ppqn;
 		final bar = beat * 4;
 		final hair = metrics.whole(1);
-
 		var tick = Std.int(tickAt(left) / beat) * beat;
 		if (tick < 0) tick = 0;
 

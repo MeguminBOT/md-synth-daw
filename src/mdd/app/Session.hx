@@ -90,9 +90,32 @@ final class Session {
 	public var arming:Bool = false;
 
 	/**
-		What the editors snap to, in ticks.
+		How many steps a bar is cut into for snapping, or nought for no snap.
+
+		The division is held rather than the tick count it works out to, because a piece
+		carries its own resolution and an imported one rarely carries 96. A count fixed
+		when it was chosen stops being a sixteenth the moment a piece at another
+		resolution is loaded, and at 480 ticks a beat it stops being anything at all.
 	**/
-	public var snap:Int = 24;
+	public var snapping:Int = SIXTEENTH;
+
+	/**
+		The division that cuts a bar into sixteenths, which is what a piece opens on.
+	**/
+	public static inline final SIXTEENTH = 16;
+
+	/**
+		@return What the editors snap to, in ticks, which follows the piece's resolution.
+			Nought where snap is off.
+	**/
+	public var snap(get, never):Int;
+
+	function get_snap():Int {
+		if (snapping < 1) return 0;
+
+		final step = Math.round(song.tempo.ppqn * 4 / snapping);
+		return step < 1 ? 1 : step;
+	}
 
 	/**
 		Whether the other parts are drawn faintly behind the chosen one.
@@ -480,7 +503,25 @@ final class Session {
 		@return It moved to the nearest grid position, or left alone where snap is off.
 	**/
 	public function snapped(tick:Int):Int {
-		if (snap < 1) return tick;
-		return Math.round(tick / snap) * snap;
+		final step = snap;
+		if (step < 1) return tick;
+
+		return Math.round(tick / step) * step;
+	}
+
+	/**
+		Rounding to the nearest line is right for moving something that already exists,
+		and wrong for placing something new: a click past the middle of a step lands what
+		it places on the step after the one that was pointed at.
+
+		@param tick A tick.
+		@return Where the grid step holding it begins, or the tick left alone where snap
+			is off.
+	**/
+	public function begins(tick:Int):Int {
+		final step = snap;
+		if (step < 1) return tick;
+
+		return Math.floor(tick / step) * step;
 	}
 }
