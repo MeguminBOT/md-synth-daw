@@ -151,6 +151,7 @@ final class PianoRoll extends Widget {
 	var mostSeat:Int = 0;
 	var grabFresh:Bool = false;
 	var sizing:Bool = false;
+	var sizingStart:Bool = false;
 	var drawn:Int = 0;
 	var gridded:Int = -1;
 	var panning:Bool = false;
@@ -691,6 +692,7 @@ final class PianoRoll extends Widget {
 
 		if (held == null) {
 			sizing = false;
+			sizingStart = false;
 			return;
 		}
 
@@ -700,16 +702,82 @@ final class PianoRoll extends Widget {
 
 		if (grabFresh) {
 			sizing = false;
+			sizingStart = false;
 			grabFresh = false;
 			session.changed();
 			return;
 		}
 
-		if (sizing) sized();
-		else hauledDone();
+		if (sizing) {
+			if (sizingStart) startedDone();
+			else sized();
+		} else hauledDone();
 
 		sizing = false;
+		sizingStart = false;
 		session.changed();
+	}
+
+	/**
+		Drags where a note begins, leaving where it ends alone, so the note grows
+		and shrinks from its left. It never passes its own end, and never reaches
+		back past the start of the pattern.
+
+		Only the note under the pointer moves. A selection resizes from the end
+		together, and doing the same from the start would have to clamp each note
+		against its own end, which is a different thing and is not done here.
+
+		@param note The note being dragged.
+		@param to Where its start is being taken, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+	**/
+	public function restarted(note:Note, to:Int, free:Bool = false):Void {
+		final least = free || session.snap < 1 ? 1 : session.snap;
+		final ends = note.at + note.length;
+
+		var want = freely(to, free);
+
+		if (want < 0) want = 0;
+		if (want > ends - least) want = ends - least;
+		if (want == note.at) return;
+
+		session.holds();
+		note.at = want;
+		note.length = ends - want;
+		session.frees();
+
+		drawn = note.length;
+	}
+
+	/**
+		Puts a start drag on the undo stack as one step. Both where the note begins
+		and how long it is have moved, so it takes two commands held together.
+	**/
+	function startedDone():Void {
+		if (moving.length == 0) return;
+
+		final note = moving[0];
+		final wasAt = wereAt[0];
+		final wasLong = wereLong[0];
+
+		if (note.at == wasAt && note.length == wasLong) return;
+
+		final wantAt = note.at;
+		final wantLong = note.length;
+
+		session.holds();
+		note.at = wasAt;
+		note.length = wasLong;
+		session.frees();
+
+		final group = new mdd.song.edit.Together("resize a note");
+
+		group.also(new mdd.song.edit.MoveNote(session.pattern, session.part, note,
+			wantAt, note.pitch, note.instrument));
+		group.also(new mdd.song.edit.SizeNote(session.pattern, session.part, note,
+			wantLong));
+
+		session.does(group);
 	}
 
 	function sized():Void {
@@ -1034,7 +1102,10 @@ final class PianoRoll extends Widget {
 		if (sizing && dragging != null) return mdd.host.Sdl.CURSOR_ACROSS;
 
 		final under = noteAt(px, py);
-		if (under != null && onEdge(under, px)) return mdd.host.Sdl.CURSOR_ACROSS;
+
+		if (under != null && (onEdge(under, px) || onStart(under, px))) {
+			return mdd.host.Sdl.CURSOR_ACROSS;
+		}
 
 		return mdd.host.Sdl.CURSOR_ARROW;
 	}
@@ -1154,7 +1225,8 @@ final class PianoRoll extends Widget {
 					}
 
 					dragging = under;
-					sizing = onEdge(under, event.x);
+					sizingStart = !onEdge(under, event.x) && onStart(under, event.x);
+					sizing = sizingStart || onEdge(under, event.x);
 					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 					grabPitch = sizing ? 0 : pitchAt(event.y) - seatOf(under);
 					grabWasAt = under.at;
@@ -1179,6 +1251,7 @@ final class PianoRoll extends Widget {
 
 				dragging = note;
 				sizing = true;
+				sizingStart = false;
 				grabTick = 0;
 				grabPitch = 0;
 				grabWasAt = note.at;
@@ -1222,7 +1295,9 @@ final class PianoRoll extends Widget {
 				if (dragging == null) return false;
 
 				if (sizing) {
-					resized(dragging, tickAt(event.x), event.alt());
+					if (sizingStart) restarted(dragging, tickAt(event.x), event.alt());
+					else resized(dragging, tickAt(event.x), event.alt());
+
 					invalidate();
 					return true;
 				}
@@ -1952,6 +2027,27 @@ final class PianoRoll extends Widget {
 		final reach = edge();
 
 		return px >= right - reach && px <= right + reach;
+	}
+
+	/**
+		Whether a point is near where a note begins, which drags its start rather
+		than the whole note.
+
+		A note narrower than three of these handles has none: the end is what a
+		narrow note resizes from, and the rest of it has to stay somewhere the
+		whole note can be taken hold of and moved.
+
+		@param note A note.
+		@param px A point, across.
+		@return Whether that point is on its start.
+	**/
+	public function onStart(note:Note, px:Float):Bool {
+		final reach = edge();
+		if (note.length * perTick < reach * 3) return false;
+
+		final left = atTick(note.at);
+
+		return px >= left - reach && px <= left + reach;
 	}
 
 	/**

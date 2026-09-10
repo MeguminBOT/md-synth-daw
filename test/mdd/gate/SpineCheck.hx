@@ -98,6 +98,66 @@ class SpineCheck {
 			"a tick of 7 stays at 7");
 	}
 
+	static function restarted(tree:Root, session:Session,
+			roll:mdd.view.editor.PianoRoll):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		lane.notes.resize(0);
+
+		final beat = session.song.tempo.ppqn;
+		lane.add(new Note(beat * 4, beat * 4, 60, 100));
+
+		session.uses(Session.DRAW);
+		session.history.clear();
+		roll.choose(null);
+		roll.reveal(beat * 4, 60);
+		tree.resize(tree.width, tree.height);
+
+		final note = lane.notes[0];
+		final wasAt = note.at;
+		final wasLong = note.length;
+		final ends = wasAt + wasLong;
+
+		final row = roll.atPitch(60) + roll.rowTall * 0.5;
+		final start = roll.atTick(wasAt);
+
+		says("a wide note has a handle on its start",
+			roll.onStart(note, start) && !roll.onStart(note, roll.atTick(ends)),
+			"its start answers and its end does not");
+
+		tree.pressed(start, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(roll.atTick(wasAt + beat), row, mdd.ui.Mod.None);
+		tree.released(roll.atTick(wasAt + beat), row, mdd.ui.Pointer.Left,
+			mdd.ui.Mod.None);
+
+		final movedAt = note.at;
+		final movedLong = note.length;
+		final steps = session.history.depth();
+
+		says("and dragging it moves the start and leaves the end",
+			movedAt == wasAt + beat && movedAt + movedLong == ends,
+			"the note begins at " + movedAt + " against " + wasAt
+			+ " and still ends at " + (movedAt + movedLong));
+
+		session.undo();
+
+		says("and that undoes as one step",
+			steps == 1 && note.at == wasAt && note.length == wasLong,
+			"one step took the note back to " + note.at + " for " + note.length);
+
+		lane.notes.resize(0);
+		lane.add(new Note(0, 4, 60, 100));
+
+		says("and a narrow one has none, so it can still be moved",
+			!roll.onStart(lane.notes[0], roll.atTick(0)),
+			"a note of 4 ticks answers nothing on its start");
+
+		lane.notes.resize(0);
+		session.history.clear();
+	}
+
 	static function racked(tree:Root, session:Session,
 			rack:mdd.view.editor.ChannelRack):Void {
 		session.history.clear();
@@ -1686,7 +1746,8 @@ class SpineCheck {
 		for (note in lane.notes) were.push(note.at);
 
 		final depth = session.history.depth();
-		final grab = roll.atTick(lane.notes[0].at) + 2;
+		final grab = roll.atTick(lane.notes[0].at
+			+ Std.int(lane.notes[0].length / 2));
 		final row = roll.atPitch(60) + roll.rowTall * 0.5;
 
 		session.uses(mdd.app.Session.DRAW);
@@ -2551,6 +2612,7 @@ class SpineCheck {
 		synthed(tree, session, editor);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
+		restarted(tree, session, centre.roll);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);
