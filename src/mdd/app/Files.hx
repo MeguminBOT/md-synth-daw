@@ -859,6 +859,7 @@ final class Files {
 		made.patch = held;
 		made.icon = mdd.Icon.NAMES.indexOf("synthesizer");
 
+		session.holds();
 		session.song.instrument(made);
 
 		final index = session.song.instruments.length - 1;
@@ -868,6 +869,8 @@ final class Files {
 			session.song.bank(0).remove(index);
 			session.song.banked(savedInto).add(index);
 		}
+
+		session.frees();
 
 		final into = within("presets");
 		final named = into + "/" + safely(name(where)) + ".tfi";
