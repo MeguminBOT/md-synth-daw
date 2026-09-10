@@ -176,11 +176,11 @@ final class Notice extends Widget {
 			case NEVER:
 				if (update != null) update.refuse();
 				if (onNever != null) onNever();
-				session.say("not looking for updates again");
+				session.says(Locale.SAID_UPDATE_NEVER_AGAIN);
 
 			case _:
 				if (update != null) update.refuse();
-				session.say("left the update for later");
+				session.says(Locale.SAID_UPDATE_LATER);
 		}
 
 		if (root != null) root.lower();

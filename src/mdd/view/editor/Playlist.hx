@@ -674,7 +674,7 @@ final class Playlist extends Widget {
 		chosen = clip;
 		chosenTrack = which;
 
-		session.say("sliced into " + clip.length + " and " + (was - clip.length) + " ticks");
+		session.says(Locale.SAID_SLICED, "" + clip.length, "" + (was - clip.length));
 		invalidate();
 	}
 
@@ -688,6 +688,12 @@ final class Playlist extends Widget {
 		return -1;
 	}
 
+	/**
+		@param many How many there are.
+		@return What to call them in an undo entry. Those name a step for the gate to
+			recognise rather than for a reader, and nothing puts one on screen, so this
+			stays in one language.
+	**/
 	static function counted(many:Int):String {
 		return many + (many == 1 ? " clip" : " clips");
 	}
@@ -741,7 +747,7 @@ final class Playlist extends Widget {
 		chosen = picked.lead();
 		chosenTrack = chosen == null ? -1 : trackOf(chosen);
 
-		session.say(counted(many) + " selected");
+		session.says(Locale.SAID_CLIPS_SELECTED, "" + many);
 		session.changed();
 
 		invalidate();
@@ -801,7 +807,7 @@ final class Playlist extends Widget {
 			session.copiedRows.push(row < 0 ? 0 : row - top);
 		}
 
-		session.say("copied " + counted(held.length));
+		session.says(Locale.SAID_CLIPS_COPIED, "" + held.length);
 		session.changed();
 
 		return true;
@@ -841,7 +847,7 @@ final class Playlist extends Widget {
 		chosen = picked.lead();
 		chosenTrack = chosen == null ? -1 : trackOf(chosen);
 
-		session.say("pasted " + counted(made.length));
+		session.says(Locale.SAID_CLIPS_PASTED, "" + made.length);
 		invalidate();
 	}
 
@@ -975,7 +981,7 @@ final class Playlist extends Widget {
 		chosen = picked.lead();
 		chosenTrack = chosen == null ? -1 : trackOf(chosen);
 
-		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		if (picked.count > 0) session.says(Locale.SAID_CLIPS_SELECTED, "" + picked.count);
 		session.changed();
 
 		invalidate();
@@ -1077,7 +1083,7 @@ final class Playlist extends Widget {
 			final track = session.song.tracks[which];
 
 			session.does(new mdd.song.edit.MuteTrack(which, !track.muted));
-			session.say((track.muted ? "muted " : "unmuted ") + track.name);
+			session.says(track.muted ? Locale.SAID_MUTED : Locale.SAID_UNMUTED, track.name);
 			invalidate();
 			return true;
 		}
@@ -1111,7 +1117,7 @@ final class Playlist extends Widget {
 			session.does(new MoveTrack(from, to));
 
 			chosenTrack = to;
-			session.say("moved " + session.song.tracks[to].name);
+			session.says(Locale.SAID_TRACK_MOVED, session.song.tracks[to].name);
 		}
 
 		invalidate();

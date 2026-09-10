@@ -258,7 +258,7 @@ final class Files {
 		try {
 			Project.save(session.song, where);
 		} catch (e:Dynamic) {
-			session.say("that would not save on its own: " + e);
+			session.says(Locale.SAID_SAVE_FAILED, "" + e);
 			return true;
 		}
 
@@ -268,7 +268,7 @@ final class Files {
 
 		backed(where);
 
-		session.say(path != "" ? "saved on its own" : "kept a recovery beside the settings");
+		session.says(path != "" ? Locale.SAID_KEPT : Locale.SAID_RECOVERED);
 		return true;
 	}
 
@@ -468,7 +468,7 @@ final class Files {
 		asking = NOTHING;
 
 		if (!chose) {
-			session.say("nothing chosen");
+			session.says(Locale.SAID_NOTHING_CHOSEN);
 			session.changed();
 			return true;
 		}
@@ -526,7 +526,7 @@ final class Files {
 				case _:
 			}
 		} catch (e:Dynamic) {
-			session.say("that would not work: " + e);
+			session.says(Locale.SAID_FAILED, "" + e);
 		}
 
 		session.changed();
@@ -545,8 +545,8 @@ final class Files {
 		if (onLoad != null) onLoad(song);
 		forget();
 
-		session.say("opened " + name(where) + ", " + song.patterns.length + " patterns and "
-			+ song.instruments.length + " instruments");
+		session.says(Locale.SAID_OPENED, name(where), "" + song.patterns.length,
+			"" + song.instruments.length);
 	}
 
 	/**
@@ -566,8 +566,8 @@ final class Files {
 		if (onLoad != null) onLoad(made.song);
 		forget();
 
-		session.say("read " + name(where) + ", " + made.notes + " notes on "
-			+ made.song.patterns.length + " patterns at " + Math.round(made.beats) + " bpm");
+		session.says(Locale.SAID_READ_NOTES, name(where), "" + made.notes,
+			"" + made.song.patterns.length, "" + Math.round(made.beats));
 	}
 
 	/**
@@ -587,11 +587,10 @@ final class Files {
 		if (onLoad != null) onLoad(made.song);
 		forget();
 
-		session.say("read " + name(where) + ", " + made.notes + " notes on "
-			+ made.song.patterns.length + " patterns at " + Math.round(made.beats)
-			+ " bpm, " + xgm.samples + " samples and " + xgm.struck + " converter hits"
-			+ (xgm.unknown == 0 ? "" : ", stopped at a command it does not know, "
-			+ StringTools.hex(xgm.stopped, 2)));
+		session.says(xgm.unknown == 0 ? Locale.SAID_READ_DRIVER
+			: Locale.SAID_READ_DRIVER_PARTLY, name(where), "" + made.notes,
+			"" + made.song.patterns.length, "" + Math.round(made.beats),
+			"" + xgm.samples, "" + xgm.struck);
 	}
 
 	/**
@@ -609,8 +608,8 @@ final class Files {
 		session.song.samples.push(made);
 		session.frees();
 
-		session.say("read " + name(where) + ", " + made.length() + " bytes at "
-			+ DAC_RATE + " Hz");
+		session.says(Locale.SAID_READ_SAMPLE, name(where), "" + made.length(),
+			"" + DAC_RATE);
 		session.changed();
 
 		return made;
@@ -629,8 +628,8 @@ final class Files {
 		if (onLoad != null) onLoad(song);
 		forget();
 
-		session.say("read " + name(where) + ", " + song.patterns.length + " patterns and "
-			+ song.instruments.length + " instruments");
+		session.says(Locale.SAID_READ_SONG, name(where), "" + song.patterns.length,
+			"" + song.instruments.length);
 	}
 
 	/**
@@ -646,7 +645,7 @@ final class Files {
 		path = named;
 		forget();
 
-		session.say("saved " + name(named));
+		session.says(Locale.SAID_SAVED, name(named));
 		return named;
 	}
 
@@ -693,9 +692,14 @@ final class Files {
 		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate,
 			session.song.name, session.song.author));
 
-		session.say("exported " + stream.count + " register writes to " + name(named)
-			+ (sequencer.lost + stream.dropped == 0 ? ""
-			: ", " + (sequencer.lost + stream.dropped) + " dropped"));
+		final lost = sequencer.lost + stream.dropped;
+
+		if (lost == 0) {
+			session.says(Locale.SAID_WROTE_STREAM, "" + stream.count, name(named));
+		} else {
+			session.says(Locale.SAID_WROTE_STREAM_DROPPED, "" + stream.count,
+				name(named), "" + lost);
+		}
 		return named;
 	}
 
@@ -719,7 +723,12 @@ final class Files {
 	/**
 		What it said about it.
 	**/
-	public var wroteSaid(default, null):String = "";
+	public var wroteKey(default, null):Int = -1;
+
+	/**
+		What goes in the numbered places of `wroteKey`.
+	**/
+	public final wroteWith:Array<String> = [];
 
 	/**
 		What went wrong, or an empty string where nothing did.
@@ -748,7 +757,8 @@ final class Files {
 		mixdown = made;
 
 		wroteAs = "";
-		wroteSaid = "";
+		wroteKey = -1;
+		wroteWith.resize(0);
 		wroteWrong = "";
 
 		writing.store(0);
@@ -812,7 +822,6 @@ final class Files {
 			parts:Array<Int>):Void {
 		final into = stemFolder(where);
 		final gain = made.gain;
-		final mix = wroteSaid;
 
 		mdd.host.Paths.make(into);
 
@@ -838,7 +847,11 @@ final class Files {
 		made.onlyPart = -1;
 		made.sharedGain = 0;
 
-		wroteSaid = mix + ", and " + written + " stems into " + name(into);
+		wroteKey = wroteKey == Locale.SAID_WROTE_AUDIO_LIFTED
+			? Locale.SAID_WROTE_AUDIO_LIFTED_STEMS : Locale.SAID_WROTE_AUDIO_STEMS;
+
+		wroteWith.push("" + written);
+		wroteWith.push(name(into));
 	}
 
 	/**
@@ -850,7 +863,7 @@ final class Files {
 		final held = mdd.format.Tfi.read(sys.io.File.getBytes(where));
 
 		if (held == null) {
-			session.say("that is not a tfi");
+			session.says(Locale.SAID_NOT_TFI);
 			return;
 		}
 
@@ -894,7 +907,7 @@ final class Files {
 		final held = session.song.instrumentAt(at);
 
 		if (held == null || held.patch == null) {
-			session.say("this channel has no patch");
+			session.says(Locale.SAID_NO_PATCH);
 			return "";
 		}
 
@@ -996,7 +1009,7 @@ final class Files {
 			if (parts.length > 0) stemsInto(where, song, made, parts);
 		}
 
-		session.say(wroteSaid);
+		session.saying(wroteKey, wroteWith);
 		return named;
 	}
 
@@ -1011,7 +1024,8 @@ final class Files {
 		final named = suffixed(where, mixing.suffix());
 
 		if (made.frames <= 0) {
-			wroteSaid = "there is nothing to render";
+			wroteKey = Locale.SAID_NOTHING_TO_RENDER;
+			wroteWith.resize(0);
 			return "";
 		}
 
@@ -1036,10 +1050,18 @@ final class Files {
 
 		sys.io.File.saveBytes(named, bytes);
 
-		wroteSaid = "rendered " + Math.round(made.seconds() * 10) / 10 + " s to "
-			+ name(named) + ", " + Math.round(bytes.length / 1024) + " kb"
-			+ (mixing.normalise ? ", up " + Math.round(2000 * Math.log(made.gain)
-				/ Math.log(10)) / 100 + " dB" : "");
+		wroteKey = mixing.normalise ? Locale.SAID_WROTE_AUDIO_LIFTED
+			: Locale.SAID_WROTE_AUDIO;
+
+		wroteWith.resize(0);
+		wroteWith.push("" + (Math.round(made.seconds() * 10) / 10));
+		wroteWith.push(name(named));
+		wroteWith.push("" + Math.round(bytes.length / 1024));
+
+		if (mixing.normalise) {
+			wroteWith.push("" + (Math.round(2000 * Math.log(made.gain)
+				/ Math.log(10)) / 100));
+		}
 
 		return named;
 	}
@@ -1085,9 +1107,14 @@ final class Files {
 
 		final lost = sequencer.lost + stream.dropped + made.crowded + made.refused;
 
-		session.say("exported " + body.length + " bytes to " + name(named) + ", "
-			+ made.samples + " samples and " + made.struck + " converter hits across "
-			+ made.frames + " frames" + (lost == 0 ? "" : ", " + lost + " dropped"));
+		if (lost == 0) {
+			session.says(Locale.SAID_WROTE_DRIVER, "" + body.length, name(named),
+				"" + made.samples, "" + made.struck, "" + made.frames);
+		} else {
+			session.says(Locale.SAID_WROTE_DRIVER_DROPPED, "" + body.length,
+				name(named), "" + made.samples, "" + made.struck, "" + made.frames,
+				"" + lost);
+		}
 		return named;
 	}
 
@@ -1101,7 +1128,7 @@ final class Files {
 		final named = suffixed(where, "mid");
 
 		sys.io.File.saveBytes(named, Midi.write(session.song));
-		session.say("exported " + name(named));
+		session.says(Locale.SAID_EXPORTED, name(named));
 		return named;
 	}
 
@@ -1117,7 +1144,7 @@ final class Files {
 
 		final frames = Std.int(span * (RATE / Tempo.TICKS));
 		if (frames <= 0) {
-			session.say("there is nothing to render");
+			session.says(Locale.SAID_NOTHING_TO_RENDER);
 			return "";
 		}
 
@@ -1145,7 +1172,8 @@ final class Files {
 
 		sys.io.File.saveBytes(named, Wav.write(held, frames, 2, RATE));
 
-		session.say("rendered " + Math.round(frames * 10.0 / RATE) / 10 + " s to " + name(named));
+		session.says(Locale.SAID_RENDERED,
+			"" + (Math.round(frames * 10.0 / RATE) / 10), name(named));
 		return named;
 	}
 

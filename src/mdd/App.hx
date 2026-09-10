@@ -27,6 +27,7 @@ import mdd.host.Settings;
 import mdd.ui.Flow;
 import mdd.ui.Key;
 import mdd.ui.Mod;
+import mdd.ui.Translation;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.view.TransportBar;
@@ -445,7 +446,7 @@ class App {
 				case _: files.load(where);
 			}
 		} catch (e:Dynamic) {
-			session.say("that would not open: " + e);
+			session.says(Locale.SAID_OPEN_FAILED, "" + e);
 		}
 
 		changed();
@@ -504,7 +505,7 @@ class App {
 
 		if (panels.status != null) {
 			panels.centre.warnings.fit();
-			panels.status.said = session.said;
+			panels.status.said = saying();
 			panels.status.invalidate();
 		}
 	}
@@ -529,7 +530,7 @@ class App {
 		final into = Paths.within("updates") + "/" + update.named();
 
 		if (!update.take(into)) {
-			session.say("that update cannot be downloaded");
+			session.says(Locale.SAID_UPDATE_NO_DOWNLOAD);
 			session.changed();
 			return;
 		}
@@ -640,8 +641,8 @@ class App {
 				return true;
 
 			case Update.CURRENT:
-				if (session.said == stage.root.translate(Locale.UPDATE_LOOKING)) {
-					session.say(stage.root.translate(Locale.UPDATE_CURRENT));
+				if (session.saidKey == Locale.UPDATE_LOOKING) {
+					session.says(Locale.UPDATE_CURRENT);
 					session.changed();
 					return true;
 				}
@@ -799,8 +800,9 @@ class App {
 		final wrong = files.wroteWrong;
 		final beaten = wrong == "" && held.stopped();
 
-		session.say(wrong != "" ? "that would not work: " + wrong
-			: (beaten ? "stopped rendering" : files.wroteSaid));
+		if (wrong != "") session.says(Locale.SAID_FAILED, wrong);
+		else if (beaten) session.says(Locale.SAID_STOPPED);
+		else session.saying(files.wroteKey, files.wroteWith);
 
 		bounce.ends(wrong == "" && !beaten);
 		stage.root.bands(null);
@@ -856,7 +858,7 @@ class App {
 		files.backupDays = Preferences.DAYS[held.backupAge];
 
 		final gone = files.pruned();
-		if (gone > 0) session.say("removed " + gone + " older backups");
+		if (gone > 0) session.says(Locale.SAID_SWEPT_BACKUPS, "" + gone);
 
 		session.changed();
 	}
@@ -1040,7 +1042,7 @@ class App {
 		try {
 			files.save(files.path);
 		} catch (e:Dynamic) {
-			session.say(stage.root.translate(Locale.SAID_FAILED) + ": " + e);
+			session.says(Locale.SAID_FAILED, "" + e);
 		}
 
 		session.changed();
@@ -1050,8 +1052,8 @@ class App {
 		Takes the last edit back and redraws.
 	**/
 	function undone():Void {
-		if (session.undo()) session.say(stage.root.translate(Locale.SAID_UNDONE));
-		else session.say(stage.root.translate(Locale.SAID_NOTHING_UNDO));
+		if (session.undo()) session.says(Locale.SAID_UNDONE);
+		else session.says(Locale.SAID_NOTHING_UNDO);
 
 		session.changed();
 	}
@@ -1060,8 +1062,8 @@ class App {
 		Puts it back.
 	**/
 	function redone():Void {
-		if (session.redo()) session.say(stage.root.translate(Locale.SAID_REDONE));
-		else session.say(stage.root.translate(Locale.SAID_NOTHING_REDO));
+		if (session.redo()) session.says(Locale.SAID_REDONE);
+		else session.says(Locale.SAID_NOTHING_REDO);
 
 		session.changed();
 	}
@@ -1252,6 +1254,17 @@ class App {
 
 			collector.rests(since, stage.draw());
 		}
+	}
+
+	/**
+		@return The last status line, read in the language being worn. A line put up by
+			name is looked up now rather than when it was said.
+	**/
+	function saying():String {
+		if (session.saidKey < 0) return session.said;
+
+		return Translation.filled(stage.root.translate(session.saidKey),
+			session.saidWith);
 	}
 
 	/**

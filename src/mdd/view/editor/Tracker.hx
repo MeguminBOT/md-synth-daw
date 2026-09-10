@@ -487,7 +487,7 @@ final class Tracker extends Widget {
 		session.copiedNotes.resize(0);
 		session.copiedNotes.push(made);
 
-		session.say("copied " + spelt(held.pitch));
+		session.says(Locale.SAID_PITCH_COPIED, spelt(held.pitch));
 		session.changed();
 
 		return true;

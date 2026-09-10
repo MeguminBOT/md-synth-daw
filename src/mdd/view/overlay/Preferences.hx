@@ -1032,7 +1032,7 @@ final class Preferences extends Widget {
 			case THEME:
 				session.theme = which;
 				if (root != null) root.theme.wear(which);
-				session.say("theme " + which);
+				session.says(Locale.SAID_THEME, "" + which);
 
 			case TYPEFACE:
 				session.typeface = which;
@@ -1041,7 +1041,7 @@ final class Preferences extends Widget {
 			case MOTION:
 				session.motion = which;
 				if (root != null) root.flow = which;
-				session.say("motion " + which);
+				session.says(Locale.SAID_MOTION, "" + which);
 
 			case DENSITY:
 				density = which;
@@ -1050,8 +1050,9 @@ final class Preferences extends Widget {
 			case KEEPING:
 				keeping = which;
 				if (onKeeping != null) onKeeping(MINUTES[which]);
-				session.say(which == 0 ? "no saving on its own"
-					: "saving on its own every " + Std.int(MINUTES[which] / 60) + " minutes");
+				if (which == 0) session.says(Locale.SAID_KEEPING_OFF);
+				else session.says(Locale.SAID_KEEPING_EVERY,
+					"" + Std.int(MINUTES[which] / 60));
 
 			case BACKUPS:
 				backups = which;

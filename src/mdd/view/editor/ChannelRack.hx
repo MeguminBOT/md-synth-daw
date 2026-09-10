@@ -302,12 +302,14 @@ final class ChannelRack extends Widget {
 
 		fires(menu.offer(new Choice(translate(song.muted[at] ? Locale.RACK_UNMUTE : Locale.RACK_MUTE))), function():Void {
 			session.does(new mdd.song.edit.MutePart(at, !song.muted[at]));
-			session.say((song.muted[at] ? "muted " : "unmuted ") + part.name());
+			session.says(song.muted[at] ? Locale.SAID_MUTED : Locale.SAID_UNMUTED,
+				part.name());
 		});
 
 		fires(menu.offer(new Choice(translate(song.soloed[at] ? Locale.RACK_UNSOLO : Locale.RACK_SOLO))), function():Void {
 			session.does(new mdd.song.edit.SoloPart(at, !song.soloed[at]));
-			session.say((song.soloed[at] ? "soloed " : "unsoloed ") + part.name());
+			session.says(song.soloed[at] ? Locale.SAID_SOLOED : Locale.SAID_UNSOLOED,
+				part.name());
 		});
 
 		if (part.sampled()) {
@@ -316,8 +318,7 @@ final class ChannelRack extends Widget {
 
 			fires(kit, function():Void {
 				session.does(new mdd.song.edit.KitDrums(!song.drums));
-				session.say(song.drums ? "the converter is a drum kit"
-					: "the converter plays what the channel holds");
+				session.says(song.drums ? Locale.SAID_KIT_ON : Locale.SAID_KIT_OFF);
 			});
 		}
 
@@ -330,7 +331,7 @@ final class ChannelRack extends Widget {
 			}
 
 			session.does(group);
-			session.say("soloed " + part.name() + " alone");
+			session.says(Locale.SAID_SOLOED_ALONE, part.name());
 		});
 
 		menu.divide();
@@ -350,7 +351,7 @@ final class ChannelRack extends Widget {
 				if (held == null || held.patch == null) return;
 
 				session.copiedPatch = held.patch.copy();
-				session.say("copied the patch on " + part.name());
+				session.says(Locale.SAID_PATCH_COPIED, part.name());
 				session.changed();
 			});
 
@@ -362,7 +363,7 @@ final class ChannelRack extends Widget {
 				if (held == null || session.copiedPatch == null) return;
 
 				held.patch = session.copiedPatch.copy();
-				session.say("pasted a patch onto " + part.name());
+				session.says(Locale.SAID_PATCH_PASTED, part.name());
 				session.changed();
 			});
 
@@ -371,7 +372,7 @@ final class ChannelRack extends Widget {
 				if (held == null) return;
 
 				held.patch = new mdd.song.Patch();
-				session.say("reset the patch on " + part.name());
+				session.says(Locale.SAID_PATCH_RESET, part.name());
 				session.changed();
 			});
 		}
@@ -389,7 +390,7 @@ final class ChannelRack extends Widget {
 				session.does(new mdd.song.edit.RemoveNote(session.pattern, part, lane.notes[0]));
 			}
 
-			session.say("cleared " + many + " notes from " + part.name());
+			session.says(Locale.SAID_NOTES_CLEARED, part.name(), "" + many);
 			session.changed();
 		});
 

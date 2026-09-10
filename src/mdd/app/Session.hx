@@ -209,9 +209,20 @@ final class Session {
 	public var onReveal:Null<Diagnostic -> Void> = null;
 
 	/**
-		The last line for the status bar.
+		The last line for the status bar, where it is a line rather than a name. A line
+		put up by name leaves this empty and sets `saidKey` instead.
 	**/
 	public var said(default, null):String = "";
+
+	/**
+		Which string the last line is, or -1 where it is the plain text in `said`.
+	**/
+	public var saidKey(default, null):Int = -1;
+
+	/**
+		What goes in the numbered places of that string, in order.
+	**/
+	public final saidWith:Array<String> = [];
 
 	/**
 		The patch on the clipboard.
@@ -384,12 +395,62 @@ final class Session {
 	}
 
 	/**
-		Puts a line in the status bar.
+		Puts a line in the status bar, as it stands.
+
+		This is for what carries no words of its own: a file name, a part name, a
+		number. Anything with a sentence in it goes through `says` instead, or it
+		reaches the bar in the language it was written in whatever is being worn.
 
 		@param said The line.
 	**/
 	public function say(said:String):Void {
 		this.said = said;
+		saidKey = -1;
+		saidWith.resize(0);
+	}
+
+	/**
+		Puts a line in the status bar by name, so it is read in the language being worn
+		rather than the one it was written in. Changing language changes what is
+		already on the bar, because nothing was resolved when it was said.
+
+		@param key Which string, from the table.
+		@param one What goes where the string leaves `{0}`.
+		@param two What goes in `{1}`.
+		@param three What goes in `{2}`.
+		@param four What goes in `{3}`.
+		@param five What goes in `{4}`.
+		@param six What goes in `{5}`.
+	**/
+	public function says(key:Int, ?one:String, ?two:String, ?three:String,
+			?four:String, ?five:String, ?six:String):Void {
+		said = "";
+		saidKey = key;
+
+		saidWith.resize(0);
+
+		if (one != null) saidWith.push(one);
+		if (two != null) saidWith.push(two);
+		if (three != null) saidWith.push(three);
+		if (four != null) saidWith.push(four);
+		if (five != null) saidWith.push(five);
+		if (six != null) saidWith.push(six);
+	}
+
+	/**
+		The same, where the values are already gathered. Anything holding a line to put
+		up later keeps the name and the values rather than the sentence, so it is read
+		in whatever language is worn when it finally reaches the bar.
+
+		@param key Which string, from the table.
+		@param values What goes in its numbered places, in order.
+	**/
+	public function saying(key:Int, values:Array<String>):Void {
+		said = "";
+		saidKey = key;
+
+		saidWith.resize(0);
+		for (value in values) saidWith.push(value);
 	}
 
 	/**

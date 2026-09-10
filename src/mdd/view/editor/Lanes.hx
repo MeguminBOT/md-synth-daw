@@ -694,6 +694,12 @@ final class Lanes extends Widget {
 		relayout();
 	}
 
+	/**
+		@param many How many there are.
+		@return What to call them in an undo entry. Those name a step for the gate to
+			recognise rather than for a reader, and nothing puts one on screen, so this
+			stays in one language.
+	**/
 	static function counted(many:Int):String {
 		return many + (many == 1 ? " point" : " points");
 	}
@@ -740,7 +746,7 @@ final class Lanes extends Widget {
 		chosen = picked.lead();
 		chosenAt = row;
 
-		session.say(counted(picked.count) + " selected");
+		session.says(Locale.SAID_POINTS_SELECTED, "" + picked.count);
 		session.changed();
 
 		relayout();
@@ -791,7 +797,7 @@ final class Lanes extends Widget {
 			session.copiedPoints.push(made);
 		}
 
-		session.say("copied " + counted(held.length));
+		session.says(Locale.SAID_POINTS_COPIED, "" + held.length);
 		session.changed();
 
 		return true;
@@ -829,7 +835,7 @@ final class Lanes extends Widget {
 		chosen = picked.lead();
 		chosenAt = row;
 
-		session.say("pasted " + counted(made.length));
+		session.says(Locale.SAID_POINTS_PASTED, "" + made.length);
 		relayout();
 
 		return true;
@@ -1244,7 +1250,7 @@ final class Lanes extends Widget {
 		chosen = picked.lead();
 		chosenAt = picked.count == 0 ? -1 : bandRow;
 
-		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		if (picked.count > 0) session.says(Locale.SAID_POINTS_SELECTED, "" + picked.count);
 		session.changed();
 
 		relayout();
@@ -1519,7 +1525,7 @@ final class Lanes extends Widget {
 		chosen.tension = want;
 		bentPoint = chosen;
 
-		session.say("tension " + want);
+		session.says(Locale.SAID_TENSION, "" + want);
 		session.changed();
 		invalidate();
 

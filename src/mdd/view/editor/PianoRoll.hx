@@ -908,7 +908,7 @@ final class PianoRoll extends Widget {
 
 		chosen = picked.lead();
 
-		if (picked.count > 0) session.say(counted(picked.count) + " selected");
+		if (picked.count > 0) session.says(Locale.SAID_NOTES_SELECTED, "" + picked.count);
 		session.changed();
 
 		invalidate();
@@ -972,7 +972,7 @@ final class PianoRoll extends Widget {
 		for (note in lane.notes) picked.adds(note);
 
 		chosen = picked.lead();
-		session.say(counted(picked.count) + " selected");
+		session.says(Locale.SAID_NOTES_SELECTED, "" + picked.count);
 		session.changed();
 
 		invalidate();
@@ -1003,6 +1003,12 @@ final class PianoRoll extends Widget {
 		return false;
 	}
 
+	/**
+		@param many How many there are.
+		@return What to call them in an undo entry. Those name a step for the gate to
+			recognise rather than for a reader, and nothing puts one on screen, so this
+			stays in one language.
+	**/
 	static function counted(many:Int):String {
 		return many + (many == 1 ? " note" : " notes");
 	}
@@ -1481,7 +1487,7 @@ final class PianoRoll extends Widget {
 			session.copiedNotes.push(made);
 		}
 
-		session.say("copied " + counted(held.length));
+		session.says(Locale.SAID_NOTES_COPIED, "" + held.length);
 		session.changed();
 
 		return true;
@@ -1513,7 +1519,7 @@ final class PianoRoll extends Widget {
 		for (note in made) picked.adds(note);
 		chosen = picked.lead();
 
-		session.say("pasted " + counted(made.length));
+		session.says(Locale.SAID_NOTES_PASTED, "" + made.length);
 		invalidate();
 	}
 
@@ -1523,7 +1529,7 @@ final class PianoRoll extends Widget {
 
 		if (held.length == 1) {
 			session.does(new mdd.song.edit.SetVelocity(held[0], held[0].velocity + by));
-			session.say("velocity " + held[0].velocity);
+			session.says(Locale.SAID_VELOCITY, "" + held[0].velocity);
 		} else {
 			final group = new mdd.song.edit.Together((by > 0 ? "raise " : "lower ")
 				+ counted(held.length));
@@ -1533,8 +1539,8 @@ final class PianoRoll extends Widget {
 			}
 
 			session.does(group);
-			session.say(counted(held.length) + " leaned "
-				+ (by > 0 ? "louder" : "quieter"));
+			session.says(by > 0 ? Locale.SAID_NOTES_LOUDER : Locale.SAID_NOTES_QUIETER,
+				"" + held.length);
 		}
 
 		invalidate();
@@ -1591,9 +1597,11 @@ final class PianoRoll extends Widget {
 		final held = root();
 		final named = held == null ? "" : translate(mdd.view.Scales.named(kind));
 
-		session.say(kind == mdd.song.Scale.CHROMATIC ? "every note lit"
-			: mdd.song.Scale.rootOf(key) + " " + named + ", "
-			+ session.scale.degrees() + " of twelve lit");
+		if (kind == mdd.song.Scale.CHROMATIC) session.says(Locale.SAID_CHROMATIC);
+		else {
+			session.says(Locale.SAID_SCALE, mdd.song.Scale.rootOf(key), named,
+				"" + session.scale.degrees());
+		}
 
 		session.changed();
 		invalidate();
@@ -1604,8 +1612,8 @@ final class PianoRoll extends Widget {
 	**/
 	function snapped(to:Int):Void {
 		session.snapping = to;
-		session.say(to < 1 ? "no snap"
-			: "snapping to 1/" + to + ", which is " + session.snap + " ticks");
+		if (to < 1) session.says(Locale.SAID_SNAP_OFF);
+		else session.says(Locale.SAID_SNAP_TO, "" + to, "" + session.snap);
 		session.changed();
 	}
 
@@ -1616,7 +1624,7 @@ final class PianoRoll extends Widget {
 		perTick = (width - gutter()) / pattern.length;
 
 		scrollTo(0, offsetY);
-		session.say("zoomed to the pattern");
+		session.says(Locale.SAID_ZOOMED);
 	}
 
 	function steered(event:Input):Bool {

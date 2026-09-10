@@ -465,8 +465,8 @@ final class Menus {
 	**/
 	function looks():Void {
 		if (!update.look()) {
-			session.say(update.state() == Update.LOOKING ? "already looking"
-				: "no update address is configured");
+			session.says(update.state() == Update.LOOKING
+				? Locale.SAID_LOOKING_ALREADY : Locale.SAID_NO_UPDATE_ADDRESS);
 			session.changed();
 			return;
 		}

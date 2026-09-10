@@ -59,6 +59,48 @@ final class Translation {
 	}
 
 	/**
+		Puts values into the numbered places a line leaves for them.
+
+		A line names its values by number rather than by where they fall in the
+		sentence, because word order is the first thing a language changes: what
+		comes last in one comes first in another, and a line built by joining
+		pieces can only ever be right in the language it was written in.
+
+		@param pattern What the table holds, with `{0}` where the first value goes.
+		@param values What to put in those places, in order.
+		@return The line with every place filled. A place with no value behind it is
+			left as it stands, so a mistranslated line is readable rather than blank.
+	**/
+	public static function filled(pattern:String, values:Array<String>):String {
+		if (values.length == 0 || pattern.indexOf("{") < 0) return pattern;
+
+		final out = new StringBuf();
+		var at = 0;
+
+		while (at < pattern.length) {
+			final open = pattern.indexOf("{", at);
+			final shut = open < 0 ? -1 : pattern.indexOf("}", open);
+
+			if (open < 0 || shut < 0) {
+				out.addSub(pattern, at, pattern.length - at);
+				break;
+			}
+
+			out.addSub(pattern, at, open - at);
+
+			final which = Std.parseInt(pattern.substring(open + 1, shut));
+
+			if (which == null || which < 0 || which >= values.length) {
+				out.addSub(pattern, open, shut - open + 1);
+			} else out.add(values[which]);
+
+			at = shut + 1;
+		}
+
+		return out.toString();
+	}
+
+	/**
 		@param key A string key, by name.
 		@return What it says.
 	**/

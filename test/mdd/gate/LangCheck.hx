@@ -32,6 +32,8 @@ class LangCheck {
 		for (code in shipped) spoken(code);
 
 		matched(shipped);
+		placed(shipped);
+		filled();
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
 		scripted(args.length > 0 ? args[0] : Gate.root);
 
@@ -304,6 +306,90 @@ class LangCheck {
 			english.of(Locale.APP) == swedish.of(Locale.APP)
 			&& swedish.of(Locale.VIEW_TRACKER) == "Tracker",
 			"the application's name and the hardware words stay as the documentation writes them");
+	}
+
+	/**
+		Every language leaves the same numbered places as the reference.
+
+		A line that drops one loses the value that went in it, and one that invents
+		a place it has no value for shows the braces to a reader. Neither says
+		anything at run time, and neither is visible until somebody reads that
+		language.
+
+		@param shipped Every language compiled in.
+	**/
+	static function placed(shipped:Array<String>):Void {
+		final first = new Translation();
+		Languages.speak(first, shipped[0]);
+
+		final lost:Array<String> = [];
+		var counted = 0;
+
+		for (at in 1...shipped.length) {
+			final held = new Translation();
+			Languages.speak(held, shipped[at]);
+
+			for (id in 0...Locale.COUNT) {
+				final want = places(first.of(id));
+				if (want == "") continue;
+
+				counted++;
+				if (places(held.of(id)) == want) continue;
+
+				lost.push(shipped[at] + " " + first.keyAt(id));
+			}
+		}
+
+		says("every language leaves the same places for its values",
+			lost.length == 0 && counted > 0,
+			counted + " lines across " + (shipped.length - 1)
+			+ " languages carry values, and "
+			+ (lost.length == 0 ? "every one leaves the same places"
+			: lost.length + " disagree: " + shown(lost)));
+	}
+
+	/**
+		@param said A line from the table.
+		@return The numbers of the places it leaves, in order and without repeats, so
+			two lines can be compared whatever order they put their values in.
+	**/
+	static function places(said:String):String {
+		final held:Array<Int> = [];
+		var at = 0;
+
+		while (at < said.length) {
+			final open = said.indexOf("{", at);
+			final shut = open < 0 ? -1 : said.indexOf("}", open);
+
+			if (open < 0 || shut < 0) break;
+
+			final which = Std.parseInt(said.substring(open + 1, shut));
+			if (which != null && held.indexOf(which) < 0) held.push(which);
+
+			at = shut + 1;
+		}
+
+		held.sort(function(one:Int, two:Int):Int return one - two);
+		return held.join(",");
+	}
+
+	/**
+		Filling a line puts each value in its own place, whatever order the sentence
+		puts them in, and leaves alone what it has nothing for.
+	**/
+	static function filled():Void {
+		final held = ["one", "two"];
+
+		says("a value goes where its own place is",
+			Translation.filled("read {0}, {1} notes", held) == "read one, two notes"
+			&& Translation.filled("{1} notes in {0}", held) == "two notes in one",
+			"the same two values read back in either order");
+
+		says("and a place with nothing behind it is left as it stands",
+			Translation.filled("{0} of {7}", held) == "one of {7}"
+			&& Translation.filled("{0}", []) == "{0}"
+			&& Translation.filled("plain", held) == "plain",
+			"a line is readable rather than blank where a value is missing");
 	}
 
 	static function shown(held:Array<String>):String {
