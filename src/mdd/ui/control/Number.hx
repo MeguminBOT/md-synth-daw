@@ -47,6 +47,15 @@ final class Number extends Widget implements Range {
 	**/
 	public var derived:Null<Int -> String> = null;
 
+	/**
+		What turns typed text back into a raw value, where the number is shown in
+		units of its own rather than in its raw steps.
+
+		Without it, what is typed is the raw value, and a field drawn in seconds but
+		held in twentieths reads a typed 2 as a tenth of a second.
+	**/
+	public var typed:Null<String -> Null<Int>> = null;
+
 	var dragging:Bool = false;
 	var grabY:Float = 0;
 	var grabValue:Int = 0;
@@ -198,19 +207,48 @@ final class Number extends Widget implements Range {
 		@param event The event.
 		@return Whether it was taken.
 	**/
+	/**
+		Takes what was typed, in whatever the number is shown in, and stops
+		typing. Text that reads as no number leaves the value alone.
+	**/
+	function commits():Void {
+		final want = typed == null ? Std.parseInt(entry) : typed(entry);
+		if (want != null) set(want);
+
+		sheds();
+	}
+
+	/**
+		Stops typing and throws away what was typed.
+	**/
+	function sheds():Void {
+		if (!typing) return;
+
+		typing = false;
+		entry = "";
+		invalidate();
+	}
+
+	/**
+		Keeps what was typed when the keyboard goes elsewhere, rather than leaving
+		the field sitting with a caret in it for the rest of the session.
+
+		@param on Whether it now has the keyboard.
+	**/
+	override public function focused(on:Bool):Void {
+		if (!on && typing) commits();
+		super.focused(on);
+	}
+
 	function keyed(event:Input):Bool {
 		if (typing) {
 			switch (event.code) {
 				case Key.Return:
-					final read = Std.parseInt(entry);
-					if (read != null) set(read);
-					typing = false;
-					invalidate();
+					commits();
 					return true;
 
 				case Key.Escape:
-					typing = false;
-					invalidate();
+					sheds();
 					return true;
 
 				case Key.Backspace:

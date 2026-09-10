@@ -358,6 +358,38 @@ class UiCheck {
 		number.set(120);
 		number.set(400);
 		says("clamped", number.value == 127, "held at " + number.value + " of 127");
+
+		number.typed = function(said:String):Null<Int> {
+			final read = Std.parseFloat(said);
+			return Math.isNaN(read) ? null : Math.round(read * 20);
+		};
+
+		number.set(0);
+
+		root.focusOn(number);
+		root.pressed(20, 20, Pointer.Left, Mod.None, 2);
+		root.released(20, 20, Pointer.Left, Mod.None);
+
+		root.said("2", Mod.None);
+		root.key(true, Key.Return, Mod.None);
+
+		says("a number is typed in what it is shown in", number.value == 40,
+			"a field held in twentieths of a second reads a typed 2 as " + number.value
+			+ ", which is two seconds, rather than as a tenth of one");
+
+		root.pressed(20, 20, Pointer.Left, Mod.None, 2);
+		root.released(20, 20, Pointer.Left, Mod.None);
+		root.said("7", Mod.None);
+
+		final other = new Number("", 0, 0, 10);
+		root.top.add(other);
+		other.arrange(120, 0, 90, 40);
+		root.focusOn(other);
+
+		says("and typing ends when the keyboard goes elsewhere",
+			number.value == 140,
+			"the 7 that was typed landed as " + number.value
+			+ " rather than leaving a caret sitting in the field");
 	}
 
 	static function gestures():Void {
