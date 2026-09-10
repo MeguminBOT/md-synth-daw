@@ -435,7 +435,7 @@ final class Files {
 			case MIDI: Dialog.save(window, "midi", "mid", where);
 			case XGM: Dialog.save(window, "xgm", "xgm", where);
 			case AUDIO: Dialog.save(window, mixing.named(), mixing.suffix(), where);
-			case READ_VGM: Dialog.open(window, "vgm", "vgm", where);
+			case READ_VGM: Dialog.open(window, "vgm", "vgm;vgz", where);
 			case READ_MIDI: Dialog.open(window, "midi", "mid", where);
 			case READ_WAV: Dialog.open(window, "wav", "wav", where);
 			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
@@ -556,7 +556,7 @@ final class Files {
 	**/
 	public function readVgm(where:String):Void {
 		final into = new Stream(1 << 22);
-		final vgm = Vgm.read(sys.io.File.getBytes(where), into);
+		final vgm = Vgm.read(mdd.format.Gzip.opened(sys.io.File.getBytes(where)), into);
 		final made = Transcription.of(into, vgm.rate, name(where));
 
 		if (vgm.title != "") made.song.name = vgm.title;

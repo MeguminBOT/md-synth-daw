@@ -105,7 +105,8 @@ final class Vgm {
 	public var samples(default, null):Int = 0;
 
 	/**
-		Where the loop returns to, in samples, or -1 for none.
+		Where the loop returns to, as an offset into the file, or -1 for none. `loopWrite`
+		is the same place counted in stream writes, which is what a player needs.
 	**/
 	public var loopAt(default, null):Int = -1;
 	var loopSamples(default, null):Int = 0;
