@@ -233,8 +233,8 @@ final class Files {
 	}
 
 	/**
-		@return How deep the undo stack was at the last save, which is what says whether anything
-			has changed since.
+		@return A stamp over the piece and its samples. Two calls agreeing means nothing has
+			changed since, which is what decides whether a save on its own has anything to do.
 	**/
 	public function marked():Int {
 		final said = haxe.io.Bytes.ofString(Project.text(session.song));
