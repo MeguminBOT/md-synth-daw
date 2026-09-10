@@ -242,7 +242,18 @@ final class ChannelRack extends Widget {
 
 			case Kind.PointerMove:
 				if (sliding >= 0) {
-					leaned(sliding, root.metrics, event.x);
+					final fine = event.ctrl();
+
+					if (fine != fining) {
+						fining = fine;
+						fineX = event.x;
+						fineWas = session.song.volume[sliding];
+					}
+
+					if (fining) {
+						leansTo(sliding, fineWas + Std.int((event.x - fineX) / FINE));
+					} else leaned(sliding, root.metrics, event.x);
+
 					return true;
 				}
 
@@ -269,6 +280,7 @@ final class ChannelRack extends Widget {
 				}
 
 				sliding = -1;
+				fining = false;
 				invalidate();
 				return true;
 
@@ -646,8 +658,39 @@ final class ChannelRack extends Widget {
 		return metrics.whole(METER) - metrics.inset;
 	}
 
+	/**
+		Sets a channel volume outright, which the precision drag needs because it
+		counts steps rather than reading a point on the fader.
+
+		@param index Which part.
+		@param want How loud, held to the range.
+	**/
+	function leansTo(index:Int, want:Int):Void {
+		final held = want < 0 ? 0 : (want > Song.LOUDEST ? Song.LOUDEST : want);
+		if (session.song.volume[index] == held) return;
+
+		session.holds();
+		session.song.volume[index] = held;
+		session.frees();
+
+		final part:Part = index;
+		session.say(part.name() + "  "
+			+ Math.round(held * 100 / Song.LOUDEST) + "%");
+
+		session.changed();
+		invalidate();
+	}
+
+	/**
+		How far the pointer moves for one step with the precision key held.
+	**/
+	static inline final FINE = 4.0;
+
 	var sliding:Int = -1;
 	var leanedWas:Int = 0;
+	var fining:Bool = false;
+	var fineX:Float = 0;
+	var fineWas:Int = 0;
 
 	function leaned(index:Int, metrics:Metrics, px:Float):Void {
 		final room = faderWide(metrics);
