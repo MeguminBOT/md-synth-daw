@@ -126,6 +126,17 @@ final class Number extends Widget implements Range {
 		if (onChange != null) onChange(this);
 	}
 
+	/**
+		A number is dragged up and down until it is being typed in.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		return typing ? mdd.host.Sdl.CURSOR_TEXT : mdd.host.Sdl.CURSOR_DOWN;
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:

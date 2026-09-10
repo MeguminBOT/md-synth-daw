@@ -372,4 +372,52 @@ extern class Sdl {
 	**/
 	@:native("mdd_clipboard_get")
 	public static function clipboard():cpp.ConstCharStar;
+
+	/**
+		Cursor: the ordinary arrow.
+	**/
+	public static inline final CURSOR_ARROW = 0;
+
+	/**
+		Cursor: an I-beam, over text that can be typed in.
+	**/
+	public static inline final CURSOR_TEXT = 1;
+
+	/**
+		Cursor: a double arrow across, over an edge that resizes sideways.
+	**/
+	public static inline final CURSOR_ACROSS = 2;
+
+	/**
+		Cursor: a double arrow down, over an edge that resizes up and down.
+	**/
+	public static inline final CURSOR_DOWN = 3;
+
+	/**
+		Cursor: a pointing hand, over something that answers a click.
+	**/
+	public static inline final CURSOR_HAND = 4;
+
+	/**
+		Cursor: the four pointed arrow, over something being dragged about.
+	**/
+	public static inline final CURSOR_MOVE = 5;
+
+	/**
+		Puts a cursor shape on the window.
+
+		The shapes are made the first time each is asked for and kept, and asking
+		for the one already showing does nothing, so this is cheap to call every
+		time the pointer moves.
+
+		@param shape Which shape, one of the CURSOR_ values.
+	**/
+	@:native("mdd_cursor_set")
+	public static function cursor(shape:Int):Void;
+
+	/**
+		Frees every cursor shape that was made.
+	**/
+	@:native("mdd_cursor_free")
+	public static function freeCursors():Void;
 }

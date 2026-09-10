@@ -290,6 +290,40 @@ void mdd_sleep(double seconds);
  */
 double mdd_ticks(void);
 
+/** Cursor: the ordinary arrow. */
+#define MDD_CURSOR_ARROW 0
+
+/** Cursor: an I-beam, over text that can be typed in. */
+#define MDD_CURSOR_TEXT 1
+
+/** Cursor: a double arrow across, over an edge that resizes sideways. */
+#define MDD_CURSOR_ACROSS 2
+
+/** Cursor: a double arrow down, over an edge that resizes up and down. */
+#define MDD_CURSOR_DOWN 3
+
+/** Cursor: a pointing hand, over something that answers a click. */
+#define MDD_CURSOR_HAND 4
+
+/** Cursor: the four pointed arrow, over something being dragged about. */
+#define MDD_CURSOR_MOVE 5
+
+/** How many cursor shapes there are. */
+#define MDD_CURSORS 6
+
+/**
+ * Puts a cursor shape on the window. The shapes are made the first time each is asked for
+ * and kept, and asking for the one already showing does nothing.
+ *
+ * @param shape Which shape, one of MDD_CURSOR_*.
+ */
+void mdd_cursor_set(int shape);
+
+/**
+ * Frees every cursor shape that was made. Called as the window goes.
+ */
+void mdd_cursor_free(void);
+
 #ifdef __cplusplus
 }
 #endif

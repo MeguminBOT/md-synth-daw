@@ -761,6 +761,7 @@ final class Root {
 		if (capture != null) {
 			event.pointer(Kind.PointerMove, x, y, Pointer.Left, mods);
 			send(capture, event);
+			shapes(x, y);
 			return;
 		}
 
@@ -770,6 +771,23 @@ final class Root {
 			event.pointer(Kind.PointerMove, x, y, Pointer.Nothing, mods);
 			send(over, event);
 		}
+
+		shapes(x, y);
+	}
+
+	/**
+		Puts the cursor the widget under the pointer asks for on the window. A
+		widget holding a drag keeps answering, so the shape does not flicker back
+		the moment a drag leaves the thing it started on.
+
+		@param x Where the pointer is, across.
+		@param y Where it is, down.
+	**/
+	function shapes(x:Float, y:Float):Void {
+		final held = capture != null ? capture : over;
+
+		mdd.host.Sdl.cursor(held == null
+			? mdd.host.Sdl.CURSOR_ARROW : held.cursorAt(x, y));
 	}
 
 	/**

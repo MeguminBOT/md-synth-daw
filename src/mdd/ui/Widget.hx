@@ -347,6 +347,21 @@ class Widget {
 	}
 
 	/**
+		What the pointer should look like over a point inside this widget.
+
+		The default is the ordinary arrow. A widget answers something else where it
+		has an edge that resizes or a field that takes typing, because those are
+		affordances with nothing else to show them.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return One of the cursor shapes `mdd.host.Sdl` names.
+	**/
+	public function cursorAt(px:Float, py:Float):Int {
+		return mdd.host.Sdl.CURSOR_ARROW;
+	}
+
+	/**
 		Told when the pointer arrives or leaves.
 
 		@param on Whether the pointer is now over it.

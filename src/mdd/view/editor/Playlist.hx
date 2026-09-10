@@ -394,6 +394,25 @@ final class Playlist extends Widget {
 		invalidate();
 	}
 
+	/**
+		The end of a note resizes it and the pan tool drags the view, and neither
+		of those shows on the screen.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		if (session.tool == Session.PAN) return mdd.host.Sdl.CURSOR_MOVE;
+
+		if (sizing && dragging != null) return mdd.host.Sdl.CURSOR_ACROSS;
+
+		final under = clipAt(px, py);
+		if (under != null && onEdge(under, px)) return mdd.host.Sdl.CURSOR_ACROSS;
+
+		return mdd.host.Sdl.CURSOR_ARROW;
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.Wheel:

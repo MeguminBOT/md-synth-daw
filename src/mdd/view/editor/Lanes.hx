@@ -1062,6 +1062,19 @@ final class Lanes extends Widget {
 		return -1;
 	}
 
+	/**
+		The line between two lanes resizes them, and nothing on the screen says so.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		if (sizing != -1 || edgeAt(px, py) != -1) return mdd.host.Sdl.CURSOR_DOWN;
+
+		return mdd.host.Sdl.CURSOR_ARROW;
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:

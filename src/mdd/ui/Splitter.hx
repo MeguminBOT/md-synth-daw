@@ -64,6 +64,17 @@ final class Splitter extends Widget {
 		@param event The event.
 		@return Whether it was taken.
 	**/
+	/**
+		A splitter is a handle and nothing on it says so.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		return vertical ? mdd.host.Sdl.CURSOR_DOWN : mdd.host.Sdl.CURSOR_ACROSS;
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:

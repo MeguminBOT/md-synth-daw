@@ -98,6 +98,56 @@ class SpineCheck {
 			"a tick of 7 stays at 7");
 	}
 
+	static function shaped(tree:Root, session:Session,
+			roll:mdd.view.editor.PianoRoll):Void {
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		lane.notes.resize(0);
+
+		final beat = session.song.tempo.ppqn;
+		lane.add(new Note(beat, beat, 60, 100));
+
+		session.uses(Session.DRAW);
+		roll.reveal(beat, 60);
+		tree.resize(tree.width, tree.height);
+
+		final note = lane.notes[0];
+		final row = roll.atPitch(60) + roll.rowTall * 0.5;
+		final ends = roll.atTick(note.at + note.length);
+		final middle = roll.atTick(note.at + Std.int(note.length / 2));
+
+		final onEnd = roll.cursorAt(ends - 2, row);
+		final onBody = roll.cursorAt(middle, row);
+
+		says("the end of a note says it resizes",
+			onEnd == mdd.host.Sdl.CURSOR_ACROSS
+			&& onBody == mdd.host.Sdl.CURSOR_ARROW,
+			"the cursor is a double arrow on the end and an arrow over the body");
+
+		session.uses(Session.PAN);
+
+		says("and the pan tool says it drags the view",
+			roll.cursorAt(middle, row) == mdd.host.Sdl.CURSOR_MOVE,
+			"with the pan tool in hand the whole roll answers the four pointed arrow");
+
+		session.uses(Session.DRAW);
+
+		final across = new mdd.ui.Splitter(100);
+		final down = new mdd.ui.Splitter(100);
+
+		down.vertical = true;
+
+		says("a splitter says which way it moves",
+			across.cursorAt(0, 0) == mdd.host.Sdl.CURSOR_ACROSS
+			&& down.cursorAt(0, 0) == mdd.host.Sdl.CURSOR_DOWN,
+			"one answers the arrow across and the other the arrow down");
+
+		lane.notes.resize(0);
+		session.history.clear();
+	}
+
 	static function synthed(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		session.choose(Part.Fm1);
@@ -2456,6 +2506,7 @@ class SpineCheck {
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
 		synthed(tree, session, editor);
+		shaped(tree, session, centre.roll);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);

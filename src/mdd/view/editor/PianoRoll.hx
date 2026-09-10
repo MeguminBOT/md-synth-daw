@@ -1020,6 +1020,25 @@ final class PianoRoll extends Widget {
 		scrollTo(tick * perTick - (around - x - gutter()), offsetY);
 	}
 
+	/**
+		The end of a note resizes it and the pan tool drags the view, and neither
+		of those shows on the screen.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		if (session.tool == Session.PAN || panning) return mdd.host.Sdl.CURSOR_MOVE;
+
+		if (sizing && dragging != null) return mdd.host.Sdl.CURSOR_ACROSS;
+
+		final under = noteAt(px, py);
+		if (under != null && onEdge(under, px)) return mdd.host.Sdl.CURSOR_ACROSS;
+
+		return mdd.host.Sdl.CURSOR_ARROW;
+	}
+
 	override function took(event:Input):Bool {
 		final pattern = session.current();
 		if (pattern == null) return false;

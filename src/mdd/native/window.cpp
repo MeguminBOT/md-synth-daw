@@ -248,3 +248,41 @@ extern "C" void mdd_window_icon(SDL_Window *window, const unsigned char *pixels,
 	SDL_SetWindowIcon(window, face);
 	SDL_DestroySurface(face);
 }
+
+static SDL_Cursor *mdd_cursors[MDD_CURSORS];
+static int mdd_cursor_now = -1;
+
+extern "C" void mdd_cursor_set(int shape) {
+	if (shape < 0 || shape >= MDD_CURSORS) shape = MDD_CURSOR_ARROW;
+	if (shape == mdd_cursor_now) return;
+
+	if (mdd_cursors[shape] == NULL) {
+		SDL_SystemCursor want = SDL_SYSTEM_CURSOR_DEFAULT;
+
+		switch (shape) {
+			case MDD_CURSOR_TEXT: want = SDL_SYSTEM_CURSOR_TEXT; break;
+			case MDD_CURSOR_ACROSS: want = SDL_SYSTEM_CURSOR_EW_RESIZE; break;
+			case MDD_CURSOR_DOWN: want = SDL_SYSTEM_CURSOR_NS_RESIZE; break;
+			case MDD_CURSOR_HAND: want = SDL_SYSTEM_CURSOR_POINTER; break;
+			case MDD_CURSOR_MOVE: want = SDL_SYSTEM_CURSOR_MOVE; break;
+			default: want = SDL_SYSTEM_CURSOR_DEFAULT; break;
+		}
+
+		mdd_cursors[shape] = SDL_CreateSystemCursor(want);
+		if (mdd_cursors[shape] == NULL) return;
+	}
+
+	SDL_SetCursor(mdd_cursors[shape]);
+	mdd_cursor_now = shape;
+}
+
+extern "C" void mdd_cursor_free(void) {
+	for (int index = 0; index < MDD_CURSORS; index++) {
+		if (mdd_cursors[index] == NULL) continue;
+
+		SDL_DestroyCursor(mdd_cursors[index]);
+		mdd_cursors[index] = NULL;
+	}
+
+	mdd_cursor_now = -1;
+}

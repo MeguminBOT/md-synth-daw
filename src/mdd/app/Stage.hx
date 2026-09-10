@@ -451,6 +451,7 @@ final class Stage {
 
 		spare.shut();
 		shed();
+		Sdl.freeCursors();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
 	}

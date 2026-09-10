@@ -147,6 +147,17 @@ final class Field extends Widget {
 		if (onChange != null) onChange(value);
 	}
 
+	/**
+		A field takes typing, which an I-beam is how a reader is told.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return Which cursor shape belongs there.
+	**/
+	override function cursorAt(px:Float, py:Float):Int {
+		return mdd.host.Sdl.CURSOR_TEXT;
+	}
+
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:
