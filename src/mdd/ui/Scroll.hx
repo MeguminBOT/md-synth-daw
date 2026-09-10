@@ -3,8 +3,11 @@ package mdd.ui;
 @:unreflective
 
 /**
-	A widget whose contents are larger than it is, with a bar down the side or along
-	the bottom.
+	A widget whose contents are taller than it is, with a bar down the side.
+
+	There is no bar along the bottom. Nothing here has ever needed one, and the panel
+	that scrolls sideways carries its own, because its bar sits above the lanes rather
+	than under them.
 **/
 class Scroll extends Widget {
 	/**
@@ -13,24 +16,9 @@ class Scroll extends Widget {
 	public var offsetY(default, null):Float = 0;
 
 	/**
-		How far across.
-	**/
-	public var offsetX(default, null):Float = 0;
-
-	/**
 		How tall the contents are.
 	**/
 	public var contentHeight:Float = 0;
-
-	/**
-		How wide they are.
-	**/
-	public var contentWidth:Float = 0;
-
-	/**
-		Whether the wheel scrolls across rather than down.
-	**/
-	public var sideways:Bool = false;
 
 	var scrubbing:Bool = false;
 	var grabAt:Float = 0;
@@ -52,13 +40,6 @@ class Scroll extends Widget {
 	}
 
 	/**
-		@return Whether they are wider than the room for them.
-	**/
-	public inline function across():Bool {
-		return sideways && contentWidth > width + 0.5;
-	}
-
-	/**
 		Scrolls down to a position, clamped to the contents.
 
 		@param y How far down to scroll.
@@ -72,23 +53,6 @@ class Scroll extends Widget {
 
 		if (next == offsetY) return;
 		offsetY = next;
-		invalidate();
-	}
-
-	/**
-		Scrolls across to a position, clamped to the contents.
-
-		@param x How far across to scroll.
-	**/
-	function scrollAcross(x:Float):Void {
-		var next = x;
-		final most = contentWidth - width;
-
-		if (next > most) next = most;
-		if (next < 0) next = 0;
-
-		if (next == offsetX) return;
-		offsetX = next;
 		invalidate();
 	}
 
@@ -149,11 +113,6 @@ class Scroll extends Widget {
 				final root = root();
 				final step = root == null ? 30 : root.metrics.row;
 
-				if (event.shift() && across()) {
-					scrollAcross(offsetX - event.dy * step);
-					return true;
-				}
-
 				if (!downwards()) return false;
 				scrollTo(offsetY - event.dy * step);
 				return true;
@@ -213,7 +172,7 @@ class Scroll extends Widget {
 		while (i >= 0) {
 			final child = children[i];
 			if (child.visible) {
-				final deeper = child.hit(px + offsetX, py + offsetY);
+				final deeper = child.hit(px, py + offsetY);
 				if (deeper != null) {
 					found = deeper;
 					break;
@@ -226,13 +185,13 @@ class Scroll extends Widget {
 	}
 
 	/**
-		Draws the contents clipped and offset, then the bars.
+		Draws the contents clipped and offset, then the bar.
 
 		@param paint What to draw with.
 	**/
 	override function paint(paint:Paint):Void {
 		paint.pushClip(x, y, width, height);
-		paint.pushTransform(-offsetX, -offsetY);
+		paint.pushTransform(0, -offsetY);
 
 		for (child in children) {
 			if (child.visible) child.paint(paint);
@@ -245,7 +204,7 @@ class Scroll extends Widget {
 	}
 
 	/**
-		Draws the bars, where the contents need them.
+		Draws the bar, where the contents need one.
 
 		@param paint What to draw with.
 	**/
