@@ -228,8 +228,9 @@ application does, and an honest list of what it does not do and why.
 - **It saves on its own** every five minutes by default, and only once something has changed.
 - **Portable mode.** Drop a `portable.txt` beside the executable and it keeps its settings there
   instead of in your account directory.
-- **A translatable interface.** Every string it shows comes from one table rather than from
-  the code, so adding a language is a file rather than a change to the program.
+- **Thirteen languages**, from English and Swedish to Japanese, Simplified Chinese, Korean and
+  Russian. Every string it shows comes from one table rather than from the code, so adding a
+  language is a file rather than a change to the program.
 - **Crash reports that name the Haxe line**, from a release build carrying no stack frames, written
   where your settings live.
 

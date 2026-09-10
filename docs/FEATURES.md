@@ -265,10 +265,12 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
   the new copy.
-- **A translatable interface.** Every string it shows comes from one table rather than from
-  the code, so adding a language is a file rather than a change to the program. Hardware and
-  format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation
-  writes them in every language.
+- **Thirteen languages.** English in two spellings, Swedish, German, Spanish, French, Polish,
+  Portuguese in both Brazilian and European forms, Russian, Japanese, Simplified Chinese and
+  Korean. Every string it shows comes from one table rather than from the code, so adding a
+  language is a file rather than a change to the program. Hardware and format names are not
+  in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation writes them in every
+  language, and the fonts that ship carry every script the shipped languages need.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
 - **One instance.** Opening a second project hands it to the copy already running.

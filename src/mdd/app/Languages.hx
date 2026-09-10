@@ -23,6 +23,16 @@ class Languages {
 			case "en-GB": "English (United Kingdom)";
 			case "en-US": "English (United States)";
 			case "sv-SE": "Svenska";
+			case "de-DE": "Deutsch";
+			case "es-ES": "Español";
+			case "fr-FR": "Français";
+			case "pl-PL": "Polski";
+			case "pt-BR": "Português (Brasil)";
+			case "pt-PT": "Português (Portugal)";
+			case "ru-RU": "Русский";
+			case "ja-JP": "日本語";
+			case "zh-CN": "简体中文";
+			case "ko-KR": "한국어";
 			case _: code;
 		}
 	}
@@ -46,11 +56,18 @@ class Languages {
 	}
 
 	/**
-		@return The language everything falls back to.
+		@return The language everything falls back to, which is the one the catalogue is
+			generated from. It is named rather than taken from the front of the list,
+			because the list is in alphabetical order and a language added ahead of it
+			would otherwise become what every missing string falls back to.
 	**/
 	public static function first():String {
 		final held = shipped();
-		return held.length == 0 ? "en-GB" : held[0];
+		if (held.length == 0) return "en-GB";
+
+		for (code in held) if (code == "en-GB") return code;
+
+		return held[0];
 	}
 
 	/**
