@@ -23,18 +23,61 @@ class ShellCheck {
 		if (Shell.supported() == 0) {
 			Sys.println("    " + StringTools.rpad("associations", " ", 42)
 				+ "this platform registers none, nothing to check");
-			Sys.println("    passed");
+			costing();
 
-			return 0;
+			Sys.println("    " + (ran - failed) + " of " + ran + " checks");
+			Sys.println(failed == 0 ? "    passed" : "    failed");
+
+			return failed == 0 ? 0 : 1;
 		}
 
 		round();
 		guarded();
+		costing();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    failed");
 
 		return failed == 0 ? 0 : 1;
+	}
+
+	/**
+		Reads what the process is costing twice, with work between the readings and
+		then nothing. A reading is the span between two samples, so it only means
+		anything if it is taken again regularly.
+	**/
+	static function costing():Void {
+		mdd.host.Usage.start();
+		mdd.host.Usage.cpu();
+
+		final began = mdd.host.Sdl.ticks();
+		var sum = 0.0;
+
+		while (mdd.host.Sdl.ticks() - began < 0.30) {
+			for (index in 0...20000) sum += Math.sqrt(index + sum % 7);
+		}
+
+		final busy = mdd.host.Usage.cpu();
+		final ram = mdd.host.Usage.ram();
+
+		says("a busy stretch reads as busy", busy > 0 && sum > 0,
+			"0.3 s of work reads " + Math.round(busy * 100) / 100
+			+ " per cent of the whole processor");
+
+		says("and the memory it holds is a real number", ram > 1,
+			"holding " + Math.round(ram) + " MB");
+
+		final idleFrom = mdd.host.Sdl.ticks();
+		while (mdd.host.Sdl.ticks() - idleFrom < 0.30) mdd.host.Sdl.sleep(0.01);
+
+		final quiet = mdd.host.Usage.cpu();
+
+		says("and a quiet one reads as quiet", quiet < busy,
+			"0.3 s of sleeping reads " + Math.round(quiet * 100) / 100 + " against the "
+			+ Math.round(busy * 100) / 100 + " the work read, so a reading is the span between two"
+			+ " samples rather than the life of the process");
+
+		mdd.host.Usage.stop();
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

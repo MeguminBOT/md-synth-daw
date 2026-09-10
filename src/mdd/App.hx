@@ -493,7 +493,6 @@ class App {
 		if (panels.status != null) {
 			panels.centre.warnings.fit();
 			panels.status.said = session.said;
-			panels.status.usage = measured();
 			panels.status.invalidate();
 		}
 	}
@@ -1234,6 +1233,7 @@ class App {
 			presence.tick(since);
 
 			if (shared()) stage.root.soil();
+			if (costed()) stage.root.soil();
 
 			collector.rests(since, stage.draw());
 		}
@@ -1398,6 +1398,28 @@ class App {
 		}
 
 		centre.scope.invalidate();
+	}
+
+	/**
+		Puts what the machine is costing on the status bar.
+
+		This runs every frame rather than on an edit, because the numbers move on
+		their own: reading them only when the song changed left them standing at
+		whatever they were at the last edit, and never moving at all while a piece
+		played. `measured` works them out twice a second and hands back the same
+		line in between, so this costs a comparison on the frames between.
+
+		@return Whether the line changed and the bar has to be drawn again.
+	**/
+	function costed():Bool {
+		if (panels == null || panels.status == null) return false;
+
+		final held = measured();
+		if (held == panels.status.usage) return false;
+
+		panels.status.usage = held;
+		panels.status.invalidate();
+		return true;
 	}
 
 	/**
