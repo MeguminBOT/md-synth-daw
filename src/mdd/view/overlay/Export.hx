@@ -422,6 +422,11 @@ final class Export extends Widget {
 		return held;
 	}
 
+	/**
+		Which choice of the depth row is floating point rather than whole numbered.
+	**/
+	public static inline final FLOAT = 2;
+
 	static function depths():Array<String> {
 		return ["16", "24", "32"];
 	}
@@ -429,9 +434,9 @@ final class Export extends Widget {
 	/**
 		Whether one choice of a row is open to the format in hand.
 
-		Opus is written at one rate and nothing else, and a coded format carries
-		no bit depth at all, so those choices are shown and refused rather than
-		taken and quietly ignored.
+		Opus is written at one rate and nothing else, a coded format carries no bit
+		depth at all, and FLAC holds whole numbers only, so those choices are shown
+		and refused rather than taken and quietly ignored.
 
 		@param row Which row.
 		@param which Which choice of it.
@@ -442,7 +447,8 @@ final class Export extends Widget {
 			case RATE: mixing.kind != Mixing.OPUS
 				|| Mixing.RATES[which] == mdd.format.Coded.OPUS_RATE;
 
-			case DEPTH: mixing.whole();
+			case DEPTH: mixing.whole()
+				&& (mixing.kind != Mixing.FLAC || which != FLOAT);
 			case DITHER: mixing.whole() && mixing.depth < 32;
 			case _: true;
 		}
