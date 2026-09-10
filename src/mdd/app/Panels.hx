@@ -336,9 +336,8 @@ final class Panels {
 
 			session.holds();
 			session.song.instrument(made);
-			session.frees();
-
 			session.song.rack[part.index()] = session.song.instruments.length - 1;
+			session.frees();
 			session.say(said);
 			session.changed();
 		};
