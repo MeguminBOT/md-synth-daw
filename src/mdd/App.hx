@@ -207,6 +207,8 @@ class App {
 
 		if (!stage.open()) return false;
 
+		stage.onDrop = function(where:String):Void opens(where);
+
 		dress();
 		stage.measured();
 		sound.open(session.transport);

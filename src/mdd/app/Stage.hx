@@ -83,6 +83,13 @@ final class Stage {
 	**/
 	public var shown(default, null):Bool = false;
 
+	/**
+		Called with the path of a file dropped on the window, where anything is
+		listening. The event carries the path itself, so nothing is kept between
+		this call and the next.
+	**/
+	public var onDrop:Null<String -> Void> = null;
+
 	var icons:Null<Icons> = null;
 
 	final spare:Fallback = new Fallback();
@@ -417,6 +424,12 @@ final class Stage {
 
 			case Sdl.EVENT_TEXT:
 				root.said(Sdl.eventText(cpp.Pointer.addressOf(event).constRaw), event.mods);
+
+			case Sdl.EVENT_DROP_FILE:
+				final held = onDrop;
+				if (held != null && event.windowID == windowID) {
+					held(Sdl.eventText(cpp.Pointer.addressOf(event).constRaw));
+				}
 
 			case _:
 		}

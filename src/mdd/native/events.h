@@ -39,9 +39,10 @@ enum {
 };
 
 /**
- * How much typed text one event can carry.
+ * How much text one event can carry: what was typed, or the path of a file dropped
+ * on the window, whichever is longer.
  */
-#define MDD_EVENT_TEXT_BYTES 512
+#define MDD_EVENT_TEXT_BYTES 1024
 
 /**
  * One event, filled in by mdd_poll_event. It is a plain structure the Haxe side owns,

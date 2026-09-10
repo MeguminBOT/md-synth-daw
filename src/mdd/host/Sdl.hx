@@ -79,7 +79,11 @@ extern class Sdl {
 		Event: the window needs redrawing.
 	**/
 	public static inline final EVENT_WINDOW_EXPOSED = 14;
-	static inline final EVENT_DROP_FILE = 15;
+
+	/**
+		Event: a file was dropped on the window. Its path is read back with `eventText`.
+	**/
+	public static inline final EVENT_DROP_FILE = 15;
 
 	static inline final MOD_NONE = 0;
 	static inline final MOD_SHIFT = 1;
