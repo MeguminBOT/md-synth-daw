@@ -349,6 +349,19 @@ class Widget {
 	}
 
 	/**
+		The same, with values put in the numbered places the string leaves for them.
+
+		@param key Which string.
+		@param values What goes in those places, in order.
+		@return The line, or an empty string where there is no root to ask.
+	**/
+	public function filled(key:Int, values:Array<String>):String {
+		final held = root();
+		return held == null ? ""
+			: mdd.ui.Translation.filled(held.translate(key), values);
+	}
+
+	/**
 		Told when the keyboard arrives or leaves.
 
 		@param on Whether it now has the keyboard.

@@ -8,9 +8,13 @@ import mdd.song.Part;
 /**
 	One thing the song asks of the hardware that the hardware will not do.
 
-	It carries what is wrong, why, and what to do about it, and it knows which note
-	caused it, so clicking a warning selects the channel and the note rather than
-	leaving the reader to find them.
+	It carries the names of what is wrong, why, and what to do about it, along with the
+	values those lines leave places for. The words themselves live in the string table,
+	so a warning is read in whatever language is worn rather than the one the check was
+	written in.
+
+	It knows which note caused it, so clicking a warning selects the channel and the
+	note rather than leaving the reader to find them.
 **/
 final class Diagnostic {
 	/**
@@ -39,19 +43,26 @@ final class Diagnostic {
 	public var at(default, null):Int;
 
 	/**
-		What is wrong, in one line.
+		Which string says what is wrong.
 	**/
-	public var saying(default, null):String;
+	public var saying(default, null):Int;
 
 	/**
-		Why the hardware will not do it.
+		Which string says why the hardware will not do it.
 	**/
-	public var reason(default, null):String;
+	public var reason(default, null):Int;
 
 	/**
-		What would fix it.
+		Which string says what would fix it.
 	**/
-	public var remedy(default, null):String;
+	public var remedy(default, null):Int;
+
+	/**
+		What goes in the numbered places those three leave, in order. All three draw
+		from the one list, so a value the reason needs is numbered wherever it falls
+		across the set rather than counted afresh in each line.
+	**/
+	public final values:Array<String>;
 
 	/**
 		Which pattern it is in, or -1 where it is not in one.
@@ -69,20 +80,23 @@ final class Diagnostic {
 		@param severity `WARNING` or `FAULT`.
 		@param part Which part it is about.
 		@param at Where in the song, in ticks.
-		@param saying What is wrong.
-		@param reason Why.
-		@param remedy What would fix it.
+		@param saying Which string says what is wrong.
+		@param reason Which string says why.
+		@param remedy Which string says what would fix it.
+		@param values What goes in the places those three leave.
 		@param pattern Which pattern, or -1.
 		@param note The note that caused it, or null.
 	**/
-	public function new(severity:Int, part:Part, at:Int, saying:String, reason:String,
-			remedy:String = "", pattern:Int = -1, note:Null<Note> = null) {
+	public function new(severity:Int, part:Part, at:Int, saying:Int, reason:Int,
+			remedy:Int, values:Array<String>, pattern:Int = -1,
+			note:Null<Note> = null) {
 		this.severity = severity;
 		this.part = part;
 		this.at = at;
 		this.saying = saying;
 		this.reason = reason;
 		this.remedy = remedy;
+		this.values = values;
 		this.pattern = pattern;
 		this.note = note;
 	}
@@ -92,12 +106,5 @@ final class Diagnostic {
 	**/
 	public inline function linked():Bool {
 		return note != null && pattern >= 0;
-	}
-
-	/**
-		@return The whole diagnostic on one line, for a report.
-	**/
-	public function line():String {
-		return part.name() + " at " + at + ": " + saying;
 	}
 }

@@ -1408,7 +1408,9 @@ final class PianoRoll extends Widget {
 				why.reason = translate(Locale.ROLL_SOUNDS);
 			} else {
 				fires(why, function():Void {
-					session.say(found.saying + " because " + found.reason + ", so " + found.remedy);
+					session.says(Locale.SAID_WARNING, filled(found.saying, found.values),
+						filled(found.reason, found.values),
+						filled(found.remedy, found.values));
 					session.changed();
 				});
 			}

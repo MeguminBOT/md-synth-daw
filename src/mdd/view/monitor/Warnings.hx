@@ -173,10 +173,12 @@ final class Warnings extends Scroll {
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 			paint.text(found.part.name(), x + metrics.inset, line, theme.part(found.part.index()));
 
-			paint.text(found.saying, x + metrics.inset + metrics.whole(52), line, theme.ink);
+			paint.text(filled(found.saying, found.values),
+				x + metrics.inset + metrics.whole(52), line, theme.ink);
 
 			paint.reface(small);
-			paint.textRight(found.reason, x + width - metrics.inset,
+			paint.textRight(filled(found.reason, found.values),
+				x + width - metrics.inset,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.75);
 		}
 

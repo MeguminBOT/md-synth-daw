@@ -1,6 +1,7 @@
 package mdd.check;
 
 import haxe.ds.Vector;
+import mdd.app.Locale;
 import mdd.play.Stream;
 import mdd.song.Note;
 import mdd.song.Part;
@@ -100,15 +101,18 @@ final class Budget {
 		@param severity `Diagnostic.WARNING` or `Diagnostic.FAULT`.
 		@param part Which part it is about.
 		@param at Where in the song, in ticks.
-		@param saying What is wrong.
-		@param reason Why.
-		@param remedy What would fix it.
+		@param saying Which string says what is wrong.
+		@param reason Which string says why.
+		@param remedy Which string says what would fix it.
+		@param values What goes in the places those three leave.
 		@param pattern Which pattern, or -1.
 		@param note The note that caused it, or null.
 	**/
-	function raise(severity:Int, part:Part, at:Int, saying:String, reason:String,
-			remedy:String = "", pattern:Int = -1, note:Null<Note> = null):Void {
-		found.push(new Diagnostic(severity, part, at, saying, reason, remedy, pattern, note));
+	function raise(severity:Int, part:Part, at:Int, saying:Int, reason:Int,
+			remedy:Int, values:Array<String>, pattern:Int = -1,
+			note:Null<Note> = null):Void {
+		found.push(new Diagnostic(severity, part, at, saying, reason, remedy, values,
+			pattern, note));
 		if (severity == Diagnostic.FAULT) faults++;
 		if (note != null) troubles.push(note);
 	}
@@ -129,10 +133,9 @@ final class Budget {
 		for (sample in song.samples) sampleBytes += sample.length();
 
 		if (profile.sampleBytes > 0 && sampleBytes > profile.sampleBytes) {
-			raise(Diagnostic.WARNING, Part.Dac, 0,
-				"the samples come to " + sampleBytes + " bytes",
-				profile.name + " holds " + profile.sampleBytes,
-				"shorten a sample or lower its rate");
+			raise(Diagnostic.WARNING, Part.Dac, 0, Locale.WARN_SAMPLES_OVER,
+				Locale.WARN_SAMPLES_OVER_WHY, Locale.WARN_SAMPLES_OVER_FIX,
+				["" + sampleBytes, profile.name, "" + profile.sampleBytes]);
 		}
 
 		return found.length;
@@ -155,10 +158,10 @@ final class Budget {
 			busy[which] += lane.notes.length;
 
 			if (!profile.carries(part)) {
-				raise(Diagnostic.FAULT, part, lane.notes[0].at,
-					lane.notes.length + " notes are written for a part that is not there",
-					profile.name + " has no " + part.name(),
-					"move them to a part it has", index, lane.notes[0]);
+				raise(Diagnostic.FAULT, part, lane.notes[0].at, Locale.WARN_PART_ABSENT,
+					Locale.WARN_PART_ABSENT_WHY, Locale.WARN_PART_ABSENT_FIX,
+					["" + lane.notes.length, profile.name, part.name()], index,
+					lane.notes[0]);
 				continue;
 			}
 
@@ -174,10 +177,9 @@ final class Budget {
 				for (sampled in dac.notes) {
 					if (note.at >= sampled.ends() || sampled.at >= note.ends()) continue;
 
-					raise(Diagnostic.FAULT, Part.Fm6, note.at,
-						"FM6 cannot sound while the DAC holds it",
-						"the converter replaces the sixth channel rather than joining it",
-						"move the note to another FM channel, or move the sample", index, note);
+					raise(Diagnostic.FAULT, Part.Fm6, note.at, Locale.WARN_DAC_HOLDS_SIX,
+						Locale.WARN_DAC_HOLDS_SIX_WHY, Locale.WARN_DAC_HOLDS_SIX_FIX, [],
+						index, note);
 					break;
 				}
 			}
@@ -207,12 +209,9 @@ final class Budget {
 
 		for (note in notes) {
 			if (note.at < sounding && held != null) {
-				raise(Diagnostic.WARNING, part, note.at,
-					"this note cannot sound",
-					part.name() + " is one voice and is still holding a note from "
-					+ held.at,
-					"shorten the note before it, or move this one to another channel",
-					pattern, note);
+				raise(Diagnostic.WARNING, part, note.at, Locale.WARN_ONE_VOICE,
+					Locale.WARN_ONE_VOICE_WHY, Locale.WARN_ONE_VOICE_FIX,
+					[part.name(), "" + held.at], pattern, note);
 				continue;
 			}
 
@@ -233,20 +232,18 @@ final class Budget {
 			if (part.square()) {
 				if (note.pitch >= profile.lowestSquare) continue;
 
-				raise(Diagnostic.WARNING, part, note.at,
-					"this note is below what a square can count to",
-					"the lowest a ten bit period reaches is note " + profile.lowestSquare,
-					"raise it an octave", pattern, note);
+				raise(Diagnostic.WARNING, part, note.at, Locale.WARN_BELOW_SQUARE,
+					Locale.WARN_BELOW_SQUARE_WHY, Locale.WARN_BELOW_SQUARE_FIX,
+					["" + profile.lowestSquare], pattern, note);
 				continue;
 			}
 
 			if (!part.fm()) continue;
 			if (note.pitch >= profile.lowestFm && note.pitch <= profile.highestFm) continue;
 
-			raise(Diagnostic.WARNING, part, note.at,
-				"this note is outside what a block can reach",
-				"the FM part covers notes " + profile.lowestFm + " to " + profile.highestFm,
-				"move it inside that range", pattern, note);
+			raise(Diagnostic.WARNING, part, note.at, Locale.WARN_OUTSIDE_BLOCK,
+				Locale.WARN_OUTSIDE_BLOCK_WHY, Locale.WARN_OUTSIDE_BLOCK_FIX,
+				["" + profile.lowestFm, "" + profile.highestFm], pattern, note);
 		}
 	}
 
@@ -290,18 +287,16 @@ final class Budget {
 				said = true;
 
 				raise(Diagnostic.WARNING, halfPart(half, address < 0 ? 0x40 : address),
-					frameAt, "a frame writes more than a driver can",
-					written + " registers in one frame, against the " + profile.perFrame
-					+ " the busiest frame of a shipped game does",
-					"thin the automation out, or spread it over more frames");
+					frameAt, Locale.WARN_FRAME_BUSY, Locale.WARN_FRAME_BUSY_WHY,
+					Locale.WARN_FRAME_BUSY_FIX, ["" + written, "" + profile.perFrame]);
 			}
 
 			if (kind == Stream.PSG) {
 				if (profile.carries(Part.Psg1)) continue;
 
-				raise(Diagnostic.FAULT, Part.Psg1, at,
-					"a write reached a part that is not there",
-					profile.name + " has no SN76489", "choose a profile that has one");
+				raise(Diagnostic.FAULT, Part.Psg1, at, Locale.WARN_PSG_ABSENT,
+					Locale.WARN_PSG_ABSENT_WHY, Locale.WARN_PSG_ABSENT_FIX,
+					[profile.name]);
 				continue;
 			}
 
@@ -316,21 +311,19 @@ final class Budget {
 			if (half == 0 && address == 0x28) {
 				if (profile.keyed(value & 7)) continue;
 
-				raise(Diagnostic.FAULT, keyedPart(value & 7), at,
-					"a key on names a channel that is not there",
-					profile.name + " has no channel " + ((value & 7) & 3)
-					+ " in half " + (((value & 4) != 0) ? 1 : 0),
-					"move the note to a channel it has");
+				raise(Diagnostic.FAULT, keyedPart(value & 7), at, Locale.WARN_KEY_ABSENT,
+					Locale.WARN_KEY_ABSENT_WHY, Locale.WARN_KEY_ABSENT_FIX,
+					[profile.name, "" + ((value & 7) & 3),
+					"" + (((value & 4) != 0) ? 1 : 0)]);
 				continue;
 			}
 
 			if (profile.holds(half, address)) continue;
 
 			raise(Diagnostic.FAULT, halfPart(half, address), at,
-				"a write reached a register the part does not have",
-				"register " + StringTools.hex(address, 2) + " in half " + half
-				+ " is not on " + profile.name,
-				"choose a profile that has it");
+				Locale.WARN_REGISTER_ABSENT, Locale.WARN_REGISTER_ABSENT_WHY,
+				Locale.WARN_REGISTER_ABSENT_FIX,
+				[StringTools.hex(address, 2), "" + half, profile.name]);
 		}
 
 		return found.length;

@@ -388,7 +388,7 @@ final class Session {
 		part = found.part;
 		if (found.pattern >= 0) pattern = found.pattern;
 
-		say(found.line());
+		saying(found.saying, found.values);
 
 		if (onReveal != null) onReveal(found);
 		changed();

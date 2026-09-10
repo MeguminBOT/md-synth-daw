@@ -182,8 +182,8 @@ class CheckCheck {
 		var wrote = 0;
 
 		for (found in sms.found) {
-			if (StringTools.startsWith(found.saying, "a key on")) keys++;
-			else if (StringTools.startsWith(found.saying, "a write reached a register")) wrote++;
+			if (found.saying == mdd.app.Locale.WARN_KEY_ABSENT) keys++;
+			else if (found.saying == mdd.app.Locale.WARN_REGISTER_ABSENT) wrote++;
 		}
 
 		says("a register that is not there", wrote > 0,
