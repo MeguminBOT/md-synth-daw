@@ -40,6 +40,7 @@ class SpineCheck {
 
 		Sys.println("  spine");
 
+		snapping();
 		played();
 		blocks();
 		looping();
@@ -55,6 +56,46 @@ class SpineCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	static function snapping():Void {
+		final session = Session.started(mdd.song.Library.embedded());
+		final song = session.song;
+
+		session.snapping = Session.SIXTEENTH;
+
+		final was = song.tempo.ppqn;
+		final coarse = session.snap;
+		final wantCoarse = Std.int(song.tempo.ppqn * 4 / Session.SIXTEENTH);
+
+		song.retick(480);
+
+		final fine = session.snap;
+		final wantFine = Std.int(480 * 4 / Session.SIXTEENTH);
+
+		says("the snap follows the piece it is in",
+			coarse == wantCoarse && fine == wantFine,
+			"a sixteenth is " + coarse + " ticks at " + was + " a beat and " + fine
+			+ " at 480, rather than staying at " + coarse + " and meaning nothing");
+
+		final step = session.snap;
+
+		says("a placed note takes the step it was pointed at",
+			session.begins(step + 1) == step
+			&& session.begins(step * 2 - 1) == step,
+			"a point anywhere inside a step of " + step
+			+ " ticks lands on the tick that step begins at");
+
+		says("and a moved one takes the nearest line",
+			session.snapped(step * 2 - 1) == step * 2
+			&& session.snapped(step + 1) == step,
+			"which is what dragging something that already exists wants");
+
+		session.snapping = 0;
+
+		says("and no snap leaves a tick alone",
+			session.snap == 0 && session.begins(7) == 7 && session.snapped(7) == 7,
+			"a tick of 7 stays at 7");
 	}
 
 	static function sized(roll:mdd.view.editor.PianoRoll, session:mdd.app.Session):Void {
