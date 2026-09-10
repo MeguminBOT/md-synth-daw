@@ -81,19 +81,34 @@ final class Library {
 			final one = presets.at(index);
 
 			final pcm = one.get("pcm").saying("");
-			final patch = pcm == "" ? patched(one.get("tfi").saying("")) : null;
+			final noise = one.get("noise");
+			final drawn = noise.get("steps");
+			final beats = drawn.length();
 
-			if (patch == null && pcm == "") continue;
+			final patch = pcm == "" && beats == 0
+				? patched(one.get("tfi").saying("")) : null;
+
+			if (patch == null && pcm == "" && beats == 0) continue;
 
 			final sample = pcm == "" ? null : sampled(one.get("name").saying("hit"),
 				pcm, one.get("rate").whole(8000), one.get("root").whole(60));
 
-			if (patch == null && sample == null) continue;
+			if (patch == null && sample == null && beats == 0) continue;
 
-			final instrument = new Instrument(one.get("name").saying("patch"),
-				patch == null ? Part.Dac : Part.Fm1);
+			final where = beats > 0 ? Part.Noise : (patch == null ? Part.Dac : Part.Fm1);
+			final instrument = new Instrument(one.get("name").saying("patch"), where);
 
 			if (patch != null) instrument.patch = patch;
+
+			final envelope = instrument.envelope;
+
+			if (beats > 0 && envelope != null) {
+				for (step in 0...beats) envelope.steps.push(drawn.at(step).whole(15));
+
+				envelope.turns(Envelope.NOISE, noise.get("mode").whole(7));
+				envelope.turns(Envelope.SPEED, noise.get("speed").whole(1));
+				envelope.turns(Envelope.LOOP, noise.get("loop").whole(-1));
+			}
 
 			instrument.icon = mdd.Icon.NAMES.indexOf(one.get("icon").saying(""));
 

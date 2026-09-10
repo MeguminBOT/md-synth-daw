@@ -912,6 +912,27 @@ class MixCheck {
 			library.count() + " presets embedded in the binary across " + library.names.length
 			+ " banks, " + first + " of them added to a song read from a file and " + again
 			+ " added a second time");
+
+		var noises = 0;
+		var longest = 0;
+		var white = 0;
+
+		for (instrument in song.instruments) {
+			final envelope = instrument.envelope;
+
+			if (envelope == null || !instrument.kind.noise()) continue;
+			if (envelope.steps.length == 0) continue;
+
+			noises++;
+			if (envelope.steps.length > longest) longest = envelope.steps.length;
+			if (envelope.noise == 7) white++;
+		}
+
+		says("and the drums a bank carries reach the noise channel",
+			noises >= 10 && white == noises && longest > 1,
+			noises + " noise envelopes landed on the noise part, " + white
+			+ " of them clocked from the tone channel, the longest " + longest
+			+ " steps");
 	}
 
 	static function kitted():Void {
