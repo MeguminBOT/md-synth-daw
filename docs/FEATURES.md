@@ -323,6 +323,11 @@ These are decisions, not gaps, and they are not going to change.
 - **Not a general-purpose DAW.** No reverb, no filters, no oversampling, no parameter that does not
   correspond to a register on one of the two chips. Anything the hardware cannot do does not belong
   here, however ordinary it is elsewhere.
+- **No pan pot.** The YM2612 gives a channel one bit for the left and one for the right, so
+  a channel is on the left, on the right, on both, or silent. There is no sixty forty: the
+  register has nowhere to put it. The squares have no stereo at all on a stock console, and
+  the pan automation lane holds the whole of `$B4`, stereo bits and LFO sensitivities
+  together, because that register has to have one writer.
 - **Not a plugin.** Not CLAP, not VST, not AU. This is an application, and the reason it is one is
   that a plugin could not be it.
 - **Not an emulator.** No 68000, no Z80, no VDP. It produces and consumes a register stream; it
