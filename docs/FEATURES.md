@@ -154,6 +154,10 @@ writes with real pauses excluded, rather than from the run measured end to end.
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
+- A drum kit ships too, thirteen hits for the converter: a kick, a snare, three toms, closed,
+  pedal and open hats, a clap, a rim, a crash, a ride and a cowbell. Every one is synthesised
+  rather than recorded, and each sits on the note general MIDI puts that drum on, so a drum
+  track imported from a MIDI lands on the right hit with nothing to move.
 - Your own patches load beside the shipped ones rather than replacing them.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its

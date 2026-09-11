@@ -109,14 +109,19 @@ reason.
 beside the binary at build time and read at startup like any other bank a person drops in that
 folder. Checked on 5 September 2026.
 
-| bank | source | files | patches read | patches kept |
-| --- | --- | --- | --- | --- |
-| Sonic the Hedgehog | the game's soundtrack | 19 | 526 | 70 |
-| Sonic the Hedgehog 2 | the game's soundtrack | 31 | 920 | 134 |
-| Sonic the Hedgehog 3 | the game's soundtrack | 38 | 1249 | 162 |
-| Mickey Mania | the game's soundtrack | 24 | 574 | 42 |
+| bank | source | files | patches read | patches kept | read by |
+| --- | --- | --- | --- | --- | --- |
+| Sonic the Hedgehog | the game's soundtrack | 19 | 526 | 58 | `mdd gate lift` |
+| Sonic the Hedgehog 2 | the game's soundtrack | 31 | 920 | 120 | `mdd gate lift` |
+| Sonic the Hedgehog 3 | the game's soundtrack | 38 | 431 | 147 | `mdd gate gather` |
+| Mickey Mania | the game's soundtrack | 24 | 177 | 27 | `mdd gate gather` |
 
-The extraction is `mdd gate lift`, which the gate does not run. It imports each file, takes the patch
+Two programs made these because the first two banks were named by ear against hand written tables of
+zone names, and the second two were not. `mdd gate gather` works a name out from the envelope a patch
+carries and the pitch it was played at, and agrees with the hand naming on 107 of the 172 patches the
+two overlap on, against 53 for always answering with the commonest name.
+
+Neither program is run by the gate. Each imports each file, takes the patch
 behind every instrument the import builds, and sets the carriers' total level to zero so that the
 same timbre at two volumes counts once. A patch that matches one already kept is not stored again:
 the track it came from is added to the one already there, which is why a patch can carry a great many
@@ -132,6 +137,44 @@ numbers for each of four operators. Forty two bytes of parameters that a chip is
 read from a recording of the hardware rather than copied from anybody's source, and this repository
 makes no claim about them beyond recording where they came from, which is what this file is for.
 Nothing here is a grant of permission, and the entry stands whatever the answer to that question is.
+
+### The recorded samples two of those banks also carry
+
+Two of the banks carry converter samples as well as patches, and a sample is not a parameter. These
+are the bytes the converter was fed: an excerpt of the game's audio rather than a setting the chip
+was put into, so the paragraph above does not reach them.
+
+| bank | samples | bytes | what they are |
+| --- | --- | --- | --- |
+| Sonic the Hedgehog | 4 | 40744 | Kick, Snare, Timpani, and a voice saying the publisher's name |
+| Sonic the Hedgehog 2 | 8 | 49012 | Bongo, Clap, Kick, Scratch, Snare, Timpani, Tom, and that voice |
+
+They are recorded here because this file is the register of what ships. Whether they should ship at
+all is a decision rather than a fact, and it has not been taken.
+
+## The drum kit
+
+`assets/presets/drum-kit.json` is written by `mdd gate kit`, which the gate does not run. Nothing in
+it is recorded or sampled from anywhere: every hit is arithmetic, built by `test/mdd/gate/Kitted.hx`
+and covered by this repository's own licence like any other file in it. A drum is a sine swept down
+under a falling envelope, a cymbal is noise with its low end differenced away, and a cowbell is two
+tones built from the odd harmonics that fit under half the sample rate. The noise comes from a
+counter with a fixed seed, so the bank is the same bytes on every run.
+
+| what | root | bytes |
+| --- | --- | --- |
+| Kick | 36 | 2425 |
+| Rim | 37 | 496 |
+| Snare | 38 | 1984 |
+| Clap | 39 | 2094 |
+| Tom low, mid, high | 41, 45, 48 | 3748 each |
+| Hat closed, pedal, open | 42, 44, 46 | 496, 826, 3528 |
+| Crash, Ride | 49, 51 | 9371, 6063 |
+| Cowbell | 56 | 2866 |
+
+Thirteen hits, 41393 bytes at 11025 Hz, which is 15.8 per cent of the 262144 the Mega Drive profile
+allows for samples. The roots are where general MIDI puts each drum, so a drum track imported from a
+MIDI lands on the right hit with nothing to move.
 
 ## Read but never shipped
 
