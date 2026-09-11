@@ -1,5 +1,6 @@
 package mdd.gate;
 
+import haxe.ds.Vector;
 import mdd.chip.Sn76489;
 import mdd.chip.Ym2612;
 import mdd.host.Audio;
@@ -37,6 +38,7 @@ class AudioCheck {
 		final live = args.length > 0 ? Std.parseFloat(args[0]) : LIVE;
 
 		queueing();
+		resampled();
 		offline();
 		whistle();
 		pitch();
@@ -55,6 +57,104 @@ class AudioCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		What a rate change keeps, and what it must not let back in.
+
+		A tone under the new half rate has to come through where it was. A tone over it
+		has to go, and the way to tell it went is that it did not come back somewhere
+		else: taking one sample in four of 8000 Hz at 48000 lands it on 3025 Hz, which
+		is a note nobody played.
+	**/
+	static function resampled():Void {
+		final was = 48000;
+		final want = 11025;
+
+		says("a tone under the new half rate comes through",
+			near(loudest(sined(was, 2000), want, was), 2000, 30),
+			Math.round(loudest(sined(was, 2000), want, was))
+				+ " Hz after 48000 becomes 11025, of the 2000 that went in");
+
+		final over = strength(sined(was, 8000), want, was);
+		final under = strength(sined(was, 2000), want, was);
+		final down = under <= 0 || over <= 0 ? -99.0
+			: 20 * Math.log(over / under) / Math.log(10);
+
+		says("and one over it does not come back somewhere else", down < -40,
+			round(down, 1) + " dB left of a tone at 8000 that 11025 cannot carry, against"
+				+ " the nought a tone it can carry keeps");
+	}
+
+	/**
+		@param rate The rate to build it at.
+		@param hertz The tone.
+		@return One second of it, at plus or minus one.
+	**/
+	static function sined(rate:Int, hertz:Float):Vector<Float> {
+		final out = new Vector<Float>(rate);
+		for (index in 0...rate) out[index] = Math.sin(2 * Math.PI * hertz * index / rate);
+
+		return out;
+	}
+
+	/**
+		@param held The audio.
+		@param want The rate to bring it to.
+		@param was The rate it is at.
+		@return The loudest frequency left in it afterwards, in hertz.
+	**/
+	static function loudest(held:Vector<Float>, want:Int, was:Int):Float {
+		final out = mdd.format.Resampler.into(held, was, want);
+		final size = 8192;
+
+		if (out.length < size) return 0;
+
+		final fourier = new Fourier(size);
+		fourier.clear();
+
+		for (index in 0...size) fourier.real[index] = out[index];
+
+		fourier.forward();
+
+		final sizes = new Vector<Float>(size >> 1);
+		fourier.magnitudes(sizes);
+
+		var at = 0;
+		for (index in 1...sizes.length) if (sizes[index] > sizes[at]) at = index;
+
+		return at * want / size;
+	}
+
+	/**
+		How loud the loudest thing left is, with a tenth off either end.
+
+		The ends are left out because a window reaching past the run has only half of
+		itself to work with there and rejects far less, which is a property of every
+		filter at a boundary rather than anything folding back. `Resampler` says what
+		that costs a caller.
+
+		@param held The audio.
+		@param want The rate to bring it to.
+		@param was The rate it is at.
+		@return How loud the loudest thing left in the middle of it is.
+	**/
+	static function strength(held:Vector<Float>, want:Int, was:Int):Float {
+		final out = mdd.format.Resampler.into(held, was, want);
+		final edge = Std.int(out.length / 10);
+
+		var most = 0.0;
+		for (index in edge...out.length - edge) {
+			final size = out[index] < 0 ? -out[index] : out[index];
+			if (size > most) most = size;
+		}
+
+		return most;
+	}
+
+	static function near(value:Float, want:Float, room:Float):Bool {
+		final apart = value - want;
+		return (apart < 0 ? -apart : apart) <= room;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

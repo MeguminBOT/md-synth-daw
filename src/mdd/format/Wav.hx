@@ -170,21 +170,19 @@ final class Wav {
 		Resamples the audio to a rate and reduces it to the unsigned bytes the sample
 		channel takes.
 
+		The rate change is band limited, so nothing above the new half rate folds back
+		into what is kept. `Resampler` says why that matters.
+
 		@param into The rate to resample to, in hertz.
 		@return The bytes.
 	**/
 	public function bytes(into:Int):Vector<Int> {
-		final held = mono();
-		final step = into <= 0 || rate <= 0 ? 1.0 : rate / into;
-		final many = step <= 0 ? held.length : Std.int(held.length / step);
-		final out = new Vector<Int>(many < 1 ? 1 : many);
+		final held = into <= 0 || rate <= 0 ? mono() : Resampler.into(mono(), rate, into);
+		final out = new Vector<Int>(held.length < 1 ? 1 : held.length);
 
-		for (i in 0...out.length) {
-			final at = Std.int(i * step);
-			final sample = at < held.length ? held[at] : 0.0;
-			final value = Math.round(sample * 127) + 128;
-
-			out[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
+		for (i in 0...held.length) {
+			final value = Math.round(held[i] * 127) + 128;
+		out[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
 		}
 
 		return out;

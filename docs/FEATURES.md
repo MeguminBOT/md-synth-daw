@@ -143,7 +143,9 @@ goes to the converter with the kit already on, and the shipped samples sit at th
 MIDI drum notes, so a kick lands on the kick and every note stays on the key the file wrote it
 on.
 
-WAV files import into the sample channel, resampled to the rate you ask for. A run of converter
+WAV files import into the sample channel, band limited on the way down so nothing above the new
+half rate folds back into what is kept: measured, a tone the new rate cannot carry leaves 75.6 dB
+below one it can. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between
 writes with real pauses excluded, rather than from the run measured end to end.
 
