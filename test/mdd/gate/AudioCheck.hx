@@ -39,6 +39,7 @@ class AudioCheck {
 
 		queueing();
 		resampled();
+		deep();
 		sampling();
 		offline();
 		whistle();
@@ -85,6 +86,51 @@ class AudioCheck {
 		says("and one over it does not come back somewhere else", down < -40,
 			round(down, 1) + " dB left of a tone at 8000 that 11025 cannot carry, against"
 				+ " the nought a tone it can carry keeps");
+	}
+
+	/**
+		Every depth a wave file can carry reads back as what was written.
+
+		Twenty four bits had no case of its own and fell through to the one that reads
+		four bytes, so every sample was built from three of its own bytes and one of
+		the next one, and then divided by the wrong scale. It read as noise, and
+		nothing here had ever asked, because the fixtures were all sixteen bit.
+	**/
+	static function deep():Void {
+		final frames = 512;
+		final held = new Vector<cpp.Float32>(frames);
+
+		for (index in 0...frames) {
+			held[index] = 0.8 * Math.sin(2 * Math.PI * 7 * index / frames)
+				* (1 - index / frames);
+		}
+
+		for (depth in [16, 24, 32]) {
+			final bytes = mdd.format.Wav.write(held, frames, 1, 22050, depth, false);
+			final back = mdd.format.Wav.read(bytes);
+
+			if (back.frames != frames) {
+				says(depth + " bit reads back", false,
+					back.frames + " frames of " + frames);
+				continue;
+			}
+
+			final mono = back.mono();
+			var worst = 0.0;
+
+			for (index in 0...frames) {
+				final apart = mono[index] - held[index];
+				final size = apart < 0 ? -apart : apart;
+
+				if (size > worst) worst = size;
+			}
+
+			final step = depth == 16 ? 1 / 32768.0 : (depth == 24 ? 1 / 8388608.0 : 1e-6);
+
+			says(depth + " bit reads back as what was written", worst <= step * 2,
+				"the worst sample is out by " + round(worst / step, 2)
+					+ " of one step at that depth");
+		}
 	}
 
 	/**

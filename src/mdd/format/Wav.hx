@@ -144,6 +144,14 @@ final class Wav {
 				continue;
 			}
 
+			if (wide == 3) {
+				final value = bytes.get(where) | (bytes.get(where + 1) << 8)
+					| (bytes.get(where + 2) << 16);
+
+				samples[i] = floated(value >= 0x800000 ? value - 0x1000000 : value, 24);
+				continue;
+			}
+
 			final value = bytes.getInt32(where);
 			samples[i] = value / 2147483648.0;
 		}
