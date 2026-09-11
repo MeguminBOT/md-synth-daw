@@ -30,6 +30,7 @@ class CheckCheck {
 		overlaps();
 		converter();
 		sampled();
+		swapped();
 		ranges();
 		registers();
 		speed();
@@ -45,6 +46,108 @@ class CheckCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		Swapping the converter's instrument changes what the converter plays.
+	**/
+	static function swapped():Void {
+		final song = bare("swapping");
+
+		final one = laid(song, "one", 60, 40);
+		final two = laid(song, "two", 60, 200);
+
+		song.banked("kit one").add(one);
+		song.banked("kit two").add(two);
+
+		song.bank(0).remove(one);
+		song.bank(0).remove(two);
+
+		song.rack[Part.Dac.index()] = one;
+		song.patterns[0].lane(Part.Dac).add(new Note(0, 96, 60, 100));
+
+		final before = poured(song);
+
+		new mdd.song.edit.SetInstrument(Part.Dac, two).apply(song);
+
+		final after = poured(song);
+
+		says("swapping the converter's instrument changes what it plays",
+			before != "" && after != "" && before != after,
+			before == after ? "both instruments wrote the same bytes"
+				: "the first wrote " + before + " and the second " + after);
+
+		song.drums = true;
+
+		final kitted = poured(song);
+
+		new mdd.song.edit.SetInstrument(Part.Dac, one).apply(song);
+
+		final back = poured(song);
+
+		says("and swapping it changes what a kit reaches too",
+			kitted != "" && back != "" && kitted != back,
+			kitted == back
+				? "both kits reached the same bytes, so the swap did nothing"
+				: "the second kit wrote " + kitted + " and the first " + back
+					+ ", from two kits with a hit on the same key");
+	}
+
+	/**
+		Puts a sampled instrument in a song, its bytes a flat level so the two are told
+		apart by what reaches the converter rather than by how much of it there is.
+
+		@param song The song.
+		@param name What to call it.
+		@param root Which key it sits on.
+		@param level The byte it holds.
+		@return Its index.
+	**/
+	static function laid(song:Song, name:String, root:Int, level:Int):Int {
+		final sample = new mdd.song.Sample(name, 8000, root);
+		final bytes = new haxe.ds.Vector<Int>(64);
+
+		for (at in 0...bytes.length) bytes[at] = level;
+		sample.hold(bytes);
+
+		song.sample(sample);
+
+		final made = new Instrument(name, Part.Dac);
+		made.sample = song.samples.length - 1;
+
+		song.instrument(made);
+		return song.instruments.length - 1;
+	}
+
+	/**
+		@param song The song to sequence.
+		@return The distinct bytes that reached the converter, or an empty string where
+			none did.
+	**/
+	static function poured(song:Song):String {
+		final span = song.tempo.samplesAt(song.ends());
+		final stream = new Stream(mdd.play.Mixdown.roomFor(span));
+
+		new Sequencer(song).spanned(stream, 0, span);
+
+		final held:Array<String> = [];
+		var want = false;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != Stream.YM) continue;
+
+			if (stream.portAt(index) == 0) {
+				want = stream.valueAt(index) == 0x2A;
+				continue;
+			}
+
+			if (!want) continue;
+
+			final said = "" + stream.valueAt(index);
+			if (held.indexOf(said) < 0) held.push(said);
+		}
+
+		return held.join(" ");
 	}
 
 	/**

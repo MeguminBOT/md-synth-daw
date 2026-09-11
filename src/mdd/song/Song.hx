@@ -293,14 +293,25 @@ final class Song {
 	/**
 		Which sample a drum kit sounds for a pitch.
 
+		The kit is the bank the converter's own instrument belongs to, not every sample
+		the document carries. Every kit puts a kick on the same key general MIDI does,
+		so a document holding more than one has several instruments rooted at 36, and
+		taking the first of them would mean swapping the converter's instrument changed
+		nothing. It is the same bank the roll draws its rows from, so what is shown on a
+		key is what sounds from it.
+
 		@param pitch A MIDI note number.
 		@return The instrument whose sample sits at that pitch, by index, or -1
 			where none does.
 	**/
 	public function drumAt(pitch:Int):Int {
+		final at = bankOf(rack[Part.Dac.index()]);
+		final bank = at < 0 || at >= banks.length ? null : banks[at];
+
 		for (index in 0...instruments.length) {
 			final instrument = instruments[index];
 			if (!instrument.kind.sampled()) continue;
+			if (bank != null && !bank.holds(index)) continue;
 
 			final sample = sampleAt(instrument.sample);
 			if (sample == null || sample.root != pitch) continue;
