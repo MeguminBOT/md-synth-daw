@@ -91,6 +91,12 @@ final class Panels {
 	public var exporting:Null<Export> = null;
 
 	/**
+		The sheet that says what a MIDI file holds and takes the choice of what to
+		import out of it.
+	**/
+	public var importing:Null<mdd.view.overlay.Importing> = null;
+
+	/**
 		The update notice.
 	**/
 	public var notice:Null<Notice> = null;
@@ -219,6 +225,20 @@ final class Panels {
 	public function sounded():Void {
 		stage.root.raise(exporting);
 		exporting.ask();
+	}
+
+	/**
+		Raises the import sheet for a file that has been surveyed.
+
+		@param called What the file is called.
+		@param strands What the survey found in it.
+	**/
+	public function surveyed(called:String,
+			strands:Array<mdd.format.Strand>):Void {
+		if (importing == null) return;
+
+		stage.root.raise(importing);
+		importing.ask(called, strands);
 	}
 
 	/**

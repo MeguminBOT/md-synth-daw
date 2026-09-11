@@ -261,6 +261,19 @@ class App {
 			files.ask(stage.window, Files.AUDIO);
 		};
 
+		panels.importing = new mdd.view.overlay.Importing();
+		panels.importing.onShut = function():Void stage.root.lower();
+
+		panels.importing.onImport = function(strands:Array<mdd.format.Strand>):Void {
+			final instead = panels.importing.lands == mdd.view.overlay.Importing.INSTEAD;
+
+			files.takesMidi(strands, instead);
+			changed();
+		};
+
+		files.onSurvey = function(called:String,
+				strands:Array<mdd.format.Strand>):Void panels.surveyed(called, strands);
+
 		panels.preferences = new Preferences(session);
 		panels.preferences.onScale = function(much:Float):Void stage.densified(much);
 		panels.preferences.onTypeface = function(which:Int):Void redressed();

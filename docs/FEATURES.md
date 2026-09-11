@@ -207,7 +207,7 @@ and the checks compare the live stream against the offline one on every run.
 | --- | --- |
 | **VGM** and **VGZ** | The register stream becomes notes, patches, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at. The exact frequency word is recorded at every key on, so vibrato and slides survive rather than being rounded to the nearest semitone |
 | **XGM** | Patterns and samples |
-| **MIDI** | Notes and tempo |
+| **MIDI** | Notes and tempo. A file is looked through before any of it arrives, so you pick which of its tracks and channels to take and which part each one plays, and take it either as a piece of its own or as one more track in the piece you have open |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
 | **TFI** | A single FM patch |
 
@@ -217,6 +217,11 @@ channels are used, and where the driver writes registers a note model cannot hol
 A `vgz` is a gzipped VGM and is read as one, which is the form most recordings are handed
 out in. Any of these opens by dropping the file on the window, by handing it to the program
 on the command line, or from the file menu.
+
+A MIDI taken into the piece you have open lands as one new track holding one pattern, at
+bar one, with a lane for each part you chose. It keeps the piece's own tempo and counts in
+the piece's own resolution rather than the file's, so what was already there does not
+move. It goes on the undo stack whole.
 
 ---
 

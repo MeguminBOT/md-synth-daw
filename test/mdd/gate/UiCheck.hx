@@ -137,6 +137,7 @@ class UiCheck {
 		collapse();
 		quiet(renderer, target, face, monoFace);
 		sheets(renderer, target, face, monoFace);
+		chooses();
 
 		Draw.destroyTexture(target);
 		Sdl.destroyRenderer(renderer);
@@ -157,6 +158,104 @@ class UiCheck {
 		ran++;
 		if (!ok) failed++;
 		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
+	}
+
+	/**
+		The import sheet takes what is chosen on it.
+
+		Every part of a row is worked out from where it was pressed rather than from a
+		widget that knows where it is, so the arithmetic is the thing worth driving.
+	**/
+	static function chooses():Void {
+		final root = shaped();
+		root.resize(800, 600);
+		root.flow = Flow.None;
+		root.top.arrange(0, 0, 800, 600);
+
+		final sheet = new mdd.view.overlay.Importing();
+		final strands:Array<mdd.format.Strand> = [];
+
+		for (channel in 0...3) {
+			final strand = new mdd.format.Strand(channel, channel);
+
+			strand.name = "strand " + channel;
+			strand.part = channel;
+			strand.counts(60, 96);
+
+			strands.push(strand);
+		}
+
+		var took:Array<mdd.format.Strand> = [];
+		sheet.onImport = function(held:Array<mdd.format.Strand>):Void took = held;
+
+		root.raise(sheet);
+		sheet.ask("held.mid", strands);
+		sheet.arrange(80, 60, 640, 400);
+
+		final metrics = root.metrics;
+		final row = sheet.y + sheet.head() + sheet.bandTall() + sheet.rowTall() * 0.5;
+		final chooser = sheet.chooserAt(metrics);
+
+		poked(root, sheet.x + 5, row);
+
+		says("a press anywhere on a row turns that row off",
+			!strands[0].taken && strands[1].taken && sheet.taking() == 2,
+			"the first strand is left behind and " + sheet.taking() + " are still taken");
+
+		poked(root, sheet.x + 5, row);
+		poked(root, chooser + metrics.whole(mdd.view.overlay.Importing.CHOOSER) - 4, row);
+
+		final up = strands[0].part;
+
+		poked(root, chooser + 4, row);
+		poked(root, chooser + 4, row);
+
+		says("and the chooser steps the part either way",
+			up == 1 && strands[0].part == mdd.song.Part.COUNT - 1,
+			"it went up to " + up + " and then down past nought to " + strands[0].part);
+
+		final second = sheet.y + sheet.head() + sheet.bandTall()
+			+ sheet.rowTall() * 1.5;
+
+		poked(root, sheet.x + 5, second);
+
+		says("and a row is told apart from the one under it",
+			!strands[1].taken && strands[2].taken,
+			"the second row turned off and the third was left alone");
+
+		poked(root, sheet.x + sheet.width - metrics.inset - 10,
+			sheet.y + sheet.head() + sheet.bandTall() * 0.5);
+
+		says("and where it lands is its own row",
+			sheet.lands == mdd.view.overlay.Importing.INSTEAD,
+			"the far side of the band chose a piece of its own");
+
+		for (strand in strands) strand.taken = false;
+		poked(root, sheet.go.x + sheet.go.width * 0.5,
+			sheet.go.y + sheet.go.height * 0.5);
+
+		says("and nothing is imported where nothing is taken", took.length == 0,
+			"the button did nothing with every row turned off");
+
+		strands[2].taken = true;
+		poked(root, sheet.go.x + sheet.go.width * 0.5,
+			sheet.go.y + sheet.go.height * 0.5);
+
+		says("and what was taken reaches the import", took.length == 3
+			&& took[2].taken && !took[0].taken,
+			"the sheet handed over all three rows with the one that was ticked marked");
+	}
+
+	/**
+		Presses and releases at a point, which is what a click is.
+
+		@param root The root to send it through.
+		@param px Where, across.
+		@param py Where, down.
+	**/
+	static function poked(root:Root, px:Float, py:Float):Void {
+		root.pressed(px, py, Pointer.Left, Mod.None);
+		root.released(px, py, Pointer.Left, Mod.None);
 	}
 
 	static function shaped():Root {

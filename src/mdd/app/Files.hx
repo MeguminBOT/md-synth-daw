@@ -3,6 +3,7 @@ package mdd.app;
 import haxe.ds.Vector;
 import mdd.format.Midi;
 import mdd.format.Project;
+import mdd.format.Strand;
 import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.format.Wav;
@@ -167,6 +168,16 @@ final class Files {
 		Called when a piece has been read.
 	**/
 	public var onLoad:Null<Song -> Void> = null;
+
+	/**
+		Called with what a surveyed MIDI file holds, so a reader can say which of it to
+		take and where each strand goes. Nothing has happened to the piece by the time
+		this is called, and `takes` is what acts on the answer.
+	**/
+	public var onSurvey:Null<(String, Array<Strand>) -> Void> = null;
+
+	var midiBytes:Null<haxe.io.Bytes> = null;
+	var midiName:String = "";
 
 	/**
 		Where the last save went.
@@ -621,15 +632,84 @@ final class Files {
 		@param where The file to read.
 	**/
 	public function readMidi(where:String):Void {
-		final song = Midi.read(sys.io.File.getBytes(where), name(where));
+		final bytes = sys.io.File.getBytes(where);
+		final strands = Midi.survey(bytes);
 
+		if (strands.length == 0) {
+			session.says(Locale.SAID_EMPTY_MIDI);
+			return;
+		}
 
-		path = "";
-		if (onLoad != null) onLoad(song);
-		forget();
+		midiBytes = bytes;
+		midiName = name(where);
 
-		session.says(Locale.SAID_READ_SONG, name(where), "" + song.patterns.length,
-			"" + song.instruments.length);
+		final what = onSurvey;
+		if (what != null) what(midiName, strands);
+	}
+
+	/**
+		Takes what a reader chose out of the file `readMidi` surveyed.
+
+		@param strands What to take, and where each strand goes.
+		@param instead Whether the file becomes a piece of its own rather than a track in
+			the one that is open.
+	**/
+	public function takesMidi(strands:Array<Strand>, instead:Bool):Void {
+		final bytes = midiBytes;
+		if (bytes == null) return;
+
+		var many = 0;
+		for (strand in strands) if (strand.taken) many += strand.notes;
+
+		if (many == 0) {
+			session.says(Locale.SAID_NOTHING_TAKEN);
+			return;
+		}
+
+		if (instead) {
+			final song = Midi.taken(bytes, midiName, strands);
+
+			path = "";
+			if (onLoad != null) onLoad(song);
+			forget();
+
+			session.says(Locale.SAID_READ_SONG, midiName, "" + song.patterns.length,
+				"" + song.instruments.length);
+			return;
+		}
+
+		tracked(bytes, strands, many);
+	}
+
+	/**
+		Puts the chosen strands into the piece that is open, as one more track.
+
+		It lands as one pattern on one new row, which is what a track is here, so the
+		whole import moves as one thing. It goes on the undo stack whole.
+
+		@param bytes The file.
+		@param strands What to take, and where each strand goes.
+		@param many How many notes that comes to.
+	**/
+	function tracked(bytes:haxe.io.Bytes, strands:Array<Strand>, many:Int):Void {
+		final song = session.song;
+		final pattern = Midi.patterned(bytes, midiName, strands, song.tempo.ppqn);
+
+		final onto = song.tracks.length;
+		final which = song.patterns.length;
+
+		final group = new mdd.song.edit.Together("import a midi");
+
+		group.also(new mdd.song.edit.AddPattern(pattern));
+		group.also(new mdd.song.edit.AddTrack(onto));
+		group.also(new mdd.song.edit.RenameTrack(onto, midiName));
+		group.also(new mdd.song.edit.AddClip(onto,
+			new mdd.song.Clip(which, 0, pattern.length)));
+
+		if (Midi.kitted(strands)) group.also(new mdd.song.edit.KitDrums(true));
+
+		session.does(group);
+		session.says(Locale.SAID_IMPORTED, midiName, "" + (onto + 1), "" + many);
 	}
 
 	/**

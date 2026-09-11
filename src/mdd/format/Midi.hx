@@ -226,21 +226,58 @@ final class Midi {
 	}
 
 	/**
-		Reads a file into a song, one pattern carrying every track.
+		@param bytes The file.
+		@return How many ticks it counts to a quarter note. A file counting in frames a
+			second is read as the resolution this application writes, because a note
+			position is what is wanted and not a wall clock.
+	**/
+	public static function resolution(bytes:Bytes):Int {
+		if (bytes.length < 14) throw "not a midi: the header chunk is not there";
+
+		final division = wide(bytes, 12);
+		return (division & 0x8000) != 0 ? PPQN : division;
+	}
+
+	/**
+		Looks through a file without importing any of it.
+
+		This is what lets a reader be shown what a file holds and choose, rather than
+		having the whole of it land and then taking the unwanted parts back out.
+
+		@param bytes The file.
+		@return One strand for every track and channel that carries a note, in the order
+			the file writes them, each already pointed at the part its channel would
+			land on.
+	**/
+	public static function survey(bytes:Bytes):Array<Strand> {
+		final out:Array<Strand> = [];
+
+		chunks(bytes, null, null, out);
+		return out;
+	}
+
+	/**
+		Reads a whole file into a song of its own.
 
 		@param bytes The file.
 		@param name What to call the song.
 		@return The song.
 	**/
 	public static function read(bytes:Bytes, name:String):Song {
-		if (bytes.length < 14 || bytes.getString(0, 4) != "MThd") {
-			throw "not a midi: the header chunk is not there";
-		}
+		return taken(bytes, name, survey(bytes));
+	}
 
-		final tracks = wide(bytes, 10);
-		final division = wide(bytes, 12);
-		final ppqn = (division & 0x8000) != 0 ? PPQN : division;
+	/**
+		Reads the chosen strands into a song of its own.
 
+		@param bytes The file.
+		@param name What to call the song.
+		@param strands What to take, and where each one goes.
+		@return The song, split into a pattern for each part where more than one is used.
+	**/
+	public static function taken(bytes:Bytes, name:String,
+			strands:Array<Strand>):Song {
+		final ppqn = resolution(bytes);
 		final song = new Song(name, ppqn, 120);
 		final pattern = song.add(new Pattern(name, ppqn * 4));
 
@@ -249,6 +286,99 @@ final class Midi {
 			song.instrument(new Instrument(part.name(), part));
 			song.rack[index] = index;
 		}
+
+		final longest = chunks(bytes, song, pattern, strands);
+
+		pattern.length = longest + ppqn;
+		song.drums = kitted(strands);
+
+		if (!song.split(pattern)) {
+			final track = song.track(new Track("imported"));
+			track.add(new Clip(0, 0, pattern.length));
+		}
+
+		return song;
+	}
+
+	/**
+		Reads the chosen strands into one pattern, for adding to a piece that is already
+		open.
+
+		The piece keeps its own tempo and its own resolution. A file put beside an
+		arrangement is joining it, so taking the file's tempo would move everything that
+		was already there, and note positions are scaled to the resolution the piece
+		counts in rather than the one the file was written at.
+
+		@param bytes The file.
+		@param name What to call the pattern.
+		@param strands What to take, and where each one goes.
+		@param ppqn How many ticks a quarter note is in the piece this joins.
+		@return The pattern.
+	**/
+	public static function patterned(bytes:Bytes, name:String, strands:Array<Strand>,
+			ppqn:Int):Pattern {
+		final was = resolution(bytes);
+		final pattern = new Pattern(name, ppqn * 4);
+
+		final longest = chunks(bytes, null, pattern, strands);
+
+		if (was > 0 && was != ppqn) rescaled(pattern, was, ppqn);
+
+		final ends = was > 0 && was != ppqn
+			? Math.round(longest * ppqn / was) : longest;
+
+		pattern.length = ends + ppqn;
+		return pattern;
+	}
+
+	/**
+		Moves every note in a pattern from one resolution to another.
+
+		@param pattern The pattern.
+		@param was How many ticks a quarter note was.
+		@param ppqn How many it is now.
+	**/
+	static function rescaled(pattern:Pattern, was:Int, ppqn:Int):Void {
+		for (index in 0...Part.COUNT) {
+			for (note in pattern.lane(index).notes) {
+				note.at = Math.round(note.at * ppqn / was);
+				note.length = Math.round(note.length * ppqn / was);
+
+				if (note.length < 1) note.length = 1;
+			}
+		}
+	}
+
+	/**
+		@param strands What is being taken.
+		@return Whether any of it is the drum channel, which is what says the converter
+			should read a note as a drum rather than as a pitch.
+	**/
+	public static function kitted(strands:Array<Strand>):Bool {
+		for (strand in strands) {
+			if (strand.taken && strand.drums()) return true;
+		}
+
+		return false;
+	}
+
+	/**
+		Walks the track chunks, either surveying them or reading them in.
+
+		@param bytes The file.
+		@param song The song to put tempo changes in, or null to leave a tempo alone.
+		@param pattern The pattern notes go into, or null to survey rather than read.
+		@param strands What was found, or what to take. A survey fills this in; a read
+			follows it.
+		@return The last tick anything reached.
+	**/
+	static function chunks(bytes:Bytes, song:Null<Song>, pattern:Null<Pattern>,
+			strands:Array<Strand>):Int {
+		if (bytes.length < 14 || bytes.getString(0, 4) != "MThd") {
+			throw "not a midi: the header chunk is not there";
+		}
+
+		final tracks = wide(bytes, 10);
 
 		var at = 8 + whole(bytes, 4);
 		var read = 0;
@@ -263,43 +393,69 @@ final class Midi {
 			final room = bytes.length - at;
 			final length = asked < 0 || asked > room ? room : asked;
 
-			final ends = walk(bytes, at, at + length, song, pattern);
+			final ends = walk(bytes, at, at + length, song, pattern, read, strands);
 			if (ends > longest) longest = ends;
 
 			at += length;
 			read++;
 		}
 
-		pattern.length = longest + ppqn;
-
-		if (!song.split(pattern)) {
-			final track = song.track(new Track("imported"));
-			track.add(new Clip(0, 0, pattern.length));
-		}
-
-		return song;
+		return longest;
 	}
 
 	/**
-		Walks one track, turning note on and note off pairs into notes.
+		@param strands Every strand known.
+		@param track Which track chunk.
+		@param channel Which channel.
+		@return The strand for that pair, or null where there is none.
+	**/
+	static function stranded(strands:Array<Strand>, track:Int,
+			channel:Int):Null<Strand> {
+		for (strand in strands) {
+			if (strand.track == track && strand.channel == channel) return strand;
+		}
+
+		return null;
+	}
+
+	/**
+		@param channel A MIDI channel, counted from nought.
+		@return Which part it lands on where nobody says otherwise. The drum channel goes
+			to the converter, and a channel past the parts this machine has lands on the
+			last of them.
+	**/
+	public static function parted(channel:Int):Int {
+		if (channel == DRUMS) return Part.Dac.index();
+		return channel >= Part.COUNT ? Part.COUNT - 1 : channel;
+	}
+
+	/**
+		Walks one track, turning note on and note off pairs into notes, or counting them
+		where there is nothing to put them in.
 
 		@param bytes The file.
 		@param from Where the track starts.
 		@param to One past its end.
-		@param song The song being built.
-		@param pattern The pattern its notes go into.
-		@return How many notes were read.
+		@param song The song to put tempo changes in, or null to leave a tempo alone.
+		@param pattern The pattern notes go into, or null to survey rather than read.
+		@param track Which track chunk this is.
+		@param strands What was found, or what to take.
+		@return The last tick anything reached.
 	**/
-	static function walk(bytes:Bytes, from:Int, to:Int, song:Song, pattern:Pattern):Int {
+	static function walk(bytes:Bytes, from:Int, to:Int, song:Null<Song>,
+			pattern:Null<Pattern>, track:Int, strands:Array<Strand>):Int {
+		final surveying = pattern == null;
+
 		var at = from;
 		var tick = 0;
 		var running = 0;
 		var longest = 0;
+		var called = "";
 
 		final open:Array<Int> = [];
 		final since:Array<Int> = [];
 
-		for (i in 0...128) {
+		for (i in 0...128 * 16) {
 			open.push(-1);
 			since.push(0);
 		}
@@ -343,10 +499,14 @@ final class Midi {
 					if ((byte & 0x80) == 0) break;
 				}
 
-				if (meta == 0x51 && length == 3) {
+				if (meta == 0x51 && length == 3 && song != null) {
 					final micros = (bytes.get(at) << 16) | (bytes.get(at + 1) << 8)
 						| bytes.get(at + 2);
 					if (micros > 0) song.tempo.set(tick, 60000000.0 / micros);
+				}
+
+				if (meta == 0x03 && length > 0 && at + length <= to) {
+					called = named(bytes, at, length);
 				}
 
 				at += length;
@@ -359,28 +519,43 @@ final class Midi {
 				final velocity = bytes.get(at + 1) & 0x7F;
 				at += 2;
 
+				final slot = channel * 128 + pitch;
 				final on = kind == 0x90 && velocity > 0;
-				final part:Part = channel == DRUMS ? Part.Dac
-					: (channel >= Part.COUNT ? Part.COUNT - 1 : channel);
-
-				if (channel == DRUMS) song.drums = true;
 
 				if (on) {
-					open[pitch] = velocity;
-					since[pitch] = tick;
+					open[slot] = velocity;
+					since[slot] = tick;
 					continue;
 				}
 
-				if (open[pitch] < 0) continue;
+				if (open[slot] < 0) continue;
 
-				final length = tick - since[pitch];
-				final struck = open[pitch];
-				open[pitch] = -1;
+				final length = tick - since[slot];
+				final struck = open[slot];
+				open[slot] = -1;
 
 				if (length <= 0) continue;
 
-				pattern.lane(part).add(new Note(since[pitch], length, pitch, struck,
-					channel));
+				var strand = stranded(strands, track, channel);
+
+				if (strand == null) {
+					if (!surveying) continue;
+
+					strand = new Strand(track, channel);
+					strand.part = parted(channel);
+					strands.push(strand);
+				}
+
+				if (surveying) {
+					strand.counts(pitch, tick);
+					if (strand.name == "") strand.name = called;
+				} else if (strand.taken) {
+					final part:Part = strand.part;
+
+					pattern.lane(part).add(new Note(since[slot], length, pitch, struck,
+						strand.part));
+				} else continue;
+
 				if (tick > longest) longest = tick;
 				continue;
 			}
@@ -392,7 +567,31 @@ final class Midi {
 			}
 		}
 
+		if (surveying && called != "") {
+			for (strand in strands) {
+				if (strand.track == track && strand.name == "") strand.name = called;
+			}
+		}
+
 		return longest;
+	}
+
+	/**
+		@param bytes The file.
+		@param at Where the text starts.
+		@param length How long it is.
+		@return It as text, with anything that is not printable left out, because a track
+			name is written in whatever a sequencer felt like and lands in a menu.
+	**/
+	static function named(bytes:Bytes, at:Int, length:Int):String {
+		final out = new StringBuf();
+
+		for (index in 0...length) {
+			final code = bytes.get(at + index);
+			if (code >= 0x20 && code < 0x7F) out.addChar(code);
+		}
+
+		return StringTools.trim(out.toString());
 	}
 
 	/**

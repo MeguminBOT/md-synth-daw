@@ -26,8 +26,11 @@ class MidiCheck {
 		bent();
 		aimed();
 		guarded();
+		surveyed();
+		chosen();
+		crossed();
 
-		Sys.println("    " + ran + " of " + ran + " checks");
+		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    " + failed + " FAILED");
 
 		return failed == 0 ? 0 : 1;
@@ -208,6 +211,182 @@ class MidiCheck {
 
 		says("the last message is spelled out", counted.said == "note on 60 at 100",
 			"the monitor reads '" + counted.said + "'");
+	}
+
+	/**
+		Builds a type one file with three named tracks on three channels, one of them the
+		drum channel, and two of them sounding the same pitch.
+
+		@param ppqn How many ticks a quarter note is.
+		@return The file.
+	**/
+	static function fileOf(ppqn:Int):haxe.io.Bytes {
+		final out = new haxe.io.BytesOutput();
+		out.bigEndian = true;
+
+		out.writeString("MThd");
+		out.writeInt32(6);
+		out.writeUInt16(1);
+		out.writeUInt16(3);
+		out.writeUInt16(ppqn);
+
+		chunked(out, "Lead", 0, [60, 62, 64], ppqn);
+		chunked(out, "Bass", 1, [60, 38], ppqn);
+		chunked(out, "Drums", 9, [36, 38, 42], ppqn);
+
+		return out.getBytes();
+	}
+
+	/**
+		Writes one track chunk: a name, then a note on and off for each pitch in turn.
+
+		@param out Where it goes.
+		@param called What to name the track.
+		@param channel Which channel it writes on.
+		@param pitches What it plays.
+		@param ppqn How long each note is.
+	**/
+	static function chunked(out:haxe.io.BytesOutput, called:String, channel:Int,
+			pitches:Array<Int>, ppqn:Int):Void {
+		final body = new haxe.io.BytesOutput();
+		body.bigEndian = true;
+
+		body.writeByte(0);
+		body.writeByte(0xFF);
+		body.writeByte(0x03);
+		body.writeByte(called.length);
+		body.writeString(called);
+
+		for (pitch in pitches) {
+			body.writeByte(0);
+			body.writeByte(0x90 | channel);
+			body.writeByte(pitch);
+			body.writeByte(100);
+
+			body.writeByte(ppqn);
+			body.writeByte(0x80 | channel);
+			body.writeByte(pitch);
+			body.writeByte(0);
+		}
+
+		body.writeByte(0);
+		body.writeByte(0xFF);
+		body.writeByte(0x2F);
+		body.writeByte(0);
+
+		final held = body.getBytes();
+
+		out.writeString("MTrk");
+		out.writeInt32(held.length);
+		out.write(held);
+	}
+
+	/**
+		A survey says what a file holds without importing any of it.
+	**/
+	static function surveyed():Void {
+		final strands = mdd.format.Midi.survey(fileOf(96));
+
+		final named = strands.length == 3 && strands[0].name == "Lead"
+			&& strands[1].name == "Bass" && strands[2].name == "Drums";
+
+		says("a survey names what a file holds", named,
+			strands.length + " strands: " + shown(strands));
+
+		final counted = strands.length == 3 && strands[0].notes == 3
+			&& strands[1].notes == 2 && strands[2].notes == 3;
+
+		says("and counts what each one plays", counted,
+			counted ? "three, two and three notes"
+			: "the survey read " + strands.length + " strands");
+
+		final routed = strands.length == 3 && strands[0].part == 0
+			&& strands[1].part == 1
+			&& strands[2].part == mdd.song.Part.Dac.index() && strands[2].drums();
+
+		says("and points each at the part its channel would land on", routed,
+			routed ? "the first two channels to FM1 and FM2, and the drum channel to the converter"
+			: "the survey read " + strands.length + " strands");
+	}
+
+	/**
+		@param strands What a survey found.
+		@return What they are called, for a line of output.
+	**/
+	static function shown(strands:Array<mdd.format.Strand>):String {
+		final out:Array<String> = [];
+		for (strand in strands) out.push(strand.titled());
+
+		return out.join(", ");
+	}
+
+	/**
+		Only the chosen strands are taken, each lands where it was pointed, and a file
+		counted differently is scaled to the piece it joins.
+	**/
+	static function chosen():Void {
+		final bytes = fileOf(96);
+		final strands = mdd.format.Midi.survey(bytes);
+
+		strands[0].taken = false;
+		strands[1].part = mdd.song.Part.Fm5.index();
+
+		final pattern = mdd.format.Midi.patterned(bytes, "held", strands, 96);
+
+		var total = 0;
+		for (index in 0...mdd.song.Part.COUNT) {
+			total += pattern.lane(index).notes.length;
+		}
+
+		final first = pattern.lane(mdd.song.Part.Fm1).notes.length;
+		final fifth = pattern.lane(mdd.song.Part.Fm5).notes.length;
+		final converter = pattern.lane(mdd.song.Part.Dac).notes.length;
+
+		says("only the strands that were taken arrive", first == 0 && total == 5,
+			total + " notes in all, and the strand left behind wrote " + first);
+
+		says("and each lands on the part it was pointed at",
+			fifth == 2 && converter == 3,
+			fifth + " on the fifth channel it was moved to, and " + converter
+			+ " on the converter");
+
+		final apart = mdd.format.Midi.survey(bytes);
+		final scaled = mdd.format.Midi.patterned(bytes, "held", apart, 192);
+
+		final one = pattern.lane(mdd.song.Part.Dac).notes;
+		final two = scaled.lane(mdd.song.Part.Dac).notes;
+
+		final moved = one.length == two.length && one.length > 1
+			&& two[1].at == one[1].at * 2 && two[1].length == one[1].length * 2;
+
+		says("and a file counted differently is scaled to the piece", moved,
+			one.length > 1 && two.length > 1
+			? "a note at " + one[1].at + " ticks lands at " + two[1].at
+			+ " where the piece counts twice as finely"
+			: "the converter read back " + one.length + " and " + two.length + " notes");
+	}
+
+	/**
+		Two channels sounding the same pitch are two strands, and neither swallows the
+		other. One table for every channel lost one of them.
+	**/
+	static function crossed():Void {
+		final strands = mdd.format.Midi.survey(fileOf(96));
+
+		var lowest = -1;
+		var many = 0;
+
+		for (strand in strands) {
+			if (strand.channel != 1) continue;
+
+			lowest = strand.lowest;
+			many = strand.notes;
+		}
+
+		says("a pitch played on two channels is two notes",
+			lowest == 38 && many == 2,
+			"the second channel kept " + many + " notes, lowest " + lowest
+			+ ", with the first channel sounding the same 60");
 	}
 
 	static function round(value:Float):Float {
