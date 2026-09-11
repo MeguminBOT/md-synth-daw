@@ -33,6 +33,14 @@ final class FmEditor extends Widget {
 
 	static final BASES:Array<Int> = [0x40, 0x50, 0x60, 0x80, 0x70, 0x80, 0x30, 0x30, 0x50, 0x90];
 
+	/**
+		Which face each row of the envelope is labelled in: nought for the secondary
+		one, one for the condensed one, two for what the documentation abbreviates the
+		field to. Every operator is labelled the same, so it is worked out once a
+		frame rather than once a column.
+	**/
+	final spelling:Vector<Int> = new Vector<Int>(Patch.NAMES.length);
+
 	static final GROUP:Array<Int> = [0, 2, 1, 3];
 
 	static final ROUTES:Array<Array<Int>> = [
@@ -597,11 +605,10 @@ final class FmEditor extends Widget {
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 
 			final room = wide - metrics.unit * 2 - font.measure("0") - metrics.gap;
-			final spelt = translate(DIAL_SPELT[which]);
-			final named = font.measure(spelt) <= room ? spelt
-				: DIAL_NAMES[which];
 
-			paint.text(named, left + metrics.unit, line, theme.dim, 0.85);
+			paint.fitted(font, metrics.condensed, translate(DIAL_SPELT[which]),
+				DIAL_NAMES[which], left + metrics.unit, top + tall * 0.5, room, theme.dim,
+				0.85);
 			paint.textRight(Std.string(value), left + wide - metrics.unit, line, theme.ink);
 		}
 	}
@@ -756,22 +763,34 @@ final class FmEditor extends Widget {
 			}
 		}
 
-		paint.reface(small);
-
 		final room = wide - metrics.unit * 4 - font.measure("000") - metrics.gap;
+		final tight = metrics.condensed;
 
-		for (slot in 0...Patch.SLOTS) {
-			final left = x + slot * wide;
+		for (row in 0...NAMES.length) {
+			final spelt = translate(SPELT[row]);
+
+			spelling[row] = small.measure(spelt) <= room ? 0
+				: (tight != null && tight.measure(spelt) <= room ? 1 : 2);
+		}
+
+		for (pass in 0...2) {
+			final face = pass == 0 ? small : tight;
+			if (face == null) continue;
+
+			paint.reface(face);
 
 			for (row in 0...NAMES.length) {
+				if ((spelling[row] == 1 ? 1 : 0) != pass) continue;
+
 				final at = top + row * tall;
 				if (at > y + height) break;
 
-				final spelt = translate(SPELT[row]);
-				final said = small.measure(spelt) <= room ? spelt : NAMES[row];
+				final said = spelling[row] == 2 ? NAMES[row] : translate(SPELT[row]);
+				final line = at + (tall - face.height) * 0.5 + face.ascent;
 
-				paint.text(said, left + metrics.unit * 2,
-					at + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.8);
+				for (slot in 0...Patch.SLOTS) {
+					paint.text(said, x + slot * wide + metrics.unit * 2, line, theme.dim, 0.8);
+				}
 			}
 		}
 

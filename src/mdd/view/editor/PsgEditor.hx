@@ -453,8 +453,9 @@ final class PsgEditor extends Widget {
 			final said = which == LOOP && value < 0 ? translate(Locale.PSG_NO_LOOP)
 				: Std.string(value);
 
-			paint.text(translate(DIAL_NAMES[which]), left + metrics.unit, line, theme.dim,
-				0.85);
+			paint.fitted(font, metrics.condensed, translate(DIAL_NAMES[which]), "",
+				left + metrics.unit, top + tall * 0.5,
+				wide - metrics.unit * 2 - font.measure(said) - metrics.gap, theme.dim, 0.85);
 			paint.textRight(said, left + wide - metrics.unit, line, theme.ink);
 		}
 	}
