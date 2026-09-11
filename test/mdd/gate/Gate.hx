@@ -130,6 +130,7 @@ class Gate {
 			case "fault": FaultCheck.run(args);
 			case "gather": Gathered.run(args);
 			case "kit": Kitted.run(args);
+			case "convert": Converted.run(args);
 			case "lift": LiftCheck.run(args);
 			case "drift": DriftCheck.run(args);
 			case "console": ConsoleCheck.run(args);

@@ -173,7 +173,7 @@ which is 2. The gate names it in the summary and does not count it as a failure.
 missing data instead means nobody without that data can pass the gate, which is what `vgm` and `xgm`
 used to do.
 
-Seven programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
+Eight programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
 of the gate never reaches them, because each either stops the process on purpose, writes a file into
 the repository, or takes long enough that nobody would sit through it on every run.
 
@@ -184,6 +184,7 @@ the repository, or takes long enough that nobody would sit through it on every r
 | `mdd gate lift` | reads a preset bank out of a folder of recordings, with hand written tables of zone names |
 | `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
 | `mdd gate kit <file>` | writes the drum kit, every hit of it arithmetic rather than a recording |
+| `mdd gate convert <folder> <file> [rate]` | turns a folder of recordings into a bank, working each hit's key out from the sound |
 | `mdd gate drift` | measures how far a converter run drifts from the rate it was written at |
 | `mdd gate pulse` | measures where a recording's beat falls |
 

@@ -41,6 +41,7 @@ class AudioCheck {
 		resampled();
 		deep();
 		sampling();
+		kitted();
 		offline();
 		whistle();
 		pitch();
@@ -86,6 +87,99 @@ class AudioCheck {
 		says("and one over it does not come back somewhere else", down < -40,
 			round(down, 1) + " dB left of a tone at 8000 that 11025 cannot carry, against"
 				+ " the nought a tone it can carry keeps");
+	}
+
+	/**
+		A kit takes its keys from what the recordings are rather than from what they
+		are called.
+
+		The fixture is named wrongly on purpose, the way a downloaded kit often is: the
+		hat that rings is called closed and the one that chokes is called open, and the
+		toms are numbered against their pitch. What comes back has to be the general
+		MIDI key each one belongs on regardless.
+	**/
+	static function kitted():Void {
+		final where = Gate.root + "/export/kitting";
+		mdd.host.Paths.make(where);
+
+		hissed(where + "/Hat closed.wav", 1.6, 0);
+		hissed(where + "/Hat open.wav", 0.09, 0);
+		hissed(where + "/Tom 1.wav", 0.6, 200);
+		hissed(where + "/Tom 2.wav", 0.6, 80);
+		hissed(where + "/Kick.wav", 0.25, 50);
+
+		final kit = new mdd.format.Kit();
+		final many = kit.reads(where);
+
+		kit.guesses();
+
+		says("a kit reads a folder of recordings", many == 5 && kit.slots.length == 5,
+			many + " hits read out of " + where.split("/").pop());
+
+		says("and a hat that rings is the open one whatever it is called",
+			keyOf(kit, "Hat closed") == 46 && keyOf(kit, "Hat open") == 42,
+			"the one called closed rings and landed on " + keyOf(kit, "Hat closed")
+				+ ", the one called open chokes and landed on " + keyOf(kit, "Hat open"));
+
+		says("and toms run low to high however they are numbered",
+			keyOf(kit, "Tom 2") == 41 && keyOf(kit, "Tom 1") == 43,
+			"the 80 Hz one landed on " + keyOf(kit, "Tom 2") + " and the 200 Hz one on "
+				+ keyOf(kit, "Tom 1"));
+
+		says("and a kick is a kick", keyOf(kit, "Kick") == 36,
+			"it landed on " + keyOf(kit, "Kick"));
+
+		kit.converts();
+
+		final said = kit.written();
+		final back = new mdd.song.Library();
+		final read = back.reads(said);
+
+		says("and what it writes is a bank that loads", read == 5 && kit.bytes() > 0,
+			"" + read + " presets over " + kit.bytes() + " bytes, read back out of "
+				+ said.length + " bytes of document");
+	}
+
+	/**
+		Writes a hit to a file: a tone where one is asked for, and noise where it is
+		not, decaying over the length given.
+
+		@param path Where to write it.
+		@param seconds How long the decay is.
+		@param hertz The tone, or nought for noise.
+	**/
+	static function hissed(path:String, seconds:Float, hertz:Float):Void {
+		final rate = 48000;
+		final frames = Std.int(rate * (seconds + 0.4));
+		final held = new Vector<cpp.Float32>(frames);
+
+		var seed = 0x4D44;
+
+		for (index in 0...frames) {
+			seed = (seed * 1103515245 + 12345) & 0x3FFFFFFF;
+
+			final at = index / rate;
+			final fall = Math.exp(-at * 3 / seconds);
+
+			final one = hertz > 0 ? Math.sin(2 * Math.PI * hertz * at)
+				: ((seed >> 8) % 2000 - 1000) / 1000.0;
+
+			held[index] = 0.7 * one * fall;
+		}
+
+		sys.io.File.saveBytes(path,
+			mdd.format.Wav.write(held, frames, 1, rate, 24, false));
+	}
+
+	/**
+		@param kit The kit.
+		@param called What a hit is called.
+		@return Which key it landed on, or -1 where there is no such hit.
+	**/
+	static function keyOf(kit:mdd.format.Kit, called:String):Int {
+		for (slot in kit.slots) if (slot.name == called) return slot.root;
+
+		return -1;
 	}
 
 	/**
