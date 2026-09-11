@@ -1,11 +1,13 @@
+*This project is in pre-release state, expect bugs still*
+
 <a id="readme-top"></a>
 
 <div align="center">
 
 # MD Synth DAW
+**Write music for the Sega Mega Drive / Genesis or just make music with the same constraints as the console.**
 
-**Write music for the Sega Mega Drive, and see exactly what the hardware is doing while you write
-it.**
+![App Icon](docs/images/mdd_app_icon.png)
 
 [![Haxe][haxe-shield]][haxe-url]
 [![hxcpp][hxcpp-shield]][hxcpp-url]
@@ -61,7 +63,7 @@ it.**
 
 ## About The Project
 
-![The MD Synth DAW window](docs/screenshot.png)
+![The MD Synth DAW window](docs/images/mdd_playlist.png)
 
 The YM2612, the SN76489 and the sample channel are not an export format bolted on at the end. They
 are the instruments, with all eleven channels the console actually has, and the program keeps the
