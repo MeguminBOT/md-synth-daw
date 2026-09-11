@@ -205,6 +205,8 @@
 	<link value="pdh.lib" if="windows" unless="mingw" />
 	<link value="advapi32.lib" if="windows" unless="mingw" />
 	<link value="shell32.lib" if="windows" unless="mingw" />
+	<link value="ole32.lib" if="windows" unless="mingw" />
+	<link value="uuid.lib" if="windows" unless="mingw" />
 
 	<link value="-ldbghelp" if="mingw" />
 	<link value="-lwinmm" if="mingw" />
@@ -212,6 +214,8 @@
 	<link value="-lpdh" if="mingw" />
 	<link value="-ladvapi32" if="mingw" />
 	<link value="-lshell32" if="mingw" />
+	<link value="-lole32" if="mingw" />
+	<link value="-luuid" if="mingw" />
 
 	<!-- what Linux supplies -->
 
