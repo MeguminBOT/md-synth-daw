@@ -79,7 +79,21 @@ final class Mixdown {
 	**/
 	public final pass:AtomicInt = new AtomicInt(0);
 
+	/**
+		How far through the render in hand it is, from nought to `WHOLE`.
+	**/
 	public final reached:AtomicInt = new AtomicInt(0);
+
+	/**
+		How far through the whole job it is, from nought to `WHOLE`.
+
+		A reader takes this one reading rather than working it out from the pass, the
+		count of passes and the progress within one. Those are three values a thread
+		cannot change together, and a reader landing between two of them at a pass
+		boundary combines a pass that has started with the one before it finishing,
+		which reads as a bar that jumps backwards.
+	**/
+	final whole:AtomicInt = new AtomicInt(0);
 	public final stopping:AtomicInt = new AtomicInt(0);
 
 	/**
@@ -137,10 +151,51 @@ final class Mixdown {
 			another thread. Where the job is several renders this spans all of them.
 	**/
 	public function reach():Float {
-		final many = passes.load();
-		final inner = reached.load() / WHOLE;
+		return whole.load() / WHOLE;
+	}
 
-		return many <= 1 ? inner : (pass.load() + inner) / many;
+	/**
+		Says how many renders this job is, before any of them start.
+
+		@param many How many.
+	**/
+	public function spans(many:Int):Void {
+		passes.store(many < 1 ? 1 : many);
+		marked();
+	}
+
+	/**
+		Moves on to the next render of the job.
+
+		@param which Which one is starting, counted from nought.
+	**/
+	public function steps(which:Int):Void {
+		pass.store(which);
+		reached.store(0);
+		marked();
+	}
+
+	/**
+		Says how far through the render in hand it is.
+
+		@param much How far, from nought to `WHOLE`.
+	**/
+	function reaching(much:Int):Void {
+		reached.store(much);
+		marked();
+	}
+
+	/**
+		Works the whole job out into the one value a reader takes.
+	**/
+	function marked():Void {
+		final many = passes.load();
+		final inner = reached.load();
+
+		final held = many <= 1 ? inner
+			: Std.int((pass.load() * WHOLE + inner) / many);
+
+		whole.store(held < 0 ? 0 : (held > WHOLE ? WHOLE : held));
 	}
 
 	/**
@@ -173,7 +228,7 @@ final class Mixdown {
 		final sounding = Std.int(span * (rate / Tempo.TICKS));
 
 		if (sounding <= 0) {
-			reached.store(WHOLE);
+			reaching(WHOLE);
 			return;
 		}
 
@@ -214,7 +269,7 @@ final class Mixdown {
 		working = null;
 		feeding = null;
 
-		reached.store(WHOLE);
+		reaching(WHOLE);
 	}
 
 	/**
@@ -276,7 +331,7 @@ final class Mixdown {
 
 			if (held != told) {
 				told = held;
-				reached.store(held);
+				reaching(held);
 			}
 		}
 	}

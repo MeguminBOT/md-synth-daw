@@ -762,8 +762,8 @@ final class Files {
 		wroteWrong = "";
 
 		writing.store(0);
-		made.passes.store(1 + parts.length);
-		made.pass.store(0);
+		made.spans(1 + parts.length);
+		made.steps(0);
 
 		sys.thread.Thread.create(function():Void {
 			try {
@@ -830,8 +830,7 @@ final class Files {
 		for (index in parts) {
 			if (made.stopped()) break;
 
-			made.pass.store(written + 1);
-			made.reached.store(0);
+			made.steps(written + 1);
 			made.onlyPart = index;
 			made.sharedGain = gain;
 
