@@ -436,7 +436,11 @@ final class Midi {
 		@param bytes The file.
 		@param from Where the track starts.
 		@param to One past its end.
-		@param song The song to put tempo changes in, or null to leave a tempo alone.
+		@param song The song being built, or null where the notes are joining one that
+			already exists. A song built here is given an instrument per part, so a note
+			can name one; a piece that already exists has its own, and an index into it
+			would mean something else entirely, so the note names none and the part
+			plays whatever it holds.
 		@param pattern The pattern notes go into, or null to survey rather than read.
 		@param track Which track chunk this is.
 		@param strands What was found, or what to take.
@@ -551,9 +555,10 @@ final class Midi {
 					if (strand.name == "") strand.name = called;
 				} else if (strand.taken) {
 					final part:Part = strand.part;
+					final named = song == null ? -1 : strand.part;
 
 					pattern.lane(part).add(new Note(since[slot], length, pitch, struck,
-						strand.part));
+						named));
 				} else continue;
 
 				if (tick > longest) longest = tick;

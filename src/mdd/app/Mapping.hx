@@ -234,13 +234,25 @@ final class Mapping {
 
 	/**
 		@param slot Which slot, 0 to 7.
-		@return What the field it drives is called.
+		@return Which string names the field it drives, or -1 where it drives none. The
+			name is looked up by whoever shows it rather than here, because this has no
+			language to look it up in.
 	**/
-	public function named(slot:Int):String {
-		if (slot < 0 || slot >= SLOTS) return "";
+	public function named(slot:Int):Int {
+		if (slot < 0 || slot >= SLOTS) return -1;
 
 		if (kinds[slot] == DIAL) return Patch.DIAL_SPELT[rows[slot]];
-		return Patch.SPELT[rows[slot]] + " " + (operators[slot] + 1);
+		return Patch.SPELT[rows[slot]];
+	}
+
+	/**
+		@param slot Which slot, 0 to 7.
+		@return Which operator it drives, counted from nought, or -1 where it drives a
+			dial rather than an operator.
+	**/
+	public function operated(slot:Int):Int {
+		if (slot < 0 || slot >= SLOTS) return -1;
+		return kinds[slot] == DIAL ? -1 : operators[slot];
 	}
 
 	/**

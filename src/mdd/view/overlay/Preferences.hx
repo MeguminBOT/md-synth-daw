@@ -1180,7 +1180,8 @@ final class Preferences extends Widget {
 
 		for (which in 0...mdd.song.Patch.DIALS) {
 			final dial = which;
-			final choice = menu.offer(new Choice(mdd.song.Patch.DIAL_SPELT[dial]));
+			final choice = menu.offer(new Choice(
+				translate(mdd.song.Patch.DIAL_SPELT[dial])));
 
 			if (held.kindOf(slot) == mdd.app.Mapping.DIAL && held.rowOf(slot) == dial) {
 				choice.shortcut = "•";
@@ -1198,7 +1199,8 @@ final class Preferences extends Widget {
 
 			for (step in 0...mdd.song.Patch.ROWS) {
 				final row = step;
-				final choice = rows.offer(new Choice(mdd.song.Patch.SPELT[row]));
+				final choice = rows.offer(new Choice(
+					translate(mdd.song.Patch.SPELT[row])));
 
 				if (held.kindOf(slot) == mdd.app.Mapping.OPERATOR
 					&& held.operatorOf(slot) == which && held.rowOf(slot) == row) {

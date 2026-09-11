@@ -44,7 +44,12 @@ final class PsgEditor extends Widget {
 	**/
 	public static inline final DIALS = Envelope.DIALS;
 
-	static final DIAL_NAMES:Array<String> = ["LOOP", "SPEED", "NOISE"];
+	/**
+		What each dial of the envelope is called. These are words rather than what the
+		documentation calls a register, so they are looked up.
+	**/
+	static final DIAL_NAMES:Array<Locale> = [Locale.FIELD_LOOP, Locale.FIELD_SPEED,
+		Locale.FIELD_NOISE];
 
 	/**
 		The session to read.
@@ -448,7 +453,8 @@ final class PsgEditor extends Widget {
 			final said = which == LOOP && value < 0 ? translate(Locale.PSG_NO_LOOP)
 				: Std.string(value);
 
-			paint.text(DIAL_NAMES[which], left + metrics.unit, line, theme.dim, 0.85);
+			paint.text(translate(DIAL_NAMES[which]), left + metrics.unit, line, theme.dim,
+				0.85);
 			paint.textRight(said, left + wide - metrics.unit, line, theme.ink);
 		}
 	}

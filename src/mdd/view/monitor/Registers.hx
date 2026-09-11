@@ -331,7 +331,10 @@ final class Registers extends Scroll {
 			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.85);
 			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? Theme.FM2 : Theme.PSG1, 1);
 
-			if (ym) paint.text("port " + ports[index], portAt, line, theme.dim, 0.85);
+			if (ym) {
+				paint.text(filled(Locale.FIELD_PORT, ["" + ports[index]]), portAt, line,
+					theme.dim, 0.85);
+			}
 
 			paint.text(hex(values[index], 2), valueAt, line, theme.ink, 1);
 

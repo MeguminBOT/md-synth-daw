@@ -29,7 +29,7 @@ import mdd.ui.Widget;
 final class FmEditor extends Widget {
 	static final NAMES:Array<String> = Patch.NAMES;
 
-	static final SPELT:Array<String> = Patch.SPELT;
+	static final SPELT:Array<Locale> = Patch.SPELT;
 
 	static final BASES:Array<Int> = [0x40, 0x50, 0x60, 0x80, 0x70, 0x80, 0x30, 0x30, 0x50, 0x90];
 
@@ -73,7 +73,7 @@ final class FmEditor extends Widget {
 
 	static final DIAL_NAMES:Array<String> = Patch.DIAL_NAMES;
 
-	static final DIAL_SPELT:Array<String> = Patch.DIAL_SPELT;
+	static final DIAL_SPELT:Array<Locale> = Patch.DIAL_SPELT;
 
 	/**
 		The session to read.
@@ -272,7 +272,7 @@ final class FmEditor extends Widget {
 		@return The first line of the tooltip: what the field is called.
 	**/
 	public function saying(patch:Patch, slot:Int, row:Int):String {
-		return SPELT[row] + "   OP" + (slot + 1);
+		return translate(SPELT[row]) + "   OP" + (slot + 1);
 	}
 
 	/**
@@ -287,8 +287,8 @@ final class FmEditor extends Widget {
 		final half = session.part.index() >= 3 ? 1 : 0;
 		final value = valueOf(patch, slot, row);
 
-		var said = "register " + (half == 1 ? "part 2 " : "") + "$"
-			+ StringTools.hex(at, 2) + "   value " + value;
+		var said = filled(half == 1 ? Locale.FIELD_REGISTER_TWO : Locale.FIELD_REGISTER,
+			["$" + StringTools.hex(at, 2), "" + value]);
 
 		if (row == 0) said += "   " + shown(-0.75 * value) + " dB";
 		else if (row == 3) said += "   " + shown(-3.0 * value) + " dB";
@@ -597,7 +597,8 @@ final class FmEditor extends Widget {
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 
 			final room = wide - metrics.unit * 2 - font.measure("0") - metrics.gap;
-			final named = font.measure(DIAL_SPELT[which]) <= room ? DIAL_SPELT[which]
+			final spelt = translate(DIAL_SPELT[which]);
+			final named = font.measure(spelt) <= room ? spelt
 				: DIAL_NAMES[which];
 
 			paint.text(named, left + metrics.unit, line, theme.dim, 0.85);
@@ -766,7 +767,8 @@ final class FmEditor extends Widget {
 				final at = top + row * tall;
 				if (at > y + height) break;
 
-				final said = small.measure(SPELT[row]) <= room ? SPELT[row] : NAMES[row];
+				final spelt = translate(SPELT[row]);
+				final said = small.measure(spelt) <= room ? spelt : NAMES[row];
 
 				paint.text(said, left + metrics.unit * 2,
 					at + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.8);

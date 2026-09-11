@@ -173,8 +173,22 @@ which is 2. The gate names it in the summary and does not count it as a failure.
 missing data instead means nobody without that data can pass the gate, which is what `vgm` and `xgm`
 used to do.
 
-`fault` is a program the gate does not run. `mdd gate fault read | write | overflow | thread` stops
-the process on purpose so the crash handler can be read back from `export/fault.txt`.
+Seven programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
+of the gate never reaches them, because each either stops the process on purpose, writes a file into
+the repository, or takes long enough that nobody would sit through it on every run.
+
+| program | what it does |
+| --- | --- |
+| `mdd gate fault read \| write \| overflow \| thread` | stops the process on purpose, so the crash handler can be read back from `export/fault.txt` |
+| `mdd gate shot <file>` | draws the whole interface into a PNG |
+| `mdd gate lift` | reads a preset bank out of a folder of recordings, with hand written tables of zone names |
+| `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
+| `mdd gate kit <file>` | writes the drum kit, every hit of it arithmetic rather than a recording |
+| `mdd gate drift` | measures how far a converter run drifts from the rate it was written at |
+| `mdd gate pulse` | measures where a recording's beat falls |
+
+A program that writes an asset is kept out of the gate on purpose. An asset that rewrote itself on
+every run would show up as churn in a history that should only move when somebody decided something.
 
 ## Editor setup
 

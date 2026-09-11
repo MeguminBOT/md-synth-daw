@@ -1,6 +1,7 @@
 package mdd.song;
 
 import haxe.ds.Vector;
+import mdd.app.Locale;
 
 /**
 	One FM patch: the algorithm, the feedback, the two LFO sensitivities, and ten
@@ -55,11 +56,14 @@ final class Patch {
 		"DT", "RS", "SSG"];
 
 	/**
-		The same fields spelt out, for a tooltip.
+		The same fields spelt out, for a tooltip and for anywhere there is room to read
+		rather than to recognise. These are prose where the names above are what the
+		documentation calls the registers, so these are looked up and those are not.
 	**/
-	public static final SPELT:Array<String> = ["Total level", "Attack rate",
-		"First decay rate", "Sustain level", "Second decay rate", "Release rate", "Multiple",
-		"Detune", "Rate scaling", "SSG envelope"];
+	public static final SPELT:Array<Locale> = [Locale.FIELD_TOTAL_LEVEL,
+		Locale.FIELD_ATTACK_RATE, Locale.FIELD_FIRST_DECAY, Locale.FIELD_SUSTAIN_LEVEL,
+		Locale.FIELD_SECOND_DECAY, Locale.FIELD_RELEASE_RATE, Locale.FIELD_MULTIPLE,
+		Locale.FIELD_DETUNE, Locale.FIELD_RATE_SCALING, Locale.FIELD_SSG_ENVELOPE];
 
 	/**
 		Each dial as the documentation names it.
@@ -69,8 +73,8 @@ final class Patch {
 	/**
 		The same dials spelt out.
 	**/
-	public static final DIAL_SPELT:Array<String> = ["Algorithm", "Feedback", "Tremolo",
-		"Vibrato"];
+	public static final DIAL_SPELT:Array<Locale> = [Locale.FIELD_ALGORITHM,
+		Locale.FIELD_FEEDBACK, Locale.FIELD_TREMOLO, Locale.FIELD_VIBRATO];
 
 	/**
 		The largest value each dial takes.

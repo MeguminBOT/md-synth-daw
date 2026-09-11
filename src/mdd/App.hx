@@ -1334,7 +1334,13 @@ class App {
 
 		final want = mapping.turns(patch, slot, value);
 
-		session.say(mapping.named(slot) + "  " + want);
+		final key = mapping.named(slot);
+		final held = mapping.operated(slot);
+
+		if (key < 0) return;
+
+		session.say(stage.root.translate(key)
+			+ (held < 0 ? "" : " " + (held + 1)) + "  " + want);
 		session.changed();
 	}
 
