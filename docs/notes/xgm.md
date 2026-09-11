@@ -14,9 +14,26 @@ far as the driver is concerned, so **XGM timing is frame quantised and a VGM's s
 A VGM that writes a register 3 samples after another lands both in the same XGM frame.
 
 The DAC is the driver's, not the music's. XGM mixes up to four PCM voices in software and writes the
-sum to the YM2612's DAC at about 14 kHz, so FM6 is never available to a track and raw writes to
-`$2A` and `$2B` have no place in the music data. That is why the export drops them and the import
-puts them back by running the mixer.
+sum to the YM2612's DAC, so FM6 is never available to a track and raw writes to `$2A` and `$2B` have
+no place in the music data. That is why the export drops them and the import puts them back by
+running the mixer.
+
+**The rate is 14000 Hz exactly, and it is the driver's rather than the sample's.** Three places in
+SGDK say so and none of them disagree: `bin/xgm.txt` describes "up to 4 PCM channels (8 bits signed
+at 14 Khz)", `inc/snd/xgm.h` says the driver "supports 4 PCM channels at a fixed 14 Khz", and
+`tools/rescomp/src/sgdk/rescomp/processor/WavProcessor.java` resamples every WAV handed to the
+driver with `case XGM: outRate = 14000;`. The first two round it and the third does not, which is
+why the number here comes from the third. Checked on 11 September 2026.
+
+Whatever bytes a slot holds are played at that rate, so a sample authored at any other rate is
+played at the wrong pitch unless it is resampled on the way in. That is what `Xgm.write` does, and
+it is the reason a kit authored at 11025 Hz is converted a second time on export while one authored
+at 14000 Hz is not.
+
+The same file names the rates the other drivers in SGDK take, which is the nearest thing to a list
+of what the machine is normally fed: 16000 for the plain PCM driver, 22050 for DPCM2, 16000 for
+PCM4, and 13300 for XGM2, whose help text accepts only 6650 or 13300. The PCM driver's own help
+text accepts 8000, 11025, 13400, 16000, 22050 and 32000.
 
 ## The header, and the part the description gets wrong
 

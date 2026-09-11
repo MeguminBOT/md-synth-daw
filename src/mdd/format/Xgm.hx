@@ -71,7 +71,10 @@ final class Xgm {
 	static inline final MUSIC = 0x0108;
 
 	/**
-		The rate the driver plays samples at, in hertz.
+		The rate the driver plays samples at, in hertz. It is the driver's rate rather
+		than any sample's, so whatever a slot holds is played at it, and SGDK resamples
+		every wave handed to the driver to exactly this. `docs/notes/xgm.md` records
+		where that is stated.
 	**/
 	public static inline final PCM_RATE = 14000;
 
