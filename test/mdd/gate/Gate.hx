@@ -35,6 +35,10 @@ class Gate {
 	static function all():Int {
 		var failed = 0;
 		final held:Array<String> = [];
+		final grown:Array<Float> = [];
+
+		final began = mdd.host.Usage.ram();
+		var before = began;
 
 		Sys.println("");
 		for (name in PROGRAMS) {
@@ -42,6 +46,11 @@ class Gate {
 
 			if (code == SKIPPED) held.push(name);
 			else if (code != 0) failed++;
+
+			final after = mdd.host.Usage.ram();
+
+			grown.push(after - before);
+			before = after;
 
 			Sys.println("");
 		}
@@ -51,8 +60,46 @@ class Gate {
 		Sys.println(failed == 0 ? "  gate passed" + rest
 			: "  gate failed, " + failed + " of " + PROGRAMS.length + rest);
 
+		final most = heaviest(grown, 3);
+
+		Sys.println("  " + Math.round(before) + " MB held at the end against "
+			+ Math.round(began) + " before the first program"
+			+ (most == "" ? "" : ", grown most by " + most));
+
 		Sys.println("");
 		return failed == 0 ? 0 : 1;
+	}
+
+	/**
+		Which programs left the most memory behind them. Every program runs in this one
+		process, so what one does not give back is carried by every program after it,
+		and the reading is what the process holds rather than what the program asked
+		for.
+
+		@param grown How much each program in `PROGRAMS` grew the process by, in
+			megabytes, in the same order.
+		@param many How many to name.
+		@return Them, largest first, or an empty string where none grew it at all.
+	**/
+	static function heaviest(grown:Array<Float>, many:Int):String {
+		final out:Array<String> = [];
+		final taken:Array<Bool> = [for (much in grown) false];
+
+		for (round in 0...many) {
+			var at = -1;
+
+			for (index in 0...grown.length) {
+				if (taken[index] || grown[index] < 1) continue;
+				if (at < 0 || grown[index] > grown[at]) at = index;
+			}
+
+			if (at < 0) break;
+
+			taken[at] = true;
+			out.push(PROGRAMS[at] + " " + Math.round(grown[at]) + " MB");
+		}
+
+		return out.join(", ");
 	}
 
 	static function one(name:String, args:Array<String>):Int {
