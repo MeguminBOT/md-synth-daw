@@ -3,6 +3,7 @@ package mdd.view.overlay;
 import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Session;
+import mdd.ui.Font;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
@@ -64,6 +65,13 @@ final class Welcome extends Widget {
 	var hoverAt:Int = -1;
 	var hoverStart:Bool = false;
 
+	static inline final MACHINE = "machine";
+
+	var lines:Array<String> = [];
+	var linesFor:String = "";
+	var linesWide:Float = 0;
+	var linesWarn:Bool = false;
+
 	/**
 		Builds the sheet.
 
@@ -112,9 +120,12 @@ final class Welcome extends Widget {
 		final metrics = root == null ? null : root.metrics;
 
 		wantWidth = metrics == null ? 420 : metrics.whole(420);
+
+		if (metrics != null) words(metrics, wantWidth);
+
 		wantHeight = metrics == null ? 380
-			: head() + languages.length * rowTall() + asking() + WAYS * wayTall()
-			+ metrics.whole(60);
+			: head() + languages.length * rowTall() + noteTall() + asking()
+			+ WAYS * wayTall() + metrics.whole(60);
 	}
 
 	/**
@@ -154,8 +165,58 @@ final class Welcome extends Widget {
 		return root == null ? 34 : root.metrics.whole(34);
 	}
 
+	function noteTop():Float {
+		return y + head() + languages.length * rowTall();
+	}
+
+	/**
+		@return How much room the line saying how this language got here takes, the
+			gaps above and below it counted, or nought where it has nothing to say.
+	**/
+	function noteTall():Float {
+		final root = root();
+		if (root == null || lines.length == 0) return 0;
+
+		final metrics = root.metrics;
+		final small = metrics.small == null ? metrics.body : metrics.small;
+
+		if (small == null) return 0;
+
+		return lines.length * small.height + metrics.gap * 4;
+	}
+
+	/**
+		Breaks the line saying how this language got here to the width it is drawn
+		in, once, because it changes only when the language or the width does and it
+		is wanted on every frame the sheet is drawn.
+
+		@param metrics What to measure in.
+		@param wide How wide the sheet will be.
+	**/
+	function words(metrics:Metrics, wide:Float):Void {
+		final root = root();
+		final small = metrics.small == null ? metrics.body : metrics.small;
+
+		if (root == null || small == null) {
+			lines = [];
+			return;
+		}
+
+		final room = wide - metrics.inset * 2 - metrics.gap * 2;
+		final spoken = root.translation.language;
+
+		if (spoken == linesFor && room == linesWide) return;
+
+		linesFor = spoken;
+		linesWide = room;
+		linesWarn = translate(Locale.LANGUAGE_WRITTEN) == MACHINE;
+
+		lines = small.wrapped(translate(linesWarn ? Locale.LANGUAGE_MACHINE
+			: Locale.LANGUAGE_PERSON), room);
+	}
+
 	function waysTop():Float {
-		return y + head() + languages.length * rowTall() + asking();
+		return noteTop() + noteTall() + asking();
 	}
 
 	function wayAt(py:Float):Int {
@@ -242,6 +303,36 @@ final class Welcome extends Widget {
 			hoverStart = false;
 		}
 		super.hovered(on);
+	}
+
+	/**
+		Says whether a machine wrote the language being picked, boxed in the warning
+		colour where one did and quietly where a person did.
+	**/
+	function note(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
+		if (lines.length == 0) return;
+
+		final small = metrics.small == null ? metrics.body : metrics.small;
+		if (small == null) return;
+
+		final top = noteTop() + metrics.gap;
+		final tall = lines.length * small.height + metrics.gap * 2;
+		final left = x + metrics.inset;
+		final wide = width - metrics.inset * 2;
+		final ink = linesWarn ? theme.warn : theme.dim;
+
+		paint.roundedRect(left, top, wide, tall, metrics.radiusRow, ink,
+			alpha * (linesWarn ? 0.14 : 0.06));
+		paint.outline(left, top, wide, tall, ink, metrics.whole(1),
+			alpha * (linesWarn ? 0.9 : 0.4), metrics.radiusRow);
+
+		paint.reface(small);
+
+		for (line in 0...lines.length) {
+			paint.text(lines[line], left + metrics.gap,
+				top + metrics.gap + line * small.height + small.ascent, ink,
+				alpha * (linesWarn ? 1 : 0.75));
+		}
 	}
 
 	static final WAYS_SAID:Array<Locale> = [Locale.AUTOMATING_LANES, Locale.AUTOMATING_CLIPS];
@@ -362,6 +453,8 @@ final class Welcome extends Widget {
 			paint.textRight(languages[at], x + width - metrics.inset * 2,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.6);
 		}
+
+		note(paint, theme, metrics, alpha);
 
 		final button = buttonTall();
 		final top = y + height - metrics.inset - button;

@@ -263,7 +263,8 @@ were written to the terms each language's own music software uses rather than wo
 from the English, and the wording is checked for nothing worse than that. Expect some of it to
 read oddly, and a few terms to be wrong outright. If one of them is your language, corrections
 are welcome and are a single file: `assets/lang/<code>.json`, one string per line, no code to
-touch and no build to understand.
+touch and no build to understand. The sheet that asks for a language on the first run says
+which of the two the one you pick is.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

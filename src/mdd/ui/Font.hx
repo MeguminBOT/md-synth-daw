@@ -439,6 +439,47 @@ final class Font {
 	}
 
 	/**
+		Breaks a line into lines no wider than the room there is, between words where
+		the writing has spaces in it and between characters where it does not, which
+		is what the scripts written without spaces need.
+
+		A character this face has no glyph for measures nothing, so a line made only
+		of them comes back whole however narrow the room is.
+
+		@param said The line.
+		@param room How much room there is, across.
+		@return The lines to draw, in order, with the spaces they were broken at
+			dropped. None at all where there is nothing to say or no room to say it
+			in.
+	**/
+	public function wrapped(said:String, room:Float):Array<String> {
+		final held:Array<String> = [];
+		if (said == "" || room <= 0) return held;
+
+		var from = 0;
+
+		while (from < said.length) {
+			final rest = said.substring(from);
+			final many = fits(rest, room);
+
+			if (many >= rest.length) {
+				held.push(rest);
+				break;
+			}
+
+			var cut = rest.lastIndexOf(" ", many);
+			if (cut <= 0) cut = many > 0 ? many : step(codeAt(rest, 0));
+
+			held.push(StringTools.rtrim(rest.substring(0, cut)));
+
+			from += cut;
+			while (from < said.length && said.charCodeAt(from) == " ".code) from++;
+		}
+
+		return held;
+	}
+
+	/**
 		Gives the atlas back.
 	**/
 	public function shut():Void {

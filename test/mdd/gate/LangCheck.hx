@@ -32,6 +32,7 @@ class LangCheck {
 		for (code in shipped) spoken(code);
 
 		matched(shipped);
+		written(shipped);
 		placed(shipped);
 		filled();
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
@@ -306,6 +307,41 @@ class LangCheck {
 			english.of(Locale.APP) == swedish.of(Locale.APP)
 			&& swedish.of(Locale.VIEW_TRACKER) == "Tracker",
 			"the application's name and the hardware words stay as the documentation writes them");
+	}
+
+	/**
+		Every language says whether a machine translated it or a person wrote it, in
+		one of two words rather than in a sentence, because the welcome sheet reads it
+		to pick which line to show rather than showing it. A word translated along
+		with everything else around it would read as a language nobody wrote.
+
+		@param shipped Every language compiled in.
+	**/
+	static function written(shipped:Array<String>):Void {
+		final odd:Array<String> = [];
+
+		var machine = 0;
+		var person = 0;
+
+		for (code in shipped) {
+			final held = new Translation();
+			Languages.speak(held, code);
+
+			final said = held.of(Locale.LANGUAGE_WRITTEN);
+
+			if (said == "machine") machine++;
+			else if (said == "person") person++;
+			else odd.push(code + " says '" + said + "'");
+
+			if (held.of(Locale.LANGUAGE_MACHINE) == held.of(Locale.LANGUAGE_PERSON)) {
+				odd.push(code + " says the same either way");
+			}
+		}
+
+		says("every language says whether a machine wrote it",
+			odd.length == 0 && machine > 0 && person > 0,
+			odd.length > 0 ? shown(odd)
+				: machine + " machine translated, " + person + " written by a person");
 	}
 
 	/**

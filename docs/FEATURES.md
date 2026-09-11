@@ -301,7 +301,8 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   the code, so adding a language is a file rather than a change to the program. Hardware and
   format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation
   writes them in every language. Which languages ship, and how each was translated, is in
-  the README.
+  the README, and the sheet that asks for one on the first run says whether the language
+  picked was written by a person or translated by a machine.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
 - **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line

@@ -76,6 +76,7 @@ class PaintCheck {
 		batching(paint, font);
 		measured(paint, font, root);
 		paired(font);
+		wraps(font);
 		caching(paint, font);
 		borrowed(paint, font, root);
 		scales(root);
@@ -577,6 +578,37 @@ class PaintCheck {
 		says("and an unknown codepoint costs one advance, not two",
 			font.measure(held) == font.measure("ABCD"),
 			round(font.measure(held)) + " against " + round(font.measure("ABCD")));
+	}
+
+	static function wraps(font:Font):Void {
+		final said = "This language was translated by an AI and has not been read by "
+			+ "a speaker.";
+		final room = font.measure("This language was translated by");
+		final held = font.wrapped(said, room);
+
+		var widest = 0.0;
+		for (line in held) if (font.measure(line) > widest) widest = font.measure(line);
+
+		says("a line breaks between words and every piece fits",
+			held.length > 1 && widest <= room && held.join(" ") == said,
+			held.length + " lines, the widest " + round(widest) + " of " + round(room)
+				+ ", and they read back as the line they came from");
+
+		final run = StringTools.rpad("", "M", 40);
+		final narrow = font.measure("MMMMMMMMMM");
+		final pieces = font.wrapped(run, narrow);
+
+		var over = 0;
+		for (line in pieces) if (font.measure(line) > narrow) over++;
+
+		says("and a line with no spaces in it breaks between characters",
+			pieces.length > 1 && over == 0 && pieces.join("") == run,
+			pieces.length + " pieces of " + run.length
+				 + " characters, none of them wider than the room");
+
+		says("and nothing to say takes no lines at all",
+			font.wrapped("", room).length == 0 && font.wrapped(said, 0).length == 0,
+			"an empty line and no room both come back with none");
 	}
 
 	static function scales(root:String):Void {

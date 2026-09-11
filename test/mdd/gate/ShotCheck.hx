@@ -40,6 +40,7 @@ class ShotCheck {
 		var theme = Theme.MIDNIGHT;
 		var part = 0;
 		var vgm = "";
+		var lang = "en-GB";
 		var sheet = "";
 		var lane = 0;
 		var group = 0;
@@ -67,6 +68,7 @@ class ShotCheck {
 				case "--theme": theme = whole(held, theme); at++;
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
+				case "--lang": lang = held; at++;
 				case "--drives": drives = true;
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
@@ -123,7 +125,7 @@ class ShotCheck {
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme(theme));
 
-		mdd.app.Languages.speak(tree.translation, "en-GB");
+		mdd.app.Languages.speak(tree.translation, lang);
 		tree.icons = mdd.ui.Icons.read(renderer, root + "/export/icons/icons-16.atlas");
 
 		tree.flow = Flow.None;
@@ -251,7 +253,7 @@ class ShotCheck {
 			final held = new mdd.view.overlay.Welcome(session);
 
 			tree.raise(held);
-			held.arrive("en-GB");
+			held.arrive(lang);
 			held.rise.hold(1);
 			held.fade.hold(1);
 		} else if (sheet == "export" || sheet == "export-opus") {
