@@ -92,6 +92,11 @@ class CheckCheck {
 		pattern.lane(Part.Dac).notes[0].pitch = 99;
 		budget.overSong(song);
 
+		says("and the machine claims no sample ceiling of its own",
+			Profile.megaDrive().sampleBytes == 0 && Profile.masterSystem().sampleBytes == 0,
+			"the byte budget is whoever is filling a cartridge to set, because no"
+				+ " hardware number says otherwise");
+
 		says("and a key the kit has nothing on costs nothing",
 			kitted == want && budget.sampleBytes == 0,
 			kitted + " bytes with one note on the kick's key and one on a key with"

@@ -145,7 +145,7 @@ final class Hardware extends Widget {
 			case 0: 6;
 			case 1: 24;
 			case 2: 4;
-			case _: profile == null ? 65536 : profile.sampleBytes;
+			case _: profile == null ? 0 : profile.sampleBytes;
 		}
 	}
 
@@ -172,6 +172,7 @@ final class Hardware extends Widget {
 		final ceiling = most(row);
 
 		if (row != ROWS - 1) return held + " / " + ceiling;
+		if (ceiling <= 0) return Math.round(held / 1024) + " kb";
 
 		return Math.round(held / 1024) + " / " + Math.round(ceiling / 1024) + " kb";
 	}

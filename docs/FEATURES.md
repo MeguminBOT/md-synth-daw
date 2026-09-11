@@ -167,6 +167,11 @@ writes with real pauses excluded, rather than from the run measured end to end.
 - A bank costs the machine nothing until a note reaches for it. The sample counter reads what the
   music plays rather than what is loaded, the same way the channel counters do, so a new piece
   starts at nought however many banks ship.
+- **No invented ceiling on samples.** The converter takes one byte at a time and one sample sounds
+  at a time, so a figure in bytes is storage, and how much storage there is depends on what you
+  export: nothing at all for a render, no bank at all for a VGM, an XGM's own table for an XGM, and
+  whatever you set aside for a cartridge. The counter reports what your samples come to and draws no
+  bar against a limit nobody stated. Set one and it warns above it.
 - Your own patches load beside the shipped ones rather than replacing them.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
