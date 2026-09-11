@@ -131,12 +131,17 @@ offers.
 
 The converter plays one sample at a time like every other part. Switched to a drum kit from
 its row in the channel rack, it reads the note instead: the pitch picks which sample sounds,
-from the pitch each sample sits at. A pitch with no sample of its own falls back to what the
-channel holds, so turning it on never silences a piece written without it.
+from the pitch each sample sits at.
+
+The piano roll is the same keyboard either way. The keys the kit sits on are named for the drum
+on them and the rest are drawn faint: a key with no sample still takes a note and still shows
+it, and makes no sound. Turning the kit on can quieten notes written against whatever the
+channel held on its own, which is what the row in the channel rack is for.
 
 That is what lets a general MIDI drum pattern arrive intact. Channel ten of an imported file
 goes to the converter with the kit already on, and the shipped samples sit at their General
-MIDI drum notes, so a kick lands on the kick.
+MIDI drum notes, so a kick lands on the kick and every note stays on the key the file wrote it
+on.
 
 WAV files import into the sample channel, resampled to the rate you ask for. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between

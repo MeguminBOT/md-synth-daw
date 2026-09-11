@@ -35,6 +35,7 @@ class ShotCheck {
 		var tall = 1000;
 		var centreTab = Centre.PLAYLIST;
 		var drives = false;
+		var drums = false;
 		var dockTab = 0;
 		var inspectorTab = Inspector.CHANNEL;
 		var theme = Theme.MIDNIGHT;
@@ -70,6 +71,7 @@ class ShotCheck {
 				case "--vgm": vgm = held; at++;
 				case "--lang": lang = held; at++;
 				case "--drives": drives = true;
+				case "--drums": drums = true;
 				case "--sheet": sheet = held; at++;
 				case "--lane": lane = whole(held, lane); at++;
 				case "--group": group = whole(held, group); at++;
@@ -119,6 +121,24 @@ class ShotCheck {
 
 		final session = vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm);
 
+		if (drums) {
+			final song = session.song;
+			song.drums = true;
+
+			for (at in 0...song.banks.length) {
+				final bank = song.banks[at];
+				if (bank.instruments.length < 2) continue;
+
+				final first = bank.instruments[0];
+				final held = song.instrumentAt(first);
+
+				if (held == null || !held.kind.sampled()) continue;
+
+				song.rack[mdd.song.Part.Dac.index()] = first;
+				break;
+			}
+		}
+
 		if (icons) {
 			for (index in 0...session.song.instruments.length) {
 				session.song.instruments[index].icon = index % mdd.Icon.COUNT;
@@ -145,6 +165,7 @@ class ShotCheck {
 		budget.overSong(session.song);
 
 		centre.roll.budget = budget;
+		if (drums) centre.roll.offsetY = 48 * centre.roll.rowTall;
 		rail.hardware.budget = budget;
 		rail.hardware.levels = rail.rack.levels;
 		editor.samples.budget = budget;

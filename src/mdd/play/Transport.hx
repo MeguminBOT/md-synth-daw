@@ -311,13 +311,15 @@ final class Transport {
 
 	/**
 		@return The instrument an audition should sound: the drum the note names where the
-			converter is a kit, and whatever the part holds otherwise. Playback picks a
-			drum the same way, so a kit auditions as it plays.
+			converter is a kit, and whatever the part holds otherwise. Null where the
+			converter is a kit with nothing rooted at that note, because a key with no
+			drum on it makes no sound. Playback picks a drum the same way, so a kit
+			auditions as it plays.
 	**/
 	function heard():Null<Instrument> {
 		if (song.drums) {
 			final kit = song.drumAt(heardNote);
-			if (kit >= 0) return song.instrumentAt(kit);
+			return kit < 0 ? null : song.instrumentAt(kit);
 		}
 
 		return song.instrumentAt(song.rack[heardPart]);

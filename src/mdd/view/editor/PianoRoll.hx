@@ -1,5 +1,6 @@
 package mdd.view.editor;
 
+import haxe.ds.Vector;
 import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.check.Budget;
@@ -40,10 +41,15 @@ final class PianoRoll extends Widget {
 
 	static inline final LOWEST = 12;
 	static inline final HIGHEST = 108;
-	static inline final KIT_BASE = 24;
 
 	static final BLACK:Array<Bool> = [false, true, false, true, false, false, true, false, true,
 		false, true, false];
+
+	/**
+		How solid a key with no drum on it is drawn, which is what tells a reader it
+		takes a note and makes no sound.
+	**/
+	static inline final SILENT = 0.28;
 
 	/**
 		What the grid can divide a bar into, coarsening down the list, with no snap at
@@ -172,9 +178,13 @@ final class PianoRoll extends Widget {
 	var panX:Float = 0;
 	var panY:Float = 0;
 
-	final kit:Array<Int> = [];
-
-	var wasTall:Float = 0;
+	/**
+		Which instrument each key sounds, by pitch, or -1 where the kit has nothing
+		rooted there. A key with nothing on it is still drawn and still takes a note:
+		it just makes no sound, which is what keeps an imported drum track in the
+		shape the file wrote it in.
+	**/
+	final kit:Vector<Int> = new Vector<Int>(HIGHEST + 1);
 	var settledOn:Int = -1;
 	var settledPart:Int = -1;
 
@@ -321,32 +331,21 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
-		@return Whether the chosen part plays samples, in which case the rows are a kit rather than
-			a keyboard.
+		@return Whether the chosen part plays a kit, in which case a key sounds whatever
+			drum is rooted at it rather than whatever the rack holds. The rows are the
+			same keys either way.
 	**/
 	public inline function kitting():Bool {
-		return session.part.sampled();
+		return session.part.sampled() && session.song.drums;
 	}
 
 	/**
 		Reads the kit again, which changing the bank needs.
 	**/
 	public function kitted():Void {
-		kit.resize(0);
+		for (pitch in 0...kit.length) kit[pitch] = -1;
 
-		if (!kitting()) {
-			if (wasTall > 0) {
-				rowTall = wasTall;
-				wasTall = 0;
-			}
-
-			return;
-		}
-
-		final root = root();
-		var want = root == null ? 34.0 : root.metrics.row;
-
-		if (wasTall <= 0) wasTall = rowTall;
+		if (!kitting()) return;
 
 		final song = session.song;
 		final at = song.bankOf(song.rack[session.part.index()]);
@@ -354,71 +353,63 @@ final class PianoRoll extends Widget {
 
 		for (index in 0...song.instruments.length) {
 			final held = song.instruments[index];
-			if (held.sample < 0 || song.sampleAt(held.sample) == null) continue;
+			if (held.sample < 0) continue;
+
+			final sample = song.sampleAt(held.sample);
+			if (sample == null) continue;
 			if (bank != null && !bank.holds(index)) continue;
+			if (sample.root < 0 || sample.root >= kit.length) continue;
 
-			kit.push(index);
+			kit[sample.root] = index;
 		}
-
-		final most = root == null ? 60.0 : root.metrics.whole(60);
-		final room = kit.length < 1 ? want : grid() / kit.length;
-
-		if (room > want) want = room > most ? most : room;
-
-		rowTall = want;
 	}
 
 	/**
 		@return The lowest row shown.
 	**/
 	public function lowest():Int {
-		return kitting() ? KIT_BASE : LOWEST;
+		return LOWEST;
 	}
 
 	/**
 		@return The highest.
 	**/
 	public function highest():Int {
-		if (!kitting()) return HIGHEST;
-		return KIT_BASE + (kit.length < 1 ? 0 : kit.length - 1);
+		return HIGHEST;
 	}
 
-	function seatOf(note:Note):Int {
-		if (!kitting()) return note.pitch;
-
-		final want = note.instrument >= 0 ? note.instrument
-			: session.song.rack[session.part.index()];
-		final at = kit.indexOf(want);
-
-		return KIT_BASE + (at < 0 ? 0 : at);
+	/**
+		@param pitch A key.
+		@return Which instrument is rooted there, or -1 where the part is not a kit or
+			the kit has nothing on that key.
+	**/
+	public function drumAt(pitch:Int):Int {
+		if (!kitting() || pitch < 0 || pitch >= kit.length) return -1;
+		return kit[pitch];
 	}
 
+	/**
+		Moves a note to a key, and with it to whichever drum is rooted there.
+
+		@param note The note.
+		@param seat The key it lands on.
+	**/
 	function seated(note:Note, seat:Int):Void {
-		if (!kitting()) {
-			note.pitch = seat;
-			return;
-		}
+		note.pitch = seat;
+		if (kitting()) note.instrument = drumAt(seat);
+	}
 
-		final at = seat - KIT_BASE;
-		if (at < 0 || at >= kit.length) return;
-
-		final which = kit[at];
-		note.instrument = which;
+	/**
+		@param seat A key.
+		@return What to write beside it: the drum rooted there where one is, and the
+			name of the note otherwise.
+	**/
+	function seatName(seat:Int):String {
+		final which = drumAt(seat);
+		if (which < 0) return named(seat);
 
 		final held = session.song.instrumentAt(which);
-		final sample = held == null ? null : session.song.sampleAt(held.sample);
-
-		note.pitch = sample == null ? 60 : sample.root;
-	}
-
-	function seatName(seat:Int):String {
-		if (!kitting()) return named(seat);
-
-		final at = seat - KIT_BASE;
-		if (at < 0 || at >= kit.length) return "";
-
-		final held = session.song.instrumentAt(kit[at]);
-		return held == null ? "" : held.name;
+		return held == null ? named(seat) : held.name;
 	}
 
 	function records(pitch:Int):Void {
@@ -430,8 +421,10 @@ final class PianoRoll extends Widget {
 		final at = session.snapped(session.transport.tick());
 		final length = session.snap < 1 ? session.song.tempo.ppqn : session.snap;
 
-		session.does(new mdd.song.edit.AddNote(session.pattern, session.part,
-			new mdd.song.Note(at, length, pitch)));
+		final note = new mdd.song.Note(at, length, pitch);
+		seated(note, pitch);
+
+		session.does(new mdd.song.edit.AddNote(session.pattern, session.part, note));
 	}
 
 	/**
@@ -609,7 +602,7 @@ final class PianoRoll extends Widget {
 		var found:Null<Note> = null;
 
 		for (note in lane.notes) {
-			if (seatOf(note) != pitch) continue;
+			if (note.pitch != pitch) continue;
 			if (tick < note.at || tick >= note.ends()) continue;
 			found = note;
 		}
@@ -634,13 +627,13 @@ final class PianoRoll extends Widget {
 		if (lane.notes.length == 0) return;
 
 		final first = lane.notes[0];
-		var low = seatOf(first);
+		var low = first.pitch;
 		var high = low;
 
 		for (note in lane.notes) {
 			if (note.at > first.at + session.song.tempo.ppqn * 16) break;
 
-			final seat = seatOf(note);
+			final seat = note.pitch;
 			if (seat < low) low = seat;
 			if (seat > high) high = seat;
 		}
@@ -663,11 +656,11 @@ final class PianoRoll extends Widget {
 		}
 
 		leastAt = moving[0].at;
-		leastSeat = seatOf(moving[0]);
+		leastSeat = moving[0].pitch;
 		mostSeat = leastSeat;
 
 		for (note in moving) {
-			final seat = seatOf(note);
+			final seat = note.pitch;
 
 			wereAt.push(note.at);
 			werePitch.push(note.pitch);
@@ -898,7 +891,7 @@ final class PianoRoll extends Widget {
 		final low = pitchAt(floor);
 
 		for (note in pattern.lane(session.part).notes) {
-			final seat = seatOf(note);
+			final seat = note.pitch;
 
 			if (seat < low || seat > high) continue;
 			if (note.ends() <= from || note.at >= to) continue;
@@ -1191,11 +1184,11 @@ final class PianoRoll extends Widget {
 
 				if (event.x < x + gutter()) {
 					final pitch = pitchAt(event.y);
-					final seat = pitch - KIT_BASE;
+					final which = drumAt(pitch);
 
-					if (kitting() && seat >= 0 && seat < kit.length) {
+					if (which >= 0) {
 						session.holds();
-						session.song.rack[session.part.index()] = kit[seat];
+						session.song.rack[session.part.index()] = which;
 						session.frees();
 						session.changed();
 					}
@@ -1248,9 +1241,9 @@ final class PianoRoll extends Widget {
 					sizingStart = !onEdge(under, event.x) && onStart(under, event.x);
 					sizing = sizingStart || onEdge(under, event.x);
 					grabTick = sizing ? 0 : tickAt(event.x) - under.at;
-					grabPitch = sizing ? 0 : pitchAt(event.y) - seatOf(under);
+					grabPitch = sizing ? 0 : pitchAt(event.y) - under.pitch;
 					grabWasAt = under.at;
-					grabWasSeat = seatOf(under);
+					grabWasSeat = under.pitch;
 					grabFresh = false;
 					grabs(under);
 					invalidate();
@@ -1275,7 +1268,7 @@ final class PianoRoll extends Widget {
 				grabTick = 0;
 				grabPitch = 0;
 				grabWasAt = note.at;
-				grabWasSeat = seatOf(note);
+				grabWasSeat = note.pitch;
 				grabFresh = true;
 				grabs(note);
 
@@ -1694,11 +1687,11 @@ final class PianoRoll extends Widget {
 		var seat = bySeat;
 
 		var least = held[0].at;
-		var low = seatOf(held[0]);
+		var low = held[0].pitch;
 		var high = low;
 
 		for (note in held) {
-			final row = seatOf(note);
+			final row = note.pitch;
 
 			if (note.at < least) least = note.at;
 			if (row < low) low = row;
@@ -1721,7 +1714,7 @@ final class PianoRoll extends Widget {
 			final wasHeld = note.instrument;
 
 			if (tick != 0) note.at += tick;
-			if (seat != 0) seated(note, seatOf(note) + seat);
+			if (seat != 0) seated(note, note.pitch + seat);
 
 			wantAt.push(note.at);
 			wantPitch.push(note.pitch);
@@ -2289,7 +2282,7 @@ final class PianoRoll extends Widget {
 
 			if (at + wide < left || at > x + width) continue;
 
-			final row = atPitch(seatOf(note));
+			final row = atPitch(note.pitch);
 			if (row + rowTall < y + ruler() || row > y + height) continue;
 
 			painted++;
@@ -2372,28 +2365,30 @@ final class PianoRoll extends Widget {
 			final row = atPitch(pitch);
 
 			if (row + rowTall >= top && row <= y + height) {
-				final black = !drums && BLACK[pitch % 12];
-				final lit = !drums && litOn && pitch == litNote;
+				final seated = drums && drumAt(pitch) >= 0;
+				final black = BLACK[pitch % 12];
+				final lit = litOn && pitch == litNote;
 
 				if (lit) {
 					paint.rect(x, row, wide, rowTall - 1, theme.part(session.part.index()));
-				} else if (drums) {
+				} else if (seated) {
 					paint.rect(x, row, wide, rowTall - 1, theme.raise1);
 				} else {
 					paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
-						black ? 1 : 0.72);
+						black ? 1 : (drums ? SILENT : 0.72));
 				}
 
 				if (rowTall >= font.height) {
 					final rooted = !drums && pitch % 12 == 0;
 
-					if (drums) {
+					if (seated) {
 						paint.text(seatName(pitch), x + metrics.unit * 2,
 							row + (rowTall - font.height) * 0.5 + font.ascent, theme.ink, 0.9);
 					} else {
 						paint.textRight(named(pitch), x + wide - metrics.unit * 2,
 							row + (rowTall - font.height) * 0.5 + font.ascent,
-							black ? theme.dim : theme.sink, rooted ? 1 : 0.75);
+							black ? theme.dim : theme.sink,
+							drums ? SILENT : (rooted ? 1 : 0.75));
 					}
 				}
 			}

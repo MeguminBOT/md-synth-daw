@@ -517,6 +517,12 @@ final class Sequencer {
 		Resolves one lane into voices and collects a key on, a tune and a key off for
 		each of them.
 
+		Where the converter is a kit, a note on a key the kit has nothing rooted at is
+		passed over whole rather than sounded on whatever the rack holds. It reaches
+		the chip with nothing at all, not even the write that returns the converter to
+		the middle, so an imported drum track keeps the keys the file wrote and the
+		ones general midi leaves empty stay quiet.
+
 		@param lane The lane to read.
 		@param origin Where the clip starts, in ticks.
 		@param from The first tick to read.
@@ -566,6 +572,8 @@ final class Sequencer {
 			final pitch = voices.pitchAt(slice) + transpose;
 			final velocity = louder(part, voices.velocityAt(slice));
 			final named = voices.instrumentAt(slice);
+
+			if (part.sampled() && song.drums && song.drumAt(pitch) < 0) continue;
 
 			if (onSample >= fromSample && onSample < toSample) {
 				if (!tied) {

@@ -1467,7 +1467,7 @@ class MixCheck {
 			final sample = new mdd.song.Sample(kinds[which], 8000, roots[which]);
 
 			final bytes = new Vector<Int>(8);
-			for (at in 0...8) bytes[at] = 128;
+			for (at in 0...8) bytes[at] = at * 32;
 
 			sample.hold(bytes);
 
@@ -1487,7 +1487,34 @@ class MixCheck {
 			kick >= 0 && snare >= 0 && kick != snare && absent < 0,
 			"36 reaches " + drummed.instrumentAt(kick).name + ", 38 reaches "
 			+ drummed.instrumentAt(snare).name
-			+ ", and a pitch with no sample falls back to the channel");
+			+ ", and a pitch with no sample reaches none");
+
+		final pitches = drummed.patterns[0].lane(mdd.song.Part.Dac.index()).notes;
+		final were = [for (note in pitches) note.pitch];
+
+		says("and an imported drum track keeps the keys the file wrote",
+			were.length == 3 && were[0] == 36 && were[1] == 38 && were[2] == 42,
+			were.join(", ") + " against the 36, 38, 42 the file carries");
+
+		for (note in pitches) note.pitch = 36;
+		final heard = converted(drummed);
+
+		for (note in pitches) note.pitch = 99;
+		final mute = converted(drummed);
+
+		final kept = pitches.copy();
+		pitches.resize(0);
+
+		final none = converted(drummed);
+
+		for (note in kept) pitches.push(note);
+		for (index in 0...pitches.length) pitches[index].pitch = were[index];
+
+		says("and a key with no drum on it makes no sound",
+			heard > mute && mute == none,
+			heard + " converter writes with the notes on the key the kick is rooted at, "
+			+ mute + " with them on a key the kit has nothing on, and " + none
+			+ " with no notes at all");
 
 		final packed = into + "/round." + mdd.Config.SUFFIX;
 		mdd.format.Project.save(song, packed);
@@ -1515,6 +1542,30 @@ class MixCheck {
 			+ " s of song, " + made.writes + " writes with " + made.lost
 			+ " lost, and " + quiet + " of " + Math.floor(made.frames / step)
 			+ " seconds silent");
+	}
+
+	/**
+		Sequences a song whole and counts what reaches the converter.
+
+		@param song The song.
+		@return How many bytes are written to register `$2A`. A run of one byte repeated
+			counts once, because the stream drops a write that would not change the
+			register.
+	**/
+	static function converted(song:mdd.song.Song):Int {
+		final span = song.tempo.samplesAt(song.ends());
+		final stream = new mdd.play.Stream(mdd.play.Mixdown.roomFor(span));
+
+		new mdd.play.Sequencer(song).spanned(stream, 0, span);
+
+		var many = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) == mdd.play.Stream.YM && stream.portAt(index) == 0
+				&& stream.valueAt(index) == 0x2A) many++;
+		}
+
+		return many;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

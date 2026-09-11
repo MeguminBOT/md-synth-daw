@@ -274,6 +274,12 @@ final class Session {
 	}
 
 	/**
+		Where general midi puts a kick, which is where the one a new piece starts with
+		sits so that a drum track imported from a file lands on it.
+	**/
+	public static inline final KICK = 36;
+
+	/**
 		Builds a new piece with a track and an instrument for each part.
 
 		@param library The preset library to take instruments from.
@@ -296,7 +302,7 @@ final class Session {
 
 		final kit = song.instrument(new mdd.song.Instrument("Kick", Part.Dac));
 		kit.icon = mdd.Icon.KICK;
-		final sample = song.sample(new mdd.song.Sample("Kick", 8000, 60));
+		final sample = song.sample(new mdd.song.Sample("Kick", 8000, KICK));
 
 		final bytes = new haxe.ds.Vector<Int>(1200);
 		var seed = 0x2C1D;
