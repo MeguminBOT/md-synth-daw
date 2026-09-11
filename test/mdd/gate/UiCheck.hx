@@ -138,6 +138,7 @@ class UiCheck {
 		quiet(renderer, target, face, monoFace);
 		sheets(renderer, target, face, monoFace);
 		chooses();
+		crowded(renderer, face, monoFace);
 
 		Draw.destroyTexture(target);
 		Sdl.destroyRenderer(renderer);
@@ -256,6 +257,82 @@ class UiCheck {
 	static function poked(root:Root, px:Float, py:Float):Void {
 		root.pressed(px, py, Pointer.Left, Mod.None);
 		root.released(px, py, Pointer.Left, Mod.None);
+	}
+
+	/**
+		A menu with more in it than the window is tall stays inside the window and every
+		entry can still be reached.
+
+		The icon chooser is the one that bites: it offers every icon there is, which is
+		longer than any window, and a menu that simply drew them all ran off the bottom
+		with no way to get at what was down there.
+
+		@param renderer What to bake the faces with.
+		@param face The text face.
+		@param monoFace The fixed width face.
+	**/
+	static function crowded(renderer:cpp.Star<Canvas>, face:String,
+			monoFace:String):Void {
+		final body = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 12);
+
+		if (body == null || mono == null) {
+			says("a long menu stays in the window", false, "the fonts would not bake");
+			return;
+		}
+
+		final metrics = new Metrics(1);
+		metrics.dress(body, body, mono, mono);
+
+		final top = new Widget();
+		final root = new Root(top, metrics, new Theme());
+
+		root.flow = Flow.None;
+		root.resize(400, 300);
+		top.arrange(0, 0, 400, 300);
+
+		final menu = new Menu();
+		final many = 60;
+
+		for (index in 0...many) menu.offer(new Choice("entry " + index));
+
+		root.pop(menu, 10, 10);
+
+		says("a menu longer than the window stays inside it",
+			menu.height <= 300 && menu.y >= 0 && menu.y + menu.height <= 300,
+			"sixty entries draw " + Math.round(menu.height) + " tall at " + Math.round(menu.y)
+			+ " in a window of 300");
+
+		final first = menu.rowAt(menu.y + metrics.unit + metrics.row * 0.5);
+
+		root.moved(menu.x + 10, menu.y + 10, Mod.None);
+		root.turned(0, -1, Mod.None);
+
+		final after = menu.rowAt(menu.y + metrics.unit + metrics.row * 0.5);
+
+		says("and the wheel moves it", first == 0 && after > 0,
+			"the top entry was " + first + " and is " + after + " after one turn");
+
+		var guard = 0;
+
+		while (menu.rowAt(menu.y + menu.height - metrics.row * 0.5) < many - 1
+				&& guard < 200) {
+			root.turned(0, -1, Mod.None);
+			guard++;
+		}
+
+		final last = menu.rowAt(menu.y + menu.height - metrics.row * 0.5);
+
+		says("and the last entry can be reached", last == many - 1,
+			"the bottom of the menu reads entry " + last + " of " + (many - 1)
+			+ " after " + guard + " turns");
+
+		final outside = menu.rowAt(menu.y + menu.height + 20);
+
+		says("and nothing below it answers", outside == -1,
+			"a point under the menu belongs to no entry");
+
+		root.dismiss();
 	}
 
 	static function shaped():Root {

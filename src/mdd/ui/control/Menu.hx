@@ -150,6 +150,24 @@ final class Menu extends Widget {
 	}
 
 	/**
+		How much room is left above and below a menu long enough to scroll, so it
+		does not sit flush against the top and bottom of the window.
+	**/
+	static inline final MARGIN = 8;
+
+	/**
+		How far down the entries are scrolled, in pixels.
+	**/
+	var offset:Float = 0;
+
+	/**
+		How far they can be scrolled, which is nought where they all fit. A menu of
+		every icon is longer than a window is tall, and one that cannot scroll simply
+		runs off the bottom with no way to reach what is down there.
+	**/
+	var most:Float = 0;
+
+	/**
 		@param metrics The sizes to draw at.
 		@param choice An entry.
 		@return How tall it draws, which is less for a divider.
@@ -170,8 +188,20 @@ final class Menu extends Widget {
 		final root = root();
 		if (root == null) return 0;
 
+		return raised(index) - offset;
+	}
+
+	/**
+		@param index An entry.
+		@return Where it sits before the menu is scrolled.
+	**/
+	function raised(index:Int):Float {
+		final root = root();
+		if (root == null) return 0;
+
 		var top = root.metrics.unit;
 		for (at in 0...index) top += rowHeight(root.metrics, choices[at]);
+
 		return top;
 	}
 
@@ -184,7 +214,9 @@ final class Menu extends Widget {
 		if (root == null) return -1;
 
 		final metrics = root.metrics;
-		var top = y + metrics.unit;
+		if (py < y || py >= y + height) return -1;
+
+		var top = y + metrics.unit - offset;
 
 		for (at in 0...choices.length) {
 			final tall = rowHeight(metrics, choices[at]);
@@ -226,7 +258,19 @@ final class Menu extends Widget {
 		}
 
 		wantWidth = widest + metrics.inset * 2;
-		wantHeight = tall;
+
+		final room = availableHeight - metrics.whole(MARGIN) * 2;
+
+		if (room > 0 && tall > room) {
+			wantHeight = room;
+			most = tall - room;
+		} else {
+			wantHeight = tall;
+			most = 0;
+		}
+
+		if (offset > most) offset = most;
+		if (offset < 0) offset = 0;
 	}
 
 	override function accepts(px:Float, py:Float):Bool {
@@ -315,6 +359,9 @@ final class Menu extends Widget {
 		if (root == null) return false;
 
 		switch (event.kind) {
+			case Kind.Wheel:
+				return scrolled(event.dy * root.metrics.row);
+
 			case Kind.PointerMove:
 				hoverOn(rowAt(event.y));
 				return true;
@@ -337,6 +384,52 @@ final class Menu extends Widget {
 	}
 
 	/**
+		Scrolls the entries.
+
+		@param by How far to move them, in pixels. A positive number shows what is above.
+		@return Whether there was anywhere to scroll to.
+	**/
+	function scrolled(by:Float):Bool {
+		if (most <= 0) return false;
+
+		final was = offset;
+		offset -= by;
+
+		if (offset < 0) offset = 0;
+		if (offset > most) offset = most;
+
+		if (offset == was) return true;
+
+		invalidate();
+		return true;
+	}
+
+	/**
+		Brings an entry into view, which is what the arrow keys need once a menu is
+		longer than the room it has.
+
+		@param index Which entry.
+	**/
+	function shows(index:Int):Void {
+		if (most <= 0 || index < 0 || index >= choices.length) return;
+
+		final root = root();
+		if (root == null) return;
+
+		final metrics = root.metrics;
+		final top = raised(index);
+		final tall = rowHeight(metrics, choices[index]);
+
+		if (top - offset < metrics.unit) offset = top - metrics.unit;
+		if (top + tall - offset > height) offset = top + tall - height;
+
+		if (offset < 0) offset = 0;
+		if (offset > most) offset = most;
+
+		invalidate();
+	}
+
+	/**
 		Moves the hover with the arrow keys, opens a nested menu with right, closes with
 		left, and chooses with enter.
 
@@ -348,10 +441,12 @@ final class Menu extends Widget {
 		switch (code) {
 			case Key.Up:
 				hoverOn(near(hoverAt, -1));
+				shows(hoverAt);
 				return true;
 
 			case Key.Down:
 				hoverOn(near(hoverAt, 1));
+				shows(hoverAt);
 				return true;
 
 			case Key.Return, Key.Space:
@@ -416,7 +511,9 @@ final class Menu extends Widget {
 		paint.outline(x, y, width, height, theme.raise2, metrics.whole(1), alpha,
 			metrics.radiusWindow);
 
-		var top = y + metrics.unit;
+		paint.pushClip(x, y, width, height);
+
+		var top = y + metrics.unit - offset;
 
 		for (at in 0...choices.length) {
 			final choice = choices[at];
@@ -459,6 +556,7 @@ final class Menu extends Widget {
 			top += tall;
 		}
 
+		paint.popClip();
 		paint.popTransform();
 	}
 
