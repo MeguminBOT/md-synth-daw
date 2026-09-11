@@ -262,14 +262,28 @@ final class Sequencer {
 		for (track in song.tracks) {
 			if (track.muted) continue;
 
-			for (clip in track.clips) {
-				if (clip.at > high || clip.ends() <= low) continue;
+			var index = 0;
+
+			while (index < track.clips.length) {
+				final clip = track.clips[index];
+				index++;
+
 				if (clip.kind == mdd.song.Clip.AUTOMATION) continue;
+
+				var until = clip.ends();
+
+				while (index < track.clips.length
+						&& follows(clip, track.clips[index], until)) {
+					until = track.clips[index].ends();
+					index++;
+				}
+
+				if (clip.at > high || until <= low) continue;
 
 				final pattern = song.patternAt(clip.pattern);
 				if (pattern == null) continue;
 
-				walk(pattern, clip.origin(), clip.at, clip.ends(), clip.transpose, low, high,
+				walk(pattern, clip.origin(), clip.at, until, clip.transpose, low, high,
 					fromSample, toSample);
 			}
 		}
@@ -455,6 +469,29 @@ final class Sequencer {
 		@param fromSample The first sample of the span.
 		@param toSample One past the last sample of the span.
 	**/
+	/**
+		@param head The clip a run of them started with.
+		@param next The clip after it on the same track.
+		@param until Where the run reaches so far, in ticks.
+		@return Whether the next clip carries the run on rather than starting one of its
+			own: the same pattern, the same transpose, beginning exactly where the run
+			reaches, and reading that pattern from exactly where the run left off.
+
+		That is the shape a cut leaves behind, and walking the two as one is what keeps a
+		cut from restarting the music. Two copies of the same pattern laid side by side
+		both read it from their own start, so they do not join and each sounds on its
+		own, which is what somebody who placed two of them asked for.
+	**/
+	static function follows(head:mdd.song.Clip, next:mdd.song.Clip,
+			until:Int):Bool {
+		if (next.kind == mdd.song.Clip.AUTOMATION) return false;
+		if (next.pattern != head.pattern) return false;
+		if (next.transpose != head.transpose) return false;
+		if (next.at != until) return false;
+
+		return next.origin() == head.origin();
+	}
+
 	function walk(pattern:mdd.song.Pattern, origin:Int, from:Int, until:Int, transpose:Int,
 			low:Int, high:Int, fromSample:Int, toSample:Int):Void {
 		if (from > high || until <= low) return;

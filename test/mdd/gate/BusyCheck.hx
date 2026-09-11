@@ -200,7 +200,7 @@ class BusyCheck {
 				was = reach;
 			}
 
-			final raw = rendering.reached.load();
+			final raw = Std.int(rendering.reach() * Mixdown.WHOLE);
 
 			if (raw < lowest) lowest = raw;
 			if (raw < lastRaw) slipped++;
@@ -227,7 +227,7 @@ class BusyCheck {
 			Sdl.sleep(0.001);
 		}
 
-		final ended = rendering.reached.load();
+		final ended = Std.int(rendering.reach() * Mixdown.WHOLE);
 		final over = Sdl.ticks() - began;
 
 		says("a bounce leaves the window drawing", worst <= ALLOWED,

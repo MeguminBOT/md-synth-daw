@@ -43,7 +43,7 @@ class VgmCheck {
 
 		final timed = args.indexOf("--times") >= 0;
 		final names = ["corpus", "sounds", "rated", "sound", "hushed", "paced", "covered",
-			"shadowed", "whole", "stepped", "kitted"];
+			"shadowed", "whole", "stepped", "kitted", "sliced"];
 
 		final spent:Array<Float> = [];
 		var began = haxe.Timer.stamp();
@@ -54,6 +54,8 @@ class VgmCheck {
 		}
 
 		corpus(where, files);
+		marks();
+		sliced(files[0]);
 		marks();
 		sounds(where, files);
 		marks();
@@ -1806,6 +1808,113 @@ class VgmCheck {
 
 	static function compare(a:String, b:String):Int {
 		return a < b ? -1 : (a > b ? 1 : 0);
+	}
+
+	/**
+		Slicing a clip in an imported piece changes nothing that sounds.
+
+		An imported piece is where automation actually lives: a recording writes pitch,
+		level and stereo between the notes, and all of it ends up in lanes under the
+		clips. A synthetic fixture carries a line or two, which is not the same test.
+
+		@param name The recording to read.
+	**/
+	static function sliced(name:String):Void {
+		final stream = new mdd.play.Stream(1 << 22);
+		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
+		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
+
+		var track = -1;
+
+		for (index in 0...song.tracks.length) {
+			if (song.tracks[index].clips.length > 0 && track < 0) track = index;
+		}
+
+		if (track < 0) {
+			says("a cut in an imported piece changes nothing that sounds", false,
+				"the import left no clip to cut");
+			return;
+		}
+
+		final clip = song.tracks[track].clips[0];
+		final at = clip.at + Std.int(clip.length / 2);
+
+		final was = streamed(song);
+		final history = new mdd.song.edit.History();
+
+		history.does(song, new mdd.song.edit.SliceClip(track, clip, at));
+
+		final now = streamed(song);
+		final differs = differing(was, now);
+
+		final where = parted(was, now);
+
+		says("a cut in an imported piece changes nothing that sounds",
+			was.count == now.count && where < 0,
+			was.count + " writes before against " + now.count + " after, cut at " + at
+			+ (where < 0 ? "" : ", first apart at " + where + ", tick "
+			+ was.tickAt(where) + " port " + was.portAt(where) + " value "
+			+ was.valueAt(where) + " against tick " + now.tickAt(where) + " port "
+			+ now.portAt(where) + " value " + now.valueAt(where)));
+
+		history.undo(song);
+
+		final back = streamed(song);
+
+		says("and taking the cut back puts every write where it was",
+			differing(was, back) == -2,
+			differing(was, back) == -2 ? "the stream is what it was before the cut"
+			: "the stream did not come back");
+	}
+
+	/**
+		@param song A piece.
+		@return Every register write the whole of it makes.
+	**/
+	static function streamed(song:mdd.song.Song):mdd.play.Stream {
+		final span = song.tempo.samplesAt(song.ends());
+		final stream = new mdd.play.Stream(mdd.play.Mixdown.roomFor(span));
+
+		new mdd.play.Sequencer(song).spanned(stream, 0, span);
+		return stream;
+	}
+
+	/**
+		@param one One stream.
+		@param two Another.
+		@return -2 where they are the same, -1 where they are different lengths, and the
+			first write they disagree on otherwise.
+	**/
+	/**
+		@param one One stream.
+		@param two Another.
+		@return The first write they disagree on, or -1 where every write they both hold
+			is the same.
+	**/
+	static function parted(one:mdd.play.Stream, two:mdd.play.Stream):Int {
+		final least = one.count < two.count ? one.count : two.count;
+
+		for (index in 0...least) {
+			if (one.tickAt(index) != two.tickAt(index)) return index;
+			if (one.kindAt(index) != two.kindAt(index)) return index;
+			if (one.portAt(index) != two.portAt(index)) return index;
+			if (one.valueAt(index) != two.valueAt(index)) return index;
+		}
+
+		return -1;
+	}
+
+	static function differing(one:mdd.play.Stream, two:mdd.play.Stream):Int {
+		if (one.count != two.count) return -1;
+
+		for (index in 0...one.count) {
+			if (one.tickAt(index) != two.tickAt(index)) return index;
+			if (one.kindAt(index) != two.kindAt(index)) return index;
+			if (one.portAt(index) != two.portAt(index)) return index;
+			if (one.valueAt(index) != two.valueAt(index)) return index;
+		}
+
+		return -2;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

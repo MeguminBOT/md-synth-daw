@@ -30,6 +30,7 @@ class AutomationCheck {
 		repeated();
 		played();
 		clipped();
+		sliced();
 		driven();
 		named();
 		kept();
@@ -199,22 +200,7 @@ class AutomationCheck {
 
 		new mdd.play.Sequencer(song).spanned(stream, 0, span);
 
-		final out:Array<Int> = [];
-		var latched = 0;
-
-		for (index in 0...stream.count) {
-			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
-
-			final value = stream.valueAt(index);
-			if ((value & 0x80) == 0) continue;
-
-			latched = (value >> 4) & 7;
-			if ((latched & 1) == 0) continue;
-
-			out.push(value & 0x0F);
-		}
-
-		return out;
+		return attenuations(stream);
 	}
 
 	static function played():Void {
@@ -276,22 +262,7 @@ class AutomationCheck {
 		new mdd.play.Sequencer(song).spanned(stream, 0,
 			song.tempo.samplesAt(pattern.length));
 
-		final out:Array<Int> = [];
-		var latched = 0;
-
-		for (index in 0...stream.count) {
-			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
-
-			final value = stream.valueAt(index);
-			if ((value & 0x80) == 0) continue;
-
-			latched = (value >> 4) & 7;
-			if ((latched & 1) == 0) continue;
-
-			out.push(value & 0x0F);
-		}
-
-		return out;
+		return attenuations(stream);
 	}
 
 	static function clipped():Void {
@@ -313,6 +284,100 @@ class AutomationCheck {
 			straight.length > held.length && rises,
 			"the same clip drawn linear writes " + straight.length
 			+ " attenuations against " + held.length + " held, each quieter than the last");
+	}
+
+	/**
+		@param stream What a span was sequenced into.
+		@return Every attenuation written to the first square, in the order they were
+			written.
+	**/
+	static function attenuations(stream:mdd.play.Stream):Array<Int> {
+		final out:Array<Int> = [];
+		var latched = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+			if ((value & 0x80) == 0) continue;
+
+			latched = (value >> 4) & 7;
+			if ((latched & 1) == 0) continue;
+
+			out.push(value & 0x0F);
+		}
+
+		return out;
+	}
+
+	/**
+		A clip only writes the automation that falls inside it.
+
+		A sliced clip reads its pattern from an offset, and what a clip collected was
+		bounded by the span being sequenced rather than by the clip, so the half before
+		the cut wrote the whole pattern's automation and the half after wrote it again.
+		That reads as a level that jumps back at the join.
+	**/
+	static function sliced():Void {
+		final whole = levelled(false);
+		final cut = levelled(true);
+
+		var back = 0;
+		for (index in 1...cut.length) {
+			if (cut[index] < cut[index - 1]) back++;
+		}
+
+		says("a sliced clip never writes a level it has already passed", back == 0,
+			cut.length + " attenuations across the cut against " + whole.length
+			 + " written whole, " + back + " of them going back on the one before");
+
+		says("and the two halves end where the whole clip ended",
+			cut.length > 0 && whole.length > 0
+			&& cut[cut.length - 1] == whole[whole.length - 1],
+			cut.length == 0 || whole.length == 0 ? "nothing was written"
+			: "both finish at " + whole[whole.length - 1]);
+	}
+
+	/**
+		The lane carries no note on purpose. A sliced clip releases the note it was
+		playing and the next one strikes it again, which is what a cut means, and those
+		two attenuations would be read as automation going backwards.
+
+		@param cut Whether the clip is sliced in two at the halfway point.
+		@return Every attenuation a square is given across the piece.
+	**/
+	static function levelled(cut:Bool):Array<Int> {
+		final song = new Song("sliced", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 4));
+
+		final lane = pattern.lane(Part.Psg1);
+
+		final line = new Automation(Automation.LEVEL, 0);
+
+		for (step in 0...5) {
+			final point = new Point(step * SPAN, step * 3);
+
+			point.shape = Automation.HOLD;
+			line.add(point);
+		}
+
+		lane.automation.push(line);
+
+		final track = song.track(new mdd.song.Track("one"));
+
+		if (cut) {
+			track.add(new mdd.song.Clip(0, 0, SPAN * 2));
+			track.add(new mdd.song.Clip(0, SPAN * 2, SPAN * 2, 0, SPAN * 2));
+		} else {
+			track.add(new mdd.song.Clip(0, 0, pattern.length));
+		}
+
+		final stream = new mdd.play.Stream(1 << 16);
+
+		new mdd.play.Sequencer(song).spanned(stream, 0,
+			song.tempo.samplesAt(pattern.length));
+
+		return attenuations(stream);
 	}
 
 	static function busy(driving:Bool, ceiling:Int = 0):mdd.play.Stream {
