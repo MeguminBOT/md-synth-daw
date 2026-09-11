@@ -43,17 +43,27 @@ final class Profile {
 	public var highestFm:Int = 107;
 
 	/**
-		How many bytes of samples the author has set aside, or nought for no limit,
-		which is what it is until somebody sets one.
+		How many bytes of samples the author has set aside, or nought for no limit.
 
 		There is no hardware number to put here. The converter takes one byte at a
 		time and one sample sounds at a time, so a figure in bytes is storage rather
 		than anything the part limits, and how much storage there is depends on what
 		the piece is exported as: nothing at all for a render, no bank at all for a
 		VGM, an XGM's own table for an XGM, and whatever a cartridge was given for a
-		cartridge. `docs/notes/ym2612.md` records the measurements.
+		cartridge.
+
+		`ROM` is the convention it starts at rather than a fact, and
+		`docs/notes/ym2612.md` records both that and the measurements behind it.
 	**/
-	public var sampleBytes:Int = 0;
+	public var sampleBytes:Int = ROM;
+
+	/**
+		A quarter of a one megabyte cartridge, which is what a piece is held to until
+		an author says what their own cartridge sets aside. It is a convention rather
+		than a limit of the machine, and it is stated here so that nobody has to guess
+		what it was meant to be.
+	**/
+	public static inline final ROM = 262144;
 
 	/**
 		How many register writes a driver can make in one frame, or nought for no limit.

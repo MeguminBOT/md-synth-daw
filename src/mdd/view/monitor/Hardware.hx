@@ -145,7 +145,7 @@ final class Hardware extends Widget {
 			case 0: 6;
 			case 1: 24;
 			case 2: 4;
-			case _: profile == null ? 0 : profile.sampleBytes;
+			case _: profile == null ? mdd.check.Profile.ROM : profile.sampleBytes;
 		}
 	}
 
