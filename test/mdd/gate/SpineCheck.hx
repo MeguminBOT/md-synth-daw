@@ -2335,7 +2335,7 @@ class SpineCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, small, mono, mono);
+		metrics.dress(body, small, mono, mono, small);
 
 		final session = Session.started(mdd.song.Library.embedded());
 

@@ -209,6 +209,9 @@ class Icons {
 		out.add(listed("MONO", [for (held in project.typefaces) held.mono]));
 		out.add("\n");
 		out.add(listed("FALLBACK", project.fallbacks));
+		out.add("\n");
+		out.add("\tpublic static inline final CONDENSED = \"" + project.condensed
+			+ "\";\n");
 		out.add("}\n");
 
 		tree(into + "/mdd");

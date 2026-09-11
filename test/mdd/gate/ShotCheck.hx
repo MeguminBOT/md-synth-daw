@@ -103,6 +103,9 @@ class ShotCheck {
 		final small = Font.bake(renderer, face, 13);
 		final mono = Font.bake(renderer, monoFace, 14);
 
+		final condensed = mdd.Typeface.CONDENSED == "" ? null
+			: Font.bake(renderer, root + "/vendor/fonts/" + mdd.Typeface.CONDENSED, 13);
+
 		if (body == null || small == null || mono == null) {
 			Sys.println("  shot          the fonts would not bake");
 			Sdl.destroyRenderer(renderer);
@@ -112,7 +115,7 @@ class ShotCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, small, mono, mono);
+		metrics.dress(body, small, mono, mono, condensed);
 
 		final session = vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm);
 

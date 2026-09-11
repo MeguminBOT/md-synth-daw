@@ -118,7 +118,7 @@ class FuzzCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, small, mono, mono);
+		metrics.dress(body, small, mono, mono, small);
 
 		final session = seeded(root);
 		final shell = new Shell();

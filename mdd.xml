@@ -260,6 +260,8 @@
 		<fallback name="NotoSansSC.ttf" />
 		<fallback name="NotoSansKR.ttf" />
 
+		<condensed name="BarlowSemiCondensed.ttf" />
+
 		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
 		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
 		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />

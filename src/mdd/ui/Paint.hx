@@ -1112,6 +1112,42 @@ final class Paint {
 	}
 
 	/**
+		Draws a line in the narrowest face it fits in: the one given where it fits,
+		the condensed one where that would, and the short form where neither does.
+		The painter is left drawing in the face it was given, whichever it used.
+
+		@param font The face the rest of the row is drawn in.
+		@param condensed A narrower face, or null where none was baked.
+		@param said The line, spelt out.
+		@param short What to draw where neither face fits it. An empty string draws
+			the line in the narrowest face there is and lets it run on.
+		@param x Where it starts, across.
+		@param middle The middle of the row it sits on, down, because the baseline
+			moves with the face it lands in.
+		@param room How much room it has, across.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
+	public function fitted(font:Font, condensed:Null<Font>, said:String, short:String,
+			x:Float, middle:Float, room:Float, colour:Colour, alpha:Float = 1):Void {
+		if (font.measure(said) <= room) {
+			text(said, x, middle - font.height * 0.5 + font.ascent, colour, alpha);
+			return;
+		}
+
+		if (condensed != null && (short == "" || condensed.measure(said) <= room)) {
+			reface(condensed);
+			text(said, x, middle - condensed.height * 0.5 + condensed.ascent, colour,
+				alpha);
+			reface(font);
+			return;
+		}
+
+		text(short == "" ? said : short, x, middle - font.height * 0.5 + font.ascent,
+			colour, alpha);
+	}
+
+	/**
 		Draws text at a baseline.
 
 		@param value The text.

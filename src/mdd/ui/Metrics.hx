@@ -126,6 +126,14 @@ final class Metrics {
 	public var large(default, null):Font;
 
 	/**
+		The narrower face a label is drawn in where the secondary one would not fit,
+		which is the rung between spelling a field out and falling back to what the
+		documentation abbreviates it to. Null where none was baked, and a caller
+		reads it as the secondary face then.
+	**/
+	public var condensed(default, null):Font;
+
+	/**
 		Builds a set of sizes at a scale, with no faces yet.
 
 		@param scale What to multiply every design size by.
@@ -165,18 +173,22 @@ final class Metrics {
 	}
 
 	/**
-		Takes the four faces the interface draws in.
+		Takes the faces the interface draws in.
 
 		@param body Ordinary text.
 		@param small Secondary text.
 		@param mono Numbers and registers.
 		@param large Headings.
+		@param condensed A label with no room for the secondary face. Null leaves a
+			caller reading the secondary one instead.
 	**/
-	public function dress(body:Font, small:Font, mono:Font, large:Font):Void {
+	public function dress(body:Font, small:Font, mono:Font, large:Font,
+			condensed:Font):Void {
 		this.body = body;
 		this.small = small;
 		this.mono = mono;
 		this.large = large;
+		this.condensed = condensed;
 	}
 
 	/**

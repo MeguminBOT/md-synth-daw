@@ -98,6 +98,7 @@ final class Stage {
 	var small:Null<Font> = null;
 	var mono:Null<Font> = null;
 	var large:Null<Font> = null;
+	var condensed:Null<Font> = null;
 
 	/**
 		Builds a stage with nothing open.
@@ -306,6 +307,9 @@ final class Stage {
 		mono = Font.bake(renderer, fixed, 14 * scale);
 		large = Font.bake(renderer, fixed, 21 * scale);
 
+		condensed = mdd.Typeface.CONDENSED == "" ? null
+			: Font.bake(renderer, where + "/" + mdd.Typeface.CONDENSED, 13 * scale);
+
 		if (body == null || small == null || mono == null || large == null) {
 			Sys.println("mdd: the fonts would not bake");
 			return false;
@@ -315,8 +319,9 @@ final class Stage {
 		small.chains(spare);
 		mono.chains(spare);
 		large.chains(spare);
+		if (condensed != null) condensed.chains(spare);
 
-		metrics.dress(body, small, mono, large);
+		metrics.dress(body, small, mono, large, condensed);
 		if (paint != null) paint.reface(body);
 		return true;
 	}
@@ -329,11 +334,13 @@ final class Stage {
 		if (small != null) small.shut();
 		if (mono != null) mono.shut();
 		if (large != null) large.shut();
+		if (condensed != null) condensed.shut();
 
 		body = null;
 		small = null;
 		mono = null;
 		large = null;
+		condensed = null;
 	}
 
 	/**

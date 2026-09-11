@@ -65,6 +65,10 @@ operating system, which is what keeps the window identical on Windows, macOS and
 pairings and the faces they are built from are declared in `mdd.xml`, which is what `mdd setup`
 fetches and what the preferences list is generated from, so adding one is a single edit.
 
+Barlow Semi Condensed is also baked whichever pairing is chosen, and is what a label too long
+for the pairing's own face is drawn in before anything is shortened. It is declared in the same
+place, as `<condensed>`.
+
 | face | licence | checked | fetched from |
 | --- | --- | --- | --- |
 | Go, Go Mono | BSD-3-Clause | 2026-09-01 | go.googlesource.com/image |

@@ -282,7 +282,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, mono, mono);
+		metrics.dress(body, body, mono, mono, body);
 
 		final top = new Widget();
 		final root = new Root(top, metrics, new Theme());
@@ -867,7 +867,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, body, body);
+		metrics.dress(body, body, body, body, body);
 
 		final sheet = new Sheet();
 		final root = new Root(sheet, metrics, new Theme());
@@ -910,7 +910,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, mono, mono);
+		metrics.dress(body, body, mono, mono, body);
 
 		final shell = new Shell();
 		final root = new Root(shell, metrics, new Theme());
@@ -1450,7 +1450,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, mono, mono);
+		metrics.dress(body, body, mono, mono, body);
 
 		final top = new Widget();
 		final root = new Root(top, metrics, new Theme());
@@ -1561,7 +1561,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, mono, mono);
+		metrics.dress(body, body, mono, mono, body);
 
 		final top = new Widget();
 		final root = new Root(top, metrics, new Theme());
@@ -1718,7 +1718,7 @@ class UiCheck {
 		}
 
 		final metrics = new Metrics(1);
-		metrics.dress(body, body, mono, mono);
+		metrics.dress(body, body, mono, mono, body);
 
 		final top = new Widget();
 		final root = new Root(top, metrics, new Theme());

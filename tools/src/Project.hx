@@ -132,6 +132,12 @@ class Project {
 	public var typefaces(default, null):Array<Typeface> = [];
 	public var fallbacks(default, null):Array<String> = [];
 
+	/**
+		The face a label too long for the chosen one is drawn in, or an empty string
+		where none is declared.
+	**/
+	public var condensed(default, null):String = "";
+
 	public var iconPath(default, null):String = "assets/icons";
 	public var iconSizes(default, null):Array<Int> = [];
 	public var iconFrom(default, null):Array<Named> = [];
@@ -298,6 +304,9 @@ class Project {
 
 						case "fallback":
 							fallbacks.push(held.get("name"));
+
+						case "condensed":
+							condensed = held.get("name");
 
 						case _:
 					}

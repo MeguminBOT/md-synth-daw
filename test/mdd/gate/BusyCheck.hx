@@ -140,7 +140,7 @@ class BusyCheck {
 
 		final metrics = new Metrics(1);
 
-		metrics.dress(body, body, body, body);
+		metrics.dress(body, body, body, body, body);
 
 		final held = new Root(new Shell(), metrics, new Theme());
 		final paint = Paint.on(renderer, body);
