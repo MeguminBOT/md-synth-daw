@@ -273,6 +273,18 @@ class ShotCheck {
 			held.arrive();
 			held.rise.hold(1);
 			held.fade.hold(1);
+		} else if (sheet == "kitting") {
+			final held = new mdd.view.overlay.Kitting();
+			final kit = new mdd.format.Kit();
+
+			kit.reads(vgm == "" ? root + "/vendor/drum kits/Metal Kit" : vgm);
+			kit.guesses();
+			kit.converts();
+
+			tree.raise(held);
+			held.ask(kit);
+			held.rise.hold(1);
+			held.fade.hold(1);
 		} else if (sheet == "welcome") {
 			final held = new mdd.view.overlay.Welcome(session);
 

@@ -338,6 +338,11 @@ final class Menus {
 
 		held.divide();
 
+		fired(held.offer(new Choice(said(Locale.KIT))), function():Void
+			asks(Files.READ_KIT));
+
+		held.divide();
+
 		fired(held.offer(new Choice(said(Locale.FILE_READ_TFI))), function():Void
 			asks(Files.READ_TFI));
 

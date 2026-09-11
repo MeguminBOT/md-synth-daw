@@ -145,7 +145,20 @@ on.
 
 WAV files import into the sample channel, band limited on the way down so nothing above the new
 half rate folds back into what is kept: measured, a tone the new rate cannot carry leaves 75.6 dB
-below one it can. A run of converter
+below one it can.
+
+**A kit is made from a folder of recordings.** Point it at one and every WAV in it becomes a hit:
+the offset comes out, the silence before and the tail past hearing are cut, the rate is brought down
+band limited, the end is faded so a cut does not click, and the loudness is set before the bytes are
+made rather than by scaling bytes afterwards. The rates offered are the ones Mega Drive drivers
+actually take, 14000 among them, which is what the XGM driver plays at.
+
+Which key each hit lands on is worked out from the recording rather than from the file name, because
+a file name is often wrong: a hat that chokes is the closed one and a hat that rings is the open one
+whatever either is called, and toms are ordered by their measured pitch so a fill runs low to high
+however they were numbered. Every key can be moved by hand, and the running total is shown against
+what you have set aside. A kit of anything other than drums lays its hits out one after another
+instead. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between
 writes with real pauses excluded, rather than from the run measured end to end.
 

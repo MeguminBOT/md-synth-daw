@@ -97,6 +97,11 @@ final class Panels {
 	public var importing:Null<mdd.view.overlay.Importing> = null;
 
 	/**
+		The sheet that makes a kit out of a folder of recordings.
+	**/
+	public var kitting:Null<mdd.view.overlay.Kitting> = null;
+
+	/**
 		The update notice.
 	**/
 	public var notice:Null<Notice> = null;
@@ -239,6 +244,18 @@ final class Panels {
 
 		stage.root.raise(importing);
 		importing.ask(called, strands);
+	}
+
+	/**
+		Raises the kit sheet for a folder that has been read.
+
+		@param kit What the folder holds, already measured and converted.
+	**/
+	public function kitted(kit:mdd.format.Kit):Void {
+		if (kitting == null) return;
+
+		stage.root.raise(kitting);
+		kitting.ask(kit);
 	}
 
 	/**

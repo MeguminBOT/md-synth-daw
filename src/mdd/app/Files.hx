@@ -107,6 +107,11 @@ final class Files {
 	public static inline final READ_TFI = 13;
 
 	/**
+		Dialog: a folder of recordings to make a kit out of.
+	**/
+	public static inline final READ_KIT = 14;
+
+	/**
 		The rate an import is measured at.
 	**/
 	public static inline final RATE = 44100;
@@ -175,6 +180,12 @@ final class Files {
 		this is called, and `takes` is what acts on the answer.
 	**/
 	public var onSurvey:Null<(String, Array<Strand>) -> Void> = null;
+
+	/**
+		Called with a kit read out of a folder, so a reader can say what it becomes.
+		Nothing is written by the time this is called.
+	**/
+	public var onKit:Null<mdd.format.Kit -> Void> = null;
 
 	var midiBytes:Null<haxe.io.Bytes> = null;
 	var midiName:String = "";
@@ -452,6 +463,7 @@ final class Files {
 			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
 			case TFI: Dialog.save(window, "tfi", "tfi", where);
 			case READ_TFI: Dialog.open(window, "tfi", "tfi", where);
+			case READ_KIT: Dialog.folder(window, where);
 			case _: null;
 		}
 
@@ -507,7 +519,7 @@ final class Files {
 		return switch (what) {
 			case OPEN: Locale.WORKING_OPENING;
 			case SAVE: Locale.WORKING_SAVING;
-			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV: Locale.WORKING_IMPORTING;
+			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV, READ_KIT: Locale.WORKING_IMPORTING;
 			case _: Locale.WORKING_EXPORTING;
 		}
 	}
@@ -534,6 +546,7 @@ final class Files {
 				case READ_WAV: readWav(where);
 				case TFI: writeTfi(where);
 				case READ_TFI: readTfi(where);
+				case READ_KIT: readKit(where);
 				case _:
 			}
 		} catch (e:Dynamic) {
@@ -624,6 +637,59 @@ final class Files {
 		session.changed();
 
 		return made;
+	}
+
+	/**
+		Reads a folder of recordings into a kit and hands it to `onKit`.
+
+		Nothing is written here. The sheet the kit goes to is what decides whether any
+		of it is kept, so a folder can be looked at and left alone.
+
+		@param where The folder to read.
+	**/
+	public function readKit(where:String):Void {
+		final kit = new mdd.format.Kit();
+
+		if (kit.reads(where) == 0) {
+			session.says(Locale.KIT_NONE);
+			return;
+		}
+
+		kit.guesses();
+		kit.converts();
+
+		final what = onKit;
+		if (what != null) what(kit);
+	}
+
+	/**
+		Writes a kit into the presets folder and reads it straight back into the
+		library, so it is there to play without restarting.
+
+		@param kit The kit to write.
+		@return Where it was written, or an empty string where nothing was.
+	**/
+	public function writeKit(kit:mdd.format.Kit):String {
+		final said = kit.written();
+		if (said == "") return "";
+
+		final into = within("presets");
+		Paths.make(into);
+
+		final named = into + "/" + safely(kit.name) + mdd.song.Library.SUFFIX;
+		sys.io.File.saveContent(named, said);
+
+		final held = new mdd.song.Library();
+		held.reads(said);
+
+		session.holds();
+		held.into(session.song);
+		session.frees();
+
+		session.says(Locale.SAID_KIT, kit.name, "" + kit.taken(), "" + kit.bytes());
+		session.changed();
+
+		return named;
 	}
 
 	/**

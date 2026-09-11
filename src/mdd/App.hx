@@ -274,6 +274,16 @@ class App {
 		files.onSurvey = function(called:String,
 				strands:Array<mdd.format.Strand>):Void panels.surveyed(called, strands);
 
+		panels.kitting = new mdd.view.overlay.Kitting();
+		panels.kitting.onShut = function():Void stage.root.lower();
+
+		panels.kitting.onSave = function(kit:mdd.format.Kit):Void {
+			files.writeKit(kit);
+			changed();
+		};
+
+		files.onKit = function(kit:mdd.format.Kit):Void panels.kitted(kit);
+
 		panels.preferences = new Preferences(session);
 		panels.preferences.onScale = function(much:Float):Void stage.densified(much);
 		panels.preferences.onTypeface = function(which:Int):Void redressed();
