@@ -180,6 +180,25 @@ Thirteen hits, 41393 bytes at 11025 Hz, which is 15.8 per cent of the 262144 the
 allows for samples. The roots are where general MIDI puts each drum, so a drum track imported from a
 MIDI lands on the right hit with nothing to move.
 
+## The 808 kit
+
+`assets/presets/retribution.json` is this repository's author's own work rather than anybody
+else's: ten hits built in the manner of a TR-808 and converted here, so it is covered by this
+repository's own licence like every other file in it. Mono, eight bit unsigned, 11025 Hz, the
+same shape the synthesised kit uses, and each hit sits where general MIDI puts that drum.
+
+| what | root | bytes |
+| --- | --- | --- |
+| Kick | 36 | 2405 |
+| Snare, Snare 2 | 38, 40 | 3149, 1946 |
+| Tom low, mid, high, top | 41, 43, 45, 47 | 10967, 7218, 10520, 12599 |
+| Hat closed | 42 | 3041 |
+| Crash, Crash 2 | 49, 57 | 18900, 9605 |
+
+Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profile allows for
+samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
+costs the machine nothing.
+
 ## Read but never shipped
 
 | source | licence | why it is here |

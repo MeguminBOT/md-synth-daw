@@ -47,7 +47,8 @@ final class Budget {
 	public var operators(default, null):Int = 0;
 
 	/**
-		How many bytes of samples the song carries.
+		How many bytes of samples the music reaches for. A bank sitting in the library
+		is not counted: what a cartridge has to carry is the sample a note plays.
 	**/
 	public var sampleBytes(default, null):Int = 0;
 
@@ -130,7 +131,7 @@ final class Budget {
 
 		for (index in 0...song.patterns.length) overPattern(song, index);
 
-		for (sample in song.samples) sampleBytes += sample.length();
+		sampled(song);
 
 		if (profile.sampleBytes > 0 && sampleBytes > profile.sampleBytes) {
 			raise(Diagnostic.WARNING, Part.Dac, 0, Locale.WARN_SAMPLES_OVER,
@@ -139,6 +140,49 @@ final class Budget {
 		}
 
 		return found.length;
+	}
+
+	/**
+		Adds up the samples the music plays, each one once however often it is struck.
+
+		A preset that is merely loaded costs nothing, which is why a new piece reads
+		nought however many banks ship: every other counter here reads what is played
+		rather than what is to hand, and a cartridge carries the samples the music
+		reaches for. Which instrument a note reaches is worked out the way the
+		sequencer works it out, so a key the kit has nothing rooted at costs nothing
+		either.
+
+		@param song The song to read.
+	**/
+	function sampled(song:Song):Void {
+		final counted:Array<Bool> = [for (index in 0...song.samples.length) false];
+
+		for (pattern in song.patterns) {
+			for (which in 0...Part.COUNT) {
+				final part:Part = which;
+				if (!part.sampled()) continue;
+
+				for (note in pattern.lane(part).notes) {
+					final kit = song.drums ? song.drumAt(note.pitch) : -1;
+					if (song.drums && kit < 0) continue;
+
+					final which = kit >= 0 ? kit
+						: (note.instrument >= 0 ? note.instrument : song.rack[part.index()]);
+
+					final instrument = song.instrumentAt(which);
+					if (instrument == null) continue;
+
+					final at = instrument.sample;
+					if (at < 0 || at >= counted.length || counted[at]) continue;
+
+					final sample = song.sampleAt(at);
+					if (sample == null) continue;
+
+					counted[at] = true;
+					sampleBytes += sample.length();
+				}
+			}
+		}
 	}
 
 	/**

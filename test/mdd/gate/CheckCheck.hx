@@ -29,6 +29,7 @@ class CheckCheck {
 		profiles();
 		overlaps();
 		converter();
+		sampled();
 		ranges();
 		registers();
 		speed();
@@ -44,6 +45,57 @@ class CheckCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		A sample is counted where a note reaches it and nowhere else, so the banks that
+		ship cost a new piece nothing at all.
+	**/
+	static function sampled():Void {
+		final song = mdd.app.Session.empty(mdd.song.Library.embedded());
+		final budget = new Budget(Profile.megaDrive());
+
+		var held = 0;
+		for (sample in song.samples) held += sample.length();
+
+		budget.overSong(song);
+
+		says("a new piece carries no samples at all", budget.sampleBytes == 0 && held > 0,
+			budget.sampleBytes + " bytes counted against the " + held
+				+ " the shipped banks put in the document");
+
+		final rack = song.rack[Part.Dac.index()];
+		final instrument = song.instrumentAt(rack);
+		final sample = instrument == null ? null : song.sampleAt(instrument.sample);
+		final want = sample == null ? 0 : sample.length();
+
+		final pattern = song.patterns[0];
+
+		pattern.lane(Part.Dac).add(new Note(0, 24, sample == null ? 60 : sample.root,
+			100, rack));
+		pattern.lane(Part.Dac).add(new Note(48, 24, sample == null ? 60 : sample.root,
+			100, rack));
+
+		budget.overSong(song);
+
+		says("and one a note plays is counted once", budget.sampleBytes == want && want > 0,
+			budget.sampleBytes + " bytes for two notes on the same " + want
+				+ " byte sample");
+
+		song.drums = true;
+		pattern.lane(Part.Dac).notes[1].pitch = 99;
+
+		budget.overSong(song);
+
+		final kitted = budget.sampleBytes;
+
+		pattern.lane(Part.Dac).notes[0].pitch = 99;
+		budget.overSong(song);
+
+		says("and a key the kit has nothing on costs nothing",
+			kitted == want && budget.sampleBytes == 0,
+			kitted + " bytes with one note on the kick's key and one on a key with"
+				+ " nothing on it, " + budget.sampleBytes + " with both on empty keys");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
