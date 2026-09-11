@@ -281,6 +281,79 @@ final class Library {
 	}
 
 	/**
+		Writes a bank document, in the layout `reads` takes back.
+
+		Only sampled instruments are written for now, because that is what a kit is and
+		what nothing else here could produce: the shipped banks were all written by
+		programs outside the application.
+
+		@param named What the bank is called.
+		@param made The instruments, in the order they should appear.
+		@param held The sample each one plays, in the same order. An entry with no
+			sample is passed over.
+		@return The document.
+	**/
+	public static function written(named:String, made:Array<Instrument>,
+			held:Array<Null<Sample>>):String {
+		final out = new mdd.format.Json();
+
+		out.open();
+		out.key("name");
+		out.text(named);
+		out.key("presets");
+		out.list();
+
+		for (index in 0...made.length) {
+			final sample = index < held.length ? held[index] : null;
+			if (sample == null || sample.length() == 0) continue;
+
+			final one = made[index];
+
+			out.open();
+
+			out.key("name");
+			out.text(one.name);
+
+			if (one.icon >= 0 && one.icon < mdd.Icon.NAMES.length) {
+				out.key("icon");
+				out.text(mdd.Icon.NAMES[one.icon]);
+			}
+
+			out.key("tags");
+			out.list();
+			for (tag in one.tags) out.text(tag);
+			out.ends();
+
+			out.key("rate");
+			out.whole(sample.rate);
+
+			out.key("root");
+			out.whole(sample.root);
+
+			out.key("pcm");
+			out.text(coded(sample));
+
+			out.close();
+		}
+
+		out.ends();
+		out.close();
+
+		return out.toString();
+	}
+
+	/**
+		@param sample A sample.
+		@return Its bytes as base64, which is how a bank document carries them.
+	**/
+	static function coded(sample:Sample):String {
+		final bytes = haxe.io.Bytes.alloc(sample.length());
+		for (at in 0...sample.length()) bytes.set(at, sample.bytes[at] & 0xFF);
+
+		return haxe.crypto.Base64.encode(bytes);
+	}
+
+	/**
 		Reads a patch out of a bank document, in the same layout a TFI file uses.
 
 		@param said The patch as hexadecimal.

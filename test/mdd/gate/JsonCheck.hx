@@ -29,6 +29,7 @@ class JsonCheck {
 
 		agreed();
 		timed();
+		banked();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    failed");
@@ -102,6 +103,87 @@ class JsonCheck {
 		}
 
 		return true;
+	}
+
+	/**
+		A bank written here reads back as what went in.
+
+		Nothing in the application could write one until now: every bank that ships was
+		made by a program outside it, so the reader had never been held to a writer.
+	**/
+	static function banked():Void {
+		final made:Array<mdd.song.Instrument> = [];
+		final held:Array<Null<mdd.song.Sample>> = [];
+
+		final names = ["Kick", "Snare"];
+		final roots = [36, 38];
+		final rates = [11025, 14000];
+
+		for (which in 0...names.length) {
+			final one = new mdd.song.Instrument(names[which], mdd.song.Part.Dac);
+
+			one.icon = mdd.Icon.NAMES.indexOf("kick");
+			one.tags.push("Drums");
+			one.tags.push("Percussion");
+
+			final sample = new mdd.song.Sample(names[which], rates[which], roots[which]);
+			final bytes = new haxe.ds.Vector<Int>(600 + which);
+
+			for (at in 0...bytes.length) bytes[at] = (at * 7 + which * 31) & 0xFF;
+
+			sample.hold(bytes);
+
+			made.push(one);
+			held.push(sample);
+		}
+
+		final said = mdd.song.Library.written("A Kit", made, held);
+		final back = new mdd.song.Library();
+		final many = back.reads(said);
+
+		says("a bank written here reads back", many == 2 && back.names.length == 1
+			&& back.names[0] == "A Kit",
+			many + " presets in a bank called '" + (back.names.length == 0 ? "" 
+				: back.names[0]) + "', from " + said.length + " bytes of document");
+
+		var same = many == 2;
+		var apart = "";
+
+		if (same) {
+			for (which in 0...names.length) {
+				final one = back.instruments[0][which];
+				final sample = back.samples[0][which];
+
+				if (sample == null) {
+					same = false;
+					apart = names[which] + " came back with no sample";
+					break;
+				}
+
+				if (one.name != names[which] || one.icon != made[which].icon
+					|| one.tags.length != 2 || sample.root != roots[which]
+					|| sample.rate != rates[which]
+					|| sample.length() != held[which].length()) {
+					same = false;
+					apart = names[which] + " came back different";
+					break;
+				}
+
+				for (at in 0...sample.length()) {
+					if (sample.bytes[at] == held[which].bytes[at]) continue;
+
+					same = false;
+					apart = names[which] + " differs at byte " + at;
+					break;
+				}
+
+				if (!same) break;
+			}
+		}
+
+		says("and every byte of it is what went in", same,
+			same ? "the name, the icon, the tags, the root, the rate and all "
+				+ (held[0].length() + held[1].length()) + " bytes of both hits" : apart);
 	}
 
 	static function timed():Void {

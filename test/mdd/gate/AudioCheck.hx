@@ -39,6 +39,7 @@ class AudioCheck {
 
 		queueing();
 		resampled();
+		sampling();
 		offline();
 		whistle();
 		pitch();
@@ -84,6 +85,65 @@ class AudioCheck {
 		says("and one over it does not come back somewhere else", down < -40,
 			round(down, 1) + " dB left of a tone at 8000 that 11025 cannot carry, against"
 				+ " the nought a tone it can carry keeps");
+	}
+
+	/**
+		What the conversion does to a recording on its way to being a sample.
+
+		The fixture is what a badly prepared hit looks like: quiet, sitting off centre,
+		with a long silence after it. Every stage has something to do.
+	**/
+	static function sampling():Void {
+		final was = 48000;
+		final held = new Vector<Float>(was);
+
+		for (index in 0...was) {
+			final at = index / was;
+
+			if (at < 0.1 || at > 0.4) {
+				held[index] = 0.2;
+			} else {
+				final since = at - 0.1;
+				held[index] = 0.2 + 0.3 * Math.sin(2 * Math.PI * 200 * since)
+					* Math.exp(-since * 12);
+			}
+		}
+
+		final made = new mdd.format.Sampling();
+		final sample = made.takes(held, was, "hit");
+
+		says("a converted hit keeps only the hit", sample.length() > 0
+			&& sample.length() < made.rate / 2,
+			sample.length() + " bytes at " + made.rate + " Hz, of the " + made.rate
+				+ " a whole second of the recording would have come to");
+
+		var most = 0;
+		var sum = 0.0;
+
+		for (index in 0...sample.length()) {
+			final off = sample.bytes[index] - 128;
+			final size = off < 0 ? -off : off;
+
+			if (size > most) most = size;
+			sum += off;
+		}
+
+		says("and brings it up to full", most == 127,
+			most + " of 127, from a recording peaking at three tenths");
+
+		final middle = sample.length() == 0 ? 0.0 : sum / sample.length();
+
+		says("and takes the offset out", middle > -4 && middle < 4,
+			round(middle, 2) + " away from the middle, from a recording sitting a fifth"
+				+ " of full above it");
+
+		final first = sample.bytes[0] - 128;
+		final last = sample.bytes[sample.length() - 1] - 128;
+
+		says("and begins and ends at rest",
+			first > -6 && first < 6 && last > -6 && last < 6,
+				"it opens at " + first + " and closes at " + last + ", either side of the"
+				+ " middle, so there is no step at either end");
 	}
 
 	/**
