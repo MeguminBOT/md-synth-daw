@@ -282,7 +282,20 @@ class App {
 			changed();
 		};
 
-		files.onKit = function(kit:mdd.format.Kit):Void panels.kitted(kit);
+		panels.kitting.onAdd = function():Void files.ask(stage.window, Files.READ_HIT);
+		panels.kitting.onFolder = function():Void files.ask(stage.window, Files.READ_KIT);
+
+		files.onHit = function(where:String):Void {
+			if (panels.kitting == null) return;
+			if (!panels.kitting.takes(where)) session.says(Locale.KIT_NONE);
+		};
+
+		files.onKitFolder = function(where:String):Void {
+			if (panels.kitting == null) return;
+			if (panels.kitting.takesFolder(where) == 0) session.says(Locale.KIT_NONE);
+		};
+
+		menus.onKit = function():Void panels.kitted(new mdd.format.Kit());
 
 		panels.preferences = new Preferences(session);
 		panels.preferences.onScale = function(much:Float):Void stage.densified(much);

@@ -147,11 +147,13 @@ WAV files import into the sample channel, band limited on the way down so nothin
 half rate folds back into what is kept: measured, a tone the new rate cannot carry leaves 75.6 dB
 below one it can.
 
-**A kit is made from a folder of recordings.** Point it at one and every WAV in it becomes a hit:
-the offset comes out, the silence before and the tail past hearing are cut, the rate is brought down
-band limited, the end is faded so a cut does not click, and the loudness is set before the bytes are
-made rather than by scaling bytes afterwards. The rates offered are the ones Mega Drive drivers
-actually take, 14000 among them, which is what the XGM driver plays at.
+**A kit is made in a sheet of its own.** It opens empty and you fill it, a file or a whole folder
+at a time, because a kit is as often gathered from several places as it is found sitting in one. Name
+it, tag it, and every WAV you add becomes a hit: the offset comes out, the silence before and the
+tail past hearing are cut, the rate is brought down band limited, the end is faded so a cut does not
+click, and the loudness is set before the bytes are made rather than by scaling bytes afterwards. The
+rates offered are the ones Mega Drive drivers actually take, 14000 among them, which is what the XGM
+driver plays at.
 
 Which key each hit lands on is worked out from the recording rather than from the file name, because
 a file name is often wrong: a hat that chokes is the closed one and a hat that rings is the open one

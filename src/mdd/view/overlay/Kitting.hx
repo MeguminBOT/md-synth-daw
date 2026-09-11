@@ -12,23 +12,29 @@ import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Button;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Field;
+import mdd.ui.control.Menu;
 
 @:unreflective
 
 /**
-	The kit sheet: a folder of recordings, what each one will become, and what the whole
-	of it comes to.
+	The kit sheet: recordings on their way to being a bank, what each one will become,
+	and what the whole of it comes to.
 
-	Nothing is written until the sheet is closed with the button, so a folder can be
-	looked at and left alone. The keys are worked out from the recordings when it
-	opens, and the button that does it is there because a guess is a guess: a row's key
-	steps by hand whenever the guess is wrong.
+	It opens empty and is filled from it, a file or a folder at a time, because a kit is
+	as often gathered from several places as it is found sitting in one. Nothing is
+	written until the sheet is closed with the button.
+
+	Every control here is a real one. The keys are worked out from the recordings when
+	they arrive, and the button that does it again is there because a guess is a guess:
+	a row's key steps by hand whenever the guess is wrong.
 **/
 final class Kitting extends Widget {
 	/**
 		How many rows are shown before it scrolls.
 	**/
-	static inline final SHOWN = 12;
+	static inline final SHOWN = 10;
 
 	/**
 		The rates offered, which are the ones Mega Drive drivers actually take. 14000 is
@@ -38,17 +44,52 @@ final class Kitting extends Widget {
 	public static final RATES:Array<Int> = [8000, 11025, 13400, 14000, 16000, 22050];
 
 	/**
-		What is being made. Empty until `ask` is called.
+		What is being made.
 	**/
 	public var kit:Kit = new Kit();
 
 	/**
-		The button that saves the kit.
+		What the bank will be called.
+	**/
+	public final named:Field;
+
+	/**
+		What every hit in it is tagged with, separated by commas.
+	**/
+	public final tagged:Field;
+
+	/**
+		Opens the rates.
+	**/
+	public final rate:Button;
+
+	/**
+		Whether the keys are the ones general MIDI puts drums on.
+	**/
+	public final drums:Button;
+
+	/**
+		Works the keys out again.
+	**/
+	public final guess:Button;
+
+	/**
+		Adds one recording.
+	**/
+	public final adds:Button;
+
+	/**
+		Adds every recording in a folder.
+	**/
+	public final folder:Button;
+
+	/**
+		Saves the kit.
 	**/
 	public final go:Button;
 
 	/**
-		The button that closes the sheet.
+		Closes the sheet.
 	**/
 	public final stop:Button;
 
@@ -72,6 +113,16 @@ final class Kitting extends Widget {
 	**/
 	public var onShut:Null<Void -> Void> = null;
 
+	/**
+		Called to ask for one recording to add.
+	**/
+	public var onAdd:Null<Void -> Void> = null;
+
+	/**
+		Called to ask for a folder of them.
+	**/
+	public var onFolder:Null<Void -> Void> = null;
+
 	var offset:Int = 0;
 	var hoverAt:Int = -1;
 
@@ -88,20 +139,48 @@ final class Kitting extends Widget {
 		rise = new Motion(this, 0, true);
 		fade = new Motion(this, 0, false);
 
+		named = new Field("");
+		tagged = new Field("");
+
+		named.onChange = function(said:String):Void kit.name = said;
+		tagged.onChange = function(said:String):Void kit.tags = said;
+
+		rate = new Button("");
+		drums = new Button("");
+		guess = new Button("");
+		adds = new Button("");
+		folder = new Button("");
+
+		drums.toggle = true;
+
 		go = new Button("");
 		stop = new Button("");
 
+		add(named);
+		add(tagged);
+		add(rate);
+		add(drums);
+		add(guess);
+		add(adds);
+		add(folder);
 		add(go);
 		add(stop);
+
+		rate.onFire = function(button:Button):Void rates();
+		drums.onFire = function(button:Button):Void kitted(button.on);
+		guess.onFire = function(button:Button):Void worked();
+		adds.onFire = function(button:Button):Void asked(false);
+		folder.onFire = function(button:Button):Void asked(true);
 
 		go.onFire = function(button:Button):Void fired();
 		stop.onFire = function(button:Button):Void shut();
 	}
 
 	/**
-		Shows the sheet for a kit that has been read and measured.
+		Shows the sheet.
 
-		@param held The kit.
+		@param held What to fill it with, which is an empty kit where one is being
+			started from nothing.
 	**/
 	public function ask(held:Kit):Void {
 		kit = held;
@@ -109,19 +188,89 @@ final class Kitting extends Widget {
 		offset = 0;
 		hoverAt = -1;
 
-		final root = root();
-		if (root == null) return;
+		named.set(kit.name);
+		tagged.set(kit.tags);
 
-		go.label = root.translate(Locale.FILE_SAVE);
-		stop.label = root.translate(Locale.EXPORT_CANCEL);
+		drums.on = kit.drums;
+
+		labelled();
 
 		rise.hold(0);
 		fade.hold(0);
+
+		final root = root();
+		if (root == null) return;
 
 		root.start(rise, 1, Motion.ENTER);
 		root.start(fade, 1, Motion.ENTER);
 
 		relayout();
+	}
+
+	/**
+		Adds one recording to what is open, measures it, and gives it a key.
+
+		@param path The file.
+		@return Whether it read.
+	**/
+	public function takes(path:String):Bool {
+		if (!kit.adds(path, Kit.titled(path))) {
+			invalidate();
+			return false;
+		}
+
+		kit.guesses();
+		kit.converts();
+
+		named.set(kit.name);
+
+		relayout();
+		return true;
+	}
+
+	/**
+		Adds every recording in a folder to what is open.
+
+		@param where The folder.
+		@return How many read.
+	**/
+	public function takesFolder(where:String):Int {
+		final many = kit.reads(where);
+
+		if (many > 0) {
+			kit.guesses();
+			kit.converts();
+
+			named.set(kit.name);
+		}
+
+		relayout();
+		return many;
+	}
+
+	/**
+		Puts the labels on every control, which changing the language or the rate needs.
+	**/
+	public function labelled():Void {
+		final root = root();
+		if (root == null) return;
+
+		named.hint = root.translate(Locale.PRESET_BY_NAME);
+		tagged.hint = root.translate(Locale.PRESET_TAGS);
+
+		rate.label = root.translate(Locale.KIT_RATE) + "  " + kit.rate;
+		drums.label = root.translate(Locale.KIT_DRUMS);
+		guess.label = root.translate(Locale.KIT_GUESS);
+		adds.label = root.translate(Locale.KIT_ADD);
+		folder.label = root.translate(Locale.KIT_FOLDER);
+
+		go.label = root.translate(Locale.FILE_SAVE);
+		stop.label = root.translate(Locale.EXPORT_CANCEL);
+
+		go.enabled = kit.taken() > 0;
+		guess.enabled = kit.slots.length > 0;
+
+		invalidate();
 	}
 
 	/**
@@ -145,6 +294,56 @@ final class Kitting extends Widget {
 		if (what != null) what(held);
 	}
 
+	function asked(whole:Bool):Void {
+		final what = whole ? onFolder : onAdd;
+		if (what != null) what();
+	}
+
+	function kitted(on:Bool):Void {
+		kit.drums = on;
+
+		kit.guesses();
+		kit.converts();
+
+		labelled();
+	}
+
+	function worked():Void {
+		kit.guesses();
+		kit.converts();
+
+		labelled();
+	}
+
+	/**
+		Offers the rates a driver takes.
+	**/
+	function rates():Void {
+		final root = root();
+		if (root == null) return;
+
+		final menu = new Menu();
+
+		for (which in RATES) {
+			final choice = menu.offer(new Choice("" + which));
+
+			if (which == kit.rate) choice.shortcut = "•";
+			fires(choice, function():Void rated(which));
+		}
+
+		root.pop(menu, rate.x, rate.y + rate.height, this);
+	}
+
+	/**
+		@param want The rate to convert at.
+	**/
+	public function rated(want:Int):Void {
+		kit.rate = want;
+		kit.converts();
+
+		labelled();
+	}
+
 	/**
 		@return How many rows are on screen.
 	**/
@@ -165,16 +364,21 @@ final class Kitting extends Widget {
 	**/
 	public function head():Float {
 		final root = root();
-		return root == null ? 46 : root.metrics.whole(46);
+		return root == null ? 44 : root.metrics.whole(44);
 	}
 
 	/**
-		@return How tall the row of settings is.
+		@return How tall one row of controls is.
 	**/
 	public function bandTall():Float {
 		final root = root();
-		return root == null ? 40 : root.metrics.whole(40);
+		return root == null ? 38 : root.metrics.whole(38);
 	}
+
+	/**
+		How many rows of controls sit above the list.
+	**/
+	static inline final BANDS = 3;
 
 	override function measure(availableWidth:Float, availableHeight:Float):Void {
 		final root = root();
@@ -182,7 +386,8 @@ final class Kitting extends Widget {
 
 		wantWidth = metrics == null ? 640 : metrics.whole(640);
 		wantHeight = metrics == null ? 480
-			: head() + bandTall() + shown() * rowTall() + metrics.whole(34)
+			: head() + bandTall() * BANDS
+			+ (shown() < 1 ? rowTall() * 2 : shown() * rowTall()) + metrics.whole(34)
 			+ metrics.control + metrics.inset * 2;
 	}
 
@@ -191,6 +396,29 @@ final class Kitting extends Widget {
 		if (root == null) return;
 
 		final metrics = root.metrics;
+		final left = x + metrics.inset;
+		final room = width - metrics.inset * 2;
+		final tall = metrics.control;
+
+		var top = y + head();
+		final half = (room - metrics.gap) * 0.5;
+
+		named.arrange(left, top, half, tall);
+		tagged.arrange(left + half + metrics.gap, top, half, tall);
+
+		top += bandTall();
+
+		final third = (room - metrics.gap * 2) / 3;
+
+		rate.arrange(left, top, third, tall);
+		drums.arrange(left + third + metrics.gap, top, third, tall);
+		guess.arrange(left + (third + metrics.gap) * 2, top, third, tall);
+
+		top += bandTall();
+
+		adds.arrange(left, top, half, tall);
+		folder.arrange(left + half + metrics.gap, top, half, tall);
+
 		final wide = metrics.whole(120);
 		final bottom = y + height - metrics.inset - metrics.control;
 
@@ -200,7 +428,7 @@ final class Kitting extends Widget {
 	}
 
 	function listTop():Float {
-		return y + head() + bandTall();
+		return y + head() + bandTall() * BANDS;
 	}
 
 	function rowAt(py:Float):Int {
@@ -222,21 +450,6 @@ final class Kitting extends Widget {
 	**/
 	public function keyedAt(metrics:Metrics):Float {
 		return x + width - metrics.inset - metrics.whole(KEYED);
-	}
-
-	/**
-		Steps the rate to the next one offered, wrapping.
-
-		@param by Which way.
-	**/
-	public function rated(by:Int):Void {
-		var at = RATES.indexOf(kit.rate);
-		if (at < 0) at = 0;
-
-		kit.rate = RATES[(at + by + RATES.length) % RATES.length];
-
-		kit.converts();
-		invalidate();
 	}
 
 	override function took(event:Input):Bool {
@@ -268,15 +481,8 @@ final class Kitting extends Widget {
 			case Kind.PointerDown:
 				if (event.button != Pointer.Left) return false;
 
-				final band = y + head();
-
-				if (event.y >= band && event.y < band + bandTall()) {
-					banded(event.x, metrics);
-					return true;
-				}
-
 				final at = rowAt(event.y);
-				if (at < 0) return true;
+				if (at < 0) return false;
 
 				final slot = kit.slots[at];
 				final keyed = keyedAt(metrics);
@@ -295,6 +501,8 @@ final class Kitting extends Widget {
 				} else {
 					slot.taken = !slot.taken;
 					kit.converts();
+
+					labelled();
 				}
 
 				invalidate();
@@ -312,36 +520,6 @@ final class Kitting extends Widget {
 		}
 
 		return false;
-	}
-
-	/**
-		Takes a press on the row of settings.
-
-		@param px Where it landed, across.
-		@param metrics What to measure with.
-	**/
-	function banded(px:Float, metrics:Metrics):Void {
-		final wide = (width - metrics.inset * 2) / 3;
-		final which = Std.int((px - x - metrics.inset) / wide);
-
-		if (which == 0) {
-			rated(px < x + metrics.inset + wide * 0.5 ? -1 : 1);
-			return;
-		}
-
-		if (which == 1) {
-			kit.drums = !kit.drums;
-			kit.guesses();
-			kit.converts();
-
-			invalidate();
-			return;
-		}
-
-		kit.guesses();
-		kit.converts();
-
-		invalidate();
 	}
 
 	override function hovered(on:Bool):Void {
@@ -373,11 +551,12 @@ final class Kitting extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.reface(large);
-		paint.text(kit.name == "" ? translate(Locale.KIT) : kit.name, x + metrics.inset,
+		paint.text(translate(Locale.KIT), x + metrics.inset,
 			y + metrics.inset + large.ascent, theme.ink, alpha);
 
-		settings(paint, theme, metrics, alpha);
-		rows(paint, theme, metrics, alpha, font, small);
+		if (kit.slots.length == 0) empty(paint, theme, metrics, alpha, small);
+		else rows(paint, theme, metrics, alpha, font, small);
+
 		room(paint, theme, metrics, alpha, small);
 
 		for (child in children) {
@@ -387,34 +566,12 @@ final class Kitting extends Widget {
 		paint.popTransform();
 	}
 
-	function settings(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float):Void {
-		final font = metrics.small == null ? metrics.body : metrics.small;
-		final top = y + head();
-		final tall = bandTall();
-		final wide = (width - metrics.inset * 2) / 3;
-
-		paint.reface(font);
-
-		final said = [translate(Locale.KIT_RATE) + "  " + kit.rate,
-			translate(Locale.KIT_DRUMS), translate(Locale.KIT_GUESS)];
-
-		for (which in 0...3) {
-			final left = x + metrics.inset + which * wide;
-			final lit = which == 1 && kit.drums;
-
-			if (lit) {
-				paint.roundedRect(left, top + metrics.unit, wide - metrics.gap,
-					tall - metrics.unit * 2, metrics.radiusRow, theme.accent, Theme.SELECT);
-			}
-
-			paint.outline(left, top + metrics.unit, wide - metrics.gap,
-				tall - metrics.unit * 2, lit ? theme.accent : theme.frame, metrics.whole(1),
-				alpha, metrics.radiusRow);
-
-			paint.fitted(font, metrics.condensed, said[which], "",
-				left + metrics.gap, top + tall * 0.5, wide - metrics.gap * 3,
-				lit ? theme.ink : theme.dim, alpha * 0.9);
-		}
+	function empty(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float,
+			small:mdd.ui.Font):Void {
+		paint.reface(small);
+		paint.textCentred(translate(Locale.KIT_EMPTY), x + width * 0.5,
+			listTop() + rowTall() - small.height * 0.5 + small.ascent, theme.dim,
+			alpha * 0.7);
 	}
 
 	function rows(paint:Paint, theme:Theme, metrics:Metrics, alpha:Float, font:mdd.ui.Font,
@@ -465,7 +622,7 @@ final class Kitting extends Widget {
 				keyed - metrics.gap * 2, middle - small.height * 0.5 + small.ascent,
 				theme.dim, alpha * 0.7);
 
-			paint.textCentred(slot.root < 0 ? "" : named(slot.root),
+			paint.textCentred(slot.root < 0 ? "" : keyName(slot.root),
 				keyed + metrics.whole(KEYED) * 0.5,
 				middle - small.height * 0.5 + small.ascent,
 				slot.taken ? theme.ink : theme.dim, alpha * 0.9);
@@ -480,7 +637,8 @@ final class Kitting extends Widget {
 		final ceiling = mdd.check.Profile.ROM;
 		final over = ceiling > 0 && bytes > ceiling;
 
-		final line = listTop() + shown() * rowTall() + metrics.gap;
+		final line = listTop() + (shown() < 1 ? rowTall() * 2 : shown() * rowTall())
+			+ metrics.gap;
 
 		paint.reface(small);
 		paint.text(filled(Locale.KIT_ROOM, ["" + bytes, "" + ceiling]), x + metrics.inset,
@@ -504,7 +662,7 @@ final class Kitting extends Widget {
 		@param pitch A key.
 		@return What it is called, with the number general MIDI counts by.
 	**/
-	static function named(pitch:Int):String {
+	static function keyName(pitch:Int):String {
 		return LETTERS[pitch % 12] + Std.int(pitch / 12 - 1) + "  " + pitch;
 	}
 }

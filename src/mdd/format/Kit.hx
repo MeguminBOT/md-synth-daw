@@ -26,6 +26,12 @@ final class Kit {
 	public var rate:Int = 11025;
 
 	/**
+		What every hit in it is tagged with, separated by commas. Empty tags the kit as
+		drums, which is what a kit usually is.
+	**/
+	public var tags:String = "";
+
+	/**
 		Whether the keys are the ones general MIDI puts drums on. Off lays the hits out
 		one after another from `BASE` instead, which is what a kit of anything other
 		than drums wants.
@@ -228,6 +234,23 @@ final class Kit {
 	}
 
 	/**
+		@return What every hit is tagged with, with the blanks and the spaces around each
+			one taken off. Drums where nothing was said.
+	**/
+	public function tagged():Array<String> {
+		final out:Array<String> = [];
+
+		for (one in tags.split(",")) {
+			final held = StringTools.trim(one);
+			if (held != "" && out.indexOf(held) < 0) out.push(held);
+		}
+
+		if (out.length == 0) out.push("Drums");
+
+		return out;
+	}
+
+	/**
 		@return The bank document, which is empty where nothing was converted.
 	**/
 	public function written():String {
@@ -241,7 +264,8 @@ final class Kit {
 			final one = new Instrument(slot.name, Part.Dac);
 
 			one.icon = slot.icon;
-			one.tags.push("Drums");
+
+			for (tag in tagged()) one.tags.push(tag);
 
 			made.push(one);
 			held.push(sample);

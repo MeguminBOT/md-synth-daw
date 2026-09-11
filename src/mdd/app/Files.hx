@@ -112,6 +112,11 @@ final class Files {
 	public static inline final READ_KIT = 14;
 
 	/**
+		Dialog: one recording to add to the kit being made.
+	**/
+	public static inline final READ_HIT = 15;
+
+	/**
 		The rate an import is measured at.
 	**/
 	public static inline final RATE = 44100;
@@ -186,6 +191,16 @@ final class Files {
 		Nothing is written by the time this is called.
 	**/
 	public var onKit:Null<mdd.format.Kit -> Void> = null;
+
+	/**
+		Called with a folder to add to the kit that is open.
+	**/
+	public var onKitFolder:Null<String -> Void> = null;
+
+	/**
+		Called with one recording to add to the kit that is open.
+	**/
+	public var onHit:Null<String -> Void> = null;
 
 	var midiBytes:Null<haxe.io.Bytes> = null;
 	var midiName:String = "";
@@ -464,6 +479,7 @@ final class Files {
 			case TFI: Dialog.save(window, "tfi", "tfi", where);
 			case READ_TFI: Dialog.open(window, "tfi", "tfi", where);
 			case READ_KIT: Dialog.folder(window, where);
+			case READ_HIT: Dialog.open(window, "wav", "wav", where);
 			case _: null;
 		}
 
@@ -519,7 +535,8 @@ final class Files {
 		return switch (what) {
 			case OPEN: Locale.WORKING_OPENING;
 			case SAVE: Locale.WORKING_SAVING;
-			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV, READ_KIT: Locale.WORKING_IMPORTING;
+			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV, READ_KIT, READ_HIT:
+				Locale.WORKING_IMPORTING;
 			case _: Locale.WORKING_EXPORTING;
 		}
 	}
@@ -547,6 +564,7 @@ final class Files {
 				case TFI: writeTfi(where);
 				case READ_TFI: readTfi(where);
 				case READ_KIT: readKit(where);
+				case READ_HIT: readHit(where);
 				case _:
 			}
 		} catch (e:Dynamic) {
@@ -640,26 +658,26 @@ final class Files {
 	}
 
 	/**
-		Reads a folder of recordings into a kit and hands it to `onKit`.
+		Hands a folder of recordings to the kit that is open.
 
-		Nothing is written here. The sheet the kit goes to is what decides whether any
-		of it is kept, so a folder can be looked at and left alone.
+		Nothing is read or written here. The sheet is what holds the kit and what decides
+		whether any of it is kept, so a folder can be looked at and left alone.
 
 		@param where The folder to read.
 	**/
 	public function readKit(where:String):Void {
-		final kit = new mdd.format.Kit();
+		final what = onKitFolder;
+		if (what != null) what(where);
+	}
 
-		if (kit.reads(where) == 0) {
-			session.says(Locale.KIT_NONE);
-			return;
-		}
+	/**
+		Hands one recording to the kit that is open.
 
-		kit.guesses();
-		kit.converts();
-
-		final what = onKit;
-		if (what != null) what(kit);
+		@param where The file to read.
+	**/
+	public function readHit(where:String):Void {
+		final what = onHit;
+		if (what != null) what(where);
 	}
 
 	/**

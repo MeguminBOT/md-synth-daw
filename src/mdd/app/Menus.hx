@@ -338,8 +338,7 @@ final class Menus {
 
 		held.divide();
 
-		fired(held.offer(new Choice(said(Locale.KIT))), function():Void
-			asks(Files.READ_KIT));
+		fired(held.offer(new Choice(said(Locale.KIT))), function():Void kitted());
 
 		held.divide();
 
@@ -355,6 +354,11 @@ final class Menus {
 		Called to read every patch file in the presets folder into the library.
 	**/
 	public var onLift:Null<Void -> Int> = null;
+
+	/**
+		Called to open the sheet that makes a kit.
+	**/
+	public var onKit:Null<Void -> Void> = null;
 
 	/**
 		Called to start a new piece.
@@ -379,6 +383,10 @@ final class Menus {
 	/**
 		Reads every patch file in the presets folder and says how many were new.
 	**/
+	function kitted():Void {
+		if (onKit != null) onKit();
+	}
+
 	function lifted():Void {
 		final many = onLift == null ? 0 : onLift();
 
