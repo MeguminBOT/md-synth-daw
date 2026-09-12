@@ -1,5 +1,11 @@
 package mdd.ui.control;
 
+/**
+	What a table asks for the text of one cell, counted from nought.
+
+	Called while painting, for the rows on screen only, so it is reached often and
+	should answer without building anything it does not have to.
+**/
 typedef Cell = (row:Int, column:Int) -> String;
 
 @:unreflective
