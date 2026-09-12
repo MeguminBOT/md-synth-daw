@@ -38,6 +38,14 @@ class SwapCheck {
 	static inline final PIPED = 90;
 
 	/**
+		How wide the held window is, and how tall, and how many lines of text go in it.
+		Small enough to sit beside whatever else is on the screen.
+	**/
+	static inline final WIDE = 420;
+	static inline final TALL = 300;
+	static inline final ROWS = 16;
+
+	/**
 		Runs the probe against every backend SDL offers, or against the ones named.
 
 		@param args Backend names, or none for all of them.
@@ -52,9 +60,31 @@ class SwapCheck {
 			return 1;
 		}
 
-		final names = args.length > 0 ? args : offered();
+		var held = 0.0;
+		final names:Array<String> = [];
+		var at = 0;
 
-		for (name in names) probed(name);
+		while (at < args.length) {
+			if (args[at] == "--hold" && at + 1 < args.length) {
+				held = Std.parseFloat(args[at + 1]);
+				if (Math.isNaN(held)) held = 0;
+				at += 2;
+				continue;
+			}
+
+			names.push(args[at]);
+			at++;
+		}
+
+		final want = names.length > 0 ? names : offered();
+
+		if (held > 0) {
+			for (name in want) shown(name, held);
+			Sdl.quit();
+			return 0;
+		}
+
+		for (name in want) probed(name);
 
 		Sdl.quit();
 		return 0;
@@ -72,6 +102,119 @@ class SwapCheck {
 		}
 
 		return out;
+	}
+
+	/**
+		Holds a window of text up through one backend, so it can be captured from
+		outside the process.
+
+		Reading the buffer back inside the process flushes the queue and waits, and
+		that is enough to make every frame come out right. What the card actually
+		scans out is only visible to something else looking at the window, so this
+		draws and presents and then stays up rather than reading anything.
+
+		The window is small and never raised, so it can sit in a corner while somebody
+		is working.
+
+		@param want Which backend to ask for.
+		@param seconds How long to hold it up.
+	**/
+	static function shown(want:String, seconds:Float):Void {
+		final window = Sdl.createWindow("mdd swap " + want, WIDE, TALL, 0, 0);
+		if (window == null) return;
+
+		final renderer = Sdl.createRenderer(window, 1, want);
+		if (renderer == null) {
+			Sdl.destroyWindow(window);
+			return;
+		}
+
+		final got = (Sdl.rendererName(renderer) : String);
+
+		if (got != want) {
+			Sys.println("    " + StringTools.rpad(want, " ", 14) + "fell back to " + got);
+			Sdl.destroyRenderer(renderer);
+			Sdl.destroyWindow(window);
+			return;
+		}
+
+		final font = Font.bake(renderer, Gate.root + "/vendor/fonts/Go-Regular.ttf", 15);
+
+		if (font == null) {
+			Sdl.destroyRenderer(renderer);
+			Sdl.destroyWindow(window);
+			return;
+		}
+
+		final paint = Paint.on(renderer, font);
+		final white = new Colour(0xFFFFFF);
+		final event = new mdd.host.Event();
+		final sheet = paint.sheet(WIDE, Std.int(TALL * 0.5));
+
+		if (sheet == null) {
+			font.shut();
+			Sdl.destroyRenderer(renderer);
+			Sdl.destroyWindow(window);
+			return;
+		}
+
+		Sdl.showWindow(window);
+		Sys.println("    " + StringTools.rpad(got, " ", 14) + "held up for "
+			+ seconds + " s as \"mdd swap " + got + "\"");
+
+		final until = Sdl.ticks() + seconds;
+		final rebakeAt = Sdl.ticks() + seconds * 0.4;
+
+		var face = font;
+		var frame = 0;
+		var baked = false;
+
+		while (Sdl.ticks() < until) {
+			while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) {}
+
+			if (!baked && Sdl.ticks() > rebakeAt) {
+				baked = true;
+
+				final next = Font.bake(renderer,
+					Gate.root + "/vendor/fonts/Go-Regular.ttf", 15);
+
+				if (next != null) {
+					face.shut();
+					face = next;
+					paint.reface(face);
+					Sys.println("    " + StringTools.rpad("", " ", 14)
+						+ "the face was baked again part way through");
+				}
+			}
+
+			Sdl.renderClear(renderer, 0.08, 0.09, 0.11, 1);
+			paint.reset();
+
+			paint.target(sheet);
+			paint.clear(0.16, 0.10, 0.10, 1);
+
+			for (row in 0...ROWS) {
+				paint.text("SHEET " + KNOWN, 4, 2 + row * 17, white, 1);
+			}
+
+			paint.flush();
+			paint.target(null);
+
+			paint.blit(sheet, 0, 0, WIDE, TALL * 0.5);
+
+			for (row in 0...ROWS) {
+				paint.text("DIRECT " + KNOWN, 6, 6 + TALL * 0.5 + row * 17, white, 1);
+			}
+
+			paint.flush();
+			Sdl.renderPresent(renderer);
+
+			frame++;
+		}
+
+		face.shut();
+		Sdl.destroyRenderer(renderer);
+		Sdl.destroyWindow(window);
 	}
 
 	/**

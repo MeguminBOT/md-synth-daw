@@ -148,3 +148,45 @@ frame, which is what a staging buffer wrapping would look like. Bounding the
 batch by flushing instead of growing cleared the channel rack and left the
 operator column exactly as wrong as before. Whatever it is, batch size is at
 most part of it.
+
+## What it is not, from the other side
+
+A screen capture taken outside the process shows the fault at once, so it is the
+instrument. With it, none of the following reproduces the fault on vulkan or on
+direct3d12, every one read off the screen rather than out of the renderer:
+
+| what was run | how it came out |
+| --- | --- |
+| an empty document, small window | right |
+| an empty document, full screen | right |
+| a piece loaded, full screen | right |
+| a piece loaded and playing | right |
+| the same with the pointer walked over the panels | right |
+| the same with the window focused and in front | right |
+| six minutes of it playing, forty two readings of the channel rack | one reading, no change |
+| six starts and kills before the run that was looked at | right |
+| a window of text through one backend | right |
+| text drawn into a texture and blitted, beside text drawn straight | right |
+| the face shut and baked again part way through a run | right |
+| direct3d12, a piece loaded and playing | right |
+
+Two mechanisms were modelled on purpose because each would have explained why one
+backend differs and another does not, and neither did it:
+
+- **A face baked again while it is being drawn.** `Stage.faces` calls `shed`,
+  which destroys every atlas, and bakes new ones. A reference left on the old
+  one is a texture that direct3d11 keeps alive under its driver and vulkan does
+  not. Modelled in `mdd gate swap --hold`, and the text stays right.
+- **A pointer into collected memory.** The vertices are handed to SDL as a raw
+  pointer into a `Vector`, which the collector may move. `SDL_RenderGeometryRaw`
+  copies them at the call, so the window is a single call wide and the same on
+  every backend.
+
+The application issues the same draw calls whichever backend is under it, which
+is measured, so nothing in `Paint` or `Font` is the fault on its own. What is
+left is a state the reported sessions were in and a fresh run is not, and no
+reading taken from inside the process can see it.
+
+What would settle it is a capture of the window taken at the moment somebody is
+watching it go wrong, rather than a capture of a run that was started to look
+for it.
