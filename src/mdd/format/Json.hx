@@ -212,6 +212,13 @@ class Json {
 	}
 }
 
+/**
+	Walks a document once, left to right, holding the position it has reached.
+
+	One reader reads one document. A malformed document stops the walk where it
+	stops rather than throwing, so a truncated file reads as the nodes that were
+	whole.
+**/
 private class Reader {
 	final said:String;
 	var at:Int = 0;
