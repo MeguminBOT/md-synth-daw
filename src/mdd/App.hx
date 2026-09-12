@@ -295,8 +295,6 @@ class App {
 			if (panels.kitting.takesFolder(where) == 0) session.says(Locale.KIT_NONE);
 		};
 
-		menus.onKit = function():Void panels.kitted(new mdd.format.Kit());
-
 		panels.preferences = new Preferences(session);
 		panels.preferences.onScale = function(much:Float):Void stage.densified(much);
 		panels.preferences.onTypeface = function(which:Int):Void redressed();
@@ -397,6 +395,7 @@ class App {
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
 		menus.onLift = function():Int return files.liftsPatches();
+		menus.onKit = function():Void panels.kitted(new mdd.format.Kit());
 		menus.bindings = bindings;
 		bound();
 
