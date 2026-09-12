@@ -201,6 +201,7 @@ class App {
 		final held = asked != "" ? asked : settings.of("renderer", "");
 
 		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : PINNED;
+		stage.always = args.indexOf("--redraw") >= 0;
 
 		if (!stage.open()) return false;
 

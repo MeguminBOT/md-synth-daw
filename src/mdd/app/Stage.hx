@@ -111,6 +111,17 @@ final class Stage {
 	public var driver:String = "";
 
 	/**
+		Whether every frame is drawn and presented, rather than only the ones where
+		something changed.
+
+		Drawing only what changed is what keeps an idle window off the processor, and
+		it is the one thing this application does that an ordinary SDL program does
+		not. Turning it off is how a fault that only shows while the interface is
+		moving is told apart from one in the backend underneath.
+	**/
+	public var always:Bool = false;
+
+	/**
 		Starts SDL, opens the window and the renderer, loads the faces and the icons,
 		and builds the root.
 
@@ -450,6 +461,8 @@ final class Stage {
 		@return Whether a frame was actually drawn.
 	**/
 	public function draw():Bool {
+		if (always) root.soil();
+
 		if (!root.stale()) {
 			Sdl.sleep(IDLE);
 			return false;
