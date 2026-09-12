@@ -373,6 +373,48 @@ class SpineCheck {
 		session.history.clear();
 	}
 
+	/**
+		Typing in the preset search narrows what the browser lists.
+
+		The rows are built by `fit`, and what is typed is only read while they are
+		built. A search that does not build them again leaves whatever was listed
+		before on screen, which reads as a search that does nothing at all.
+
+		@param tree The shell.
+		@param session The piece.
+		@param editor The inspector the browser sits in.
+	**/
+	static function sought(tree:Root, session:Session,
+			editor:mdd.view.Inspector):Void {
+		final missing = "zzqqxx";
+
+		session.choose(Part.Fm1);
+		editor.show(mdd.view.Inspector.PRESETS);
+		tree.resize(tree.width, tree.height);
+
+		final browser = editor.presets;
+		final whole = browser.listed;
+
+		says("the preset browser lists what the piece carries", whole > 0,
+			whole + " presets over " + browser.banks + " banks");
+
+		tree.focusOn(browser.search);
+		tree.said(missing, mdd.ui.Mod.None);
+
+		final none = browser.listed;
+
+		says("and a name nothing carries leaves none of them",
+			none == 0 && browser.search.value == missing,
+			none == whole ? "what was typed never reached the rows"
+				: none + " left of " + whole);
+
+		browser.search.set("");
+		browser.fit();
+
+		says("and clearing it puts them back", browser.listed == whole,
+			browser.listed + " listed again against " + whole);
+	}
+
 	static function synthed(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		session.choose(Part.Fm1);
@@ -2776,6 +2818,7 @@ class SpineCheck {
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
 		synthed(tree, session, editor);
+		sought(tree, session, editor);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

@@ -127,7 +127,10 @@ final class Presets extends Widget {
 		search = new mdd.ui.control.Field("");
 		add(search);
 
-		search.onChange = function(said:String):Void relayout();
+		search.onChange = function(said:String):Void {
+			fit();
+			relayout();
+		};
 
 		tree.onChoose = function(item:Item):Void picked(item);
 		tree.onOpen = function(item:Item):Void folded(item);
