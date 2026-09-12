@@ -118,7 +118,7 @@ extern "C" double mdd_usage_gpu() {
 	PDH_STATUS state = PdhGetFormattedCounterArrayW(gpuCounter, PDH_FMT_DOUBLE, &bytes,
 		&count, nullptr);
 
-	if (state != PDH_MORE_DATA || bytes == 0) return 0;
+	if (state != (PDH_STATUS)PDH_MORE_DATA || bytes == 0) return 0;
 
 	items = (PDH_FMT_COUNTERVALUE_ITEM_W *)malloc(bytes);
 	if (items == nullptr) return 0;

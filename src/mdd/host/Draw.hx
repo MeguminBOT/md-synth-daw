@@ -27,11 +27,13 @@ extern class Draw {
 		height:Int):cpp.Star<Texture>;
 
 	/**
-		Replaces the whole of a texture from raw pixels.
+		Replaces the whole of a texture from raw pixels. The height is the one the
+		texture was made at, so only the width is given, and only to say how far apart
+		two rows of pixels are.
 	**/
 	@:native("mdd_texture_update")
 	public static function updateTexture(texture:cpp.Star<Texture>,
-		rgba:cpp.RawConstPointer<cpp.UInt8>, width:Int, height:Int):Void;
+		rgba:cpp.RawConstPointer<cpp.UInt8>, width:Int):Void;
 
 	/**
 		Replaces one rectangle of it.

@@ -134,7 +134,7 @@ final class Icons {
 		}
 
 		texture = Draw.createTexture(renderer, across, down);
-		Draw.updateTexture(texture, cpp.Pointer.arrayElem(rgba.toData(), 0).constRaw, across, down);
+		Draw.updateTexture(texture, cpp.Pointer.arrayElem(rgba.toData(), 0).constRaw, across);
 	}
 
 	/**

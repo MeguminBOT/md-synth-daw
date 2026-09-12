@@ -30,12 +30,15 @@ SDL_Texture *mdd_texture_target(SDL_Renderer *renderer, int width, int height);
 /**
  * Replaces the whole of a texture.
  *
+ * How tall the pixels are is not asked for: the whole texture is replaced, so the
+ * height is the one it was made at, and the width is only there to say how far
+ * apart two rows of pixels are.
+ *
  * @param texture The texture.
  * @param rgba The pixels.
  * @param width How wide they are.
- * @param height How tall.
  */
-void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba, int width, int height);
+void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba, int width);
 
 /**
  * Replaces one rectangle of a texture, which is how a glyph reaches an atlas

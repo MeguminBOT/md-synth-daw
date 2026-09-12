@@ -27,8 +27,8 @@ extern "C" SDL_Texture *mdd_texture_target(SDL_Renderer *renderer, int width, in
 	return texture;
 }
 
-extern "C" void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba, int width,
-		int height) {
+extern "C" void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba,
+		int width) {
 	if (texture != nullptr) SDL_UpdateTexture(texture, nullptr, rgba, width * 4);
 }
 
