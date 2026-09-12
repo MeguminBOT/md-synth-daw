@@ -77,7 +77,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: krdlab/setup-haxe@v2.1.0
+      - uses: krdlab/setup-haxe@v2.1.1
         with:
           haxe-version: 4.3.7
 
@@ -167,7 +167,7 @@ jobs:
           ls -l "$(brew --prefix)/lib/libSDL3"* 2>&1 || true
           echo "sdk: $(xcrun --show-sdk-path 2>&1), version $(xcrun --show-sdk-version 2>&1)"
 
-      - uses: krdlab/setup-haxe@v2.1.0
+      - uses: krdlab/setup-haxe@v2.1.1
         if: matrix.haxe == 'action'
         with:
           haxe-version: 4.3.7
