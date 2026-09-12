@@ -549,6 +549,8 @@ final class Presets extends Widget {
 
 		final song = session.song;
 		final chosen = song.rack[session.part.index()];
+
+		final hunting = seeking() != "";
 		final root = root();
 		final warned = root == null ? -1 : (root.theme.warn : Int);
 
@@ -579,7 +581,7 @@ final class Presets extends Widget {
 
 			final family = kind.family();
 			final head = new Item(family + "   " + total, loose ? warned : -1);
-			head.open = shut.indexOf(family) < 0;
+			head.open = hunting || shut.indexOf(family) < 0;
 
 			kinds.push(head);
 			kindKeys.push(family);
@@ -605,7 +607,8 @@ final class Presets extends Widget {
 				final key = family + "/" + bank.name;
 
 				group.icon = kitting ? Icon.DRUMKIT : -1;
-				group.open = kitting ? opened.indexOf(key) >= 0 : shut.indexOf(key) < 0;
+				group.open = hunting
+					|| (kitting ? opened.indexOf(key) >= 0 : shut.indexOf(key) < 0);
 
 				groups.push(group);
 				groupKeys.push(key);

@@ -398,6 +398,113 @@ class SpineCheck {
 		@param paint What to draw with.
 		@param renderer What to draw into.
 	**/
+	/**
+		A name a preset carries, and a tag one carries, both find it.
+
+		Asking for something nothing carries and getting nothing back only says the
+		search reached the rows. It says nothing about whether a reader can find the
+		sound they remember, which is the whole of what the search is for.
+
+		@param tree The shell.
+		@param browser The preset browser.
+		@param session The piece.
+		@param whole How many it lists with nothing typed.
+	**/
+	static function named(tree:Root, browser:mdd.view.editor.Presets,
+			session:Session, whole:Int):Void {
+		var word = "";
+		var tag = "";
+
+		for (index in 0...session.song.instruments.length) {
+			final instrument = session.song.instrumentAt(index);
+			if (instrument == null || !instrument.kind.fm()) continue;
+
+			if (word == "" && instrument.name.length > 3) word = instrument.name;
+			if (tag == "" && instrument.tags.length > 0) tag = instrument.tags[0];
+		}
+
+		typed(tree, browser, "");
+		final allRows = browser.tree.rows();
+
+		typed(tree, browser, word);
+		final byName = browser.listed;
+		final nameRows = browser.tree.rows();
+
+		says("a name a preset carries finds it", byName > 0 && byName < whole,
+			"\"" + word + "\" left " + byName + " of " + whole);
+
+		says("and the rows on screen are the ones it left",
+			nameRows > 0 && nameRows < allRows,
+			nameRows + " rows shown against " + allRows + " with nothing typed");
+
+		typed(tree, browser, tag);
+		final byTag = browser.listed;
+
+		says("and a tag one carries finds it", tag == "" || (byTag > 0 && byTag < whole),
+			"\"" + tag + "\" left " + byTag + " of " + whole);
+
+		typed(tree, browser, "");
+
+		var folded = 0;
+
+		for (row in 0...browser.tree.rows()) {
+			final item = browser.tree.shownAt(row);
+			if (item == null || item.children.length == 0) continue;
+
+			browser.tree.fold(item, false);
+			folded++;
+		}
+
+		says("a folded group hides the presets in it", leaves(browser) == 0,
+			browser.tree.rows() + " rows and none of them a preset");
+
+		typed(tree, browser, word);
+
+		says("and a search opens it again to show what it found", leaves(browser) > 0,
+			leaves(browser) + " presets on screen for \"" + word
+			+ "\" with every group folded first");
+
+		typed(tree, browser, "");
+
+		typed(tree, browser, "");
+	}
+
+	/**
+		Puts something in the search the way a reader would.
+
+		@param tree The shell.
+		@param browser The preset browser.
+		@param said What to type.
+	**/
+	/**
+		@param browser The preset browser.
+		@return How many rows on screen are a preset rather than a heading, which is
+			what a reader is looking for when they search.
+	**/
+	static function leaves(browser:mdd.view.editor.Presets):Int {
+		var many = 0;
+
+		for (row in 0...browser.tree.rows()) {
+			final item = browser.tree.shownAt(row);
+			if (item != null && item.children.length == 0) many++;
+		}
+
+		return many;
+	}
+
+	static function typed(tree:Root, browser:mdd.view.editor.Presets,
+			said:String):Void {
+		browser.search.set("");
+		tree.focusOn(browser.search);
+
+		if (said == "") {
+			browser.fit();
+			return;
+		}
+
+		tree.said(said, mdd.ui.Mod.None);
+	}
+
 	static function spared(tree:Root, centre:mdd.view.Centre, paint:Paint,
 			renderer:cpp.Star<Canvas>):Void {
 		final names = ["playlist", "roll", "tracker", "scope", "registers", "automation",
@@ -483,6 +590,8 @@ class SpineCheck {
 
 		says("and clearing it puts them back", browser.listed == whole,
 			browser.listed + " listed again against " + whole);
+
+		named(tree, browser, session, whole);
 
 		final began = Sdl.ticks();
 		for (round in 0...20) browser.fit();
