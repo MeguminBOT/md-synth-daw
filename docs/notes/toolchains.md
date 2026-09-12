@@ -78,8 +78,8 @@ unstripped DWARF.
 ## Linux
 
 Debian trixie, clang 19, SDL3 from `libsdl3-dev`, hxcpp 4.3.2. `tools/docker/Dockerfile` is the
-image and carries the two commands at the bottom. The whole gate passes: **23 of 23 programs**,
-including `chip` at 1032 of 1032 fixtures bit identical against a Nuked-OPN2 reference built by gcc
+image and carries the two commands at the bottom. The whole gate passes, including `chip` at
+1032 of 1032 fixtures bit identical against a Nuked-OPN2 reference built by gcc
 in the same container. The FM core produces the same bytes under clang as under MSVC.
 
 `clang` is preferred over `gcc` by the ordering in `mdd.xml`, through the `<exe name="${CXX}">` hook

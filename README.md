@@ -84,20 +84,20 @@ against the offline one on every run.
 
 ### Small, and no runtime to install
 
-The whole application is a **5 MB executable** sitting next to a copy of SDL. There is no runtime to
+The whole application is a **6 MB executable** sitting next to a copy of SDL. There is no runtime to
 install, no framework, no .NET, no Electron, no Java, no redistributable. Download it, run it.
 
 That is because almost none of it is somebody else's code:
 
 - **The interface is written here.** No widget toolkit. Every panel, control and glyph is drawn by
-  about 5,900 lines of this repository straight onto an SDL3 renderer, which is how the scope, the
+  about 9,300 lines of this repository straight onto an SDL3 renderer, which is how the scope, the
   meters and the register timeline can redraw every frame while audio is being served.
-- **The FLAC encoder is written here too**, in Haxe, in 717 lines: LPC prediction, rice partitioning
+- **The FLAC encoder is written here too**, in Haxe, in 981 lines: LPC prediction, rice partitioning
   and the MD5 signature, with no libFLAC anywhere. The signature it writes matches libFLAC's for the
   same audio, and the reference decoder verifies its files rather than warning about them.
 - **The chip cores are written here**, from the part documentation and from measurement.
 
-40,000 lines of Haxe and 5,900 of C++, all told. Most of what a packaged copy weighs is the bundled
+62,000 lines of Haxe and 7,300 of C++, all told. Most of what a packaged copy weighs is the bundled
 typefaces rather than the program: the three CJK faces alone are 36 MB of the download, and they are
 there so the interface has something to fall back to in any language.
 
@@ -125,7 +125,7 @@ Approximate, and rounded up.
 | **CPU** | Any x86-64 processor, two cores or better. Arm64 is built by CI but has not been run on hardware yet. Nothing beyond the baseline instruction set is asked for, so no AVX. Synthesis runs on one thread and the interface on another, which is why two cores is the floor |
 | **RAM** | 512 MB free, 1 GB comfortable. An export wants more, and how much more grows with the length of the song |
 | **GPU** | Direct3D 11 on Windows, OpenGL elsewhere. Integrated graphics is fine, because the interface is 2D and never touches a 3D pipeline |
-| **Storage** | About 60 MB, plus your own projects. Most of that is the bundled typefaces; the program itself is 5 MB |
+| **Storage** | About 60 MB, plus your own projects. Most of that is the bundled typefaces; the program itself is 6 MB |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

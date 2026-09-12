@@ -83,7 +83,7 @@ Two workflows under `.github/workflows`, both started by hand from the Actions t
 | `release.yml` | The same five, then publishes a GitHub release from the results. It refuses to run for anybody but the repository owner, and it refuses a tag that is not the version in `mdd.xml` |
 
 `release.yml` does not run the gate. A release build is the same source `build.yml` gates on
-demand, and running twenty six checks on five runners again buys nothing that the test workflow has
+demand, and running twenty seven checks on five runners again buys nothing that the test workflow has
 not already bought.
 
 The release body is written by `./mdd notes`, which reads the commit log since the previous `v*`
