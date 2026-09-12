@@ -52,6 +52,8 @@ class ShotCheck {
 		var typing = false;
 		var traced = false;
 		var direct = false;
+		var backend = mdd.App.PINNED;
+		var frames = 1;
 
 		var at = 0;
 
@@ -82,6 +84,8 @@ class ShotCheck {
 				case "--typing": typing = true;
 				case "--traced": traced = true;
 				case "--direct": direct = true;
+				case "--renderer": backend = held; at++;
+				case "--frames": frames = whole(held, frames); at++;
 				case _:
 			}
 
@@ -99,7 +103,14 @@ class ShotCheck {
 		final monoFace = root + "/vendor/fonts/Go-Mono.ttf";
 
 		final window = Sdl.createWindow("mdd shot", wide, tall, 0, 0);
-		final renderer = Sdl.createRenderer(window, 0, mdd.App.PINNED);
+		final renderer = Sdl.createRenderer(window, 0, backend);
+
+		if (renderer != null && backend != "") {
+			final got = (Sdl.rendererName(renderer) : String);
+			if (got != backend) {
+				Sys.println("  shot          asked for " + backend + " and got " + got);
+			}
+		}
 
 		final body = Font.bake(renderer, face, 15);
 		final small = Font.bake(renderer, face, 13);
@@ -399,11 +410,18 @@ class ShotCheck {
 		if (!direct) Draw.setTarget(renderer, texture);
 
 		final ground = tree.theme.ground;
-		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
 
-		tree.reshape();
-		tree.frame(paint);
-		paint.flush();
+		for (pass in 0...frames) {
+			Sdl.renderClear(renderer, ground.red / 255, ground.green / 255,
+				ground.blue / 255, 1);
+
+			tree.reshape();
+			tree.soil();
+			tree.frame(paint);
+			paint.flush();
+
+			if (direct && pass < frames - 1) Sdl.renderPresent(renderer);
+		}
 
 		final pixels = new Vector<cpp.UInt8>(wide * tall * 4);
 
