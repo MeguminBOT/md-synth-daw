@@ -61,13 +61,55 @@ read out of the SDL sources and none of them is it:
   drawn.** `Stage.draw` sleeps instead of presenting where nothing changed, and
   `Root.frame` repaints the whole tree rather than a dirty region.
 
+## What each backend's chain does
+
+`mdd gate swap` presents a run of flat frames through one backend and reads the
+buffer each frame is about to be drawn into, before anything clears it. That is
+the swapchain rotation seen from inside the process, which is the one thing a
+readback can still see.
+
+| backend | the buffer a frame starts with |
+| --- | --- |
+| direct3d11, direct3d12, opengl, opengles2 | 2 presents back |
+| **vulkan** | **4 presents back** |
+| direct3d, gpu | 1 present back |
+
+Vulkan's chain is twice as deep as the one Windows runs on, so anything that
+reaches the screen without being wholly drawn shows a frame four back there
+against two on direct3d11. That is why the same fault reads as worse under it.
+
+It does not explain direct3d12, which measures the same as direct3d11 on every
+probe here and is still wrong.
+
+Two more things the same program checks, and both are the same on all seven:
+
+- **A clear reaches past a clip that is still set.** The frame clears before the
+  paint stack unwinds, so a clip left behind would have held the clear to it.
+  None of them does that.
+- **A frame that draws into a texture part way through keeps what it had already
+  drawn.** A sheet bakes itself into a texture of its own mid frame, and a
+  backend that records render passes has to end one and begin another to do it.
+  None of them loses the window's contents over that.
+
 ## What is left
 
-A readback cannot see it. `SDL_RenderReadPixels` flushes the queue and reads the result,
-so it reports what was rendered rather than what reached the screen. A fault in
-presentation, which is where the swapchain and the frames in flight differ between
-`direct3d11` and the other two, is invisible to every measurement above and to any check
+A readback cannot see it. `SDL_RenderReadPixels` flushes the queue and reads the
+result, so it reports what was rendered rather than what reached the screen. A
+fault in presentation is invisible to every measurement above and to any check
 that renders into a texture.
 
-What would settle it is a capture of the window itself while the transport runs, taken
-outside the process, against the same scene on two backends.
+What remains unmeasured is the one thing this application does that an ordinary
+SDL program does not: it draws and presents only the frames where something
+changed, and sleeps otherwise. `--redraw` turns that off, so a run with it and a
+run without it differ in nothing else. If the flicker goes with `--redraw`, the
+dirty model and the deeper chain are the whole story; if it stays, the fault is
+under SDL and the pinning stands.
+
+SDL is at 3.4.14 here against 3.4.16 released, and neither release note mentions
+the renderer backends.
+
+Upstream closed one report of the same shape, libsdl-org/SDL#12432, "flickering
+between previous and latest output buffer". Its cause was `SDL_RenderPresent`
+called more than once in a frame, while a render target was set. This
+application presents once, from one place, with no target set, so it is not
+that one.

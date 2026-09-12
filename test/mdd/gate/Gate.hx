@@ -134,6 +134,7 @@ class Gate {
 			case "shell": ShellCheck.run(args);
 			case "update": UpdateCheck.run(args);
 			case "shot": ShotCheck.run(args);
+			case "swap": SwapCheck.run(args);
 			case "fault": FaultCheck.run(args);
 			case "gather": Gathered.run(args);
 			case "kit": Kitted.run(args);

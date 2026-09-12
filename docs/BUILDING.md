@@ -187,6 +187,7 @@ the repository, or takes long enough that nobody would sit through it on every r
 | `mdd gate convert <folder> <file> [rate]` | turns a folder of recordings into a bank, working each hit's key out from the sound |
 | `mdd gate drift` | measures how far a converter run drifts from the rate it was written at |
 | `mdd gate pulse` | measures where a recording's beat falls |
+| `mdd gate swap` | reads what each renderer backend hands a frame to draw into, which is how deep its swapchain is |
 
 A program that writes an asset is kept out of the gate on purpose. An asset that rewrote itself on
 every run would show up as churn in a history that should only move when somebody decided something.
