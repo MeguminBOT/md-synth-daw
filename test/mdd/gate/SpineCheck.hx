@@ -413,6 +413,15 @@ class SpineCheck {
 
 		says("and clearing it puts them back", browser.listed == whole,
 			browser.listed + " listed again against " + whole);
+
+		final began = Sdl.ticks();
+		for (round in 0...20) browser.fit();
+		final each = (Sdl.ticks() - began) * 1000 / 20;
+
+		says("and building them again is cheap enough to do per keystroke",
+			each < 4,
+			round(each, 3) + " ms to build " + whole + " presets over "
+				+ browser.banks + " banks, against 16.67 in a frame");
 	}
 
 	static function synthed(tree:Root, session:Session,
