@@ -230,6 +230,8 @@ class BusyCheck {
 		final ended = Std.int(rendering.reach() * Mixdown.WHOLE);
 		final over = Sdl.ticks() - began;
 
+		collector.leaves();
+
 		says("a bounce leaves the window drawing", worst <= ALLOWED,
 			"worst gap between frames " + round(worst * 1000, 1) + " ms across " + frames
 			+ " frames of " + round(over, 2) + " s, during " + phased(worstAt, worstDone)
