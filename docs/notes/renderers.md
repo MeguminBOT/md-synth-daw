@@ -113,3 +113,38 @@ between previous and latest output buffer". Its cause was `SDL_RenderPresent`
 called more than once in a frame, while a render target was set. This
 application presents once, from one place, with no target set, so it is not
 that one.
+
+## What it actually looks like
+
+It is not stale frames. It is **wrong glyphs**, and a capture of the composited
+window taken from outside the process is what shows it: `CHANNEL RACK` reads
+`@FANNEL 'N>@K`, `FM1` to `FM4` read `IK2I3` upward, while `FM5`, `FM6`, the
+squares, the noise and the converter directly beneath them are right. The first
+operator column reads `AR 987` where thirty one is the most the register holds,
+with the three columns beside it correct. Nothing that is not text is ever
+wrong.
+
+Six captures of a still window are byte identical to each other, so the
+corruption is steady rather than alternating. What reads as flicker is which
+draws are wrong changing as the interface updates.
+
+A readback cannot see any of it. `SDL_RenderReadPixels` flushes the queue and
+waits, so the frame it returns is always the correct one: ninety presented
+frames of changing text, read back at the end, come out the same on all seven
+backends. Two probes of that shape have now come back clean against a fault
+that a screen capture shows immediately. A capture from outside the process is
+the only instrument that works.
+
+The application issues the same draw calls on both backends, which is measured,
+so this is not a logic fault in `Paint` or `Font`. The atlas is baked once at
+load for codepoints 32 to 255 and never touched again while English is drawn,
+`reface` flushes before a face changes, and `binds` flushes on any texture
+change.
+
+One thing was tried and is **not** the answer on its own: `Paint.room` grows the
+vertex batch and never flushes, so a frame reaches the card as one very large
+`SDL_RenderGeometry` call, and the corrupted draws are the earliest ones in the
+frame, which is what a staging buffer wrapping would look like. Bounding the
+batch by flushing instead of growing cleared the channel rack and left the
+operator column exactly as wrong as before. Whatever it is, batch size is at
+most part of it.

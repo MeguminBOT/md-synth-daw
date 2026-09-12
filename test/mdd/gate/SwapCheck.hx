@@ -6,6 +6,9 @@ import mdd.host.Draw;
 import mdd.host.Native;
 import mdd.host.Sdl;
 import mdd.host.Window;
+import mdd.ui.Colour;
+import mdd.ui.Font;
+import mdd.ui.Paint;
 
 /**
 	What each renderer backend hands back as the buffer to draw the next frame into.
@@ -23,6 +26,16 @@ import mdd.host.Window;
 class SwapCheck {
 	static inline final FRAMES = 10;
 	static inline final SIDE = 320;
+
+	/**
+		How many frames of changing text are presented before the one that is read back.
+
+		Reading a frame back flushes the queue and waits, so a run of frames that are
+		only presented is the one way a check sees what the interface sees. The text has
+		to change between them: a hazard in the vertices cannot show where every frame
+		carries the same ones.
+	**/
+	static inline final PIPED = 90;
 
 	/**
 		Runs the probe against every backend SDL offers, or against the ones named.
@@ -115,6 +128,8 @@ class SwapCheck {
 			+ clipped(renderer, pixels));
 		Sys.println("    " + StringTools.rpad("", " ", 14) + "a frame that draws into"
 			+ " a texture part way through " + survives(renderer, pixels));
+		Sys.println("    " + StringTools.rpad("", " ", 14) + "text after "
+			+ PIPED + " presented frames of it changing reads " + texted(renderer));
 
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
@@ -169,6 +184,88 @@ class SwapCheck {
 		return back + " deep, so a frame presented without being wholly drawn shows the"
 			+ " one " + back + " before it";
 	}
+
+	/**
+		Draws a run of frames of changing text, presenting each and reading none, then
+		draws one known line and reads that.
+
+		The interface draws its text as triangles out of one atlas, and the vertices
+		carrying the atlas coordinates are what a backend has to get to the card
+		unchanged. Where it does not, a glyph is drawn from the wrong place in the
+		atlas and reads as a different letter.
+
+		@param renderer The renderer to draw through.
+		@return What the known line came out as, as a number the backends are compared
+			on.
+	**/
+	static function texted(renderer:cpp.Star<Canvas>):String {
+		final font = Font.bake(renderer, Gate.root + "/vendor/fonts/Go-Regular.ttf", 15);
+		if (font == null) return "no font to draw with";
+
+		final paint = Paint.on(renderer, font);
+		final white = new Colour(0xFFFFFF);
+
+		for (frame in 0...PIPED) {
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			paint.reset();
+
+			for (row in 0...12) {
+				paint.text(shifting(frame, row), 4, 4 + row * 18, white, 1);
+			}
+
+			paint.flush();
+			Sdl.renderPresent(renderer);
+		}
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		paint.reset();
+		paint.text(KNOWN, 4, 4, white, 1);
+		paint.flush();
+
+		final lit = new Vector<cpp.UInt8>(SIDE * 24 * 4);
+		final read = Draw.readPixels(renderer, 0, 0, SIDE, 24,
+			cpp.Pointer.arrayElem(lit.toData(), 0).raw);
+
+		font.shut();
+
+		if (read == 0) return "nothing, it would not read back";
+
+		var sum = 0;
+		var on = 0;
+
+		for (index in 0...SIDE * 24) {
+			final value = lit[index * 4];
+			if (value <= 40) continue;
+
+			on++;
+			sum = (sum * 31 + value * (index + 1)) & 0x3FFFFFFF;
+		}
+
+		return on + " lit, " + sum;
+	}
+
+	/**
+		@param frame Which frame.
+		@param row Which line of it.
+		@return A line whose letters and length both move, so no two frames hand the
+			card the same vertices.
+	**/
+	static function shifting(frame:Int, row:Int):String {
+		final out = new StringBuf();
+		final many = 6 + ((frame + row) % 17);
+
+		for (at in 0...many) {
+			out.addChar(33 + ((frame * 7 + row * 13 + at * 3) % 94));
+		}
+
+		return out.toString();
+	}
+
+	/**
+		The line the comparison is made on, the one the interface draws over its
+		channel rack and which came out wrong under vulkan.
+	**/
+	static inline final KNOWN = "CHANNEL RACK";
 
 	/**
 		Whether what a frame has already drawn survives a turn through a texture.
