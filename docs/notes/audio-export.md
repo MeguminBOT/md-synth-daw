@@ -192,3 +192,42 @@ to the character loop only when a backslash appears, turns 1.36 ms into 0.20 ms.
 
 Ours, then: it is now faster, and it hands back a typed `Node` rather than the
 `Dynamic` that `haxe.Json` returns, which would put reflection at every read.
+
+## Rendering the stems at once
+
+A stem is the whole piece rendered with one part sounding, so the stems are
+independent of each other and of the mix, and nothing in `play`, `chip` or
+`song` holds a mutable static. Spreading an export of eleven stems across the
+processors looks free, and it is not.
+
+Four `Mixdown` instances rendering at once, each with its own `Render` and its
+own `Stream`, fault inside the collector:
+
+```
+  it read an address that is not mapped
+  hx::MarkContext::processMarkStack + 0x1F3
+    Immix.cpp:1935
+  GlobalAllocator::ThreadLoop + 0x7C
+```
+
+The same code with one worker instead of four passes, so the structure is
+right and the concurrency is what breaks: every stem comes back byte for byte
+what the same part renders to on one thread, and two exports of one piece
+agree. Holding each worker's mixdown in an array slot that is read as well as
+written, which is what fixed the single bounce worker faulting in
+`Render.serve`, does not fix this one.
+
+Where the main thread waits on the export it has to reach a safe point of its
+own. A polling loop that allocates nothing never does, and the collector waits
+for it forever: the first attempt hung rather than faulted, and wrote three
+stems of six over four minutes.
+
+`mdd gate stems` is what holds the property any later attempt has to keep. It
+runs against one worker, and it is what says whether a change to spread the
+bounce has kept the output identical:
+
+| | |
+| --- | --- |
+| six stems, each against the same part rendered alone | byte for byte |
+| two exports of one piece | byte for byte |
+| one export of a two second piece | 1.01 s |

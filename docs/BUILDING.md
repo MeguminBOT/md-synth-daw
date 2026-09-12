@@ -83,7 +83,7 @@ Two workflows under `.github/workflows`, both started by hand from the Actions t
 | `release.yml` | The same five, then publishes a GitHub release from the results. It refuses to run for anybody but the repository owner, and it refuses a tag that is not the version in `mdd.xml` |
 
 `release.yml` does not run the gate. A release build is the same source `build.yml` gates on
-demand, and running twenty seven checks on five runners again buys nothing that the test workflow has
+demand, and running twenty eight checks on five runners again buys nothing that the test workflow has
 not already bought.
 
 The release body is written by `./mdd notes`, which reads the commit log since the previous `v*`
@@ -180,7 +180,7 @@ the repository, or takes long enough that nobody would sit through it on every r
 | program | what it does |
 | --- | --- |
 | `mdd gate fault read \| write \| overflow \| thread` | stops the process on purpose, so the crash handler can be read back from `export/fault.txt` |
-| `mdd gate shot <file>` | draws the whole interface into a PNG |
+| `mdd gate shot <file>` | draws the whole interface into a PNG. `--renderer <name>` draws it through one SDL backend and `--frames <n>` presents that many first, which is how two backends are compared against each other |
 | `mdd gate lift` | reads a preset bank out of a folder of recordings, with hand written tables of zone names |
 | `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
 | `mdd gate kit <file>` | writes the drum kit, every hit of it arithmetic rather than a recording |

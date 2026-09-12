@@ -1003,6 +1003,11 @@ final class Files {
 		Every stem takes the gain the mix arrived at rather than being normalised on its
 		own, so the set of them sums back to the mix.
 
+		The stems are independent of each other, so rendering several at once would be
+		the obvious way to spend the other processors. It does not work: several
+		mixdowns running at once fault the collector inside its own mark phase.
+		`docs/notes/audio-export.md` records what was measured.
+
 		@param where The file the mix was written to.
 		@param song The piece.
 		@param made The bounce the mix was rendered with, reused for every stem.
@@ -1218,6 +1223,39 @@ final class Files {
 			return "";
 		}
 
+		final bytes = encoded(named, made);
+
+		wroteKey = mixing.normalise ? Locale.SAID_WROTE_AUDIO_LIFTED
+			: Locale.SAID_WROTE_AUDIO;
+
+		wroteWith.resize(0);
+		wroteWith.push("" + (Math.round(made.seconds() * 10) / 10));
+		wroteWith.push(name(named));
+		wroteWith.push("" + Math.round(bytes / 1024));
+
+		if (mixing.normalise) {
+			wroteWith.push("" + (Math.round(2000 * Math.log(made.gain)
+				/ Math.log(10)) / 100));
+		}
+
+		return named;
+	}
+
+	/**
+		Encodes a finished bounce and writes it, reading the export settings and
+		touching nothing a reader on another thread holds.
+
+		`wrote` is this with the line the status bar reads written afterwards, which is
+		what makes that one unsafe to call from two threads at once. The split is here
+		because writing the file and saying what was written are separate concerns,
+		and because anything spreading the bounce would need the half that is not
+		shared state.
+
+		@param named The file to write, with its suffix already on it.
+		@param made The bounce.
+		@return How many bytes were written.
+	**/
+	function encoded(named:String, made:Mixdown):Int {
 		final bytes = switch (mixing.kind) {
 			case Mixing.FLAC:
 				Flac.write(made.samples, made.frames, made.channels, made.rate,
@@ -1238,21 +1276,7 @@ final class Files {
 		}
 
 		sys.io.File.saveBytes(named, bytes);
-
-		wroteKey = mixing.normalise ? Locale.SAID_WROTE_AUDIO_LIFTED
-			: Locale.SAID_WROTE_AUDIO;
-
-		wroteWith.resize(0);
-		wroteWith.push("" + (Math.round(made.seconds() * 10) / 10));
-		wroteWith.push(name(named));
-		wroteWith.push("" + Math.round(bytes.length / 1024));
-
-		if (mixing.normalise) {
-			wroteWith.push("" + (Math.round(2000 * Math.log(made.gain)
-				/ Math.log(10)) / 100));
-		}
-
-		return named;
+		return bytes.length;
 	}
 
 	/**
