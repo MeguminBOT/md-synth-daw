@@ -1102,6 +1102,7 @@ final class Sequencer {
 		@param onSample Where the note begins.
 		@param offSample Where it ends.
 		@param named Which instrument the note plays.
+		@param pitch The note sounding, which is the key a kit is read at.
 		@param fromSample The first sample of the span.
 		@param toSample One past the last sample of the span.
 	**/
