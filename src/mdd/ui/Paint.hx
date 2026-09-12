@@ -254,7 +254,10 @@ final class Paint {
 	}
 
 	/**
-		Makes sure there is room for more vertices, flushing or growing the buffer.
+		Makes sure there is room for more vertices, growing the buffer where there is
+		not. It never flushes to make room: a flush is a draw call, and the whole point
+		of the batch is that a frame is as few of those as it can be. The buffer
+		doubles, so a frame stops growing it once it has seen its own busiest frame.
 
 		@param floats How many floats are about to be written.
 	**/
