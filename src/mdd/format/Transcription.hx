@@ -164,9 +164,35 @@ final class Transcription {
 	static inline final STEADY = 32;
 	static inline final STEADY_TURN = 1.3;
 	static inline final DAC_ROOM = 1 << 22;
+
+	/**
+		The key the first recording the converter takes sits on, the next one a
+		semitone above it, and so on, wrapping once every key has one.
+
+		A recording is chosen by the instrument the note carries rather than by the
+		key, so the key changes nothing about what is heard. It is what the editor
+		lays the note out on, and a file whose hits all sit on one key is a file
+		whose drums are drawn as a single row.
+
+		A few files carry more recordings than there are keys, and those wrap rather
+		than piling onto the last one: sharing a row is only a loss of the drawing,
+		and sharing it with a hundred others is a worse one.
+	**/
+	static inline final DAC_ROOT = 60;
+
+	/**
+		How many keys there are to put a recording on.
+	**/
+	static inline final KEYS = 128;
 	static inline final DAC_QUIET = 4;
 	static inline final DAC_SLIP = 8;
 	static inline final DAC_APART = 6.0;
+
+	/**
+		How many times longer one recording may be than another and still be called
+		the same sound.
+	**/
+	static inline final DAC_STRETCH = 2;
 	static inline final DAC_BLOCK = 32;
 	static inline final DAC_STEP = 800;
 
@@ -174,6 +200,7 @@ final class Transcription {
 	final dacWhen:Array<Int> = [];
 	final dacTake:Array<Int> = [];
 	final kits:Array<Int> = [];
+	final prints:Array<Vector<Float>> = [];
 	var dacHeld:Int = 0;
 
 	var perTick:Float = 183.75;
@@ -1000,7 +1027,7 @@ final class Transcription {
 		final which = sampleInstrument(rate);
 		if (which < 0) return;
 
-		placed(Part.Dac, from, until, 60, which);
+		placed(Part.Dac, from, until, rootOf(which), which);
 	}
 
 	/**
@@ -1367,12 +1394,33 @@ final class Transcription {
 		return true;
 	}
 
+	/**
+		Where a hit is drawn.
+
+		@param which An instrument the converter plays.
+		@return The key its recording sits on, so the same hit always lands on the
+			same row and two different ones do not share it.
+	**/
+	function rootOf(which:Int):Int {
+		final instrument = song.instrumentAt(which);
+		if (instrument == null) return DAC_ROOT;
+
+		final sample = song.sampleAt(instrument.sample);
+		return sample == null ? DAC_ROOT : sample.root;
+	}
+
 	function sampleInstrument(rate:Int):Int {
 		final many = dacTake.length;
 		final head = loudTaken(many);
 
-		for (index in 0...song.samples.length) {
-			if (alike(song.samples[index], head)) return kits[index];
+		final now = new Vector<Float>(PRINT);
+		printed(dacTake, head, many - head, now);
+
+		for (index in 0...prints.length) {
+			if (index >= song.samples.length) break;
+			if (!alike(song.samples[index], head, now, prints[index])) continue;
+
+			return kits[index];
 		}
 
 		if (dacHeld + many > DAC_ROOM) return kits.length == 0 ? -1 : kits[0];
@@ -1380,7 +1428,8 @@ final class Transcription {
 		final held = new Vector<Int>(many);
 		for (index in 0...many) held[index] = dacTake[index];
 
-		final sample = new Sample("hit " + (song.samples.length + 1), rate, 60);
+		final sample = new Sample("hit " + (song.samples.length + 1), rate,
+			(DAC_ROOT + kits.length) % KEYS);
 		sample.hold(held);
 		song.sample(sample);
 
@@ -1389,6 +1438,7 @@ final class Transcription {
 		song.instrument(instrument);
 
 		kits.push(song.instruments.length - 1);
+		prints.push(now);
 		dacHeld += many;
 
 		return song.instruments.length - 1;
@@ -1407,6 +1457,192 @@ final class Transcription {
 		return at;
 	}
 
+	/**
+		How many points a recording is reduced to before two are compared.
+	**/
+	public static inline final PRINT = PRINT_LOUD + PRINT_BANDS;
+
+	/**
+		How many of those points say how loud the sound is over its length. The rest
+		say how its energy is spread over frequency.
+	**/
+	static inline final PRINT_LOUD = 24;
+
+	/**
+		How many bands the energy is split into, and the lowest of them as a share of
+		the rate, each band twice the one below it.
+	**/
+	static inline final PRINT_BANDS = 24;
+	static inline final PRINT_LOWEST = 0.0025;
+	static inline final PRINT_OCTAVE = 0.32;
+
+	/**
+		How many bytes of a recording the bands are read over, so a long passage does
+		not cost more to print than a drum does.
+	**/
+	static inline final PRINT_REACH = 4096;
+
+	/**
+		How far apart two prints may be and still be one sound, averaged over every
+		point, where each point runs nought to one.
+	**/
+	static inline final PRINT_APART = 0.07;
+
+	/**
+		Reduces a recording to a short run of numbers that says what it sounds like
+		rather than what bytes it holds.
+
+		Half of the numbers are how loud it is over its length and half are how its
+		energy is spread over frequency, and both are taken at the same count however
+		long the recording is.
+
+		Three things make two writes of one drum come back as different bytes, and the
+		print is built to see past all three. A driver writes at whatever rate it is
+		running at, so one capture is stretched against the other: reading both at the
+		same number of points takes that out. A drum is hit harder in one bar than the
+		next: dividing by the loudest point takes that out. A run is cut a few bytes
+		earlier or later than the last one: a band of energy does not move when the
+		waveform slides, so the frequency half does not care where the cut fell.
+
+		@param bytes The run the converter has taken and not yet kept.
+		@param head Where the sound starts, past any silence.
+		@param many How many bytes of it there are.
+		@param into Where to write the print, which must hold `PRINT` numbers.
+	**/
+	public static function printed(bytes:Array<Int>, head:Int, many:Int,
+			into:Vector<Float>):Void {
+		many = sounding(bytes, head, many);
+
+		var most = 0.0;
+
+		for (point in 0...PRINT_LOUD) {
+			final from = head + Std.int(many * point / PRINT_LOUD);
+			final until = head + Std.int(many * (point + 1) / PRINT_LOUD);
+
+			var total = 0.0;
+			var counted = 0;
+
+			for (at in from...(until > from ? until : from + 1)) {
+				if (at < 0 || at >= bytes.length) continue;
+
+				final value = bytes[at] - 128;
+				total += value * value;
+				counted++;
+			}
+
+			final power = counted == 0 ? 0.0 : Math.sqrt(total / counted);
+
+			into[point] = power;
+			if (power > most) most = power;
+		}
+
+		if (most <= 0) most = 1;
+		for (point in 0...PRINT_LOUD) into[point] = into[point] / most;
+
+		banded(bytes, head, many, into);
+	}
+
+	/**
+		How much of a run is the sound, with the silence at the end left off.
+
+		A driver stops writing when it stops, so one write of a drum carries a longer
+		tail of nothing than the next. Reading a print over the whole of both
+		stretches one against the other and puts two writes of one drum further
+		apart than two different drums, so the quiet at the end comes off first.
+
+		@param bytes The run.
+		@param head Where the sound starts.
+		@param many How many bytes follow it.
+		@return How many of them carry any sound.
+	**/
+	static function sounding(bytes:Array<Int>, head:Int, many:Int):Int {
+		var at = many;
+
+		while (at > 0) {
+			final where = head + at - 1;
+			if (where < 0 || where >= bytes.length) { at--; continue; }
+
+			final value = bytes[where] - 128;
+			if ((value < 0 ? -value : value) > DAC_QUIET) break;
+
+			at--;
+		}
+
+		return at < DAC_LEAST ? (many < DAC_LEAST ? many : DAC_LEAST) : at;
+	}
+
+	/**
+		Fills in the half of a print that says how the energy is spread over frequency.
+
+		The bands are spaced by doubling rather than evenly, because hearing is, and
+		because a drum's body and its snap sit decades apart rather than a fixed number
+		of hertz apart. Each band is read where the recording is, so the rate the
+		driver happened to be running at moves a band by a fraction of its width rather
+		than off the end.
+
+		@param bytes The run.
+		@param head Where the sound starts.
+		@param many How many bytes of it there are.
+		@param into The print, whose second half this writes.
+	**/
+	static function banded(bytes:Array<Int>, head:Int, many:Int, into:Vector<Float>):Void {
+		final reach = many < PRINT_REACH ? many : PRINT_REACH;
+		var most = 0.0;
+
+		for (band in 0...PRINT_BANDS) {
+			final turn = PRINT_LOWEST * Math.pow(2, band * PRINT_OCTAVE);
+			final step = 2 * Math.PI * turn;
+
+			final cosStep = Math.cos(step);
+			final sinStep = Math.sin(step);
+
+			var cosNow = 1.0;
+			var sinNow = 0.0;
+			var real = 0.0;
+			var imaginary = 0.0;
+
+			for (at in 0...reach) {
+				final where = head + at;
+				final value = where >= 0 && where < bytes.length ? bytes[where] - 128 : 0;
+
+				real += value * cosNow;
+				imaginary += value * sinNow;
+
+				final held = cosNow * cosStep - sinNow * sinStep;
+				sinNow = cosNow * sinStep + sinNow * cosStep;
+				cosNow = held;
+			}
+
+			final power = Math.sqrt(real * real + imaginary * imaginary) / reach;
+
+			into[PRINT_LOUD + band] = power;
+			if (power > most) most = power;
+		}
+
+		if (most <= 0) most = 1;
+
+		for (band in 0...PRINT_BANDS) {
+			final share = into[PRINT_LOUD + band] / most;
+			into[PRINT_LOUD + band] = Math.log(share * 99 + 1) / Math.log(100);
+		}
+	}
+
+	/**
+		@param one A print.
+		@param two Another.
+		@return How far apart they are, averaged over every point.
+	**/
+	public static function apartPrints(one:Vector<Float>, two:Vector<Float>):Float {
+		var total = 0.0;
+
+		for (point in 0...PRINT) {
+			final away = one[point] - two[point];
+			total += away < 0 ? -away : away;
+		}
+
+		return total / PRINT;
+	}
+
 	function loudTaken(many:Int):Int {
 		var at = 0;
 
@@ -1420,14 +1656,37 @@ final class Transcription {
 		return at;
 	}
 
-	function alike(sample:Sample, rest:Int):Bool {
-		final bytes = sample.bytes;
+	/**
+		Whether a recording already taken and the run in hand are one sound.
+
+		The bytes themselves are not compared. A driver writes a drum at whatever
+		rate it is running at, so two writes of one sound come back at different
+		lengths with the bytes stretched against each other, and sliding one along
+		the other never lines them up: reading both at the same number of points
+		is what takes the stretch out.
+
+		A length is still asked for, loosely, so that a blip and a passage of music
+		are never called one sound however alike their shapes are.
+
+		The bytes are still read where the print does not settle it. The two tests
+		catch different things: a print sees one drum written at two rates, and the
+		bytes see two writes that line up exactly but whose prints fall either side
+		of the line. Either is enough.
+
+		@param sample A recording already taken.
+		@param rest Where the run in hand starts, past any silence.
+		@param now The print of the run in hand.
+		@param held The print of the recording, worked out when it was taken.
+		@return Whether they are the same sound.
+	**/
+	function alike(sample:Sample, rest:Int, now:Vector<Float>,
+			held:Vector<Float>):Bool {
 		final one = sample.length();
 		final two = dacTake.length;
 
 		if (one < DAC_LEAST || two < DAC_LEAST) return false;
 
-		final head = loudIn(bytes, one);
+		final head = loudIn(sample.bytes, one);
 
 		final left = one - head;
 		final right = two - rest;
@@ -1437,12 +1696,16 @@ final class Transcription {
 		final shorter = left < right ? left : right;
 		final longer = left > right ? left : right;
 
+		if (shorter * DAC_STRETCH < longer) return false;
+
+		if (apartPrints(held, now) <= PRINT_APART) return true;
+
 		if (shorter * 5 < longer * 4) return false;
 
 		var best = 256.0;
 
 		for (slip in -DAC_SLIP...DAC_SLIP + 1) {
-			final away = apartBy(bytes, head, rest, shorter, slip);
+			final away = apartBy(sample.bytes, head, rest, shorter, slip);
 
 			if (away < best) best = away;
 			if (best <= DAC_APART) return true;

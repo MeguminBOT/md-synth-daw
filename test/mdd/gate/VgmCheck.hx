@@ -76,6 +76,7 @@ class VgmCheck {
 		stepped(where, files);
 		marks();
 		kitted(files);
+		rooted(files);
 		marks();
 
 		if (timed) {
@@ -1770,6 +1771,79 @@ class VgmCheck {
 		}
 
 		return many;
+	}
+
+	/**
+		Every recording a file gives the converter sits on a key of its own, and the
+		notes are written on it.
+
+		The editor draws a row for each key, so hits that all carry one key are drawn
+		as a single row however many different sounds they are. The key chooses nothing
+		about what is heard on the converter: the note names the instrument, and the
+		instrument names the recording.
+
+		@param files The files to read.
+	**/
+	static inline final KEYS = 128;
+
+	static function rooted(files:Array<String>):Void {
+		final said = new StringBuf();
+
+		var carried = 0;
+		var shared = 0;
+		var offKey = 0;
+		var widest = 0;
+		var shown = 0;
+
+		for (name in files) {
+			final source = new Stream(1 << 22);
+			final vgm = mdd.format.Vgm.read(File.getBytes(name), source);
+
+			if (vgm == null) continue;
+
+			final song = mdd.format.Transcription.of(source, vgm.rate, name).song;
+			if (song.samples.length < 2) continue;
+
+			carried++;
+
+			final roots:Array<Int> = [];
+
+			for (sample in song.samples) {
+				if (roots.indexOf(sample.root) < 0) roots.push(sample.root);
+			}
+
+			final want = song.samples.length < KEYS ? song.samples.length : KEYS;
+
+			if (roots.length > widest) widest = roots.length;
+			if (roots.length < want) shared++;
+
+			for (pattern in song.patterns) {
+				for (note in pattern.lane(Part.Dac).notes) {
+					final instrument = song.instrumentAt(note.instrument);
+					if (instrument == null) continue;
+
+					final sample = song.sampleAt(instrument.sample);
+					if (sample == null) continue;
+
+					if (note.pitch != sample.root) offKey++;
+				}
+			}
+
+			if (roots.length < want && shown < 8) {
+				if (shown > 0) said.add(", ");
+				said.add(Fixtures.titled(name) + " " + song.samples.length
+					+ " on " + roots.length + " keys of " + want);
+				shown++;
+			}
+		}
+
+		says("every recording gets a key until the keys run out", shared == 0,
+			carried + " files carry more than one, the most on " + widest
+			+ " keys" + (shared == 0 ? "" : ", and " + shared
+				+ " leave a key unused: " + said.toString()));
+
+		says("and a hit is written on the key its recording sits on", offKey == 0,
+			offKey + " notes name a key their recording does not sit on");
 	}
 
 	static function kitted(files:Array<String>):Void {
