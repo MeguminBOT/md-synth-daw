@@ -1,10 +1,11 @@
 /**
  * The window, the renderer and the clock, through SDL3.
  *
- * Windows is pinned to direct3d11 and the choice sits behind a platform gate rather
- * than being deleted: all six SDL backends open a window and paint a still interface
- * correctly, and the fault in two of them appears only once the transport is running
- * and the playhead, the scope and the meters are redrawing every frame.
+ * Windows defaults to direct3d11. All six SDL backends open a window and paint a
+ * still interface correctly, and the fault in two of them appears only once the
+ * transport is running and the playhead, the scope and the meters are redrawing
+ * every frame. A flag or a setting names another, which is what makes the fault
+ * reachable to look at.
  *
  * The clock is at full precision and the sleep asks the operating system for a fine
  * enough scheduler tick first, because a timestamp rounded to whole milliseconds is

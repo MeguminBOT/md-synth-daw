@@ -145,11 +145,11 @@ class App {
 	}
 
 	/**
-		Which renderer backend Windows is pinned to. All six SDL backends open a window and
-		paint a still interface correctly; the fault in two of them appears only once the
-		transport is running and the playhead, the scope and the meters are redrawing every
-		frame. The choice sits behind a platform gate rather than being deleted, because
-		the plumbing is right and only the backends are not.
+		Which renderer backend Windows falls back to, and starts at. All six SDL backends
+		open a window and paint a still interface correctly; the fault in two of them
+		appears only once the transport is running and the playhead, the scope and the
+		meters are redrawing every frame. A flag or the `renderer` setting names another
+		on any platform, because the plumbing is right and only the backends are not.
 	**/
 	public static inline final PINNED = #if windows "direct3d11" #else "" #end;
 
@@ -197,14 +197,10 @@ class App {
 			settings.load();
 		}
 
-		#if windows
-		stage.driver = PINNED;
-		#else
 		final asked = flagged(args);
 		final held = asked != "" ? asked : settings.of("renderer", "");
 
-		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : "";
-		#end
+		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : PINNED;
 
 		if (!stage.open()) return false;
 

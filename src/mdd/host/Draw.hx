@@ -5,10 +5,11 @@ package mdd.host;
 /**
 	Textures and the drawing calls that use them.
 
-	Windows is pinned to direct3d11 and the choice sits behind a platform gate rather
-	than being deleted, because all six SDL backends open a window and paint a still
-	interface correctly: the fault in two of them appears only once the transport is
-	running and the playhead, the scope and the meters are redrawing every frame.
+	Windows defaults to direct3d11. All six SDL backends open a window and paint a
+	still interface correctly, and the fault in two of them appears only once the
+	transport is running and the playhead, the scope and the meters are redrawing
+	every frame. A flag or a setting names another, which is what makes the fault
+	reachable to look at rather than only reportable.
 **/
 extern class Draw {
 	/**
