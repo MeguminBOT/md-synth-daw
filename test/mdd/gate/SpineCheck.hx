@@ -384,6 +384,76 @@ class SpineCheck {
 		@param session The piece.
 		@param editor The inspector the browser sits in.
 	**/
+	/**
+		Every tab of the centre draws a frame without allocating.
+
+		The shell is measured on the playlist alone, and the tabs that are not it draw
+		different widgets: the register timeline, the scope, the automation editor and
+		the warning list. A string built while painting is an allocation a frame, which
+		is what makes the collector run, and the collector is the longest stall there
+		is.
+
+		@param tree The shell.
+		@param centre The tabs.
+		@param paint What to draw with.
+		@param renderer What to draw into.
+	**/
+	static function spared(tree:Root, centre:mdd.view.Centre, paint:Paint,
+			renderer:cpp.Star<Canvas>):Void {
+		final names = ["playlist", "roll", "tracker", "scope", "registers", "automation",
+			"warnings"];
+
+		final grew:Array<Int> = [];
+		var worst = 0;
+		var worstAt = 0;
+
+		for (which in 0...mdd.view.Centre.TABS) {
+			centre.show(which);
+			tree.reshape();
+
+			for (warm in 0...8) {
+				tree.soil();
+				Sdl.renderClear(renderer, 0, 0, 0, 1);
+				tree.frame(paint);
+				Sdl.renderPresent(renderer);
+			}
+
+			cpp.vm.Gc.run(true);
+			cpp.vm.Gc.enable(false);
+
+			final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+
+			for (frame in 0...60) {
+				tree.soil();
+				Sdl.renderClear(renderer, 0, 0, 0, 1);
+				tree.frame(paint);
+				Sdl.renderPresent(renderer);
+			}
+
+			final took = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+			cpp.vm.Gc.enable(true);
+
+			final each = Math.round(took / 60);
+			grew.push(each);
+
+			if (each > worst) {
+				worst = each;
+				worstAt = which;
+			}
+		}
+
+		final said:Array<String> = [];
+		for (which in 0...grew.length) said.push(names[which] + " " + grew[which]);
+
+		says("and every tab of the centre draws without allocating", worst == 0,
+			worst == 0 ? "0 bytes a frame on all " + grew.length + " tabs"
+				: names[worstAt] + " allocates " + worst + " bytes a frame: "
+					+ said.join(", "));
+
+		centre.show(mdd.view.Centre.PLAYLIST);
+		tree.reshape();
+	}
+
 	static function sought(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		final missing = "zzqqxx";
@@ -2808,6 +2878,8 @@ class SpineCheck {
 		says("a frame allocates nothing", grew == 0,
 			Math.round(grew / 120) + " bytes a frame across 120 frames of the whole shell,"
 			+ " measured from a swept heap with the collector off");
+
+		spared(tree, centre, paint, renderer);
 
 		final middle = median(times, rolls) * 1000;
 
