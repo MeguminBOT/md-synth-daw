@@ -490,6 +490,11 @@ final class Files {
 		Finds out whether an open dialog has been answered, and acts on it. Call once a
 		frame.
 
+		Most answers raise the progress bar while they are acted on. A recording or a
+		folder going into a kit does not, because `Root.sheet` holds one widget: raising
+		anything there would put the sheet that asked for the file away, and with it the
+		kit being built. They are read in no time anyway.
+
 		@return Whether anything happened.
 	**/
 	public function poll():Bool {
@@ -519,12 +524,34 @@ final class Files {
 			return true;
 		}
 
+		if (instant(what)) {
+			took(what, where);
+			return true;
+		}
+
 		if (onBusy != null) onBusy(labelled(what), name(where));
 
 		took(what, where);
 
 		if (onIdle != null) onIdle();
 		return true;
+	}
+
+	/**
+		Whether acting on an answer is done in no time, so no progress bar is raised
+		for it.
+
+		This is not only about speed. `Root.sheet` holds one widget, so raising the
+		progress bar puts away whatever sheet was there. A dialog opened by a sheet
+		that has to still be there afterwards, which is what adding a recording to a
+		kit is, must be on this list or the sheet it is feeding disappears along with
+		everything gathered into it.
+
+		@param what Which dialog.
+		@return Whether it is acted on without a progress bar.
+	**/
+	public static function instant(what:Int):Bool {
+		return what == READ_HIT || what == READ_KIT;
 	}
 
 	/**
@@ -535,8 +562,7 @@ final class Files {
 		return switch (what) {
 			case OPEN: Locale.WORKING_OPENING;
 			case SAVE: Locale.WORKING_SAVING;
-			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV, READ_KIT, READ_HIT:
-				Locale.WORKING_IMPORTING;
+			case READ_VGM, READ_XGM, READ_MIDI, READ_WAV: Locale.WORKING_IMPORTING;
 			case _: Locale.WORKING_EXPORTING;
 		}
 	}

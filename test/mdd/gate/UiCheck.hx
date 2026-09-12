@@ -116,6 +116,7 @@ class UiCheck {
 		editing();
 		numbers();
 		gestures();
+		slotted();
 		ranges();
 		switches();
 		scrolling();
@@ -1195,6 +1196,50 @@ class UiCheck {
 
 		says("only bands(null) takes it down", root.band == null && root.sheet == sheet,
 			"cleared on purpose, with the sheet still where it was");
+	}
+
+	/**
+		One sheet slot, and what that costs anything opening a dialog from a sheet.
+
+		Raising a sheet puts away whatever sheet was there. Acting on most dialog
+		answers raises the progress bar, so a sheet that opens a dialog and has to
+		still be there afterwards, which is what the kit sheet is, needs its answer
+		acted on without one. `Files.instant` is that list.
+	**/
+	static function slotted():Void {
+		final root = new Root(new Shell(), new Metrics(1), new Theme());
+		root.resize(900, 700);
+
+		final first = new Widget();
+		final second = new Widget();
+
+		first.focusable = true;
+		first.opaque = true;
+		second.focusable = true;
+		second.opaque = true;
+
+		root.raise(first);
+		root.raise(second);
+
+		says("a second sheet puts the first away", root.sheet == second,
+			"one slot, so what was there is gone rather than behind it");
+
+		root.lower();
+
+		says("and lowering it leaves nothing, not the first", root.sheet == null,
+			"the one it replaced is not brought back");
+
+		final held = [mdd.app.Files.READ_HIT, mdd.app.Files.READ_KIT];
+		final rest = [mdd.app.Files.OPEN, mdd.app.Files.SAVE, mdd.app.Files.READ_MIDI,
+			mdd.app.Files.READ_VGM, mdd.app.Files.READ_WAV];
+
+		var kept = true;
+		for (what in held) if (!mdd.app.Files.instant(what)) kept = false;
+		for (what in rest) if (mdd.app.Files.instant(what)) kept = false;
+
+		says("so what a sheet asks for is acted on without the progress bar", kept,
+			held.length + " kinds feed a sheet that stays up and raise nothing, against "
+				+ rest.length + " that do raise it");
 	}
 
 	static function notices():Void {
