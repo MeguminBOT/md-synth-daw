@@ -190,3 +190,34 @@ reading taken from inside the process can see it.
 What would settle it is a capture of the window taken at the moment somebody is
 watching it go wrong, rather than a capture of a run that was started to look
 for it.
+
+## The window going bright
+
+The other half of what is reported is the window flashing white, which is not a
+colour anything here clears to: the frame is cleared to the theme's ground and
+the ground is dark in every theme that ships. A vulkan swapchain image is
+undefined until something writes it, and it becomes undefined again whenever the
+chain is made again, which a resize does, so an undefined image reaching the
+screen is the one thing that would read as white.
+
+Read from a patch of the window that stays dark, as fast as the screen can be
+read, it does not happen:
+
+| how it was run | readings | brightest |
+| --- | --- | --- |
+| full screen, playing, resized every few hundred readings | 17836 over 150 s | 119 |
+| a small window, playing, a patch that is empty playlist | 53268 over 420 s | 7.5 |
+
+The first of those sampled the middle of the window, which is where the clips
+are drawn in light grey, so 119 is the clips rather than a flash. The second
+sampled a corner that is dark in normal use, and nothing there ever rose above
+eight out of two hundred and fifty five.
+
+Around a hundred and twenty readings a second against a screen at a hundred and
+forty four means a flash lasting a single frame is more likely seen than missed.
+Ten minutes of it were watched and none was.
+
+Neither fault reproduces while nobody is at the machine. Both need somebody
+driving the interface, which is the one thing none of this can manufacture:
+the pointer can be walked over the panels and keys can be posted to the window,
+but nothing here clicks, drags, scrolls or opens anything.
