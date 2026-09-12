@@ -1882,12 +1882,6 @@ class VgmCheck {
 	/**
 		@param one One stream.
 		@param two Another.
-		@return -2 where they are the same, -1 where they are different lengths, and the
-			first write they disagree on otherwise.
-	**/
-	/**
-		@param one One stream.
-		@param two Another.
 		@return The first write they disagree on, or -1 where every write they both hold
 			is the same.
 	**/
@@ -1928,6 +1922,12 @@ class VgmCheck {
 		return Math.round(value * scale) / scale;
 	}
 
+	/**
+		@param one One stream.
+		@param two Another.
+		@return -2 where they are the same, -1 where they are different lengths, and the
+			first write they disagree on otherwise.
+	**/
 	static function alike(one:Stream, two:Stream):Int {
 		if (one.count != two.count) return -1;
 

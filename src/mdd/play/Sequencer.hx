@@ -457,19 +457,6 @@ final class Sequencer {
 	}
 
 	/**
-		Walks one pattern and collects every lane in it.
-
-		@param pattern The pattern to read.
-		@param origin Where the clip starts, in ticks.
-		@param from The first tick inside the pattern to read.
-		@param until One past the last.
-		@param transpose Semitones to shift every note by.
-		@param low The first tick of the span, in ticks.
-		@param high One past the last.
-		@param fromSample The first sample of the span.
-		@param toSample One past the last sample of the span.
-	**/
-	/**
 		@param head The clip a run of them started with.
 		@param next The clip after it on the same track.
 		@param until Where the run reaches so far, in ticks.
@@ -492,6 +479,19 @@ final class Sequencer {
 		return next.origin() == head.origin();
 	}
 
+	/**
+		Walks one pattern and collects every lane in it.
+
+		@param pattern The pattern to read.
+		@param origin Where the clip starts, in ticks.
+		@param from The first tick inside the pattern to read.
+		@param until One past the last.
+		@param transpose Semitones to shift every note by.
+		@param low The first tick of the span, in ticks.
+		@param high One past the last.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
 	function walk(pattern:mdd.song.Pattern, origin:Int, from:Int, until:Int, transpose:Int,
 			low:Int, high:Int, fromSample:Int, toSample:Int):Void {
 		if (from > high || until <= low) return;

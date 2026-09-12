@@ -59,12 +59,6 @@ final class Splitter extends Widget {
 	}
 
 	/**
-		Drags the line.
-
-		@param event The event.
-		@return Whether it was taken.
-	**/
-	/**
 		A splitter is a handle and nothing on it says so.
 
 		@param px A point, across.
@@ -75,6 +69,12 @@ final class Splitter extends Widget {
 		return vertical ? mdd.host.Sdl.CURSOR_DOWN : mdd.host.Sdl.CURSOR_ACROSS;
 	}
 
+	/**
+		Drags the line.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	override function took(event:Input):Bool {
 		switch (event.kind) {
 			case Kind.PointerDown:

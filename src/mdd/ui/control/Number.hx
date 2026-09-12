@@ -202,12 +202,6 @@ final class Number extends Widget implements Range {
 	}
 
 	/**
-		Handles typing into it: digits, a minus sign, backspace, enter and escape.
-
-		@param event The event.
-		@return Whether it was taken.
-	**/
-	/**
 		Takes what was typed, in whatever the number is shown in, and stops
 		typing. Text that reads as no number leaves the value alone.
 	**/
@@ -240,6 +234,12 @@ final class Number extends Widget implements Range {
 		super.focused(on);
 	}
 
+	/**
+		Handles typing into it: digits, a minus sign, backspace, enter and escape.
+
+		@param event The event.
+		@return Whether it was taken.
+	**/
 	function keyed(event:Input):Bool {
 		if (typing) {
 			switch (event.code) {
