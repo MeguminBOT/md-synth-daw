@@ -47,6 +47,9 @@ class Gate {
 			if (code == SKIPPED) held.push(name);
 			else if (code != 0) failed++;
 
+			cpp.vm.Gc.run(true);
+			cpp.vm.Gc.compact();
+
 			final after = mdd.host.Usage.ram();
 
 			grown.push(after - before);
@@ -75,6 +78,10 @@ class Gate {
 		process, so what one does not give back is carried by every program after it,
 		and the reading is what the process holds rather than what the program asked
 		for.
+
+		A collection is forced and the heap compacted before each reading, so what is
+		counted is what a program still holds rather than how far the heap grew to
+		serve it.
 
 		@param grown How much each program in `PROGRAMS` grew the process by, in
 			megabytes, in the same order.
