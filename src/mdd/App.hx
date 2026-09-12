@@ -364,9 +364,7 @@ class App {
 			session.say(stage.root.translate(Locale.RENDERER_RESTART));
 		};
 
-		#if !windows
 		panels.preferences.draws(offered(), stage.driver);
-		#end
 
 		update = new Update(Config.GITHUB, Config.VERSION);
 
