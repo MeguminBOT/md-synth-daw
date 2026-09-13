@@ -325,9 +325,8 @@ files rather than eleven.
 oscilloscopes over the piece, with the mix underneath as Opus audio: a lane for every part the
 piece uses, on a black background, with the part's name and a hairline between lanes and nothing
 else. One to three parts stack in a column, up to eight sit two across, and more sit three
-across. A part that is silent for a moment keeps a flat line. The lanes take the speed, accuracy
-and view the scope on screen is set to, and a bigger picture draws them bigger, text and lines
-included, rather than small with room around them.
+across. A part that is silent for a moment keeps a flat line. A bigger picture draws the lanes
+bigger, text and lines included, rather than small with room around them.
 
 The settings start at YouTube's recommended upload settings: 60 frames a second, a variable
 bitrate at YouTube's figure for the size and frame rate, a key frame every half second, and stereo
@@ -335,6 +334,14 @@ audio at 384 kbit/s and 48 kHz. YouTube names no size, so a video starts at 2560
 
 - **Video size:** 1280 × 720, 1920 × 1080, 2560 × 1440 or 3840 × 2160.
 - **Frame rate:** 24, 25, 30, 48, 50 or 60 frames a second.
+- **Scope:** Waveform or Spectrum.
+- **Scope speed:** 10, 20, 40, 80 or 160 ms across a lane.
+- **Scope accuracy:** Low, Medium or High, which keep one sample in four, one in two or every
+  one.
+
+  The three scope settings start at what the scope on screen is set to each time you open the
+  sheet, until you change one of them there. Changing them on the sheet leaves the scope on
+  screen alone.
 - **Rate control:** VBR aims at an average bitrate, CBR holds the bitrate steady, CQ aims at a
   quality level with the bitrate as its ceiling, and Q aims at a quality level whatever it costs.
 - **Video bitrate:** typed in kbit/s, or in megabits with an m after the number. Auto takes

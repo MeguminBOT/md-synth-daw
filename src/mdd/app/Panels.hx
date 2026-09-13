@@ -242,6 +242,9 @@ final class Panels {
 		Raises the video export sheet.
 	**/
 	public function exportsVideo():Void {
+		final scope = centre.scope;
+
+		exportingVideo.scopes(scope.showing, scope.speed, scope.accuracy);
 		stage.root.raise(exportingVideo);
 		exportingVideo.ask();
 	}

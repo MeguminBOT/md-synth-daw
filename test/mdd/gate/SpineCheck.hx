@@ -840,7 +840,7 @@ class SpineCheck {
 		final path = where + "/scope.webm";
 		if (sys.FileSystem.exists(path)) sys.FileSystem.deleteFile(path);
 
-		final film = new mdd.app.Filming(tree, paint, tree.metrics, centre.scope, song, mixing, made,
+		final film = new mdd.app.Filming(tree, paint, tree.metrics, session, song, mixing, made,
 			path);
 
 		var rounds = 0;

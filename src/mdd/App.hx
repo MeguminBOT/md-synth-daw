@@ -880,7 +880,7 @@ class App {
 		final baked = stage.bakes(files.mixing.tall() / Filming.DESIGNED);
 		final sizes = baked == null ? stage.root.metrics : baked;
 
-		final held = new Filming(stage.root, stage.paint, sizes, panels.centre.scope, session.song,
+		final held = new Filming(stage.root, stage.paint, sizes, session, session.song,
 			files.mixing, made, where);
 
 		filming = held;

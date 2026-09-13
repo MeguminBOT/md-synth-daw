@@ -27,8 +27,8 @@ import mdd.view.monitor.Scope;
 	The mix has already been rendered, faded and levelled by the time this starts, so the audio
 	in the video is exactly the audio an export with the same settings writes. The scope is fed by
 	a second render of the same register stream, which gives it every part on its own the way the
-	live scope sees them, and it is a scope of its own, sized to the picture and set to the speed,
-	accuracy and view of the one on screen. It draws the way a video shows a scope, on black, with
+	live scope sees them, and it is a scope of its own, sized to the picture and set to the view,
+	speed and accuracy the export asks for. It draws the way a video shows a scope, on black, with
 	a lane for every part the piece carries and nothing of the panel around them. It draws in
 	sizes and faces made for the picture, so a taller picture carries the same lanes drawn larger
 	rather than small ones with room around them.
@@ -104,14 +104,14 @@ final class Filming {
 		@param root The root the scope borrows its theme and sizes from.
 		@param paint What the window is drawn with, which the frames are drawn with too.
 		@param sizes The sizes to draw the scope at, dressed in faces baked for the picture.
-		@param live The scope on screen, whose settings the video takes.
+		@param session The session the scope reads.
 		@param song The piece.
-		@param mixing The export settings.
+		@param mixing The export settings, the scope's view, speed and accuracy among them.
 		@param made The finished mix.
 		@param path Where to write the video.
 	**/
-	public function new(root:Root, paint:Paint, sizes:Metrics, live:Scope, song:Song, mixing:Mixing,
-			made:Mixdown, path:String) {
+	public function new(root:Root, paint:Paint, sizes:Metrics, session:Session, song:Song,
+			mixing:Mixing, made:Mixdown, path:String) {
 		this.root = root;
 		this.paint = paint;
 		this.sizes = sizes;
@@ -149,10 +149,10 @@ final class Filming {
 
 		taken = render.tapped;
 
-		scope = new Scope(live.session);
-		scope.paces(live.speed);
-		scope.refines(live.accuracy);
-		scope.shows(live.showing);
+		scope = new Scope(session);
+		scope.paces(mixing.scopeSpeed);
+		scope.refines(mixing.scopeAccuracy);
+		scope.shows(mixing.scopeView);
 		scope.rated(made.rate);
 		scope.visible = false;
 

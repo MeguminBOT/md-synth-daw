@@ -204,6 +204,24 @@ final class Mixing {
 	public var screen:Bool = true;
 
 	/**
+		What a video's scope shows, the scope's own `WAVEFORM` or `SPECTRUM`: nought for the
+		waveform and one for the spectrum.
+	**/
+	public var scopeView:Int = 0;
+
+	/**
+		Which of the scope's speeds a video's lanes run at, by index, the scope's starting speed
+		unless chosen.
+	**/
+	public var scopeSpeed:Int = 2;
+
+	/**
+		Which of the scope's accuracies a video's lanes keep, by index, the scope's starting
+		accuracy unless chosen.
+	**/
+	public var scopeAccuracy:Int = 0;
+
+	/**
 		Seconds of silence before the piece.
 	**/
 	public var padStart:Float = 0;
@@ -384,6 +402,9 @@ final class Mixing {
 		out.encoderSpeed = encoderSpeed;
 		out.keyframeInterval = keyframeInterval;
 		out.screen = screen;
+		out.scopeView = scopeView;
+		out.scopeSpeed = scopeSpeed;
+		out.scopeAccuracy = scopeAccuracy;
 		out.padStart = padStart;
 		out.padEnd = padEnd;
 		out.fade = fade;

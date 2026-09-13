@@ -3,6 +3,7 @@ package mdd.view.overlay;
 import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.play.Mixing;
+import mdd.view.monitor.Scope;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
@@ -102,9 +103,24 @@ final class Export extends Widget {
 	public static inline final TUNE = 20;
 
 	/**
+		Row: whether a video's scope shows the waveform or the spectrum.
+	**/
+	public static inline final SCOPE_VIEW = 21;
+
+	/**
+		Row: how much time a video's lanes show.
+	**/
+	public static inline final SCOPE_SPEED = 22;
+
+	/**
+		Row: how many samples a video's lanes keep.
+	**/
+	public static inline final SCOPE_ACCURACY = 23;
+
+	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 21;
+	public static inline final KINDS = 24;
 
 	/**
 		How many metadata fields there are.
@@ -132,7 +148,8 @@ final class Export extends Widget {
 		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE, Locale.EXPORT_OPUS_MODE,
 		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS,
 		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE, Locale.EXPORT_RATE_CONTROL,
-		Locale.EXPORT_ENCODER_SPEED, Locale.EXPORT_KEYFRAMES, Locale.EXPORT_TUNE];
+		Locale.EXPORT_ENCODER_SPEED, Locale.EXPORT_KEYFRAMES, Locale.EXPORT_TUNE,
+		Locale.EXPORT_SCOPE_VIEW, Locale.EXPORT_SCOPE_SPEED, Locale.EXPORT_SCOPE_ACCURACY];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -151,6 +168,11 @@ final class Export extends Widget {
 	static final KEYED:Array<String> = ["0.5 s", "1 s", "2 s", "5 s", "10 s"];
 
 	static final TUNINGS:Array<Locale> = [Locale.EXPORT_TUNE_DEFAULT, Locale.EXPORT_TUNE_SCREEN];
+
+	static final VIEWS:Array<Locale> = [Locale.SCOPE_WAVEFORM, Locale.SCOPE_SPECTRUM];
+
+	static final ACCURACIES:Array<Locale> = [Locale.SCOPE_LOW, Locale.SCOPE_MEDIUM,
+		Locale.SCOPE_HIGH];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
 	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k", "384k"];
@@ -196,6 +218,9 @@ final class Export extends Widget {
 	public final mixing:Mixing = new Mixing();
 
 	var picked:Bool = false;
+	var scoped:Bool = false;
+
+	final paced:Array<String> = [];
 
 	/**
 		The metadata fields, on the audio sheet only.
@@ -266,6 +291,8 @@ final class Export extends Widget {
 		rise = new Motion(this, 0, true);
 		fade = new Motion(this, 0, false);
 
+		for (held in Scope.SPEEDS) paced.push(held + " ms");
+
 		if (video) {
 			mixing.kind = Mixing.WEBM;
 			mixing.rate = mdd.format.Coded.OPUS_RATE;
@@ -327,6 +354,9 @@ final class Export extends Widget {
 		if (video) {
 			showing.push(SIZE);
 			showing.push(FRAME_RATE);
+			showing.push(SCOPE_VIEW);
+			showing.push(SCOPE_SPEED);
+			showing.push(SCOPE_ACCURACY);
 			showing.push(RATE_CONTROL);
 			showing.push(ENCODER_SPEED);
 			showing.push(KEYFRAMES);
@@ -529,9 +559,11 @@ final class Export extends Widget {
 			case OPUS_MODE: OPUS_MODES;
 			case OPUS_BITRATE: OPUS_BITRATE_MODES;
 			case TUNE: TUNINGS;
+			case SCOPE_VIEW: VIEWS;
+			case SCOPE_ACCURACY: ACCURACIES;
 
 			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE,
-				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES: NO_KEYS;
+				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES, SCOPE_SPEED: NO_KEYS;
 
 			case _: SWITCHES;
 		}
@@ -556,6 +588,7 @@ final class Export extends Widget {
 			case RATE_CONTROL: CONTROLS;
 			case ENCODER_SPEED: SPEEDS;
 			case KEYFRAMES: KEYED;
+			case SCOPE_SPEED: paced;
 			case _: NOTHING;
 		}
 	}
@@ -635,6 +668,9 @@ final class Export extends Widget {
 			case ENCODER_SPEED: mixing.encoderSpeed - 5;
 			case KEYFRAMES: closest(Mixing.KEYFRAME_INTERVALS, mixing.keyframeInterval);
 			case TUNE: mixing.screen ? 1 : 0;
+			case SCOPE_VIEW: mixing.scopeView;
+			case SCOPE_SPEED: mixing.scopeSpeed;
+			case SCOPE_ACCURACY: mixing.scopeAccuracy;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -669,6 +705,22 @@ final class Export extends Widget {
 	**/
 	public function follows(which:Int):Void {
 		if (!picked) mixing.console = which;
+	}
+
+	/**
+		Takes the view, speed and accuracy the scope on screen is set to, for a video sheet none
+		of whose scope rows has been chosen from yet. Once one has, the sheet keeps its own.
+
+		@param view `Scope.WAVEFORM` or `Scope.SPECTRUM`.
+		@param speed Which of `Scope.SPEEDS`.
+		@param accuracy Which of `Scope.STRIDES`.
+	**/
+	public function scopes(view:Int, speed:Int, accuracy:Int):Void {
+		if (scoped) return;
+
+		mixing.scopeView = view;
+		mixing.scopeSpeed = speed;
+		mixing.scopeAccuracy = accuracy;
 	}
 
 	/**
@@ -707,6 +759,9 @@ final class Export extends Widget {
 			case ENCODER_SPEED: mixing.encoderSpeed = 5 + which;
 			case KEYFRAMES: mixing.keyframeInterval = Mixing.KEYFRAME_INTERVALS[which];
 			case TUNE: mixing.screen = which == 1;
+			case SCOPE_VIEW: { mixing.scopeView = which; scoped = true; }
+			case SCOPE_SPEED: { mixing.scopeSpeed = which; scoped = true; }
+			case SCOPE_ACCURACY: { mixing.scopeAccuracy = which; scoped = true; }
 			case _: mixing.dither = which == 1;
 		}
 
