@@ -181,6 +181,14 @@
 	<!-- look beside the binary for the copy of SDL3 the packaging carries there -->
 	<linkflag value="-Wl,-rpath,$ORIGIN" if="linux" />
 
+	<!-- hxcpp compiles every Linux object with -flto when HXCPP_OPTIMIZE_LINK is defined, and
+	     links with the compiler and nothing more. A clang object is then LLVM bitcode, which the
+	     system ld cannot read at all, so clang links with lld, which reads it natively. A GCC
+	     object is GIMPLE, which only GCC reads, so the link has to be told it is an LTO link
+	     too. macOS is left out: its linker reads bitcode already -->
+	<linkflag value="-flto" if="linux" unless="debug" />
+	<linkflag value="-fuse-ld=lld" if="clang" unless="mac" />
+
 	<!-- mingw carries its symbols inside the binary where the Microsoft linker puts them in a
 	     pdb beside it, and it is told not to strip because the crash report reads them back.
 	     The report reads the symbol table and the line table and opens none of the rest, which
