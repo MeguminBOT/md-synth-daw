@@ -77,8 +77,10 @@ unstripped DWARF.
 
 ## Linux
 
-Debian trixie, clang 19, SDL3 from `libsdl3-dev`, hxcpp 4.3.2. `tools/docker/Dockerfile` is the
-image and carries the two commands at the bottom. The whole gate passes, including `chip` at
+Measured on Debian trixie, clang 19, SDL3 from `libsdl3-dev` and hxcpp 4.3.2.
+`tools/docker/Dockerfile` is the image and carries the two commands at the bottom. It takes hxcpp
+from its newest git tag, as the workflows do, so it builds on a newer hxcpp than these measurements
+were taken on. The whole gate passes, including `chip` at
 1032 of 1032 fixtures bit identical against a Nuked-OPN2 reference built by gcc
 in the same container. The FM core produces the same bytes under clang as under MSVC.
 

@@ -16,7 +16,15 @@ RUN curl -fsSL https://github.com/HaxeFoundation/haxe/releases/download/4.3.7/ha
 
 ENV HAXE_STD_PATH=/opt/haxe/std
 
-RUN mkdir -p /haxelib && haxelib setup /haxelib && haxelib install hxcpp --quiet --always
+RUN mkdir -p /haxelib && haxelib setup /haxelib \
+	&& url=https://github.com/HaxeFoundation/hxcpp.git \
+	&& tag=$(git ls-remote --tags --refs --sort=-v:refname "$url" | sed -n 1p) \
+	&& tag=${tag##*refs/tags/} \
+	&& test -n "$tag" \
+	&& haxelib --always git hxcpp "$url" "$tag" \
+	&& cd "$(haxelib path hxcpp | sed -n 1p)/tools/hxcpp" \
+	&& haxe compile.hxml \
+	&& test -f ../../hxcpp.n
 
 WORKDIR /work
 
