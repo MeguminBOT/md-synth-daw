@@ -275,7 +275,7 @@ jobs:
       # whole release down with it. It comes back on its own once public.
       - name: Attest the build provenance
         if: ${{ !github.event.repository.private }}
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             packages/*.zip
