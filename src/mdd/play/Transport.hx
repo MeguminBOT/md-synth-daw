@@ -310,17 +310,27 @@ final class Transport {
 	}
 
 	/**
-		@return The instrument an audition should sound: the drum the note names where the
-			converter is a kit, and whatever the part holds otherwise. Null where the
-			converter is a kit with nothing rooted at that note, because a key with no
-			drum on it makes no sound. Playback picks a drum the same way, so a kit
-			auditions as it plays.
+		What pressing a key should sound.
+
+		A key on the converter sounds the recording rooted there, whether or not the
+		converter is being read as a kit. A recording sits on a key of its own and
+		the editor draws it on that row, so pressing the row has to sound the thing
+		drawn on it: a keyboard that answers the same sound whichever key is pressed
+		is telling the reader nothing.
+
+		Every other part sounds whatever it holds, because a key there is a pitch
+		rather than a choice of sound.
+
+		@return The instrument to sound, or null where the converter is read as a kit
+			and has nothing rooted at that key, since a key with no drum on it makes
+			no sound.
 	**/
 	function heard():Null<Instrument> {
-		if (song.drums) {
-			final kit = song.drumAt(heardNote);
-			return kit < 0 ? null : song.instrumentAt(kit);
-		}
+		final part:Part = heardPart;
+		final rooted = part.sampled() ? song.drumAt(heardNote) : -1;
+
+		if (song.drums) return rooted < 0 ? null : song.instrumentAt(rooted);
+		if (rooted >= 0) return song.instrumentAt(rooted);
 
 		return song.instrumentAt(song.rack[heardPart]);
 	}

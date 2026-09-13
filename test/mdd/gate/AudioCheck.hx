@@ -47,6 +47,7 @@ class AudioCheck {
 		pitch();
 		shape();
 		auditioned();
+		keyed();
 		velocities();
 		device(Math.isNaN(live) ? LIVE : live);
 		played(8, Gate.root);
@@ -505,6 +506,116 @@ class AudioCheck {
 		says("the render keeps up", spent < OFFLINE,
 			Std.int(OFFLINE) + " s of audio rendered in " + round(spent, 2) + " s, "
 			+ round(OFFLINE / spent, 1) + " times faster than real time");
+	}
+
+	/**
+		Pressing a key on the converter sounds the recording that key holds.
+
+		A note placed on a key sounds the recording rooted there, and pressing the key
+		itself has to sound the same thing or the keyboard is lying about what the note
+		will be. Two recordings are put on two keys and each key is pressed, and the
+		bytes that reach the converter are what says which one sounded.
+	**/
+	static function keyed():Void {
+		final song = new mdd.song.Song("keys", 96, 120);
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			song.instrument(new mdd.song.Instrument(part.name().toLowerCase(), part));
+			song.rack[index] = index;
+		}
+
+		final low = laid(song, "low", 60, 40);
+		final high = laid(song, "high", 62, 200);
+
+		song.rack[mdd.song.Part.Dac.index()] = low;
+
+		says("two recordings sit on two keys",
+			song.drumAt(60) == low && song.drumAt(62) == high,
+			"the lower key holds " + song.drumAt(60) + " and the upper "
+				+ song.drumAt(62) + ", against " + low + " and " + high);
+
+		for (kit in [false, true]) {
+			song.drums = kit;
+
+			final said = kit ? "as a kit" : "as one instrument";
+
+			final one = pressed(song, 60);
+			final two = pressed(song, 62);
+
+			says("pressing a key on the converter sounds what it holds, " + said,
+				one != "" && two != "" && one != two,
+				one == two ? "both keys wrote " + one
+					: "the lower key wrote " + one + " and the upper " + two);
+		}
+
+		song.drums = false;
+	}
+
+	/**
+		Puts a sampled instrument in a song, its bytes a flat level so two are told
+		apart by which reaches the converter rather than by how much of it there is.
+
+		@param song The song.
+		@param name What to call it.
+		@param root Which key it sits on.
+		@param level The byte it holds.
+		@return Its index.
+	**/
+	static function laid(song:mdd.song.Song, name:String, root:Int, level:Int):Int {
+		final sample = new mdd.song.Sample(name, 8000, root);
+		final bytes = new haxe.ds.Vector<Int>(64);
+
+		for (at in 0...bytes.length) bytes[at] = level;
+		sample.hold(bytes);
+
+		song.sample(sample);
+
+		final made = new mdd.song.Instrument(name, mdd.song.Part.Dac);
+		made.sample = song.samples.length - 1;
+
+		song.instrument(made);
+
+		return song.instruments.length - 1;
+	}
+
+	/**
+		Presses one key and reads back what reached the converter.
+
+		@param song The song.
+		@param note Which key.
+		@return The distinct bytes the converter was given, or an empty string where it
+			was given none.
+	**/
+	static function pressed(song:mdd.song.Song, note:Int):String {
+		final transport = new mdd.play.Transport(song, 1 << 16);
+
+		transport.auditions(mdd.song.Part.Dac, note);
+
+		final held:Array<String> = [];
+		var want = false;
+
+		for (block in 0...60) {
+			transport.advance(Render.BLOCK, RATE);
+
+			final stream = transport.stream;
+
+			for (index in 0...stream.count) {
+				if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+				if (stream.portAt(index) == 0) {
+					want = stream.valueAt(index) == 0x2A;
+					continue;
+				}
+
+				if (!want) continue;
+
+				final said = "" + stream.valueAt(index);
+				if (held.indexOf(said) < 0) held.push(said);
+			}
+		}
+
+		return held.join(" ");
 	}
 
 	static function auditioned():Void {
