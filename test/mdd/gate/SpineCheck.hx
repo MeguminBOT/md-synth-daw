@@ -609,6 +609,196 @@ class SpineCheck {
 		@param session The piece.
 		@param centre The tabs.
 	**/
+	/**
+		Presses and releases on the roll, which shift needs: a shift press is held until it
+		is known whether the pointer moved, because moving clones what is under it.
+
+		@param roll The roll.
+		@param press An input to fill in, so a check is not allocating one a click.
+		@param px Where to click, across.
+		@param py Where to click, down.
+		@param mod What is held down.
+	**/
+	static function clicked(roll:PianoRoll, press:mdd.ui.Input, px:Float, py:Float,
+			mod:Int):Void {
+		press.pointer(mdd.ui.Kind.PointerDown, px, py, mdd.ui.Pointer.Left, mod);
+		roll.took(press);
+
+		press.pointer(mdd.ui.Kind.PointerUp, px, py, mdd.ui.Pointer.Left, mod);
+		roll.took(press);
+	}
+
+	/**
+		Drags a pointer across a widget, stopping at each point on the way, which is what a
+		sweep needs: a rubber and a velocity brush both act on what they pass rather than on
+		where they end.
+
+		@param widget What to drag across.
+		@param stops Points to stop at, across and down in pairs. The first is the press.
+		@param button Which button is down.
+		@param mods What is held down.
+	**/
+	static function swept(widget:mdd.ui.Widget, stops:Array<Float>, button:Int,
+			mods:mdd.ui.Mod):Void {
+		if (stops.length < 4) return;
+
+		final event = new mdd.ui.Input();
+
+		event.pointer(mdd.ui.Kind.PointerDown, stops[0], stops[1], button, mods);
+		widget.took(event);
+
+		var index = 2;
+
+		while (index + 1 < stops.length) {
+			event.pointer(mdd.ui.Kind.PointerMove, stops[index], stops[index + 1], button, mods);
+			widget.took(event);
+
+			index += 2;
+		}
+
+		event.pointer(mdd.ui.Kind.PointerUp, stops[stops.length - 2],
+			stops[stops.length - 1], button, mods);
+
+		widget.took(event);
+	}
+
+	/**
+		The three drags a note takes: the rubber sweeping, shift carrying a copy away, and
+		the velocity strip painting what it passes.
+
+		Each of the three has to leave one step on the undo stack rather than one a frame,
+		which is the part a drag gets wrong, so the depth of the history is checked beside
+		the notes every time.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function swiped(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final roll = centre.roll;
+		final lane = pattern.lane(session.part);
+		final beat = session.song.tempo.ppqn;
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		for (at in 0...4) lane.add(new Note(at * beat, Std.int(beat / 2), 60, 100));
+
+		roll.reveal(0, 60);
+		tree.reshape();
+
+		final row = roll.atPitch(60) + roll.rowTall * 0.5;
+		final was = lane.notes.length;
+		final depth = session.history.depth();
+
+		session.tool = Session.DRAW;
+
+		swept(roll, [roll.atTick(4) , row, roll.atTick(beat) + 4, row,
+			roll.atTick(beat * 2) + 4, row, roll.atTick(beat * 3) + 4, row],
+			mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("the rubber takes away every note it sweeps over, in one step",
+			lane.notes.length == 0 && session.history.depth() == depth + 1,
+			was + " notes became " + lane.notes.length + " across "
+			+ (session.history.depth() - depth) + " step of history");
+
+		session.history.undo(session.song);
+
+		says("and one undo puts the whole sweep back", lane.notes.length == was,
+			lane.notes.length + " notes again, of " + was);
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		lane.add(new Note(0, Std.int(beat / 2), 60, 100));
+
+		final only = lane.notes[0];
+		roll.choose(only);
+
+		final held = session.history.depth();
+
+		swept(roll, [roll.atTick(0) + 2, row, roll.atTick(beat) + 2, row],
+			mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
+
+		var stayed = false;
+		var carried = -1;
+
+		for (note in lane.notes) {
+			if (note == only) stayed = note.at == 0;
+			else carried = note.at;
+		}
+
+		says("shift carries a copy away and leaves the note behind",
+			lane.notes.length == 2 && stayed && carried == beat
+			&& session.history.depth() == held + 1,
+			lane.notes.length + " notes, the one dragged from "
+			+ (stayed ? "still at 0" : "moved") + " and the copy at " + carried + " of "
+			+ beat + ", in " + (session.history.depth() - held) + " step of history");
+
+		session.history.undo(session.song);
+
+		says("and one undo takes the copy back off", lane.notes.length == 1,
+			lane.notes.length + " notes after a single undo");
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		for (at in 0...4) lane.add(new Note(at * beat, Std.int(beat / 2), 60, 100));
+
+		tree.reshape();
+
+		final gap = tree.metrics.gap;
+		final floor = roll.y + roll.height - roll.lanes() + roll.velocityTall() - gap;
+		final room = roll.velocityTall() - roll.stripHead() - gap * 2;
+		final strip = floor - room * 0.5;
+
+		final before = session.history.depth();
+
+		swept(roll, [roll.atTick(0), strip, roll.atTick(beat), strip,
+			roll.atTick(beat * 2), strip, roll.atTick(beat * 3), strip],
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		var leant = 0;
+		var apart = false;
+
+		for (note in lane.notes) {
+			if (note.velocity != 100) leant++;
+			if (note.velocity != lane.notes[0].velocity) apart = true;
+		}
+
+		final painted = lane.notes[0].velocity;
+
+		says("a drag across the strip paints every note it passes, in one step",
+			leant == 4 && !apart && painted > 32 && painted < 96
+			&& session.history.depth() == before + 1,
+			leant + " of 4 notes left 100, all of them at " + painted
+			+ (apart ? " but not the same" : "") + " against the 64 halfway up the strip, in "
+			+ (session.history.depth() - before) + " step of history");
+
+		session.history.undo(session.song);
+
+		var back = 0;
+		for (note in lane.notes) if (note.velocity == 100) back++;
+
+		says("and one undo puts every velocity back", back == 4,
+			back + " of 4 notes back at 100");
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+		session.tool = Session.SELECT;
+	}
+
 	static function tooled(tree:Root, session:Session, centre:mdd.view.Centre):Void {
 		centre.show(mdd.view.Centre.ROLL);
 		session.choose(Part.Fm1);
@@ -2420,16 +2610,12 @@ class SpineCheck {
 		final press = new mdd.ui.Input();
 		final seat = roll.atPitch(60) + roll.rowTall * 0.5;
 
-		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(third.at) + 2, seat,
-			mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
-		roll.took(press);
+		clicked(roll, press, roll.atTick(third.at) + 2, seat, mdd.ui.Mod.Shift);
 
 		final ranged = roll.picked.count == 2 && roll.picked.holds(third)
 			&& roll.picked.holds(lane.notes[1]);
 
-		press.pointer(mdd.ui.Kind.PointerDown, roll.atTick(lane.notes[0].at) + 2, seat,
-			mdd.ui.Pointer.Left, mdd.ui.Mod.Shift);
-		roll.took(press);
+		clicked(roll, press, roll.atTick(lane.notes[0].at) + 2, seat, mdd.ui.Mod.Shift);
 
 		final wider = roll.picked.count == 3;
 
@@ -3328,6 +3514,7 @@ class SpineCheck {
 		rubbed(tree, session, centre);
 		zoomed(tree, session, centre);
 		tooled(tree, session, centre);
+		swiped(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

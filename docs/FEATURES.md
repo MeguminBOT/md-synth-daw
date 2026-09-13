@@ -43,6 +43,9 @@ A track can also drive one automation lane of a channel it does not otherwise ow
 - Click to write a note, drag to move it, drag either end to resize it. A note too narrow to
   hold three handles keeps only the one on its end, so a short note can always be taken hold
   of and moved.
+- Sweep the right button with the pencil out, or the left with the rubber, to take a run of
+  notes away in one step. Hold `Shift` and drag a note to carry a copy of it, or of the whole
+  selection, away from the one you started on.
 - Nine scales and twelve roots, chosen from the roll's own right click menu. Rows outside the scale
   are darkened and the root row takes the channel's colour.
 - Snap to anything from a bar down to a sixty fourth, or to nothing at all, with `Alt`
@@ -60,7 +63,9 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   selected, or on the whole channel where you have selected nothing, and each undoes in one
   step. Quantise is the one an import wants: a driver writes a key on wherever its own timer
   landed, so almost nothing read out of a register log starts on a line.
-- Velocity per note.
+- Velocity per note, and a drag across the velocity strip paints every note it passes. A note
+  that is part of a selection leans the whole selection by the same amount instead, so the
+  shape of a phrase survives a change of level.
 - Parameter lanes underneath the roll, folded and scrolled.
 - A note the chip cannot sound is hatched immediately, with a warning that clicks through to it.
 

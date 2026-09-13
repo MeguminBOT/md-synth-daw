@@ -196,6 +196,13 @@ final class PianoRoll extends Widget {
 	var drawn:Int = 0;
 	var gridded:Int = -1;
 	var panning:Bool = false;
+	var rubbing:Bool = false;
+	var cloning:Null<Note> = null;
+	var cloneX:Float = 0;
+	var cloneY:Float = 0;
+	var leadLean:Int = 0;
+
+	final rubbed:Array<Note> = [];
 	var scrubbing:Bool = false;
 	var menu:Null<Menu> = null;
 	var panX:Float = 0;
@@ -426,12 +433,102 @@ final class PianoRoll extends Widget {
 
 		@param note The note to take away.
 	**/
-	function erases(note:Note):Void {
+	/**
+		Takes a note off the lane while the rubber is sweeping, with nothing written to the
+		undo stack yet: a sweep over a dozen notes is one step there rather than twelve.
+
+		@param note The note the pointer went over.
+	**/
+	function rubs(note:Note):Void {
+		if (rubbed.indexOf(note) >= 0) return;
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
 		picked.drops(note);
 		if (chosen == note) chosen = picked.lead();
 
-		session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part, note));
+		session.holds();
+		pattern.lane(session.part).remove(note);
+		session.frees();
+
+		rubbed.push(note);
 		invalidate();
+	}
+
+	/**
+		Puts the swept notes back and takes them away again as one step, which is what
+		leaves the undo stack holding the sweep rather than its frames.
+	**/
+	function rubDropped():Void {
+		rubbing = false;
+		if (rubbed.length == 0) return;
+
+		final pattern = session.current();
+
+		if (pattern != null) {
+			final lane = pattern.lane(session.part);
+
+			session.holds();
+			for (note in rubbed) lane.add(note);
+			session.frees();
+		}
+
+		if (rubbed.length == 1) {
+			session.does(new RemoveNote(session.pattern, session.part, rubbed[0]));
+		} else {
+			final group = new mdd.song.edit.Together("remove " + counted(rubbed.length));
+
+			for (note in rubbed) {
+				group.also(new RemoveNote(session.pattern, session.part, note));
+			}
+
+			session.does(group);
+		}
+
+		rubbed.resize(0);
+		session.changed();
+		invalidate();
+	}
+
+	/**
+		Copies what is being dragged and hands the copies to the drag, so the notes left
+		behind are the originals.
+
+		The whole selection is copied where the note dragged is part of one, and only that
+		note where it is not, which is the rule the plain drag already follows.
+
+		@param lead The note the pointer went down on.
+		@return The copy of that note, or null where nothing could be copied.
+	**/
+	function clones(lead:Note):Null<Note> {
+		final pattern = session.current();
+		if (pattern == null) return null;
+
+		final from = picked.count > 1 && picked.holds(lead) ? held() : [lead];
+		final made:Array<Note> = [];
+		final group = new mdd.song.edit.Together("add " + counted(from.length));
+
+		var head:Null<Note> = null;
+
+		for (note in from) {
+			final copy = note.copy();
+
+			if (note == lead) head = copy;
+
+			made.push(copy);
+			group.also(new AddNote(session.pattern, session.part, copy));
+		}
+
+		if (head == null) return null;
+
+		session.does(group);
+
+		picked.clear();
+		for (note in made) picked.adds(note);
+
+		chosen = head;
+		return head;
 	}
 
 	function seated(note:Note, seat:Int):Void {
@@ -1400,6 +1497,9 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				cloning = null;
+				if (rubbing) rubDropped();
+
 				final rein = reinAt(event.x, event.y);
 
 				if (rein != 0) {
@@ -1462,7 +1562,8 @@ final class PianoRoll extends Widget {
 				if (event.button == Pointer.Right) {
 					if (under != null && session.tool == Session.DRAW && !event.shift()
 						&& !event.ctrl()) {
-						erases(under);
+						rubbing = true;
+						rubs(under);
 						return true;
 					}
 
@@ -1474,12 +1575,20 @@ final class PianoRoll extends Widget {
 
 				if (under != null) {
 					if (session.tool == Session.ERASE) {
-						erases(under);
+						rubbing = true;
+						rubs(under);
 						return true;
 					}
 
 					if (session.tool == Session.SLICE) {
 						sliced(under, session.snapped(tickAt(event.x)));
+						return true;
+					}
+
+					if (event.shift() && !event.ctrl()) {
+						cloning = under;
+						cloneX = event.x;
+						cloneY = event.y;
 						return true;
 					}
 
@@ -1547,7 +1656,40 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
+				if (rubbing) {
+					final over = noteAt(event.x, event.y);
+					if (over != null) rubs(over);
+
+					return true;
+				}
+
+				if (cloning != null) {
+					final held = cloning;
+					final root = root();
+					final far = root == null ? 3.0 : root.metrics.whole(3);
+
+					if (Math.abs(event.x - cloneX) < far && Math.abs(event.y - cloneY) < far) {
+						return true;
+					}
+
+					cloning = null;
+
+					final copy = clones(held);
+					if (copy == null) return true;
+
+					dragging = copy;
+					sizing = false;
+					sizingStart = false;
+					grabTick = tickAt(cloneX) - copy.at;
+					grabPitch = pitchAt(cloneY) - copy.pitch;
+					grabWasAt = copy.at;
+					grabWasSeat = copy.pitch;
+					grabFresh = true;
+					grabs(copy);
+				}
+
 				if (stalking != null) {
+					sweeps(event.x);
 					leaned(event.y);
 					return true;
 				}
@@ -1588,6 +1730,19 @@ final class PianoRoll extends Widget {
 
 				if (panning) {
 					panning = false;
+					return true;
+				}
+
+				if (rubbing) {
+					rubDropped();
+					return true;
+				}
+
+				if (cloning != null) {
+					alters(cloning, true, false);
+					cloning = null;
+
+					invalidate();
 					return true;
 				}
 
@@ -1811,6 +1966,15 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
+	/**
+		Takes hold of what a press on the velocity strip will lean.
+
+		The selection leans together by however far the lead moves, which is what keeps the
+		shape of a phrase while its level changes. A note the sweep reaches afterwards takes
+		the height of the pointer outright instead, so a drag across the strip paints.
+
+		@param lead The note pressed on.
+	**/
 	function leans(lead:Note):Void {
 		leaning.resize(0);
 		wereLoud.resize(0);
@@ -1825,7 +1989,25 @@ final class PianoRoll extends Widget {
 		for (note in leaning) wereLoud.push(note.velocity);
 
 		leadLoud = lead.velocity;
+		leadLean = leaning.length;
 		chosen = lead;
+	}
+
+	/**
+		Takes up a note the sweep across the strip has reached, so a drag paints every note
+		it passes rather than only the one it went down on.
+
+		@param px A point, across.
+	**/
+	function sweeps(px:Float):Void {
+		final found = stalkAt(px);
+
+		if (found == null || leaning.indexOf(found) >= 0) return;
+
+		leaning.push(found);
+		wereLoud.push(found.velocity);
+
+		picked.adds(found);
 	}
 
 	function leanDropped():Void {
@@ -2445,12 +2627,10 @@ final class PianoRoll extends Widget {
 		if (part > 1) part = 1;
 
 		final want = Math.round(part * 127);
-		if (want == stalking.velocity) return;
-
 		final by = want - leadLoud;
 
 		for (index in 0...leaning.length) {
-			final held = wereLoud[index] + by;
+			final held = index < leadLean ? wereLoud[index] + by : want;
 			leaning[index].velocity = held < 1 ? 1 : (held > 127 ? 127 : held);
 		}
 
