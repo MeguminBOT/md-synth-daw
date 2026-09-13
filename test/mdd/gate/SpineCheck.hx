@@ -597,6 +597,107 @@ class SpineCheck {
 		@param session The piece.
 		@param centre The tabs.
 	**/
+	/**
+		The three note tools, which act on the selection or on the whole lane.
+
+		Quantise is the one an import needs: a driver writes a key on where its own timer
+		put it, so the notes a register log gives back sit between the lines rather than on
+		them. Legato and glue are checked beside it because all three are one group on the
+		undo stack and all three have to come back off it.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function tooled(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final roll = centre.roll;
+		final lane = pattern.lane(session.part);
+		final step = session.snap;
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+
+		for (at in 0...4) lane.add(new Note(at * step * 2 + 5, 12, 60 + at, 100));
+
+		final off = lane.notes.copy();
+		var astray = 0;
+
+		for (note in off) if (note.at % step != 0) astray++;
+
+		roll.quantised();
+
+		var landed = 0;
+		for (note in off) if (note.at % step == 0) landed++;
+
+		says("quantise pulls every note onto the grid", landed == off.length,
+			astray + " of " + off.length + " notes sat between the lines and " + landed
+			+ " sit on one after, with a grid of " + step + " ticks");
+
+		session.history.undo(session.song);
+
+		var back = 0;
+		for (note in off) if (note.at % step != 0) back++;
+
+		says("and one undo puts all of them back", back == astray,
+			back + " notes are off the grid again, of the " + astray + " that were");
+
+		session.history.redo(session.song);
+
+		roll.stretched();
+
+		var joined = 0;
+		for (index in 0...off.length - 1) {
+			if (off[index].ends() == off[index + 1].at) joined++;
+		}
+
+		says("legato stretches every note to the next", joined == off.length - 1,
+			joined + " of " + (off.length - 1) + " notes reach the one after them, and the"
+			+ " last still holds " + off[off.length - 1].length + " ticks");
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		lane.add(new Note(0, 96, 60, 100));
+		lane.add(new Note(48, 96, 60, 100));
+		lane.add(new Note(200, 48, 60, 100));
+		lane.add(new Note(48, 96, 67, 100));
+
+		final was = lane.notes.length;
+		roll.glued();
+
+		var covering = -1;
+		var apart = 0;
+
+		for (note in lane.notes) {
+			if (note.pitch == 60 && note.at == 0) covering = note.length;
+			if (note.pitch == 60 && note.at == 200) apart++;
+			if (note.pitch == 67) apart++;
+		}
+
+		says("glue folds a run on one key into one and leaves the others",
+			lane.notes.length == was - 1 && covering == 144 && apart == 2,
+			was + " notes became " + lane.notes.length + ", the two that overlapped are one"
+			+ " of " + covering + " ticks, and the note on another key and the one past the"
+			+ " end are both still there");
+
+		session.history.undo(session.song);
+
+		says("and one undo puts the run back", lane.notes.length == was,
+			lane.notes.length + " notes again, of " + was);
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+	}
+
 	static function zoomed(tree:Root, session:Session, centre:mdd.view.Centre):Void {
 		centre.show(mdd.view.Centre.ROLL);
 		session.choose(Part.Fm1);
@@ -3226,6 +3327,7 @@ class SpineCheck {
 		commanded(tree, session, centre);
 		rubbed(tree, session, centre);
 		zoomed(tree, session, centre);
+		tooled(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

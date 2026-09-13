@@ -1074,6 +1074,166 @@ final class PianoRoll extends Widget {
 		return out;
 	}
 
+	/**
+		@return What a tool acts on, which is the selection where there is one and the
+			whole lane where there is not. The array is the tool's own, so a command may
+			take a note out of the lane while it is being walked.
+	**/
+	function reaching():Array<Note> {
+		final some = held();
+		if (some.length > 0) return some;
+
+		final pattern = session.current();
+		return pattern == null ? [] : pattern.lane(session.part).notes.copy();
+	}
+
+	/**
+		Pulls the notes onto the grid.
+
+		A driver writes a key on where its own timer put it, so almost nothing that
+		arrives from a register log or a MIDI file sits on a line. The selection is what
+		moves where there is one, and the whole lane where there is not.
+	**/
+	public function quantised():Bool {
+		final step = session.snap;
+
+		if (step < 1) {
+			session.says(Locale.SAID_SNAP_OFF);
+			session.changed();
+			return false;
+		}
+
+		final reach = reaching();
+		final group = new mdd.song.edit.Together("quantise " + counted(reach.length));
+		var moved = 0;
+
+		for (note in reach) {
+			final want = Math.round(note.at / step) * step;
+			if (want == note.at) continue;
+
+			group.also(new mdd.song.edit.MoveNote(session.pattern, session.part, note, want,
+				note.pitch));
+
+			moved++;
+		}
+
+		if (moved == 0) return false;
+
+		session.does(group);
+		session.says(Locale.SAID_NOTES_QUANTISED, "" + moved);
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	/**
+		Stretches every note to where the next one starts, which is what a legato line is.
+
+		The notes are taken in time order whatever key they sit on, so a chord stretches to
+		the chord after it rather than each note to itself. The last one keeps its length,
+		because there is nothing to stretch it to.
+	**/
+	public function stretched():Bool {
+		final reach = reaching();
+		if (reach.length < 2) return false;
+
+		reach.sort(function(one:Note, two:Note):Int return one.at - two.at);
+
+		final group = new mdd.song.edit.Together("legato " + counted(reach.length));
+		var sized = 0;
+
+		for (index in 0...reach.length) {
+			final note = reach[index];
+			var until = -1;
+
+			for (after in index + 1...reach.length) {
+				if (reach[after].at <= note.at) continue;
+
+				until = reach[after].at;
+				break;
+			}
+
+			if (until < 0) continue;
+
+			final want = until - note.at;
+			if (want < 1 || want == note.length) continue;
+
+			group.also(new mdd.song.edit.SizeNote(session.pattern, session.part, note, want));
+			sized++;
+		}
+
+		if (sized == 0) return false;
+
+		session.does(group);
+		session.says(Locale.SAID_NOTES_LEGATO, "" + sized);
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	/**
+		Folds a run of notes on one key into one.
+
+		Where a note reaches the one after it on the same key, the first grows to cover both
+		and the second goes. Notes on different keys are never folded together, however much
+		they overlap, because they are two notes.
+	**/
+	public function glued():Bool {
+		final reach = reaching();
+		if (reach.length < 2) return false;
+
+		reach.sort(function(one:Note, two:Note):Int {
+			if (one.pitch != two.pitch) return one.pitch - two.pitch;
+			return one.at - two.at;
+		});
+
+		final group = new mdd.song.edit.Together("glue " + counted(reach.length));
+		var gone = 0;
+		var index = 0;
+
+		while (index < reach.length) {
+			final lead = reach[index];
+			var until = lead.ends();
+			var next = index + 1;
+
+			while (next < reach.length && reach[next].pitch == lead.pitch
+					&& reach[next].at <= until) {
+				final other = reach[next];
+				if (other.ends() > until) until = other.ends();
+
+				next++;
+			}
+
+			if (next > index + 1) {
+				if (until - lead.at != lead.length) {
+					group.also(new mdd.song.edit.SizeNote(session.pattern, session.part, lead,
+						until - lead.at));
+				}
+
+				for (which in index + 1...next) {
+					group.also(new RemoveNote(session.pattern, session.part, reach[which]));
+					gone++;
+				}
+			}
+
+			index = next;
+		}
+
+		if (gone == 0) return false;
+
+		picked.clear();
+		chosen = null;
+
+		session.does(group);
+		session.says(Locale.SAID_NOTES_GLUED, "" + gone);
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
 	function alters(lead:Note, shift:Bool, ctrl:Bool):Void {
 		picked.alters(everything(), chosen, lead, shift, ctrl);
 		chosen = picked.holds(lead) ? lead : picked.lead();
@@ -1487,6 +1647,14 @@ final class PianoRoll extends Widget {
 
 			menu.divide();
 
+			fires(menu.offer(new Choice(translate(Locale.ROLL_QUANTISE))), function():Void
+				quantised());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_LEGATO))), function():Void
+				stretched());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_GLUE))), function():Void glued());
+
+			menu.divide();
+
 			final why = menu.offer(new Choice(translate(Locale.ROLL_EXPLAIN)));
 			final found = budget == null ? null : reasonFor(under);
 
@@ -1509,6 +1677,14 @@ final class PianoRoll extends Widget {
 
 			final at = session.snapped(tickAt(px));
 			fires(paste, function():Void pasted(at));
+
+			menu.divide();
+
+			fires(menu.offer(new Choice(translate(Locale.ROLL_QUANTISE))), function():Void
+				quantised());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_LEGATO))), function():Void
+				stretched());
+			fires(menu.offer(new Choice(translate(Locale.ROLL_GLUE))), function():Void glued());
 
 			menu.divide();
 

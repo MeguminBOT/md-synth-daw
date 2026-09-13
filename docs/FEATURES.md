@@ -56,6 +56,10 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   keyboard, or with `Shift` held anywhere, makes the rows taller or shorter instead. Middle
   drag to pan, and zoom to fit from the right click menu to get back. The view scrolls four
   bars past the end of the pattern, which is shaded so the end still reads as one.
+- Quantise, legato and glue, from the roll's right click menu. Each acts on what you have
+  selected, or on the whole channel where you have selected nothing, and each undoes in one
+  step. Quantise is the one an import wants: a driver writes a key on wherever its own timer
+  landed, so almost nothing read out of a register log starts on a line.
 - Velocity per note.
 - Parameter lanes underneath the roll, folded and scrolled.
 - A note the chip cannot sound is hatched immediately, with a warning that clicks through to it.
