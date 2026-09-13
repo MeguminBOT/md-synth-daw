@@ -152,6 +152,14 @@ The build generates `mdd.Config` from the window and meta attributes, the hxcpp 
 native, include and link elements, and the editor's completion files, one per target. None of those
 is tracked and none is written by hand.
 
+Two elements put a shared library beside the binary, and which one applies depends on where the
+library came from. `<ship>` copies a file the repository already has, which is how Windows gets the
+vendored `SDL3.dll`. `<carry>` names a library linked from the system, and the build finds the copy
+the binary actually links, puts it in `export/bin`, and points the binary at it: on macOS by
+rewriting the load command, and on Linux by the rpath of `$ORIGIN` in the build file. Without it a
+macOS build names `/opt/homebrew` or `/usr/local` and a Linux one names nothing at all, and the
+archive will not start anywhere the library is not already installed at that exact path.
+
 The build file is deliberately not called `project.xml`. A file at the repository root with that
 name, or `Project.xml`, `project.hxp` or `project.lime`, makes the Lime editor extension claim the
 workspace and answer the Haxe language server with the output of a `lime` command that is not

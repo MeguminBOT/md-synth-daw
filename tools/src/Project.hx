@@ -168,6 +168,13 @@ class Project {
 	public var links(default, null):Array<String> = [];
 	public var ships(default, null):Array<String> = [];
 
+	/**
+		The name of the shared library a build links from the system rather than from
+		`vendor/`, which the packaging carries beside the binary. Empty where every library
+		is either vendored or part of the operating system.
+	**/
+	public var carry(default, null):String = "";
+
 	public var nativePath(default, null):String = "native";
 	public var nativeFiles(default, null):Array<String> = [];
 
@@ -393,6 +400,9 @@ class Project {
 
 			case "ship":
 				ships.push(node.get("value"));
+
+			case "carry":
+				carry = node.get("value");
 
 			case "native":
 				nativePath = has(node, "path") ? node.get("path") : nativePath;

@@ -178,6 +178,9 @@
 
 	<linkflag value="-OPT:REF" if="windows" unless="mingw,debug" />
 
+	<!-- look beside the binary for the copy of SDL3 the packaging carries there -->
+	<linkflag value="-Wl,-rpath,$ORIGIN" if="linux" />
+
 	<!-- mingw carries its symbols inside the binary where the Microsoft linker puts them in a
 	     pdb beside it, and it is told not to strip because the crash report reads them back.
 	     The report reads the symbol table and the line table and opens none of the rest, which
@@ -230,6 +233,14 @@
 	<link value="-framework AudioToolbox" if="mac" />
 
 	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
+
+	<!--
+		Windows links the vendored SDL3 and ships the DLL beside the binary. macOS and Linux
+		link whatever the package manager installed, so the binary comes out naming an
+		absolute path no other machine has, and the build carries that library into
+		export/bin the same way.
+	-->
+	<carry value="libSDL3" unless="windows" />
 
 
 	<!-- assets -->

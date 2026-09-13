@@ -871,6 +871,102 @@ class Run {
 			+ " MB of what the crash report never reads");
 	}
 
+	/**
+		Puts the library the window is built on beside the binary, and points the binary at
+		that copy rather than at wherever the machine that built it kept the original.
+
+		Windows names its own copy in the build file and needs nothing more. macOS and Linux
+		link whatever the package manager installed, so the binary comes out holding an
+		absolute path: `/opt/homebrew` on an arm64 Mac, `/usr/local` on an Intel one, and the
+		distribution's own directory on Linux. None of those exist on the machine an archive is
+		unpacked on, and the loader stops rather than looking anywhere else.
+
+		macOS is repointed here because the path is written into the binary at link time from
+		the library's own install name. Linux is repointed at link time instead, by the rpath
+		of `$ORIGIN` the build file passes, so there is nothing left to do but carry the copy.
+
+		@param project The build file.
+		@param target Which target, for the line printed.
+		@param exe The binary, already beside what it ships with.
+	**/
+	static function carries(project:Project, target:String, exe:String):Void {
+		if (windows() || project.carry == "" || !FileSystem.exists(exe)) return;
+
+		final apple = system() == "mac";
+		final reader = apple ? "otool" : "ldd";
+
+		final said = reads(reader, apple ? ["-L", native(exe)] : [native(exe)]);
+		if (said == "") return;
+
+		var from = "";
+
+		for (line in said.split("\n")) {
+			final held = StringTools.trim(line);
+			if (held.indexOf(project.carry) < 0) continue;
+
+			if (apple) from = held.split(" ")[0];
+			else if (held.indexOf("=> ") >= 0) {
+				from = StringTools.trim(held.split("=> ")[1]).split(" ")[0];
+			}
+
+			break;
+		}
+
+		if (from == "" || StringTools.startsWith(from, "@") || StringTools.startsWith(from, "$")) {
+			return;
+		}
+
+		if (!FileSystem.exists(from)) {
+			Sys.println("  " + pad(target) + reader + " names " + from
+				+ ", which is not there to carry");
+			return;
+		}
+
+		final name = haxe.io.Path.withoutDirectory(from);
+		final beside = haxe.io.Path.directory(exe) + "/" + name;
+
+		copyFile(from, beside);
+		runnable(beside);
+
+		if (!apple) {
+			Sys.println("  " + pad(target) + "carries " + name + " beside it");
+			return;
+		}
+
+		if (Sys.command("install_name_tool", ["-change", from, "@executable_path/" + name,
+				native(exe)]) != 0) {
+			Sys.println("  " + pad(target) + "install_name_tool would not repoint " + name
+				+ ", so the binary still wants " + from);
+			return;
+		}
+
+		if (Sys.command("codesign", ["--force", "--sign", "-", native(exe)]) != 0) {
+			Sys.println("  " + pad(target) + "codesign would not sign the binary again, and an"
+				+ " arm64 Mac refuses one whose signature install_name_tool broke");
+			return;
+		}
+
+		Sys.println("  " + pad(target) + "carries " + name + " beside it");
+	}
+
+	/**
+		@param name A program.
+		@param args What to pass it.
+		@return What it wrote, or an empty string where it would not run or failed.
+	**/
+	static function reads(name:String, args:Array<String>):String {
+		try {
+			final run = new sys.io.Process(name, args);
+			final said = run.stdout.readAll().toString();
+			final code = run.exitCode();
+
+			run.close();
+			return code == 0 ? said : "";
+		} catch (e:Dynamic) {
+			return "";
+		}
+	}
+
 	static function exeOf(root:String, project:Project, target:String):String {
 		final one = project.targetOf(target);
 		if (one == null) return "";
@@ -908,6 +1004,7 @@ class Run {
 		copyFile(exe, shipped);
 		runnable(shipped);
 		strips(root, project, target, shipped);
+		carries(project, target, shipped);
 
 		for (one in project.ships) {
 			final from = root + "/" + one;
