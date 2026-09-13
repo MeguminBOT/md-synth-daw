@@ -797,6 +797,119 @@ class SpineCheck {
 	}
 
 	/**
+		A video export draws the scope over the mix, a frame for every part of it.
+
+		The frames are drawn into a texture the size of the video rather than into the window, so
+		beyond counting them the check has to see the scope in them. The notes start a beat in, so
+		the first frame is empty lanes and a frame from the middle has traces on it: both are decoded
+		back where ffmpeg is on the path, and the pixels that changed between them are counted.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+		@param paint What the window is drawn with.
+	**/
+	static function filmed(tree:Root, session:Session, centre:mdd.view.Centre, paint:Paint):Void {
+		final song = session.song;
+		final pattern = session.current();
+		if (pattern == null || song.tracks.length == 0) return;
+
+		final beat = song.tempo.ppqn;
+		final lane = pattern.lane(Part.Fm1);
+		final track = song.tracks[0];
+
+		lane.notes.resize(0);
+		for (at in 1...4) lane.add(new Note(at * beat, beat, 60 + at * 4, 110));
+
+		track.clips.resize(0);
+		track.add(new mdd.song.Clip(session.pattern, 0, beat * 4));
+
+		final mixing = new mdd.play.Mixing();
+
+		mixing.kind = mdd.play.Mixing.WEBM;
+		mixing.rate = 48000;
+		mixing.size = 0;
+		mixing.fps = 30;
+		mixing.padEnd = 0;
+
+		final made = mdd.play.Mixdown.of(song, mixing);
+
+		final where = Gate.root + "/export/video";
+		mdd.host.Paths.make(where);
+
+		final path = where + "/scope.webm";
+		if (sys.FileSystem.exists(path)) sys.FileSystem.deleteFile(path);
+
+		final film = new mdd.app.Filming(tree, paint, centre.scope, song, mixing, made, path);
+
+		var rounds = 0;
+		while (film.step(1.0) && rounds < 100000) rounds++;
+
+		final wrong = film.finish();
+		final counted = sys.FileSystem.exists(path) ? VideoCheck.framesIn(path) : -1;
+
+		says("a video export draws a frame for all of the mix",
+			wrong == "" && film.frames > 0 && film.done == film.frames && counted == film.frames,
+			(wrong == "" ? "" : wrong + ", ") + film.done + " of " + film.frames + " frames drawn for "
+			+ round(film.seconds(), 2) + " s of mix, " + counted + " in the file, " + film.size()
+			+ " bytes");
+
+		if (counted > 0 && VideoCheck.present("ffmpeg")) {
+			final quiet = frameOf(path, 0, where + "/quiet.rgb");
+			final middle = Std.int(counted / 2);
+			final loud = frameOf(path, middle, where + "/loud.rgb");
+
+			final pixels = mixing.wide() * mixing.tall();
+			var moved = 0;
+
+			if (quiet != null && loud != null && quiet.length == pixels * 3
+					&& loud.length == pixels * 3) {
+				for (index in 0...pixels) {
+					var apart = 0;
+
+					for (channel in 0...3) {
+						final diff = loud.get(index * 3 + channel) - quiet.get(index * 3 + channel);
+						apart += diff < 0 ? -diff : diff;
+					}
+
+					if (apart > 60) moved++;
+				}
+			}
+
+			final share = moved / pixels;
+
+			says("and the frames hold the scope tracing what sounds",
+				quiet != null && loud != null && share > 0.001 && share < 0.5,
+				"between the silent first frame and frame " + middle + ", " + moved + " of " + pixels
+				+ " pixels changed, " + round(share * 100, 2) + " per cent");
+		} else {
+			Sys.println("    not run: ffmpeg is not on the path, so no frame of the video was decoded");
+		}
+
+		track.clips.resize(0);
+		lane.notes.resize(0);
+		session.history.clear();
+	}
+
+	/**
+		Decodes one frame of a video back to raw RGB with ffmpeg.
+
+		@param path The video.
+		@param frame Which frame.
+		@param into Where to write the pixels.
+		@return The pixels, or null where ffmpeg would not decode it.
+	**/
+	static function frameOf(path:String, frame:Int, into:String):Null<haxe.io.Bytes> {
+		if (sys.FileSystem.exists(into)) sys.FileSystem.deleteFile(into);
+
+		final code = Sys.command("ffmpeg", ["-v", "error", "-y", "-i", path, "-vf",
+			"trim=start_frame=" + frame + ":end_frame=" + (frame + 1), "-frames:v", "1", "-f",
+			"rawvideo", "-pix_fmt", "rgb24", into]);
+
+		return code == 0 && sys.FileSystem.exists(into) ? sys.io.File.getBytes(into) : null;
+	}
+
+	/**
 		@param code Which key.
 		@param mods What is held with it.
 		@return An event for that chord being pressed.
@@ -3725,6 +3838,7 @@ class SpineCheck {
 		tooled(tree, session, centre);
 		swiped(tree, session, centre);
 		chorded(tree, session, centre);
+		filmed(tree, session, centre, paint);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

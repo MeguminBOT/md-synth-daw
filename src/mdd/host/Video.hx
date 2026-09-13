@@ -20,7 +20,8 @@ extern class Video {
 		@param rate The audio rate: 8000, 12000, 16000, 24000 or 48000 hertz.
 		@param channels One or two.
 		@param audioKilobits The Opus bitrate in kilobits a second.
-		@param threads How many threads the VP9 encoder may use.
+		@param threads How many threads the VP9 encoder may use beside the one that feeds it, or
+			nought for all but one of the processors.
 		@return The file being written, or null where it or either encoder would not open.
 	**/
 	@:native("mdd_video_open")

@@ -2,6 +2,7 @@ package mdd;
 
 import mdd.app.Bindings;
 import mdd.app.Files;
+import mdd.app.Filming;
 import mdd.app.Keyboard;
 import mdd.app.Mapping;
 import mdd.app.Languages;
@@ -788,12 +789,16 @@ class App {
 		stage.root.soil();
 	}
 
+	var renderingTo:String = "";
+	var filming:Null<Filming> = null;
+
 	/**
 		Starts a bounce on a worker thread and puts the progress bar up in the band.
 
 		@param where The file to write.
 	**/
 	function renders(where:String):Void {
+		renderingTo = where;
 		rendering = files.renders(where);
 
 		bounce.begins(Locale.WORKING_RENDERING, Files.name(where), true);
@@ -818,10 +823,13 @@ class App {
 		@return Whether one is running.
 	**/
 	function rendered(since:Float):Bool {
+		if (filming != null) return filmed(since);
 		if (rendering == null) return false;
 
 		final held = rendering;
-		bounce.holds(held.reach());
+		final moving = files.mixing.moving();
+
+		bounce.holds(moving ? held.reach() * 0.5 : held.reach());
 
 		progress.advance(since);
 
@@ -832,9 +840,71 @@ class App {
 		final wrong = files.wroteWrong;
 		final beaten = wrong == "" && held.stopped();
 
+		if (moving && wrong == "" && !beaten) {
+			films(held);
+			return true;
+		}
+
 		if (wrong != "") session.says(Locale.SAID_FAILED, wrong);
 		else if (beaten) session.says(Locale.SAID_STOPPED);
 		else session.saying(files.wroteKey, files.wroteWith);
+
+		bounce.ends(wrong == "" && !beaten);
+		stage.root.bands(null);
+
+		session.changed();
+		return true;
+	}
+
+	/**
+		How much of a frame drawing the video may take before the window is drawn, in seconds.
+		The progress bar is the only thing moving while it runs, so it can take most of one.
+	**/
+	static inline final FILMING = 0.030;
+
+	/**
+		Starts drawing the scope over a mix that has finished rendering, into the video file.
+
+		@param made The finished mix.
+	**/
+	function films(made:mdd.play.Mixdown):Void {
+		final where = Files.suffixed(renderingTo, files.mixing.suffix());
+		final held = new Filming(stage.root, stage.paint, panels.centre.scope, session.song,
+			files.mixing, made, where);
+
+		filming = held;
+		progress.onCancel = function():Void held.stops();
+	}
+
+	/**
+		Draws as many video frames as fit in part of a frame, and finishes the file once the last
+		one is drawn or the export is cancelled.
+
+		@param since How long since the last frame.
+		@return Always true, since a video is still being written whenever this is asked.
+	**/
+	function filmed(since:Float):Bool {
+		final held = filming;
+		if (held == null) return false;
+
+		progress.advance(since);
+
+		if (held.step(FILMING)) {
+			bounce.holds(0.5 + held.reach() * 0.5);
+			return true;
+		}
+
+		filming = null;
+
+		final wrong = held.finish();
+		final beaten = wrong == "" && held.stopped;
+
+		if (wrong != "") session.says(Locale.SAID_FAILED, wrong);
+		else if (beaten) session.says(Locale.SAID_STOPPED);
+		else {
+			session.says(Locale.SAID_WROTE_AUDIO, "" + (Math.round(held.seconds() * 10) / 10),
+				Files.name(held.path), "" + Math.round(held.size() / 1024));
+		}
 
 		bounce.ends(wrong == "" && !beaten);
 		stage.root.bands(null);

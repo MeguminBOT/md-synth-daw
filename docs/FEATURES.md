@@ -319,6 +319,15 @@ stems sum to within -111 dB of the mix at worst and -138 dB once the output stag
 Only the parts the arrangement actually sounds get a stem, so a piece using four channels gives four
 files rather than eleven.
 
+### Video
+
+WebM video from the same export panel: the scope drawn over the piece, with the mix underneath
+as Opus audio. The picture is 1280 by 720 or 1920 by 1080, at 30 or 60 frames a second, and the
+scope in the video takes the speed, accuracy and view the scope on screen is set to. The audio
+goes through the same render, output stage, fade and normalising an audio export does, so what a
+video sounds like is exactly what an audio export with the same settings writes. VP9 and Opus are
+both compiled in, so there is nothing else to install.
+
 ### Register and note formats
 
 - **VGM**, which reads back as the same register stream it was written from.

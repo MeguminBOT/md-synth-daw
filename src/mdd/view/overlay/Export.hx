@@ -68,9 +68,19 @@ final class Export extends Widget {
 	public static inline final STEMS = 14;
 
 	/**
+		Row: the picture size of a video.
+	**/
+	public static inline final SIZE = 15;
+
+	/**
+		Row: the frame rate of a video.
+	**/
+	public static inline final FRAME_RATE = 16;
+
+	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 15;
+	public static inline final KINDS = 17;
 
 	/**
 		How many metadata fields there are.
@@ -86,7 +96,8 @@ final class Export extends Widget {
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
 		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE, Locale.EXPORT_OPUS_MODE,
-		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS];
+		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS,
+		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -94,7 +105,10 @@ final class Export extends Widget {
 	static final LABELS:Array<Locale> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
 
-	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
+	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus", "WebM video"];
+
+	static final SIZED:Array<String> = ["1280 × 720", "1920 × 1080"];
+	static final FRAMED:Array<String> = ["30", "60"];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
 	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
@@ -245,9 +259,14 @@ final class Export extends Widget {
 			showing.push(OPUS_BITRATE);
 		}
 
+		if (mixing.moving()) {
+			showing.push(SIZE);
+			showing.push(FRAME_RATE);
+		}
+
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
 
-		showing.push(STEMS);
+		if (!mixing.moving()) showing.push(STEMS);
 	}
 
 	/**
@@ -383,7 +402,7 @@ final class Export extends Widget {
 			case CONSOLE: CONSOLES;
 			case OPUS_MODE: OPUS_MODES;
 			case OPUS_BITRATE: OPUS_BITRATE_MODES;
-			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN: NO_KEYS;
+			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE: NO_KEYS;
 			case _: SWITCHES;
 		}
 	}
@@ -395,13 +414,15 @@ final class Export extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
-			case RATE: mixing.kind == Mixing.OPUS ? ONE_RATE : rates();
+			case RATE: mixing.kind == Mixing.OPUS || mixing.moving() ? ONE_RATE : rates();
 			case DEPTH: depths();
 			case LEAD: LEADS;
 			case TAIL, FADE: TAILED;
 
-			case QUALITY: mixing.kind == Mixing.OPUS ? KILOBITS : QUALITIES;
+			case QUALITY: mixing.kind == Mixing.OPUS || mixing.moving() ? KILOBITS : QUALITIES;
 			case OPUS_SPAN: SPANNED;
+			case SIZE: SIZED;
+			case FRAME_RATE: FRAMED;
 			case _: NOTHING;
 		}
 	}
@@ -444,7 +465,7 @@ final class Export extends Widget {
 	**/
 	public function allows(row:Int, which:Int):Bool {
 		return switch (row) {
-			case RATE: mixing.kind != Mixing.OPUS
+			case RATE: (mixing.kind != Mixing.OPUS && !mixing.moving())
 				|| Mixing.RATES[which] == mdd.format.Coded.OPUS_RATE;
 
 			case DEPTH: mixing.whole()
@@ -461,7 +482,8 @@ final class Export extends Widget {
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case FORMAT: mixing.kind;
-			case RATE: mixing.kind == Mixing.OPUS ? 0 : nearest(Mixing.RATES, mixing.rate);
+			case RATE: mixing.kind == Mixing.OPUS || mixing.moving() ? 0
+				: nearest(Mixing.RATES, mixing.rate);
 			case DEPTH: mixing.depth == 32 ? 2 : (mixing.depth == 24 ? 1 : 0);
 			case SIDES: mixing.stereo ? 1 : 0;
 			case LEAD: closest(SECONDS, mixing.padStart);
@@ -474,6 +496,8 @@ final class Export extends Widget {
 			case OPUS_SPAN: spanAt();
 			case QUALITY: mixing.quality;
 			case STEMS: mixing.stems ? 1 : 0;
+			case SIZE: mixing.size;
+			case FRAME_RATE: mixing.fps > 30 ? 1 : 0;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -521,7 +545,7 @@ final class Export extends Widget {
 
 		switch (row) {
 			case FORMAT: mixing.kind = which;
-			case RATE: mixing.rate = mixing.kind == Mixing.OPUS
+			case RATE: mixing.rate = mixing.kind == Mixing.OPUS || mixing.moving()
 				? mdd.format.Coded.OPUS_RATE : Mixing.RATES[which];
 			case DEPTH: mixing.depth = which == 2 ? 32 : (which == 1 ? 24 : 16);
 			case SIDES: mixing.stereo = which == 1;
@@ -540,11 +564,13 @@ final class Export extends Widget {
 
 			case QUALITY: mixing.quality = which;
 			case STEMS: mixing.stems = which == 1;
+			case SIZE: mixing.size = which;
+			case FRAME_RATE: mixing.fps = Mixing.FRAME_RATES[which];
 			case _: mixing.dither = which == 1;
 		}
 
 		if (mixing.kind == Mixing.FLAC && mixing.depth == 32) mixing.depth = 24;
-		if (mixing.kind == Mixing.OPUS) mixing.rate = mdd.format.Coded.OPUS_RATE;
+		if (mixing.kind == Mixing.OPUS || mixing.moving()) mixing.rate = mdd.format.Coded.OPUS_RATE;
 
 		ordered();
 

@@ -942,7 +942,7 @@ final class Files {
 	public function renders(where:String):Mixdown {
 		final made = Mixdown.made();
 		final song = session.song;
-		final parts = mixing.stems ? stemParts(song) : [];
+		final parts = mixing.stems && !mixing.moving() ? stemParts(song) : [];
 
 		mixdown = made;
 
@@ -959,7 +959,7 @@ final class Files {
 			try {
 				made.runs(song, mixing);
 
-				if (!made.stopped()) {
+				if (!made.stopped() && !mixing.moving()) {
 					wroteAs = wrote(where, made);
 					if (parts.length > 0) stemsInto(where, song, made, parts);
 				}

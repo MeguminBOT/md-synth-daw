@@ -6,13 +6,13 @@ extern "C" {
 #endif
 
 /**
- * One WebM file being written: its VP9 encoder, its Opus encoder and the muxer both feed.
- * Opaque to the caller, and freed by mdd_video_close.
+ * One WebM file being written: its VP9 encoder, its Opus encoder, the muxer both feed, and the
+ * thread that does the encoding. Opaque to the caller, and freed by mdd_video_close.
  */
 typedef struct MddVideo MddVideo;
 
 /**
- * Opens a WebM file and sets up both encoders.
+ * Opens a WebM file, sets up both encoders and starts the thread that encodes.
  *
  * @param path Where to write, as UTF-8.
  * @param width The frame width in pixels, which has to be even.
@@ -22,38 +22,43 @@ typedef struct MddVideo MddVideo;
  * @param rate The audio rate in hertz: 8000, 12000, 16000, 24000 or 48000.
  * @param channels One or two.
  * @param audio_kilobits The Opus bitrate in kilobits a second.
- * @param threads How many threads the VP9 encoder may use.
+ * @param threads How many threads the VP9 encoder may use beside the one that feeds it, or
+ *     nought for all but one of the processors.
  * @return The video, or NULL where the file or either encoder would not open.
  */
 MddVideo *mdd_video_open(const char *path, int width, int height, int fps, int kilobits,
 	int rate, int channels, int audio_kilobits, int threads);
 
 /**
- * Encodes one frame and puts it in the file.
+ * Copies one frame to be encoded and put in the file, and returns without waiting for it
+ * unless several frames are already waiting, so the caller never gets far ahead of the encoder.
+ * The copy is taken before this returns, so the pixels can be reused straight away.
  *
  * @param video The video.
  * @param rgba The frame, width times height times four bytes, top row first.
- * @return Nought, or a negative number where the encoder or the muxer failed.
+ * @return Nought, or a negative number where an earlier frame or run of audio failed.
  */
 int mdd_video_frame(MddVideo *video, const unsigned char *rgba);
 
 /**
- * Encodes audio and puts it in the file. Samples that do not fill a whole Opus packet wait for
- * the next call, and the muxer holds audio back until a frame at or after its time arrives, so
- * audio and frames can be given in any order as long as each is in order on its own.
+ * Copies audio to be encoded and put in the file, after the frames and audio given before it.
+ * Samples short of a whole Opus packet wait for the next run, and the muxer holds audio back
+ * until a frame at or after its time arrives, so the file still comes out in time order.
  *
  * @param video The video.
  * @param samples Interleaved samples at plus or minus one.
  * @param frames How many frames of samples.
- * @return Nought, or a negative number where the encoder or the muxer failed.
+ * @return Nought, or a negative number where an earlier frame or run of audio failed.
  */
 int mdd_video_audio(MddVideo *video, const float *samples, int frames);
 
 /**
- * Flushes both encoders, finishes the file and frees the video, which cannot be used after.
+ * Encodes whatever is still waiting, flushes both encoders, finishes the file and frees the
+ * video, which cannot be used after.
  *
  * @param video The video.
- * @return Nought, or a negative number where the file could not be finished.
+ * @return Nought, or a negative number where anything given failed or the file could not be
+ *     finished.
  */
 int mdd_video_close(MddVideo *video);
 

@@ -1355,6 +1355,14 @@ final class Paint {
 	}
 
 	/**
+		@return The renderer this draws with, for drawing into a texture of its own rather than
+			into the window.
+	**/
+	public inline function canvas():cpp.Star<Canvas> {
+		return renderer;
+	}
+
+	/**
 		Empties the buffer and every stack, which a frame that faulted part way through
 		needs before the next one.
 	**/

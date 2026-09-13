@@ -2,6 +2,11 @@
  * The scope video writer: RGBA frames through the VP9 encoder, audio through Opus, and both
  * muxed into WebM by libwebm.
  *
+ * Encoding runs on a thread of its own. A frame or a run of audio is copied into a queue and the
+ * call returns, so the caller, which draws the frames on the thread that owns the window, is
+ * held up only when frames are already waiting. The thread touches nothing but what was copied,
+ * so no memory it reads can be moved or collected underneath it.
+ *
  * WebM carries Opus as raw packets rather than in ogg pages. The identification header goes in
  * the track's codec private data and the encoder's lookahead goes in as the codec delay, which
  * is what a player trims from the start. The VP9 encoder is built realtime only, so it keeps no
@@ -12,10 +17,15 @@
  */
 #include "video.h"
 
+#include <algorithm>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 #include <opus.h>
@@ -31,6 +41,13 @@
 
 #define MDD_VIDEO_PACKET 4000
 #define MDD_VIDEO_ROLL 80000000ULL
+#define MDD_VIDEO_WAITING 4
+
+struct MddVideoJob {
+	bool picture;
+	std::vector<unsigned char> pixels;
+	std::vector<float> sound;
+};
 
 struct MddVideo {
 	FILE *file;
@@ -55,6 +72,15 @@ struct MddVideo {
 	int ahead;
 	int64_t sent;
 	std::vector<float> pending;
+
+	std::thread worker;
+	std::mutex lock;
+	std::condition_variable woken;
+	std::condition_variable room;
+	std::deque<MddVideoJob> jobs;
+	int waiting;
+	bool closing;
+	bool faulted;
 };
 
 static FILE *mdd_video_file(const char *path) {
@@ -71,7 +97,21 @@ static FILE *mdd_video_file(const char *path) {
 #endif
 }
 
+static void mdd_video_stop(MddVideo *video) {
+	if (!video->worker.joinable()) return;
+
+	{
+		std::lock_guard<std::mutex> held(video->lock);
+		video->closing = true;
+	}
+
+	video->woken.notify_all();
+	video->worker.join();
+}
+
 static void mdd_video_free(MddVideo *video) {
+	mdd_video_stop(video);
+
 	if (video->imaged) vpx_img_free(&video->image);
 	if (video->encoding) vpx_codec_destroy(&video->codec);
 	if (video->opus != NULL) opus_encoder_destroy(video->opus);
@@ -146,6 +186,18 @@ static bool mdd_video_drain(MddVideo *video) {
 	return true;
 }
 
+static bool mdd_video_encode(MddVideo *video, const unsigned char *rgba) {
+	mdd_video_yuv(video, rgba);
+
+	if (vpx_codec_encode(&video->codec, &video->image, video->frame, 1, 0,
+			VPX_DL_REALTIME) != VPX_CODEC_OK) {
+		return false;
+	}
+
+	video->frame++;
+	return mdd_video_drain(video);
+}
+
 static bool mdd_video_pack(MddVideo *video, bool last) {
 	const size_t whole = (size_t) video->span * (size_t) video->channels;
 	const size_t held = video->pending.size();
@@ -184,6 +236,40 @@ static bool mdd_video_pack(MddVideo *video, bool last) {
 	return true;
 }
 
+static void mdd_video_work(MddVideo *video) {
+	for (;;) {
+		MddVideoJob job;
+
+		{
+			std::unique_lock<std::mutex> held(video->lock);
+			video->woken.wait(held, [video] { return !video->jobs.empty() || video->closing; });
+
+			if (video->jobs.empty()) return;
+
+			job = std::move(video->jobs.front());
+			video->jobs.pop_front();
+		}
+
+		bool fine = true;
+
+		if (job.picture) {
+			fine = mdd_video_encode(video, job.pixels.data());
+		} else {
+			video->pending.insert(video->pending.end(), job.sound.begin(), job.sound.end());
+			fine = mdd_video_pack(video, false);
+		}
+
+		{
+			std::lock_guard<std::mutex> held(video->lock);
+
+			if (job.picture) video->waiting--;
+			if (!fine) video->faulted = true;
+		}
+
+		video->room.notify_all();
+	}
+}
+
 extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int fps,
 	int kilobits, int rate, int channels, int audio_kilobits, int threads) {
 	if (path == NULL || width < 2 || height < 2 || (width & 1) != 0 || (height & 1) != 0
@@ -210,6 +296,9 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	video->span = rate / 50;
 	video->ahead = 0;
 	video->sent = 0;
+	video->waiting = 0;
+	video->closing = false;
+	video->faulted = false;
 
 	vpx_codec_iface_t *face = vpx_codec_vp9_cx();
 	vpx_codec_enc_cfg_t config;
@@ -219,7 +308,9 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 		return NULL;
 	}
 
-	const int workers = threads < 1 ? 1 : (threads > 16 ? 16 : threads);
+	const int found = (int) std::thread::hardware_concurrency();
+	const int wanted = threads > 0 ? threads : (found > 1 ? found - 1 : 1);
+	const int workers = wanted > 16 ? 16 : wanted;
 
 	config.g_w = (unsigned int) width;
 	config.g_h = (unsigned int) height;
@@ -332,37 +423,57 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 
 	video->segment->CuesTrack(video->pictures);
 
+	video->worker = std::thread(mdd_video_work, video);
+
 	return video;
 }
 
 extern "C" int mdd_video_frame(MddVideo *video, const unsigned char *rgba) {
 	if (video == NULL || rgba == NULL) return -1;
 
-	mdd_video_yuv(video, rgba);
+	MddVideoJob job;
+	job.picture = true;
+	job.pixels.assign(rgba, rgba + (size_t) video->width * (size_t) video->height * 4);
 
-	if (vpx_codec_encode(&video->codec, &video->image, video->frame, 1, 0,
-			VPX_DL_REALTIME) != VPX_CODEC_OK) {
-		return -2;
-	}
+	std::unique_lock<std::mutex> held(video->lock);
+	video->room.wait(held, [video] { return video->waiting < MDD_VIDEO_WAITING || video->faulted; });
 
-	video->frame++;
+	if (video->faulted) return -3;
 
-	return mdd_video_drain(video) ? 0 : -3;
+	video->jobs.push_back(std::move(job));
+	video->waiting++;
+
+	held.unlock();
+	video->woken.notify_one();
+
+	return 0;
 }
 
 extern "C" int mdd_video_audio(MddVideo *video, const float *samples, int frames) {
 	if (video == NULL || samples == NULL || frames < 0) return -1;
 
-	video->pending.insert(video->pending.end(), samples,
-		samples + (size_t) frames * (size_t) video->channels);
+	MddVideoJob job;
+	job.picture = false;
+	job.sound.assign(samples, samples + (size_t) frames * (size_t) video->channels);
 
-	return mdd_video_pack(video, false) ? 0 : -2;
+	{
+		std::lock_guard<std::mutex> held(video->lock);
+
+		if (video->faulted) return -2;
+
+		video->jobs.push_back(std::move(job));
+	}
+
+	video->woken.notify_one();
+	return 0;
 }
 
 extern "C" int mdd_video_close(MddVideo *video) {
 	if (video == NULL) return -1;
 
-	bool fine = true;
+	mdd_video_stop(video);
+
+	bool fine = !video->faulted;
 
 	if (vpx_codec_encode(&video->codec, NULL, -1, 1, 0, VPX_DL_REALTIME) != VPX_CODEC_OK
 			|| !mdd_video_drain(video)) {

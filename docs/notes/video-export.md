@@ -50,3 +50,18 @@ at 320 by 180, thirty frames a second, 800 kilobits of video and 96 of audio:
     duration            2000 ms, with cues
     frame 30, ffmpeg    0.67 levels from the source on average
     audio, ffmpeg       96960 samples against 96000, at 439.47 Hz against 440
+
+`mdd gate spine` exports a scope video the way the export panel does: a clip of three notes starting
+a beat in, rendered and levelled as a mix, then drawn a frame at a time into 1280 by 720 at thirty
+frames a second. The first frame is empty lanes, so the pixels that change by frame 30 are the
+traces:
+
+    frames              60 of 60 drawn, 60 in the file
+    file                516676 bytes for two seconds
+    frame 30 against 0  52869 of 921600 pixels changed, 5.74 per cent
+
+What the codec costs the executable, measured on MSVC release builds of the same tree before and
+after the video export went in:
+
+    before              5898752 bytes
+    after               6689792 bytes, 791040 more

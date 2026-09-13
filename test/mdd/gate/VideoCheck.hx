@@ -165,17 +165,7 @@ class VideoCheck {
 	static function walked(path:String):Void {
 		final bytes = sys.io.File.getBytes(path);
 
-		docType = "";
-		hasCues = false;
-		duration = -1;
-		scale = 1000000;
-		numbers.resize(0);
-		kinds.resize(0);
-		codecs.resize(0);
-		blocks.resize(0);
-		lastAt.resize(0);
-		keyed.resize(0);
-
+		cleared();
 		walk(bytes, 0, bytes.length);
 
 		final pictures = indexOf(1);
@@ -218,6 +208,36 @@ class VideoCheck {
 			hasCues && Math.abs(length - seconds * 1000) < 50,
 			(hasCues ? "cues are written" : "no cues") + ", and the duration is "
 			+ round(length) + " ms");
+	}
+
+	/**
+		Forgets what the last file walked said.
+	**/
+	static function cleared():Void {
+		docType = "";
+		hasCues = false;
+		duration = -1;
+		scale = 1000000;
+		numbers.resize(0);
+		kinds.resize(0);
+		codecs.resize(0);
+		blocks.resize(0);
+		lastAt.resize(0);
+		keyed.resize(0);
+	}
+
+	/**
+		@param path A WebM file.
+		@return How many frames its video track holds, or -1 where it has no video track.
+	**/
+	public static function framesIn(path:String):Int {
+		final bytes = sys.io.File.getBytes(path);
+
+		cleared();
+		walk(bytes, 0, bytes.length);
+
+		final pictures = indexOf(1);
+		return pictures < 0 ? -1 : blocks[pictures];
 	}
 
 	static function indexOf(kind:Int):Int {
@@ -439,7 +459,11 @@ class VideoCheck {
 			+ TONE);
 	}
 
-	static function present(tool:String):Bool {
+	/**
+		@param tool A program.
+		@return Whether it runs from the path.
+	**/
+	public static function present(tool:String):Bool {
 		try {
 			final process = new sys.io.Process(tool, ["-version"]);
 			final code = process.exitCode();
