@@ -107,6 +107,16 @@ final class Scope extends Widget {
 	]);
 
 	/**
+		The hairline between lanes in a video, which is drawn on black whatever the theme.
+	**/
+	static inline final FILM_GRID = 0x2A2A2A;
+
+	/**
+		The colour of a video's labels and midlines.
+	**/
+	static inline final FILM_INK = 0xFFFFFF;
+
+	/**
 		The session to read.
 	**/
 	public final session:Session;
@@ -672,27 +682,11 @@ final class Scope extends Widget {
 		final many = window();
 
 		if (showing == SPECTRUM) {
-			final analysed = many < ANALYSED ? many : ANALYSED;
-			final start = (written[part] - analysed + SPAN) % SPAN;
-
-			if (loudest(part, start, analysed) <= 0.0005) return;
-
-			final most = bands(part, start, analysed);
-			if (most <= 0) return;
-
-			final step = across / BARS;
-			final stalk = step * 0.62;
-			final floor = middle + reach;
-
-			for (bin in 0...BARS) {
-				final share = bins[bin] / most;
-				final high = reach * 2 * share;
-				if (high < 1) continue;
-
-				paint.rect(from + bin * step, floor - high, stalk, high, theme.part(part), 0.9);
+			if (spectrumOf(paint, part, from, across, middle + reach, reach * 2, theme.part(part),
+					0.9)) {
+				painted++;
 			}
 
-			painted++;
 			return;
 		}
 
@@ -714,6 +708,140 @@ final class Scope extends Widget {
 			paint.textRight(spelt(notes[part]), left + wide - inset - metrics.unit * 2,
 				top + inset + metrics.unit + font.ascent, theme.part(part), 0.9);
 		}
+	}
+
+	/**
+		Draws a part's spectrum as bars standing on a floor.
+
+		@param paint What to draw with.
+		@param part Which part.
+		@param from Where the bars start, across.
+		@param across How far they spread.
+		@param floor Where they stand, down.
+		@param reach How tall the largest bar is.
+		@param colour What colour they are.
+		@param alpha How opaque they are.
+		@return Whether there was anything to draw.
+	**/
+	function spectrumOf(paint:Paint, part:Int, from:Float, across:Float, floor:Float,
+			reach:Float, colour:Colour, alpha:Float):Bool {
+		final many = window();
+		final analysed = many < ANALYSED ? many : ANALYSED;
+		final start = (written[part] - analysed + SPAN) % SPAN;
+
+		if (loudest(part, start, analysed) <= 0.0005) return false;
+
+		final most = bands(part, start, analysed);
+		if (most <= 0) return false;
+
+		final step = across / BARS;
+		final stalk = step * 0.62;
+
+		for (bin in 0...BARS) {
+			final high = reach * (bins[bin] / most);
+			if (high < 1) continue;
+
+			paint.rect(from + bin * step, floor - high, stalk, high, colour, alpha);
+		}
+
+		return true;
+	}
+
+	/**
+		Draws the lanes the way a video shows them: the parts given, in a grid on black, each with
+		its name and nothing around it but a hairline between lanes. One to three parts stack in a
+		column, up to eight sit two across and more sit three across, with a short last row
+		centred. A silent part keeps a flat line, so every lane stays in view. The waveform or the
+		spectrum is drawn as `showing` says.
+
+		Nothing is filled behind the lanes, so the target is cleared to black first.
+
+		@param paint What to draw with.
+		@param parts Which parts, in the order they are laid out, across and then down.
+	**/
+	public function films(paint:Paint, parts:Array<Int>):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null || parts.length == 0) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final count = parts.length;
+		final columns = count <= 3 ? 1 : (count <= 8 ? 2 : 3);
+		final rows = Std.int((count + columns - 1) / columns);
+		final wide = width / columns;
+		final tall = height / rows;
+		final hair = metrics.whole(1);
+
+		painted = 0;
+
+		for (index in 0...count) {
+			final column = index % columns;
+			final row = Std.int(index / columns);
+			final across = row == rows - 1 ? count - row * columns : columns;
+			final left = x + (columns - across) * wide * 0.5 + column * wide;
+			final top = y + row * tall;
+
+			if (column > 0) paint.rect(left, top, hair, tall, FILM_GRID);
+			if (row > 0) paint.rect(left, top, wide, hair, FILM_GRID);
+
+			videoLane(paint, theme, metrics, parts[index], left, top, wide, tall);
+		}
+	}
+
+	/**
+		Draws one lane of a video.
+
+		@param paint What to draw with.
+		@param theme Where the part's colour comes from.
+		@param metrics The sizes to draw at.
+		@param part Which part.
+		@param left Where the lane starts, across.
+		@param top Where it starts, down.
+		@param wide How wide it is.
+		@param tall How tall it is.
+	**/
+	function videoLane(paint:Paint, theme:Theme, metrics:Metrics, part:Int, left:Float, top:Float,
+			wide:Float, tall:Float):Void {
+		final font = metrics.body;
+		final pad = metrics.whole(12);
+		final weight = metrics.whole(2);
+		final colour = theme.part(part);
+
+		final from = left + pad;
+		final across = wide - pad * 2;
+		final label = pad + font.height;
+		final middle = top + (tall + label) * 0.5;
+
+		paint.reface(font);
+		paint.text(nameOf(part), from, top + pad + font.ascent, FILM_INK, 0.7);
+
+		if (showing == SPECTRUM) {
+			final floor = top + tall - pad;
+			final reach = tall - pad * 3 - font.height;
+
+			if (spectrumOf(paint, part, from, across, floor, reach, colour, 1)) painted++;
+			else paint.rect(from, floor - weight, across, weight, colour, 0.35);
+
+			return;
+		}
+
+		paint.rect(from, middle, across, metrics.whole(1), FILM_INK, 0.08);
+
+		final many = window();
+		final start = startOf(part);
+		final peak = loudest(part, start, many);
+
+		if (peak <= 0.0005) {
+			paint.rect(from, middle - weight * 0.5, across, weight, colour, 0.35);
+			return;
+		}
+
+		final reach = (tall - label) * 0.5 - pad;
+		final columns = Std.int(across) < 2 ? 2 : Std.int(across);
+		final count = traced(part * SPAN, start, many, columns, from, across, middle, reach / peak);
+
+		painted++;
+		paint.polyline(line, count, weight, colour, 1);
 	}
 
 	static function nameOf(part:Int):String {

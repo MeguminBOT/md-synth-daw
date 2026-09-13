@@ -57,6 +57,10 @@ control, so each frame drawn is a frame in the file, even where CBR runs short o
 Tile columns follow the width: as many as the encoder threads allow while each tile stays at least
 256 pixels wide, which is four at 1920 and eight at 3840.
 
+The picture is cleared to black and holds only the lanes of the parts the piece carries, the
+parts `Song.carries` names, which are the same parts a stem is written for. Where it carries
+none, every part gets a lane.
+
 The scope in a video is drawn at its design sizes times the picture height over 720, in faces
 baked at that scale for the one export, so 3840 by 2160 carries the scope drawn three times as
 large rather than the 1280 by 720 one with room around it.

@@ -28,8 +28,10 @@ import mdd.view.monitor.Scope;
 	in the video is exactly the audio an export with the same settings writes. The scope is fed by
 	a second render of the same register stream, which gives it every part on its own the way the
 	live scope sees them, and it is a scope of its own, sized to the picture and set to the speed,
-	accuracy and view of the one on screen. It draws in sizes and faces made for the picture, so a
-	taller picture carries the same scope drawn larger rather than a small one with room around it.
+	accuracy and view of the one on screen. It draws the way a video shows a scope, on black, with
+	a lane for every part the piece carries and nothing of the panel around them. It draws in
+	sizes and faces made for the picture, so a taller picture carries the same lanes drawn larger
+	rather than small ones with room around them.
 
 	Drawing needs the thread that owns the window, so `step` draws as many frames as fit in the
 	time it is given and hands back, and the encoding runs on a thread inside the writer. Nothing
@@ -78,6 +80,7 @@ final class Filming {
 	final paint:Paint;
 	final made:Mixdown;
 	final scope:Scope;
+	final parts:Array<Int> = [];
 	final pixels:Bytes;
 	final render:Render;
 	final stream:Stream;
@@ -124,6 +127,9 @@ final class Filming {
 		pixels = Bytes.alloc(wide * tall * 4);
 
 		final span = song.tempo.samplesAt(song.ends());
+
+		for (index in 0...Part.COUNT) if (song.carries(index)) parts.push(index);
+		if (parts.length == 0) for (index in 0...Part.COUNT) parts.push(index);
 
 		stream = new Stream(Mixdown.roomFor(span));
 		new Sequencer(song).spanned(stream, 0, span);
@@ -321,15 +327,14 @@ final class Filming {
 	**/
 	function drawn():Void {
 		final renderer = paint.canvas();
-		final ground = root.theme.ground;
 		final worn = root.wears(sizes);
 		final face = paint.font;
 
 		Draw.setTarget(renderer, target);
-		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
 
 		paint.reset();
-		scope.paint(paint);
+		scope.films(paint, parts);
 		paint.flush();
 
 		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(pixels.getData(), 0).raw);

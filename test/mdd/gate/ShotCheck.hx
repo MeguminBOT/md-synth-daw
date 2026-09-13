@@ -407,11 +407,26 @@ class ShotCheck {
 			}
 		}
 
+		final film = sheet == "film" || sheet == "film-spectrum" ? filmed(tree, session, wide, tall)
+			: null;
+
+		if (film != null && sheet == "film-spectrum") film.shows(Scope.SPECTRUM);
+
 		if (!direct) Draw.setTarget(renderer, texture);
 
 		final ground = tree.theme.ground;
 
 		for (pass in 0...frames) {
+			if (film != null) {
+				Sdl.renderClear(renderer, 0, 0, 0, 1);
+
+				paint.reset();
+				film.films(paint, FILMED);
+				paint.flush();
+
+				continue;
+			}
+
 			Sdl.renderClear(renderer, ground.red / 255, ground.green / 255,
 				ground.blue / 255, 1);
 
@@ -484,6 +499,50 @@ class ShotCheck {
 		}
 
 		session.changed();
+	}
+
+	/**
+		Every part, in the order a video lays them out.
+	**/
+	static final FILMED:Array<Int> = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+	/**
+		A scope the size of the shot, for the film sheet, which draws it the way a video does.
+		Every part is fed a wave of its own, sine, square or saw at its own pitch and loudness,
+		except the last, which is left silent to show the flat line a quiet lane keeps.
+
+		@param tree The root the scope borrows its theme and sizes from.
+		@param session The session the scope reads.
+		@param wide The shot's width.
+		@param tall The shot's height.
+		@return The scope, hidden, so the tree does not draw it as well.
+	**/
+	static function filmed(tree:Root, session:Session, wide:Int, tall:Int):Scope {
+		final scope = new Scope(session);
+
+		scope.visible = false;
+		tree.top.add(scope);
+		scope.arrange(0, 0, wide, tall);
+
+		for (part in 0...mdd.song.Part.COUNT - 1) {
+			final turn = (part + 1) * 0.02;
+			final loudness = 0.3 + part * 0.06;
+
+			for (step in 0...Scope.SPAN) {
+				final phase = step * turn;
+				final cycle = (phase / (Math.PI * 2)) % 1;
+
+				final value = switch (part % 3) {
+					case 0: Math.sin(phase);
+					case 1: cycle < 0.5 ? 1.0 : -1.0;
+					case _: cycle * 2 - 1;
+				}
+
+				scope.feed(part, value * loudness);
+			}
+		}
+
+		return scope;
 	}
 
 	static function whole(said:String, fallback:Int):Int {

@@ -321,10 +321,13 @@ files rather than eleven.
 
 ### Video
 
-**Export video** in the export menu opens a sheet of its own. It writes a WebM file of the scope
-drawn over the piece, with the mix underneath as Opus audio. The scope in the video takes the
-speed, accuracy and view the scope on screen is set to, and a bigger picture draws the same scope
-bigger, text and lines included, rather than a small one with room around it.
+**Export video** in the export menu opens a sheet of its own. It writes a WebM file of
+oscilloscopes over the piece, with the mix underneath as Opus audio: a lane for every part the
+piece uses, on a black background, with the part's name and a hairline between lanes and nothing
+else. One to three parts stack in a column, up to eight sit two across, and more sit three
+across. A part that is silent for a moment keeps a flat line. The lanes take the speed, accuracy
+and view the scope on screen is set to, and a bigger picture draws them bigger, text and lines
+included, rather than small with room around them.
 
 The settings start at YouTube's recommended upload settings: 60 frames a second, a variable
 bitrate at YouTube's figure for the size and frame rate, a key frame every half second, and stereo
