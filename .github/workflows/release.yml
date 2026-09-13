@@ -57,7 +57,7 @@ jobs:
         run: |
           asked="${{ inputs.tag }}"
           asked="${asked#v}"
-          built="$(grep '<meta ' mdd.xml | grep -o 'version="[^"]*"' | head -1 | cut -d'"' -f2)"
+          built="$(grep '<meta ' mdd.xml | grep -o 'version="[^"]*"' | sed -n 1p | cut -d'"' -f2)"
 
           if [ "$asked" != "$built" ]; then
             echo "The tag asks for $asked and mdd.xml carries $built."
@@ -187,14 +187,14 @@ jobs:
       - name: Install hxcpp from its newest tag
         run: |
           url=https://github.com/HaxeFoundation/hxcpp.git
-          tag=$(git ls-remote --tags --refs --sort=-v:refname "$url" | head -1)
+          tag=$(git ls-remote --tags --refs --sort=-v:refname "$url" | sed -n 1p)
           tag=${tag##*refs/tags/}
 
           test -n "$tag"
           echo "hxcpp $tag"
 
           haxelib --always git hxcpp "$url" "$tag"
-          haxelib path hxcpp | head -1
+          haxelib path hxcpp | sed -n 1p
 
       - name: Fetch the vendored sources
         run: ./mdd setup
