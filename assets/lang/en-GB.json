@@ -103,6 +103,7 @@
   "export.stereo": "Stereo",
   "export.tail": "Silence after",
   "export.title": "Title",
+  "export.video": "Export video",
   "export.videoSize": "Video size",
   "export.year": "Year",
   "field.algorithm": "Algorithm",

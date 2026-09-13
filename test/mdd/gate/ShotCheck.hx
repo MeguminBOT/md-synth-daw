@@ -303,11 +303,16 @@ class ShotCheck {
 			held.arrive(lang);
 			held.rise.hold(1);
 			held.fade.hold(1);
-		} else if (sheet == "export" || sheet == "export-opus") {
+		} else if (sheet == "export" || sheet == "export-opus" || sheet == "export-webm") {
 			final held = new mdd.view.overlay.Export(session);
 
 			if (sheet == "export-opus") {
 				held.mixing.kind = mdd.play.Mixing.OPUS;
+				held.mixing.rate = 48000;
+			}
+
+			if (sheet == "export-webm") {
+				held.mixing.kind = mdd.play.Mixing.WEBM;
 				held.mixing.rate = 48000;
 			}
 

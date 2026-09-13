@@ -728,7 +728,7 @@ final class Export extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.reface(font);
-		paint.text(translate(Locale.EXPORT), x + metrics.inset,
+		paint.text(translate(mixing.moving() ? Locale.EXPORT_VIDEO : Locale.EXPORT), x + metrics.inset,
 			y + metrics.inset + font.ascent, theme.ink, alpha);
 
 		paint.reface(small);

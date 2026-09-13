@@ -103,6 +103,7 @@
   "export.stereo": "立体声",
   "export.tail": "结尾静音",
   "export.title": "标题",
+  "export.video": "导出视频",
   "export.videoSize": "视频尺寸",
   "export.year": "年份",
   "field.algorithm": "算法",
