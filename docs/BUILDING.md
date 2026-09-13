@@ -7,7 +7,11 @@ haxelib to install and nothing is put on your system: the command runs `tools/sr
 ## Prerequisites
 
 - [Haxe](https://haxe.org) 4.3 or newer
-- [hxcpp](https://lib.haxe.org/p/hxcpp)
+- [hxcpp](https://github.com/HaxeFoundation/hxcpp), do NOT use the old 4.3.2 version.
+  ```sh
+  haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git v4.3.168
+  ```
+
 - `git` and `curl`
 - A C++ toolchain, see below
 
@@ -120,6 +124,12 @@ is the reason those jobs use a container at all rather than the runner image. ma
 
 A package manager does not arrange `haxelib` the way the action does, so those jobs run
 `haxelib setup` themselves.
+
+hxcpp comes from git rather than from haxelib, at whatever the newest tag is when the job runs:
+`git ls-remote --sort=-v:refname` picks it and `haxelib git` installs it. Nothing is compiled for
+it, because the checkout carries a built `run.n`. Pinning was considered and rejected: a pin here
+goes stale silently, and the failure it would prevent is a compiler warning rather than a broken
+build.
 
 Two things a runner does not give you, both found by running the Linux job in a Debian container
 rather than by reading the workflow:

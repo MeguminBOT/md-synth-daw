@@ -339,6 +339,11 @@ class Run {
 		Sys.println("    " + (tool("curl", ["--version"]) ? "[x] " : "[ ] ") + pad("curl")
 			+ "what setup fetches with");
 
+		final hxcpp = hxcppAt();
+		Sys.println("    " + (hxcpp == "" ? "[ ] " : "[x] ") + pad("hxcpp")
+			+ (hxcpp == "" ? "not installed. Ask with: haxelib git hxcpp "
+				+ "https://github.com/HaxeFoundation/hxcpp.git" : hxcpp));
+
 		if (project.toolchains.length > 0) {
 			Sys.println("");
 			Sys.println("  compilers");
@@ -508,6 +513,37 @@ class Run {
 		}
 
 		return found;
+	}
+
+	/**
+		Which hxcpp a build would use, named the way a person can compare it against what
+		the workflows install.
+
+		The version haxelib reports is the one in `haxelib.json`, which a git checkout leaves
+		at whatever the last release said, so it tells a reader nothing about how new the
+		checkout is. The tag the checkout sits on is what does, and it is asked of git.
+
+		@return A description, or an empty string where hxcpp is not installed.
+	**/
+	static function hxcppAt():String {
+		final where = StringTools.trim(reads("haxelib", ["path", "hxcpp"]).split("
+")[0]);
+		if (where == "" || !FileSystem.exists(where)) return "";
+
+		final here = Sys.getCwd();
+		var said = "";
+
+		try {
+			Sys.setCwd(where);
+			said = StringTools.trim(reads("git", ["describe", "--tags", "--always"]));
+		} catch (e:Dynamic) {
+			said = "";
+		}
+
+		Sys.setCwd(here);
+
+		if (said != "") return said + ", from git";
+		return "from haxelib, which trails the tags. See docs/BUILDING.md";
 	}
 
 	static function nativeXml(root:String, project:Project):String {
