@@ -97,6 +97,10 @@
 		about="the ogg vorbis encoder" />
 	<vendor name="libopus" present="libopus/src/opus_encoder.c" size="30 MB"
 		about="the opus encoder" />
+	<vendor name="libvpx" present="libvpx/vp9/vp9_cx_iface.c" size="24 MB"
+		about="the VP9 encoder a scope video is written with" />
+	<vendor name="libwebm" present="libwebm/mkvmuxer/mkvmuxer.cc" size="3 MB"
+		about="the WebM container a scope video is written into" />
 
 	<vendor name="qlementine" present="qlementine/16/instrument/piano.svg" size="1 MB"
 		about="the interface icons, rasterised into an atlas at build time" />
@@ -113,6 +117,8 @@
 	<path name="OGGPATH" value="vendor/libogg" />
 	<path name="VORBISPATH" value="vendor/libvorbis" />
 	<path name="OPUSPATH" value="vendor/libopus" />
+	<path name="VPXPATH" value="vendor/libvpx" />
+	<path name="WEBMPATH" value="vendor/libwebm" />
 
 	<native path="src/mdd/native">
 		<file name="window.cpp" />
@@ -128,6 +134,8 @@
 		<file name="midi.cpp" />
 		<file name="discord.cpp" />
 		<file name="encode.cpp" />
+		<file name="video.cpp" />
+		<file name="vpx/vpx_config.c" />
 		<file name="shell.cpp" />
 
 		<flag value="-DOPUS_BUILD" />
@@ -149,6 +157,27 @@
 		<tree path="vendor/libopus/silk/float" suffix=".c" />
 		<tree path="vendor/libopus/src" suffix=".c"
 			skip="opus_compare,opus_demo,repacketizer_demo" />
+
+		<!-- libvpx as portable C with only the VP9 encoder, realtime only. What each folder leaves
+		     out is what libvpx's own makefile leaves out for that configuration: the decoder,
+		     postprocessing, denoising, two pass analysis and the quality metrics. The processor
+		     specific code sits in subfolders, which a tree does not walk into -->
+
+		<tree path="vendor/libvpx/vp9" suffix=".c" skip="vp9_dx_iface" />
+		<tree path="vendor/libvpx/vp9/common" suffix=".c"
+			skip="vp9_debugmodes,vp9_mfqe,vp9_postproc" />
+		<tree path="vendor/libvpx/vp9/encoder" suffix=".c"
+			skip="vp9_alt_ref_aq,vp9_aq_360,vp9_aq_complexity,vp9_aq_variance,vp9_blockiness,vp9_denoiser,vp9_firstpass,vp9_mbgraph,vp9_non_greedy_mv,vp9_temporal_filter" />
+		<tree path="vendor/libvpx/vpx/src" suffix=".c" />
+		<tree path="vendor/libvpx/vpx_dsp" suffix=".c"
+			skip="add_noise,bitreader,bitreader_buffer,deblock,fastssim,psnrhvs,ssim" />
+		<tree path="vendor/libvpx/vpx_mem" suffix=".c" />
+		<tree path="vendor/libvpx/vpx_scale" suffix=".c" />
+		<tree path="vendor/libvpx/vpx_scale/generic" suffix=".c" />
+		<tree path="vendor/libvpx/vpx_util" suffix=".c" skip="vpx_debug_util" />
+
+		<tree path="vendor/libwebm/mkvmuxer" suffix=".cc" />
+		<tree path="vendor/libwebm/mkvparser" suffix=".cc" />
 	</native>
 
 	<include value="${SDL3PATH}/include" if="windows" />
@@ -167,6 +196,9 @@
 	<include value="${OPUSPATH}/celt" />
 	<include value="${OPUSPATH}/silk" />
 	<include value="${OPUSPATH}/silk/float" />
+	<include value="${NATIVEPATH}/vpx" />
+	<include value="${VPXPATH}" />
+	<include value="${WEBMPATH}" />
 
 	<!-- /DEBUG turns REF off and the crash report wants the symbols, so the pass that drops
 	     what nothing calls is asked for again: it takes the binary from 8225280 bytes to

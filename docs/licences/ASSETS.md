@@ -20,6 +20,8 @@ is not a permissively licensed asset, however freely it circulates.
 | libogg | 1.3.5 | BSD three clause | 2026-09-02 | github.com/xiph/ogg |
 | libvorbis | 1.3.7 | BSD three clause | 2026-09-02 | github.com/xiph/vorbis |
 | libopus | 1.5.2 | BSD three clause | 2026-09-02 | github.com/xiph/opus |
+| libvpx | 1.17.0 | BSD three clause, with a patent grant | 2026-09-13 | github.com/webmproject/libvpx |
+| libwebm | 1.0.0.32 | BSD three clause, with a patent grant | 2026-09-13 | github.com/webmproject/libwebm |
 
 The first two are single headers compiled directly into `src/mdd/native/audio.cpp` and `src/mdd/native/text.cpp`.
 Neither carries a distribution condition beyond the notice in its own source, which travels with
@@ -30,6 +32,14 @@ libogg carries the pages both of them are framed in. Their sources are compiled 
 the executable by the `<tree>` entries in `mdd.xml` and are never edited. BSD three clause asks that
 the copyright notice, the conditions and the disclaimer travel with a binary distribution; each
 library's `COPYING` is fetched alongside its source and is what carries them.
+
+libvpx and libwebm are the video export: libvpx encodes VP9, and libwebm writes the WebM
+container the frames and the Opus audio go into. Both are compiled from `vendor/` by `<tree>`
+entries the same way, libvpx as portable C with only its VP9 encoder, and neither is edited. The
+configuration libvpx's own configure script would write is kept in `src/mdd/native/vpx`,
+generated from the fetched version, and `docs/notes/video-export.md` records how. Each carries a
+patent grant beside its BSD licence, `PATENTS` for libvpx and `PATENTS.TXT` for libwebm, fetched
+with the source alongside the licence it accompanies.
 
 There is deliberately no MP3 encoder. Every usable one is LGPL, and an LGPL encoder linked into this
 executable would put the executable under the same obligation. That is a decision about what this

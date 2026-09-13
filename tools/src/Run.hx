@@ -17,6 +17,8 @@ class Run {
 	static inline final OGG_VERSION = "1.3.5";
 	static inline final VORBIS_VERSION = "1.3.7";
 	static inline final OPUS_VERSION = "1.5.2";
+	static inline final VPX_TAG = "v1.17.0";
+	static inline final WEBM_TAG = "libwebm-1.0.0.32";
 
 	static inline final PRESENCE:Int = 1024;
 
@@ -257,6 +259,8 @@ class Run {
 				case "libogg": xiph(vendor, "ogg", OGG_VERSION, "libogg");
 				case "libvorbis": xiph(vendor, "vorbis", VORBIS_VERSION, "libvorbis");
 				case "libopus": xiph(vendor, "opus", OPUS_VERSION, "libopus");
+				case "libvpx": github(vendor, "webmproject/libvpx", VPX_TAG, "libvpx");
+				case "libwebm": github(vendor, "webmproject/libwebm", WEBM_TAG, "libwebm");
 				case _: false;
 			}
 
@@ -1684,6 +1688,56 @@ class Run {
 
 		FileSystem.deleteFile(archive);
 		remove(staging);
+		return true;
+	}
+
+	/**
+		Fetches a tagged source archive from GitHub into `vendor/`.
+
+		A GitHub archive unpacks into one folder named after the repository and the tag, and
+		the two are not joined the same way for every repository: `v1.17.0` of libvpx unpacks
+		as `libvpx-1.17.0` and `libwebm-1.0.0.32` of libwebm as `libwebm-libwebm-1.0.0.32`. So
+		the folder is found by looking rather than by building its name.
+
+		@param vendor The vendor folder.
+		@param repository The owner and the repository, separated by a slash.
+		@param tag The tag to fetch.
+		@param into The folder under `vendor/` to put it in.
+		@return Whether it arrived.
+	**/
+	static function github(vendor:String, repository:String, tag:String, into:String):Bool {
+		final name = repository.split("/").pop();
+		final archive = vendor + "/." + name + ".tar.gz";
+		final staging = vendor + "/." + name;
+
+		if (!download("https://github.com/" + repository + "/archive/refs/tags/" + tag + ".tar.gz",
+				archive)) {
+			return false;
+		}
+
+		if (FileSystem.exists(staging)) remove(staging);
+		FileSystem.createDirectory(staging);
+		unpack(archive, staging);
+
+		var unpacked = "";
+
+		for (entry in FileSystem.readDirectory(staging)) {
+			if (FileSystem.isDirectory(staging + "/" + entry)) unpacked = staging + "/" + entry;
+		}
+
+		if (unpacked == "") {
+			remove(staging);
+			return false;
+		}
+
+		final where = vendor + "/" + into;
+		if (FileSystem.exists(where)) remove(where);
+
+		copyTree(unpacked, where);
+
+		FileSystem.deleteFile(archive);
+		remove(staging);
+
 		return true;
 	}
 
