@@ -1790,6 +1790,8 @@ class VgmCheck {
 		final said = new StringBuf();
 
 		var carried = 0;
+		var notes = 0;
+		var lost = 0;
 		var shared = 0;
 		var offKey = 0;
 		var widest = 0;
@@ -1829,6 +1831,18 @@ class VgmCheck {
 				}
 			}
 
+			final was = song.drums;
+			song.drums = true;
+
+			for (pattern in song.patterns) {
+				for (note in pattern.lane(Part.Dac).notes) {
+					notes++;
+					if (song.drumAt(note.pitch) < 0) lost++;
+				}
+			}
+
+			song.drums = was;
+
 			if (roots.length < want && shown < 8) {
 				if (shown > 0) said.add(", ");
 				said.add(Fixtures.titled(name) + " " + song.samples.length
@@ -1844,6 +1858,10 @@ class VgmCheck {
 
 		says("and a hit is written on the key its recording sits on", offKey == 0,
 			offKey + " notes name a key their recording does not sit on");
+
+		says("and every one of them would sound as a kit", lost == 0,
+			lost + " of " + notes + " notes fall on a key the kit has nothing on,"
+				+ " so switching a file to a kit silences none of them");
 	}
 
 	static function kitted(files:Array<String>):Void {
