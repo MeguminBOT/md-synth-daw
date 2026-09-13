@@ -574,6 +574,73 @@ class SpineCheck {
 		@param session The piece.
 		@param centre The tabs.
 	**/
+	/**
+		The right button takes a note away while the pencil is out.
+
+		Reaching for the rubber to take back the note just drawn is a tool change for
+		one note, so the right button does it where the pencil is the tool, the way the
+		playlist already takes a clip away. The menu is still what the right button
+		does everywhere else, and holding shift or control still reaches it.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function rubbed(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final roll = centre.roll;
+		final lane = pattern.lane(session.part);
+
+		lane.notes.resize(0);
+		for (at in 0...3) lane.add(new Note(at * 96, 96, 60, 100));
+
+		roll.reveal(96, 60);
+		tree.reshape();
+
+		final was = lane.notes.length;
+		final note = lane.notes[1];
+
+		final px = roll.atTick(note.at) + 4;
+		final py = roll.atPitch(note.pitch) + roll.rowTall * 0.5;
+
+		session.tool = Session.DRAW;
+
+		tree.pressed(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.released(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("the right button takes a note away while the pencil is out",
+			lane.notes.length == was - 1 && lane.notes.indexOf(note) < 0,
+			was + " notes before and " + lane.notes.length + " after");
+
+		session.does(new mdd.song.edit.AddNote(session.pattern, session.part,
+			new Note(96, 96, 60, 100)));
+
+		final back = lane.notes.length;
+		session.tool = Session.SELECT;
+
+		final other = lane.notes[1];
+		final ox = roll.atTick(other.at) + 4;
+		final oy = roll.atPitch(other.pitch) + roll.rowTall * 0.5;
+
+		tree.pressed(ox, oy, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.released(ox, oy, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("and leaves it alone with any other tool", lane.notes.length == back,
+			back + " notes before and " + lane.notes.length + " after, so the menu is"
+			+ " still what the right button does");
+
+		tree.dismiss();
+		lane.notes.resize(0);
+		session.tool = Session.SELECT;
+		session.history.clear();
+	}
+
 	static function commanded(tree:Root, session:Session, centre:mdd.view.Centre):Void {
 		centre.show(mdd.view.Centre.ROLL);
 		session.choose(Part.Fm1);
@@ -3069,6 +3136,7 @@ class SpineCheck {
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		commanded(tree, session, centre);
+		rubbed(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

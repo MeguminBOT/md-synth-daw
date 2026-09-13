@@ -394,6 +394,23 @@ final class PianoRoll extends Widget {
 		@param note The note.
 		@param seat The key it lands on.
 	**/
+	/**
+		Takes one note away, and stops holding onto it.
+
+		The rubber takes a note on a press, and so does the right button while the
+		pencil is out, which is how a reader who is drawing takes one back without
+		reaching for another tool.
+
+		@param note The note to take away.
+	**/
+	function erases(note:Note):Void {
+		picked.drops(note);
+		if (chosen == note) chosen = picked.lead();
+
+		session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part, note));
+		invalidate();
+	}
+
 	function seated(note:Note, seat:Int):Void {
 		note.pitch = seat;
 		if (kitting()) note.instrument = drumAt(seat);
@@ -1208,6 +1225,12 @@ final class PianoRoll extends Widget {
 				final under = noteAt(event.x, event.y);
 
 				if (event.button == Pointer.Right) {
+					if (under != null && session.tool == Session.DRAW && !event.shift()
+						&& !event.ctrl()) {
+						erases(under);
+						return true;
+					}
+
 					if (under != null) alters(under, false, false);
 					popped(under, event.x, event.y);
 					invalidate();
@@ -1216,11 +1239,7 @@ final class PianoRoll extends Widget {
 
 				if (under != null) {
 					if (session.tool == Session.ERASE) {
-						picked.drops(under);
-						if (chosen == under) chosen = picked.lead();
-
-						session.does(new mdd.song.edit.RemoveNote(session.pattern, session.part, under));
-						invalidate();
+						erases(under);
 						return true;
 					}
 
