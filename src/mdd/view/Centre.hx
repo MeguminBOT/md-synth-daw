@@ -166,6 +166,22 @@ final class Centre extends Widget {
 	];
 
 	/**
+		Which editor the tab in front is, so an editing command reaches it even where
+		nothing has the keyboard.
+
+		@return The editor showing, or null where the tab in front is not one.
+	**/
+	public function editing():Null<mdd.ui.Widget> {
+		return switch (showing) {
+			case PLAYLIST: playlist;
+			case ROLL: roll;
+			case TRACKER: tracker;
+			case AUTOMATION: automation;
+			case _: null;
+		}
+	}
+
+	/**
 		Shows one tab and hides the rest.
 
 		@param which Which tab.

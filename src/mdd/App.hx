@@ -1175,8 +1175,24 @@ class App {
 		@param what One of the `Edit` values.
 		@return Whether anything took it.
 	**/
+	/**
+		Sends an editing command to whatever should take it.
+
+		The keyboard is where it goes first. Where nothing has the keyboard, which is
+		what pressing anywhere that does not take it leaves, it goes to the editor in
+		front instead: a reader who presses select all is asking the thing they are
+		looking at to select all, and nothing at all is the wrong answer.
+
+		@param what One of the `Edit` values.
+		@return Whether anything took it.
+	**/
 	function edited(what:Int):Bool {
-		return stage.root.edits(what);
+		if (stage.root.edits(what)) return true;
+
+		if (stage.root.focus != null || panels.centre == null) return false;
+
+		final editor = panels.centre.editing();
+		return editor != null && editor.enabled && editor.edited(what);
 	}
 
 	/**

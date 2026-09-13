@@ -561,6 +561,65 @@ class SpineCheck {
 		tree.reshape();
 	}
 
+	/**
+		An editing command reaches the editor in front even where nothing has the
+		keyboard.
+
+		Pressing anywhere that does not take the keyboard leaves nothing holding it,
+		and an editing command walks up from whatever holds it. With nothing there it
+		walked up from nothing and did nothing at all, silently, which reads as a
+		shortcut that works sometimes and not others.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function commanded(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final lane = pattern.lane(session.part);
+		lane.notes.resize(0);
+
+		for (at in 0...4) lane.add(new Note(at * 96, 96, 60 + at, 100));
+
+		final roll = centre.roll;
+
+		tree.focusOn(roll);
+		roll.picked.clear();
+
+		final withFocus = tree.edits(mdd.ui.Edit.ALL) ? roll.picked.count : -1;
+
+		says("select all reaches the editor holding the keyboard", withFocus == 4,
+			withFocus + " of " + lane.notes.length + " notes chosen");
+
+		tree.focusOn(null);
+		roll.picked.clear();
+
+		final walked = tree.edits(mdd.ui.Edit.ALL);
+
+		says("and nothing holds it after pressing where nothing takes it",
+			!walked && roll.picked.count == 0,
+			"walking up from the keyboard finds nothing to take it, which is why the"
+				+ " editor in front is asked next");
+
+		final editor = centre.editing();
+		final loose = editor != null && editor.edited(mdd.ui.Edit.ALL)
+			? roll.picked.count : -1;
+
+		says("and it reaches the editor in front with nothing holding it", loose == 4,
+			loose < 0 ? "nothing took it, so the shortcut did nothing at all"
+				: loose + " of " + lane.notes.length + " notes chosen");
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+	}
+
 	static function sought(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		final missing = "zzqqxx";
@@ -3009,6 +3068,7 @@ class SpineCheck {
 		sheeted(tree, session);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
+		commanded(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);
