@@ -307,33 +307,94 @@ final class Stage {
 
 		shed();
 
-		final pairing = paired(where);
-		final sans = where + "/" + Typeface.SANS[pairing];
-		final fixed = where + "/" + Typeface.MONO[pairing];
-
 		for (name in Typeface.FALLBACK) spare.adds(where + "/" + name);
 
-		body = Font.bake(renderer, sans, 15 * scale);
-		small = Font.bake(renderer, sans, 13 * scale);
-		mono = Font.bake(renderer, fixed, 14 * scale);
-		large = Font.bake(renderer, fixed, 21 * scale);
-
-		condensed = mdd.Typeface.CONDENSED == "" ? null
-			: Font.bake(renderer, where + "/" + mdd.Typeface.CONDENSED, 13 * scale);
-
-		if (body == null || small == null || mono == null || large == null) {
+		if (!baked(metrics, where, scale)) {
 			Sys.println("mdd: the fonts would not bake");
 			return false;
 		}
 
-		body.chains(spare);
-		small.chains(spare);
-		mono.chains(spare);
-		large.chains(spare);
-		if (condensed != null) condensed.chains(spare);
+		body = metrics.body;
+		small = metrics.small;
+		mono = metrics.mono;
+		large = metrics.large;
+		condensed = metrics.condensed;
 
-		metrics.dress(body, small, mono, large, condensed);
 		if (paint != null) paint.reface(body);
+		return true;
+	}
+
+	/**
+		Bakes the faces again at a density of their own, for a picture drawn off the window at a
+		scale the window is not at, which a video is. Nothing else holds them, so the caller gives
+		them back through `shuts` once it is done.
+
+		@param density What to multiply every design size by.
+		@return The sizes, dressed, or null where the faces would not bake.
+	**/
+	public function bakes(density:Float):Null<Metrics> {
+		final where = fonts();
+		if (where == "") return null;
+
+		final held = new Metrics(density);
+		return baked(held, where, density) ? held : null;
+	}
+
+	/**
+		Gives back the faces `bakes` made. The window's own sizes are left alone.
+
+		@param metrics The sizes `bakes` returned.
+	**/
+	public function shuts(metrics:Metrics):Void {
+		if (root != null && metrics == root.metrics) return;
+
+		if (metrics.body != null) metrics.body.shut();
+		if (metrics.small != null) metrics.small.shut();
+		if (metrics.mono != null) metrics.mono.shut();
+		if (metrics.large != null) metrics.large.shut();
+		if (metrics.condensed != null) metrics.condensed.shut();
+	}
+
+	/**
+		Bakes the five faces at a density and dresses a set of sizes in them, chained to the
+		fallback faces. Where any of them will not bake, the ones that did are given back and the
+		sizes are left as they were.
+
+		@param metrics The sizes to dress.
+		@param where The folder the faces are in.
+		@param density What to multiply every design size by.
+		@return Whether they all baked.
+	**/
+	function baked(metrics:Metrics, where:String, density:Float):Bool {
+		final pairing = paired(where);
+		final sans = where + "/" + Typeface.SANS[pairing];
+		final fixed = where + "/" + Typeface.MONO[pairing];
+
+		final text = Font.bake(renderer, sans, 15 * density);
+		final lesser = Font.bake(renderer, sans, 13 * density);
+		final digits = Font.bake(renderer, fixed, 14 * density);
+		final heading = Font.bake(renderer, fixed, 21 * density);
+
+		final narrow = mdd.Typeface.CONDENSED == "" ? null
+			: Font.bake(renderer, where + "/" + mdd.Typeface.CONDENSED, 13 * density);
+
+		if (text == null || lesser == null || digits == null || heading == null) {
+			if (text != null) text.shut();
+			if (lesser != null) lesser.shut();
+			if (digits != null) digits.shut();
+			if (heading != null) heading.shut();
+			if (narrow != null) narrow.shut();
+
+			return false;
+		}
+
+		text.chains(spare);
+		lesser.chains(spare);
+		digits.chains(spare);
+		heading.chains(spare);
+		if (narrow != null) narrow.chains(spare);
+
+		metrics.dress(text, lesser, digits, heading, narrow);
 		return true;
 	}
 

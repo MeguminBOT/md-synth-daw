@@ -400,6 +400,21 @@ final class Root {
 	}
 
 	/**
+		Swaps the sizes everything under the root reads, and hands back the ones it replaced. A
+		picture drawn off the window at a scale of its own wears its sizes for that one draw, and
+		puts the old ones back before anything else lays out or draws.
+
+		@param metrics The sizes to wear.
+		@return The sizes worn before.
+	**/
+	public function wears(metrics:Metrics):Metrics {
+		final held = this.metrics;
+		this.metrics = metrics;
+
+		return held;
+	}
+
+	/**
 		Puts a widget in the band layer, or clears it. This is the only way in or out
 		of that layer.
 

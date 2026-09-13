@@ -16,7 +16,14 @@ extern class Video {
 		@param width The frame width in pixels, which has to be even.
 		@param height The frame height in pixels, which has to be even.
 		@param fps Frames a second.
-		@param kilobits The video bitrate aimed at, in kilobits a second.
+		@param kilobits The video bitrate aimed at, in kilobits a second. Constant quality ignores
+			it, and constrained quality holds it as a ceiling.
+		@param control The rate control, one of `Mixing.VBR` to `Mixing.Q`.
+		@param quality The quantiser level the two quality controls aim at, nought to 63, where
+			lower is better and larger.
+		@param speed The encoder speed, five to nine, where higher is faster and worse.
+		@param keyframes The longest run between key frames, in seconds.
+		@param screen One to tune for screen content, nought for the default tuning.
 		@param rate The audio rate: 8000, 12000, 16000, 24000 or 48000 hertz.
 		@param channels One or two.
 		@param audioKilobits The Opus bitrate in kilobits a second.
@@ -26,8 +33,8 @@ extern class Video {
 	**/
 	@:native("mdd_video_open")
 	public static function open(path:cpp.ConstCharStar, width:Int, height:Int, fps:Int,
-		kilobits:Int, rate:Int, channels:Int, audioKilobits:Int,
-		threads:Int):cpp.Star<VideoFile>;
+		kilobits:Int, control:Int, quality:Int, speed:Int, keyframes:Int, screen:Int, rate:Int,
+		channels:Int, audioKilobits:Int, threads:Int):cpp.Star<VideoFile>;
 
 	/**
 		Encodes one frame and puts it in the file.

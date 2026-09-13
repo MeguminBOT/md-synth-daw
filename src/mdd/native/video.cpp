@@ -271,9 +271,10 @@ static void mdd_video_work(MddVideo *video) {
 }
 
 extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int fps,
-	int kilobits, int rate, int channels, int audio_kilobits, int threads) {
+	int kilobits, int control, int quality, int speed, int keyframes, int screen, int rate,
+	int channels, int audio_kilobits, int threads) {
 	if (path == NULL || width < 2 || height < 2 || (width & 1) != 0 || (height & 1) != 0
-			|| fps < 1 || channels < 1 || channels > 2) {
+			|| fps < 1 || channels < 1 || channels > 2 || control < VPX_VBR || control > VPX_Q) {
 		return NULL;
 	}
 
@@ -319,9 +320,12 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	config.g_threads = (unsigned int) workers;
 	config.g_lag_in_frames = 0;
 	config.g_pass = VPX_RC_ONE_PASS;
-	config.rc_end_usage = VPX_VBR;
+	config.rc_end_usage = (enum vpx_rc_mode) control;
 	config.rc_target_bitrate = (unsigned int) (kilobits < 100 ? 100 : kilobits);
-	config.kf_max_dist = (unsigned int) (fps * 5);
+	config.rc_dropframe_thresh = 0;
+	config.kf_mode = VPX_KF_AUTO;
+	config.kf_min_dist = 0;
+	config.kf_max_dist = (unsigned int) (fps * (keyframes < 1 ? 1 : keyframes));
 
 	if (vpx_codec_enc_init(&video->codec, face, &config, 0) != VPX_CODEC_OK) {
 		mdd_video_free(video);
@@ -333,10 +337,15 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	int tiles = 0;
 	while ((1 << (tiles + 1)) <= workers && (width >> (tiles + 1)) >= 256) tiles++;
 
-	vpx_codec_control(&video->codec, VP8E_SET_CPUUSED, 7);
+	const int level = quality < 0 ? 0 : (quality > 63 ? 63 : quality);
+	const int pace = speed < 5 ? 5 : (speed > 9 ? 9 : speed);
+
+	vpx_codec_control(&video->codec, VP8E_SET_CPUUSED, pace);
+	vpx_codec_control(&video->codec, VP8E_SET_CQ_LEVEL, level);
 	vpx_codec_control(&video->codec, VP9E_SET_ROW_MT, 1);
 	vpx_codec_control(&video->codec, VP9E_SET_TILE_COLUMNS, tiles);
-	vpx_codec_control(&video->codec, VP9E_SET_TUNE_CONTENT, VP9E_CONTENT_SCREEN);
+	vpx_codec_control(&video->codec, VP9E_SET_TUNE_CONTENT,
+		screen != 0 ? VP9E_CONTENT_SCREEN : VP9E_CONTENT_DEFAULT);
 	vpx_codec_control(&video->codec, VP9E_SET_COLOR_SPACE, VPX_CS_BT_709);
 	vpx_codec_control(&video->codec, VP9E_SET_COLOR_RANGE, VPX_CR_STUDIO_RANGE);
 

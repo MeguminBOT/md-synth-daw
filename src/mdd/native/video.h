@@ -18,7 +18,16 @@ typedef struct MddVideo MddVideo;
  * @param width The frame width in pixels, which has to be even.
  * @param height The frame height in pixels, which has to be even.
  * @param fps Frames a second.
- * @param kilobits The video bitrate aimed at, in kilobits a second.
+ * @param kilobits The video bitrate aimed at, in kilobits a second. Constant quality ignores it,
+ *     and constrained quality holds it as a ceiling.
+ * @param control The rate control, in libvpx's order: nought variable, one constant, two
+ *     constrained quality, three constant quality.
+ * @param quality The quantiser level the two quality controls aim at, nought to 63, where lower
+ *     is better and larger.
+ * @param speed The encoder speed, five to nine, where higher is faster and worse. The encoder is
+ *     built realtime only, and that build takes nothing below five.
+ * @param keyframes The longest run between key frames, in seconds.
+ * @param screen Nonzero to tune for screen content, nought for the default tuning.
  * @param rate The audio rate in hertz: 8000, 12000, 16000, 24000 or 48000.
  * @param channels One or two.
  * @param audio_kilobits The Opus bitrate in kilobits a second.
@@ -27,7 +36,8 @@ typedef struct MddVideo MddVideo;
  * @return The video, or NULL where the file or either encoder would not open.
  */
 MddVideo *mdd_video_open(const char *path, int width, int height, int fps, int kilobits,
-	int rate, int channels, int audio_kilobits, int threads);
+	int control, int quality, int speed, int keyframes, int screen, int rate, int channels,
+	int audio_kilobits, int threads);
 
 /**
  * Copies one frame to be encoded and put in the file, and returns without waiting for it

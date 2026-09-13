@@ -260,6 +260,14 @@ class App {
 			files.ask(stage.window, Files.AUDIO);
 		};
 
+		panels.exportingVideo = new Export(session, true);
+		panels.exportingVideo.onShut = function():Void stage.root.lower();
+
+		panels.exportingVideo.onExport = function(mixing:mdd.play.Mixing):Void {
+			files.mixing = mixing;
+			files.ask(stage.window, Files.AUDIO);
+		};
+
 		panels.importing = new mdd.view.overlay.Importing();
 		panels.importing.onShut = function():Void stage.root.lower();
 
@@ -869,7 +877,10 @@ class App {
 	**/
 	function films(made:mdd.play.Mixdown):Void {
 		final where = Files.suffixed(renderingTo, files.mixing.suffix());
-		final held = new Filming(stage.root, stage.paint, panels.centre.scope, session.song,
+		final baked = stage.bakes(files.mixing.tall() / Filming.DESIGNED);
+		final sizes = baked == null ? stage.root.metrics : baked;
+
+		final held = new Filming(stage.root, stage.paint, sizes, panels.centre.scope, session.song,
 			files.mixing, made, where);
 
 		filming = held;
@@ -898,6 +909,8 @@ class App {
 
 		final wrong = held.finish();
 		final beaten = wrong == "" && held.stopped;
+
+		stage.shuts(held.sizes);
 
 		if (wrong != "") session.says(Locale.SAID_FAILED, wrong);
 		else if (beaten) session.says(Locale.SAID_STOPPED);
@@ -1416,6 +1429,7 @@ class App {
 	function consoled(which:Int):Void {
 		if (sound.render != null) sound.render.console = which;
 		if (panels != null && panels.exporting != null) panels.exporting.follows(which);
+		if (panels != null && panels.exportingVideo != null) panels.exportingVideo.follows(which);
 	}
 
 	/**

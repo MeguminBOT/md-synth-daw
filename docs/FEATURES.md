@@ -321,12 +321,31 @@ files rather than eleven.
 
 ### Video
 
-WebM video from the same export panel: the scope drawn over the piece, with the mix underneath
-as Opus audio. The picture is 1280 by 720 or 1920 by 1080, at 30 or 60 frames a second, and the
-scope in the video takes the speed, accuracy and view the scope on screen is set to. The audio
-goes through the same render, output stage, fade and normalising an audio export does, so what a
-video sounds like is exactly what an audio export with the same settings writes. VP9 and Opus are
-both compiled in, so there is nothing else to install.
+**Export video** in the export menu opens a sheet of its own. It writes a WebM file of the scope
+drawn over the piece, with the mix underneath as Opus audio. The scope in the video takes the
+speed, accuracy and view the scope on screen is set to, and a bigger picture draws the same scope
+bigger, text and lines included, rather than a small one with room around it.
+
+- **Video size:** 1280 × 720, 1920 × 1080, 2560 × 1440 or 3840 × 2160.
+- **Frame rate:** 24, 25, 30, 50 or 60 frames a second.
+- **Rate control:** VBR aims at an average bitrate, CBR holds the bitrate steady, CQ aims at a
+  quality level with the bitrate as its ceiling, and Q aims at a quality level whatever it costs.
+- **Video bitrate:** typed in kbit/s, or in megabits with an m after the number. Auto takes
+  2500 kbit/s at 1280 × 720, 5000 at 1920 × 1080, 9000 at 2560 × 1440 and 16000 at 3840 × 2160,
+  and 1.6 times that above 30 frames a second. Q has no use for a bitrate, so it hides the field.
+- **Quality level:** 0 to 63, for CQ and Q. Lower is better and bigger.
+- **Encoder speed:** 5 to 9. Higher encodes faster and looks worse at the same bitrate. The VP9
+  encoder is built for realtime encoding, and that build starts at 5.
+- **Keyframe interval:** a key frame at least every 1, 2, 5 or 10 seconds. Shorter seeks faster
+  and costs more.
+- **Tune:** Screen suits the scope's flat ground and thin lines, and Default is VP9's ordinary
+  tuning.
+- **Audio bitrate**, channels, normalising, the output stage and the silence and fade times work
+  as they do on the audio sheet.
+
+The audio goes through the same render, output stage, fade and normalising an audio export does,
+so what a video sounds like is exactly what an audio export with the same settings writes. VP9
+and Opus are both compiled in, so there is nothing else to install.
 
 ### Register and note formats
 

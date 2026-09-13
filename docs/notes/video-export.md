@@ -39,6 +39,28 @@ written both as the header's pre-skip and as the track's codec delay.
 The muxer holds audio back until a frame at or after its time has arrived, so the writer hands
 over each frame's audio and the frame as they are made and the file still comes out in time order.
 
+## What the settings set
+
+The video sheet's settings reach libvpx under these names:
+
+    Rate control        rc_end_usage: VPX_VBR, VPX_CBR, VPX_CQ or VPX_Q
+    Video bitrate       rc_target_bitrate, in kilobits a second, never below 100
+    Quality level       VP8E_SET_CQ_LEVEL, 0 to 63
+    Encoder speed       VP8E_SET_CPUUSED, 5 to 9
+    Keyframe interval   kf_max_dist, the seconds times the frame rate, with kf_min_dist 0
+    Tune                VP9E_SET_TUNE_CONTENT: VP9E_CONTENT_DEFAULT or VP9E_CONTENT_SCREEN
+
+The realtime only build turns any speed from -4 to 4 into 5, so the sheet offers 5 to 9 and
+nothing the encoder would change without saying. `rc_dropframe_thresh` is nought under every rate
+control, so each frame drawn is a frame in the file, even where CBR runs short of bits.
+
+Tile columns follow the width: as many as the encoder threads allow while each tile stays at least
+256 pixels wide, which is four at 1920 and eight at 3840.
+
+The scope in a video is drawn at its design sizes times the picture height over 720, in faces
+baked at that scale for the one export, so 3840 by 2160 carries the scope drawn three times as
+large rather than the 1280 by 720 one with room around it.
+
 ## Measured
 
 `mdd gate video` writes two seconds of colour bars moving four pixels a frame and a 440 Hz tone,
@@ -50,6 +72,18 @@ at 320 by 180, thirty frames a second, 800 kilobits of video and 96 of audio:
     duration            2000 ms, with cues
     frame 30, ffmpeg    0.67 levels from the source on average
     audio, ffmpeg       96960 samples against 96000, at 439.47 Hz against 440
+
+It then writes one second of the same bars under each rate control, at quality level 30 where the
+control reads one, and eight frames at 3840 by 2160 under VBR. Every file holds every frame:
+
+    VBR                 15772 bytes, 30 frames
+    CBR                 16302 bytes, 30 frames
+    CQ                  16497 bytes, 30 frames
+    Q                   16404 bytes, 30 frames
+    3840 by 2160        16761 bytes, 8 frames, 3840 by 2160 in the track header
+
+Bars moving four pixels a frame are cheap to predict, so a second at 320 by 180 comes to between
+126 and 132 kilobits under every control, well under the 800 asked for.
 
 `mdd gate spine` exports a scope video the way the export panel does: a clip of three notes starting
 a beat in, rendered and levelled as a mix, then drawn a frame at a time into 1280 by 720 at thirty

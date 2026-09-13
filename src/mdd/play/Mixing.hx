@@ -75,15 +75,40 @@ final class Mixing {
 	/**
 		The picture sizes a video is offered at, a width and a height for each.
 	**/
-	public static final SIZES:Array<Int> = [1280, 720, 1920, 1080];
+	public static final SIZES:Array<Int> = [1280, 720, 1920, 1080, 2560, 1440, 3840, 2160];
 
 	/**
 		The frame rates a video is offered at.
 	**/
-	public static final FRAME_RATES:Array<Int> = [30, 60];
+	public static final FRAME_RATES:Array<Int> = [24, 25, 30, 50, 60];
 
 	/**
-		Which format, one of `WAV` to `OPUS`.
+		The longest runs between key frames a video is offered, in seconds.
+	**/
+	public static final KEYFRAME_INTERVALS:Array<Int> = [1, 2, 5, 10];
+
+	/**
+		Rate control: the video bitrate is an average the encoder moves around.
+	**/
+	public static inline final VBR = 0;
+
+	/**
+		Rate control: the video bitrate is held.
+	**/
+	public static inline final CBR = 1;
+
+	/**
+		Rate control: a quality level, with the video bitrate as its ceiling.
+	**/
+	public static inline final CQ = 2;
+
+	/**
+		Rate control: a quality level, whatever it costs.
+	**/
+	public static inline final Q = 3;
+
+	/**
+		Which format, one of `WAV` to `WEBM`.
 	**/
 	public var kind:Int = FLAC;
 
@@ -136,6 +161,36 @@ final class Mixing {
 		Frames a second, for a video.
 	**/
 	public var fps:Int = 60;
+
+	/**
+		The video bitrate in kilobits a second, or nought to take one from the size and frame rate.
+	**/
+	public var videoBitrate:Int = 0;
+
+	/**
+		How the video bitrate is controlled, one of `VBR` to `Q`.
+	**/
+	public var rateControl:Int = VBR;
+
+	/**
+		The quantiser level `CQ` and `Q` aim at, nought to 63, where lower is better and larger.
+	**/
+	public var qualityLevel:Int = 24;
+
+	/**
+		The VP9 encoder speed, five to nine, where higher is faster and worse.
+	**/
+	public var encoderSpeed:Int = 7;
+
+	/**
+		The longest run between key frames, in seconds.
+	**/
+	public var keyframeInterval:Int = 5;
+
+	/**
+		Whether the video encoder is tuned for screen content, which a scope is.
+	**/
+	public var screen:Bool = true;
 
 	/**
 		Seconds of silence before the piece.
@@ -247,12 +302,17 @@ final class Mixing {
 	}
 
 	/**
-		@return The video bitrate aimed at, in kilobits a second, which rises with the picture size
-			and the frame rate. A scope is lines on a flat ground and codes cheaply, so these sit
-			well below what footage of the same size would want.
+		@return The video bitrate aimed at, in kilobits a second: `videoBitrate` where it is set,
+			and otherwise one that rises with the picture size and the frame rate. A scope is lines
+			on a flat ground and codes cheaply, so those sit well below what footage of the same
+			size would want.
 	**/
 	public function kilobits():Int {
-		final base = wide() >= 1920 ? 5000 : 2500;
+		if (videoBitrate > 0) return videoBitrate;
+
+		final lines = tall();
+		final base = lines >= 2160 ? 16000 : (lines >= 1440 ? 9000 : (lines >= 1080 ? 5000 : 2500));
+
 		return fps > 30 ? Std.int(base * 1.6) : base;
 	}
 
@@ -295,6 +355,12 @@ final class Mixing {
 		out.opusBitrateMode = opusBitrateMode;
 		out.size = size;
 		out.fps = fps;
+		out.videoBitrate = videoBitrate;
+		out.rateControl = rateControl;
+		out.qualityLevel = qualityLevel;
+		out.encoderSpeed = encoderSpeed;
+		out.keyframeInterval = keyframeInterval;
+		out.screen = screen;
 		out.padStart = padStart;
 		out.padEnd = padEnd;
 		out.fade = fade;

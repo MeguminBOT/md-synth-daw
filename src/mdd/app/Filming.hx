@@ -14,6 +14,7 @@ import mdd.play.Stream;
 import mdd.song.Part;
 import mdd.song.Song;
 import mdd.song.Tempo;
+import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.view.monitor.Scope;
@@ -27,7 +28,8 @@ import mdd.view.monitor.Scope;
 	in the video is exactly the audio an export with the same settings writes. The scope is fed by
 	a second render of the same register stream, which gives it every part on its own the way the
 	live scope sees them, and it is a scope of its own, sized to the picture and set to the speed,
-	accuracy and view of the one on screen.
+	accuracy and view of the one on screen. It draws in sizes and faces made for the picture, so a
+	taller picture carries the same scope drawn larger rather than a small one with room around it.
 
 	Drawing needs the thread that owns the window, so `step` draws as many frames as fit in the
 	time it is given and hands back, and the encoding runs on a thread inside the writer. Nothing
@@ -41,9 +43,21 @@ final class Filming {
 	static inline final SETTLE = 0.100;
 
 	/**
+		The picture height the scope's design sizes are drawn at one to one. A taller picture draws
+		them larger by the same proportion.
+	**/
+	public static inline final DESIGNED = 720;
+
+	/**
 		Where the video is written.
 	**/
 	public final path:String;
+
+	/**
+		The sizes the scope is drawn at, which the caller made for the picture and gives back once
+		`finish` has run.
+	**/
+	public final sizes:Metrics;
 
 	/**
 		How many frames the video holds once it is finished.
@@ -86,16 +100,18 @@ final class Filming {
 
 		@param root The root the scope borrows its theme and sizes from.
 		@param paint What the window is drawn with, which the frames are drawn with too.
+		@param sizes The sizes to draw the scope at, dressed in faces baked for the picture.
 		@param live The scope on screen, whose settings the video takes.
 		@param song The piece.
 		@param mixing The export settings.
 		@param made The finished mix.
 		@param path Where to write the video.
 	**/
-	public function new(root:Root, paint:Paint, live:Scope, song:Song, mixing:Mixing, made:Mixdown,
-			path:String) {
+	public function new(root:Root, paint:Paint, sizes:Metrics, live:Scope, song:Song, mixing:Mixing,
+			made:Mixdown, path:String) {
 		this.root = root;
 		this.paint = paint;
+		this.sizes = sizes;
 		this.made = made;
 		this.path = path;
 
@@ -135,12 +151,16 @@ final class Filming {
 		scope.visible = false;
 
 		root.top.add(scope);
+
+		final worn = root.wears(sizes);
 		scope.arrange(0, 0, wide, tall);
+		root.wears(worn);
 
 		target = Draw.createTarget(paint.canvas(), wide, tall);
 
-		file = Video.open(path, wide, tall, fps, mixing.kilobits(), made.rate, made.channels,
-			mdd.format.Coded.BITRATES[mixing.quality], 0);
+		file = Video.open(path, wide, tall, fps, mixing.kilobits(), mixing.rateControl,
+			mixing.qualityLevel, mixing.encoderSpeed, mixing.keyframeInterval, mixing.screen ? 1 : 0,
+			made.rate, made.channels, mdd.format.Coded.BITRATES[mixing.quality], 0);
 
 		if (target == null) wrong = "no texture could be made to draw the video into";
 		else if (file == null) wrong = "the video file would not open: " + path;
@@ -302,6 +322,8 @@ final class Filming {
 	function drawn():Void {
 		final renderer = paint.canvas();
 		final ground = root.theme.ground;
+		final worn = root.wears(sizes);
+		final face = paint.font;
 
 		Draw.setTarget(renderer, target);
 		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
@@ -312,5 +334,8 @@ final class Filming {
 
 		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(pixels.getData(), 0).raw);
 		Draw.setTarget(renderer, null);
+
+		paint.reface(face);
+		root.wears(worn);
 	}
 }

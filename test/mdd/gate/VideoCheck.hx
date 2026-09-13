@@ -3,6 +3,7 @@ package mdd.gate;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
 import mdd.host.Video;
+import mdd.play.Mixing;
 import sys.FileSystem;
 
 @:unreflective
@@ -16,7 +17,9 @@ import sys.FileSystem;
 	decoder the application never ships: the document type, both tracks and what they carry,
 	every frame and packet and when each lands, and the cues and duration a player seeks with.
 	Decoding a frame and the audio back needs something that decodes, which only ffmpeg is, so
-	that half reports itself not run where there is none.
+	that half reports itself not run where there is none. A second of the same bars is then
+	written under each of the four rate controls, and eight frames at 3840 by 2160, and each file
+	is walked for its frames and its picture size.
 **/
 class VideoCheck {
 	static inline final WIDE = 320;
@@ -26,6 +29,12 @@ class VideoCheck {
 	static inline final RATE = 48000;
 	static inline final TONE = 440.0;
 	static inline final LOOKED = 30;
+
+	static inline final UHD_WIDE = 3840;
+	static inline final UHD_TALL = 2160;
+	static inline final UHD_FRAMES = 8;
+
+	static final CONTROLS:Array<String> = ["VBR", "CBR", "CQ", "Q"];
 
 	static var failed:Int = 0;
 	static var ran:Int = 0;
@@ -74,6 +83,8 @@ class VideoCheck {
 			decoded(path, where);
 		}
 
+		controlled(where);
+
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
 		if (failed > 0) {
@@ -87,18 +98,20 @@ class VideoCheck {
 
 	/**
 		@param frame Which frame.
+		@param wide The picture width.
+		@param tall The picture height.
 		@return That frame's pixels: eight colour bars moving four pixels a frame.
 	**/
-	static function barsAt(frame:Int):Bytes {
+	static function barsAt(frame:Int, wide:Int, tall:Int):Bytes {
 		final colours = [0xFFFFFF, 0xFFFF00, 0x00FFFF, 0x00FF00, 0xFF00FF, 0xFF0000, 0x0000FF,
 			0x202020];
-		final out = Bytes.alloc(WIDE * TALL * 4);
+		final out = Bytes.alloc(wide * tall * 4);
 
-		for (row in 0...TALL) {
-			for (column in 0...WIDE) {
-				final bar = Std.int(((column + frame * 4) % WIDE) / (WIDE / 8));
+		for (row in 0...tall) {
+			for (column in 0...wide) {
+				final bar = Std.int(((column + frame * 4) % wide) / (wide / 8));
 				final colour = colours[bar];
-				final at = (row * WIDE + column) * 4;
+				final at = (row * wide + column) * 4;
 
 				out.set(at, (colour >> 16) & 0xFF);
 				out.set(at + 1, (colour >> 8) & 0xFF);
@@ -116,12 +129,35 @@ class VideoCheck {
 		@param path Where to write it.
 	**/
 	static function written(path:String):Void {
-		final file = Video.open(path, WIDE, TALL, FPS, 800, RATE, 2, 96, 4);
+		final faults = filmed(path, WIDE, TALL, FRAMES, Mixing.VBR);
 
-		says("a video file opens", file != null, file != null ? "the writer is open on " + path
+		says("a video file opens", faults >= 0, faults >= 0 ? "the writer opened on " + path
 			: "the writer would not open, so nothing else here can run");
 
-		if (file == null) return;
+		if (faults < 0) return;
+
+		final size = FileSystem.exists(path) ? FileSystem.stat(path).size : 0;
+
+		says("and takes every frame and all the audio", faults == 0 && size > 0,
+			FRAMES + " frames and " + FRAMES * Std.int(RATE / FPS) + " samples went in with "
+			+ faults + " faults, and the file is " + size + " bytes");
+	}
+
+	/**
+		Writes moving bars and a tone into a file, a frame and the frame's audio at a time, at
+		800 kilobits, quality level 30, speed 7, a key frame at most every five seconds and tuned
+		for screen content.
+
+		@param path Where to write it.
+		@param wide The picture width.
+		@param tall The picture height.
+		@param frames How many frames.
+		@param control The rate control, one of `Mixing.VBR` to `Mixing.Q`.
+		@return How many calls failed, closing included, or -1 where the file would not open.
+	**/
+	static function filmed(path:String, wide:Int, tall:Int, frames:Int, control:Int):Int {
+		final file = Video.open(path, wide, tall, FPS, 800, control, 30, 7, 5, 1, RATE, 2, 96, 4);
+		if (file == null) return -1;
 
 		final span = Std.int(RATE / FPS);
 		final sound = new Vector<cpp.Float32>(span * 2);
@@ -129,7 +165,7 @@ class VideoCheck {
 		var faults = 0;
 		var sample = 0;
 
-		for (frame in 0...FRAMES) {
+		for (frame in 0...frames) {
 			for (index in 0...span) {
 				final value = Math.sin(2 * Math.PI * TONE * sample / RATE) * 0.3;
 
@@ -142,19 +178,55 @@ class VideoCheck {
 				faults++;
 			}
 
-			final pixels = barsAt(frame);
+			final pixels = barsAt(frame, wide, tall);
 
 			if (Video.frame(file, cpp.Pointer.arrayElem(pixels.getData(), 0).constRaw) != 0) {
 				faults++;
 			}
 		}
 
-		final closed = Video.close(file);
-		final size = FileSystem.exists(path) ? FileSystem.stat(path).size : 0;
+		if (Video.close(file) != 0) faults++;
 
-		says("and takes every frame and all the audio", faults == 0 && closed == 0 && size > 0,
-			FRAMES + " frames and " + sample + " samples went in with " + faults
-			+ " faults, closing said " + closed + ", and the file is " + size + " bytes");
+		return faults;
+	}
+
+	/**
+		Writes a second of bars under each rate control, and a few frames at 3840 by 2160, and
+		reads each file back as a container.
+
+		@param where The folder to write into.
+	**/
+	static function controlled(where:String):Void {
+		final heard:Array<String> = [];
+		var whole = true;
+
+		for (control in 0...CONTROLS.length) {
+			final path = where + "/" + CONTROLS[control].toLowerCase() + ".webm";
+			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+
+			final faults = filmed(path, WIDE, TALL, FPS, control);
+			final there = FileSystem.exists(path);
+			final frames = there ? framesIn(path) : -1;
+
+			if (faults != 0 || frames != FPS) whole = false;
+
+			heard.push(CONTROLS[control] + " " + (there ? FileSystem.stat(path).size : 0)
+				+ " bytes " + frames + " frames");
+		}
+
+		says("every rate control writes a whole file", whole, heard.join(", "));
+
+		final path = where + "/uhd.webm";
+		if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+
+		final faults = filmed(path, UHD_WIDE, UHD_TALL, UHD_FRAMES, Mixing.VBR);
+		final there = FileSystem.exists(path);
+		final frames = there ? framesIn(path) : -1;
+
+		says("and a picture of 3840 by 2160 does too", faults == 0 && frames == UHD_FRAMES
+			&& pixelWide == UHD_WIDE && pixelTall == UHD_TALL,
+			frames + " frames of " + UHD_FRAMES + " at " + pixelWide + " by " + pixelTall + " with "
+			+ faults + " faults, " + (there ? FileSystem.stat(path).size : 0) + " bytes");
 	}
 
 	/**
@@ -397,7 +469,7 @@ class VideoCheck {
 			"trim=start_frame=" + LOOKED + ":end_frame=" + (LOOKED + 1), "-frames:v", "1",
 			"-f", "rawvideo", "-pix_fmt", "rgb24", picture]);
 
-		final expected = barsAt(LOOKED);
+		final expected = barsAt(LOOKED, WIDE, TALL);
 
 		if (pictured != 0 || !FileSystem.exists(picture)) {
 			says("ffmpeg decodes a frame back", false, "ffmpeg said " + pictured);
@@ -483,6 +555,6 @@ class VideoCheck {
 		ran++;
 		if (!ok) failed++;
 
-		Sys.println("    " + StringTools.rpad(name, " ", 34) + said + (ok ? "" : "   FAILED"));
+		Sys.println("    " + StringTools.rpad(name, " ", 54) + said + (ok ? "" : "   FAILED"));
 	}
 }

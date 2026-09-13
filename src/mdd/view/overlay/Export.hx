@@ -17,8 +17,12 @@ import mdd.ui.control.Number;
 @:unreflective
 
 /**
-	The export sheet: the format, the rate, the depth, the padding, the fade, the
-	normalising, the output stage and the metadata.
+	An export sheet, for audio or for video.
+
+	The audio sheet offers the format, the rate, the depth, the padding, the fade, the normalising,
+	the output stage and the metadata. The video sheet always writes WebM, so in place of the
+	format, the rate and the metadata it offers the picture size, the frame rate and the VP9
+	encoder's settings, beside the same padding, fade, normalising and output stage.
 
 	It carries its own `Mixing` rather than reading the one in preferences, so choosing
 	a different output stage for one export does not change what is monitored.
@@ -78,9 +82,29 @@ final class Export extends Widget {
 	public static inline final FRAME_RATE = 16;
 
 	/**
+		Row: how the video bitrate is controlled.
+	**/
+	public static inline final RATE_CONTROL = 17;
+
+	/**
+		Row: the VP9 encoder speed.
+	**/
+	public static inline final ENCODER_SPEED = 18;
+
+	/**
+		Row: the longest run between key frames.
+	**/
+	public static inline final KEYFRAMES = 19;
+
+	/**
+		Row: what the video encoder is tuned for.
+	**/
+	public static inline final TUNE = 20;
+
+	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 17;
+	public static inline final KINDS = 21;
 
 	/**
 		How many metadata fields there are.
@@ -92,23 +116,41 @@ final class Export extends Widget {
 	**/
 	public static inline final TIMED = 3;
 
+	/**
+		How many typed numbers the video sheet adds: the video bitrate and the quality level.
+	**/
+	public static inline final CODED = 2;
+
+	/**
+		The most the typed video bitrate goes to, in hundreds of kilobits a second.
+	**/
+	static inline final HUNDREDS = 1000;
+
 	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
 		Locale.EXPORT_QUALITY, Locale.EXPORT_CONSOLE, Locale.EXPORT_OPUS_MODE,
 		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS,
-		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE];
+		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE, Locale.EXPORT_RATE_CONTROL,
+		Locale.EXPORT_ENCODER_SPEED, Locale.EXPORT_KEYFRAMES, Locale.EXPORT_TUNE];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
 
+	static final CODINGS:Array<Locale> = [Locale.EXPORT_VIDEO_BITRATE, Locale.EXPORT_QUALITY_LEVEL];
+
 	static final LABELS:Array<Locale> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
 
-	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus", "WebM video"];
+	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
-	static final SIZED:Array<String> = ["1280 × 720", "1920 × 1080"];
-	static final FRAMED:Array<String> = ["30", "60"];
+	static final SIZED:Array<String> = ["1280 × 720", "1920 × 1080", "2560 × 1440", "3840 × 2160"];
+	static final FRAMED:Array<String> = ["24", "25", "30", "50", "60"];
+	static final CONTROLS:Array<String> = ["VBR", "CBR", "CQ", "Q"];
+	static final SPEEDS:Array<String> = ["5", "6", "7", "8", "9"];
+	static final KEYED:Array<String> = ["1 s", "2 s", "5 s", "10 s"];
+
+	static final TUNINGS:Array<Locale> = [Locale.EXPORT_TUNE_DEFAULT, Locale.EXPORT_TUNE_SCREEN];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
 	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
@@ -144,6 +186,11 @@ final class Export extends Widget {
 	public var session:Session;
 
 	/**
+		Whether this is the video sheet, which always writes WebM.
+	**/
+	public final video:Bool;
+
+	/**
 		What this export is set to. It is this sheet's own copy.
 	**/
 	public final mixing:Mixing = new Mixing();
@@ -151,7 +198,7 @@ final class Export extends Widget {
 	var picked:Bool = false;
 
 	/**
-		The metadata fields.
+		The metadata fields, on the audio sheet only.
 	**/
 	public final fields:Array<Field> = [];
 
@@ -159,6 +206,11 @@ final class Export extends Widget {
 		The typed times.
 	**/
 	public final timers:Array<Number> = [];
+
+	/**
+		The typed video bitrate and quality level, on the video sheet only.
+	**/
+	public final coded:Array<Number> = [];
 
 	/**
 		The button that starts the export.
@@ -194,16 +246,19 @@ final class Export extends Widget {
 	var hoverOn:Int = -1;
 
 	final showing:Array<Int> = [];
+	final entered:Array<Int> = [];
 
 	/**
 		Builds the sheet and every field on it.
 
 		@param session The session to read.
+		@param video Whether it is the video sheet.
 	**/
-	public function new(session:Session) {
+	public function new(session:Session, video:Bool = false) {
 		super();
 		modal = true;
 		this.session = session;
+		this.video = video;
 
 		focusable = true;
 		opaque = true;
@@ -211,12 +266,17 @@ final class Export extends Widget {
 		rise = new Motion(this, 0, true);
 		fade = new Motion(this, 0, false);
 
-		for (index in 0...FIELDS) {
-			final held = new Field("");
+		if (video) {
+			mixing.kind = Mixing.WEBM;
+			mixing.rate = mdd.format.Coded.OPUS_RATE;
+		} else {
+			for (index in 0...FIELDS) {
+				final held = new Field("");
 
-			held.onChange = function(said:String):Void kept();
-			fields.push(held);
-			add(held);
+				held.onChange = function(said:String):Void kept();
+				fields.push(held);
+				add(held);
+			}
 		}
 
 		for (index in 0...TIMED) {
@@ -228,6 +288,25 @@ final class Export extends Widget {
 
 			timers.push(held);
 			add(held);
+		}
+
+		if (video) {
+			final bitrate = new Number("", 0, 0, HUNDREDS);
+
+			bitrate.derived = function(value:Int):String return kilobitsSpelt(value);
+			bitrate.typed = function(said:String):Null<Int> return kilobitsRead(said);
+			bitrate.onChange = function(from:Number):Void coding(0, from.value);
+
+			final level = new Number("", mixing.qualityLevel, 0, 63);
+
+			level.typed = function(said:String):Null<Int> return Std.parseInt(StringTools.trim(said));
+			level.onChange = function(from:Number):Void coding(1, from.value);
+
+			coded.push(bitrate);
+			coded.push(level);
+
+			add(bitrate);
+			add(level);
 		}
 
 		go = new Button("");
@@ -242,6 +321,25 @@ final class Export extends Widget {
 
 	function ordered():Void {
 		showing.resize(0);
+		entered.resize(0);
+
+		if (video) {
+			showing.push(SIZE);
+			showing.push(FRAME_RATE);
+			showing.push(RATE_CONTROL);
+			showing.push(ENCODER_SPEED);
+			showing.push(KEYFRAMES);
+			showing.push(TUNE);
+			showing.push(SIDES);
+			showing.push(QUALITY);
+			showing.push(CEILING);
+			showing.push(CONSOLE);
+
+			if (mixing.rateControl != Mixing.Q) entered.push(0);
+			if (mixing.rateControl == Mixing.CQ || mixing.rateControl == Mixing.Q) entered.push(1);
+
+			return;
+		}
 
 		showing.push(FORMAT);
 		showing.push(RATE);
@@ -259,14 +357,9 @@ final class Export extends Widget {
 			showing.push(OPUS_BITRATE);
 		}
 
-		if (mixing.moving()) {
-			showing.push(SIZE);
-			showing.push(FRAME_RATE);
-		}
-
 		if (mixing.whole() && mixing.depth < 32) showing.push(DITHER);
 
-		if (!mixing.moving()) showing.push(STEMS);
+		showing.push(STEMS);
 	}
 
 	/**
@@ -279,19 +372,31 @@ final class Export extends Widget {
 	}
 
 	/**
+		@return How many typed numbers are shown, times and video settings together. The video
+			bitrate means nothing to constant quality, and the quality level means nothing to
+			either bitrate control.
+	**/
+	public function typed():Int {
+		rows();
+		return TIMED + entered.length;
+	}
+
+	/**
 		Shows the sheet and reads the settings into it.
 	**/
 	public function ask():Void {
 		ordered();
 
-		if (mixing.title == "") mixing.title = session.song.name;
-		if (mixing.artist == "") mixing.artist = session.song.author;
+		if (fields.length == FIELDS) {
+			if (mixing.title == "") mixing.title = session.song.name;
+			if (mixing.artist == "") mixing.artist = session.song.author;
 
-		fields[0].set(mixing.title);
-		fields[1].set(mixing.artist);
-		fields[2].set(mixing.album);
-		fields[3].set(mixing.year);
-		fields[4].set(mixing.comment);
+			fields[0].set(mixing.title);
+			fields[1].set(mixing.artist);
+			fields[2].set(mixing.album);
+			fields[3].set(mixing.year);
+			fields[4].set(mixing.comment);
+		}
 
 		fills();
 
@@ -306,6 +411,8 @@ final class Export extends Widget {
 	}
 
 	function kept():Void {
+		if (fields.length < FIELDS) return;
+
 		mixing.title = fields[0].value;
 		mixing.artist = fields[1].value;
 		mixing.album = fields[2].value;
@@ -355,9 +462,15 @@ final class Export extends Widget {
 		final metrics = root == null ? null : root.metrics;
 
 		wantWidth = metrics == null ? 640 : metrics.whole(640);
-		wantHeight = metrics == null ? 620 : head() + rows() * rowTall()
-			+ metrics.whole(24) + (FIELDS + TIMED) * fieldTall() + metrics.control
-			+ metrics.inset * 3;
+
+		if (metrics == null) {
+			wantHeight = 620;
+			return;
+		}
+
+		final count = rows();
+		wantHeight = head() + count * rowTall() + metrics.whole(24)
+			+ (fields.length + typed()) * fieldTall() + metrics.control + metrics.inset * 3;
 	}
 
 	override function layout():Void {
@@ -370,6 +483,18 @@ final class Export extends Widget {
 
 		var top = y + head() + rows() * rowTall() + metrics.whole(24);
 
+		for (index in 0...coded.length) {
+			final held = coded[index];
+			held.visible = entered.indexOf(index) >= 0;
+
+			if (!held.visible) continue;
+
+			held.arrange(x + metrics.whole(120), top + label * 0.2, metrics.whole(160),
+				fieldTall() - metrics.gap * 2);
+
+			top += fieldTall();
+		}
+
 		for (index in 0...TIMED) {
 			timers[index].arrange(x + metrics.whole(120), top + label * 0.2,
 				metrics.whole(120), fieldTall() - metrics.gap * 2);
@@ -377,7 +502,7 @@ final class Export extends Widget {
 			top += fieldTall();
 		}
 
-		for (index in 0...FIELDS) {
+		for (index in 0...fields.length) {
 			fields[index].arrange(x + metrics.whole(120), top + label * 0.2,
 				width - metrics.whole(120) - metrics.inset, fieldTall() - metrics.gap * 2);
 
@@ -402,7 +527,11 @@ final class Export extends Widget {
 			case CONSOLE: CONSOLES;
 			case OPUS_MODE: OPUS_MODES;
 			case OPUS_BITRATE: OPUS_BITRATE_MODES;
-			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE: NO_KEYS;
+			case TUNE: TUNINGS;
+
+			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE,
+				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES: NO_KEYS;
+
 			case _: SWITCHES;
 		}
 	}
@@ -414,15 +543,18 @@ final class Export extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
-			case RATE: mixing.kind == Mixing.OPUS || mixing.moving() ? ONE_RATE : rates();
+			case RATE: mixing.kind == Mixing.OPUS || video ? ONE_RATE : rates();
 			case DEPTH: depths();
 			case LEAD: LEADS;
 			case TAIL, FADE: TAILED;
 
-			case QUALITY: mixing.kind == Mixing.OPUS || mixing.moving() ? KILOBITS : QUALITIES;
+			case QUALITY: mixing.kind == Mixing.OPUS || video ? KILOBITS : QUALITIES;
 			case OPUS_SPAN: SPANNED;
 			case SIZE: SIZED;
 			case FRAME_RATE: FRAMED;
+			case RATE_CONTROL: CONTROLS;
+			case ENCODER_SPEED: SPEEDS;
+			case KEYFRAMES: KEYED;
 			case _: NOTHING;
 		}
 	}
@@ -465,7 +597,7 @@ final class Export extends Widget {
 	**/
 	public function allows(row:Int, which:Int):Bool {
 		return switch (row) {
-			case RATE: (mixing.kind != Mixing.OPUS && !mixing.moving())
+			case RATE: (mixing.kind != Mixing.OPUS && !video)
 				|| Mixing.RATES[which] == mdd.format.Coded.OPUS_RATE;
 
 			case DEPTH: mixing.whole()
@@ -482,7 +614,7 @@ final class Export extends Widget {
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case FORMAT: mixing.kind;
-			case RATE: mixing.kind == Mixing.OPUS || mixing.moving() ? 0
+			case RATE: mixing.kind == Mixing.OPUS || video ? 0
 				: nearest(Mixing.RATES, mixing.rate);
 			case DEPTH: mixing.depth == 32 ? 2 : (mixing.depth == 24 ? 1 : 0);
 			case SIDES: mixing.stereo ? 1 : 0;
@@ -497,7 +629,11 @@ final class Export extends Widget {
 			case QUALITY: mixing.quality;
 			case STEMS: mixing.stems ? 1 : 0;
 			case SIZE: mixing.size;
-			case FRAME_RATE: mixing.fps > 30 ? 1 : 0;
+			case FRAME_RATE: nearest(Mixing.FRAME_RATES, mixing.fps);
+			case RATE_CONTROL: mixing.rateControl;
+			case ENCODER_SPEED: mixing.encoderSpeed - 5;
+			case KEYFRAMES: nearest(Mixing.KEYFRAME_INTERVALS, mixing.keyframeInterval);
+			case TUNE: mixing.screen ? 1 : 0;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -545,7 +681,7 @@ final class Export extends Widget {
 
 		switch (row) {
 			case FORMAT: mixing.kind = which;
-			case RATE: mixing.rate = mixing.kind == Mixing.OPUS || mixing.moving()
+			case RATE: mixing.rate = mixing.kind == Mixing.OPUS || video
 				? mdd.format.Coded.OPUS_RATE : Mixing.RATES[which];
 			case DEPTH: mixing.depth = which == 2 ? 32 : (which == 1 ? 24 : 16);
 			case SIDES: mixing.stereo = which == 1;
@@ -566,11 +702,15 @@ final class Export extends Widget {
 			case STEMS: mixing.stems = which == 1;
 			case SIZE: mixing.size = which;
 			case FRAME_RATE: mixing.fps = Mixing.FRAME_RATES[which];
+			case RATE_CONTROL: mixing.rateControl = which;
+			case ENCODER_SPEED: mixing.encoderSpeed = 5 + which;
+			case KEYFRAMES: mixing.keyframeInterval = Mixing.KEYFRAME_INTERVALS[which];
+			case TUNE: mixing.screen = which == 1;
 			case _: mixing.dither = which == 1;
 		}
 
 		if (mixing.kind == Mixing.FLAC && mixing.depth == 32) mixing.depth = 24;
-		if (mixing.kind == Mixing.OPUS || mixing.moving()) mixing.rate = mdd.format.Coded.OPUS_RATE;
+		if (mixing.kind == Mixing.OPUS || video) mixing.rate = mdd.format.Coded.OPUS_RATE;
 
 		ordered();
 
@@ -593,6 +733,36 @@ final class Export extends Widget {
 		if (Math.isNaN(read)) return null;
 
 		return Math.round(read * 20);
+	}
+
+	/**
+		@param value The typed video bitrate, in hundreds of kilobits a second.
+		@return It as the field shows it, where nought is automatic.
+	**/
+	function kilobitsSpelt(value:Int):String {
+		return value <= 0 ? translate(Locale.EXPORT_AUTO) : (value * 100) + " kbit/s";
+	}
+
+	/**
+		Reads a typed video bitrate, in kilobits a second, or in megabits where an m follows the
+		number, back into the hundreds of kilobits the field holds.
+
+		@param said What was typed.
+		@return The raw value, nought for automatic, or null where it reads as no number.
+	**/
+	function kilobitsRead(said:String):Null<Int> {
+		final held = StringTools.trim(said.toLowerCase());
+		if (held == "") return null;
+
+		if (held == "auto" || held == translate(Locale.EXPORT_AUTO).toLowerCase()) return 0;
+
+		final read = Std.parseFloat(held);
+		if (Math.isNaN(read)) return null;
+
+		final kilobits = held.indexOf("m") >= 0 ? read * 1000 : read;
+		final hundreds = Math.round(kilobits / 100);
+
+		return hundreds < 1 ? 1 : hundreds;
 	}
 
 	/**
@@ -688,12 +858,27 @@ final class Export extends Widget {
 		invalidate();
 	}
 
+	function coding(which:Int, value:Int):Void {
+		switch (which) {
+			case 0: mixing.videoBitrate = value * 100;
+			case _: mixing.qualityLevel = value;
+		}
+
+		session.changed();
+		invalidate();
+	}
+
 	function fills():Void {
 		if (timers.length < TIMED) return;
 
 		timers[0].set(Math.round(mixing.padStart * 20));
 		timers[1].set(Math.round(mixing.padEnd * 20));
 		timers[2].set(Math.round(mixing.fade * 20));
+
+		if (coded.length < CODED) return;
+
+		coded[0].set(Math.round(mixing.videoBitrate / 100));
+		coded[1].set(mixing.qualityLevel);
 	}
 
 	function shown(row:Int, which:Int):String {
@@ -705,6 +890,15 @@ final class Export extends Widget {
 
 		final held = choices(row);
 		return which < 0 || which >= held.length ? "" : held[which];
+	}
+
+	/**
+		@param row Which row.
+		@return What the row is called, which for the coded bitrate row of a video says it is the
+			audio's.
+	**/
+	function named(row:Int):Locale {
+		return video && row == QUALITY ? Locale.EXPORT_AUDIO_BITRATE : NAMES[row];
 	}
 
 	override function paint(paint:Paint):Void {
@@ -728,7 +922,7 @@ final class Export extends Widget {
 		final small = metrics.small == null ? font : metrics.small;
 
 		paint.reface(font);
-		paint.text(translate(mixing.moving() ? Locale.EXPORT_VIDEO : Locale.EXPORT), x + metrics.inset,
+		paint.text(translate(video ? Locale.EXPORT_VIDEO : Locale.EXPORT), x + metrics.inset,
 			y + metrics.inset + font.ascent, theme.ink, alpha);
 
 		paint.reface(small);
@@ -744,7 +938,7 @@ final class Export extends Widget {
 			final top = y + head() + index * tall;
 
 			paint.reface(small);
-			paint.text(translate(NAMES[row]), x + metrics.inset,
+			paint.text(translate(named(row)), x + metrics.inset,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, alpha * 0.9);
 
 			final many = counted(row);
@@ -781,6 +975,16 @@ final class Export extends Widget {
 
 		paint.reface(small);
 
+		for (index in 0...coded.length) {
+			if (entered.indexOf(index) < 0) continue;
+
+			paint.text(translate(CODINGS[index]), x + metrics.inset,
+				top + (fieldTall() - small.height) * 0.5 + small.ascent, theme.dim,
+				alpha * 0.9);
+
+			top += fieldTall();
+		}
+
 		for (index in 0...TIMED) {
 			paint.text(translate(TIMINGS[index]), x + metrics.inset,
 				top + (fieldTall() - small.height) * 0.5 + small.ascent, theme.dim,
@@ -789,7 +993,7 @@ final class Export extends Widget {
 			top += fieldTall();
 		}
 
-		for (index in 0...FIELDS) {
+		for (index in 0...fields.length) {
 			paint.text(translate(LABELS[index]), x + metrics.inset,
 				top + (fieldTall() - small.height) * 0.5 + small.ascent, theme.dim,
 				alpha * 0.9);
@@ -797,6 +1001,7 @@ final class Export extends Widget {
 			top += fieldTall();
 		}
 
+		for (index in 0...coded.length) if (entered.indexOf(index) >= 0) coded[index].paint(paint);
 		for (held in timers) held.paint(paint);
 		for (held in fields) held.paint(paint);
 
@@ -813,8 +1018,15 @@ final class Export extends Widget {
 		final song = session.song;
 		final seconds = song.tempo.samplesAt(song.ends()) / mdd.song.Tempo.TICKS
 			+ mixing.padStart + mixing.padEnd;
+		final spent = Math.round(seconds * 10) / 10 + " s   ";
 
-		return Math.round(seconds * 10) / 10 + " s   " + mixing.named() + "   "
+		if (video) {
+			return spent + mixing.wide() + " × " + mixing.tall() + "   " + mixing.fps + " fps   "
+				+ (mixing.rateControl == Mixing.Q ? "Q " + mixing.qualityLevel
+				: mixing.kilobits() + " kbit/s");
+		}
+
+		return spent + mixing.named() + "   "
 			+ mixing.rate + " Hz   " + (mixing.stereo ? "2" : "1") + " ch"
 			+ (mixing.whole() ? "   " + mixing.depth + " bit" : "")
 			+ (mixing.rate < 44100 ? "   " + translate(Locale.EXPORT_COARSE) : "");

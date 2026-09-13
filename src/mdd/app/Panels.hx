@@ -91,6 +91,11 @@ final class Panels {
 	public var exporting:Null<Export> = null;
 
 	/**
+		The video export sheet.
+	**/
+	public var exportingVideo:Null<Export> = null;
+
+	/**
 		The sheet that says what a MIDI file holds and takes the choice of what to
 		import out of it.
 	**/
@@ -211,6 +216,7 @@ final class Panels {
 	**/
 	public function follows(session:Session):Void {
 		if (exporting != null) exporting.session = session;
+		if (exportingVideo != null) exportingVideo.session = session;
 		if (preferences != null) preferences.session = session;
 		if (notice != null) notice.session = session;
 		if (welcome != null) welcome.session = session;
@@ -230,6 +236,14 @@ final class Panels {
 	public function sounded():Void {
 		stage.root.raise(exporting);
 		exporting.ask();
+	}
+
+	/**
+		Raises the video export sheet.
+	**/
+	public function exportsVideo():Void {
+		stage.root.raise(exportingVideo);
+		exportingVideo.ask();
 	}
 
 	/**
