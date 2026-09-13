@@ -20,6 +20,10 @@ import mdd.ui.Widget;
 
 /**
 	The scope: one lane per part, showing either the waveform or the spectrum.
+
+	Every sample the chips make reaches it. The speed decides how much time a lane shows and
+	the accuracy how many of those samples a lane keeps, so a fast, coarse scope costs little
+	to draw and a slow, fine one shows every edge a bright patch has.
 **/
 final class Scope extends Widget {
 	/**
@@ -33,9 +37,55 @@ final class Scope extends Widget {
 	public static inline final COLUMNS = 2;
 
 	/**
-		How many samples one lane holds.
+		How many samples one lane holds, which is the longest window any speed and accuracy can
+		ask for with as much again behind it to look for a trigger in.
 	**/
-	public static inline final SPAN = 512;
+	public static inline final SPAN = 16384;
+
+	/**
+		The most samples the spectrum is worked out over. A longer window is read from its
+		newest end, because the bars barely change past this and the cost grows with every
+		sample.
+	**/
+	public static inline final ANALYSED = 2048;
+
+	/**
+		The most columns a lane is drawn in, which bounds the points one trace can take.
+	**/
+	static inline final FIT = 4096;
+
+	/**
+		The lowest bar, in hertz.
+	**/
+	static inline final LOWEST = 40.0;
+
+	/**
+		The highest bar, in hertz, unless half the rate a lane holds is lower.
+	**/
+	static inline final HIGHEST = 8000.0;
+
+	/**
+		How much time a lane shows at each speed, in milliseconds, fastest first.
+	**/
+	public static final SPEEDS:Array<Int> = [10, 20, 40, 80, 160];
+
+	/**
+		The speed a scope starts at, which is close to the 43 ms a lane always showed.
+	**/
+	public static inline final SPEED = 2;
+
+	/**
+		How many captured samples a lane steps over at each accuracy, lowest first.
+	**/
+	public static final STRIDES:Array<Int> = [4, 2, 1];
+
+	/**
+		The accuracy a scope starts at, which keeps one sample in four as the scope always did.
+	**/
+	public static inline final ACCURACY = 0;
+
+	static final ACCURACIES:Array<Locale> = [Locale.SCOPE_LOW, Locale.SCOPE_MEDIUM,
+		Locale.SCOPE_HIGH];
 
 	/**
 		How many bars the spectrum is drawn as.
@@ -83,9 +133,30 @@ final class Scope extends Widget {
 	**/
 	public var showing(default, null):Int = WAVEFORM;
 
+	/**
+		Which of `SPEEDS` is in use.
+	**/
+	public var speed(default, null):Int = SPEED;
+
+	/**
+		Which of `STRIDES` is in use.
+	**/
+	public var accuracy(default, null):Int = ACCURACY;
+
+	/**
+		The rate captured samples arrive at, which is the rate the device plays at.
+	**/
+	public var rate(default, null):Int = 48000;
+
+	/**
+		Called when the speed or the accuracy is changed from the menu, so both can be kept.
+	**/
+	public var onChange:Null<() -> Void> = null;
+
 	var menu:Null<Menu> = null;
 
-	final line:Vector<Float> = new Vector<Float>(SPAN * 2);
+	final skipped:Vector<Int> = new Vector<Int>(Part.COUNT);
+	final line:Vector<Float> = new Vector<Float>(SPAN);
 	final bins:Vector<Float> = new Vector<Float>(BARS);
 	final turns:Vector<Float> = new Vector<Float>(BARS * 2);
 
@@ -101,26 +172,33 @@ final class Scope extends Widget {
 		opaque = true;
 
 		for (i in 0...traces.length) traces[i] = 0;
-		for (i in 0...BARS) {
-			bins[i] = 0;
-			final cycles = Math.round(2 * Math.pow(80, i / (BARS - 1.0)));
-			turns[i * 2] = Math.cos(Math.PI * 2 * cycles / SPAN);
-			turns[i * 2 + 1] = Math.sin(Math.PI * 2 * cycles / SPAN);
-		}
+		for (i in 0...BARS) bins[i] = 0;
 
 		for (i in 0...Part.COUNT) {
 			written[i] = 0;
 			notes[i] = -1;
+			skipped[i] = 0;
 		}
+
+		tuned();
 	}
 
 	/**
-		Adds one sample to a lane.
+		Adds one captured sample to a lane, keeping one in however many the accuracy steps over.
 
 		@param part Which part.
 		@param value The sample.
 	**/
 	public function feed(part:Int, value:Float):Void {
+		final skip = skipped[part] + 1;
+
+		if (skip < STRIDES[accuracy]) {
+			skipped[part] = skip;
+			return;
+		}
+
+		skipped[part] = 0;
+
 		final at = part * SPAN + written[part];
 
 		traces[at] = value;
@@ -137,24 +215,113 @@ final class Scope extends Widget {
 		notes[part] = note;
 	}
 
-	function trigger(part:Int):Int {
+	/**
+		@return How many samples a lane shows at the speed and accuracy in use, at the rate the
+			device plays at. Never more than half of what a lane holds, so there is always room
+			behind the window to look for a trigger.
+	**/
+	public function window():Int {
+		final many = Math.round(SPEEDS[speed] * rate / (1000.0 * STRIDES[accuracy]));
+		final most = Std.int(SPAN / 2);
+
+		return many < 2 ? 2 : (many > most ? most : many);
+	}
+
+	/**
+		Where a lane's window starts: the latest upward crossing through nought that still
+		leaves a whole window of samples after it, so a steady tone stands still, or the latest
+		start there is where no crossing falls within one window of it.
+
+		@param part Which part.
+		@return A place in the lane.
+	**/
+	public function startOf(part:Int):Int {
+		final many = window();
 		final base = part * SPAN;
-		final from = written[part];
+		final latest = (written[part] - many + SPAN * 2) % SPAN;
 
-		var last = traces[base + from];
-		var at = from;
+		var at = latest;
 
-		for (step in 1...SPAN) {
-			at++;
-			if (at >= SPAN) at = 0;
+		for (step in 0...many) {
+			final before = at == 0 ? SPAN - 1 : at - 1;
 
-			final now = traces[base + at];
+			if (traces[base + before] < 0 && traces[base + at] >= 0) return at;
 
-			if (last < 0 && now >= 0) return at;
-			last = now;
+			at = before;
 		}
 
-		return from;
+		return latest;
+	}
+
+	/**
+		@param part Which part.
+		@param at A place in the lane, which wraps.
+		@return The sample held there.
+	**/
+	public inline function sampleAt(part:Int, at:Int):Float {
+		return traces[part * SPAN + ((at % SPAN) + SPAN) % SPAN];
+	}
+
+	/**
+		Changes how much time a lane shows.
+
+		@param which One of `SPEEDS`, by index, held to the nearest where it is outside them.
+	**/
+	public function paces(which:Int):Void {
+		speed = which < 0 ? 0 : (which >= SPEEDS.length ? SPEEDS.length - 1 : which);
+		invalidate();
+	}
+
+	/**
+		Changes how many captured samples a lane keeps, and moves the bars to match.
+
+		The lanes are cleared, because samples kept at one accuracy drawn beside samples kept at
+		another read as a trace that jumps in pitch halfway across.
+
+		@param which One of `STRIDES`, by index, held to the nearest where it is outside them.
+	**/
+	public function refines(which:Int):Void {
+		final want = which < 0 ? 0 : (which >= STRIDES.length ? STRIDES.length - 1 : which);
+		if (want == accuracy) return;
+
+		accuracy = want;
+
+		for (i in 0...traces.length) traces[i] = 0;
+		for (i in 0...Part.COUNT) skipped[i] = 0;
+
+		tuned();
+		invalidate();
+	}
+
+	/**
+		Tells the scope the rate its samples arrive at, which the device decides.
+
+		@param hertz The rate.
+	**/
+	public function rated(hertz:Int):Void {
+		if (hertz <= 0 || hertz == rate) return;
+
+		rate = hertz;
+		tuned();
+		invalidate();
+	}
+
+	/**
+		Places the bars at fixed frequencies for the rate a lane now holds, so the axis stays put
+		when the accuracy changes. They run from `LOWEST` to `HIGHEST`, spaced evenly in pitch,
+		with the top held below half that rate.
+	**/
+	function tuned():Void {
+		final held = rate / STRIDES[accuracy];
+		final ceiling = held * 0.45 < HIGHEST ? held * 0.45 : HIGHEST;
+
+		for (bin in 0...BARS) {
+			final hertz = LOWEST * Math.pow(ceiling / LOWEST, bin / (BARS - 1.0));
+			final turn = 2 * Math.PI * hertz / held;
+
+			turns[bin * 2] = Math.cos(turn);
+			turns[bin * 2 + 1] = Math.sin(turn);
+		}
 	}
 
 	/**
@@ -266,15 +433,47 @@ final class Scope extends Widget {
 
 		menu.divide();
 
+		final speeds = new Menu();
+
+		for (index in 0...SPEEDS.length) {
+			fires(speeds.offer(new Choice(SPEEDS[index] + " ms")), function():Void {
+				paces(index);
+				if (onChange != null) onChange();
+			});
+		}
+
+		final accuracies = new Menu();
+
+		for (index in 0...STRIDES.length) {
+			fires(accuracies.offer(new Choice(translate(ACCURACIES[index]))), function():Void {
+				refines(index);
+				if (onChange != null) onChange();
+			});
+		}
+
+		menu.offer(new Choice(translate(Locale.SCOPE_SPEED) + "  " + SPEEDS[speed] + " ms"))
+			.submenu = speeds;
+		menu.offer(new Choice(translate(Locale.SCOPE_ACCURACY) + "  "
+			+ translate(ACCURACIES[accuracy]))).submenu = accuracies;
+
+		menu.divide();
+
 		fires(menu.offer(new Choice(translate(Locale.SCOPE_INSPECT))), function():Void
 			session.choose(part));
 
 		root.pop(menu, px, py, this);
 	}
 
-	function bands(part:Int):Float {
+	/**
+		Works out how much of each bar's frequency is in a run of samples, into `bins`.
+
+		@param part Which part.
+		@param start Where the run starts in the lane.
+		@param many How long it is.
+		@return The largest bar.
+	**/
+	function bands(part:Int, start:Int, many:Int):Float {
 		final base = part * SPAN;
-		final from = written[part];
 		var most = 0.0;
 
 		for (bin in 0...BARS) {
@@ -285,9 +484,9 @@ final class Scope extends Widget {
 			var sinNow = 0.0;
 			var real = 0.0;
 			var imaginary = 0.0;
-			var at = from;
+			var at = start;
 
-			for (step in 0...SPAN) {
+			for (step in 0...many) {
 				final value = traces[base + at];
 
 				at++;
@@ -301,7 +500,7 @@ final class Scope extends Widget {
 				cosNow = held;
 			}
 
-			final power = Math.sqrt(real * real + imaginary * imaginary) / SPAN;
+			final power = Math.sqrt(real * real + imaginary * imaginary) / many;
 			bins[bin] = power;
 			if (power > most) most = power;
 		}
@@ -309,18 +508,95 @@ final class Scope extends Widget {
 		return most;
 	}
 
-	function loudest(part:Int):Float {
+	/**
+		@param part Which part.
+		@param start Where the run starts in the lane.
+		@param many How long it is.
+		@return The largest sample in the run, ignoring its sign.
+	**/
+	function loudest(part:Int, start:Int, many:Int):Float {
 		final base = part * SPAN;
 		var most = 0.0;
+		var at = start;
 
-		for (i in 0...SPAN) {
-			final held = traces[base + i];
+		for (step in 0...many) {
+			final held = traces[base + at];
 			final value = held < 0 ? -held : held;
 
 			if (value > most) most = value;
+
+			at++;
+			if (at >= SPAN) at = 0;
 		}
 
 		return most;
+	}
+
+	/**
+		Lays a window of samples out across a lane, into `line`.
+
+		Where there are no more samples than columns, every sample is a point. Where there are
+		more, each column is drawn as the highest and the lowest sample that falls in it, so a
+		peak narrower than a pixel still shows rather than falling between two points.
+
+		@param base Where the lane starts in the traces.
+		@param start Where the window starts in the lane.
+		@param many How many samples the window holds.
+		@param columns How many pixels across the lane is.
+		@param left Where the trace starts, across.
+		@param across How wide it is.
+		@param middle Where nought is, down.
+		@param gain How far down one unit of sample goes.
+		@return How many points were laid.
+	**/
+	function traced(base:Int, start:Int, many:Int, columns:Int, left:Float, across:Float,
+			middle:Float, gain:Float):Int {
+		if (many <= columns) {
+			final step = many > 1 ? across / (many - 1) : across;
+			var read = start;
+
+			for (i in 0...many) {
+				line[i * 2] = left + i * step;
+				line[i * 2 + 1] = middle - traces[base + read] * gain;
+
+				read++;
+				if (read >= SPAN) read = 0;
+			}
+
+			return many;
+		}
+
+		final wide = columns > FIT ? FIT : columns;
+		final step = across / wide;
+
+		var read = start;
+		var used = 0;
+
+		for (column in 0...wide) {
+			final until = Std.int((column + 1) * many / wide);
+
+			var low = traces[base + read];
+			var high = low;
+
+			while (used < until) {
+				final value = traces[base + read];
+
+				if (value < low) low = value;
+				if (value > high) high = value;
+
+				read++;
+				if (read >= SPAN) read = 0;
+
+				used++;
+			}
+
+			line[column * 4] = left + column * step;
+			line[column * 4 + 1] = middle - high * gain;
+			line[column * 4 + 2] = left + (column + 0.5) * step;
+			line[column * 4 + 3] = middle - low * gain;
+		}
+
+		return wide * 2;
 	}
 
 	override function paint(paint:Paint):Void {
@@ -392,14 +668,16 @@ final class Scope extends Widget {
 		paint.text(nameOf(part), left + inset + metrics.unit * 2,
 			top + inset + metrics.unit + font.ascent, theme.dim, 0.8);
 
-		final peak = loudest(part);
-
-		if (peak <= 0.0005) return;
-
 		final reach = tall * 0.5 - inset * 2;
+		final many = window();
 
 		if (showing == SPECTRUM) {
-			final most = bands(part);
+			final analysed = many < ANALYSED ? many : ANALYSED;
+			final start = (written[part] - analysed + SPAN) % SPAN;
+
+			if (loudest(part, start, analysed) <= 0.0005) return;
+
+			final most = bands(part, start, analysed);
 			if (most <= 0) return;
 
 			final step = across / BARS;
@@ -407,8 +685,8 @@ final class Scope extends Widget {
 			final floor = middle + reach;
 
 			for (bin in 0...BARS) {
-				final part2 = bins[bin] / most;
-				final high = reach * 2 * part2;
+				final share = bins[bin] / most;
+				final high = reach * 2 * share;
 				if (high < 1) continue;
 
 				paint.rect(from + bin * step, floor - high, stalk, high, theme.part(part), 0.9);
@@ -418,29 +696,19 @@ final class Scope extends Widget {
 			return;
 		}
 
+		final start = startOf(part);
+		final peak = loudest(part, start, many);
+
+		if (peak <= 0.0005) return;
+
 		paint.rect(from, middle, across, metrics.whole(1), theme.frame, 0.5);
 
-		final gain = reach / peak;
-		final base = part * SPAN;
-		final at = trigger(part);
-		final steps = Std.int(across);
-		final many = steps > SPAN ? SPAN : steps;
-
-		final step = across / many;
-		var read = at;
-
-		for (i in 0...many) {
-			final value = traces[base + read];
-
-			read++;
-			if (read >= SPAN) read = 0;
-
-			line[i * 2] = from + i * step;
-			line[i * 2 + 1] = middle - value * gain;
-		}
+		final columns = Std.int(across) < 2 ? 2 : Std.int(across);
+		final count = traced(part * SPAN, start, many, columns, from, across, middle,
+			reach / peak);
 
 		painted++;
-		paint.polyline(line, many, metrics.whole(1.5), theme.part(part), 0.95);
+		paint.polyline(line, count, metrics.whole(1.5), theme.part(part), 0.95);
 
 		if (notes[part] >= 0) {
 			paint.textRight(spelt(notes[part]), left + wide - inset - metrics.unit * 2,

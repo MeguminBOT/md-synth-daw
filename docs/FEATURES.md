@@ -228,7 +228,11 @@ left exactly as it was written, because it already carries the level it was play
 ## Watching the hardware
 
 - **A register timeline**, saying which chip took each write and when.
-- **A scope**, switching between waveform and spectrum.
+- **A scope**, switching between waveform and spectrum. Its right click menu sets the speed,
+  how much time each lane shows from 10 ms to 160 ms, and the accuracy, whether a lane keeps one
+  sample in four, one in two or every sample the chips make. A trace with more samples than its
+  lane has pixels is drawn with every peak in it rather than only its first samples. Both
+  settings are kept between sessions.
 - **A hardware meter** for what the song is asking of the parts.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note.
 - **Hardware profiles.** Mega Drive and Master System, which is why the chips are named for chips:

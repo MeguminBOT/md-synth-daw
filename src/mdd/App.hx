@@ -210,6 +210,7 @@ class App {
 		dress();
 		stage.measured();
 		sound.open(session.transport);
+		scoped();
 
 		stage.show(settings == null || settings.asFlag("maximised", true));
 		collector.minds();
@@ -512,6 +513,7 @@ class App {
 		panels.dress(session);
 		menus.dress(session);
 		bound();
+		scoped();
 
 		session.transport.silence();
 		sound.follows(session.transport);
@@ -1019,6 +1021,25 @@ class App {
 	}
 
 	/**
+		Puts the kept speed and accuracy on the scope, tells it the rate the device plays at,
+		and has it keep the settings when either is changed.
+
+		Loading a song builds the panels again, and the scope with them, so this runs after
+		every build of the panels rather than once at start. Run only once, the scope a song
+		opened into was back at its defaults and kept nothing that was changed on it.
+	**/
+	function scoped():Void {
+		final scope = panels.centre.scope;
+
+		if (sound.render != null) scope.rated(sound.render.rate);
+		if (settings == null) return;
+
+		scope.paces(settings.asWhole("scopeSpeed", mdd.view.monitor.Scope.SPEED));
+		scope.refines(settings.asWhole("scopeAccuracy", mdd.view.monitor.Scope.ACCURACY));
+		scope.onChange = function():Void keeps();
+	}
+
+	/**
 		Bakes the faces again and lays the interface out, which changing the pairing needs.
 	**/
 	function redressed():Void {
@@ -1043,6 +1064,8 @@ class App {
 		settings.whole("keeping", panels.preferences.keeping);
 		settings.whole("backups", panels.preferences.backups);
 		settings.whole("backupAge", panels.preferences.backupAge);
+		settings.whole("scopeSpeed", panels.centre.scope.speed);
+		settings.whole("scopeAccuracy", panels.centre.scope.accuracy);
 		if (stage.shown) settings.flag("maximised", stage.maximised());
 		settings.whole("width", Sdl.windowWidth(stage.window));
 		settings.whole("height", Sdl.windowHeight(stage.window));

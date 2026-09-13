@@ -120,7 +120,7 @@ final class Sound {
 		@param scope The scope to fill.
 	**/
 	public function poured(scope:Scope):Void {
-		final ear = Std.int(render.heardAt / Render.TAP_EVERY);
+		final ear = render.heardAt;
 
 		var now = render.tapped;
 		if (ear > 0 && ear < now) now = ear;

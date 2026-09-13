@@ -3454,7 +3454,7 @@ class SpineCheck {
 		says("and its spectrum", centre.scope.painted == 6 && bandMiddle < 16.67,
 			centre.scope.painted + " lanes transformed, median frame " + round(bandMiddle, 3)
 			+ " ms, worst " + round(bandWorst * 1000, 3)
-			+ " ms over " + mdd.view.monitor.Scope.BARS + " bands of " + mdd.view.monitor.Scope.SPAN
+			+ " ms over " + mdd.view.monitor.Scope.BARS + " bands of " + centre.scope.window()
 			+ " samples");
 
 		centre.scope.shows(mdd.view.monitor.Scope.WAVEFORM);

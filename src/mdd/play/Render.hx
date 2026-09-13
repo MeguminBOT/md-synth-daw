@@ -173,14 +173,11 @@ final class Render {
 	static inline final PRIMED = 0.100;
 
 	/**
-		How many samples the scope can read back.
+		How many samples the scope can read back. Every sample is kept and the scope decides
+		how many of them to use, so this holds about 170 ms at 48 kHz: enough that a frame
+		the main thread was late for does not leave a gap in a lane.
 	**/
-	public static inline final TAPS = 2048;
-
-	/**
-		One in this many samples is kept for the scope.
-	**/
-	public static inline final TAP_EVERY = 4;
+	public static inline final TAPS = 8192;
 	static inline final FM_TAP = 1.0 / 200.0;
 	static inline final PSG_TAP = 1.0 / 340.0;
 
@@ -211,7 +208,6 @@ final class Render {
 		The smallest the cushion has been since it was last forgotten.
 	**/
 	public var leastHeld(default, null):Int = 0;
-	var tapNext:Int = 0;
 
 	/**
 		The FM part this render drives.
@@ -619,12 +615,7 @@ final class Render {
 			wentLeft = left;
 			wentRight = right;
 
-			tapNext++;
-
-			if (tapNext >= TAP_EVERY) {
-				tapNext = 0;
-				tapping();
-			}
+			tapping();
 
 			final wasLeft = rawLeft;
 			final wasRight = rawRight;
