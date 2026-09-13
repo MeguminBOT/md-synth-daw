@@ -325,7 +325,7 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	config.rc_dropframe_thresh = 0;
 	config.kf_mode = VPX_KF_AUTO;
 	config.kf_min_dist = 0;
-	config.kf_max_dist = (unsigned int) (fps * (keyframes < 1 ? 1 : keyframes));
+	config.kf_max_dist = (unsigned int) (keyframes < 1 ? 1 : keyframes);
 
 	if (vpx_codec_enc_init(&video->codec, face, &config, 0) != VPX_CODEC_OK) {
 		mdd_video_free(video);

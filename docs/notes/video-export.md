@@ -47,7 +47,7 @@ The video sheet's settings reach libvpx under these names:
     Video bitrate       rc_target_bitrate, in kilobits a second, never below 100
     Quality level       VP8E_SET_CQ_LEVEL, 0 to 63
     Encoder speed       VP8E_SET_CPUUSED, 5 to 9
-    Keyframe interval   kf_max_dist, the seconds times the frame rate, with kf_min_dist 0
+    Keyframe interval   kf_max_dist, the seconds times the frame rate, rounded, with kf_min_dist 0
     Tune                VP9E_SET_TUNE_CONTENT: VP9E_CONTENT_DEFAULT or VP9E_CONTENT_SCREEN
 
 The realtime only build turns any speed from -4 to 4 into 5, so the sheet offers 5 to 9 and
@@ -60,6 +60,30 @@ Tile columns follow the width: as many as the encoder threads allow while each t
 The scope in a video is drawn at its design sizes times the picture height over 720, in faces
 baked at that scale for the one export, so 3840 by 2160 carries the scope drawn three times as
 large rather than the 1280 by 720 one with room around it.
+
+## Defaults
+
+The video settings start at YouTube's recommended upload encoding settings, as
+support.google.com/youtube/answer/1722171 gave them on 2026-09-13:
+
+    frame rate          60, one of the common rates it lists
+    bitrate type        variable
+    video bitrate       its SDR figure for the size, the high frame rate one at 48 and above
+    key frames          a closed group of pictures half the frame rate long, so every 0.5 s
+    colour              BT.709
+    audio               48 kHz, stereo at 384 kbit/s, Opus being one of the codecs it names
+
+Its bitrates, in kilobits a second, with the low end taken where it gives a range:
+
+    size            24 to 30    48 to 60
+    1280 by 720     5000        7500
+    1920 by 1080    8000        12000
+    2560 by 1440    16000       24000
+    3840 by 2160    35000       53000
+
+It names no size, so a video starts at 2560 by 1440. Its container is MP4 and its video codec
+H.264, and neither is written here: the file is WebM and the video VP9. WebM is on the list of
+formats its upload help accepts.
 
 ## Measured
 

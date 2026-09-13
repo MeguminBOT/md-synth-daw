@@ -26,7 +26,7 @@ typedef struct MddVideo MddVideo;
  *     is better and larger.
  * @param speed The encoder speed, five to nine, where higher is faster and worse. The encoder is
  *     built realtime only, and that build takes nothing below five.
- * @param keyframes The longest run between key frames, in seconds.
+ * @param keyframes The longest run between key frames, in frames.
  * @param screen Nonzero to tune for screen content, nought for the default tuning.
  * @param rate The audio rate in hertz: 8000, 12000, 16000, 24000 or 48000.
  * @param channels One or two.

@@ -22,7 +22,7 @@ extern class Video {
 		@param quality The quantiser level the two quality controls aim at, nought to 63, where
 			lower is better and larger.
 		@param speed The encoder speed, five to nine, where higher is faster and worse.
-		@param keyframes The longest run between key frames, in seconds.
+		@param keyframes The longest run between key frames, in frames.
 		@param screen One to tune for screen content, nought for the default tuning.
 		@param rate The audio rate: 8000, 12000, 16000, 24000 or 48000 hertz.
 		@param channels One or two.

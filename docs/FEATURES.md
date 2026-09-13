@@ -326,18 +326,24 @@ drawn over the piece, with the mix underneath as Opus audio. The scope in the vi
 speed, accuracy and view the scope on screen is set to, and a bigger picture draws the same scope
 bigger, text and lines included, rather than a small one with room around it.
 
+The settings start at YouTube's recommended upload settings: 60 frames a second, a variable
+bitrate at YouTube's figure for the size and frame rate, a key frame every half second, and stereo
+audio at 384 kbit/s and 48 kHz. YouTube names no size, so a video starts at 2560 × 1440.
+
 - **Video size:** 1280 × 720, 1920 × 1080, 2560 × 1440 or 3840 × 2160.
-- **Frame rate:** 24, 25, 30, 50 or 60 frames a second.
+- **Frame rate:** 24, 25, 30, 48, 50 or 60 frames a second.
 - **Rate control:** VBR aims at an average bitrate, CBR holds the bitrate steady, CQ aims at a
   quality level with the bitrate as its ceiling, and Q aims at a quality level whatever it costs.
 - **Video bitrate:** typed in kbit/s, or in megabits with an m after the number. Auto takes
-  2500 kbit/s at 1280 × 720, 5000 at 1920 × 1080, 9000 at 2560 × 1440 and 16000 at 3840 × 2160,
-  and 1.6 times that above 30 frames a second. Q has no use for a bitrate, so it hides the field.
+  YouTube's recommended bitrate: 5000 kbit/s at 1280 × 720, 8000 at 1920 × 1080, 16000 at
+  2560 × 1440 and 35000 at 3840 × 2160, or 7500, 12000, 24000 and 53000 at 48 frames a second and
+  above. Where YouTube gives a range, Auto takes the low end. Q has no use for a bitrate, so it
+  hides the field.
 - **Quality level:** 0 to 63, for CQ and Q. Lower is better and bigger.
 - **Encoder speed:** 5 to 9. Higher encodes faster and looks worse at the same bitrate. The VP9
   encoder is built for realtime encoding, and that build starts at 5.
-- **Keyframe interval:** a key frame at least every 1, 2, 5 or 10 seconds. Shorter seeks faster
-  and costs more.
+- **Keyframe interval:** a key frame at least every 0.5, 1, 2, 5 or 10 seconds. Shorter seeks
+  faster and costs more.
 - **Tune:** Screen suits the scope's flat ground and thin lines, and Default is VP9's ordinary
   tuning.
 - **Audio bitrate**, channels, normalising, the output stage and the silence and fade times work

@@ -145,15 +145,15 @@ final class Export extends Widget {
 	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	static final SIZED:Array<String> = ["1280 × 720", "1920 × 1080", "2560 × 1440", "3840 × 2160"];
-	static final FRAMED:Array<String> = ["24", "25", "30", "50", "60"];
+	static final FRAMED:Array<String> = ["24", "25", "30", "48", "50", "60"];
 	static final CONTROLS:Array<String> = ["VBR", "CBR", "CQ", "Q"];
 	static final SPEEDS:Array<String> = ["5", "6", "7", "8", "9"];
-	static final KEYED:Array<String> = ["1 s", "2 s", "5 s", "10 s"];
+	static final KEYED:Array<String> = ["0.5 s", "1 s", "2 s", "5 s", "10 s"];
 
 	static final TUNINGS:Array<Locale> = [Locale.EXPORT_TUNE_DEFAULT, Locale.EXPORT_TUNE_SCREEN];
 
 	static final QUALITIES:Array<String> = ["q2", "q4", "q6", "q8", "q10"];
-	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k"];
+	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k", "384k"];
 	static final SIDINGS:Array<Locale> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
 	static final SWITCHES:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
 
@@ -269,6 +269,7 @@ final class Export extends Widget {
 		if (video) {
 			mixing.kind = Mixing.WEBM;
 			mixing.rate = mdd.format.Coded.OPUS_RATE;
+			mixing.quality = mdd.format.Coded.BITRATES.indexOf(Mixing.VIDEO_AUDIO_KILOBITS);
 		} else {
 			for (index in 0...FIELDS) {
 				final held = new Field("");
@@ -632,7 +633,7 @@ final class Export extends Widget {
 			case FRAME_RATE: nearest(Mixing.FRAME_RATES, mixing.fps);
 			case RATE_CONTROL: mixing.rateControl;
 			case ENCODER_SPEED: mixing.encoderSpeed - 5;
-			case KEYFRAMES: nearest(Mixing.KEYFRAME_INTERVALS, mixing.keyframeInterval);
+			case KEYFRAMES: closest(Mixing.KEYFRAME_INTERVALS, mixing.keyframeInterval);
 			case TUNE: mixing.screen ? 1 : 0;
 			case _: mixing.dither ? 1 : 0;
 		}

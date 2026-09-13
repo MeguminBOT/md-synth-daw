@@ -33,7 +33,7 @@ final class Coded {
 	/**
 		The Opus bitrates on offer, in kilobits a second.
 	**/
-	public static final BITRATES:Array<Int> = [96, 128, 160, 192, 256];
+	public static final BITRATES:Array<Int> = [96, 128, 160, 192, 256, 384];
 
 	/**
 		Encodes Ogg Vorbis.

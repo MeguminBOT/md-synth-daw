@@ -80,12 +80,18 @@ final class Mixing {
 	/**
 		The frame rates a video is offered at.
 	**/
-	public static final FRAME_RATES:Array<Int> = [24, 25, 30, 50, 60];
+	public static final FRAME_RATES:Array<Int> = [24, 25, 30, 48, 50, 60];
 
 	/**
 		The longest runs between key frames a video is offered, in seconds.
 	**/
-	public static final KEYFRAME_INTERVALS:Array<Int> = [1, 2, 5, 10];
+	public static final KEYFRAME_INTERVALS:Array<Float> = [0.5, 1, 2, 5, 10];
+
+	/**
+		The Opus bitrate a video's audio starts at, in kilobits a second, which is what YouTube's
+		recommended upload settings ask of stereo.
+	**/
+	public static inline final VIDEO_AUDIO_KILOBITS = 384;
 
 	/**
 		Rate control: the video bitrate is an average the encoder moves around.
@@ -154,8 +160,12 @@ final class Mixing {
 
 	/**
 		Which of `SIZES` a video is drawn at, counted in pairs.
+
+		The video settings start at YouTube's recommended upload settings where it gives one: 60
+		frames, a variable bitrate at its figure for the size and frame rate, and a key frame every
+		half second. It names no size, so a video starts at 2560 by 1440.
 	**/
-	public var size:Int = 0;
+	public var size:Int = 2;
 
 	/**
 		Frames a second, for a video.
@@ -183,9 +193,10 @@ final class Mixing {
 	public var encoderSpeed:Int = 7;
 
 	/**
-		The longest run between key frames, in seconds.
+		The longest run between key frames, in seconds. Half a second is YouTube's closed group of
+		pictures half the frame rate long.
 	**/
-	public var keyframeInterval:Int = 5;
+	public var keyframeInterval:Float = 0.5;
 
 	/**
 		Whether the video encoder is tuned for screen content, which a scope is.
@@ -303,17 +314,29 @@ final class Mixing {
 
 	/**
 		@return The video bitrate aimed at, in kilobits a second: `videoBitrate` where it is set,
-			and otherwise one that rises with the picture size and the frame rate. A scope is lines
-			on a flat ground and codes cheaply, so those sit well below what footage of the same
-			size would want.
+			and otherwise YouTube's recommended bitrate for an SDR upload of the picture size, where
+			48 frames a second and above take its high frame rate figure. Where YouTube gives a
+			range, this is the low end of it.
 	**/
 	public function kilobits():Int {
 		if (videoBitrate > 0) return videoBitrate;
 
 		final lines = tall();
-		final base = lines >= 2160 ? 16000 : (lines >= 1440 ? 9000 : (lines >= 1080 ? 5000 : 2500));
+		final high = fps > 30;
 
-		return fps > 30 ? Std.int(base * 1.6) : base;
+		if (lines >= 2160) return high ? 53000 : 35000;
+		if (lines >= 1440) return high ? 24000 : 16000;
+		if (lines >= 1080) return high ? 12000 : 8000;
+
+		return high ? 7500 : 5000;
+	}
+
+	/**
+		@return The longest run between key frames, in frames, never below one.
+	**/
+	public function keyframeDistance():Int {
+		final frames = Math.round(fps * keyframeInterval);
+		return frames < 1 ? 1 : frames;
 	}
 
 	/**

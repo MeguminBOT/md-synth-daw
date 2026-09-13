@@ -156,7 +156,8 @@ class VideoCheck {
 		@return How many calls failed, closing included, or -1 where the file would not open.
 	**/
 	static function filmed(path:String, wide:Int, tall:Int, frames:Int, control:Int):Int {
-		final file = Video.open(path, wide, tall, FPS, 800, control, 30, 7, 5, 1, RATE, 2, 96, 4);
+		final file = Video.open(path, wide, tall, FPS, 800, control, 30, 7, FPS * 5, 1, RATE, 2, 96,
+			4);
 		if (file == null) return -1;
 
 		final span = Std.int(RATE / FPS);
