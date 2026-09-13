@@ -36,6 +36,9 @@ icon, clone, insert above, reset, mute, merge the clips, and delete. Clips can b
 tracks, resized, sliced in two, and moved as a group. A clip knows where inside its pattern it
 starts, so slicing one keeps the music where it was rather than restarting it.
 
+Drawing lays a clip where you press and another for every length of it you drag across, so four
+bars of a pattern is one stroke rather than four clicks, and the whole run undoes in one step.
+
 A track can also drive one automation lane of a channel it does not otherwise own.
 
 ### The piano roll

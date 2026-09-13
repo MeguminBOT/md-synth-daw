@@ -117,6 +117,11 @@ final class Playlist extends Widget {
 	var railTo:Int = -1;
 
 	var banding:Bool = false;
+	var painting:Int = -1;
+	var paintAt:Int = 0;
+	var paintLong:Int = 0;
+
+	final laid:Array<Clip> = [];
 	var bandFromX:Float = 0;
 	var bandFromY:Float = 0;
 	var bandToX:Float = 0;
@@ -435,6 +440,8 @@ final class Playlist extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				if (painting >= 0) paintDropped();
+
 				final rein = reinAt(event.x, event.y);
 
 				if (rein != 0) {
@@ -512,6 +519,11 @@ final class Playlist extends Widget {
 					return true;
 				}
 
+				if (painting >= 0) {
+					paints(event.x);
+					return true;
+				}
+
 				if (dragging == null) return false;
 
 				if (sizing) {
@@ -548,6 +560,11 @@ final class Playlist extends Widget {
 
 				if (banding) {
 					banded();
+					return true;
+				}
+
+				if (painting >= 0) {
+					paintDropped();
 					return true;
 				}
 
@@ -646,21 +663,113 @@ final class Playlist extends Widget {
 		final at = freely(tickAt(event.x), event.alt());
 		final clip = new Clip(session.pattern, at < 0 ? 0 : at, pattern.length);
 
-		session.does(new AddClip(which, clip));
+		painting = which;
+		paintAt = clip.at;
+		paintLong = clip.length;
+
+		laid.resize(0);
+		lays(clip);
 
 		picked.only(clip);
 		chosen = clip;
 		chosenTrack = which;
-		dragging = clip;
-		sizing = true;
-		grabTick = 0;
-		grabWasAt = clip.at;
-		grabFresh = true;
-		grabRow = which;
-		grabs(clip);
 
 		invalidate();
 		return true;
+	}
+
+	/**
+		Puts a clip on the track being painted without writing to the undo stack, which is
+		what leaves a drag across four bars one step there rather than four.
+
+		@param clip The clip.
+	**/
+	function lays(clip:Clip):Void {
+		final tracks = session.song.tracks;
+		if (painting < 0 || painting >= tracks.length) return;
+
+		session.holds();
+		tracks[painting].add(clip);
+		session.frees();
+
+		laid.push(clip);
+	}
+
+	/**
+		Lays or takes back copies so the run reaches wherever the pointer is.
+
+		The run only ever grows to the right, because a clip is laid where the press was and
+		dragging back over it would otherwise take away the one asked for.
+
+		@param px A point, across.
+	**/
+	function paints(px:Float):Void {
+		final pattern = session.current();
+		if (pattern == null || paintLong < 1) return;
+
+		final reach = tickAt(px) - paintAt;
+		var want = reach < 0 ? 1 : Std.int(reach / paintLong) + 1;
+
+		if (want < 1) want = 1;
+		if (want == laid.length) return;
+
+		final tracks = session.song.tracks;
+		if (painting < 0 || painting >= tracks.length) return;
+
+		session.holds();
+
+		while (laid.length > want) {
+			tracks[painting].remove(laid.pop());
+		}
+
+		while (laid.length < want) {
+			laid.push(tracks[painting].add(new Clip(session.pattern,
+				paintAt + laid.length * paintLong, paintLong)));
+		}
+
+		session.frees();
+
+		chosen = laid[laid.length - 1];
+		picked.only(chosen);
+
+		invalidate();
+	}
+
+	/**
+		Takes the painted run back off and lays it again as one step on the undo stack.
+	**/
+	function paintDropped():Void {
+		final track = painting;
+
+		painting = -1;
+		if (laid.length == 0) return;
+
+		final tracks = session.song.tracks;
+
+		if (track >= 0 && track < tracks.length) {
+			session.holds();
+			for (clip in laid) tracks[track].remove(clip);
+			session.frees();
+		}
+
+		if (laid.length == 1) {
+			session.does(new AddClip(track, laid[0]));
+		} else {
+			final group = new mdd.song.edit.Together("add " + counted(laid.length));
+
+			for (clip in laid) group.also(new AddClip(track, clip));
+
+			session.does(group);
+		}
+
+		chosen = laid[laid.length - 1];
+		picked.only(chosen);
+		chosenTrack = track;
+
+		laid.resize(0);
+
+		session.changed();
+		invalidate();
 	}
 
 	function sliced(which:Int, clip:Clip, at:Int):Void {

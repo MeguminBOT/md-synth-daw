@@ -2856,6 +2856,7 @@ class SpineCheck {
 		levelled(tree, session, roll, beat);
 		stepped(tree, session, roll, beat);
 		clipped(session, centre);
+		brushed(tree, session, centre);
 		cornered(tree, session, centre);
 		gathered(tree, session, centre.roll);
 	}
@@ -3047,6 +3048,80 @@ class SpineCheck {
 			again + " clips back from a single undo");
 
 		for (track in tracks) track.clips.resize(0);
+	}
+
+	/**
+		The pencil on the playlist lays a run of clips across a drag.
+
+		A press laid one clip and the drag that followed resized it, so laying four bars of a
+		pattern meant four presses. The drag now lays a copy for every length of the clip it
+		crosses, and the whole run is one step on the undo stack.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function brushed(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		centre.show(Centre.PLAYLIST);
+		laid(tree);
+
+		final playlist = centre.playlist;
+		final tracks = session.song.tracks;
+		final pattern = session.current();
+
+		if (pattern == null) return;
+
+		for (track in tracks) track.clips.resize(0);
+
+		final was = pattern.length;
+		final long = session.song.tempo.ppqn * 4;
+
+		pattern.length = long;
+
+		playlist.fit();
+		laid(tree);
+
+		while (long * playlist.perTick < 40 && playlist.perTick < 1) {
+			playlist.zoom(2, playlist.x + playlist.names());
+			laid(tree);
+		}
+
+		playlist.scrollTo(0);
+		laid(tree);
+
+		session.history.clear();
+		session.tool = Session.DRAW;
+
+		final row = playlist.atTrack(0) + 4;
+
+		swept(playlist, [playlist.atTick(0), row, playlist.atTick(long), row,
+			playlist.atTick(long * 2), row, playlist.atTick(long * 3), row],
+			mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final clips = tracks[0].clips;
+		var inLine = 0;
+
+		for (index in 0...clips.length) {
+			if (clips[index].at == index * long && clips[index].length == long) inLine++;
+		}
+
+		says("the pencil lays a clip for every length the drag crosses",
+			clips.length == 4 && inLine == 4 && session.history.depth() == 1,
+			clips.length + " clips of " + long + " ticks, " + inLine
+			+ " of them end to end from tick 0 across a drag of three lengths, in "
+			+ session.history.depth() + " step of history");
+
+		session.undo();
+
+		says("and the whole run comes off in one undo", tracks[0].clips.length == 0,
+			tracks[0].clips.length + " clips left after a single undo");
+
+		for (track in tracks) track.clips.resize(0);
+
+		pattern.length = was;
+
+		session.history.clear();
+		session.tool = Session.SELECT;
 	}
 
 	static function cornered(tree:Root, session:mdd.app.Session, centre:Centre):Void {
