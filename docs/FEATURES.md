@@ -51,7 +51,11 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   becoming a sliver of one. The roll and the transport bar offer the same divisions, and
   the one you pick is kept between sessions. A note you place lands on the step you
   pointed at; one you drag goes to the nearest line.
-- Zoom to fit, `Ctrl` and the wheel to zoom, middle drag to pan.
+- `Ctrl` and the wheel to zoom, as far out as a bar four pixels wide and as far in as one
+  two thousand wide, wherever the pattern happens to end. `Ctrl` and the wheel over the
+  keyboard, or with `Shift` held anywhere, makes the rows taller or shorter instead. Middle
+  drag to pan, and zoom to fit from the right click menu to get back. The view scrolls four
+  bars past the end of the pattern, which is shaded so the end still reads as one.
 - Velocity per note.
 - Parameter lanes underneath the roll, folded and scrolled.
 - A note the chip cannot sound is hatched immediately, with a warning that clicks through to it.

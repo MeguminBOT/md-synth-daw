@@ -586,6 +586,94 @@ class SpineCheck {
 		@param session The piece.
 		@param centre The tabs.
 	**/
+	/**
+		The zoom on the roll is the reader's and the pattern does not bound it.
+
+		The zoom used to stop where the pattern filled the view, so a short pattern could
+		not be opened out and the end of a long one was a wall. It now runs between what
+		a bar can be read at either way, and the view scrolls into room past the end.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function zoomed(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final roll = centre.roll;
+		final was = pattern.length;
+
+		pattern.length = session.song.tempo.ppqn * 4;
+		roll.perTick = 0.25;
+		roll.scrollTo(0, roll.offsetY);
+
+		final fits = (roll.width - roll.gutter()) / pattern.length;
+
+		for (turn in 0...40) roll.zoom(0.8, roll.x + roll.gutter());
+		final out = roll.perTick;
+
+		says("a one bar pattern zooms out past what fills the view", out < fits,
+			"a bar draws at " + round(out * pattern.length, 1) + " pixels where filling the"
+			+ " view takes " + round(fits * pattern.length, 1));
+
+		for (turn in 0...20) roll.zoom(0.8, roll.x + roll.gutter());
+
+		says("and stops at a bound of its own rather than at the pattern",
+			roll.perTick == out,
+			"forty turns out and sixty both reach " + round(out, 5) + " pixels a tick");
+
+		for (turn in 0...80) roll.zoom(1.25, roll.x + roll.gutter());
+		final near = roll.perTick;
+
+		says("and it zooms in far past what fills the view", near > fits,
+			"a bar draws at " + round(near * pattern.length, 1) + " pixels");
+
+		for (turn in 0...20) roll.zoom(1.25, roll.x + roll.gutter());
+
+		says("and stops there too", roll.perTick == near,
+			"eighty turns in and a hundred both reach " + round(near, 3)
+			+ " pixels a tick");
+
+		roll.perTick = 0.25;
+		roll.scrollTo(1 << 20, roll.offsetY);
+
+		final end = roll.atTick(pattern.length);
+		final edge = roll.x + roll.width;
+
+		says("and the view scrolls into room past the end of the pattern", end < edge,
+			"the end of the pattern sits " + round(edge - end, 1)
+			+ " pixels from the right of the view at the furthest it scrolls");
+
+		final tall = roll.rowTall;
+		final middle = roll.y + roll.ruler() + roll.grid() * 0.5;
+		final pitch = roll.pitchAt(middle);
+
+		for (turn in 0...20) roll.heightens(roll.rowTall * 1.15, middle);
+		final grown = roll.rowTall;
+
+		says("a row grows and the key under the pointer stays where it was",
+			grown > tall && Math.abs(roll.pitchAt(middle) - pitch) <= 1,
+			"a row went from " + round(tall, 1) + " to " + round(grown, 1)
+			+ " pixels and key " + pitch + " is now key " + roll.pitchAt(middle));
+
+		for (turn in 0...40) roll.heightens(roll.rowTall * 0.87, middle);
+
+		says("and it stops where the name written on it still fits",
+			round(roll.rowTall, 3) == round(roll.rowLeast(), 3),
+			"a row bottoms out at " + round(roll.rowTall, 1) + " pixels against the "
+			+ round(roll.rowLeast(), 1) + " a name needs");
+
+		pattern.length = was;
+		roll.rowTall = tall;
+		roll.perTick = 0.25;
+		roll.scrollTo(0, roll.offsetY);
+	}
+
 	static function rubbed(tree:Root, session:Session, centre:mdd.view.Centre):Void {
 		centre.show(mdd.view.Centre.ROLL);
 		session.choose(Part.Fm1);
@@ -3137,6 +3225,7 @@ class SpineCheck {
 		sought(tree, session, editor);
 		commanded(tree, session, centre);
 		rubbed(tree, session, centre);
+		zoomed(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

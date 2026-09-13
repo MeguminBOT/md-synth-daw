@@ -52,6 +52,29 @@ final class PianoRoll extends Widget {
 	static inline final SILENT = 0.28;
 
 	/**
+		How few pixels a bar draws at before the zoom stops going out, and how many
+		before it stops coming in. The zoom is bounded in pixels rather than in ticks so
+		it reaches the same place whatever a piece counts a beat in.
+	**/
+	static inline final BAR_LEAST = 4.0;
+
+	static inline final BAR_MOST = 2048.0;
+
+	/**
+		How many bars of room the view scrolls into past the end of the pattern, so the
+		last bar is not written against a wall.
+	**/
+	static inline final SPARE = 4;
+
+	/**
+		How short a row draws, as a share of the height of the name written on it, and
+		how tall.
+	**/
+	static inline final ROW_LEAST = 1.0;
+
+	static inline final ROW_MOST = 4.0;
+
+	/**
 		What the grid can divide a bar into, coarsening down the list, with no snap at
 		all last. The transport bar offers the same divisions, so the two controls
 		never disagree about what is on offer.
@@ -589,11 +612,23 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
-		@return How wide the whole pattern draws.
+		@return The furthest the view scrolls to, which is the pattern with a few bars
+			of room after it so the last bar is not written against a wall.
+	**/
+	public function reach():Int {
+		final pattern = session.current();
+		final bar = session.song.tempo.ppqn * 4;
+		final length = pattern == null ? 0 : pattern.length;
+
+		if (bar < 1) return length;
+		return (length < bar ? bar : length) + bar * SPARE;
+	}
+
+	/**
+		@return How wide the pattern draws, with the room after it.
 	**/
 	public function contentWidth():Float {
-		final pattern = session.current();
-		return pattern == null ? 0 : pattern.length * perTick;
+		return reach() * perTick;
 	}
 
 	/**
@@ -1068,7 +1103,8 @@ final class PianoRoll extends Widget {
 	var framedFor:Int = -1;
 
 	/**
-		Zooms and scrolls so the whole pattern fits.
+		Sets the zoom the first time the roll is drawn, and again where the piece changes
+		what it counts a beat in, so a fresh window opens on four bars.
 	**/
 	public function framed():Void {
 		final pattern = session.current();
@@ -1079,26 +1115,27 @@ final class PianoRoll extends Widget {
 
 		framedFor = beat;
 
-		perTick = (width - gutter()) / (beat * 16);
-
-		final least = widest();
-		if (perTick < least) perTick = least;
-		if (perTick > 4) perTick = 4;
-
+		perTick = zoomed((width - gutter()) / (beat * 16));
 		scrollTo(0, offsetY);
 	}
 
 	/**
-		@return The zoom at which the pattern exactly fills the view.
+		The zoom is the reader's to set and nothing here narrows it to what the pattern
+		happens to be, so the bounds are what a bar can be read at rather than what fits.
+
+		@param want A zoom.
+		@return It, held between the two bounds.
 	**/
-	public function widest():Float {
-		final pattern = session.current();
-		final length = pattern == null ? 0 : pattern.length;
+	public function zoomed(want:Float):Float {
+		final root = root();
+		final bar = session.song.tempo.ppqn * 4;
 
-		if (length < 1) return 0.02;
+		if (bar < 1) return want;
 
-		final fits = (width - gutter()) / length;
-		return fits < 0.02 ? fits : 0.02;
+		final least = (root == null ? BAR_LEAST : root.metrics.whole(BAR_LEAST)) / bar;
+		final most = (root == null ? BAR_MOST : root.metrics.whole(BAR_MOST)) / bar;
+
+		return want < least ? least : (want > most ? most : want);
 	}
 
 	/**
@@ -1109,11 +1146,42 @@ final class PianoRoll extends Widget {
 	**/
 	public function zoom(by:Float, around:Float):Void {
 		final tick = tickAt(around);
-		final want = perTick * by;
-		final least = widest();
 
-		perTick = want < least ? least : (want > 4 ? 4 : want);
+		perTick = zoomed(perTick * by);
 		scrollTo(tick * perTick - (around - x - gutter()), offsetY);
+	}
+
+	/**
+		@return How tall a row draws at least, which is the room the name written on it
+			needs.
+	**/
+	public function rowLeast():Float {
+		final root = root();
+		if (root == null || root.metrics.body == null) return 12;
+
+		final metrics = root.metrics;
+		final named = metrics.small == null ? metrics.body : metrics.small;
+
+		return named.height + metrics.unit * 1.5;
+	}
+
+	/**
+		Makes the rows taller or shorter, keeping a key where it was.
+
+		@param to How tall a row should be.
+		@param around The point to keep still, down.
+	**/
+	public function heightens(to:Float, around:Float):Void {
+		final least = rowLeast();
+		final most = least * ROW_MOST;
+		final want = to < least * ROW_LEAST ? least * ROW_LEAST : (to > most ? most : to);
+
+		if (want == rowTall) return;
+
+		final rows = (around - y - ruler() + offsetY) / rowTall;
+
+		rowTall = want;
+		scrollTo(offsetX, rows * want - (around - y - ruler()));
 	}
 
 	/**
@@ -1151,7 +1219,14 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				if (event.ctrl() || event.alt()) {
+				final zooming = event.ctrl() || event.alt();
+
+				if (zooming && (event.shift() || event.x < x + gutter())) {
+					heightens(rowTall * (event.dy > 0 ? 1.15 : 0.87), event.y);
+					return true;
+				}
+
+				if (zooming) {
 					zoom(event.dy > 0 ? 1.25 : 0.8, event.x);
 					return true;
 				}
@@ -1635,7 +1710,7 @@ final class PianoRoll extends Widget {
 		final pattern = session.current();
 		if (pattern == null || pattern.length <= 0) return;
 
-		perTick = (width - gutter()) / pattern.length;
+		perTick = zoomed((width - gutter()) / pattern.length);
 
 		scrollTo(0, offsetY);
 		session.says(Locale.SAID_ZOOMED);
@@ -1774,10 +1849,10 @@ final class PianoRoll extends Widget {
 		framed();
 		kitted();
 
-		final named = metrics.small == null ? metrics.body : metrics.small;
-		final least = named.height + metrics.unit * 1.5;
+		final least = rowLeast();
 
 		if (rowTall < least) rowTall = least;
+		else if (rowTall > least * ROW_MOST) rowTall = least * ROW_MOST;
 
 		centred();
 
@@ -1792,6 +1867,7 @@ final class PianoRoll extends Widget {
 		paint.pushClip(left, top, width - gutter(), grid());
 		rows(paint, theme, left, top);
 		bars(paint, theme, metrics, left, top, pattern.length);
+		beyond(paint, theme, left, top, pattern.length);
 
 		if (session.ghosts) notes(paint, theme, metrics, pattern, true);
 		notes(paint, theme, metrics, pattern, false);
@@ -1813,6 +1889,21 @@ final class PianoRoll extends Widget {
 		reins(paint, theme, metrics, left, top);
 
 		super.paint(paint);
+	}
+
+	/**
+		Darkens whatever is past the end of the pattern, which the view scrolls into and
+		the grid stops at, so the end is read as an end rather than as a grid that gave
+		out.
+	**/
+	function beyond(paint:Paint, theme:Theme, left:Float, top:Float, length:Int):Void {
+		final at = atTick(length);
+		final from = at < left ? left : at;
+		final until = x + width;
+
+		if (from >= until) return;
+
+		paint.rect(from, top, until - from, grid(), theme.sink, 0.35);
 	}
 
 	function band(paint:Paint, theme:Theme, metrics:Metrics):Void {
