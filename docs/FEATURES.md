@@ -176,12 +176,15 @@ click, and the loudness is set before the bytes are made rather than by scaling 
 rates offered are the ones Mega Drive drivers actually take, 14000 among them, which is what the XGM
 driver plays at.
 
-Which key each hit lands on is worked out from the recording rather than from the file name, because
-a file name is often wrong: a hat that chokes is the closed one and a hat that rings is the open one
-whatever either is called, and toms are ordered by their measured pitch so a fill runs low to high
-however they were numbered. Every key can be moved by hand, and the running total is shown against
-what you have set aside. A kit of anything other than drums lays its hits out one after another
-instead. A run of converter
+Detect keys puts every hit on a key. A file name that spells a note, such as `A#3`, `Eb4` or a
+tracker's `C-4`, puts the hit on exactly that key, with middle C as `C4`, because a pack that names
+its keys has already said where each one goes. Everything else is worked out from the recording
+rather than from its name, because a name that says what a hit is is often wrong: a hat that chokes
+is the closed one and a hat that rings is the open one whatever either is called, and toms are
+ordered by their measured pitch so a fill runs low to high however they were numbered. With General
+MIDI drums off, those hits are laid out one after another from C2 in the order their names read, so
+`Hit 2` comes before `Hit 10`. The list is shown in key order, every key can be moved by hand, and
+the running total is shown against what you have set aside. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between
 writes with real pauses excluded, rather than from the run measured end to end.
 

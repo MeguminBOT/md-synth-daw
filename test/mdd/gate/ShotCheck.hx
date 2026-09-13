@@ -289,7 +289,7 @@ class ShotCheck {
 			final kit = new mdd.format.Kit();
 
 			kit.reads(vgm == "" ? root + "/vendor/drum kits/Metal Kit" : vgm);
-			kit.guesses();
+			kit.detects();
 			kit.converts();
 
 			tree.raise(held);

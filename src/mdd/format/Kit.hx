@@ -39,7 +39,8 @@ final class Kit {
 	public var drums:Bool = true;
 
 	/**
-		The hits, in the order they were read.
+		The hits, in the order their names read until their keys are detected, and in key
+		order from then on.
 	**/
 	public final slots:Array<Slot> = [];
 
@@ -68,7 +69,7 @@ final class Kit {
 		if (!sys.FileSystem.exists(where) || !sys.FileSystem.isDirectory(where)) return 0;
 
 		final held = sys.FileSystem.readDirectory(where);
-		held.sort(function(one:String, two:String):Int return byName(one, two));
+		held.sort(function(one:String, two:String):Int return inOrder(one, two));
 
 		var many = 0;
 
@@ -114,65 +115,118 @@ final class Kit {
 	}
 
 	/**
-		Works out which key every hit belongs on, from what it is called and from what
-		was measured about it.
+		Puts every hit on a key, from what it is called and from what was measured about it.
 
-		A name is read first, because a name is usually right about the family. What
-		decides the order within one is whether the measurement defines the role or
-		merely describes it. A hat that chokes is the closed one and a hat that rings
-		is the open one, whatever either file is called, so those go by ring. Toms are
-		ordered by pitch, so a fill runs low to high however they were numbered. A
-		first crash is not defined by lasting longer than a second one, so those keep
-		the order their names put them in.
+		A name that spells a note, `A#3`, `Eb4` or the `C-4` a tracker writes, is taken at its
+		word in either mode, because a pack that names its keys has already said where each
+		one goes. Middle C is `C4`, key 60, which is how the sheet spells a key back.
+
+		The rest are worked out. With drums on, a name is read for its family, and what decides
+		the order within one is whether the measurement defines the role or merely describes
+		it. A hat that chokes is the closed one and a hat that rings is the open one, whatever
+		either file is called, so those go by ring. Toms are ordered by pitch, so a fill runs
+		low to high however they were numbered. A first crash is not defined by lasting longer
+		than a second one, so those keep the order their names put them in. With drums off,
+		they are laid one after another from `BASE` in the order their names read, stepping
+		over any key a named hit already holds.
+
+		The hits are left in key order, so the list reads low to high.
 
 		@return How many were placed.
 	**/
-	public function guesses():Int {
-		if (!drums) {
-			var at = BASE;
-
-			for (slot in slots) {
-				if (!slot.taken) continue;
-
-				slot.root = at;
-				slot.icon = mdd.Icon.NAMES.indexOf("wave-saw");
-				at++;
-			}
-
-			return at - BASE;
-		}
-
-		final families:Array<Array<Slot>> = [];
-		for (index in 0...FAMILIES) families.push([]);
-
-		for (slot in slots) {
-			if (!slot.taken) continue;
-			families[familyOf(slot.name)].push(slot);
-		}
+	public function detects():Int {
+		final rest:Array<Slot> = [];
+		final held:Array<Int> = [];
 
 		var many = 0;
 
-		many += placed(families[HAT],
-			function(one:Slot, two:Slot):Int return byRinging(one, two),
-			families[HAT].length == 2 ? HAT_PAIR : HAT_KEYS, "hi-hat");
-		many += placed(families[TOM],
-			function(one:Slot, two:Slot):Int return byPitch(one, two), TOM_KEYS, "tom");
-		many += placed(families[SNARE],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), SNARE_KEYS, "snare");
-		many += placed(families[CRASH],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), CRASH_KEYS, "cymbal");
-		many += placed(families[RIDE],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), RIDE_KEYS, "cymbal");
-		many += placed(families[KICK],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), KICK_KEYS, "kick");
-		many += placed(families[CLAP],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), CLAP_KEYS, "clap");
-		many += placed(families[BELL],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), BELL_KEYS, "idiophone");
-		many += placed(families[REST],
-			function(one:Slot, two:Slot):Int return byNamed(one, two), REST_KEYS, "wave-saw");
+		for (slot in slots) {
+			if (!slot.taken) continue;
+
+			final key = noteIn(slot.name);
+
+			if (key < 0) {
+				rest.push(slot);
+				continue;
+			}
+
+			slot.root = key;
+			slot.icon = mdd.Icon.NAMES.indexOf(drums ? ICONS[familyOf(slot.name)] : "wave-saw");
+
+			held.push(key);
+			many++;
+		}
+
+		many += drums ? families(rest) : laid(rest, held);
+
+		slots.sort(function(one:Slot, two:Slot):Int {
+			if (one.root != two.root) return one.root - two.root;
+			return inOrder(one.name, two.name);
+		});
 
 		return many;
+	}
+
+	/**
+		Puts hits on the keys general MIDI gives their family.
+
+		@param held The hits whose names spell no note.
+		@return How many were placed.
+	**/
+	static function families(held:Array<Slot>):Int {
+		final sorted:Array<Array<Slot>> = [];
+		for (index in 0...FAMILIES) sorted.push([]);
+
+		for (slot in held) sorted[familyOf(slot.name)].push(slot);
+
+		var many = 0;
+
+		many += placed(sorted[HAT],
+			function(one:Slot, two:Slot):Int return byRinging(one, two),
+			sorted[HAT].length == 2 ? HAT_PAIR : HAT_KEYS, ICONS[HAT]);
+		many += placed(sorted[TOM],
+			function(one:Slot, two:Slot):Int return byPitch(one, two), TOM_KEYS, ICONS[TOM]);
+		many += placed(sorted[SNARE],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), SNARE_KEYS, ICONS[SNARE]);
+		many += placed(sorted[CRASH],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), CRASH_KEYS, ICONS[CRASH]);
+		many += placed(sorted[RIDE],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), RIDE_KEYS, ICONS[RIDE]);
+		many += placed(sorted[KICK],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), KICK_KEYS, ICONS[KICK]);
+		many += placed(sorted[CLAP],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), CLAP_KEYS, ICONS[CLAP]);
+		many += placed(sorted[BELL],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), BELL_KEYS, ICONS[BELL]);
+		many += placed(sorted[REST],
+			function(one:Slot, two:Slot):Int return byNamed(one, two), REST_KEYS, ICONS[REST]);
+
+		return many;
+	}
+
+	/**
+		Lays hits out one key after another from `BASE`, in the order their names read.
+
+		@param rest The hits whose names spell no note.
+		@param held The keys named hits already hold, which are stepped over.
+		@return How many were placed.
+	**/
+	static function laid(rest:Array<Slot>, held:Array<Int>):Int {
+		rest.sort(function(one:Slot, two:Slot):Int return inOrder(one.name, two.name));
+
+		final drawn = mdd.Icon.NAMES.indexOf("wave-saw");
+		var at = BASE;
+
+		for (slot in rest) {
+			while (at < 127 && held.indexOf(at) >= 0) at++;
+
+			slot.root = at > 127 ? 127 : at;
+			slot.icon = drawn;
+
+			at++;
+		}
+
+		return rest.length;
 	}
 
 	/**
@@ -307,6 +361,19 @@ final class Kit {
 	static final REST_KEYS:Array<Int> = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69];
 
 	/**
+		What each family is drawn with, in the order the families are numbered.
+	**/
+	static final ICONS:Array<String> = ["kick", "snare", "tom", "hi-hat", "cymbal", "cymbal",
+		"clap", "idiophone", "wave-saw"];
+
+	/**
+		How far above C each letter sits, in the order `LETTERS` spells them.
+	**/
+	static final STEPS:Array<Int> = [0, 2, 4, 5, 7, 9, 11];
+
+	static inline final LETTERS = "CDEFGAB";
+
+	/**
 		@param called What a hit is called.
 		@return Which family that name reads as.
 	**/
@@ -370,11 +437,116 @@ final class Kit {
 	}
 
 	static function byNamed(one:Slot, two:Slot):Int {
-		return one.name < two.name ? -1 : (one.name > two.name ? 1 : 0);
+		return inOrder(one.name, two.name);
 	}
 
-	static function byName(one:String, two:String):Int {
+	/**
+		The key a name spells, where it spells one.
+
+		A note is a letter from A to G, then a sharp, a flat or the dash a tracker writes, then
+		one octave digit, standing apart from any letter or digit on either side, so neither
+		`BD2` nor `Tom 1` reads as a note. The sharp and flat signs are read as `#` and `b`.
+		Where a name spells more than one, the last is taken, since a name puts the instrument
+		first. Middle C is `C4`.
+
+		@param called What a hit is called.
+		@return The key, or -1 where the name spells none or spells one outside the MIDI range.
+	**/
+	public static function noteIn(called:String):Int {
+		final held = StringTools.replace(StringTools.replace(called, "♯", "#"), "♭", "b");
+		final note = ~/(?:^|[^A-Za-z0-9])([A-Ga-g])([#b-]?)([0-9])(?![A-Za-z0-9])/;
+
+		var found = -1;
+		var from = 0;
+
+		while (from < held.length && note.matchSub(held, from)) {
+			final where = note.matchedPos();
+			final letter = LETTERS.indexOf(note.matched(1).toUpperCase());
+			final mark = note.matched(2);
+			final octave:Int = Std.parseInt(note.matched(3));
+
+			var key = (octave + 1) * 12 + STEPS[letter];
+
+			if (mark == "#") key++;
+			else if (mark == "b") key--;
+
+			if (key >= 0 && key <= 127) found = key;
+
+			from = where.pos + where.len;
+		}
+
+		return found;
+	}
+
+	/**
+		Compares two names the way a person reads them, so `Hit 2` comes before `Hit 10`.
+
+		A run of digits is compared as the number it spells and everything else letter by
+		letter regardless of case. Names that differ only in case or in leading noughts are
+		told apart afterwards, so no two different names ever compare equal.
+
+		@param one A name.
+		@param two Another.
+		@return Below nought where the first comes first, above nought where the second does.
+	**/
+	public static function inOrder(one:String, two:String):Int {
+		final left = one.toLowerCase();
+		final right = two.toLowerCase();
+
+		var atLeft = 0;
+		var atRight = 0;
+
+		while (atLeft < left.length && atRight < right.length) {
+			final codeLeft = StringTools.fastCodeAt(left, atLeft);
+			final codeRight = StringTools.fastCodeAt(right, atRight);
+
+			if (!digit(codeLeft) || !digit(codeRight)) {
+				if (codeLeft != codeRight) return codeLeft - codeRight;
+
+				atLeft++;
+				atRight++;
+				continue;
+			}
+
+			var endLeft = atLeft;
+			while (endLeft < left.length && digit(StringTools.fastCodeAt(left, endLeft))) endLeft++;
+
+			var endRight = atRight;
+			while (endRight < right.length && digit(StringTools.fastCodeAt(right, endRight))) {
+				endRight++;
+			}
+
+			while (atLeft < endLeft - 1 && StringTools.fastCodeAt(left, atLeft) == "0".code) atLeft++;
+			while (atRight < endRight - 1 && StringTools.fastCodeAt(right, atRight) == "0".code) {
+				atRight++;
+			}
+
+			final wideLeft = endLeft - atLeft;
+			final wideRight = endRight - atRight;
+
+			if (wideLeft != wideRight) return wideLeft - wideRight;
+
+			for (step in 0...wideLeft) {
+				final apart = StringTools.fastCodeAt(left, atLeft + step)
+					- StringTools.fastCodeAt(right, atRight + step);
+
+				if (apart != 0) return apart;
+			}
+
+			atLeft = endLeft;
+			atRight = endRight;
+		}
+
+		final restLeft = left.length - atLeft;
+		final restRight = right.length - atRight;
+
+		if (restLeft != restRight) return restLeft - restRight;
+
 		return one < two ? -1 : (one > two ? 1 : 0);
+	}
+
+	static inline function digit(code:Int):Bool {
+		return code >= "0".code && code <= "9".code;
 	}
 
 	/**

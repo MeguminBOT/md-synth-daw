@@ -112,7 +112,7 @@ class AudioCheck {
 		final kit = new mdd.format.Kit();
 		final many = kit.reads(where);
 
-		kit.guesses();
+		kit.detects();
 
 		says("a kit reads a folder of recordings", many == 5 && kit.slots.length == 5,
 			many + " hits read out of " + where.split("/").pop());

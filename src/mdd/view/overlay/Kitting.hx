@@ -26,9 +26,9 @@ import mdd.ui.control.Menu;
 	as often gathered from several places as it is found sitting in one. Nothing is
 	written until the sheet is closed with the button.
 
-	Every control here is a real one. The keys are worked out from the recordings when
-	they arrive, and the button that does it again is there because a guess is a guess:
-	a row's key steps by hand whenever the guess is wrong.
+	Every control here is a real one. A hit is put on a key as it arrives, from its name
+	where the name spells a note and from the recording where it does not. Detect keys
+	does that again for all of them, and a row's key steps by hand wherever it landed wrong.
 **/
 final class Kitting extends Widget {
 	/**
@@ -69,9 +69,9 @@ final class Kitting extends Widget {
 	public final drums:Button;
 
 	/**
-		Works the keys out again.
+		Puts every hit on a key again, which undoes any key stepped by hand.
 	**/
-	public final guess:Button;
+	public final detect:Button;
 
 	/**
 		Adds one recording.
@@ -147,7 +147,7 @@ final class Kitting extends Widget {
 
 		rate = new Button("");
 		drums = new Button("");
-		guess = new Button("");
+		detect = new Button("");
 		adds = new Button("");
 		folder = new Button("");
 
@@ -160,7 +160,7 @@ final class Kitting extends Widget {
 		add(tagged);
 		add(rate);
 		add(drums);
-		add(guess);
+		add(detect);
 		add(adds);
 		add(folder);
 		add(go);
@@ -168,7 +168,7 @@ final class Kitting extends Widget {
 
 		rate.onFire = function(button:Button):Void rates();
 		drums.onFire = function(button:Button):Void kitted(button.on);
-		guess.onFire = function(button:Button):Void worked();
+		detect.onFire = function(button:Button):Void detected();
 		adds.onFire = function(button:Button):Void asked(false);
 		folder.onFire = function(button:Button):Void asked(true);
 
@@ -219,7 +219,7 @@ final class Kitting extends Widget {
 			return false;
 		}
 
-		kit.guesses();
+		kit.detects();
 		kit.converts();
 
 		named.set(kit.name);
@@ -238,7 +238,7 @@ final class Kitting extends Widget {
 		final many = kit.reads(where);
 
 		if (many > 0) {
-			kit.guesses();
+			kit.detects();
 			kit.converts();
 
 			named.set(kit.name);
@@ -260,7 +260,7 @@ final class Kitting extends Widget {
 
 		rate.label = root.translate(Locale.KIT_RATE) + "  " + kit.rate;
 		drums.label = root.translate(Locale.KIT_DRUMS);
-		guess.label = root.translate(Locale.KIT_GUESS);
+		detect.label = root.translate(Locale.KIT_DETECT);
 		adds.label = root.translate(Locale.KIT_ADD);
 		folder.label = root.translate(Locale.KIT_FOLDER);
 
@@ -268,7 +268,7 @@ final class Kitting extends Widget {
 		stop.label = root.translate(Locale.EXPORT_CANCEL);
 
 		go.enabled = kit.taken() > 0;
-		guess.enabled = kit.slots.length > 0;
+		detect.enabled = kit.slots.length > 0;
 
 		invalidate();
 	}
@@ -302,14 +302,14 @@ final class Kitting extends Widget {
 	function kitted(on:Bool):Void {
 		kit.drums = on;
 
-		kit.guesses();
+		kit.detects();
 		kit.converts();
 
 		labelled();
 	}
 
-	function worked():Void {
-		kit.guesses();
+	function detected():Void {
+		kit.detects();
 		kit.converts();
 
 		labelled();
@@ -412,7 +412,7 @@ final class Kitting extends Widget {
 
 		rate.arrange(left, top, third, tall);
 		drums.arrange(left + third + metrics.gap, top, third, tall);
-		guess.arrange(left + (third + metrics.gap) * 2, top, third, tall);
+		detect.arrange(left + (third + metrics.gap) * 2, top, third, tall);
 
 		top += bandTall();
 

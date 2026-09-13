@@ -37,7 +37,7 @@ class Converted {
 			return 1;
 		}
 
-		kit.guesses();
+		kit.detects();
 		kit.converts();
 
 		final said = kit.written();

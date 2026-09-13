@@ -8,10 +8,11 @@ import mdd.song.Sample;
 	One recording on its way into a kit: where it came from, what it will be called,
 	which key it will sit on, and what was measured about it.
 
-	The measurements are here because a file name is not evidence. A kit downloaded
-	from anywhere can have its open and closed hats the wrong way round, and its toms
-	numbered in an order that has nothing to do with their pitch. What a hit is can be
-	read from the sound, and `Kit.guesses` does.
+	The measurements are here because a name that says what a hit is, is not evidence of
+	which one it is. A kit downloaded from anywhere can have its open and closed hats the
+	wrong way round, and its toms numbered in an order that has nothing to do with their
+	pitch. What a hit is can be read from the sound, and `Kit.detects` does. A name that
+	spells a note is different: it says where the hit goes, and is taken at its word.
 **/
 final class Slot {
 	/**
