@@ -112,7 +112,10 @@ jobs:
           haxelib version
 
       # Get latest hxcpp from its newest tag.
-      # The checkout carries a built run.n, so nothing has to be compiled here.
+      # A checkout carries run.n, which only launches the build tool hxcpp.n, and
+      # hxcpp.n is compiled from tools/hxcpp rather than committed. Without it
+      # hxcpp stops to ask on the terminal whether to build it, and a runner has
+      # nobody to answer, so the build fails after thirty seconds of waiting.
       - name: Install hxcpp from its newest tag
         run: |
           url=https://github.com/HaxeFoundation/hxcpp.git
@@ -123,7 +126,12 @@ jobs:
           echo "hxcpp $tag"
 
           haxelib --always git hxcpp "$url" "$tag"
-          haxelib path hxcpp | sed -n 1p
+
+          root=$(haxelib path hxcpp | sed -n 1p)
+          (cd "$root/tools/hxcpp" && haxe compile.hxml)
+
+          test -f "$root/hxcpp.n"
+          echo "hxcpp.n built in $root"
 
       # --nuked fetches the reference FM core. It is never linked into anything
       # and never shipped, but without it mdd gate chip does not run at all, and

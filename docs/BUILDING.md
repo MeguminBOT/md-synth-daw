@@ -12,6 +12,10 @@ haxelib to install and nothing is put on your system: the command runs `tools/sr
   haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git v4.3.168
   ```
 
+  Then build its command-line tool once, by running `haxe compile.hxml` inside `tools/hxcpp` in the
+  checkout. A git checkout does not include that tool, and hxcpp stops to ask for it the first time a
+  build runs.
+
 - `git` and `curl`
 - A C++ toolchain, see below
 
@@ -126,9 +130,11 @@ A package manager does not arrange `haxelib` the way the action does, so those j
 `haxelib setup` themselves.
 
 hxcpp comes from git rather than from haxelib, at whatever the newest tag is when the job runs:
-`git ls-remote --sort=-v:refname` picks it and `haxelib git` installs it. Nothing is compiled for
-it, because the checkout carries a built `run.n`. Pinning was considered and rejected: a pin here
-goes stale silently, and the failure it would prevent is a compiler warning rather than a broken
+`git ls-remote --sort=-v:refname` picks it and `haxelib git` installs it. A checkout carries
+`run.n`, which only launches the build tool `hxcpp.n`, and `hxcpp.n` is compiled from `tools/hxcpp`
+rather than committed, so the job builds it with `haxe compile.hxml`. Left out, hxcpp stops to ask on
+the terminal whether to build it, and a runner has nobody to answer. The tag is not pinned: a pin
+goes stale silently, and what it would guard against is a compiler warning rather than a broken
 build.
 
 Two things a runner does not give you, both found by running the Linux job in a Debian container
