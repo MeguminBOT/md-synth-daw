@@ -11,7 +11,7 @@ on:
         type: string
         required: true
       dry_run:
-        description: "Rehearse only: build, gate and sign, but publish nothing"
+        description: "Rehearse only: build, package and sign, but publish nothing"
         type: boolean
         default: false
       draft:
