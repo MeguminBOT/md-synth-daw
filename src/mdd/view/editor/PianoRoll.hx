@@ -75,6 +75,12 @@ final class PianoRoll extends Widget {
 	static inline final ROW_MOST = 4.0;
 
 	/**
+		How far a key leans a note, which is finer than the menu's step because a key is
+		pressed again where a menu entry is chosen once.
+	**/
+	static inline final LEAN = 8;
+
+	/**
 		What the grid can divide a bar into, coarsening down the list, with no snap at
 		all last. The transport bar offers the same divisions, so the two controls
 		never disagree about what is on offer.
@@ -1139,6 +1145,9 @@ final class PianoRoll extends Widget {
 				pasted(session.snapped(playhead < 0 ? 0 : playhead));
 				return true;
 
+			case mdd.ui.Edit.DOUBLE:
+				return doubled();
+
 			case _:
 		}
 
@@ -1182,6 +1191,79 @@ final class PianoRoll extends Widget {
 
 		final pattern = session.current();
 		return pattern == null ? [] : pattern.lane(session.part).notes.copy();
+	}
+
+	/**
+		Copies what a tool reaches and lays the copy straight after it.
+
+		The copy goes a whole span later, the span running from the start of the earliest
+		note to the end of the latest and then rounded up to something musical: to a beat,
+		or a doubling of one up to a bar, or a whole number of bars past that. A span shorter
+		than a beat rounds to the grid instead.
+
+		The rounding is what makes the key worth pressing. A bar of drums whose last hit ends
+		before the bar line has a span shorter than a bar, so a copy laid a raw span later
+		arrives early and every repeat drifts further forward.
+
+		What lands is what is selected afterwards, so pressing again lays a third.
+	**/
+	public function doubled():Bool {
+		final pattern = session.current();
+		if (pattern == null) return false;
+
+		final reach = reaching();
+		if (reach.length == 0) return false;
+
+		var least = reach[0].at;
+		var until = reach[0].ends();
+
+		for (note in reach) {
+			if (note.at < least) least = note.at;
+			if (note.ends() > until) until = note.ends();
+		}
+
+		final beat = session.song.tempo.ppqn;
+		final bar = beat * 4;
+		final raw = until - least;
+
+		var apart = raw;
+
+		if (beat < 1) apart = raw;
+		else if (raw < beat) {
+			final step = session.snap;
+			if (step > 0) apart = Math.ceil(raw / step) * step;
+		} else if (raw <= bar) {
+			apart = beat;
+			while (apart < raw) apart *= 2;
+		} else {
+			apart = Math.ceil(raw / bar) * bar;
+		}
+
+		if (apart < 1) return false;
+
+		final made:Array<Note> = [];
+		final group = new mdd.song.edit.Together("add " + counted(reach.length));
+
+		for (note in reach) {
+			final copy = note.copy();
+			copy.at += apart;
+
+			made.push(copy);
+			group.also(new AddNote(session.pattern, session.part, copy));
+		}
+
+		session.does(group);
+
+		picked.clear();
+		for (note in made) picked.adds(note);
+
+		chosen = picked.lead();
+
+		session.says(Locale.SAID_NOTES_DOUBLED, "" + made.length);
+		session.changed();
+
+		invalidate();
+		return true;
 	}
 
 	/**
@@ -2090,11 +2172,15 @@ final class PianoRoll extends Widget {
 				return true;
 
 			case Key.Up:
-				nudges(0, 1);
+				if (event.shift()) leant(LEAN);
+				else nudges(0, event.ctrl() ? 12 : 1);
+
 				return true;
 
 			case Key.Down:
-				nudges(0, -1);
+				if (event.shift()) leant(-LEAN);
+				else nudges(0, event.ctrl() ? -12 : -1);
+
 				return true;
 
 			case Key.Left:

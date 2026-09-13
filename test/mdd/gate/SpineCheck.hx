@@ -674,6 +674,140 @@ class SpineCheck {
 		@param session The piece.
 		@param centre The tabs.
 	**/
+	/**
+		The keys that reach a note: duplicate, an octave and a lean.
+
+		The menu already offered an octave and a lean and neither had a key, so a reader who
+		knew what the entries did still had to go to the menu for them.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function chorded(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		centre.show(mdd.view.Centre.ROLL);
+		session.choose(Part.Fm1);
+		tree.resize(tree.width, tree.height);
+
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final roll = centre.roll;
+		final lane = pattern.lane(session.part);
+		final beat = session.song.tempo.ppqn;
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		final held = new mdd.app.Bindings();
+
+		says("control and b is what duplicates",
+			held.actionFor(mdd.ui.Key.B, mdd.ui.Mod.Ctrl) == mdd.app.Bindings.DOUBLE,
+			"the chord reads " + held.shortcut(mdd.app.Bindings.DOUBLE));
+
+		for (at in 0...2) lane.add(new Note(at * beat, Std.int(beat / 2), 60, 100));
+
+		roll.picksAll();
+
+		final was = lane.notes.length;
+		final depth = session.history.depth();
+		final reach = beat * 2;
+
+		roll.edited(mdd.ui.Edit.DOUBLE);
+
+		var laid = 0;
+		for (note in lane.notes) if (note.at >= reach) laid++;
+
+		says("and it lays the copy a rounded span after what it copied",
+			lane.notes.length == was * 2 && laid == was
+			&& session.history.depth() == depth + 1,
+			was + " notes became " + lane.notes.length + ", " + laid + " of them at or past"
+			+ " tick " + reach + ", which is the two beats a span of "
+			+ Std.int(beat * 1.5) + " rounds up to, in "
+			+ (session.history.depth() - depth) + " step of history");
+
+		says("and the copy is what is selected, so pressing again lays a third",
+			roll.picked.count == was,
+			roll.picked.count + " notes selected, of the " + was + " just laid");
+
+		session.history.undo(session.song);
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		for (at in 0...4) lane.add(new Note(at * beat, Std.int(beat / 2), 60, 100));
+
+		roll.picksAll();
+		roll.edited(mdd.ui.Edit.DOUBLE);
+
+		var onBar = 0;
+		for (note in lane.notes) if (note.at >= beat * 4) onBar++;
+
+		var first = beat * 100;
+		for (note in lane.notes) if (note.at >= beat * 4 && note.at < first) first = note.at;
+
+		says("and a bar whose last hit falls short still copies onto the line",
+			onBar == 4 && first == beat * 4,
+			"a bar whose last hit ends at " + (beat * 3 + Std.int(beat / 2))
+			+ " put its copy at " + first + " rather than early, with " + onBar
+			+ " of 4 notes past the line");
+
+		session.history.undo(session.song);
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+
+		lane.add(new Note(0, Std.int(beat / 2), 60, 100));
+
+		final only = lane.notes[0];
+		roll.choose(only);
+
+		roll.took(chord(mdd.ui.Key.Up, mdd.ui.Mod.Ctrl));
+		final up = only.pitch;
+
+		roll.took(chord(mdd.ui.Key.Down, mdd.ui.Mod.Ctrl));
+		final down = only.pitch;
+
+		says("control and an arrow moves a note by an octave", up == 72 && down == 60,
+			"the note went from 60 to " + up + " and back to " + down);
+
+		roll.took(chord(mdd.ui.Key.Up, mdd.ui.Mod.None));
+
+		says("and an arrow on its own still moves it by a semitone", only.pitch == 61,
+			"the note reads " + only.pitch + " against 61");
+
+		roll.took(chord(mdd.ui.Key.Down, mdd.ui.Mod.None));
+
+		final level = only.velocity;
+		roll.took(chord(mdd.ui.Key.Up, mdd.ui.Mod.Shift));
+
+		final louder = only.velocity;
+		roll.took(chord(mdd.ui.Key.Down, mdd.ui.Mod.Shift));
+
+		says("and shift and an arrow leans it", louder > level && only.velocity == level,
+			"the velocity went from " + level + " to " + louder + " and back to "
+			+ only.velocity);
+
+		lane.notes.resize(0);
+		roll.picked.clear();
+		session.history.clear();
+	}
+
+	/**
+		@param code Which key.
+		@param mods What is held with it.
+		@return An event for that chord being pressed.
+	**/
+	static function chord(code:mdd.ui.Key, mods:mdd.ui.Mod):mdd.ui.Input {
+		final event = new mdd.ui.Input();
+		event.keyed(mdd.ui.Kind.KeyDown, code, mods, false);
+
+		return event;
+	}
+
 	static function swiped(tree:Root, session:Session, centre:mdd.view.Centre):Void {
 		centre.show(mdd.view.Centre.ROLL);
 		session.choose(Part.Fm1);
@@ -3515,6 +3649,7 @@ class SpineCheck {
 		zoomed(tree, session, centre);
 		tooled(tree, session, centre);
 		swiped(tree, session, centre);
+		chorded(tree, session, centre);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

@@ -59,6 +59,11 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   keyboard, or with `Shift` held anywhere, makes the rows taller or shorter instead. Middle
   drag to pan, and zoom to fit from the right click menu to get back. The view scrolls four
   bars past the end of the pattern, which is shaded so the end still reads as one.
+- `Ctrl`+`B` lays a copy of what you have selected straight after it. The gap is rounded up
+  to a beat, a doubling of one, or a whole bar, so a bar of drums whose last hit stops short
+  of the bar line still copies onto the line instead of drifting forward each time.
+- `Ctrl` and an arrow moves a note by an octave, `Shift` and an arrow leans it louder or
+  quieter, and an arrow on its own still moves it by a semitone or a grid step.
 - Quantise, legato and glue, from the roll's right click menu. Each acts on what you have
   selected, or on the whole channel where you have selected nothing, and each undoes in one
   step. Quantise is the one an import wants: a driver writes a key on wherever its own timer

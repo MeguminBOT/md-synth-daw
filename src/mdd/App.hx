@@ -1151,6 +1151,7 @@ class App {
 			case Bindings.COPY: return edited(mdd.ui.Edit.COPY);
 			case Bindings.CUT: return edited(mdd.ui.Edit.CUT);
 			case Bindings.PASTE: return edited(mdd.ui.Edit.PASTE);
+			case Bindings.DOUBLE: return edited(mdd.ui.Edit.DOUBLE);
 			case _: return false;
 		}
 

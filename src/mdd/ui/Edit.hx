@@ -1,8 +1,7 @@
 package mdd.ui;
 
 /**
-	The four editing commands a control can be sent, whichever key or menu entry sent
-	them.
+	The editing commands a control can be sent, whichever key or menu entry sent them.
 **/
 @:unreflective
 final class Edit {
@@ -25,6 +24,11 @@ final class Edit {
 		Paste over it.
 	**/
 	public static inline final PASTE = 3;
+
+	/**
+		Copy the selection and lay the copy immediately after it.
+	**/
+	public static inline final DOUBLE = 4;
 
 	/**
 		Private: this is a set of values, not a thing to build.
