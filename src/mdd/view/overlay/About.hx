@@ -18,10 +18,10 @@ import mdd.ui.Widget;
 **/
 final class About extends Widget {
 	static final SOURCES:Array<String> = ["SDL3", "miniaudio", "stb_truetype", "libogg",
-		"libvorbis", "libopus"];
+		"libvorbis", "libopus", "libvpx", "libwebm"];
 
 	static final LICENCES:Array<String> = ["zlib", "MIT-0", "public domain", "BSD-3", "BSD-3",
-		"BSD-3"];
+		"BSD-3", "BSD-3", "BSD-3"];
 
 	/**
 		Called when it closes.
