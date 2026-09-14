@@ -1036,7 +1036,6 @@ class App {
 		final backups = settings.asWhole("backups", 3);
 		final backupAge = settings.asWhole("backupAge", 2);
 		final looks = settings.asFlag("update", true);
-		final master = settings.asWhole("monitor", Session.UNITY);
 		final automating = settings.asWhole("automating", Session.LANES);
 		final snapping = settings.asWhole("snapping", Session.SIXTEENTH);
 
@@ -1064,8 +1063,7 @@ class App {
 		session.theme = which;
 		session.motion = motion;
 		session.typeface = typeface;
-		session.master = master < 0 ? 0 : (master > mdd.song.Song.LOUDEST
-			? mdd.song.Song.LOUDEST : master);
+		session.master = Session.UNITY;
 
 		sound.monitors(Session.gainOf(session.master));
 		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
@@ -1139,7 +1137,6 @@ class App {
 		settings.whole("theme", session.theme);
 		settings.whole("typeface", session.typeface);
 		settings.whole("motion", session.motion);
-		settings.whole("monitor", session.master);
 		settings.whole("automating", session.automating);
 		settings.whole("snapping", session.snapping);
 		settings.whole("density", panels.preferences.density);
