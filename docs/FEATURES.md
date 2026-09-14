@@ -86,7 +86,9 @@ It is a view, not a second model: edits in either show up in the other.
 
 An editor holding every lane a channel has. Points carry a shape that curves into the next point
 rather than only stepping or ramping. A held value is found by search rather than by walking every
-point, so a long lane does not cost more to read than a short one.
+point, so a long lane does not cost more to read than a short one. The square on a lane's header
+maximizes it, folding every other lane to its header until you press it again, which is the room a
+wide range such as a frequency needs.
 
 Any parameter that corresponds to a register can be automated, including the ones that share a
 register: `$B4` holds the stereo bits and both LFO sensitivities, and the automation lane owns the

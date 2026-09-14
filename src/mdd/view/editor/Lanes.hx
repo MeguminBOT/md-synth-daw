@@ -140,6 +140,17 @@ final class Lanes extends Widget {
 	var hoverName:Bool = false;
 	var hoverShed:Bool = false;
 	var hoverFold:Bool = false;
+	var hoverWiden:Bool = false;
+
+	/**
+		Whether one lane is maximized, folding every other one away until it is restored.
+	**/
+	var widening:Bool = false;
+
+	/**
+		Which target the maximized lane shows, while `widening` is true.
+	**/
+	var widened:Int = 0;
 	var hoverFoot:Bool = false;
 	var dragging:Null<Point> = null;
 	var draggingAt:Int = -1;
@@ -390,7 +401,37 @@ final class Lanes extends Widget {
 	**/
 	public function folded(row:Int):Bool {
 		if (row < 0 || row >= targets.length) return false;
+		if (widening && targets.indexOf(widened) >= 0) return targets[row] != widened;
+
 		return shut.exists(targets[row]) && shut.get(targets[row]);
+	}
+
+	/**
+		Maximizes a row, so it takes the whole room and every other row folds to its header, or
+		restores every row where that one is already maximized.
+
+		@param row Which lane row.
+	**/
+	public function widens(row:Int):Void {
+		if (row < 0 || row >= targets.length) return;
+
+		if (widening && widened == targets[row]) {
+			widening = false;
+		} else {
+			widening = true;
+			widened = targets[row];
+		}
+
+		spreadFor = -1;
+		relayout();
+	}
+
+	/**
+		@param row Which lane row.
+		@return Whether it is the maximized one.
+	**/
+	public function wide(row:Int):Bool {
+		return widening && row >= 0 && row < targets.length && targets[row] == widened;
 	}
 
 	/**
@@ -1141,6 +1182,11 @@ final class Lanes extends Widget {
 				return true;
 			}
 
+			if (onWiden(row, event.x)) {
+				widens(row);
+				return true;
+			}
+
 			if (onFold(row, event.x)) {
 				folds(row);
 				return true;
@@ -1492,11 +1538,15 @@ final class Lanes extends Widget {
 		final fold = row >= 0 && event.y < rowTop(row) + headTall()
 			&& onFold(row, event.x);
 
+		final widen = row >= 0 && event.y < rowTop(row) + headTall()
+			&& onWiden(row, event.x);
+
 		if (row == hoverRow && name == hoverName && shed == hoverShed && fold == hoverFold
-			&& foot == hoverFoot && grip == hoverEdge && segment == overSegment
-			&& row == overSegmentAt) return false;
+			&& widen == hoverWiden && foot == hoverFoot && grip == hoverEdge
+			&& segment == overSegment && row == overSegmentAt) return false;
 
 		hoverFold = fold;
+		hoverWiden = widen;
 
 		overSegment = segment;
 		overSegmentAt = row;
@@ -1550,6 +1600,7 @@ final class Lanes extends Widget {
 			hoverName = false;
 			hoverShed = false;
 			hoverFold = false;
+			hoverWiden = false;
 			hoverFoot = false;
 			hoverEdge = -1;
 			overSegment = -1;
@@ -1782,6 +1833,16 @@ final class Lanes extends Widget {
 		return px >= at && px < at + metrics.whole(18);
 	}
 
+	function onWiden(row:Int, px:Float):Bool {
+		final root = root();
+		if (root == null || holding != null || !adding) return false;
+
+		final metrics = root.metrics;
+		final at = x + width - metrics.whole(60);
+
+		return px >= at && px < at + metrics.whole(18);
+	}
+
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, row:Int,
 			held:Null<Parameter>):Void {
 		final small = metrics.small == null ? metrics.body : metrics.small;
@@ -1819,6 +1880,9 @@ final class Lanes extends Widget {
 
 			fold(paint, theme, metrics, x + width - metrics.whole(40), top, tall,
 				folded(row), lit && hoverFold);
+
+			widener(paint, theme, metrics, x + width - metrics.whole(60), top, tall, wide(row),
+				lit && hoverWiden);
 		}
 
 		final says = held.offset ? translate(Locale.LANE_RIDES) : "";
@@ -1828,7 +1892,7 @@ final class Lanes extends Widget {
 		final now = value == null || value.points.length == 0 ? ""
 			: held.said(value.valueAt(playhead < 0 ? 0 : playhead));
 
-		final right = x + width - (holding == null && adding ? metrics.whole(42) : metrics.gap);
+		final right = x + width - (holding == null && adding ? metrics.whole(62) : metrics.gap);
 
 		if (now != "") {
 			paint.textRight(now, right, line, theme.ink, 0.8);
@@ -1893,6 +1957,46 @@ final class Lanes extends Widget {
 		}
 
 		paint.polygon(arrow, 3, ink, 0.9);
+	}
+
+	/**
+		Draws the button that maximizes a lane: one square to maximize, two overlapping ones to
+		restore.
+
+		@param paint What to draw with.
+		@param theme The colours.
+		@param metrics The sizes.
+		@param at Where the button starts, across.
+		@param top Where the header starts, down.
+		@param tall How tall the header is.
+		@param widened Whether this lane is the maximized one.
+		@param lit Whether the pointer is over the button.
+	**/
+	function widener(paint:Paint, theme:Theme, metrics:Metrics, at:Float, top:Float, tall:Float,
+			widened:Bool, lit:Bool):Void {
+		final size = metrics.whole(16);
+		final box = top + (tall - size) * 0.5;
+
+		if (lit) {
+			paint.roundedRect(at, box, size, size, metrics.radiusSmall, theme.accent,
+				Theme.HOVER);
+		}
+
+		final ink = lit ? theme.ink : theme.dim;
+		final hair = metrics.whole(1);
+		final side = metrics.whole(8);
+		final left = at + (size - side) * 0.5;
+		final upper = box + (size - side) * 0.5;
+
+		if (!widened) {
+			paint.outline(left, upper, side, side, ink, hair, 0.9, 0);
+			return;
+		}
+
+		final shift = metrics.whole(2);
+
+		paint.outline(left + shift, upper - shift, side, side, ink, hair, 0.6, 0);
+		paint.outline(left - shift, upper + shift, side, side, ink, hair, 0.9, 0);
 	}
 
 	function shed(paint:Paint, theme:Theme, metrics:Metrics, at:Float, top:Float, tall:Float,
