@@ -1,7 +1,8 @@
 {
 	"recommendations": [
 		"nadako.vshaxe",
-		"vshaxe.hxcpp-debugger"
+		"vshaxe.hxcpp-debugger",
+		"ms-vscode.cpptools"
 	],
 
 	// Lime claims any workspace whose root holds project.xml, Project.xml, project.hxp or

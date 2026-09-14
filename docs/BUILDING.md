@@ -219,5 +219,19 @@ every run would show up as churn in a history that should only move when somebod
 ## Editor setup
 
 `.vscode/settings.json` points the Haxe language server at the generated completion files and picks
-between them by the file being edited: `src` is the application, `test` is the gate, `tools` is the
-build command. A task regenerates them when the folder opens, and `mdd display` does it by hand.
+between them by the file being edited: `src`, and the Haxe the build generates into `export/haxe`,
+is the application, `test` is the gate, `tools` is the build command. The gate's file adds `test`
+to the application's sources, so a check still completes everything in `src`. A task regenerates
+the files when the folder opens, `mdd build` writes them again, and `mdd display` does it by hand.
+
+A completion file carries every option a build does except the ones that only change generated
+code: dead code elimination and the analyzer's optimisations. The language server never generates
+anything, so those only cost it time, and leaving them out is where the time goes. Diagnostics are
+reported for `src`, `test` and `tools`, and not for the generated Haxe or the standard library.
+
+The same command writes `export/compile_commands.json` for C and C++: one entry for every native
+source, with the include paths, defines and per-tree flags `mdd.xml` gives it, and the compiler the
+chosen toolchain uses. The C/C++ extension reads it through `.vscode/settings.json`, and clangd
+through `.clangd` at the repository root. The hxcpp output in `export/obj` and the vendored trees
+are kept out of the C/C++ extension's symbol index, which would otherwise parse thousands of
+generated files for workspace symbols. A header included from them still resolves.

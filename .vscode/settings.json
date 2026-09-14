@@ -1,16 +1,17 @@
 {
 	// The Haxe language server reads the completion files mdd writes from mdd.xml. Run
 	// "mdd display" after changing a source path, a define or a target, or let the task
-	// that runs when this folder opens do it.
+	// that runs when this folder opens do it. mdd build writes them again as well.
 	//
-	// A configuration is chosen by the file being edited: src is the application, test is
-	// the gate, tools is the build command itself.
+	// A configuration is chosen by the file being edited: src and the Haxe the build generates
+	// are the application, test is the gate, tools is the build command itself. The gate adds
+	// test to the application's sources, so a gate file still completes everything in src.
 
 	"haxe.configurations": [
 		{
 			"label": "mdd",
 			"args": ["completion.hxml"],
-			"files": ["src/**/*.hx"]
+			"files": ["src/**/*.hx", "export/haxe/**/*.hx"]
 		},
 		{
 			"label": "gate",
@@ -25,14 +26,42 @@
 	],
 
 	"haxe.enableCompilationServer": true,
+	"haxe.buildCompletionCache": true,
 	"haxe.enableDiagnostics": true,
 	"haxe.diagnosticsForAllOpenFiles": true,
 	"haxe.exclude": [],
+
+	// Diagnostics for the three folders written by hand. The generated Haxe in export/haxe and
+	// the standard library are left out, which is less for every diagnostics pass to report. The
+	// server normalises both this and each file's path to forward slashes before matching.
+
+	"haxe.diagnosticsPathFilter": "${workspaceRoot}/(src|test|tools)/",
+
+	// Rename only walks folders that exist here, rather than the defaults it would otherwise
+	// look through as well.
+
+	"haxe.renameSourceFolders": ["src", "test", "tools"],
 
 	// This repository writes its own style down and no formatter is configured for it.
 	// Checkstyle lints "src" with its own defaults unless it is given no folder to look in.
 
 	"haxecheckstyle.sourceFolders": [],
+
+	// C and C++: mdd display writes export/compile_commands.json from the native sources, flags and
+	// include paths in mdd.xml, one entry per file with what the build compiles it with. The C/C++
+	// extension reads it here and clangd reads it through .clangd. The hxcpp output in export/obj
+	// and the vendored trees are kept out of the symbol index: a header included from them still
+	// resolves, but thousands of generated files are never parsed for workspace symbols.
+
+	"C_Cpp.default.compileCommands": "${workspaceFolder}/export/compile_commands.json",
+	"C_Cpp.files.exclude": {
+		"**/.vscode": true,
+		"**/.vs": true,
+		"export/**": true,
+		"vendor/**": true,
+		"dump/**": true,
+		".haxelib/**": true
+	},
 
 	"[haxe]": {
 		"editor.insertSpaces": false,
@@ -51,7 +80,15 @@
 	"[cpp]": {
 		"editor.insertSpaces": false,
 		"editor.tabSize": 4,
-		"editor.rulers": [120]
+		"editor.rulers": [120],
+		"editor.formatOnSave": false
+	},
+
+	"[c]": {
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+		"editor.rulers": [120],
+		"editor.formatOnSave": false
 	},
 
 	"[xml]": {
@@ -98,14 +135,25 @@
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
 
+	"files.associations": {
+		"mdd.xml": "xml",
+		"*.hxml": "hxml"
+	},
+
 	"search.exclude": {
 		"export": true,
 		"vendor": true,
+		"dump": true,
 		".haxelib": true
 	},
 
+	// Nothing in these folders is edited by hand, and export changes by the thousand files on
+	// every build, which the file watcher would otherwise report one at a time.
+
 	"files.watcherExclude": {
 		"**/export/**": true,
-		"**/vendor/**": true
+		"**/vendor/**": true,
+		"**/dump/**": true,
+		"**/.haxelib/**": true
 	}
 }

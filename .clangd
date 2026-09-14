@@ -1,0 +1,5 @@
+# clangd finds a compilation database beside a source or in a folder called build, and this one is
+# written into export by mdd display, so it is named here.
+
+CompileFlags:
+  CompilationDatabase: export
