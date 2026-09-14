@@ -18,7 +18,7 @@
 #include <string.h>
 
 namespace {
-	constexpr int SLOTS = 8;
+	constexpr int SLOTS = 32;
 
 	struct Face {
 		unsigned char *data;

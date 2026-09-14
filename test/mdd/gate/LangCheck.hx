@@ -37,6 +37,7 @@ class LangCheck {
 		filled();
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
 		scripted(args.length > 0 ? args[0] : Gate.root);
+		crowded(args.length > 0 ? args[0] : Gate.root);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -136,6 +137,50 @@ class LangCheck {
 		}
 
 		return held;
+	}
+
+	/**
+		Loads the faces the interface bakes its sizes in, twice over the way a video export bakes
+		its own beside them, and then the fallback chain, and asks that every fallback still loads.
+		The chain on its own always fits, which is why the glyph checks above cannot see a fallback
+		the interface has crowded out.
+
+		@param root Where the fonts are.
+	**/
+	static function crowded(root:String):Void {
+		final where = root + "/vendor/fonts/";
+		final names = ["Go-Regular.ttf", "Go-Regular.ttf", "Go-Mono.ttf", "Go-Mono.ttf",
+			mdd.Typeface.CONDENSED];
+
+		final own:Array<Int> = [];
+		final chain:Array<Int> = [];
+
+		for (round in 0...2) {
+			for (name in names) {
+				if (name == "" || !sys.FileSystem.exists(where + name)) continue;
+
+				final face = mdd.host.Text.load(where + name);
+				if (face >= 0) own.push(face);
+			}
+		}
+
+		var wanted = 0;
+
+		for (name in mdd.Typeface.FALLBACK) {
+			if (!sys.FileSystem.exists(where + name)) continue;
+
+			wanted++;
+
+			final face = mdd.host.Text.load(where + name);
+			if (face >= 0) chain.push(face);
+		}
+
+		for (face in own) mdd.host.Text.free(face);
+		for (face in chain) mdd.host.Text.free(face);
+
+		says("every fallback loads beside the interface", wanted > 0 && chain.length == wanted,
+			own.length + " interface faces held, then " + chain.length + " of " + wanted
+			+ " fallback faces loaded");
 	}
 
 	static function covers(faces:Array<Int>, code:Int, wide:cpp.RawPointer<Int>,
