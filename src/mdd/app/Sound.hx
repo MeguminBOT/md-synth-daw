@@ -67,14 +67,45 @@ final class Sound {
 		Opens the device, builds a render, primes it and starts it.
 
 		@param transport The transport the render should follow.
+		@param device The playback device to open by name, or an empty string for the system's
+			default. Where the named one will not open, the default is opened instead.
 	**/
-	public function open(transport:Transport):Void {
-		speaker = Audio.open(0, Render.BLOCK);
+	public function open(transport:Transport, device:String):Void {
+		speaker = Audio.open(0, Render.BLOCK, device);
+		if (speaker == null && device != "") speaker = Audio.open(0, Render.BLOCK, "");
 		if (speaker == null) return;
 
 		render = new Render(Audio.rate(speaker), Render.BLOCK);
 		render.transport = transport;
 		render.start(speaker);
+	}
+
+	/**
+		Closes the device and opens another in its place, with a render of its own at whatever
+		rate the new one plays. The monitoring gain has to be given again after.
+
+		@param transport The transport the render should follow.
+		@param device The playback device to open by name, or an empty string for the default.
+	**/
+	public function reopens(transport:Transport, device:String):Void {
+		shut();
+
+		speaker = null;
+		render = null;
+		seen = 0;
+		heard = 0;
+
+		open(transport, device);
+	}
+
+	/**
+		@return The playback devices the system has now, by name.
+	**/
+	public static function devices():Array<String> {
+		final out:Array<String> = [];
+		for (index in 0...Audio.count()) out.push(Std.string(Audio.named(index)));
+
+		return out;
 	}
 
 	/**

@@ -214,7 +214,8 @@ class App {
 
 		dress();
 		stage.measured();
-		sound.open(session.transport);
+		outputSaid = settings.of("output", "");
+		sound.open(session.transport, outputSaid);
 		scoped();
 
 		stage.show(settings == null || settings.asFlag("maximised", true));
@@ -340,6 +341,18 @@ class App {
 			listens(which <= 0 || which >= names.length ? "" : names[which]);
 
 			session.say(midiAt < 0 ? stage.root.translate(Locale.MIDI_NONE) : midiSaid);
+			keeps();
+		};
+
+		panels.preferences.onOutput = function(which:Int):Void {
+			final names = panels.preferences.outputs;
+			outputSaid = which <= 0 || which >= names.length ? "" : names[which];
+
+			sound.reopens(session.transport, outputSaid);
+			sound.monitors(Session.gainOf(session.master));
+			scoped();
+
+			session.say(outputSaid == "" ? stage.root.translate(Locale.AUDIO_DEFAULT) : outputSaid);
 			keeps();
 		};
 
@@ -1086,6 +1099,7 @@ class App {
 		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
 
 		keyboards();
+		outputs();
 
 		panels.preferences.chose(Preferences.CONSOLE,
 			settings.asWhole("console", mdd.play.Render.MODEL_ONE));
@@ -1156,6 +1170,7 @@ class App {
 		settings.put("song", files == null ? "" : files.path);
 		settings.put("language", stage.root.translation.language);
 		settings.put("midi", midiSaid);
+		settings.put("output", outputSaid);
 		settings.whole("midiChannel", panels.preferences.keyboardChannel);
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 		settings.whole("console", panels.preferences.console);
@@ -1434,6 +1449,21 @@ class App {
 	}
 
 	/**
+		Fills the audio device choices with what the system has now, and marks the one in use.
+	**/
+	function outputs():Void {
+		final held = panels.preferences.outputs;
+
+		held.resize(0);
+		held.push(stage.root.translate(Locale.AUDIO_DEFAULT));
+
+		for (name in mdd.app.Sound.devices()) held.push(name);
+
+		final at = held.indexOf(outputSaid);
+		panels.preferences.sounds(outputSaid == "" || at < 0 ? 0 : at);
+	}
+
+	/**
 		Opens the MIDI port the settings name.
 	**/
 	function keyboards():Void {
@@ -1533,6 +1563,11 @@ class App {
 
 	var midiAt:Int = -1;
 	var midiSaid:String = "";
+
+	/**
+		The playback device the sound goes to, by name, or an empty string for the system default.
+	**/
+	var outputSaid:String = "";
 
 	/**
 		Keeps the status bar, the meters, the scope and the presence up to date.

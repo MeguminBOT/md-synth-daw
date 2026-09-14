@@ -50,9 +50,14 @@ final class Preferences extends Widget {
 	public static inline final RENDERER = 20;
 
 	/**
+		Row: which playback device the sound goes to.
+	**/
+	public static inline final AUDIO_DEVICE = 21;
+
+	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 21;
+	public static inline final ROWS = 22;
 
 	/**
 		Group: the theme, the faces and the density.
@@ -101,7 +106,7 @@ final class Preferences extends Widget {
 		#end
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
-		[CONSOLE],
+		[AUDIO_DEVICE, CONSOLE],
 		[],
 		[PRESENCE]
 	];
@@ -130,7 +135,7 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
-		Locale.PREFERENCE_RENDERER];
+		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -275,6 +280,18 @@ final class Preferences extends Widget {
 		The MIDI input ports the machine has.
 	**/
 	public final keyboards:Array<String> = [];
+
+	/**
+		The playback devices, the system default first.
+	**/
+	public final outputs:Array<String> = [];
+
+	var outputAt(default, null):Int = 0;
+
+	/**
+		Called with the playback device chosen, as an index into `outputs`.
+	**/
+	public var onOutput:Null<Int -> Void> = null;
 
 	var keyboardAt(default, null):Int = 0;
 
@@ -883,6 +900,16 @@ final class Preferences extends Widget {
 		keyboardVelocity = velocity < 0 ? 0 : velocity;
 	}
 
+	/**
+		Marks which playback device is in use.
+
+		@param at An index into `outputs`, nought for the system default.
+	**/
+	public function sounds(at:Int):Void {
+		outputAt = at < 0 ? 0 : at;
+		invalidate();
+	}
+
 	function channels():Array<String> {
 		final out = [translate(Locale.MIDI_ANY)];
 		for (index in 1...17) out.push(Std.string(index));
@@ -921,6 +948,7 @@ final class Preferences extends Widget {
 		return switch (row) {
 			case TYPEFACE: Typeface.NAMES;
 			case RENDERER: renderers;
+			case AUDIO_DEVICE: outputs;
 			case BACKUPS: BACKUP_ROOMS;
 			case PROJECTS, PRESETS: NOTHING;
 			case MIDI_DEVICE: keyboards;
@@ -1031,6 +1059,7 @@ final class Preferences extends Widget {
 			case PRESENCE: presence;
 			case ASSOCIATE: associated ? 1 : 0;
 			case RENDERER: renderer;
+			case AUDIO_DEVICE: outputAt;
 			case _: language;
 		}
 	}
@@ -1123,6 +1152,10 @@ final class Preferences extends Widget {
 
 				associated = Associations.holds();
 				session.say(translate(ASSOCIATES[associated ? 1 : 0]));
+
+			case AUDIO_DEVICE:
+				outputAt = which < 0 || which >= outputs.length ? 0 : which;
+				if (onOutput != null) onOutput(outputAt);
 
 			case RENDERER:
 				renderer = which < 0 || which >= renderers.length ? 0 : which;

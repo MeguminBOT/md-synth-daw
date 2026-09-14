@@ -27,6 +27,51 @@
 namespace {
 	constexpr unsigned int CAPACITY = 16384;
 	constexpr unsigned int MASK = CAPACITY - 1;
+	constexpr int LISTED = 64;
+
+	struct Listed {
+		ma_device_id id;
+		char name[MA_MAX_DEVICE_NAME_LENGTH + 1];
+	};
+
+	Listed listed[LISTED];
+	int listedCount = 0;
+}
+
+/**
+ * Asks the system for its playback devices again and keeps up to LISTED of them.
+ */
+static int mdd_audio_list(void) {
+	listedCount = 0;
+
+	ma_context context;
+	if (ma_context_init(nullptr, 0, nullptr, &context) != MA_SUCCESS) return 0;
+
+	ma_device_info *playback = nullptr;
+	ma_device_info *capture = nullptr;
+	ma_uint32 playbackCount = 0;
+	ma_uint32 captureCount = 0;
+
+	if (ma_context_get_devices(&context, &playback, &playbackCount, &capture, &captureCount)
+			== MA_SUCCESS) {
+		for (ma_uint32 i = 0; i < playbackCount && listedCount < LISTED; i++) {
+			listed[listedCount].id = playback[i].id;
+			std::memcpy(listed[listedCount].name, playback[i].name, sizeof(listed[listedCount].name));
+			listed[listedCount].name[MA_MAX_DEVICE_NAME_LENGTH] = '\0';
+			listedCount++;
+		}
+	}
+
+	ma_context_uninit(&context);
+	return listedCount;
+}
+
+extern "C" int mdd_audio_count(void) {
+	return mdd_audio_list();
+}
+
+extern "C" const char *mdd_audio_named(int index) {
+	return index < 0 || index >= listedCount ? "" : listed[index].name;
 }
 
 struct MddDevice {
@@ -71,7 +116,7 @@ static void mdd_audio_drain(ma_device *handle, void *output, const void *, ma_ui
 	self->tail.store(at + take, std::memory_order_release);
 }
 
-extern "C" MddDevice *mdd_audio_open(int rate, int period) {
+extern "C" MddDevice *mdd_audio_open(int rate, int period, const char *name) {
 	MddDevice *self = new (std::nothrow) MddDevice();
 	if (self == nullptr) return nullptr;
 
@@ -96,6 +141,20 @@ extern "C" MddDevice *mdd_audio_open(int rate, int period) {
 	if (period > 0) {
 		config.periodSizeInFrames = static_cast<ma_uint32>(period);
 		config.periods = 2;
+	}
+
+	ma_device_id chosen;
+
+	if (name != nullptr && name[0] != '\0') {
+		mdd_audio_list();
+
+		for (int i = 0; i < listedCount; i++) {
+			if (std::strcmp(listed[i].name, name) != 0) continue;
+
+			chosen = listed[i].id;
+			config.playback.pDeviceID = &chosen;
+			break;
+		}
 	}
 
 	if (ma_device_init(nullptr, &config, &self->device) != MA_SUCCESS) {

@@ -259,6 +259,9 @@ and the checks compare the live stream against the offline one on every run.
   makes an exported file loud is the normalising in the export panel.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve.
+- **Audio device** in the Sound preferences sends the sound to any playback device the system
+  has, or to the system default. The choice is kept by name, and a device that has gone falls back
+  to the default.
 - The audio device is opened stopped and primed with 100 ms before it starts, because a WASAPI
   device asks for more in its first few callbacks than the buffer size it reports.
 

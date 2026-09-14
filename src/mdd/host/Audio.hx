@@ -16,10 +16,27 @@ extern class Audio {
 
 		@param rate The rate to ask for, in hertz.
 		@param period Frames per callback to ask for.
+		@param name The playback device, as `named` gives it, or an empty string for the system's
+			default. A name that is no longer there opens the default.
 		@return The device, or null where none would open. It is opened stopped.
 	**/
 	@:native("mdd_audio_open")
-	public static function open(rate:Int, period:Int):cpp.Star<Device>;
+	public static function open(rate:Int, period:Int, name:cpp.ConstCharStar):cpp.Star<Device>;
+
+	/**
+		Lists the playback devices the system has now, which `named` then reads.
+
+		@return How many there are.
+	**/
+	@:native("mdd_audio_count")
+	public static function count():Int;
+
+	/**
+		@param index Which device, below what `count` last answered.
+		@return Its name, or an empty string outside the list.
+	**/
+	@:native("mdd_audio_named")
+	public static function named(index:Int):cpp.ConstCharStar;
 
 	/**
 		Starts the device playing what has been written.

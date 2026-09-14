@@ -16,9 +16,24 @@ typedef struct MddDevice MddDevice;
  *
  * @param rate The rate to ask for, in hertz.
  * @param period Frames per callback to ask for.
+ * @param name The playback device to open, as mdd_audio_named gives it, or NULL or an empty
+ *     string for the system default. A name that is no longer there opens the default.
  * @return The device, or NULL where none would open.
  */
-MddDevice *mdd_audio_open(int rate, int period);
+MddDevice *mdd_audio_open(int rate, int period, const char *name);
+
+/**
+ * Lists the playback devices the system has now, which mdd_audio_named then reads.
+ *
+ * @return How many there are.
+ */
+int mdd_audio_count(void);
+
+/**
+ * @param index Which device, below what mdd_audio_count last answered.
+ * @return Its name as UTF-8, or an empty string for an index outside the list.
+ */
+const char *mdd_audio_named(int index);
 
 /**
  * Starts the device playing.

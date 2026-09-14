@@ -1004,7 +1004,7 @@ class AudioCheck {
 		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(name), stream);
 		final song = mdd.format.Transcription.of(stream, vgm.rate, name).song;
 
-		final handle = Audio.open(0, Render.BLOCK);
+		final handle = Audio.open(0, Render.BLOCK, "");
 
 		if (handle == null) {
 			says("an imported song plays live", false, "no playback device");
@@ -1067,7 +1067,7 @@ class AudioCheck {
 	}
 
 	static function device(seconds:Float):Void {
-		final handle = Audio.open(0, Render.BLOCK);
+		final handle = Audio.open(0, Render.BLOCK, "");
 
 		if (handle == null) {
 			says("the device opens", false, "miniaudio would not open a playback device");
