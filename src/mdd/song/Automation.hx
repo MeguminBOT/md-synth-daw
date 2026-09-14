@@ -63,11 +63,22 @@ final class Automation {
 	public static inline final WIRING = 9;
 
 	/**
+		Lane: which preset the notes play, as an index into the song's own instruments, which
+		the project carries whole and in order, so the index means the same preset on any
+		machine. It is not one register: from the first point on every note plays the preset
+		held here, whatever instrument it names, and the whole patch is written at its key on,
+		which is how a driver changes voice. Before the first point a note plays what it names
+		or what the rack holds. The converter has no such lane, because a kit picks its hit by
+		the instrument each note names.
+	**/
+	public static inline final INSTRUMENT = 10;
+
+	/**
 		The register base each lane writes to, or nought for a lane that is not one
 		register.
 	**/
 	public static final BASES:Array<Int> = [0x40, 0, 0, 0x30, 0x50, 0x60, 0x70, 0x80, 0x90,
-		0xB0];
+		0xB0, 0];
 
 	/**
 		@param target A lane index.

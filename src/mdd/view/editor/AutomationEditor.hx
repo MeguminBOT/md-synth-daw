@@ -313,7 +313,8 @@ final class AutomationEditor extends Widget {
 			if (shape == point.shape) choice.enabled = false;
 			else if (one != null && !one.smooth && Automation.moves(shape)) {
 				choice.enabled = false;
-				choice.reason = translate(Locale.PARAM_PACKED);
+				choice.reason = translate(one.target == Automation.INSTRUMENT ? Locale.PARAM_WHOLE
+					: Locale.PARAM_PACKED);
 			} else {
 				fires(choice, function():Void {
 					session.does(new mdd.song.edit.ShapePoint(point, shape, point.tension,

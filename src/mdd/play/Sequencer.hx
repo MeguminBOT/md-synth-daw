@@ -403,6 +403,8 @@ final class Sequencer {
 	}
 
 	var underTranspose:Int = 0;
+	var underLane:Null<mdd.song.Lane> = null;
+	var reading:Null<mdd.song.Lane> = null;
 
 	/**
 		@param part Which part.
@@ -412,6 +414,7 @@ final class Sequencer {
 	function noteUnder(part:Part, tick:Int):Null<mdd.song.Note> {
 		var found:Null<mdd.song.Note> = null;
 		underTranspose = 0;
+		underLane = null;
 
 		for (track in song.tracks) {
 			if (track.muted) continue;
@@ -430,6 +433,7 @@ final class Sequencer {
 
 					found = note;
 					underTranspose = clip.transpose;
+					underLane = pattern.lane(part);
 				}
 			}
 		}
@@ -555,7 +559,7 @@ final class Sequencer {
 		wroteUnder = note.pitch;
 
 		lined(at, part, line, value, underTranspose, note.pitch, note.velocity,
-			note.instrument);
+			chosen(underLane, part, note.instrument, note.at));
 	}
 
 	/**
@@ -673,7 +677,7 @@ final class Sequencer {
 			final offSample = !held && ending - onSample > GUARD * 2 ? ending - GUARD : ending;
 			final pitch = voices.pitchAt(slice) + transpose;
 			final velocity = louder(part, voices.velocityAt(slice));
-			final named = voices.instrumentAt(slice);
+			final named = chosen(lane, part, voices.instrumentAt(slice), voices.startAt(slice));
 
 			if (part.sampled() && song.drums && song.drumAt(pitch) < 0) continue;
 
@@ -769,6 +773,8 @@ final class Sequencer {
 	**/
 	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
 			pitch:Int, velocity:Int, named:Int):Void {
+		if (line.target == mdd.song.Automation.INSTRUMENT) return;
+
 		final level = line.target == mdd.song.Automation.LEVEL;
 		final tune = line.target == mdd.song.Automation.TUNE;
 
@@ -910,7 +916,8 @@ final class Sequencer {
 		if (under < 0) lined(at, part, line, value, transpose, -1, -1, -1);
 		else {
 			lined(at, part, line, value, transpose, voices.pitchAt(under),
-				voices.velocityAt(under), voices.instrumentAt(under));
+				voices.velocityAt(under),
+				chosen(reading, part, voices.instrumentAt(under), voices.startAt(under)));
 		}
 	}
 
@@ -993,6 +1000,7 @@ final class Sequencer {
 		if (!part.fm() && !part.square() && !part.noise() && !part.sampled()) return;
 
 		final tempo = song.tempo;
+		reading = lane;
 
 		for (line in lane.automation) {
 			if (!carries(part, line)) continue;
@@ -1110,6 +1118,9 @@ final class Sequencer {
 			for (line in lane.automation) {
 				if (line.target == mdd.song.Automation.SIDES) sided = line;
 			}
+
+			named = chosen(lane, part, under == null ? -1 : under.instrument,
+				under == null ? local : under.at);
 		}
 
 		if (part.fm()) {
@@ -1139,8 +1150,7 @@ final class Sequencer {
 			final held = line.seek(local + 1) - 1;
 			if (held >= 0 && line.points[held].at < under.at) continue;
 
-			lined(at, part, line, want, transpose, under.pitch, under.velocity,
-				under.instrument);
+			lined(at, part, line, want, transpose, under.pitch, under.velocity, named);
 		}
 	}
 
@@ -1327,6 +1337,37 @@ final class Sequencer {
 	function instrumentOf(named:Int, part:Part):Null<Instrument> {
 		final want = named >= 0 ? named : song.rack[part.index()];
 		return song.instrumentAt(want);
+	}
+
+	/**
+		Which instrument a note plays once the lane's preset automation is read. Runs on the
+		render thread and allocates nothing.
+
+		The lane wins over the note from its first point on, because loading a preset into a
+		part and writing a note in the tracker both name an instrument on every note, and a
+		lane that gave way to them would never be heard. The converter is left to its notes,
+		because a kit picks its hit by the instrument each note names.
+
+		@param lane The lane the note is in, or null where there is none.
+		@param part Which part the note plays on.
+		@param named Which instrument the note names, or -1 for the rack.
+		@param tick Where the note starts in the lane, in ticks.
+		@return The preset the lane holds at that tick, or what the note names where the lane
+			has no point at or before it, holds an index no instrument is at, or the part is
+			the converter.
+	**/
+	function chosen(lane:Null<mdd.song.Lane>, part:Part, named:Int, tick:Int):Int {
+		if (lane == null || part.sampled()) return named;
+
+		for (line in lane.automation) {
+			if (line.target != mdd.song.Automation.INSTRUMENT) continue;
+			if (line.points.length == 0 || line.points[0].at > tick) return named;
+
+			final want = line.heldAt(tick);
+			return song.instrumentAt(want) == null ? named : want;
+		}
+
+		return named;
 	}
 
 	/**

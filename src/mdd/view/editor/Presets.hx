@@ -165,6 +165,40 @@ final class Presets extends Widget {
 			Kits.named(session.song, part, which), part.name());
 	}
 
+	/**
+		Switches the chosen part to a preset from the playhead on, by putting it in the part's
+		preset lane in the chosen pattern. A point already at that tick takes the new preset
+		rather than a second point being laid over it, so one undo puts it back.
+
+		@param which Which instrument.
+	**/
+	function switched(which:Int):Void {
+		final instrument = session.song.instrumentAt(which);
+		final pattern = session.current();
+		if (instrument == null || pattern == null) return;
+
+		final part = session.part;
+		final begun = session.begins(session.transport.tick());
+		final at = begun < 0 ? 0 : begun;
+
+		var line:Null<mdd.song.Automation> = null;
+
+		for (found in pattern.lane(part).automation) {
+			if (found.held(mdd.song.Automation.INSTRUMENT, 0)) line = found;
+		}
+
+		if (line != null && line.marks(at)) {
+			session.does(new mdd.song.edit.MovePoint(session.pattern, part,
+				mdd.song.Automation.INSTRUMENT, 0, line.points[line.seek(at)], at, which));
+		} else {
+			session.does(new mdd.song.edit.AddPoint(session.pattern, part,
+				mdd.song.Automation.INSTRUMENT, 0, new mdd.song.Point(at, which)));
+		}
+
+		session.says(Locale.SAID_PRESET_SWITCHED, Kits.named(session.song, part, which),
+			part.name());
+	}
+
 	function wanted(instrument:Instrument):Part {
 		if (suits(instrument, session.part)) return session.part;
 
@@ -213,6 +247,11 @@ final class Presets extends Widget {
 
 		fires(menu.offer(new Choice(translate(Locale.PRESET_LOAD) + " "
 			+ session.part.name())), function():Void picked(item));
+
+		if (suits(instrument, session.part) && !session.part.sampled()) {
+			fires(menu.offer(new Choice(filled(Locale.PRESET_SWITCH, [session.part.name()]))),
+				function():Void switched(which));
+		}
 
 		menu.divide();
 

@@ -33,6 +33,7 @@ class AutomationCheck {
 		sliced();
 		driven();
 		named();
+		switched();
 		kept();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -44,6 +45,168 @@ class AutomationCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		A preset lane switches the patch the next key on loads, from its first point on, even for
+		a note that names an instrument of its own, which loading a preset into a part gives
+		every note the part has. The rack plays before the first point.
+	**/
+	static function switched():Void {
+		final song = new Song("switch", 96, 120);
+		final first = wired(song, "first", 2, 1);
+		final second = wired(song, "second", 5, 6);
+
+		song.rack[Part.Fm1.index()] = first;
+
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 3));
+		final lane = pattern.lane(Part.Fm1);
+
+		lane.add(new mdd.song.Note(0, 48, 60, 100));
+		lane.add(new mdd.song.Note(SPAN, 48, 62, 100, first));
+		lane.add(new mdd.song.Note(SPAN * 2, 48, 64, 100));
+
+		final line = new Automation(Automation.INSTRUMENT, 0);
+		line.add(new Point(SPAN, second));
+		line.add(new Point(SPAN * 2, first));
+		lane.automation.push(line);
+
+		final track = song.track(new mdd.song.Track("one"));
+		track.add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final span = song.tempo.samplesAt(pattern.length);
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, span);
+
+		final rack = (1 << 3) | 2;
+		final preset = (6 << 3) | 5;
+		final wanted = [rack, KEYED, preset, KEYED, rack, KEYED].join(" ");
+
+		final played = patched(stream);
+
+		says("a preset lane switches the patch", played.join(" ") == wanted,
+			spoken(played) + ", which is the rack before the first point, the preset over a"
+			+ " note naming the rack's own and the preset the next point holds, each written"
+			+ " before the key on it belongs to. " + switching(stream)
+			+ " register writes land on the tick of the switch, against the "
+			+ mdd.play.Driver.PER_FRAME + " a driver has in a frame");
+
+		final vgm = new mdd.play.Stream(1 << 16);
+		mdd.format.Vgm.read(mdd.format.Vgm.write(stream, 0, span, song.tempo.rate), vgm);
+
+		final logged = patched(vgm);
+
+		says("and a VGM of it reads back the same", logged.join(" ") == wanted,
+			spoken(logged) + " out of the file's own bytes");
+
+		final xgm = new mdd.play.Stream(1 << 16);
+		mdd.format.Xgm.read(mdd.format.Xgm.write(song, stream, 0, span, song.tempo.rate).written,
+			xgm);
+
+		final driven = patched(xgm);
+
+		says("and so does an XGM", driven.join(" ") == wanted,
+			spoken(driven) + " out of the file's own bytes, frame by frame");
+	}
+
+	/**
+		Marks a key on among the values `patched` returns.
+	**/
+	static inline final KEYED = -1;
+
+	/**
+		@param stream A sequenced or read back stream.
+		@return Every `$B0` value written to the first FM channel, with `KEYED` wherever that
+			channel is keyed on, in the order the writes happen.
+	**/
+	static function patched(stream:mdd.play.Stream):Array<Int> {
+		final out:Array<Int> = [];
+		var address = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+
+			if (port == 0) {
+				address = stream.valueAt(index);
+				continue;
+			}
+
+			if (port != 1) continue;
+
+			final value = stream.valueAt(index);
+
+			if (address == 0xB0) out.push(value);
+			else if (address == 0x28 && (value & 7) == 0 && (value & 0xF0) != 0) out.push(KEYED);
+		}
+
+		return out;
+	}
+
+	/**
+		@param held What `patched` returned.
+		@return It written out, with each key on named.
+	**/
+	static function spoken(held:Array<Int>):String {
+		final out:Array<String> = [];
+		for (value in held) out.push(value == KEYED ? "key on" : "$B0 " + value);
+
+		return out.join(", ");
+	}
+
+	/**
+		@param stream A sequenced stream.
+		@return How many register writes happen on the tick of the first FM channel's second
+			key on, which is where the preset switch lands.
+	**/
+	static function switching(stream:mdd.play.Stream):Int {
+		final keys:Array<Int> = [];
+		var address = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+
+			if (port == 0) address = stream.valueAt(index);
+			else if (port == 1 && address == 0x28 && stream.valueAt(index) == 0xF0) {
+				keys.push(stream.tickAt(index));
+			}
+		}
+
+		if (keys.length < 2) return 0;
+
+		var many = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+			if ((stream.portAt(index) & 1) != 0) continue;
+			if (stream.tickAt(index) == keys[1]) many++;
+		}
+
+		return many;
+	}
+
+	/**
+		Adds an FM instrument that differs from the others only in its wiring.
+
+		@param song The song to add it to.
+		@param name What to call it.
+		@param algorithm Its algorithm.
+		@param feedback Its feedback.
+		@return Its index.
+	**/
+	static function wired(song:Song, name:String, algorithm:Int, feedback:Int):Int {
+		final made = new mdd.song.Instrument(name, Part.Fm1);
+		final patch = new mdd.song.Patch();
+
+		patch.algorithm = algorithm;
+		patch.feedback = feedback;
+		made.patch = patch;
+
+		song.instrument(made);
+		return song.instruments.length - 1;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
@@ -544,7 +707,7 @@ class AutomationCheck {
 			many += held.length;
 
 			for (one in held) {
-				if (one.smooth) continue;
+				if (one.smooth || one.target == Automation.INSTRUMENT) continue;
 				packed++;
 			}
 		}
@@ -572,7 +735,7 @@ class AutomationCheck {
 			+ mdd.play.Driver.PER_FRAME + " a driver has");
 
 		says("every part says what can be automated on it",
-			fm == 10 && square == 2 && noise == 2 && sampled == 1 && packed == 44,
+			fm == 11 && square == 3 && noise == 3 && sampled == 1 && packed == 44,
 			many + " parameters over the eleven parts: " + fm + " on an fm channel, "
 			+ square + " on a square, " + noise + " on the noise and " + sampled
 			+ " on the converter. " + packed + " of them are registers carrying more than"

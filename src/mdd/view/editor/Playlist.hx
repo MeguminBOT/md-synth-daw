@@ -1363,6 +1363,8 @@ final class Playlist extends Widget {
 			final drives = new Menu();
 
 			for (one in mdd.view.Parameter.of(session.part)) {
+				if (one.target == mdd.song.Automation.INSTRUMENT) continue;
+
 				if (!one.operators) {
 					driven(drives, held, one, one.target, 0, px);
 					continue;

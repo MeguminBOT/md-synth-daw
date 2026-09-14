@@ -309,7 +309,7 @@ final class Lanes extends Widget {
 		bend.label = translate(Locale.POINT_BEND);
 		steps.label = translate(Locale.POINT_STEPS);
 
-		amount.derived = function(value:Int):String return one.said(value);
+		amount.derived = function(value:Int):String return told(one, value);
 
 		position.set(chosen.at);
 		amount.set(chosen.value);
@@ -364,6 +364,18 @@ final class Lanes extends Widget {
 	**/
 	public inline function rows():Int {
 		return holding == null ? targets.length : 1;
+	}
+
+	/**
+		@param held The parameter a lane is.
+		@param value A value of it.
+		@return What the value means, which for a preset lane is the preset's name.
+	**/
+	function told(held:Parameter, value:Int):String {
+		if (held.target != Automation.INSTRUMENT) return held.said(value);
+
+		final instrument = session.song.instrumentAt(value);
+		return instrument == null ? "" + value : instrument.name;
 	}
 
 	inline function driven():Null<Automation> {
@@ -1357,7 +1369,7 @@ final class Lanes extends Widget {
 
 		grabs(point, row);
 
-		session.say(held.titled(slotted(row)) + "  " + held.said(point.value));
+		session.say(held.titled(slotted(row)) + "  " + told(held, point.value));
 
 		anchors(event, point);
 		relayout();
@@ -1517,7 +1529,7 @@ final class Lanes extends Widget {
 
 			shifts(tick - wasAt, value - wasValue, held);
 
-			session.say(held.titled(slotted(draggingAt)) + "  " + held.said(value));
+			session.say(held.titled(slotted(draggingAt)) + "  " + told(held, value));
 			invalidate();
 			return true;
 		}
@@ -1738,10 +1750,10 @@ final class Lanes extends Widget {
 		final floor = plotTop(row) + plotTall(row) - padding();
 		final upper = held.attenuates() ? held.low : held.high;
 
-		paint.textRight(held.said(upper), x + left - metrics.unit,
+		paint.textRight(told(held, upper), x + left - metrics.unit,
 			ceiling + small.ascent * 0.5, theme.dim, 0.45);
 
-		paint.textRight(held.said(held.attenuates() ? held.high : held.low),
+		paint.textRight(told(held, held.attenuates() ? held.high : held.low),
 			x + left - metrics.unit, floor + small.ascent * 0.5, theme.dim, 0.45);
 
 		if (!held.offset) return;
@@ -1890,7 +1902,7 @@ final class Lanes extends Widget {
 
 		final value = lineOf(row);
 		final now = value == null || value.points.length == 0 ? ""
-			: held.said(value.valueAt(playhead < 0 ? 0 : playhead));
+			: told(held, value.valueAt(playhead < 0 ? 0 : playhead));
 
 		final right = x + width - (holding == null && adding ? metrics.whole(62) : metrics.gap);
 

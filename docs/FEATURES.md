@@ -101,6 +101,15 @@ Any parameter that corresponds to a register can be automated, including the one
 register: `$B4` holds the stereo bits and both LFO sensitivities, and the automation lane owns the
 whole byte so nothing else can fight it.
 
+A **preset lane** lets one channel play several instruments in turn. Right-click a preset and
+choose to switch the channel at the playhead: from that point on, every note loads the whole preset
+at its key on, including a note that names an instrument of its own. That is how a driver changes
+voice, so what reaches the chip, and what an export carries, is the ordinary register writes of a
+patch. Before the lane's first point the channel plays what it did before. A point names a preset
+the song itself carries, and a saved project carries every one of them in order, so a project
+opens with the same switches on a machine with a different set of presets installed. The sample
+channel has no preset lane, because a kit picks each hit by the note.
+
 ### Undo
 
 Undo and redo cover everything, drags included. A drag lands as one step rather than one step per
@@ -202,6 +211,8 @@ writes with real pauses excluded, rather than from the run measured end to end.
 ## Presets and banks
 
 - Search by name or by tag.
+- **Switch at playhead**, on a preset's right-click menu, puts it in the channel's preset lane
+  where the playhead is, so one channel can change instrument part way through a pattern.
 - Any patch in a song can be lifted into the library.
 - Patches import from TFI files and export back to them.
 - Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks

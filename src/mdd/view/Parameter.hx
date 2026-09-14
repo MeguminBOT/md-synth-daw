@@ -169,6 +169,11 @@ final class Parameter {
 			+ (one > 0 ? "+" : "") + one + " dB";
 	}
 
+	/**
+		The highest instrument index a preset lane reaches.
+	**/
+	static inline final PRESETS = 1023;
+
 	static final FM:Array<Parameter> = fm();
 	static final SQUARE:Array<Parameter> = square();
 	static final NOISE:Array<Parameter> = noise();
@@ -219,7 +224,8 @@ final class Parameter {
 				.ramps().slotted(),
 			made(Automation.RELEASE, 0, 0, 255, "D1L RR", Locale.PARAM_RELEASE).slotted(),
 			made(Automation.LOOP, 0, 0, 15, "SSG", Locale.PARAM_LOOP).slotted(),
-			made(Automation.WIRING, 0, 0, 63, "FB ALG", Locale.PARAM_WIRING)
+			made(Automation.WIRING, 0, 0, 63, "FB ALG", Locale.PARAM_WIRING),
+			made(Automation.INSTRUMENT, 0, 0, PRESETS, "PRESET", Locale.PARAM_PRESET)
 		];
 	}
 
@@ -228,7 +234,8 @@ final class Parameter {
 			made(Automation.LEVEL, 0, -15, 15, "LEVEL", Locale.PARAM_ATTENUATION)
 				.rides().ramps().quiets(2),
 			made(Automation.TUNE, 0, -1023, 1023, "PERIOD", Locale.PARAM_PERIOD)
-				.rides().ramps()
+				.rides().ramps(),
+			made(Automation.INSTRUMENT, 0, 0, PRESETS, "PRESET", Locale.PARAM_PRESET)
 		];
 	}
 
@@ -236,7 +243,8 @@ final class Parameter {
 		return [
 			made(Automation.LEVEL, 0, -15, 15, "LEVEL", Locale.PARAM_ATTENUATION)
 				.rides().ramps().quiets(2),
-			made(Automation.TUNE, 0, 0, 15, "NOISE", Locale.PARAM_NOISE)
+			made(Automation.TUNE, 0, 0, 15, "NOISE", Locale.PARAM_NOISE),
+			made(Automation.INSTRUMENT, 0, 0, PRESETS, "PRESET", Locale.PARAM_PRESET)
 		];
 	}
 
