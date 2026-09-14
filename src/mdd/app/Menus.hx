@@ -407,12 +407,12 @@ final class Menus {
 
 		held.divide();
 
-		fired(held.offer(new Choice(said(Locale.FILE_VGM), Bindings.of(bindings, Bindings.WRITE_VGM))), function():Void
-			asks(Files.VGM));
 		fired(held.offer(new Choice(said(Locale.FILE_AUDIO), Bindings.of(bindings, Bindings.WRITE_AUDIO))),
 			function():Void panels.sounded());
 		fired(held.offer(new Choice(said(Locale.EXPORT_VIDEO))), function():Void
 			panels.exportsVideo());
+		fired(held.offer(new Choice(said(Locale.FILE_VGM), Bindings.of(bindings, Bindings.WRITE_VGM))), function():Void
+			asks(Files.VGM));
 		fired(held.offer(new Choice(said(Locale.FILE_XGM))), function():Void
 			asks(Files.XGM));
 		fired(held.offer(new Choice(said(Locale.FILE_MIDI))), function():Void
