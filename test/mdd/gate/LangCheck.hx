@@ -35,6 +35,7 @@ class LangCheck {
 		written(shipped);
 		placed(shipped);
 		filled();
+		broken();
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
 		scripted(args.length > 0 ? args[0] : Gate.root);
 		crowded(args.length > 0 ? args[0] : Gate.root);
@@ -48,6 +49,36 @@ class LangCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		Checks where a line that does not fit is broken, in the scripts written with spaces and
+		in the ones written without.
+	**/
+	static function broken():Void {
+		final japanese = "オシレーターは 1 つだけなので";
+		final room = japanese.indexOf("だ");
+		final cut = mdd.ui.Font.breaks(japanese, room);
+
+		says("kana breaks where the room runs out", cut == room,
+			"at " + cut + " of " + room + ", with a space at " + japanese.indexOf(" "));
+
+		final stop = "音量は無音です。次の段階";
+		final mark = stop.indexOf("。");
+		final kept = mdd.ui.Font.breaks(stop, mark);
+
+		says("and a full stop stays on the line it closes", kept == mark - 1,
+			"at " + kept + " where the stop is at " + mark);
+
+		final korean = "채널 3은 네 음을 낼 수 있음";
+		final hangul = korean.indexOf("음");
+		final latin = "This language was translated";
+		final spoken = mdd.ui.Font.breaks(korean, hangul);
+		final written = mdd.ui.Font.breaks(latin, 12);
+
+		says("korean and english still break between words",
+			spoken == korean.lastIndexOf(" ", hangul) && written == latin.lastIndexOf(" ", 12),
+			"at " + spoken + " and at " + written);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

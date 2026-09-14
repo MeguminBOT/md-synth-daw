@@ -441,7 +441,10 @@ final class Font {
 	/**
 		Breaks a line into lines no wider than the room there is, between words where
 		the writing has spaces in it and between characters where it does not, which
-		is what the scripts written without spaces need.
+		is what the scripts written without spaces need. Beside a kana or an ideograph
+		it breaks where the room runs out even with a space further back, and a closing
+		mark such as a full stop is kept on the line it closes rather than starting the
+		next one.
 
 		A character this face has no glyph for measures nothing, so a line made only
 		of them comes back whole however narrow the room is.
@@ -467,7 +470,7 @@ final class Font {
 				break;
 			}
 
-			var cut = rest.lastIndexOf(" ", many);
+			var cut = breaks(rest, many);
 			if (cut <= 0) cut = many > 0 ? many : step(codeAt(rest, 0));
 
 			held.push(StringTools.rtrim(rest.substring(0, cut)));
@@ -477,6 +480,51 @@ final class Font {
 		}
 
 		return held;
+	}
+
+	/**
+		Finds where a line that does not fit is broken, which is `wrapped`'s rule on its own so
+		it can be checked without a face.
+
+		@param line The line.
+		@param many How many characters of it fit.
+		@return Where the first line ends: the last space before what fits, or where the room
+			runs out when that is beside a kana or an ideograph, one sooner where a closing mark
+			would otherwise start the next line. Nought or less where there is no place to break.
+	**/
+	public static function breaks(line:String, many:Int):Int {
+		if (many <= 0 || many >= line.length) return line.lastIndexOf(" ", many);
+
+		final at = StringTools.fastCodeAt(line, many);
+		final before = StringTools.fastCodeAt(line, many - 1);
+
+		if (!ideographic(at) && !ideographic(before)) return line.lastIndexOf(" ", many);
+
+		return many > 1 && closing(at) && (before < 0xD800 || before > 0xDFFF) ? many - 1 : many;
+	}
+
+	/**
+		@param code A code unit.
+		@return Whether it is a kana, an ideograph or a full width form, which a line may be
+			broken beside without a space. Hangul is not, because Korean is written with
+			spaces.
+	**/
+	static inline function ideographic(code:Int):Bool {
+		return (code >= 0x3000 && code <= 0x9FFF) || (code >= 0xF900 && code <= 0xFAFF)
+			|| (code >= 0xFF00 && code <= 0xFFEF);
+	}
+
+	/**
+		@param code A code unit.
+		@return Whether it closes what comes before it, and so may not start a line.
+	**/
+	static inline function closing(code:Int):Bool {
+		return switch (code) {
+			case 0x3001 | 0x3002 | 0xFF0C | 0xFF0E | 0xFF09 | 0x300D | 0x300F | 0xFF01 | 0xFF1F
+				| 0xFF1A | 0xFF1B | ",".code | ".".code | ")".code | ":".code | ";".code
+				| "!".code | "?".code: true;
+			case _: false;
+		}
 	}
 
 	/**
