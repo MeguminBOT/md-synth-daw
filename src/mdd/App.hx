@@ -156,7 +156,7 @@ class App {
 
 	static final DRIVERS:Array<String> = ["--dx11", "direct3d11", "--d3d11", "direct3d11",
 		"--dx12", "direct3d12", "--d3d12", "direct3d12", "--vulkan", "vulkan",
-		"--opengl", "opengl", "--opengles", "opengles2", "--software", "software"];
+		"--opengl", "opengl", "--opengles", "opengles2"];
 
 	public static function flagged(args:Array<String>):String {
 		for (index in 0...DRIVERS.length >> 1) {
@@ -170,12 +170,16 @@ class App {
 		return "";
 	}
 
+	/**
+		@return The renderer backends SDL was built with, by SDL's own names, leaving out
+			`software`, which draws on the processor, and `gpu`, which the preferences do not offer.
+	**/
 	public static function offered():Array<String> {
 		final out:Array<String> = [];
 
 		for (index in 0...Sdl.renderDrivers()) {
 			final name = (Sdl.renderDriver(index) : String);
-			if (name != "") out.push(name);
+			if (name != "" && name != "software" && name != "gpu") out.push(name);
 		}
 
 		return out;

@@ -6,6 +6,10 @@ are wrong.
 SDL3 ships `direct3d11`, `direct3d12`, `opengl`, `opengles2`, `vulkan` and `software`, and
 `SDL_CreateRenderer` takes any of them by name. Windows starts at `direct3d11`.
 
+The preferences offer every backend the build has except `software` and `gpu`, and name each for
+the interface it drives: `direct3d` is DirectX 9, `direct3d11` DirectX 11, `direct3d12` DirectX 12,
+`opengl` OpenGL, `opengles2` OpenGL ES and `vulkan` Vulkan. The setting keeps the SDL name.
+
 ## Choosing one
 
 `mdd.App.PINNED` is what Windows falls back to and starts at. A flag names another on any

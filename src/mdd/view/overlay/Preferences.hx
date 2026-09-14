@@ -190,9 +190,21 @@ final class Preferences extends Widget {
 	public final languages:Array<String> = [];
 
 	/**
-		The renderer backends SDL was built with.
+		What each renderer backend is called on the sheet, automatic first.
 	**/
 	public final renderers:Array<String> = [];
+
+	/**
+		The name SDL knows each of `renderers` by, which is what the setting keeps, with an empty
+		name for automatic.
+	**/
+	final backends:Array<String> = [];
+
+	static final DRIVERS:Array<String> = ["direct3d", "direct3d11", "direct3d12", "vulkan",
+		"opengl", "opengles2"];
+
+	static final DRIVEN:Array<String> = ["DirectX 9", "DirectX 11", "DirectX 12", "Vulkan",
+		"OpenGL", "OpenGL ES"];
 
 	/**
 		What each language is called, in itself.
@@ -444,11 +456,19 @@ final class Preferences extends Widget {
 	**/
 	public function draws(names:Array<String>, held:String):Void {
 		renderers.resize(0);
+		backends.resize(0);
+
 		renderers.push(translate(Locale.RENDERER_AUTO));
+		backends.push("");
 
-		for (name in names) renderers.push(name);
+		for (name in names) {
+			final known = DRIVERS.indexOf(name);
 
-		final at = renderers.indexOf(held);
+			renderers.push(known < 0 ? name : DRIVEN[known]);
+			backends.push(name);
+		}
+
+		final at = backends.indexOf(held);
 		renderer = held == "" || at < 0 ? 0 : at;
 
 		invalidate();
@@ -1107,7 +1127,7 @@ final class Preferences extends Widget {
 			case RENDERER:
 				renderer = which < 0 || which >= renderers.length ? 0 : which;
 
-				final name = renderer == 0 ? "" : renderers[renderer];
+				final name = renderer < backends.length ? backends[renderer] : "";
 				if (onRenderer != null) onRenderer(name);
 
 			case _:
