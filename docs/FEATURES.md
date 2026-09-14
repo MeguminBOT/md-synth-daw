@@ -429,6 +429,10 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   unless you override it.
 - **Text size** from 90% to 150%, on its own, so the text can grow without the rows and controls
   growing with it.
+- **Eight themes**: Midnight, Rack and Slate, Material and Fluent in dark and in light, and Pastel.
+  **Part colours** can be the standard set or one told apart with the common forms of colour
+  blindness, with the FM parts in warm colours and the square parts in cool ones, and on a light
+  theme either set is drawn deep enough to read on the lighter ground.
 - **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line
   between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
   pointed arrow with the pan tool in hand.

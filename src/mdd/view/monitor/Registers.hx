@@ -329,7 +329,7 @@ final class Registers extends Scroll {
 			final ym = kinds[index] == Stream.YM;
 
 			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.85);
-			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? Theme.FM2 : Theme.PSG1, 1);
+			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? theme.part(1) : theme.part(6), 1);
 
 			if (ym) {
 				paint.text(filled(Locale.FIELD_PORT, ["" + ports[index]]), portAt, line,

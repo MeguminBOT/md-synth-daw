@@ -70,9 +70,14 @@ final class Preferences extends Widget {
 	public static inline final TEXT_SIZE = 24;
 
 	/**
+		Row: which set of part colours is drawn.
+	**/
+	public static inline final PART_COLOURS = 25;
+
+	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 25;
+	public static inline final ROWS = 26;
 
 	/**
 		What each choice of the text size row multiplies the faces by.
@@ -119,7 +124,7 @@ final class Preferences extends Widget {
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
-		[THEME, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER],
+		[THEME, PART_COLOURS, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER],
 		[AUTOMATING, TAIL, TEMPO, ACCIDENTALS, NOTE_LETTERS],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
@@ -158,7 +163,8 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
-		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE];
+		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE,
+		Locale.PREFERENCE_PART_COLOURS];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -205,7 +211,10 @@ final class Preferences extends Widget {
 	static final UPDATING:Array<Locale> = [Locale.UPDATES_NEVER, Locale.UPDATES_LAUNCH];
 
 	static final THEMES:Array<Locale> = [Locale.THEME_MIDNIGHT, Locale.THEME_RACK,
-		Locale.THEME_SLATE];
+		Locale.THEME_SLATE, Locale.THEME_MATERIAL, Locale.THEME_FLUENT, Locale.THEME_MATERIAL_LIGHT,
+		Locale.THEME_FLUENT_LIGHT, Locale.THEME_PASTEL];
+
+	static final PALETTES:Array<Locale> = [Locale.PART_COLOURS_STANDARD, Locale.PART_COLOURS_SAFE];
 	static final MOTIONS:Array<Locale> = [Locale.MOTION_FULL, Locale.MOTION_REDUCED,
 		Locale.MOTION_NONE];
 	static final DENSITIES:Array<Locale> = [Locale.DENSITY_CLOSE, Locale.DENSITY_USUAL,
@@ -441,6 +450,11 @@ final class Preferences extends Widget {
 		Called with what the faces are to be multiplied by when the text size changes.
 	**/
 	public var onTextSize:Null<Float -> Void> = null;
+
+	/**
+		Called with the set of part colours chosen, `Theme.STANDARD` or `Theme.SAFE`.
+	**/
+	public var onPartColours:Null<Int -> Void> = null;
 
 	/**
 		Called when how much Discord is told changes.
@@ -966,6 +980,7 @@ final class Preferences extends Widget {
 	public function labels(row:Int):Array<Locale> {
 		return switch (row) {
 			case THEME: THEMES;
+			case PART_COLOURS: PALETTES;
 			case MOTION: MOTIONS;
 			case DENSITY: DENSITIES;
 			case KEEPING: KEEPINGS;
@@ -999,7 +1014,8 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
-				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS, NOTE_LETTERS: NOTHING;
+				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS, NOTE_LETTERS,
+				PART_COLOURS: NOTHING;
 			case _: languages;
 		}
 	}
@@ -1086,6 +1102,7 @@ final class Preferences extends Widget {
 	public function holding(row:Int):Int {
 		return switch (row) {
 			case THEME: session.theme;
+			case PART_COLOURS: session.partColours;
 			case TYPEFACE: session.typeface;
 			case MOTION: session.motion;
 			case DENSITY: density;
@@ -1210,6 +1227,12 @@ final class Preferences extends Widget {
 
 				associated = Associations.holds();
 				session.say(translate(ASSOCIATES[associated ? 1 : 0]));
+
+			case PART_COLOURS:
+				session.partColours = which == Theme.SAFE ? Theme.SAFE : Theme.STANDARD;
+
+				if (root != null) root.theme.chooses(session.partColours);
+				if (onPartColours != null) onPartColours(session.partColours);
 
 			case TEXT_SIZE:
 				textSize = which < 0 || which >= TEXT_SCALES.length ? 1 : which;

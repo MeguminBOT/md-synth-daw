@@ -505,7 +505,7 @@ final class Menu extends Widget {
 
 		final lift = metrics.whole(3);
 
-		paint.roundedRect(x + lift, y + lift, width, height, metrics.radiusWindow, theme.sink,
+		paint.roundedRect(x + lift, y + lift, width, height, metrics.radiusWindow, theme.shade,
 			alpha * 0.45);
 		paint.roundedRect(x, y, width, height, metrics.radiusWindow, theme.raise1, alpha);
 		paint.outline(x, y, width, height, theme.raise2, metrics.whole(1), alpha,

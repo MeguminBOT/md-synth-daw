@@ -200,6 +200,11 @@ final class Session {
 	public var notation:Int = 0;
 
 	/**
+		Which set of part colours is drawn, `mdd.ui.Theme.STANDARD` or `mdd.ui.Theme.SAFE`.
+	**/
+	public var partColours:Int = 0;
+
+	/**
 		How much motion the interface uses.
 	**/
 	public var motion:Int = 0;

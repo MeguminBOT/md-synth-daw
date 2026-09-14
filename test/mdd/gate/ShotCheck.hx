@@ -39,6 +39,7 @@ class ShotCheck {
 		var dockTab = 0;
 		var inspectorTab = Inspector.CHANNEL;
 		var theme = Theme.MIDNIGHT;
+		var parts = Theme.STANDARD;
 		var part = 0;
 		var vgm = "";
 		var lang = "en-GB";
@@ -69,6 +70,7 @@ class ShotCheck {
 				case "--dock": dockTab = whole(held, dockTab); at++;
 				case "--inspector": inspectorTab = whole(held, inspectorTab); at++;
 				case "--theme": theme = whole(held, theme); at++;
+				case "--parts": parts = whole(held, parts); at++;
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
 				case "--lang": lang = held; at++;
@@ -158,6 +160,7 @@ class ShotCheck {
 
 		final shell = new Shell();
 		final tree = new Root(shell, metrics, new Theme(theme));
+		tree.theme.chooses(parts);
 
 		mdd.app.Languages.speak(tree.translation, lang);
 		tree.icons = mdd.ui.Icons.read(renderer, root + "/export/icons/icons-16.atlas");

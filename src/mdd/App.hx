@@ -345,6 +345,8 @@ class App {
 			keeps();
 		};
 
+		panels.preferences.onPartColours = function(which:Int):Void keeps();
+
 		panels.preferences.onConsole = function(which:Int):Void {
 			consoled(which);
 			keeps();
@@ -535,6 +537,7 @@ class App {
 		final automates = session == null ? Session.LANES : session.automating;
 		final snaps = session == null ? Session.SIXTEENTH : session.snapping;
 		final notes = session == null ? 0 : session.notation;
+		final palette = session == null ? 0 : session.partColours;
 
 		sound.stop();
 
@@ -551,6 +554,7 @@ class App {
 		session.automating = automates;
 		session.snapping = snaps;
 		session.notation = notes;
+		session.partColours = palette;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -1105,6 +1109,9 @@ class App {
 		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
 
 		stage.root.theme.wear(which);
+		session.partColours = settings.asWhole("partColours", 0) == mdd.ui.Theme.SAFE
+			? mdd.ui.Theme.SAFE : mdd.ui.Theme.STANDARD;
+		stage.root.theme.chooses(session.partColours);
 		stage.root.flow = motion;
 
 		if (typeface != 0) redressed();
@@ -1174,6 +1181,7 @@ class App {
 		settings.whole("theme", session.theme);
 		settings.whole("typeface", session.typeface);
 		settings.whole("notation", session.notation);
+		settings.whole("partColours", session.partColours);
 		settings.whole("motion", session.motion);
 		settings.whole("automating", session.automating);
 		settings.whole("snapping", session.snapping);

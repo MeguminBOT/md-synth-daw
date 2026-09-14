@@ -3011,7 +3011,7 @@ final class PianoRoll extends Widget {
 				} else if (seated) {
 					paint.rect(x, row, wide, rowTall - 1, theme.raise1);
 				} else {
-					paint.rect(x, row, wide, rowTall - 1, black ? theme.sink : theme.ink,
+					paint.rect(x, row, wide, rowTall - 1, black ? theme.ebony : theme.ivory,
 						black ? 1 : (drums ? SILENT : 0.72));
 				}
 
@@ -3024,7 +3024,7 @@ final class PianoRoll extends Widget {
 					} else {
 						paint.textRight(named(pitch, session.notation), x + wide - metrics.unit * 2,
 							row + (rowTall - font.height) * 0.5 + font.ascent,
-							black ? theme.dim : theme.sink,
+							black ? (theme.light ? theme.frame : theme.dim) : theme.ebony,
 							drums ? SILENT : (rooted ? 1 : 0.75));
 					}
 				}

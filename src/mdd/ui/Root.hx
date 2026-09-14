@@ -738,7 +738,7 @@ final class Root {
 		top.paint(paint);
 
 		if (scrim.value > 0.004) {
-			paint.rect(0, 0, width, height, theme.sink, scrim.value);
+			paint.rect(0, 0, width, height, theme.shade, scrim.value);
 		}
 
 		if (sheet != null) sheet.paint(paint);
@@ -747,7 +747,7 @@ final class Root {
 		if (tooltip.fade.value > 0) tooltip.paint(paint);
 
 		if (band != null) {
-			paint.rect(0, 0, width, height, theme.sink, 0.68);
+			paint.rect(0, 0, width, height, theme.shade, 0.68);
 			band.paint(paint);
 		}
 
