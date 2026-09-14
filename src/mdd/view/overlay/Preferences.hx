@@ -55,9 +55,19 @@ final class Preferences extends Widget {
 	public static inline final AUDIO_DEVICE = 21;
 
 	/**
+		Row: whether a raised or lowered note is written with a sharp or a flat.
+	**/
+	public static inline final ACCIDENTALS = 22;
+
+	/**
+		Row: whether note names run C to B or C to H.
+	**/
+	public static inline final NOTE_LETTERS = 23;
+
+	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 22;
+	public static inline final ROWS = 24;
 
 	/**
 		Group: the theme, the faces and the density.
@@ -98,7 +108,7 @@ final class Preferences extends Widget {
 
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE, RENDERER],
-		[AUTOMATING, TAIL, TEMPO],
+		[AUTOMATING, TAIL, TEMPO, ACCIDENTALS, NOTE_LETTERS],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
 		#else
@@ -135,7 +145,8 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_AUTOMATING, Locale.PREFERENCE_TAIL, Locale.PREFERENCE_MIDI_DEVICE,
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
-		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE];
+		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
+		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -143,6 +154,10 @@ final class Preferences extends Widget {
 	static final ASSOCIATES:Array<Locale> = [Locale.ASSOCIATE_NO, Locale.ASSOCIATE_YES];
 
 	static final TEMPOS:Array<Locale> = [Locale.TEMPO_SPEED, Locale.TEMPO_GRID];
+
+	static final ACCIDENTAL_NAMES:Array<Locale> = [Locale.NOTATION_SHARPS, Locale.NOTATION_FLATS];
+
+	static final LETTER_NAMES:Array<Locale> = [Locale.NOTATION_ENGLISH, Locale.NOTATION_GERMAN];
 
 	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
@@ -399,6 +414,11 @@ final class Preferences extends Widget {
 		Called when the frame rate changes.
 	**/
 	public var onTempo:Null<Int -> Void> = null;
+
+	/**
+		Called with the note naming style chosen, from `mdd.song.Notation`.
+	**/
+	public var onNotation:Null<Int -> Void> = null;
 
 	/**
 		Called when how much Discord is told changes.
@@ -934,6 +954,8 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY: VELOCITIES;
 			case CONSOLE: CONSOLES;
 			case TEMPO: TEMPOS;
+			case ACCIDENTALS: ACCIDENTAL_NAMES;
+			case NOTE_LETTERS: LETTER_NAMES;
 			case PRESENCE: PRESENCES;
 			case ASSOCIATE: ASSOCIATES;
 			case _: NO_KEYS;
@@ -954,7 +976,7 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
-				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE: NOTHING;
+				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS, NOTE_LETTERS: NOTHING;
 			case _: languages;
 		}
 	}
@@ -1056,6 +1078,8 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY: keyboardVelocity;
 			case CONSOLE: console;
 			case TEMPO: tempo;
+			case ACCIDENTALS: mdd.song.Notation.accidentalsOf(session.notation);
+			case NOTE_LETTERS: mdd.song.Notation.lettersOf(session.notation);
 			case PRESENCE: presence;
 			case ASSOCIATE: associated ? 1 : 0;
 			case RENDERER: renderer;
@@ -1137,6 +1161,16 @@ final class Preferences extends Widget {
 			case CONSOLE:
 				console = which;
 				if (onConsole != null) onConsole(which);
+
+			case ACCIDENTALS:
+				session.notation = mdd.song.Notation.styled(which,
+					mdd.song.Notation.lettersOf(session.notation));
+				if (onNotation != null) onNotation(session.notation);
+
+			case NOTE_LETTERS:
+				session.notation = mdd.song.Notation.styled(
+					mdd.song.Notation.accidentalsOf(session.notation), which);
+				if (onNotation != null) onNotation(session.notation);
 
 			case TEMPO:
 				tempo = which;

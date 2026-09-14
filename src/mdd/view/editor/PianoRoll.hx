@@ -1937,7 +1937,7 @@ final class PianoRoll extends Widget {
 			final keys = new Menu();
 
 			for (note in 0...12) {
-				final choice = keys.offer(new Choice(mdd.song.Scale.rootOf(note)));
+				final choice = keys.offer(new Choice(mdd.song.Scale.rootOf(note, session.notation)));
 				fires(choice, function():Void scaled(session.scale.kind, note));
 			}
 
@@ -2128,7 +2128,7 @@ final class PianoRoll extends Widget {
 
 		if (kind == mdd.song.Scale.CHROMATIC) session.says(Locale.SAID_CHROMATIC);
 		else {
-			session.says(Locale.SAID_SCALE, mdd.song.Scale.rootOf(key), named,
+			session.says(Locale.SAID_SCALE, mdd.song.Scale.rootOf(key, session.notation), named,
 				"" + session.scale.degrees());
 		}
 
@@ -2893,12 +2893,13 @@ final class PianoRoll extends Widget {
 		invalidate();
 	}
 
-	static final NAMES:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G",
-		"G#", "A", "A#", "B"];
-
-	public static function named(pitch:Int):String {
-		final held = pitch < 0 ? 0 : pitch;
-		return NAMES[held % 12] + (Std.int(held / 12) - 1);
+	/**
+		@param pitch A MIDI note number.
+		@param style How notes are written, English with sharps unless given.
+		@return Its name and octave.
+	**/
+	public static function named(pitch:Int, style:Int = 0):String {
+		return mdd.song.Notation.spelt(pitch, style);
 	}
 
 	function keys(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
@@ -2937,7 +2938,7 @@ final class PianoRoll extends Widget {
 						paint.text(seatName(pitch), x + metrics.unit * 2,
 							row + (rowTall - font.height) * 0.5 + font.ascent, theme.ink, 0.9);
 					} else {
-						paint.textRight(named(pitch), x + wide - metrics.unit * 2,
+						paint.textRight(named(pitch, session.notation), x + wide - metrics.unit * 2,
 							row + (rowTall - font.height) * 0.5 + font.ascent,
 							black ? theme.dim : theme.sink,
 							drums ? SILENT : (rooted ? 1 : 0.75));

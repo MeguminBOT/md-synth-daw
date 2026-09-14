@@ -331,6 +331,12 @@ class App {
 			keeps();
 		};
 
+		panels.preferences.onNotation = function(which:Int):Void {
+			panels.kitting.notation = which;
+			session.changed();
+			keeps();
+		};
+
 		panels.preferences.onConsole = function(which:Int):Void {
 			consoled(which);
 			keeps();
@@ -520,6 +526,7 @@ class App {
 		final held = session == null ? Session.UNITY : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
 		final snaps = session == null ? Session.SIXTEENTH : session.snapping;
+		final notes = session == null ? 0 : session.notation;
 
 		sound.stop();
 
@@ -535,6 +542,7 @@ class App {
 		session.master = held;
 		session.automating = automates;
 		session.snapping = snaps;
+		session.notation = notes;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -1080,6 +1088,8 @@ class App {
 		session.theme = which;
 		session.motion = motion;
 		session.typeface = typeface;
+		session.notation = settings.asWhole("notation", 0) & 3;
+		panels.kitting.notation = session.notation;
 		session.master = Session.UNITY;
 
 		sound.monitors(Session.gainOf(session.master));
@@ -1154,6 +1164,7 @@ class App {
 
 		settings.whole("theme", session.theme);
 		settings.whole("typeface", session.typeface);
+		settings.whole("notation", session.notation);
 		settings.whole("motion", session.motion);
 		settings.whole("automating", session.automating);
 		settings.whole("snapping", session.snapping);

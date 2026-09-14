@@ -43,8 +43,6 @@ final class Scale {
 	/**
 		The twelve root names, which are never translated.
 	**/
-	static final ROOTS:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
-		"A#", "B"];
 
 	/**
 		Which root, 0 for C.
@@ -97,10 +95,11 @@ final class Scale {
 
 	/**
 		@param root A root, 0 for C.
+		@param style How notes are written, English with sharps unless given.
 		@return Its name.
 	**/
-	public static function rootOf(root:Int):String {
-		return ROOTS[((root % 12) + 12) % 12];
+	public static function rootOf(root:Int, style:Int = 0):String {
+		return Notation.name(root, style);
 	}
 
 	/**

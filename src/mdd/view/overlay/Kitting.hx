@@ -622,7 +622,7 @@ final class Kitting extends Widget {
 				keyed - metrics.gap * 2, middle - small.height * 0.5 + small.ascent,
 				theme.dim, alpha * 0.7);
 
-			paint.textCentred(slot.root < 0 ? "" : keyName(slot.root),
+			paint.textCentred(slot.root < 0 ? "" : keyName(slot.root, notation),
 				keyed + metrics.whole(KEYED) * 0.5,
 				middle - small.height * 0.5 + small.ascent,
 				slot.taken ? theme.ink : theme.dim, alpha * 0.9);
@@ -655,14 +655,17 @@ final class Kitting extends Widget {
 			over ? theme.warn : theme.accent, alpha);
 	}
 
-	static final LETTERS:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#",
-		"A", "A#", "B"];
+	/**
+		How note names are written, a style from `mdd.song.Notation`.
+	**/
+	public var notation:Int = 0;
 
 	/**
 		@param pitch A key.
+		@param style How notes are written.
 		@return What it is called, with the number general MIDI counts by.
 	**/
-	static function keyName(pitch:Int):String {
-		return LETTERS[pitch % 12] + Std.int(pitch / 12 - 1) + "  " + pitch;
+	static function keyName(pitch:Int, style:Int):String {
+		return mdd.song.Notation.spelt(pitch, style) + "  " + pitch;
 	}
 }

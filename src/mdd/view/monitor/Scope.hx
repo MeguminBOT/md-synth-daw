@@ -705,7 +705,7 @@ final class Scope extends Widget {
 		paint.polyline(line, count, metrics.whole(1.5), theme.part(part), 0.95);
 
 		if (notes[part] >= 0) {
-			paint.textRight(spelt(notes[part]), left + wide - inset - metrics.unit * 2,
+			paint.textRight(spelt(notes[part], session.notation), left + wide - inset - metrics.unit * 2,
 				top + inset + metrics.unit + font.ascent, theme.part(part), 0.9);
 		}
 	}
@@ -849,11 +849,13 @@ final class Scope extends Widget {
 		return held.name();
 	}
 
-	static final NAMES:Array<String> = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
-		"A#", "B"];
-
-	public static function spelt(note:Int):String {
+	/**
+		@param note A MIDI note number.
+		@param style How notes are written, English with sharps unless given.
+		@return Its name and octave, or an empty string outside the MIDI range.
+	**/
+	public static function spelt(note:Int, style:Int = 0):String {
 		if (note < 0 || note > 127) return "";
-		return NAMES[note % 12] + (Std.int(note / 12) - 1);
+		return mdd.song.Notation.spelt(note, style);
 	}
 }

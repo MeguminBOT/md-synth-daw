@@ -24,9 +24,6 @@ import mdd.ui.Widget;
 	either shows up in the other at once.
 **/
 final class Tracker extends Widget {
-	static final NAMES:Array<String> = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#",
-		"A-", "A#", "B-"];
-
 	static final LOWER:Array<Key> = [Key.Z, Key.S, Key.X, Key.D, Key.C, Key.V, Key.G, Key.B,
 		Key.H, Key.N, Key.J, Key.M];
 
@@ -94,9 +91,6 @@ final class Tracker extends Widget {
 		Called to sound a note as it is typed.
 	**/
 	public var onAudition:Null<(Part, Int) -> Void> = null;
-
-	static final LETTERS:Array<String> = ["C", "D", "E", "F", "G", "A", "B"];
-	static final STEPS:Array<Int> = [0, 2, 4, 5, 7, 9, 11];
 
 	static inline final MOST_TYPED = 7;
 
@@ -487,7 +481,7 @@ final class Tracker extends Widget {
 		session.copiedNotes.resize(0);
 		session.copiedNotes.push(made);
 
-		session.says(Locale.SAID_PITCH_COPIED, spelt(held.pitch));
+		session.says(Locale.SAID_PITCH_COPIED, spelt(held.pitch, session.notation));
 		session.changed();
 
 		return true;
@@ -515,7 +509,8 @@ final class Tracker extends Widget {
 
 		final held = noteAt(row, column);
 
-		entered = held == null ? "" : spelt(held.pitch) + " " + hex(held.velocity >> 1);
+		entered = held == null ? "" : spelt(held.pitch, session.notation) + " "
+			+ hex(held.velocity >> 1);
 		entering = true;
 		typing = true;
 
@@ -551,7 +546,7 @@ final class Tracker extends Widget {
 			return;
 		}
 
-		final pitch = pitched(held);
+		final pitch = pitched(held, session.notation);
 		if (pitch < 0) {
 			session.say(translate(Locale.TRACKER_UNREAD) + "  " + held);
 			session.changed();
@@ -567,33 +562,13 @@ final class Tracker extends Widget {
 		}
 	}
 
-	public static function pitched(said:String):Int {
-		final held = StringTools.trim(said);
-		if (held.length < 2) return -1;
-
-		final at = LETTERS.indexOf(held.charAt(0).toUpperCase());
-		if (at < 0) return -1;
-
-		var step = STEPS[at];
-		var index = 1;
-
-		final next = held.charAt(1);
-
-		if (next == "#") {
-			step++;
-			index = 2;
-		} else if (next == "b") {
-			step--;
-			index = 2;
-		} else if (next == "-") {
-			index = 2;
-		}
-
-		final octave = Std.parseInt(held.substr(index, 1));
-		if (octave == null) return -1;
-
-		final pitch = (octave + 1) * 12 + step;
-		return pitch < 0 || pitch > 127 ? -1 : pitch;
+	/**
+		@param said A typed note, such as C-4, C#4 or Db4.
+		@param style How notes are written, English with sharps unless given.
+		@return The MIDI note number, or -1 where it reads as no note.
+	**/
+	public static function pitched(said:String, style:Int = 0):Int {
+		return mdd.song.Notation.read(said, style);
 	}
 
 	public static function louded(said:String):Int {
@@ -900,9 +875,13 @@ final class Tracker extends Widget {
 		return root == null ? "" : translate(key);
 	}
 
-	public static function spelt(pitch:Int):String {
-		if (pitch < 0 || pitch > 127) return "---";
-		return NAMES[pitch % 12] + (Std.int(pitch / 12) - 1);
+	/**
+		@param pitch A MIDI note number.
+		@param style How notes are written, English with sharps unless given.
+		@return The note as a cell writes it, or three dashes outside the MIDI range.
+	**/
+	public static function spelt(pitch:Int, style:Int = 0):String {
+		return mdd.song.Notation.cell(pitch, style);
 	}
 
 	static function hex(value:Int):String {
@@ -972,7 +951,7 @@ final class Tracker extends Widget {
 					continue;
 				}
 
-				final said = spelt(held.pitch) + " " + hex(held.velocity >> 1);
+				final said = spelt(held.pitch, session.notation) + " " + hex(held.velocity >> 1);
 
 				paint.text(said, left + metrics.gap, baseline, theme.part(index), loud);
 			}

@@ -82,6 +82,10 @@ A track can also drive one automation lane of a channel it does not otherwise ow
 The same pattern data as hexadecimal rows, for anyone who thinks in trackers rather than in rolls.
 It is a view, not a second model: edits in either show up in the other.
 
+Notes are named the same way everywhere, as the Editing preferences say: with sharps or with flats,
+and with the letters C to B or, as German does, C to H, where B is B flat. A note typed into the
+tracker is read by the same rule.
+
 ### Automation
 
 An editor holding every lane a channel has. Points carry a shape that curves into the next point

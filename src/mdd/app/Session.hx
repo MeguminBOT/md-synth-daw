@@ -194,6 +194,12 @@ final class Session {
 	public var typeface:Int = 0;
 
 	/**
+		How note names are written, a style from `mdd.song.Notation`: sharps or flats, and English
+		or German letters.
+	**/
+	public var notation:Int = 0;
+
+	/**
 		How much motion the interface uses.
 	**/
 	public var motion:Int = 0;
