@@ -12,6 +12,8 @@ import mdd.ui.Paint;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Button;
+import mdd.ui.control.Choice;
+import mdd.ui.control.Menu;
 import mdd.ui.control.Field;
 import mdd.ui.control.Number;
 
@@ -142,6 +144,12 @@ final class Export extends Widget {
 	**/
 	static inline final HUNDREDS = 1000;
 
+	/**
+		How many choices a row takes before it is drawn as one field that opens a menu rather than
+		as a button for each.
+	**/
+	static inline final DROPPED = 4;
+
 	static final NAMES:Array<Locale> = [Locale.EXPORT_FORMAT, Locale.EXPORT_RATE,
 		Locale.EXPORT_DEPTH, Locale.EXPORT_SIDES, Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE, Locale.EXPORT_CEILING, Locale.EXPORT_DITHER,
@@ -269,6 +277,10 @@ final class Export extends Widget {
 
 	var hoverAt:Int = -1;
 	var hoverOn:Int = -1;
+
+	var menu:Null<Menu> = null;
+
+	final arrow:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(6);
 
 	final showing:Array<Int> = [];
 	final entered:Array<Int> = [];
@@ -840,10 +852,118 @@ final class Export extends Widget {
 		if (many <= 0) return -1;
 
 		final metrics = root.metrics;
+		final left = x + metrics.whole(120);
+
+		if (dropped(row)) return px >= left && px < left + dropWide() ? 0 : -1;
+
 		final wide = (width - metrics.whole(120) - metrics.inset) / many;
 
-		final at = Std.int((px - x - metrics.whole(120)) / wide);
+		final at = Std.int((px - left) / wide);
 		return at < 0 || at >= many ? -1 : at;
+	}
+
+	/**
+		@param row Which row.
+		@return Whether it is drawn as one field that opens a menu of its choices.
+	**/
+	function dropped(row:Int):Bool {
+		return counted(row) >= DROPPED;
+	}
+
+	/**
+		@return How wide a field that opens a menu is.
+	**/
+	function dropWide():Float {
+		final root = root();
+		if (root == null) return 240;
+
+		final metrics = root.metrics;
+		final room = width - metrics.whole(120) - metrics.inset;
+		final want = metrics.whole(240);
+
+		return want < room ? want : room;
+	}
+
+	/**
+		@param row Which row.
+		@return Where it starts, down.
+	**/
+	function rowTop(row:Int):Float {
+		final at = showing.indexOf(row);
+		return y + head() + (at < 0 ? 0 : at) * rowTall();
+	}
+
+	/**
+		Opens the menu of a row's choices under its field, with the one taken marked.
+
+		@param row Which row.
+	**/
+	function opens(row:Int):Void {
+		final root = root();
+		if (root == null) return;
+
+		final on = holding(row);
+		menu = new Menu();
+
+		for (index in 0...counted(row)) {
+			if (!allows(row, index)) continue;
+
+			final which = index;
+			final choice = menu.offer(new Choice(shown(row, which)));
+
+			choice.onFire = function(from:Choice):Void chose(row, which);
+			if (which == on) choice.shortcut = "•";
+		}
+
+		final metrics = root.metrics;
+		root.pop(menu, x + metrics.whole(120), rowTop(row) + rowTall() - metrics.gap, this);
+	}
+
+	/**
+		Draws a row as one field showing the choice taken, with a chevron that says it opens a menu.
+
+		@param paint What to draw with.
+		@param theme The colours.
+		@param metrics The sizes.
+		@param font The face the choice is written in.
+		@param row Which row.
+		@param left Where the field starts, across.
+		@param top Where it starts, down.
+		@param wide How wide it is.
+		@param deep How tall it is.
+		@param alpha How far the sheet has faded in.
+	**/
+	function dropdown(paint:Paint, theme:Theme, metrics:mdd.ui.Metrics, font:mdd.ui.Font, row:Int,
+			left:Float, top:Float, wide:Float, deep:Float, alpha:Float):Void {
+		paint.roundedRect(left + 1, top, wide - 2, deep, metrics.radiusSmall, theme.raise2, alpha);
+
+		if (row == hoverAt && hoverOn >= 0) {
+			paint.roundedRect(left + 1, top, wide - 2, deep, metrics.radiusSmall, theme.accent,
+				Theme.HOVER * alpha);
+		}
+
+		paint.outline(left + 1, top, wide - 2, deep, theme.frame, metrics.whole(1), alpha * 0.8,
+			metrics.radiusSmall);
+
+		final pointer = metrics.whole(16);
+
+		paint.pushClip(left + metrics.gap, top, wide - pointer - metrics.gap, deep);
+		paint.text(shown(row, holding(row)), left + metrics.gap,
+			top + (deep - font.height) * 0.5 + font.ascent, theme.ink, alpha);
+		paint.popClip();
+
+		final size = metrics.whole(4);
+		final cx = left + wide - pointer;
+		final cy = top + deep * 0.5;
+
+		arrow[0] = cx - size;
+		arrow[1] = cy - size * 0.5;
+		arrow[2] = cx + size;
+		arrow[3] = cy - size * 0.5;
+		arrow[4] = cx;
+		arrow[5] = cy + size * 0.6;
+
+		paint.polygon(arrow, 3, theme.dim, alpha * 0.9);
 	}
 
 	override function took(event:Input):Bool {
@@ -863,7 +983,9 @@ final class Export extends Widget {
 				final which = optionAt(row, event.x);
 				if (which < 0) return true;
 
-				chose(row, which);
+				if (dropped(row)) opens(row);
+				else chose(row, which);
+
 				return true;
 
 			case Kind.PointerMove:
@@ -1000,10 +1122,16 @@ final class Export extends Widget {
 			final many = counted(row);
 			if (many <= 0) continue;
 
-			final wide = room / many;
 			final on = holding(row);
 			final button = tall - metrics.gap * 2;
 			final at = top + metrics.gap;
+
+			if (dropped(row)) {
+				dropdown(paint, theme, metrics, small, row, left, at, dropWide(), button, alpha);
+				continue;
+			}
+
+			final wide = room / many;
 
 			for (which in 0...many) {
 				final where = left + which * wide;
