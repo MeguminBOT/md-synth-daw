@@ -399,6 +399,10 @@ listed under [References And Credits](#references-and-credits).
 
 Project link: [https://github.com/MeguminBOT/md-synth-daw](https://github.com/MeguminBOT/md-synth-daw)
 
+Found a security problem? Please report it privately as [`SECURITY.md`](SECURITY.md) describes
+rather than in a public issue. Everyone taking part is asked to follow the
+[code of conduct](CODE_OF_CONDUCT.md).
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 [haxe-shield]: https://img.shields.io/badge/Haxe-4.3-EA8220?style=for-the-badge
