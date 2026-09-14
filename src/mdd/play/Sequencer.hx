@@ -137,6 +137,25 @@ final class Sequencer {
 	final lines:Vector<Null<mdd.song.Automation>> = new Vector<Null<mdd.song.Automation>>(4);
 
 	/**
+		What `owed` holds for a note that sounds until the next one rather than to an end.
+	**/
+	static inline final HELD = 0x7FFFFFFF;
+
+	/**
+		Per part, one past the sample the sounding note's key off is due at, nought where none is
+		owed, or `HELD`. A key off only comes from the note it ends, so a note whose track is muted,
+		or which is deleted with its clip or on its own while it sounds, would sound on forever;
+		this is what keys it off instead.
+	**/
+	final owed:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		Whether the song may have changed since the last span, which is when every sounding note is
+		looked for again to see that it is still there.
+	**/
+	public var edited:Bool = false;
+
+	/**
 		Builds a sequencer over a song.
 
 		@param song The song to read.
@@ -205,6 +224,7 @@ final class Sequencer {
 
 		if (fromSample <= 0) push(0, Part.Fm1, SETUP, (song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
 
+		settle(fromSample);
 		gather(fromSample, toSample);
 		sort();
 
@@ -225,6 +245,88 @@ final class Sequencer {
 		driver.paces(scratch, stream, toSample);
 
 		return count;
+	}
+
+	/**
+		Forgets every key off owed, which is right once the chips have been silenced another way.
+	**/
+	public function quiets():Void {
+		for (index in 0...Part.COUNT) owed[index] = 0;
+	}
+
+	/**
+		Keys off every part owed a key off that is not coming: one due before this span, and, where
+		the song may have changed, one whose note is no longer there to end it.
+
+		@param fromSample The first sample of the span.
+	**/
+	function settle(fromSample:Int):Void {
+		final checking = edited;
+		edited = false;
+
+		final tick = checking ? song.tempo.tickAt(fromSample) : 0;
+
+		for (index in 0...Part.COUNT) {
+			final due = owed[index];
+			if (due == 0) continue;
+
+			final part:Part = index;
+			final late = due != HELD && due - 1 < fromSample;
+
+			if (!late && !(checking && !still(part, tick, due == HELD))) continue;
+
+			owed[index] = 0;
+			push(fromSample, part, OFF, 0, 0);
+		}
+	}
+
+	/**
+		@param part Which part.
+		@param tick Where the playhead is.
+		@param held Whether the note sounds until the next one, so that any note started before
+			the playhead still counts.
+		@return Whether a note on that part is still there at that tick, on a track that is not
+			muted and a part the mixer lets through.
+	**/
+	function still(part:Part, tick:Int, held:Bool):Bool {
+		if (!wanted(part)) return false;
+
+		if (alone >= 0) {
+			final pattern = song.patternAt(alone);
+			return pattern != null && covered(pattern.lane(part), tick, held);
+		}
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.kind != mdd.song.Clip.PATTERN) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final pattern = song.patternAt(clip.pattern);
+				if (pattern == null) continue;
+
+				if (covered(pattern.lane(part), tick - clip.origin(), held)) return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+		@param lane The lane to look in.
+		@param local A tick inside the pattern.
+		@param held Whether any note started at or before it counts, rather than only one that
+			has not yet ended.
+		@return Whether a note covers that tick.
+	**/
+	static function covered(lane:mdd.song.Lane, local:Int, held:Bool):Bool {
+		for (note in lane.notes) {
+			if (note.at > local) break;
+			if (held || note.at + note.length > local) return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -610,6 +712,13 @@ final class Sequencer {
 
 				if (!tied && !(part.sampled() && bent != null)) {
 					push(onSample, part, ON, velocity, named);
+				}
+
+				if (!part.sampled()) {
+					final was = owed[part.index()];
+					final due = held ? HELD : offSample + 1;
+
+					owed[part.index()] = was == HELD || due == HELD ? due : (due > was ? due : was);
 				}
 
 			}
@@ -1324,6 +1433,9 @@ final class Sequencer {
 			switch (kinds[at]) {
 				case OFF:
 					stream.silence(tick, part);
+
+					final due = owed[part.index()];
+					if (due != HELD && tick + 1 >= due) owed[part.index()] = 0;
 
 				case PATCH:
 					final instrument = instrumentOf(first, part);

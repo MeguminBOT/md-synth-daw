@@ -118,6 +118,7 @@ final class Transport {
 	public function new(song:Song, capacity:Int = 8192) {
 		this.song = song;
 		sequencer = new Sequencer(song);
+		sequencer.quiets();
 		for (index in 0...Part.COUNT) sounded[index] = true;
 		stream = new Stream(capacity);
 	}
@@ -175,9 +176,11 @@ final class Transport {
 	}
 
 	/**
-		Gives that lock back.
+		Gives that lock back, and has the next span look again at every note still sounding, since
+		the song may have changed while it was held.
 	**/
 	public inline function frees():Void {
+		sequencer.edited = true;
 		gate.release();
 	}
 
@@ -197,6 +200,7 @@ final class Transport {
 		if (hushing.exchange(0) == 1) {
 			heardPart = -1;
 			stream.reset(position);
+			sequencer.quiets();
 			priming = true;
 		}
 
