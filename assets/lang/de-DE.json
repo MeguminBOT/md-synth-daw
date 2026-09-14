@@ -300,6 +300,7 @@
   "preference.renderer": "Grafik-Backend",
   "preference.tail": "Stille vor dem Loop",
   "preference.tempo": "Beim Ändern des Tempos",
+  "preference.textSize": "Textgröße",
   "preference.theme": "Design",
   "preference.typeface": "Schriftart",
   "preference.updates": "Nach Updates suchen",

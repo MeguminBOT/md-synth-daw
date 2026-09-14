@@ -300,6 +300,7 @@
   "preference.renderer": "图形后端",
   "preference.tail": "循环前的静音",
   "preference.tempo": "改变速度时",
+  "preference.textSize": "文字大小",
   "preference.theme": "主题",
   "preference.typeface": "字体",
   "preference.updates": "检查更新",

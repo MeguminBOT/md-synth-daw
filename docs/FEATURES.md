@@ -424,6 +424,8 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   picked was written by a person or translated by a machine.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
+- **Text size** from 90% to 150%, on its own, so the text can grow without the rows and controls
+  growing with it.
 - **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line
   between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
   pointed arrow with the pan tool in hand.

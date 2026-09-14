@@ -300,6 +300,7 @@
   "preference.renderer": "グラフィックバックエンド",
   "preference.tail": "ループ前の無音",
   "preference.tempo": "テンポを変えたとき",
+  "preference.textSize": "文字サイズ",
   "preference.theme": "テーマ",
   "preference.typeface": "フォント",
   "preference.updates": "アップデートの確認",

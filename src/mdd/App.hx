@@ -309,6 +309,14 @@ class App {
 
 		panels.preferences = new Preferences(session);
 		panels.preferences.onScale = function(much:Float):Void stage.densified(much);
+
+		panels.preferences.onTextSize = function(much:Float):Void {
+			if (stage.textScale == much) return;
+
+			stage.textScale = much;
+			redressed();
+			keeps();
+		};
 		panels.preferences.onTypeface = function(which:Int):Void redressed();
 		panels.preferences.onKeep = function():Void keeps();
 		panels.preferences.onKeeping = function(every:Float):Void files.every = every;
@@ -1102,6 +1110,7 @@ class App {
 		if (typeface != 0) redressed();
 
 		panels.preferences.chose(Preferences.DENSITY, density);
+		panels.preferences.chose(Preferences.TEXT_SIZE, settings.asWhole("textSize", 1));
 		panels.preferences.chose(Preferences.TAIL, tail);
 		panels.preferences.chose(Preferences.KEEPING, keeping);
 		panels.preferences.chose(Preferences.BACKUPS, backups);
@@ -1169,6 +1178,7 @@ class App {
 		settings.whole("automating", session.automating);
 		settings.whole("snapping", session.snapping);
 		settings.whole("density", panels.preferences.density);
+		settings.whole("textSize", panels.preferences.textSize);
 		settings.whole("tail", panels.preferences.tail);
 		settings.whole("keeping", panels.preferences.keeping);
 		settings.whole("backups", panels.preferences.backups);

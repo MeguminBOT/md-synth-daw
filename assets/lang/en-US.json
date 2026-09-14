@@ -300,6 +300,7 @@
   "preference.renderer": "Graphics backend",
   "preference.tail": "Silence before looping",
   "preference.tempo": "Changing the tempo",
+  "preference.textSize": "Text size",
   "preference.theme": "Theme",
   "preference.typeface": "Typeface",
   "preference.updates": "Check for updates",

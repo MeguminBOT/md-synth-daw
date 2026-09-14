@@ -73,6 +73,12 @@ final class Stage {
 	public var typeface:Int = 0;
 
 	/**
+		What the text is drawn at against the rest of the interface, one being the usual size. It
+		multiplies the faces only, so the rows and controls keep their size.
+	**/
+	public var textScale:Float = 1;
+
+	/**
 		Which icon atlas was loaded, or an empty string.
 	**/
 	public var iconsAt(default, null):String = "";
@@ -309,7 +315,7 @@ final class Stage {
 
 		for (name in Typeface.FALLBACK) spare.adds(where + "/" + name);
 
-		if (!baked(metrics, where, scale)) {
+		if (!baked(metrics, where, scale * textScale)) {
 			Sys.println("mdd: the fonts would not bake");
 			return false;
 		}

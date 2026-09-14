@@ -65,9 +65,21 @@ final class Preferences extends Widget {
 	public static inline final NOTE_LETTERS = 23;
 
 	/**
+		Row: how large the text is drawn against the rest of the interface.
+	**/
+	public static inline final TEXT_SIZE = 24;
+
+	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 24;
+	public static inline final ROWS = 25;
+
+	/**
+		What each choice of the text size row multiplies the faces by.
+	**/
+	public static final TEXT_SCALES:Array<Float> = [0.9, 1.0, 1.1, 1.25, 1.5];
+
+	static final SIZINGS:Array<String> = ["90%", "100%", "110%", "125%", "150%"];
 
 	/**
 		Group: the theme, the faces and the density.
@@ -107,7 +119,7 @@ final class Preferences extends Widget {
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
-		[THEME, TYPEFACE, MOTION, DENSITY, LANGUAGE, RENDERER],
+		[THEME, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER],
 		[AUTOMATING, TAIL, TEMPO, ACCIDENTALS, NOTE_LETTERS],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
@@ -146,7 +158,7 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_MIDI_CHANNEL, Locale.PREFERENCE_MIDI_VELOCITY, Locale.PREFERENCE_CONSOLE,
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
-		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES];
+		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -419,6 +431,16 @@ final class Preferences extends Widget {
 		Called with the note naming style chosen, from `mdd.song.Notation`.
 	**/
 	public var onNotation:Null<Int -> Void> = null;
+
+	/**
+		Which choice of the text size row is taken.
+	**/
+	public var textSize(default, null):Int = 1;
+
+	/**
+		Called with what the faces are to be multiplied by when the text size changes.
+	**/
+	public var onTextSize:Null<Float -> Void> = null;
 
 	/**
 		Called when how much Discord is told changes.
@@ -970,6 +992,7 @@ final class Preferences extends Widget {
 		return switch (row) {
 			case TYPEFACE: Typeface.NAMES;
 			case RENDERER: renderers;
+			case TEXT_SIZE: SIZINGS;
 			case AUDIO_DEVICE: outputs;
 			case BACKUPS: BACKUP_ROOMS;
 			case PROJECTS, PRESETS: NOTHING;
@@ -1083,6 +1106,7 @@ final class Preferences extends Widget {
 			case PRESENCE: presence;
 			case ASSOCIATE: associated ? 1 : 0;
 			case RENDERER: renderer;
+			case TEXT_SIZE: textSize;
 			case AUDIO_DEVICE: outputAt;
 			case _: language;
 		}
@@ -1186,6 +1210,10 @@ final class Preferences extends Widget {
 
 				associated = Associations.holds();
 				session.say(translate(ASSOCIATES[associated ? 1 : 0]));
+
+			case TEXT_SIZE:
+				textSize = which < 0 || which >= TEXT_SCALES.length ? 1 : which;
+				if (onTextSize != null) onTextSize(TEXT_SCALES[textSize]);
 
 			case AUDIO_DEVICE:
 				outputAt = which < 0 || which >= outputs.length ? 0 : which;
