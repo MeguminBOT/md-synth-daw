@@ -1,124 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- The one file the build reads. Order does not matter.
 
-	     Every element takes if="..." and unless="...", and these are the whole vocabulary:
+	<!--
+		The one file the build reads. Order does not matter, except where a section says it does.
 
-	       windows, linux, mac    the operating system being built on
-	       desktop                all of them, and the form factor a build is for
-	       debug, release         the kind of build
-	       msvc, clang-cl, mingw  a toolchain on Windows
-	       clang, gcc             a toolchain everywhere else
-	       llvm                   clang-cl, clang or mingw, whichever of them is in hand
+		Every element takes if="..." and unless="...", and these are the whole vocabulary:
 
-	     A toolchain name is never a target. if="mingw" on a link says how a library is named
-	     to the mingw linker, not that there is a mingw build to produce; the targets are the
-	     <target> elements and nothing else names them.
+		    windows, linux, mac      the operating system being built on
+		    desktop                  all of them, and the form factor a build is for
+		    debug, release           the kind of build
+		    msvc, clang-cl, mingw    a toolchain on Windows
+		    clang, gcc               a toolchain everywhere else
+		    llvm                     clang-cl, clang or mingw, whichever of them is in hand
 
-	     Never call this project.xml, Project.xml, project.hxp or project.lime: any of the four
-	     makes the Lime editor extension claim the workspace, and completion dies silently. -->
+		Never call this project.xml, Project.xml, project.hxp or project.lime: any of the four makes
+		the Lime editor extension claim the workspace, and completion dies silently.
+	-->
 
 
-	<!-- application -->
+	<!-- ==== APPLICATION ==== -->
 
 	<meta title="MD Synth DAW" short="mdd" version="0.2.0"
-		company="md-synth-daw"
-		description="A hardware-aware DAW for the Sega Mega Drive" />
+	      company="md-synth-daw"
+	      description="A hardware-aware DAW for the Sega Mega Drive" />
 
 	<window width="1440" height="900" least-width="960" least-height="600"
-		vsync="true" resizable="true" high-dpi="true" />
+	        vsync="true" resizable="true" high-dpi="true" />
 
 	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn" />
 
 	<update github="MeguminBOT/md-synth-daw" />
 
-	<presence discord="1546264890317086730" cover="cover"
-		playing="playing" stopped="stopped" working="working" />
+	<presence discord="1546264890317086730"
+	          cover="cover" playing="playing" stopped="stopped" working="working" />
 
 
-	<!-- build -->
+	<!-- ==== BUILD ==== -->
+
+	<!-- the first toolchain whose probe is found on the path is used, so these are in preference order -->
 
 	<toolchains>
-		<toolchain name="clang-cl" if="windows" probe="clang-cl"
-			about="LLVM against the Microsoft ABI, linked by the Microsoft linker" />
-		<toolchain name="msvc" if="windows"
-			about="the Microsoft compiler and linker" />
-		<toolchain name="mingw" if="windows" probe="none"
-			about="LLVM or GCC against the mingw-w64 ABI, reading its own symbols and DWARF" />
+		<toolchain name="clang-cl" probe="clang-cl" if="windows"
+		           about="LLVM against the Microsoft ABI, linked by the Microsoft linker" />
+		<toolchain name="msvc"                      if="windows"
+		           about="the Microsoft compiler and linker" />
+		<toolchain name="mingw"    probe="none"     if="windows"
+		           about="LLVM or GCC against the mingw-w64 ABI, reading its own symbols and DWARF" />
 
-		<toolchain name="clang" unless="windows" probe="clang++" about="LLVM" />
-		<toolchain name="gcc" unless="windows" about="GCC" />
+		<toolchain name="clang"    probe="clang++"               unless="windows"
+		           about="LLVM" />
+		<toolchain name="gcc"                                    unless="windows"
+		           about="GCC" />
 	</toolchains>
 
-	<source path="src" />
+	<source    path="src" />
 	<generated path="export/haxe" />
-	<output path="export" />
+	<output    path="export" />
 
+	<!-- the application. The gate is a target of its own, with the rest of the gate at the end -->
 	<target id="mdd" main="mdd.App" />
-
-	<target id="gate" main="mdd.gate.Gate">
-		<source path="test" />
-	</target>
 
 	<library name="hxcpp-debug-server" if="debug" />
 
 	<dce value="full" unless="debug" />
 
 	<define name="windows" if="windows" />
-	<define name="linux" if="linux" />
-	<define name="mac" if="mac" />
+	<define name="linux"   if="linux" />
+	<define name="mac"     if="mac" />
 	<define name="desktop" />
 
 	<define name="analyzer-optimize" />
 	<define name="HXCPP_OPTIMIZE_LINK" />
 	<define name="HXCPP_GC_GENERATIONAL" />
-	<define name="HXCPP_M64" if="x86_64" />
-	<define name="HXCPP_ARM64" if="arm64" />
-	<define name="HXCPP_CHECK_POINTER" if="debug" />
-	<define name="HXCPP_STACK_LINE" if="debug" />
+	<define name="HXCPP_M64"             if="x86_64" />
+	<define name="HXCPP_ARM64"           if="arm64" />
+	<define name="HXCPP_CHECK_POINTER"   if="debug" />
+	<define name="HXCPP_STACK_LINE"      if="debug" />
 	<define name="HXCPP_DEBUG_LINK" />
 
 
-	<!-- sources -->
+	<!-- ==== VENDORS ==== -->
 
-	<vendor name="SDL3" present="SDL3/include/SDL3/SDL.h"
-		system="/usr/include/SDL3/SDL.h,/opt/homebrew/include/SDL3/SDL.h,/usr/local/include/SDL3/SDL.h"
-		size="12 MB"
-		about="the window and its events, called directly. A system package off Windows" />
-	<vendor name="miniaudio" present="miniaudio/miniaudio.h" size="1 MB"
-		about="the audio device, called directly" />
-	<vendor name="stb" present="stb/stb_truetype.h" size="1 MB"
-		about="the glyph rasteriser the font atlas is baked with" />
-	<vendor name="fonts" present="fonts/Go-Regular.ttf" size="40 MB"
-		about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
-	<vendor name="libogg" present="libogg/src/framing.c" size="1 MB"
-		about="the ogg container, the pages an ogg vorbis or opus file is made of" />
-	<vendor name="libvorbis" present="libvorbis/lib/vorbisenc.c" size="5 MB"
-		about="the ogg vorbis encoder" />
-	<vendor name="libopus" present="libopus/src/opus_encoder.c" size="30 MB"
-		about="the opus encoder" />
-	<vendor name="libvpx" present="libvpx/vp9/vp9_cx_iface.c" size="24 MB"
-		about="the VP9 encoder a scope video is written with" />
-	<vendor name="libwebm" present="libwebm/mkvmuxer/mkvmuxer.cc" size="3 MB"
-		about="the WebM container a scope video is written into" />
+	<vendor name="SDL3"       present="SDL3/include/SDL3/SDL.h"            size="12 MB"
+	        system="/usr/include/SDL3/SDL.h,/opt/homebrew/include/SDL3/SDL.h,/usr/local/include/SDL3/SDL.h"
+	        about="the window and its events, called directly. A system package off Windows" />
+
+	<vendor name="miniaudio"  present="miniaudio/miniaudio.h"              size="1 MB"
+	        about="the audio device, called directly" />
+
+	<vendor name="stb"        present="stb/stb_truetype.h"                 size="1 MB"
+	        about="the glyph rasteriser the font atlas is baked with" />
+
+	<vendor name="fonts"      present="fonts/Go-Regular.ttf"               size="40 MB"
+	        about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
+
+	<vendor name="libogg"     present="libogg/src/framing.c"               size="1 MB"
+	        about="the ogg container, the pages an ogg vorbis or opus file is made of" />
+
+	<vendor name="libvorbis"  present="libvorbis/lib/vorbisenc.c"          size="5 MB"
+	        about="the ogg vorbis encoder" />
+
+	<vendor name="libopus"    present="libopus/src/opus_encoder.c"         size="30 MB"
+	        about="the opus encoder" />
+
+	<vendor name="libvpx"     present="libvpx/vp9/vp9_cx_iface.c"          size="24 MB"
+	        about="the VP9 encoder a scope video is written with" />
+
+	<vendor name="libwebm"    present="libwebm/mkvmuxer/mkvmuxer.cc"       size="3 MB"
+	        about="the WebM container a scope video is written into" />
 
 	<vendor name="qlementine" present="qlementine/16/instrument/piano.svg" size="1 MB"
-		about="the interface icons, rasterised into an atlas at build time" />
+	        about="the interface icons, rasterised into an atlas at build time" />
 
-	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB" flag="nuked"
-		about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
-
-	<path name="SDL3PATH" value="vendor/SDL3" />
+	<!-- named so the rest of this file, and the generated native build, can refer to them as ${NAME} -->
+	<path name="SDL3PATH"      value="vendor/SDL3" />
 	<path name="MINIAUDIOPATH" value="vendor/miniaudio" />
-	<path name="STBPATH" value="vendor/stb" />
-	<path name="FONTPATH" value="vendor/fonts" />
-	<path name="NATIVEPATH" value="src/mdd/native" />
-	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
-	<path name="OGGPATH" value="vendor/libogg" />
-	<path name="VORBISPATH" value="vendor/libvorbis" />
-	<path name="OPUSPATH" value="vendor/libopus" />
-	<path name="VPXPATH" value="vendor/libvpx" />
-	<path name="WEBMPATH" value="vendor/libwebm" />
+	<path name="STBPATH"       value="vendor/stb" />
+	<path name="FONTPATH"      value="vendor/fonts" />
+	<path name="NATIVEPATH"    value="src/mdd/native" />
+	<path name="OGGPATH"       value="vendor/libogg" />
+	<path name="VORBISPATH"    value="vendor/libvorbis" />
+	<path name="OPUSPATH"      value="vendor/libopus" />
+	<path name="VPXPATH"       value="vendor/libvpx" />
+	<path name="WEBMPATH"      value="vendor/libwebm" />
+
+
+	<!-- ==== NATIVE ==== -->
 
 	<native path="src/mdd/native">
 		<file name="window.cpp" />
@@ -145,48 +152,57 @@
 		<flag value="-D_CRT_SECURE_NO_WARNINGS" />
 		<flag value="-Wno-unused-command-line-argument" unless="msvc" />
 
+		<!-- libogg -->
 		<tree path="vendor/libogg/src" suffix=".c" />
 
-		<!-- its own quote-includes need lib on the path, and it is kept off the shared list
+		<!-- libvorbis. Its own quote-includes need lib on the path, and it is kept off the shared list
 		     because libopus declares mdct_lookup as well -->
+		<tree path="vendor/libvorbis/lib" suffix=".c" include="vendor/libvorbis/lib"
+		      skip="barkmel, misc, psytune, tone, vorbisfile" />
 
-		<tree path="vendor/libvorbis/lib" suffix=".c"
-			skip="barkmel,misc,psytune,tone,vorbisfile" include="vendor/libvorbis/lib" />
-		<tree path="vendor/libopus/celt" suffix=".c" skip="opus_custom_demo" />
-		<tree path="vendor/libopus/silk" suffix=".c" />
+		<!-- libopus -->
+		<tree path="vendor/libopus/celt"       suffix=".c"
+		      skip="opus_custom_demo" />
+		<tree path="vendor/libopus/silk"       suffix=".c" />
 		<tree path="vendor/libopus/silk/float" suffix=".c" />
-		<tree path="vendor/libopus/src" suffix=".c"
-			skip="opus_compare,opus_demo,repacketizer_demo" />
+		<tree path="vendor/libopus/src"        suffix=".c"
+		      skip="opus_compare, opus_demo, repacketizer_demo" />
 
-		<!-- libvpx as portable C with only the VP9 encoder, realtime only. What each folder leaves
-		     out is what libvpx's own makefile leaves out for that configuration: the decoder,
+		<!-- libvpx, as portable C with only the VP9 encoder, realtime only. What each folder leaves out
+		     is what libvpx's own makefile leaves out for that configuration: the decoder,
 		     postprocessing, denoising, two pass analysis and the quality metrics. The processor
 		     specific code sits in subfolders, which a tree does not walk into -->
-
-		<tree path="vendor/libvpx/vp9" suffix=".c" skip="vp9_dx_iface" />
-		<tree path="vendor/libvpx/vp9/common" suffix=".c"
-			skip="vp9_debugmodes,vp9_mfqe,vp9_postproc" />
-		<tree path="vendor/libvpx/vp9/encoder" suffix=".c"
-			skip="vp9_alt_ref_aq,vp9_aq_360,vp9_aq_complexity,vp9_aq_variance,vp9_blockiness,vp9_denoiser,vp9_firstpass,vp9_mbgraph,vp9_non_greedy_mv,vp9_temporal_filter" />
-		<tree path="vendor/libvpx/vpx/src" suffix=".c" />
-		<tree path="vendor/libvpx/vpx_dsp" suffix=".c"
-			skip="add_noise,bitreader,bitreader_buffer,deblock,fastssim,psnrhvs,ssim" />
-		<tree path="vendor/libvpx/vpx_mem" suffix=".c" />
-		<tree path="vendor/libvpx/vpx_scale" suffix=".c" />
+		<tree path="vendor/libvpx/vp9"               suffix=".c"
+		      skip="vp9_dx_iface" />
+		<tree path="vendor/libvpx/vp9/common"        suffix=".c"
+		      skip="vp9_debugmodes, vp9_mfqe, vp9_postproc" />
+		<tree path="vendor/libvpx/vp9/encoder"       suffix=".c"
+		      skip="vp9_alt_ref_aq, vp9_aq_360, vp9_aq_complexity, vp9_aq_variance,
+		            vp9_blockiness, vp9_denoiser, vp9_firstpass, vp9_mbgraph,
+		            vp9_non_greedy_mv, vp9_temporal_filter" />
+		<tree path="vendor/libvpx/vpx/src"           suffix=".c" />
+		<tree path="vendor/libvpx/vpx_dsp"           suffix=".c"
+		      skip="add_noise, bitreader, bitreader_buffer, deblock,
+		            fastssim, psnrhvs, ssim" />
+		<tree path="vendor/libvpx/vpx_mem"           suffix=".c" />
+		<tree path="vendor/libvpx/vpx_scale"         suffix=".c" />
 		<tree path="vendor/libvpx/vpx_scale/generic" suffix=".c" />
-		<tree path="vendor/libvpx/vpx_util" suffix=".c" skip="vpx_debug_util" />
+		<tree path="vendor/libvpx/vpx_util"          suffix=".c"
+		      skip="vpx_debug_util" />
 
-		<tree path="vendor/libwebm/mkvmuxer" suffix=".cc" />
+		<!-- libwebm -->
+		<tree path="vendor/libwebm/mkvmuxer"  suffix=".cc" />
 		<tree path="vendor/libwebm/mkvparser" suffix=".cc" />
 	</native>
 
-	<include value="${SDL3PATH}/include" if="windows" />
+	<include value="${SDL3PATH}/include"    if="windows" />
 
 	<!-- homebrew is /opt/homebrew on apple silicon and /usr/local on intel, and
 	     clang searches neither by default. A path that is not there costs nothing.
 	     Linux needs none of this: apt puts SDL3 where the compiler already looks. -->
-	<include value="/opt/homebrew/include" if="mac" />
-	<include value="/usr/local/include" if="mac" />
+	<include value="/opt/homebrew/include"  if="mac" />
+	<include value="/usr/local/include"     if="mac" />
+
 	<include value="${MINIAUDIOPATH}" />
 	<include value="${STBPATH}" />
 	<include value="${NATIVEPATH}" />
@@ -200,15 +216,16 @@
 	<include value="${VPXPATH}" />
 	<include value="${WEBMPATH}" />
 
+	<!-- ==== COMPILING AND LINKING ==== -->
+
+	<compileflag value="-Wno-parentheses-equality" unless="msvc" />
+
 	<!-- /DEBUG turns REF off and the crash report wants the symbols, so the pass that drops
 	     what nothing calls is asked for again: it takes the binary from 8225280 bytes to
 	     5350912. ICF stays off. LTCG has already folded what it would fold, so it saves
 	     nothing here, and it would leave a stack trace naming whichever of two identical
 	     functions the linker happened to keep -->
-
-	<compileflag value="-Wno-parentheses-equality" unless="msvc" />
-
-	<linkflag value="-OPT:REF" if="windows" unless="mingw,debug" />
+	<linkflag value="-OPT:REF"           if="windows" unless="mingw,debug" />
 
 	<!-- look beside the binary for the copy of SDL3 the packaging carries there -->
 	<linkflag value="-Wl,-rpath,$ORIGIN" if="linux" />
@@ -218,98 +235,93 @@
 	     system ld cannot read at all, so clang links with lld, which reads it natively. A GCC
 	     object is GIMPLE, which only GCC reads, so the link has to be told it is an LTO link
 	     too. macOS is left out: its linker reads bitcode already -->
-	<linkflag value="-flto" if="linux" unless="debug" />
-	<linkflag value="-fuse-ld=lld" if="clang" unless="mac" />
+	<linkflag value="-flto"              if="linux"   unless="debug" />
+	<linkflag value="-fuse-ld=lld"       if="clang"   unless="mac" />
 
 	<!-- mingw carries its symbols inside the binary where the Microsoft linker puts them in a
 	     pdb beside it, and it is told not to strip because the crash report reads them back.
 	     The report reads the symbol table and the line table and opens none of the rest, which
 	     is 79 per cent of the file: a release sheds it and reports the same stack. A debug
 	     build keeps the lot, because a debugger wants what a crash report does not -->
-
 	<strip sections=".debug_info,.debug_loc,.debug_str,.debug_ranges,.debug_abbrev,.debug_aranges"
-		if="mingw" unless="debug" />
+	       if="mingw" unless="debug" />
 
 	<!-- the window's library, however each linker wants to be told about it -->
-
-	<link value="${SDL3PATH}/lib/SDL3.lib" if="windows" unless="mingw" />
-	<link value="${SDL3PATH}/lib/SDL3.dll" if="mingw" />
-	<link value="-L/opt/homebrew/lib" if="mac" />
-	<link value="-L/usr/local/lib" if="mac" />
-	<link value="-lSDL3" unless="windows" />
+	<link value="${SDL3PATH}/lib/SDL3.lib"  if="windows" unless="mingw" />
+	<link value="${SDL3PATH}/lib/SDL3.dll"  if="mingw" />
+	<link value="-L/opt/homebrew/lib"       if="mac" />
+	<link value="-L/usr/local/lib"          if="mac" />
+	<link value="-lSDL3"                                 unless="windows" />
 
 	<!-- what Windows itself supplies: the crash report reads dbghelp, the scheduler tick
 	     comes from winmm, and the usage readout from psapi and pdh. The Microsoft linker
 	     takes a file name and the mingw one takes a -l switch, so each is written twice -->
+	<link value="dbghelp.lib"               if="windows" unless="mingw" />
+	<link value="winmm.lib"                 if="windows" unless="mingw" />
+	<link value="psapi.lib"                 if="windows" unless="mingw" />
+	<link value="pdh.lib"                   if="windows" unless="mingw" />
+	<link value="advapi32.lib"              if="windows" unless="mingw" />
+	<link value="shell32.lib"               if="windows" unless="mingw" />
+	<link value="ole32.lib"                 if="windows" unless="mingw" />
+	<link value="uuid.lib"                  if="windows" unless="mingw" />
 
-	<link value="dbghelp.lib" if="windows" unless="mingw" />
-	<link value="winmm.lib" if="windows" unless="mingw" />
-	<link value="psapi.lib" if="windows" unless="mingw" />
-	<link value="pdh.lib" if="windows" unless="mingw" />
-	<link value="advapi32.lib" if="windows" unless="mingw" />
-	<link value="shell32.lib" if="windows" unless="mingw" />
-	<link value="ole32.lib" if="windows" unless="mingw" />
-	<link value="uuid.lib" if="windows" unless="mingw" />
-
-	<link value="-ldbghelp" if="mingw" />
-	<link value="-lwinmm" if="mingw" />
-	<link value="-lpsapi" if="mingw" />
-	<link value="-lpdh" if="mingw" />
-	<link value="-ladvapi32" if="mingw" />
-	<link value="-lshell32" if="mingw" />
-	<link value="-lole32" if="mingw" />
-	<link value="-luuid" if="mingw" />
+	<link value="-ldbghelp"                 if="mingw" />
+	<link value="-lwinmm"                   if="mingw" />
+	<link value="-lpsapi"                   if="mingw" />
+	<link value="-lpdh"                     if="mingw" />
+	<link value="-ladvapi32"                if="mingw" />
+	<link value="-lshell32"                 if="mingw" />
+	<link value="-lole32"                   if="mingw" />
+	<link value="-luuid"                    if="mingw" />
 
 	<!-- what Linux supplies -->
-
-	<link value="-lm" if="linux" />
-	<link value="-ldl" if="linux" />
-	<link value="-lpthread" if="linux" />
+	<link value="-lm"                       if="linux" />
+	<link value="-ldl"                      if="linux" />
+	<link value="-lpthread"                 if="linux" />
 
 	<!-- what macOS supplies, as frameworks -->
-
 	<link value="-framework CoreFoundation" if="mac" />
-	<link value="-framework CoreAudio" if="mac" />
-	<link value="-framework AudioToolbox" if="mac" />
+	<link value="-framework CoreAudio"      if="mac" />
+	<link value="-framework AudioToolbox"   if="mac" />
 
-	<ship value="vendor/SDL3/lib/SDL3.dll" if="windows" />
-
-	<!--
-		Windows links the vendored SDL3 and ships the DLL beside the binary. macOS and Linux
-		link whatever the package manager installed, so the binary comes out naming an
-		absolute path no other machine has, and the build carries that library into
-		export/bin the same way.
-	-->
-	<carry value="libSDL3" unless="windows" />
+	<!-- Windows links the vendored SDL3 and ships the DLL beside the binary. macOS and Linux
+	     link whatever the package manager installed, so the binary comes out naming an
+	     absolute path no other machine has, and the build carries that library into
+	     export/bin the same way -->
+	<ship  value="vendor/SDL3/lib/SDL3.dll" if="windows" />
+	<carry value="libSDL3"                  unless="windows" />
 
 
-	<!-- assets -->
+	<!-- ==== ASSETS ==== -->
 
 	<languages path="assets/lang" />
-	<appicon path="assets/icon" />
+	<appicon   path="assets/icon" />
 
+	<!-- the faces fetched into vendor/fonts, what each is fetched from, which faces a glyph is
+	     looked for in when the chosen one has none, and the pairings offered in preferences -->
 	<typefaces path="vendor/fonts">
-		<face name="Go-Regular.ttf" from="go:Go-Regular.ttf" />
-		<face name="Go-Mono.ttf" from="go:Go-Mono.ttf" />
-		<face name="IBMPlexSans.ttf" from="ofl:ibmplexsans/IBMPlexSans[wdth,wght].ttf" />
-		<face name="IBMPlexMono.ttf" from="ofl:ibmplexmono/IBMPlexMono-Regular.ttf" />
-		<face name="Inter.ttf" from="ofl:inter/Inter[opsz,wght].ttf" />
-		<face name="JetBrainsMono.ttf" from="ofl:jetbrainsmono/JetBrainsMono[wght].ttf" />
+		<face name="Go-Regular.ttf"          from="go:Go-Regular.ttf" />
+		<face name="Go-Mono.ttf"             from="go:Go-Mono.ttf" />
+		<face name="IBMPlexSans.ttf"         from="ofl:ibmplexsans/IBMPlexSans[wdth,wght].ttf" />
+		<face name="IBMPlexMono.ttf"         from="ofl:ibmplexmono/IBMPlexMono-Regular.ttf" />
+		<face name="Inter.ttf"               from="ofl:inter/Inter[opsz,wght].ttf" />
+		<face name="JetBrainsMono.ttf"       from="ofl:jetbrainsmono/JetBrainsMono[wght].ttf" />
 		<face name="BarlowSemiCondensed.ttf" from="ofl:barlowsemicondensed/BarlowSemiCondensed-Regular.ttf" />
-		<face name="SourceSans3.ttf" from="ofl:sourcesans3/SourceSans3[wght].ttf" />
-		<face name="SourceCodePro.ttf" from="ofl:sourcecodepro/SourceCodePro[wght].ttf" />
-		<face name="NotoSans.ttf" from="ofl:notosans/NotoSans[wdth,wght].ttf" />
-		<face name="NotoSansMono.ttf" from="ofl:notosansmono/NotoSansMono[wdth,wght].ttf" />
-		<face name="FiraSans.ttf" from="ofl:firasans/FiraSans-Regular.ttf" />
-		<face name="FiraCode.ttf" from="ofl:firacode/FiraCode[wght].ttf" />
-		<face name="WorkSans.ttf" from="ofl:worksans/WorkSans[wght].ttf" />
-		<face name="RobotoMono.ttf" from="ofl:robotomono/RobotoMono[wght].ttf" />
-		<face name="OpenSans.ttf" from="ofl:opensans/OpenSans[wdth,wght].ttf" />
+		<face name="SourceSans3.ttf"         from="ofl:sourcesans3/SourceSans3[wght].ttf" />
+		<face name="SourceCodePro.ttf"       from="ofl:sourcecodepro/SourceCodePro[wght].ttf" />
+		<face name="NotoSans.ttf"            from="ofl:notosans/NotoSans[wdth,wght].ttf" />
+		<face name="NotoSansMono.ttf"        from="ofl:notosansmono/NotoSansMono[wdth,wght].ttf" />
+		<face name="FiraSans.ttf"            from="ofl:firasans/FiraSans-Regular.ttf" />
+		<face name="FiraCode.ttf"            from="ofl:firacode/FiraCode[wght].ttf" />
+		<face name="WorkSans.ttf"            from="ofl:worksans/WorkSans[wght].ttf" />
+		<face name="RobotoMono.ttf"          from="ofl:robotomono/RobotoMono[wght].ttf" />
+		<face name="OpenSans.ttf"            from="ofl:opensans/OpenSans[wdth,wght].ttf" />
 
-		<face name="NotoSansJP.ttf" from="ofl:notosansjp/NotoSansJP[wght].ttf" />
-		<face name="NotoSansSC.ttf" from="ofl:notosanssc/NotoSansSC[wght].ttf" />
-		<face name="NotoSansKR.ttf" from="ofl:notosanskr/NotoSansKR[wght].ttf" />
+		<face name="NotoSansJP.ttf"          from="ofl:notosansjp/NotoSansJP[wght].ttf" />
+		<face name="NotoSansSC.ttf"          from="ofl:notosanssc/NotoSansSC[wght].ttf" />
+		<face name="NotoSansKR.ttf"          from="ofl:notosanskr/NotoSansKR[wght].ttf" />
 
+		<!-- looked through in this order -->
 		<fallback name="NotoSans.ttf" />
 		<fallback name="NotoSansJP.ttf" />
 		<fallback name="NotoSansSC.ttf" />
@@ -317,15 +329,15 @@
 
 		<condensed name="BarlowSemiCondensed.ttf" />
 
-		<typeface name="Go" sans="Go-Regular.ttf" mono="Go-Mono.ttf" />
-		<typeface name="IBM Plex" sans="IBMPlexSans.ttf" mono="IBMPlexMono.ttf" />
-		<typeface name="Inter" sans="Inter.ttf" mono="JetBrainsMono.ttf" />
-		<typeface name="Barlow" sans="BarlowSemiCondensed.ttf" mono="IBMPlexMono.ttf" />
-		<typeface name="Source" sans="SourceSans3.ttf" mono="SourceCodePro.ttf" />
-		<typeface name="Noto" sans="NotoSans.ttf" mono="NotoSansMono.ttf" />
-		<typeface name="Fira" sans="FiraSans.ttf" mono="FiraCode.ttf" />
-		<typeface name="Work Sans" sans="WorkSans.ttf" mono="RobotoMono.ttf" />
-		<typeface name="Open Sans" sans="OpenSans.ttf" mono="RobotoMono.ttf" />
+		<typeface name="Go"        sans="Go-Regular.ttf"          mono="Go-Mono.ttf" />
+		<typeface name="IBM Plex"  sans="IBMPlexSans.ttf"         mono="IBMPlexMono.ttf" />
+		<typeface name="Inter"     sans="Inter.ttf"               mono="JetBrainsMono.ttf" />
+		<typeface name="Barlow"    sans="BarlowSemiCondensed.ttf" mono="IBMPlexMono.ttf" />
+		<typeface name="Source"    sans="SourceSans3.ttf"         mono="SourceCodePro.ttf" />
+		<typeface name="Noto"      sans="NotoSans.ttf"            mono="NotoSansMono.ttf" />
+		<typeface name="Fira"      sans="FiraSans.ttf"            mono="FiraCode.ttf" />
+		<typeface name="Work Sans" sans="WorkSans.ttf"            mono="RobotoMono.ttf" />
+		<typeface name="Open Sans" sans="OpenSans.ttf"            mono="RobotoMono.ttf" />
 	</typefaces>
 
 	<!-- numbered in the order below, and a saved project refers to the number: add at the end,
@@ -333,35 +345,58 @@
 
 	<icons path="assets/icons" sizes="16,18,20,22,24,26,28,32,36,40,48,64">
 		<from name="qlementine" path="vendor/qlementine/16" />
+
 		<group name="shape">
-			<icon name="dot" from="qlementine:shape/circle-filled" />
-			<icon name="ring" from="qlementine:shape/circle" />
-			<icon name="square" from="qlementine:shape/square-filled" />
+			<icon name="dot"           from="qlementine:shape/circle-filled" />
+			<icon name="ring"          from="qlementine:shape/circle" />
+			<icon name="square"        from="qlementine:shape/square-filled" />
 			<icon name="square-hollow" from="qlementine:shape/square" />
-			<icon name="diamond" from="qlementine:shape/diamond-filled" />
-			<icon name="triangle" from="qlementine:shape/triangle-filled" />
-			<icon name="star" from="qlementine:shape/star-filled" />
-			<icon name="cross" from="qlementine:shape/cross" />
-			<icon name="tick" from="qlementine:shape/check-tick" />
+			<icon name="diamond"       from="qlementine:shape/diamond-filled" />
+			<icon name="triangle"      from="qlementine:shape/triangle-filled" />
+			<icon name="star"          from="qlementine:shape/star-filled" />
+			<icon name="cross"         from="qlementine:shape/cross" />
+			<icon name="tick"          from="qlementine:shape/check-tick" />
 		</group>
+
 		<group name="audio">
-			<icon from="qlementine:audio" names="wave-sine,wave-square,wave-triangle" />
-			<icon name="wave-saw" from="wave-saw" />
+			<icon                   from="qlementine:audio"                names="wave-sine, wave-square, wave-triangle" />
+			<icon name="wave-saw"   from="wave-saw" />
 			<icon name="wave-noise" from="wave-noise" />
-			<icon name="eq" from="qlementine:audio/eq-flat" />
-			<icon name="speaker" from="qlementine:audio/speaker-2" />
-			<icon name="buffer" from="qlementine:audio/buffer" />
-			<icon name="note" from="qlementine:misc/note-8th-simple" />
-			<icon from="qlementine:misc" names="notes,bell" />
-			<icon from="qlementine:hardware" names="headphones,microphone" />
+			<icon name="eq"         from="qlementine:audio/eq-flat" />
+			<icon name="speaker"    from="qlementine:audio/speaker-2" />
+			<icon name="buffer"     from="qlementine:audio/buffer" />
+			<icon name="note"       from="qlementine:misc/note-8th-simple" />
+			<icon                   from="qlementine:misc"                 names="notes, bell" />
+			<icon                   from="qlementine:hardware"             names="headphones, microphone" />
 		</group>
+
 		<group name="instrument">
-			<icon from="qlementine:instrument" names="piano,synthesizer,guitar,guitar-folk,guitar-classical,
-				guitar-strat,guitar-tele,guitar-jackson,guitar-12-strings,bass,ukulele,banjo,mandolin,sitar,
-				shamisen,harp,violin,cello,accordion,harmonica,saxophone,trumpet,trombone,tuba,woodwind,pipe,
-				amp,pedal,pedalboard,drumkit,kick,snare,tom,hi-hat,cymbal,cowbell,bongos,tambourine,shakers,
-				clap,drumsticks,drum-brushes,idiophone,tamtam,mastering" />
+			<icon from="qlementine:instrument"
+			      names="piano, synthesizer,
+			             guitar, guitar-folk, guitar-classical, guitar-strat,
+			             guitar-tele, guitar-jackson, guitar-12-strings,
+			             bass, ukulele, banjo, mandolin, sitar, shamisen, harp, violin, cello,
+			             accordion, harmonica, saxophone, trumpet, trombone, tuba, woodwind, pipe,
+			             amp, pedal, pedalboard,
+			             drumkit, kick, snare, tom, hi-hat, cymbal, cowbell, bongos, tambourine, shakers, clap,
+			             drumsticks, drum-brushes, idiophone, tamtam,
+			             mastering" />
 		</group>
 	</icons>
 
+
+	<!-- ==== GATE / TESTS ==== -->
+
+	<!-- the checks, built as a binary of their own. Only this target adds test to its source path,
+	     so the application cannot reach a check, and nothing below is part of what ships -->
+	<target id="gate" main="mdd.gate.Gate">
+		<source path="test" />
+	</target>
+
+	<!-- the known-good YM2612 that mdd gate chip measures the FM core against. It is LGPL, so it
+	     is built as a program of its own and never linked into the application -->
+	<vendor name="Nuked-OPN2" present="Nuked-OPN2/ym3438.c" size="1 MB" flag="nuked"
+	        about="a known-good YM2612 the FM core is measured against, built as a program of its own" />
+
+	<path name="OPN2PATH" value="vendor/Nuked-OPN2" />
 </project>
