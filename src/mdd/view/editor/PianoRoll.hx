@@ -1915,6 +1915,16 @@ final class PianoRoll extends Widget {
 			final at = session.snapped(tickAt(px));
 			fires(paste, function():Void pasted(at));
 
+			final row = pitchAt(py);
+			final spacings = new Menu();
+
+			for (index in 0...FILLS) {
+				final which = index;
+				fires(spacings.offer(new Choice(filling(which))), function():Void repeats(row, which));
+			}
+
+			menu.offer(new Choice(translate(Locale.ROLL_FILL))).submenu = spacings;
+
 			menu.divide();
 
 			fires(menu.offer(new Choice(translate(Locale.ROLL_QUANTISE))), function():Void
@@ -2891,6 +2901,80 @@ final class PianoRoll extends Widget {
 		litNote = note;
 		litOn = on;
 		invalidate();
+	}
+
+	/**
+		How many spacings the fill menu offers: a step, two, four, a beat, two and a bar.
+	**/
+	static inline final FILLS = 6;
+
+	/**
+		@param which Which spacing.
+		@return What the fill menu calls it.
+	**/
+	function filling(which:Int):String {
+		return switch (which) {
+			case 0: translate(Locale.FILL_STEP);
+			case 1: filled(Locale.FILL_STEPS, ["2"]);
+			case 2: filled(Locale.FILL_STEPS, ["4"]);
+			case 3: translate(Locale.FILL_BEAT);
+			case 4: filled(Locale.FILL_BEATS, ["2"]);
+			case _: translate(Locale.FILL_BAR);
+		}
+	}
+
+	/**
+		Fills a row of the pattern with notes a spacing apart across its whole length, each a step
+		long or the spacing where that is shorter, and leaves any place that already starts a note
+		on that row alone. One step on the undo stack.
+
+		@param pitch The row.
+		@param which Which spacing the fill menu offered.
+	**/
+	function repeats(pitch:Int, which:Int):Void {
+		final pattern = session.current();
+		if (pattern == null || pitch < 0 || pitch > 127) return;
+
+		final beat = session.song.tempo.ppqn;
+		final step = session.snap < 1 ? Std.int(beat / 4) : session.snap;
+
+		final every = switch (which) {
+			case 0: step;
+			case 1: step * 2;
+			case 2: step * 4;
+			case 3: beat;
+			case 4: beat * 2;
+			case _: beat * 4;
+		}
+
+		if (every < 1) return;
+
+		final lane = pattern.lane(session.part);
+		final length = step < every ? step : every;
+		final group = new mdd.song.edit.Together("fill");
+
+		var many = 0;
+		var at = 0;
+
+		while (at < pattern.length) {
+			var taken = false;
+
+			for (note in lane.notes) {
+				if (note.at != at || note.pitch != pitch) continue;
+
+				taken = true;
+				break;
+			}
+
+			if (!taken) {
+				group.also(new AddNote(session.pattern, session.part, new Note(at, length, pitch, 100)));
+				many++;
+			}
+
+			at += every;
+		}
+
+		if (many > 0) session.does(group);
 	}
 
 	/**

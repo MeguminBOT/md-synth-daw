@@ -75,6 +75,9 @@ A track can also drive one automation lane of a channel it does not otherwise ow
   that is part of a selection leans the whole selection by the same amount instead, so the
   shape of a phrase survives a change of level.
 - Parameter lanes underneath the roll, folded and scrolled.
+- **Fill**, from the right click menu on an empty spot, puts a note on that row every step, every
+  2 or 4 steps, every beat, every 2 beats or every bar across the pattern, and leaves any note
+  already starting there alone.
 - A note the chip cannot sound is hatched immediately, with a warning that clicks through to it.
 
 ### The tracker
