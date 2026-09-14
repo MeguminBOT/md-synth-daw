@@ -425,6 +425,11 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   writes them in every language. Which languages ship, and how each was translated, is in
   the README, and the sheet that asks for one on the first run says whether the language
   picked was written by a person or translated by a machine.
+- **A page on the console's limits**, in the help menu: five FM channels once the sample channel
+  is in use, one LFO, no pan pot, volume in steps, the squares' lowest note, channel three's four
+  notes, what samples cost, one note per channel and a release some drivers never let sound. Each
+  comes with the way the music of the time worked around it, with Sonic the Hedgehog as the
+  example.
 - **Themes, typefaces, interface density** and reduced motion, which follows the desktop setting
   unless you override it.
 - **Text size** from 90% to 150%, on its own, so the text can grow without the rows and controls

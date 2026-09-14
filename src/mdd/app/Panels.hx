@@ -127,6 +127,11 @@ final class Panels {
 	public var about:Null<mdd.view.overlay.About> = null;
 
 	/**
+		The console limits sheet.
+	**/
+	public var limits:Null<mdd.view.overlay.Limits> = null;
+
+	/**
 		The progress bar.
 	**/
 	public var working:Null<Working> = null;

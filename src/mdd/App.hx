@@ -248,6 +248,9 @@ class App {
 		panels.about = new mdd.view.overlay.About();
 		panels.about.onShut = function():Void stage.root.lower();
 
+		panels.limits = new mdd.view.overlay.Limits();
+		panels.limits.onShut = function():Void stage.root.lower();
+
 		panels.onMaster = function(much:Int):Void {
 			sound.monitors(Session.gainOf(much));
 			keeps();

@@ -456,11 +456,22 @@ final class Menus {
 	}
 
 	/**
+		Raises the sheet on what the console cannot do and how music got around it.
+	**/
+	function limits():Void {
+		if (panels.limits == null || panels.stage == null) return;
+
+		panels.stage.root.raise(panels.limits);
+		panels.limits.arrive();
+	}
+
+	/**
 		@return The help menu.
 	**/
 	function helpMenu():Menu {
 		final held = new Menu();
 
+		fired(held.offer(new Choice(said(Locale.HELP_LIMITS))), function():Void limits());
 		fired(held.offer(new Choice(said(Locale.HELP_ABOUT))), function():Void shows());
 
 		final source = held.offer(new Choice(said(Locale.HELP_SOURCE)));

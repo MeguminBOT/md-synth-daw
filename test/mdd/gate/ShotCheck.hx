@@ -130,6 +130,14 @@ class ShotCheck {
 		}
 
 		final metrics = new Metrics(1);
+		final spare = new mdd.ui.Fallback();
+		for (name in mdd.Typeface.FALLBACK) spare.adds(root + "/vendor/fonts/" + name);
+
+		body.chains(spare);
+		small.chains(spare);
+		mono.chains(spare);
+		if (condensed != null) condensed.chains(spare);
+
 		metrics.dress(body, small, mono, mono, condensed);
 
 		final session = vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm);
@@ -340,6 +348,13 @@ class ShotCheck {
 			held.arrive();
 			held.rise.hold(1);
 			held.fade.hold(1);
+		} else if (sheet == "limits") {
+			final held = new mdd.view.overlay.Limits();
+
+			tree.raise(held);
+			held.arrive();
+			held.rise.hold(1);
+			held.fade.hold(1);
 		} else if (sheet == "naming") {
 			final held = new mdd.view.overlay.Naming();
 
@@ -454,6 +469,7 @@ class ShotCheck {
 		body.shut();
 		small.shut();
 		mono.shut();
+		spare.shut();
 
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
