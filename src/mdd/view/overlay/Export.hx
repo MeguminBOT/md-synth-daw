@@ -120,9 +120,14 @@ final class Export extends Widget {
 	public static inline final SCOPE_ACCURACY = 23;
 
 	/**
+		Row: whether a video keeps its colour at full resolution.
+	**/
+	public static inline final CHROMA = 24;
+
+	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 24;
+	public static inline final KINDS = 25;
 
 	/**
 		How many metadata fields there are.
@@ -157,7 +162,8 @@ final class Export extends Widget {
 		Locale.EXPORT_OPUS_SPAN, Locale.EXPORT_OPUS_BITRATE, Locale.EXPORT_STEMS,
 		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE, Locale.EXPORT_RATE_CONTROL,
 		Locale.EXPORT_ENCODER_SPEED, Locale.EXPORT_KEYFRAMES, Locale.EXPORT_TUNE,
-		Locale.EXPORT_SCOPE_VIEW, Locale.EXPORT_SCOPE_SPEED, Locale.EXPORT_SCOPE_ACCURACY];
+		Locale.EXPORT_SCOPE_VIEW, Locale.EXPORT_SCOPE_SPEED, Locale.EXPORT_SCOPE_ACCURACY,
+		Locale.EXPORT_CHROMA];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -174,6 +180,7 @@ final class Export extends Widget {
 	static final CONTROLS:Array<String> = ["VBR", "CBR", "CQ", "Q"];
 	static final SPEEDS:Array<String> = ["5", "6", "7", "8", "9"];
 	static final KEYED:Array<String> = ["0.5 s", "1 s", "2 s", "5 s", "10 s"];
+	static final CHROMAS:Array<String> = ["4:2:0", "4:4:4"];
 
 	static final TUNINGS:Array<Locale> = [Locale.EXPORT_TUNE_DEFAULT, Locale.EXPORT_TUNE_SCREEN];
 
@@ -373,6 +380,7 @@ final class Export extends Widget {
 			showing.push(ENCODER_SPEED);
 			showing.push(KEYFRAMES);
 			showing.push(TUNE);
+			showing.push(CHROMA);
 			showing.push(SIDES);
 			showing.push(QUALITY);
 			showing.push(CEILING);
@@ -575,7 +583,7 @@ final class Export extends Widget {
 			case SCOPE_ACCURACY: ACCURACIES;
 
 			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE,
-				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES, SCOPE_SPEED: NO_KEYS;
+				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES, SCOPE_SPEED, CHROMA: NO_KEYS;
 
 			case _: SWITCHES;
 		}
@@ -601,6 +609,7 @@ final class Export extends Widget {
 			case ENCODER_SPEED: SPEEDS;
 			case KEYFRAMES: KEYED;
 			case SCOPE_SPEED: paced;
+			case CHROMA: CHROMAS;
 			case _: NOTHING;
 		}
 	}
@@ -683,6 +692,7 @@ final class Export extends Widget {
 			case SCOPE_VIEW: mixing.scopeView;
 			case SCOPE_SPEED: mixing.scopeSpeed;
 			case SCOPE_ACCURACY: mixing.scopeAccuracy;
+			case CHROMA: mixing.fullChroma ? 1 : 0;
 			case _: mixing.dither ? 1 : 0;
 		}
 	}
@@ -774,6 +784,7 @@ final class Export extends Widget {
 			case SCOPE_VIEW: { mixing.scopeView = which; scoped = true; }
 			case SCOPE_SPEED: { mixing.scopeSpeed = which; scoped = true; }
 			case SCOPE_ACCURACY: { mixing.scopeAccuracy = which; scoped = true; }
+			case CHROMA: mixing.fullChroma = which == 1;
 			case _: mixing.dither = which == 1;
 		}
 

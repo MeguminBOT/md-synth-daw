@@ -28,6 +28,8 @@ typedef struct MddVideo MddVideo;
  *     built realtime only, and that build takes nothing below five.
  * @param keyframes The longest run between key frames, in frames.
  * @param screen Nonzero to tune for screen content, nought for the default tuning.
+ * @param chroma Nonzero to keep colour at full resolution, as 4:4:4 in VP9 profile 1, or nought
+ *     to halve it both ways, as 4:2:0 in profile 0, which more hardware decoders play.
  * @param rate The audio rate in hertz: 8000, 12000, 16000, 24000 or 48000.
  * @param channels One or two.
  * @param audio_kilobits The Opus bitrate in kilobits a second.
@@ -36,8 +38,8 @@ typedef struct MddVideo MddVideo;
  * @return The video, or NULL where the file or either encoder would not open.
  */
 MddVideo *mdd_video_open(const char *path, int width, int height, int fps, int kilobits,
-	int control, int quality, int speed, int keyframes, int screen, int rate, int channels,
-	int audio_kilobits, int threads);
+	int control, int quality, int speed, int keyframes, int screen, int chroma, int rate,
+	int channels, int audio_kilobits, int threads);
 
 /**
  * Copies one frame to be encoded and put in the file, and returns without waiting for it

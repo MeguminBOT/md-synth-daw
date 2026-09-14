@@ -78,6 +78,7 @@
   "export.auto": "自动",
   "export.cancel": "取消",
   "export.ceiling": "标准化",
+  "export.chroma": "色度",
   "export.coarse": "低于 44100 Hz 时音质会明显变差",
   "export.comment": "备注",
   "export.console": "输出级",

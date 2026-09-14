@@ -30,6 +30,8 @@ class VideoCheck {
 	static inline final TONE = 440.0;
 	static inline final LOOKED = 30;
 
+	static inline final LINED = 30;
+
 	static inline final UHD_WIDE = 3840;
 	static inline final UHD_TALL = 2160;
 	static inline final UHD_FRAMES = 8;
@@ -84,6 +86,7 @@ class VideoCheck {
 		}
 
 		controlled(where);
+		coloured(where);
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -156,8 +159,8 @@ class VideoCheck {
 		@return How many calls failed, closing included, or -1 where the file would not open.
 	**/
 	static function filmed(path:String, wide:Int, tall:Int, frames:Int, control:Int):Int {
-		final file = Video.open(path, wide, tall, FPS, 800, control, 30, 7, FPS * 5, 1, RATE, 2, 96,
-			4);
+		final file = Video.open(path, wide, tall, FPS, 800, control, 30, 7, FPS * 5, 1, 1, RATE, 2,
+			96, 4);
 		if (file == null) return -1;
 
 		final span = Std.int(RATE / FPS);
@@ -228,6 +231,126 @@ class VideoCheck {
 			&& pixelWide == UHD_WIDE && pixelTall == UHD_TALL,
 			frames + " frames of " + UHD_FRAMES + " at " + pixelWide + " by " + pixelTall + " with "
 			+ faults + " faults, " + (there ? FileSystem.stat(path).size : 0) + " bytes");
+	}
+
+	/**
+		Writes thin coloured lines on black at 4:2:0 and at 4:4:4, decodes a frame of each with
+		ffmpeg, and asks that full resolution colour keeps clearly more of the lines' colour.
+
+		@param where The folder to write into.
+	**/
+	static function coloured(where:String):Void {
+		if (!present("ffmpeg")) {
+			Sys.println("    not run: ffmpeg is not on the path, so no colour was measured");
+			return;
+		}
+
+		final source = linesAt();
+		final kept:Array<Float> = [];
+
+		for (chroma in 0...2) {
+			final path = where + "/lines-" + (chroma == 0 ? "420" : "444") + ".webm";
+			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+
+			final file = Video.open(path, WIDE, TALL, FPS, 800, Mixing.VBR, 30, 5, FPS * 5, 1,
+				chroma, RATE, 2, 96, 4);
+
+			if (file == null) {
+				kept.push(0);
+				continue;
+			}
+
+			for (frame in 0...LINED) {
+				Video.frame(file, cpp.Pointer.arrayElem(source.getData(), 0).constRaw);
+			}
+
+			Video.close(file);
+
+			final picture = where + "/lines.rgb";
+			if (FileSystem.exists(picture)) FileSystem.deleteFile(picture);
+
+			final code = Sys.command("ffmpeg", ["-v", "error", "-y", "-i", path, "-vf",
+				"trim=start_frame=" + (LINED - 1) + ":end_frame=" + LINED, "-frames:v", "1",
+				"-f", "rawvideo", "-pix_fmt", "rgb24", picture]);
+
+			kept.push(code == 0 && FileSystem.exists(picture)
+				? saturation(sys.io.File.getBytes(picture), source) : 0);
+		}
+
+		says("and 4:4:4 keeps a thin line's colour", kept[1] > kept[0] + 0.1,
+			"4:2:0 keeps " + percent(kept[0]) + " of the lines' saturation, 4:4:4 keeps "
+			+ percent(kept[1]));
+	}
+
+	/**
+		@return A frame of six thin coloured lines, two pixels thick, on black.
+	**/
+	static function linesAt():Bytes {
+		final colours = [0xFF5252, 0x3FD98A, 0x38A8F0, 0xFFD029, 0xA65CF0, 0xF050A0];
+		final out = Bytes.alloc(WIDE * TALL * 4);
+		out.fill(0, out.length, 0);
+
+		final band = TALL / colours.length;
+
+		for (line in 0...colours.length) {
+			final colour = colours[line];
+			final middle = (line + 0.5) * band;
+
+			for (column in 0...WIDE) {
+				final row = Std.int(middle + Math.sin(column * 0.09 + line) * band * 0.3);
+
+				for (thick in 0...2) {
+					final at = ((row + thick) * WIDE + column) * 4;
+					if (at < 0 || at + 3 >= out.length) continue;
+
+					out.set(at, (colour >> 16) & 0xFF);
+					out.set(at + 1, (colour >> 8) & 0xFF);
+					out.set(at + 2, colour & 0xFF);
+					out.set(at + 3, 0xFF);
+				}
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		@param got A decoded frame, three bytes a pixel.
+		@param source The frame that went in, four bytes a pixel.
+		@return How much of the source's saturation the decoded frame keeps where the source is
+			lit, nought to one.
+	**/
+	static function saturation(got:Bytes, source:Bytes):Float {
+		if (got.length != WIDE * TALL * 3) return 0;
+
+		var wanted = 0.0;
+		var held = 0.0;
+
+		for (index in 0...WIDE * TALL) {
+			final red = source.get(index * 4);
+			final green = source.get(index * 4 + 1);
+			final blue = source.get(index * 4 + 2);
+
+			final most = red > green ? (red > blue ? red : blue) : (green > blue ? green : blue);
+			if (most <= 60) continue;
+
+			final least = red < green ? (red < blue ? red : blue) : (green < blue ? green : blue);
+			wanted += most - least;
+
+			final r = got.get(index * 3);
+			final g = got.get(index * 3 + 1);
+			final b = got.get(index * 3 + 2);
+
+			final high = r > g ? (r > b ? r : b) : (g > b ? g : b);
+			final low = r < g ? (r < b ? r : b) : (g < b ? g : b);
+			held += high - low;
+		}
+
+		return wanted <= 0 ? 0 : held / wanted;
+	}
+
+	static function percent(share:Float):String {
+		return (Math.round(share * 1000) / 10) + " per cent";
 	}
 
 	/**

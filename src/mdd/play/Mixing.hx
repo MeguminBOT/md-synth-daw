@@ -190,7 +190,7 @@ final class Mixing {
 	/**
 		The VP9 encoder speed, five to nine, where higher is faster and worse.
 	**/
-	public var encoderSpeed:Int = 7;
+	public var encoderSpeed:Int = 5;
 
 	/**
 		The longest run between key frames, in seconds. Half a second is YouTube's closed group of
@@ -202,6 +202,13 @@ final class Mixing {
 		Whether the video encoder is tuned for screen content, which a scope is.
 	**/
 	public var screen:Bool = true;
+
+	/**
+		Whether a video keeps its colour at full resolution, 4:4:4 in VP9 profile 1, rather than
+		halving it both ways as 4:2:0. A scope is thin coloured lines, which lose more than half
+		their colour at 4:2:0.
+	**/
+	public var fullChroma:Bool = true;
 
 	/**
 		What a video's scope shows, the scope's own `WAVEFORM` or `SPECTRUM`: nought for the
@@ -402,6 +409,7 @@ final class Mixing {
 		out.encoderSpeed = encoderSpeed;
 		out.keyframeInterval = keyframeInterval;
 		out.screen = screen;
+		out.fullChroma = fullChroma;
 		out.scopeView = scopeView;
 		out.scopeSpeed = scopeSpeed;
 		out.scopeAccuracy = scopeAccuracy;

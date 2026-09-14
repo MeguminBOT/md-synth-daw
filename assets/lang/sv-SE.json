@@ -78,6 +78,7 @@
   "export.auto": "Auto",
   "export.cancel": "Avbryt",
   "export.ceiling": "Normalisera",
+  "export.chroma": "Kroma",
   "export.coarse": "Under 44100 Hz blir ljudet märkbart sämre",
   "export.comment": "Kommentar",
   "export.console": "Utgångssteg",

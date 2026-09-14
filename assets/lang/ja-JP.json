@@ -78,6 +78,7 @@
   "export.auto": "自動",
   "export.cancel": "キャンセル",
   "export.ceiling": "ノーマライズ",
+  "export.chroma": "色差",
   "export.coarse": "44100 Hzを下回ると音質の劣化がはっきり分かります",
   "export.comment": "コメント",
   "export.console": "出力段",

@@ -24,6 +24,8 @@ extern class Video {
 		@param speed The encoder speed, five to nine, where higher is faster and worse.
 		@param keyframes The longest run between key frames, in frames.
 		@param screen One to tune for screen content, nought for the default tuning.
+		@param chroma One to keep colour at full resolution, as 4:4:4 in VP9 profile 1, or nought
+			for 4:2:0 in profile 0, which more hardware decoders play.
 		@param rate The audio rate: 8000, 12000, 16000, 24000 or 48000 hertz.
 		@param channels One or two.
 		@param audioKilobits The Opus bitrate in kilobits a second.
@@ -33,8 +35,8 @@ extern class Video {
 	**/
 	@:native("mdd_video_open")
 	public static function open(path:cpp.ConstCharStar, width:Int, height:Int, fps:Int,
-		kilobits:Int, control:Int, quality:Int, speed:Int, keyframes:Int, screen:Int, rate:Int,
-		channels:Int, audioKilobits:Int, threads:Int):cpp.Star<VideoFile>;
+		kilobits:Int, control:Int, quality:Int, speed:Int, keyframes:Int, screen:Int, chroma:Int,
+		rate:Int, channels:Int, audioKilobits:Int, threads:Int):cpp.Star<VideoFile>;
 
 	/**
 		Encodes one frame and puts it in the file.

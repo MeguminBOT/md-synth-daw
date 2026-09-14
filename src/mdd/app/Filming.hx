@@ -166,6 +166,7 @@ final class Filming {
 
 		file = Video.open(path, wide, tall, fps, mixing.kilobits(), mixing.rateControl,
 			mixing.qualityLevel, mixing.encoderSpeed, mixing.keyframeDistance(), mixing.screen ? 1 : 0,
+			mixing.fullChroma ? 1 : 0,
 			made.rate, made.channels, mdd.format.Coded.BITRATES[mixing.quality], 0);
 
 		if (target == null) wrong = "no texture could be made to draw the video into";

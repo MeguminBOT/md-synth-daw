@@ -78,6 +78,7 @@
   "export.auto": "Auto",
   "export.cancel": "Cancel",
   "export.ceiling": "Normalise",
+  "export.chroma": "Chroma",
   "export.coarse": "Below 44100 Hz the sound is noticeably worse",
   "export.comment": "Comment",
   "export.console": "Output stage",

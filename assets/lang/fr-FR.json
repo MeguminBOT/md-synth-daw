@@ -78,6 +78,7 @@
   "export.auto": "Auto",
   "export.cancel": "Annuler",
   "export.ceiling": "Normaliser",
+  "export.chroma": "Chrominance",
   "export.coarse": "En dessous de 44100 Hz le son se dégrade nettement",
   "export.comment": "Commentaire",
   "export.console": "Étage de sortie",

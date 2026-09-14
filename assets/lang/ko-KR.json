@@ -78,6 +78,7 @@
   "export.auto": "자동",
   "export.cancel": "취소",
   "export.ceiling": "노멀라이즈",
+  "export.chroma": "색차",
   "export.coarse": "44100 Hz 아래에서는 음질이 눈에 띄게 나빠집니다",
   "export.comment": "설명",
   "export.console": "출력단",

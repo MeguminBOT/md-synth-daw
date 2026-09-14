@@ -78,6 +78,7 @@
   "export.auto": "Авто",
   "export.cancel": "Отмена",
   "export.ceiling": "Нормализовать",
+  "export.chroma": "Цветность",
   "export.coarse": "Ниже 44100 Гц звук заметно теряет в качестве",
   "export.comment": "Комментарий",
   "export.console": "Выходной каскад",

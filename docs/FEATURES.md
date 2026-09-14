@@ -354,11 +354,18 @@ audio at 384 kbit/s and 48 kHz. YouTube names no size, so a video starts at 2560
   hides the field.
 - **Quality level:** 0 to 63, for CQ and Q. Lower is better and bigger.
 - **Encoder speed:** 5 to 9. Higher encodes faster and looks worse at the same bitrate. The VP9
-  encoder is built for realtime encoding, and that build starts at 5.
+  encoder is built for realtime encoding, and that build starts at 5, which is where a video
+  starts too.
 - **Keyframe interval:** a key frame at least every 0.5, 1, 2, 5 or 10 seconds. Shorter seeks
   faster and costs more.
 - **Tune:** Screen suits the scope's flat ground and thin lines, and Default is VP9's ordinary
   tuning.
+- **Chroma:** 4:4:4 keeps colour at full resolution and is where a video starts, because the
+  scope's thin coloured lines lose more than half their colour at 4:2:0. 4:2:0 plays on more
+  hardware video decoders.
+
+Under VBR and CQ no frame is quantised coarser than level 40, which keeps the black ground from
+flickering.
 - **Audio bitrate**, channels, normalising, the output stage and the silence and fade times work
   as they do on the audio sheet.
 

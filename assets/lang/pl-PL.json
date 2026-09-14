@@ -78,6 +78,7 @@
   "export.auto": "Auto",
   "export.cancel": "Anuluj",
   "export.ceiling": "Normalizuj",
+  "export.chroma": "Chroma",
   "export.coarse": "Poniżej 44100 Hz dźwięk wyraźnie traci na jakości",
   "export.comment": "Komentarz",
   "export.console": "Stopień wyjściowy",

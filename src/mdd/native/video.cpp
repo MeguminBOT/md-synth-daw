@@ -12,8 +12,10 @@
  * is what a player trims from the start. The VP9 encoder is built realtime only, so it keeps no
  * frames back and every packet can be muxed the moment it is made.
  *
- * The frames are converted to I420 with BT.709 weights at studio range, and the bitstream says
- * so, because a decoder that guesses picks BT.601 below 720 lines and shifts every colour.
+ * The frames are converted with BT.709 weights at studio range, to I444 for full resolution colour
+ * or to I420 for half, and the bitstream says so, because a decoder that guesses picks BT.601
+ * below 720 lines and shifts every colour. Variable and constrained quality never quantise
+ * coarser than MDD_VIDEO_COARSEST, because a coarser frame shows as flicker on a black ground.
  */
 #include "video.h"
 
@@ -42,6 +44,7 @@
 #define MDD_VIDEO_PACKET 4000
 #define MDD_VIDEO_ROLL 80000000ULL
 #define MDD_VIDEO_WAITING 4
+#define MDD_VIDEO_COARSEST 40
 
 struct MddVideoJob {
 	bool picture;
@@ -63,6 +66,7 @@ struct MddVideo {
 	int width;
 	int height;
 	int fps;
+	int full;
 	int64_t frame;
 
 	OpusEncoder *opus;
@@ -144,6 +148,26 @@ static void mdd_video_yuv(MddVideo *video, const unsigned char *rgba) {
 
 			luma[column] = mdd_video_clamp(16 + ((47 * red + 157 * green + 16 * blue + 128) >> 8));
 		}
+	}
+
+	if (video->full) {
+		for (int row = 0; row < height; row++) {
+			const unsigned char *from = rgba + (size_t) row * (size_t) width * 4;
+
+			unsigned char *blue_plane = image->planes[VPX_PLANE_U] + row * image->stride[VPX_PLANE_U];
+			unsigned char *red_plane = image->planes[VPX_PLANE_V] + row * image->stride[VPX_PLANE_V];
+
+			for (int column = 0; column < width; column++) {
+				const int red = from[column * 4];
+				const int green = from[column * 4 + 1];
+				const int blue = from[column * 4 + 2];
+
+				blue_plane[column] = mdd_video_clamp(128 + ((-26 * red - 87 * green + 112 * blue + 128) >> 8));
+				red_plane[column] = mdd_video_clamp(128 + ((112 * red - 102 * green - 10 * blue + 128) >> 8));
+			}
+		}
+
+		return;
 	}
 
 	for (int row = 0; row < height / 2; row++) {
@@ -271,8 +295,8 @@ static void mdd_video_work(MddVideo *video) {
 }
 
 extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int fps,
-	int kilobits, int control, int quality, int speed, int keyframes, int screen, int rate,
-	int channels, int audio_kilobits, int threads) {
+	int kilobits, int control, int quality, int speed, int keyframes, int screen, int chroma,
+	int rate, int channels, int audio_kilobits, int threads) {
 	if (path == NULL || width < 2 || height < 2 || (width & 1) != 0 || (height & 1) != 0
 			|| fps < 1 || channels < 1 || channels > 2 || control < VPX_VBR || control > VPX_Q) {
 		return NULL;
@@ -290,6 +314,7 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	video->width = width;
 	video->height = height;
 	video->fps = fps;
+	video->full = chroma != 0 ? 1 : 0;
 	video->frame = 0;
 	video->opus = NULL;
 	video->rate = rate;
@@ -320,7 +345,12 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	config.g_threads = (unsigned int) workers;
 	config.g_lag_in_frames = 0;
 	config.g_pass = VPX_RC_ONE_PASS;
+	config.g_profile = (unsigned int) video->full;
 	config.rc_end_usage = (enum vpx_rc_mode) control;
+
+	if (control == VPX_VBR || control == VPX_CQ) {
+		config.rc_max_quantizer = MDD_VIDEO_COARSEST;
+	}
 	config.rc_target_bitrate = (unsigned int) (kilobits < 100 ? 100 : kilobits);
 	config.rc_dropframe_thresh = 0;
 	config.kf_mode = VPX_KF_AUTO;
@@ -349,7 +379,8 @@ extern "C" MddVideo *mdd_video_open(const char *path, int width, int height, int
 	vpx_codec_control(&video->codec, VP9E_SET_COLOR_SPACE, VPX_CS_BT_709);
 	vpx_codec_control(&video->codec, VP9E_SET_COLOR_RANGE, VPX_CR_STUDIO_RANGE);
 
-	if (vpx_img_alloc(&video->image, VPX_IMG_FMT_I420, (unsigned int) width,
+	if (vpx_img_alloc(&video->image, video->full ? VPX_IMG_FMT_I444 : VPX_IMG_FMT_I420,
+			(unsigned int) width,
 			(unsigned int) height, 16) == NULL) {
 		mdd_video_free(video);
 		return NULL;
