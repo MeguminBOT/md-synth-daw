@@ -528,6 +528,7 @@ final class Playlist extends Widget {
 
 				if (sizing) {
 					resized(dragging, tickAt(event.x), event.alt());
+					stretches(dragging, event.alt());
 					invalidate();
 					return true;
 				}
@@ -982,6 +983,30 @@ final class Playlist extends Widget {
 		chosen = null;
 
 		invalidate();
+	}
+
+	/**
+		Gives every other clip being resized the change of length the dragged one has taken, so a
+		selection resizes together. None goes shorter than a snap step.
+
+		@param lead The clip being dragged.
+		@param free Whether the snap is ignored, which holding alt does.
+	**/
+	function stretches(lead:Clip, free:Bool):Void {
+		if (moving.length < 2) return;
+
+		final at = moving.indexOf(lead);
+		if (at < 0) return;
+
+		final change = lead.length - wereLong[at];
+		final least = free || session.snap < 1 ? 1 : session.snap;
+
+		for (index in 0...moving.length) {
+			if (index == at) continue;
+
+			final want = wereLong[index] + change;
+			moving[index].length = want < least ? least : want;
+		}
 	}
 
 	function grabs(lead:Clip):Void {
