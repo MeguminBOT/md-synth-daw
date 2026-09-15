@@ -220,6 +220,13 @@
 
 	<compileflag value="-Wno-parentheses-equality" unless="msvc" />
 
+	<!-- hxcpp gives three CFFI entry points C linkage and returns its own String from them, which
+	     clang says three times a build. Nothing here loads an ndll, so none of the three is ever
+	     called, and the object a compile produces is byte identical with the warning and without
+	     it. A vendored source is never patched, so the warning is turned off instead -->
+
+	<compileflag value="-Wno-return-type-c-linkage" unless="msvc" />
+
 	<!-- /DEBUG turns REF off and the crash report wants the symbols, so the pass that drops
 	     what nothing calls is asked for again: it takes the binary from 8225280 bytes to
 	     5350912. ICF stays off. LTCG has already folded what it would fold, so it saves

@@ -49,8 +49,11 @@ jobs:
             wrap: xvfb-run -a
             artifact: mdd-linux-arm64
 
+          # macOS 26 is the last release for Intel, and Homebrew builds its
+          # bottles for the runner's own macOS, so this is as far back as a
+          # package built here can reach.
           - name: macOS x86-64
-            runs-on: macos-15-intel
+            runs-on: macos-26-intel
             haxe: brew
             artifact: mdd-macos-x86_64
 
@@ -95,6 +98,19 @@ jobs:
           echo "library:"
           ls -l "$(brew --prefix)/lib/libSDL3"* 2>&1 || true
           echo "sdk: $(xcrun --show-sdk-path 2>&1), version $(xcrun --show-sdk-version 2>&1)"
+
+      # hxcpp aims at macOS 10.9 unless something else says otherwise, and clang
+      # raises that to 11.0 on arm64 because nothing older runs there. Homebrew's
+      # SDL3 is built for the runner's own macOS, so the binary shipped a minimum
+      # it could not honour: 0.3.0 says macOS 11.0 and carries an SDL3 built for
+      # 26.0, which will not load on anything older. hxcpp reads every
+      # environment variable as a define, so this is what it aims at instead.
+      - name: Aim at the macOS the libraries were built for
+        if: matrix.haxe == 'brew'
+        run: |
+          major="$(sw_vers -productVersion | cut -d. -f1)"
+          echo "MACOSX_DEPLOYMENT_TARGET=${major}.0" >> "$GITHUB_ENV"
+          echo "aiming at macOS ${major}.0"
 
       - uses: krdlab/setup-haxe@v2.1.1
         if: matrix.haxe == 'action'

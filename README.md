@@ -121,7 +121,7 @@ Approximate, and rounded up.
 
 | | What it needs |
 | --- | --- |
-| **OS** | Windows 10 or 11, Linux, or macOS. Sixty-four bit only: there is no 32-bit build |
+| **OS** | Windows 10 or 11, Linux, or macOS 26. Sixty-four bit only: there is no 32-bit build. The macOS builds carry the SDL the build machine had, and that sets the floor: macOS 26 on Apple silicon and on Intel, which is the last macOS Intel gets. Building from source on an older macOS aims at that one instead |
 | **CPU** | Any x86-64 processor, two cores or better. Arm64 is built by CI but has not been run on hardware yet. Nothing beyond the baseline instruction set is asked for, so no AVX. Synthesis runs on one thread and the interface on another, which is why two cores is the floor |
 | **RAM** | 512 MB free, 1 GB comfortable. An export wants more, and how much more grows with the length of the song |
 | **GPU** | Direct3D 11 on Windows, OpenGL elsewhere. Integrated graphics is fine, because the interface is 2D and never touches a 3D pipeline |

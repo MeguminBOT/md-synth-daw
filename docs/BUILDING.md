@@ -158,6 +158,14 @@ silent.
 With those in place a Debian container runs the whole thing, `gate passed, vgm and xgm not run`,
 and packages a 30 MB `mdd-0.1.0-linux-portable.tar.gz`.
 
+**What macOS a package reaches back to is set by Homebrew, not by the build.** hxcpp aims at macOS
+10.9 unless told otherwise, and clang raises that to 11.0 on arm64 because nothing older runs there,
+but `brew` builds its bottles for the runner's own macOS. The 0.3.0 arm64 package says it needs
+macOS 11.0 and carries an SDL3 built for 26.0, which will not load on anything older, and the
+x86-64 one says 10.9 and carries an SDL3 built for 14.0. The macOS jobs therefore read the runner's
+version and aim at it, so the binary says what it can actually do. Both macOS jobs run on macOS 26,
+which for Intel is the last release there is.
+
 ## The build file
 
 There is no `.hxml` anywhere, and none is written by hand. Every option lives in `mdd.xml`: window
