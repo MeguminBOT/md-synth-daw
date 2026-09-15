@@ -139,6 +139,7 @@ class Gate {
 			case "video": VideoCheck.run(args);
 			case "mute": MuteCheck.run(args);
 			case "notation": NotationCheck.run(args);
+			case "weigh": WeighCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "swap": SwapCheck.run(args);
 			case "hits": Hits.run(args);

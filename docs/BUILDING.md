@@ -239,13 +239,14 @@ which is 2. The gate names it in the summary and does not count it as a failure.
 missing data instead means nobody without that data can pass the gate, which is what `vgm` and `xgm`
 used to do.
 
-Eight programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
+Ten programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
 of the gate never reaches them, because each either stops the process on purpose, writes a file into
 the repository, or takes long enough that nobody would sit through it on every run.
 
 | program | what it does |
 | --- | --- |
-| `mdd gate fault read \| write \| overflow \| thread` | stops the process on purpose, so the crash handler can be read back from `export/fault.txt` |
+| `mdd gate fault read \| write \| overflow \| thread` | stops the process on purpose, so the crash handler can be read back from `export/fault.txt`. `--window` opens a window and paints it for a few seconds first, so the report and the message box can be watched arriving over a live one, and `--tell` raises the box without the window |
+| `mdd gate weigh` | measures what the heavy paths cost, a phase at a time, on a piece built to be worse than any real one. `--minutes <n>` sets how long to build, `--all` sweeps the whole register log corpus rather than the largest file, `--bounce` adds the block of audio an export holds, and `--ceiling <mb>` fails the run if anything goes past that many megabytes |
 | `mdd gate shot <file>` | draws the whole interface into a PNG. `--renderer <name>` draws it through one SDL backend and `--frames <n>` presents that many first, which is how two backends are compared against each other |
 | `mdd gate lift` | reads a preset bank out of a folder of recordings, with hand written tables of zone names |
 | `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
