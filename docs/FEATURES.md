@@ -1,8 +1,7 @@
 # Everything MD Synth DAW does
 
 The README is the short version. This is the long one: every feature the application has, and an
-honest list of what it does not have and why. If something is not on this page, assume it is not
-there.
+honest list of what it does not have and why. If something is not on this page, it is not there.
 
 The workflow draws on FL Studio: patterns written once and placed as clips on a playlist, a channel
 rack down the side, and a piano roll with parameter lanes underneath it. If you have written music
