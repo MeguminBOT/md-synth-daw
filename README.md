@@ -12,14 +12,15 @@
 [![Haxe][haxe-shield]][haxe-url]
 [![hxcpp][hxcpp-shield]][hxcpp-url]
 [![SDL3][sdl-shield]][sdl-url]
-[![Platforms][platform-shield]](#getting-started)
+[![miniaudio][miniaudio-shield]][miniaudio-url]
+
+[![Targets][targets-shield]](#system-requirements)
 [![Licence][licence-shield]][licence-url]
 
-[![MSVC][msvc-shield]](docs/BUILDING.md#toolchains)
-[![clang-cl][clangcl-shield]](docs/BUILDING.md#toolchains)
-[![MinGW][mingw-shield]](docs/BUILDING.md#toolchains)
-[![Clang][clang-shield]](docs/BUILDING.md#toolchains)
-[![GCC][gcc-shield]](docs/BUILDING.md#toolchains)
+[![x86-64][x86-shield]](#system-requirements)
+[![Arm64][arm64-shield]](#system-requirements)
+
+[![Toolchains][toolchains-shield]](docs/BUILDING.md#toolchains)
 
 [Getting Started](#getting-started) ·
 [What It Supports](#what-it-supports) ·
@@ -102,11 +103,6 @@ typefaces rather than the program: the three CJK faces alone are 36 MB of the do
 there so the interface has something to fall back to in any language.
 
 ### Built With
-
-[![Haxe][haxe-shield]][haxe-url]
-[![hxcpp][hxcpp-shield]][hxcpp-url]
-[![SDL3][sdl-shield]][sdl-url]
-[![miniaudio][miniaudio-shield]][miniaudio-url]
 
 Haxe compiled to C++ through hxcpp. SDL3 and miniaudio are called directly rather than through a
 game framework, because a framework is a place policy hides: the reason for calling them straight is
@@ -364,6 +360,8 @@ a source, that is noted.
 | [libogg][ogg-url] | BSD-3-Clause | Ogg framing |
 | [libvorbis][vorbis-url] | BSD-3-Clause | Ogg Vorbis encoding |
 | [libopus][opus-url] | BSD-3-Clause | Opus encoding |
+| [libvpx][vpx-url] | BSD-3-Clause, with a patent grant | VP9 encoding for the video export |
+| [libwebm][webm-url] | BSD-3-Clause, with a patent grant | Writing the WebM the video goes in |
 
 FLAC and WAV have no library behind them; both are written in this repository.
 
@@ -422,14 +420,12 @@ rather than in a public issue. Everyone taking part is asked to follow the
 [sdl-url]: https://github.com/libsdl-org/SDL
 [miniaudio-shield]: https://img.shields.io/badge/miniaudio-device-2A6DB0?style=for-the-badge
 [miniaudio-url]: https://github.com/mackron/miniaudio
-[platform-shield]: https://img.shields.io/badge/windows%20%7C%20linux%20%7C%20macos-4B7A4B?style=for-the-badge
+[targets-shield]: https://img.shields.io/badge/windows%20%7C%20linux%20%7C%20macos-4B7A4B?style=for-the-badge
 [licence-shield]: https://img.shields.io/badge/licence-MIT-4B7A4B?style=for-the-badge
 [licence-url]: LICENSE
-[msvc-shield]: https://img.shields.io/badge/MSVC-builds-5C2D91?style=flat-square
-[clangcl-shield]: https://img.shields.io/badge/clang--cl-builds-D34A47?style=flat-square
-[mingw-shield]: https://img.shields.io/badge/MinGW--w64-builds-2A6DB0?style=flat-square
-[clang-shield]: https://img.shields.io/badge/Clang-builds-D34A47?style=flat-square
-[gcc-shield]: https://img.shields.io/badge/GCC-builds-4B7A4B?style=flat-square
+[x86-shield]: https://img.shields.io/badge/x86--64-builds-2A6DB0?style=for-the-badge
+[arm64-shield]: https://img.shields.io/badge/arm64-builds-2A6DB0?style=for-the-badge
+[toolchains-shield]: https://img.shields.io/badge/MSVC%20%7C%20clang--cl%20%7C%20MinGW--w64%20%7C%20Clang%20%7C%20GCC-5C2D91?style=for-the-badge
 [releases-url]: https://github.com/MeguminBOT/md-synth-daw/releases
 [sigstore-url]: https://www.sigstore.dev
 [nuked-url]: https://github.com/nukeykt/Nuked-OPN2
@@ -439,6 +435,8 @@ rather than in a public issue. Everyone taking part is asked to follow the
 [ogg-url]: https://github.com/xiph/ogg
 [vorbis-url]: https://github.com/xiph/vorbis
 [opus-url]: https://github.com/xiph/opus
+[vpx-url]: https://github.com/webmproject/libvpx
+[webm-url]: https://github.com/webmproject/libwebm
 [gofonts-url]: https://go.dev/blog/go-fonts
 [googlefonts-url]: https://github.com/google/fonts
 [qlementine-url]: https://github.com/oclero/qlementine-icons
