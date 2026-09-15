@@ -223,6 +223,8 @@ final class Vgm {
 			if (given != 0) at = given + 0x34;
 		}
 
+		if (at < HEADER || at > bytes.length) at = HEADER;
+
 		walk(bytes, at, into);
 	}
 
@@ -233,7 +235,7 @@ final class Vgm {
 		@param at Where the block starts.
 	**/
 	function tags(bytes:Bytes, at:Int):Void {
-		if (at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
+		if (at < 0 || at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
 
 		var pen = at + 12;
 		final held:Array<String> = [];
@@ -281,20 +283,28 @@ final class Vgm {
 
 			switch (code) {
 				case PSG:
+					if (at + 1 > bytes.length) return;
+
 					into.raw(tick, Stream.PSG, 0, bytes.get(at));
 					at++;
 
 				case YM_LOW:
+					if (at + 2 > bytes.length) return;
+
 					into.raw(tick, Stream.YM, 0, bytes.get(at));
 					into.raw(tick, Stream.YM, 1, bytes.get(at + 1));
 					at += 2;
 
 				case YM_HIGH:
+					if (at + 2 > bytes.length) return;
+
 					into.raw(tick, Stream.YM, 2, bytes.get(at));
 					into.raw(tick, Stream.YM, 3, bytes.get(at + 1));
 					at += 2;
 
 				case WAIT:
+					if (at + 2 > bytes.length) return;
+
 					tick += bytes.getUInt16(at);
 					at += 2;
 					waits++;
@@ -312,6 +322,8 @@ final class Vgm {
 					return;
 
 				case BLOCK:
+					if (at + 6 > bytes.length) return;
+
 					at++;
 					final kind = bytes.get(at);
 					at++;
@@ -338,6 +350,8 @@ final class Vgm {
 						into.raw(tick, Stream.YM, 1, sampleByte());
 						tick += code & 0x0F;
 					} else if (code == SEEK) {
+						if (at + 4 > bytes.length) return;
+
 						seekTo(bytes.getInt32(at));
 						at += 4;
 						seeks++;
@@ -382,12 +396,19 @@ final class Vgm {
 		if (kind != 0) return;
 
 		final want = pcmHeld + length;
-		final grown = new Vector<Int>(want);
 
-		Vector.blit(pcmBytes, 0, grown, 0, pcmHeld);
-		for (i in 0...length) grown[pcmHeld + i] = bytes.get(at + i);
+		if (want > pcmBytes.length) {
+			var room = pcmBytes.length < 4096 ? 4096 : pcmBytes.length;
+			while (room < want) room *= 2;
 
-		pcmBytes = grown;
+			final grown = new Vector<Int>(room);
+
+			Vector.blit(pcmBytes, 0, grown, 0, pcmHeld);
+			pcmBytes = grown;
+		}
+
+		for (i in 0...length) pcmBytes[pcmHeld + i] = bytes.get(at + i);
+
 		pcmHeld = want;
 	}
 

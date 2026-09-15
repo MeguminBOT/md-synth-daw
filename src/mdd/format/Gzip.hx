@@ -26,6 +26,17 @@ final class Gzip {
 	static inline final HEADER = 10;
 	static inline final CHUNK = 65536;
 
+	/**
+		The most a file is allowed to turn into.
+
+		Deflate reaches about a thousand to one on the kind of repetition a register log is
+		full of, so a few megabytes on disk unpacks to gigabytes in hand, and a reader that
+		takes whatever arrives is killed by the allocator long before it reads a byte. A
+		register log of this size is already twenty times the longest thing anybody has
+		imported, so the ceiling only ever catches a file that was built to be one.
+	**/
+	static inline final MOST = 256 * 1024 * 1024;
+
 	static inline final HAS_CRC = 0x02;
 	static inline final HAS_EXTRA = 0x04;
 	static inline final HAS_NAME = 0x08;
@@ -78,8 +89,18 @@ final class Gzip {
 		final buffer = Bytes.alloc(CHUNK);
 		final out = new BytesBuffer();
 
+		var held = 0;
+
 		while (true) {
 			final many = inflate.readBytes(buffer, 0, CHUNK);
+
+			held += many;
+
+			if (held > MOST) {
+				throw "not a gzip worth opening: it unpacks to more than "
+					+ Std.int(MOST / (1024 * 1024)) + " MB";
+			}
+
 			out.addBytes(buffer, 0, many);
 
 			if (many < CHUNK) break;
