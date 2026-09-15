@@ -379,8 +379,9 @@ final class Midi {
 		}
 
 		final tracks = wide(bytes, 10);
+		final header = whole(bytes, 4);
 
-		var at = 8 + whole(bytes, 4);
+		var at = header < 0 || header > bytes.length - 8 ? 14 : 8 + header;
 		var read = 0;
 		var longest = 0;
 
@@ -492,16 +493,23 @@ final class Midi {
 			final channel = status & 0x0F;
 
 			if (status == 0xFF) {
+				if (at >= to) break;
+
 				final meta = bytes.get(at);
 				at++;
 
 				var length = 0;
+				var wide = 0;
+
 				while (at < to) {
 					final byte = bytes.get(at);
 					at++;
 					length = (length << 7) | (byte & 0x7F);
-					if ((byte & 0x80) == 0) break;
+					wide++;
+					if ((byte & 0x80) == 0 || wide > 4) break;
 				}
+
+				if (length < 0 || length > to - at) length = to - at;
 
 				if (meta == 0x51 && length == 3 && song != null) {
 					final micros = (bytes.get(at) << 16) | (bytes.get(at + 1) << 8)
@@ -509,9 +517,7 @@ final class Midi {
 					if (micros > 0) song.tempo.set(tick, 60000000.0 / micros);
 				}
 
-				if (meta == 0x03 && length > 0 && at + length <= to) {
-					called = named(bytes, at, length);
-				}
+				if (meta == 0x03 && length > 0) called = named(bytes, at, length);
 
 				at += length;
 				if (meta == 0x2F) break;
@@ -519,6 +525,8 @@ final class Midi {
 			}
 
 			if (kind == 0x80 || kind == 0x90) {
+				if (at + 2 > to) break;
+
 				final pitch = bytes.get(at) & 0x7F;
 				final velocity = bytes.get(at + 1) & 0x7F;
 				at += 2;
