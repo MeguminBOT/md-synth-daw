@@ -130,6 +130,7 @@ class UiCheck {
 		shortcuts();
 		saying();
 		modal();
+		dimmed();
 		banded();
 		notices();
 		remembers();
@@ -1329,6 +1330,46 @@ class UiCheck {
 			&& again.named("theme.rack") == "Rack",
 			again.count() + " keys survive being written and read back");
 
+	}
+
+	/**
+		A sheet that dims the screen has to paint something.
+
+		`raise` dims everything behind the sheet and hands it every click, so a sheet that
+		paints nothing leaves a window nobody can use: dark, empty and deaf, with no sign
+		of what is waiting. The update notice was raised that way, because the call that
+		starts its fade does nothing until the widget has a root, and it was made before
+		the raise that gives it one.
+
+		The flow is left alone here on purpose. Without motion a fade jumps straight to
+		its target and the fault cannot happen, so a check that turns motion off cannot
+		see it.
+	**/
+	static function dimmed():Void {
+		final root = shaped();
+		root.resize(1280, 800);
+
+		final session = mdd.app.Session.started(mdd.song.Library.embedded());
+
+		final after = new mdd.view.overlay.Notice(session);
+		root.raise(after);
+		after.arrive();
+
+		for (step in 0...20) root.advance(0.05);
+
+		says("a sheet that dims is seen", after.fade.value > 0.004,
+			"the scrim is at " + round(root.scrim.value * 100, 0) + " per cent and the sheet at "
+			+ round(after.fade.value * 100, 0));
+
+		final before = new mdd.view.overlay.Notice(session);
+		before.arrive();
+		root.raise(before);
+
+		for (step in 0...20) root.advance(0.05);
+
+		says("and one that arrived early", before.fade.value > 0.004,
+			"arriving with no root behind it leaves it at "
+			+ round(before.fade.value * 100, 0) + " per cent");
 	}
 
 	static function modal():Void {

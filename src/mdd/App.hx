@@ -744,8 +744,8 @@ class App {
 			case Update.WAITING:
 				if (stage.root.sheet == panels.notice) return false;
 
-				panels.notice.arrive();
 				stage.root.raise(panels.notice);
+				panels.notice.arrive();
 				return true;
 
 			case Update.CURRENT:

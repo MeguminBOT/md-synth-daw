@@ -91,7 +91,12 @@ final class Notice extends Widget {
 	**/
 	public function arrive():Void {
 		final root = root();
-		if (root == null) return;
+
+		if (root == null) {
+			rise.hold(1);
+			fade.hold(1);
+			return;
+		}
 
 		rise.hold(0);
 		fade.hold(0);
