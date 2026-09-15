@@ -151,6 +151,8 @@ class WeighCheck {
 
 		imported(args);
 
+		if (args.indexOf("--video") >= 0) filmed(args);
+
 		Sys.println("");
 		Sys.println("    the most held at once was " + say(Usage.peak()) + " MB");
 
@@ -169,6 +171,108 @@ class WeighCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		Encodes the same frames again at each thread count, to find where the encoder stops
+		getting anything back for another processor.
+
+		The picture is what a scope video actually is: thin bright traces on black, which is
+		the case VP9 finds hardest and the case the tile columns are chosen for. Frames are
+		drawn once and fed from memory, so what is being timed is the encoder rather than
+		the drawing.
+
+		@param args What the program was run with.
+	**/
+	static function filmed(args:Array<String>):Void {
+		final wide = Std.int(number(args, "--wide", 1920));
+		final tall = Std.int(number(args, "--tall", 1080));
+		final many = Std.int(number(args, "--frames", 120));
+
+		Sys.println("");
+		Sys.println("    encoding " + many + " frames of " + wide + " by " + tall
+			+ ", thin traces on black, at each thread count");
+		Sys.println("");
+		Sys.println("    " + pad("threads", 12) + pad("time", 12) + pad("frames a second", 18)
+			+ "against one");
+
+		final frames:Array<haxe.io.Bytes> = [];
+
+		for (step in 0...8) {
+			final held = haxe.io.Bytes.alloc(wide * tall * 4);
+			traced(held, wide, tall, step);
+			frames.push(held);
+		}
+
+		var alone = 0.0;
+
+		for (count in [1, 2, 4, 8, 12, 16, 20, 24]) {
+			final where = Gate.root + "/export/weigh-" + count + ".webm";
+			final file = mdd.host.Video.open(where, wide, tall, 60, 6000, mdd.play.Mixing.VBR,
+				30, 7, 120, 1, 0, 48000, 2, 96, count);
+
+			if (file == null) {
+				Sys.println("    " + pad("" + count, 12) + "the writer would not open");
+				continue;
+			}
+
+			final began = haxe.Timer.stamp();
+
+			for (index in 0...many) {
+				final held = frames[index % frames.length];
+
+				if (mdd.host.Video.frame(file,
+					cpp.Pointer.arrayElem(held.getData(), 0).constRaw) != 0) break;
+			}
+
+			mdd.host.Video.close(file);
+
+			final spent = haxe.Timer.stamp() - began;
+			final rate = spent <= 0 ? 0 : many / spent;
+
+			if (alone == 0) alone = rate;
+
+			Sys.println("    " + pad("" + count, 12) + pad(round(spent, 2) + " s", 12)
+				+ pad(round(rate, 1) + " fps", 18)
+				+ (alone <= 0 ? "" : round(rate / alone, 2) + " times"));
+
+			try {
+				if (sys.FileSystem.exists(where)) sys.FileSystem.deleteFile(where);
+			} catch (e:Dynamic) {}
+		}
+	}
+
+	/**
+		Draws thin bright traces on black, moved along by one step.
+
+		@param into The frame, four bytes a pixel.
+		@param wide How wide it is.
+		@param tall How tall it is.
+		@param step Which frame of the loop this is.
+	**/
+	static function traced(into:haxe.io.Bytes, wide:Int, tall:Int, step:Int):Void {
+		for (index in 0...into.length) into.set(index, index % 4 == 3 ? 255 : 0);
+
+		for (lane in 0...9) {
+			final base = Std.int((lane + 0.5) * tall / 9);
+			final hue = (lane * 40) % 256;
+
+			for (x in 0...wide) {
+				final wave = Math.sin((x + step * 24) * 0.01 + lane) * (tall / 24);
+				final y = base + Std.int(wave);
+
+				for (thick in 0...3) {
+					final at = y + thick;
+					if (at < 0 || at >= tall) continue;
+
+					final pixel = (at * wide + x) * 4;
+
+					into.set(pixel, 255 - hue);
+					into.set(pixel + 1, hue);
+					into.set(pixel + 2, 200);
+				}
+			}
+		}
 	}
 
 	/**

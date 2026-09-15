@@ -60,6 +60,32 @@ control, so each frame drawn is a frame in the file, even where CBR runs short o
 Tile columns follow the width: as many as the encoder threads allow while each tile stays at least
 256 pixels wide, which is four at 1920 and eight at 3840.
 
+## How far it spreads over processors
+
+The encoder takes all but one of the processors and stops at 16. That ceiling is not the thing
+holding it back. Measured on 15 September 2026 on a 12 core, 24 thread Ryzen 9 3900X with
+`mdd gate weigh --video`, encoding thin traces on black, which is what a scope video is and the
+hardest case for VP9:
+
+    threads     1920 by 1080      3840 by 2160
+    1            9.5 fps  1.00     2.6 fps  1.00
+    2           16.5 fps  1.74     4.6 fps  1.76
+    4           27.5 fps  2.90     7.7 fps  2.95
+    8           37.1 fps  3.91    11.9 fps  4.55
+    12          39.1 fps  4.12    12.8 fps  4.90
+    16          41.5 fps  4.37    13.6 fps  5.21
+    20          42.3 fps  4.46    13.6 fps  5.23
+    24          42.9 fps  4.52    13.8 fps  5.28
+
+Doubling from 4 threads to 8 is worth a third again; from 8 to 16 it is a tenth, and from 16 to 24
+it is three per cent at 1080 and one at 4K. Row threading spreads the work inside a tile, which is
+why it keeps gaining anything at all past four columns, but the curve is flat well before the
+processors run out. Lifting the 16 stands to gain about a frame a second on a 24 thread machine and
+costs a thread the drawing wants, so it stays.
+
+A 4K encode held 1208 MB at its peak in the same run, against 457 MB for 1080, which is the figure
+to mind on a small machine rather than the thread count.
+
 The picture is cleared to black and holds only the lanes of the parts the piece carries, the
 parts `Song.carries` names, which are the same parts a stem is written for. Where it carries
 none, every part gets a lane.
