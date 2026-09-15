@@ -117,15 +117,30 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 
 ## System Requirements
 
-Approximate, and rounded up.
-
-| | What it needs |
+| | |
 | --- | --- |
-| **OS** | Windows 10 or 11, Linux, or macOS 26. Sixty-four bit only: there is no 32-bit build. The macOS builds carry the SDL the build machine had, and that sets the floor: macOS 26 on Apple silicon and on Intel, which is the last macOS Intel gets. Building from source on an older macOS aims at that one instead |
-| **CPU** | Any x86-64 processor, two cores or better. Arm64 is built by CI but has not been run on hardware yet. Nothing beyond the baseline instruction set is asked for, so no AVX. Synthesis runs on one thread and the interface on another, which is why two cores is the floor |
-| **RAM** | 512 MB free, 1 GB comfortable. An export wants more, and how much more grows with the length of the song |
-| **GPU** | Direct3D 11 on Windows, OpenGL elsewhere. Integrated graphics is fine, because the interface is 2D and never touches a 3D pipeline |
-| **Storage** | About 60 MB, plus your own projects. Most of that is the bundled typefaces; the program itself is 6 MB |
+| **OS** | Windows 10 or higher, macOS 26 or higher, or Ubuntu, Fedora, Arch and the like |
+| **CPU** | Any x86-64 or Arm64 processor, two cores or better |
+| **RAM** | 1 GB |
+| **GPU** | 128 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
+| **Storage** | 250 MB |
+
+The Linux packages are built on Debian 13, so they want a distribution of that vintage or newer.
+SDL is carried beside the binary, so there is nothing to install.
+
+The renderer can be changed in the preferences or with `--renderer=`:
+
+| backend | wants |
+| --- | --- |
+| `direct3d11` | Direct3D 11, feature level 10_0. Windows uses this unless told otherwise |
+| `opengl` | OpenGL 2.0. Linux and macOS use this |
+| `direct3d` | Direct3D 9 with Shader Model 2.0 |
+| `direct3d12` | Direct3D 12 |
+| `opengles2` | OpenGL ES 2.0 |
+| `vulkan` | Vulkan 1.0 |
+| `software` | nothing at all, and it draws on the processor |
+
+Only Direct3D 11 and OpenGL are vetted with playback running.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
