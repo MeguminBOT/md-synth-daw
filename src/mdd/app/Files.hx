@@ -956,6 +956,8 @@ final class Files {
 		made.steps(0);
 
 		sys.thread.Thread.create(function():Void {
+			mdd.host.Crash.thread("the export thread");
+
 			try {
 				made.runs(song, mixing);
 

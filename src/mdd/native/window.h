@@ -266,6 +266,15 @@ int mdd_reduce_motion(void);
 void mdd_message(const char *title, const char *said);
 
 /**
+ * The same box, marked as a fault rather than as something ordinary. It blocks
+ * until it is dismissed.
+ *
+ * @param title The box title.
+ * @param said What it says.
+ */
+void mdd_fault(const char *title, const char *said);
+
+/**
  * Gives the window an icon from raw pixels.
  *
  * @param window The window.

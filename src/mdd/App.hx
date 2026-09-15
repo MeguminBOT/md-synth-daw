@@ -138,10 +138,37 @@ class App {
 		Sys.println("mdd: " + e.message);
 		Sys.println(haxe.CallStack.toString(e.stack));
 
+		var where = "";
+
 		try {
-			final where = Paths.within("logs") + "/crash.txt";
+			where = Paths.within("logs") + "/crash.txt";
 			sys.io.File.saveContent(where, said.toString());
 			Sys.println("mdd: written to " + where);
+		} catch (held:haxe.Exception) {
+			where = "";
+		}
+
+		told(e.message, where);
+	}
+
+	/**
+		Puts an exception that reached the top in front of whoever was using the window.
+
+		Nothing else does: the console a release build was started from is not attached to
+		anything, so without this the window disappears and the only sign of why is a file
+		nobody was told about.
+
+		@param message What the exception said.
+		@param where The report, or empty where it could not be written.
+	**/
+	static function told(message:String, where:String):Void {
+		final cut = message.length > 400 ? message.substr(0, 397) + "..." : message;
+
+		final said = Config.TITLE + " stopped.\n\n" + cut
+			+ (where == "" ? "" : "\n\nThe whole report is in\n" + where);
+
+		try {
+			Sdl.fault(Config.TITLE + " " + Config.VERSION, said);
 		} catch (held:haxe.Exception) {}
 	}
 

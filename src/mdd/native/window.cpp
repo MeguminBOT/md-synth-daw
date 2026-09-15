@@ -237,6 +237,10 @@ extern "C" void mdd_message(const char *title, const char *said) {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title, said, NULL);
 }
 
+extern "C" void mdd_fault(const char *title, const char *said) {
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, said, NULL);
+}
+
 extern "C" void mdd_window_icon(SDL_Window *window, const unsigned char *pixels, int width,
 	int height) {
 	if (window == NULL || pixels == NULL) return;

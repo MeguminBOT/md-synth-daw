@@ -66,6 +66,26 @@ static int mdd_crash_thread_count;
 
 static char mdd_crash_top[512];
 
+/**
+ * Nonzero once a fault is being reported. Two threads faulting at once would
+ * interleave into the same file and race the same statics, and a fault raised by
+ * the reporting itself would report it again forever.
+ *
+ * A thread that does not win parks rather than ending the process, because ending
+ * it is what the reporting thread does when it has finished writing. Killing the
+ * process from here instead leaves a report cut off partway through the stack, and
+ * a report that stops mid frame reads as a handler that is broken.
+ */
+static volatile long mdd_crash_inside;
+
+/**
+ * Claims the right to report. Only the first caller gets it. Defined once per
+ * platform below, because msvc carries none of the builtins the others do.
+ *
+ * @return Nonzero where the caller is the one reporting.
+ */
+static int mdd_crash_alone(void);
+
 static void mdd_crash_copy(char *into, int room, const char *from) {
 	if (into == NULL || room <= 0) return;
 
@@ -184,6 +204,10 @@ static int mdd_crash_haxe(const char *source, unsigned long line, char *file, in
 
 #include <windows.h>
 #include <dbghelp.h>
+
+static int mdd_crash_alone(void) {
+	return InterlockedCompareExchange(&mdd_crash_inside, 1, 0) == 0;
+}
 
 static const char *mdd_crash_cause(unsigned long code, const ULONG_PTR *held) {
 	switch (code) {
@@ -941,6 +965,11 @@ static LONG WINAPI mdd_crash_caught(EXCEPTION_POINTERS *held) {
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
+	if (!mdd_crash_alone()) {
+		Sleep(INFINITE);
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
 	const unsigned long code = (unsigned long) held->ExceptionRecord->ExceptionCode;
 	const ULONG_PTR *what = held->ExceptionRecord->ExceptionInformation;
 	const char *cause = mdd_crash_cause(code, what);
@@ -1007,13 +1036,71 @@ extern "C" void mdd_crash_thread(const char *name) {
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <SDL3/SDL.h>
+
 #if defined(__linux__) || defined(__APPLE__)
 #include <execinfo.h>
 #define MDD_CRASH_BACKTRACE 1
 #endif
 
+static int mdd_crash_alone(void) {
+	return __sync_bool_compare_and_swap(&mdd_crash_inside, 0, 1);
+}
+
 static unsigned long mdd_crash_here(void) {
 	return (unsigned long) (size_t) pthread_self();
+}
+
+/**
+ * How much stack the handler is given to run a stack overflow report on. The same
+ * 64 KiB the Windows side reserves through SetThreadStackGuarantee.
+ */
+#define MDD_CRASH_SPARE 65536
+
+static thread_local char mdd_crash_spare[MDD_CRASH_SPARE];
+static thread_local int mdd_crash_spared;
+
+/**
+ * Puts the calling thread's signal handlers on a stack of their own.
+ *
+ * SA_ONSTACK asks for this and does nothing without it: a stack overflow would run
+ * the handler on the stack that just ran out, fault again, and kill the process
+ * with nothing written. It is per thread, so every thread has to do it.
+ */
+static void mdd_crash_room(void) {
+	if (mdd_crash_spared) return;
+
+	stack_t room;
+
+	room.ss_sp = mdd_crash_spare;
+	room.ss_size = MDD_CRASH_SPARE;
+	room.ss_flags = 0;
+
+	if (sigaltstack(&room, NULL) == 0) mdd_crash_spared = 1;
+}
+
+/**
+ * Puts the fault in front of somebody looking at the window rather than only in a
+ * file nobody was told about.
+ *
+ * It runs after the report is written and closed, so a window manager that will not
+ * answer a dying process costs the dialog and not the report. An alarm is set first
+ * because that call can block for as long as the desktop takes to answer, and a
+ * process hung inside its own crash handler is worse than one that is simply gone.
+ *
+ * @param cause What to say happened.
+ */
+static void mdd_crash_told(const char *cause) {
+	if (mdd_crash_announce == 0) return;
+
+	char said[2048];
+
+	snprintf(said, sizeof(said), "%s stopped.\n\n%s, on %s.\n\nThe whole report is in\n%s",
+		mdd_crash_label, cause, mdd_crash_owner(mdd_crash_here()), mdd_crash_path);
+
+	alarm(15);
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, mdd_crash_label, said, NULL);
+	alarm(0);
 }
 
 static const char *mdd_crash_cause(int number) {
@@ -1030,6 +1117,10 @@ static const char *mdd_crash_cause(int number) {
 }
 
 static void mdd_crash_signalled(int number, siginfo_t *held, void *) {
+	if (!mdd_crash_alone()) {
+		for (;;) pause();
+	}
+
 	if (mdd_crash_path[0] != 0) {
 		FILE *into = fopen(mdd_crash_path, "w");
 
@@ -1060,6 +1151,8 @@ static void mdd_crash_signalled(int number, siginfo_t *held, void *) {
 		}
 	}
 
+	mdd_crash_told(mdd_crash_cause(number));
+
 	signal(number, SIG_DFL);
 	raise(number);
 }
@@ -1075,6 +1168,7 @@ extern "C" void mdd_crash_watch(const char *path, const char *label, int announc
 	mdd_crash_top[0] = 0;
 
 	mdd_crash_remember(mdd_crash_here(), "the main thread");
+	mdd_crash_room();
 
 	struct sigaction how;
 
@@ -1092,6 +1186,7 @@ extern "C" void mdd_crash_watch(const char *path, const char *label, int announc
 
 extern "C" void mdd_crash_thread(const char *name) {
 	mdd_crash_remember(mdd_crash_here(), name);
+	mdd_crash_room();
 }
 
 #endif

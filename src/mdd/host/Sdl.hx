@@ -330,6 +330,12 @@ extern class Sdl {
 	public static function message(title:cpp.ConstCharStar, said:cpp.ConstCharStar):Void;
 
 	/**
+		The same box, marked as a fault rather than as something ordinary.
+	**/
+	@:native("mdd_fault")
+	public static function fault(title:cpp.ConstCharStar, said:cpp.ConstCharStar):Void;
+
+	/**
 		Seconds since SDL started, at full precision rather than rounded to milliseconds.
 	**/
 	@:native("mdd_ticks")
