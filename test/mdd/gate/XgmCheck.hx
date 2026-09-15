@@ -57,6 +57,7 @@ class XgmCheck {
 		agreed(made, back, span);
 		sounded(back, song, name);
 		drawn();
+		lengthy(song);
 
 		final into = args.indexOf("--wav");
 		if (into >= 0 && into + 1 < args.length) heard(back, args[into + 1]);
@@ -301,6 +302,39 @@ class XgmCheck {
 
 		sys.io.File.saveBytes(where, mdd.format.Wav.write(held, done, 2, 44100));
 		Sys.println("    wrote " + round(done / 44100.0, 1) + " s to " + where);
+	}
+
+	/**
+		Writes a piece longer than the frame counter used to survive.
+
+		The frame number was multiplied by the tick rate as whole numbers, which passes
+		two thousand million somewhere past the forty eight thousandth frame, or thirteen
+		and a half minutes of music. Once it wrapped, the end of the frame landed behind
+		its start, the walk stopped advancing, and the loop appended a byte per turn until
+		the allocator gave up and took the process with it.
+
+		The stream is left empty on purpose. What is being checked is the walk over frames,
+		which runs the same either way, and an empty one keeps this to a fraction of a
+		second rather than sequencing twenty minutes of music.
+
+		@param song A piece to name in the file.
+	**/
+	static function lengthy(song:Song):Void {
+		final minutes = 20;
+		final long = Tempo.TICKS * 60 * minutes;
+		final empty = new Stream(1024);
+
+		final began = haxe.Timer.stamp();
+		final out = Xgm.write(song, empty, 0, long, 60).written;
+		final spent = haxe.Timer.stamp() - began;
+
+		final frames = Std.int(long / (Tempo.TICKS / 60));
+		final room = frames * 4;
+
+		says("a piece past the frame counter",
+			out != null && out.length > frames && out.length < room,
+			out == null ? "nothing came out"
+				: out.length + " bytes for " + frames + " frames in " + round(spent, 2) + " s");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

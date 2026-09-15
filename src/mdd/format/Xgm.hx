@@ -548,7 +548,9 @@ final class Xgm {
 		var tick = from;
 
 		while (tick < to) {
-			final ends = from + Math.round((frame + 1) * Tempo.TICKS / rate);
+			final ends = from + Math.round((frame + 1.0) * Tempo.TICKS / rate);
+
+			if (ends <= tick) break;
 
 			psg.resize(0);
 			low.resize(0);
