@@ -229,14 +229,76 @@ class UpdateCheck {
 			+ Paths.machine() + (Paths.platform() == "windows" ? "-setup.exe"
 				: (Paths.platform() == "mac" ? ".dmg" : "-installer.tar.gz"));
 
+		sums(archive, leaf);
+
 		return "{\"tag_name\":\"v" + OFFERED + "\","
 			+ "\"html_url\":\"http://127.0.0.1:" + port + "/release\","
 			+ "\"body\":\"A newer copy.\\nAnd a second line nobody should read.\","
 			+ "\"assets\":["
 			+ "{\"name\":\"" + leaf + "\",\"size\":" + size
 			+ ",\"browser_download_url\":\"" + at + leaf + "\"},"
+			+ "{\"name\":\"" + Update.SUMS + "\",\"size\":0"
+			+ ",\"browser_download_url\":\"" + at + Update.SUMS + "\"},"
 			+ "{\"name\":\"" + other + "\",\"size\":" + size
 			+ ",\"browser_download_url\":\"" + at + other + "\"}]}";
+	}
+
+	/**
+		Writes the hash file the release publishes, the way sha256sum writes one.
+
+		@param archive The file to list.
+		@param leaf What the release calls it.
+	**/
+	static function sums(archive:String, leaf:String):Void {
+		final hash = haxe.crypto.Sha256.make(File.getBytes(archive)).toHex().toLowerCase();
+		wrote(lot + "/" + Update.SUMS, hash + "  " + leaf + "\n");
+	}
+
+	/**
+		Serves bytes that are not the ones the hashes list, and expects them to be refused.
+
+		Every other check here runs against a server telling the truth, so none of them can
+		tell a download that arrived whole from one that did not. The archive is put back
+		before this returns, because the checks after it read the real one.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+	**/
+	static function tampered(where:String, port:Int, archive:String):Void {
+		final was = File.getBytes(archive);
+		File.saveBytes(archive, haxe.io.Bytes.ofString("not the file that was built"));
+
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		update.looksAt("http://127.0.0.1:" + port + "/repos/");
+		update.look();
+
+		final waiting = settles(update, Update.WAITING);
+		final into = where + "/downloads/tampered";
+
+		var refused = false;
+
+		if (waiting) {
+			update.take(into);
+
+			final until = Sys.time() + PATIENCE;
+
+			while (Sys.time() < until && update.state() != Update.BROKEN
+					&& update.state() != Update.FETCHED) {
+				Sys.sleep(0.02);
+			}
+
+			refused = update.state() == Update.BROKEN;
+		}
+
+		final gone = !FileSystem.exists(into);
+
+		File.saveBytes(archive, was);
+
+		says("a download that does not match is refused", refused && gone,
+			!waiting ? "the api would not answer"
+				: (refused ? "refused: " + update.wrong + (gone ? ", and deleted" : ", but kept")
+					: "state " + update.state() + " rather than broken"));
 	}
 
 	static function settles(update:Update, want:Int):Bool {
@@ -293,6 +355,12 @@ class UpdateCheck {
 		says("the download is the file the server holds", same,
 			pulled ? (same ? FileSystem.stat(into).size + " bytes, byte for byte"
 				: "the bytes differ") : "state " + update.state() + " rather than fetched");
+
+		says("and it was checked against the hashes", update.sumsAt != "",
+			update.sumsAt == "" ? "no " + Update.SUMS + " was found in the release"
+				: Update.SUMS + " listed " + update.chosen);
+
+		tampered(where, port, archive);
 
 		update.applies(install, false, false);
 

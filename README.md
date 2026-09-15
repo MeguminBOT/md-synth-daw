@@ -161,6 +161,12 @@ cosign verify-blob mdd-0.1.0-linux-x86_64.tar.gz   --bundle mdd-0.1.0-linux-x86_
 Either one tells you the file came out of this repository's release workflow, at a named commit, and
 has not been touched since.
 
+The in-app updater checks what it downloads against `SHA256SUMS` before it unpacks anything, and
+deletes a file that does not match. That catches a download that was cut short, corrupted, or served
+by something in the middle of the connection. It is not the same as the checks above: whoever could
+replace a release file could replace the list beside it, so the signature is what says the file is
+genuine, and that is the check worth running by hand on anything you did not build yourself.
+
 ### Build from source
 
 ```sh

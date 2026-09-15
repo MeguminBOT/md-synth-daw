@@ -77,6 +77,11 @@ final class Update {
 	static inline final API = "https://api.github.com/repos/";
 	static inline final LATEST = "/releases/latest";
 
+	/**
+		What the release calls the file listing a hash for everything it carries.
+	**/
+	public static inline final SUMS = "SHA256SUMS";
+
 	static inline final STAGED = "staged";
 	static inline final LOCK = "handover.lock";
 
@@ -114,6 +119,19 @@ final class Update {
 		Where to download it from.
 	**/
 	public var saidAt(default, null):String = "";
+
+	/**
+		Where the hashes for the release sit, or an empty string where it publishes none.
+	**/
+	public var sumsAt(default, null):String = "";
+
+	/**
+		What the release calls the file that was chosen, which is the name the hashes list it
+		under. This is not what it is saved as: a name taken out of an address is not trusted
+		to be a file name, and `named` is that name after everything a file name may not
+		carry has been taken out of it.
+	**/
+	public var chosen(default, null):String = "";
 
 	/**
 		The first line of the release notes, for the notice.
@@ -209,7 +227,10 @@ final class Update {
 		if (!possible() || held.load() != IDLE) return false;
 
 		held.store(LOOKING);
-		sys.thread.Thread.create(function():Void asked());
+		sys.thread.Thread.create(function():Void {
+			mdd.host.Crash.thread("the update thread");
+			asked();
+		});
 
 		return true;
 	}
@@ -254,6 +275,8 @@ final class Update {
 	public function read(said:String):Void {
 		offered = "";
 		saidAt = "";
+		sumsAt = "";
+		chosen = "";
 		notes = "";
 		assets = 0;
 		weighs = 0;
@@ -271,10 +294,17 @@ final class Update {
 
 		for (i in 0...listed.length()) {
 			final asset = listed.at(i);
-			final name = asset.get("name").saying("").toLowerCase();
+			final called = asset.get("name").saying("");
+			final name = called.toLowerCase();
 			final url = asset.get("browser_download_url").saying("");
 
 			if (url == "") continue;
+
+			if (name == SUMS.toLowerCase()) {
+				sumsAt = url;
+				continue;
+			}
+
 			if (fallback == "") fallback = url;
 
 			final score = suits(name);
@@ -282,11 +312,24 @@ final class Update {
 
 			best = score;
 			saidAt = url;
+			chosen = called;
 			weighs = asset.get("size").whole(0);
 		}
 
 		if (saidAt == "") saidAt = fallback;
 		if (saidAt == "") saidAt = node.get("html_url").saying("");
+		if (!addressed(saidAt)) saidAt = "";
+	}
+
+	/**
+		@param url What the release document offered to download.
+		@return Whether it is an address at all. The document is fetched over the network,
+			and what comes back is handed to a downloader as an argument: anything that is
+			not plainly an address is read as a flag, a local path or a scheme nobody meant
+			to hand it, so only the two schemes this ever wants are taken.
+	**/
+	static function addressed(url:String):Bool {
+		return StringTools.startsWith(url, "https://") || StringTools.startsWith(url, "http://");
 	}
 
 	/**
@@ -337,9 +380,41 @@ final class Update {
 		if (saidAt == "") return "";
 
 		final cut = saidAt.split("?")[0].split("/");
-		final last = cut.length == 0 ? "" : cut[cut.length - 1];
+		final last = plain(cut.length == 0 ? "" : cut[cut.length - 1]);
 
 		return last == "" ? mdd.Config.SHORT + "-" + offered : last;
+	}
+
+	/**
+		Takes a file name out of an address and leaves only what a file name may carry.
+
+		The name is the last part of a URL, so it is whoever wrote the release that decides
+		it, and it becomes a path this writes to and then a word inside a command line. A
+		separator in it reaches outside the folder the download belongs in, a quote ends the
+		string it is pasted into, and a leading dash reads as a flag to whatever is handed
+		it. None of the three is any use in a file name, so none of them survives.
+
+		@param name The last part of the address.
+		@return What is left, or nothing where that is not a usable name.
+	**/
+	static function plain(name:String):String {
+		final out = new StringBuf();
+
+		for (index in 0...name.length) {
+			final code = StringTools.fastCodeAt(name, index);
+			final letter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+			final digit = code >= 48 && code <= 57;
+
+			if (letter || digit || code == 46 || code == 45 || code == 95) out.addChar(code);
+		}
+
+		var said = out.toString();
+
+		while (said.length > 0 && (said.charAt(0) == "-" || said.charAt(0) == ".")) {
+			said = said.substr(1);
+		}
+
+		return said;
 	}
 
 	/**
@@ -372,7 +447,11 @@ final class Update {
 		into = where;
 		held.store(FETCHING);
 
-		sys.thread.Thread.create(function():Void pulled());
+		sys.thread.Thread.create(function():Void {
+			mdd.host.Crash.thread("the download thread");
+			pulled();
+		});
+
 		return true;
 	}
 
@@ -380,8 +459,90 @@ final class Update {
 		Downloads the file. This is the download thread.
 	**/
 	function pulled():Void {
-		final code = Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]);
-		held.store(code == 0 ? FETCHED : UNREACHABLE);
+		wrong = "";
+
+		if (Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]) != 0) {
+			held.store(UNREACHABLE);
+			return;
+		}
+
+		final fault = unmatched();
+
+		if (fault != "") {
+			wrong = fault;
+			discards();
+			held.store(BROKEN);
+			return;
+		}
+
+		held.store(FETCHED);
+	}
+
+	/**
+		Checks the download against the hashes the release publishes.
+
+		A file off the network is not the file that was built until something says so, and
+		until this ran nothing did: whatever arrived was unpacked and then run. What this
+		answers is that the bytes are the bytes the release lists, which catches a download
+		cut short, corrupted in transit, or served by something sitting in the middle of the
+		connection.
+
+		What it does not answer is who built them. Anybody able to replace the file is able
+		to replace the list beside it, so this is the file being whole rather than the file
+		being genuine. The release also carries a signature for every file, and checking one
+		of those is what would answer the other question.
+
+		@return An empty string where the download is the file the release lists, and
+			otherwise what is wrong with it, in words a notice can show.
+	**/
+	function unmatched():String {
+		if (chosen == "") return "nothing says which file this should be";
+		if (sumsAt == "") return "the release publishes no " + SUMS + " to check it against";
+
+		final listed = fetched(sumsAt);
+		if (listed == "") return SUMS + " would not download";
+
+		final want = hashOf(listed, chosen);
+		if (want == "") return SUMS + " does not list " + chosen;
+
+		final held = haxe.crypto.Sha256.make(File.getBytes(into)).toHex().toLowerCase();
+		if (held == want) return "";
+
+		return "the download is not the file the release lists";
+	}
+
+	/**
+		@param listed A hash file, one hash and one name a line, as sha256sum writes it.
+		@param want Which name to find.
+		@return The hash listed against it, in lower case, or an empty string where the name
+			is not listed.
+	**/
+	static function hashOf(listed:String, want:String):String {
+		for (line in listed.split("\n")) {
+			final kept = StringTools.trim(line);
+			final gap = kept.indexOf(" ");
+
+			if (gap < 0) continue;
+
+			var name = StringTools.trim(kept.substr(gap + 1));
+			if (StringTools.startsWith(name, "*")) name = name.substr(1);
+
+			if (name != want) continue;
+
+			return kept.substr(0, gap).toLowerCase();
+		}
+
+		return "";
+	}
+
+	/**
+		Deletes a download that turned out not to be the right file, so that nothing can
+		reach it later and nothing is left behind.
+	**/
+	function discards():Void {
+		try {
+			if (into != "" && FileSystem.exists(into)) FileSystem.deleteFile(into);
+		} catch (e:Dynamic) {}
 	}
 
 	/**
@@ -413,7 +574,10 @@ final class Update {
 		wrong = "";
 
 		held.store(APPLYING);
-		sys.thread.Thread.create(function():Void swapped(where, restart, guarded));
+		sys.thread.Thread.create(function():Void {
+			mdd.host.Crash.thread("the update thread");
+			swapped(where, restart, guarded);
+		});
 
 		return true;
 	}
@@ -646,8 +810,8 @@ final class Update {
 	function opened(archive:String, into:String):Bool {
 		if (platform == "windows" && StringTools.endsWith(archive.toLowerCase(), ".zip")) {
 			return Sys.command("powershell", ["-NoProfile", "-NonInteractive", "-Command",
-				"Expand-Archive -LiteralPath '" + archive + "' -DestinationPath '" + into
-				+ "' -Force"]) == 0;
+				"Expand-Archive -LiteralPath " + singled(archive) + " -DestinationPath "
+				+ singled(into) + " -Force"]) == 0;
 		}
 
 		return Sys.command("tar", ["-xf", archive, "-C", into]) == 0;
@@ -672,6 +836,17 @@ final class Update {
 	**/
 	static function quoted(path:String):String {
 		return "'" + StringTools.replace(path, "'", "'\\''") + "'";
+	}
+
+	/**
+		@param path A path.
+		@return It quoted the way the Windows shell wants a literal, where a quote inside
+			one is written twice rather than escaped. Pasting a path into a command
+			unquoted ends the string at the first quote the path carries and runs whatever
+			follows it.
+	**/
+	static function singled(path:String):String {
+		return "'" + StringTools.replace(path, "'", "''") + "'";
 	}
 
 	/**
