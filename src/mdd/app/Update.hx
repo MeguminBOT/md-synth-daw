@@ -237,6 +237,12 @@ final class Update {
 
 	/**
 		Fetches the release and reads it. This is the looking thread.
+
+		Nothing is offered that cannot then be delivered. A release whose files this copy
+		has no use for, or that carries none at all, leaves nowhere to download from, and
+		offering it anyway puts a notice in front of a reader whose only possible answer
+		is that it cannot be downloaded. The address not answering reads the same way from
+		where they are sitting, so it is reported the same way.
 	**/
 	function asked():Void {
 		var said = "";
@@ -261,6 +267,11 @@ final class Update {
 
 		if (offered == "" || !newer(offered, running)) {
 			held.store(CURRENT);
+			return;
+		}
+
+		if (saidAt == "") {
+			held.store(UNREACHABLE);
 			return;
 		}
 

@@ -61,6 +61,7 @@ class UpdateCheck {
 
 		carried(where, port, archive);
 		installed(where, port);
+		bare();
 
 		shuts();
 
@@ -299,6 +300,24 @@ class UpdateCheck {
 			!waiting ? "the api would not answer"
 				: (refused ? "refused: " + update.wrong + (gone ? ", and deleted" : ", but kept")
 					: "state " + update.state() + " rather than broken"));
+	}
+
+	/**
+		A release nothing can be taken from is not offered.
+
+		Reaching `WAITING` is what puts the notice in front of the reader, and the only
+		answer they can give it is download. A newer release carrying no file this copy
+		can use leaves nowhere to download from, so offering it wastes the one thing they
+		can do and tells them so afterwards.
+	**/
+	static function bare():Void {
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+
+		update.read("{\"tag_name\":\"v" + OFFERED + "\",\"body\":\"newer\",\"assets\":[]}");
+
+		says("a release with no files offers nothing", update.saidAt == "",
+			"tag " + update.offered + " read, " + update.assets
+			+ " assets, nowhere to download from");
 	}
 
 	static function settles(update:Update, want:Int):Bool {
