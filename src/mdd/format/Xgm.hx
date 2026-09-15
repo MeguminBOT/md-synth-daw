@@ -323,7 +323,7 @@ final class Xgm {
 		@param at Where the block starts.
 	**/
 	function tags(bytes:Bytes, at:Int):Void {
-		if (at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
+		if (at < 0 || at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
 
 		var pen = at + 12;
 		final held:Array<String> = [];
