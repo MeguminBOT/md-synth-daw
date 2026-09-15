@@ -106,6 +106,13 @@ extern "C" double mdd_usage_ram() {
 	return (double)held.WorkingSetSize / (1024.0 * 1024.0);
 }
 
+extern "C" double mdd_usage_peak() {
+	PROCESS_MEMORY_COUNTERS held;
+
+	if (!GetProcessMemoryInfo(GetCurrentProcess(), &held, sizeof(held))) return -1;
+	return (double)held.PeakWorkingSetSize / (1024.0 * 1024.0);
+}
+
 extern "C" double mdd_usage_gpu() {
 	if (!gpuReady) return -1;
 
@@ -223,6 +230,18 @@ extern "C" double mdd_usage_ram() {
 	if (read != 2) return -1;
 
 	return (double) resident * (double) sysconf(_SC_PAGESIZE) / (1024.0 * 1024.0);
+#endif
+}
+
+extern "C" double mdd_usage_peak() {
+	struct rusage held;
+
+	if (getrusage(RUSAGE_SELF, &held) != 0) return -1;
+
+#ifdef __APPLE__
+	return (double) held.ru_maxrss / (1024.0 * 1024.0);
+#else
+	return (double) held.ru_maxrss / 1024.0;
 #endif
 }
 

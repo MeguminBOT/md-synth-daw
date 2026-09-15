@@ -32,6 +32,17 @@ extern class Usage {
 	public static function ram():Float;
 
 	/**
+		The high water mark rather than what is held now. A phase that allocates and frees
+		inside itself is over by the time anything asks what it cost, so the figure that
+		says whether a machine can run it is this one.
+
+		@return The most memory held at once since the process started, in megabytes, or a
+			negative number where it cannot be measured.
+	**/
+	@:native("mdd_usage_peak")
+	public static function peak():Float;
+
+	/**
 		@return Graphics memory held, in megabytes, or a negative number where it cannot be
 			measured.
 	**/
