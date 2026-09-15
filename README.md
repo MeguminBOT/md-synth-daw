@@ -122,8 +122,8 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 | **OS** | Windows 10 or higher, macOS 26 or higher, or Ubuntu, Fedora, Arch and the like |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
-| **GPU** | 128 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
-| **Storage** | 250 MB |
+| **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
+| **Storage** | 500 MB |
 
 The Linux packages are built on Debian 13, so they want a distribution of that vintage or newer.
 SDL is carried beside the binary, so there is nothing to install.
