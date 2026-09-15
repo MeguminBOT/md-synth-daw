@@ -103,7 +103,7 @@ final class Wav {
 
 			if (size < 0 || at + size > bytes.length) break;
 
-			if (tag == "fmt ") {
+			if (tag == "fmt " && size >= 16) {
 				format = bytes.getUInt16(at);
 				channels = bytes.getUInt16(at + 2);
 				rate = bytes.getInt32(at + 4);
@@ -117,7 +117,9 @@ final class Wav {
 		}
 
 		if (body < 0) throw "not a wav: it carries no data chunk";
+
 		if (channels < 1) channels = 1;
+		if (rate < 1) rate = 44100;
 
 		final wide = Std.int(bits / 8);
 		if (wide < 1) throw "not a wav: it says " + bits + " bits a sample";
