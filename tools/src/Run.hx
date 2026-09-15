@@ -1516,9 +1516,75 @@ class Run {
 		out.add("    end;\n");
 		out.add("  end;\n");
 		out.add("end;\n\n");
-		out.add("function InitializeSetup(): Boolean;\n");
+		final title = pascal(project.title);
+		final version = pascal(project.version);
+		final uninstall = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{"
+			+ identity(project) + "}_is1";
+
+		out.add("function Installed(): String;\n");
+		out.add("var Key, Held: String;\n");
 		out.add("begin\n");
-		out.add("  Result := Alone();\n");
+		out.add("  Result := '';\n");
+		out.add("  Key := '" + uninstall + "';\n\n");
+		out.add("  if RegQueryStringValue(HKLM, Key, 'DisplayVersion', Held) then\n");
+		out.add("  begin\n");
+		out.add("    Result := Held;\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  if RegQueryStringValue(HKCU, Key, 'DisplayVersion', Held) then\n");
+		out.add("    Result := Held;\n");
+		out.add("end;\n\n");
+
+		out.add("function Piece(var Said: String): Integer;\n");
+		out.add("var At: Integer;\n");
+		out.add("begin\n");
+		out.add("  At := Pos('.', Said);\n\n");
+		out.add("  if At = 0 then\n");
+		out.add("  begin\n");
+		out.add("    Result := StrToIntDef(Said, 0);\n");
+		out.add("    Said := '';\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  Result := StrToIntDef(Copy(Said, 1, At - 1), 0);\n");
+		out.add("  Said := Copy(Said, At + 1, Length(Said));\n");
+		out.add("end;\n\n");
+
+		out.add("function Ranks(One, Two: String): Integer;\n");
+		out.add("var Left, Right: Integer;\n");
+		out.add("begin\n");
+		out.add("  Result := 0;\n\n");
+		out.add("  while (Result = 0) and ((One <> '') or (Two <> '')) do\n");
+		out.add("  begin\n");
+		out.add("    Left := Piece(One);\n");
+		out.add("    Right := Piece(Two);\n\n");
+		out.add("    if Left < Right then Result := -1\n");
+		out.add("    else if Left > Right then Result := 1;\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+
+		out.add("function InitializeSetup(): Boolean;\n");
+		out.add("var Held, Said: String;\n");
+		out.add("begin\n");
+		out.add("  Result := False;\n");
+		out.add("  if not Alone() then Exit;\n\n");
+		out.add("  Held := Installed();\n\n");
+		out.add("  if Held = '' then\n");
+		out.add("  begin\n");
+		out.add("    Result := True;\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  if Ranks(Held, '" + version + "') < 0 then\n");
+		out.add("    Said := 'Update it to " + version + "?'\n");
+		out.add("  else if Ranks(Held, '" + version + "') > 0 then\n");
+		out.add("    Said := 'That is newer than the " + version
+			+ " this installer carries.' + #13#10 + 'Replace it anyway?'\n");
+		out.add("  else\n");
+		out.add("    Said := 'Install " + version + " again over it?';\n\n");
+		out.add("  Result := SuppressibleMsgBox(\n");
+		out.add("    '" + title + " ' + Held + ' is already installed.' + #13#10 + #13#10 +\n");
+		out.add("    Said + #13#10 + #13#10 +\n");
+		out.add("    'Your projects, presets and settings are left alone either way.',\n");
+		out.add("    mbConfirmation, MB_YESNO, IDYES) = IDYES;\n");
 		out.add("end;\n\n");
 		out.add("function InitializeUninstall(): Boolean;\n");
 		out.add("begin\n");
@@ -1569,6 +1635,17 @@ class Run {
 
 		Sys.println("  " + pad("installer") + project.output + "/package/"
 			+ stamp(project) + "-setup.exe");
+	}
+
+	/**
+		@param said Any text.
+		@return It as a Pascal string body, where the only thing to escape is the quote and
+			the way to escape it is to write it twice. The installer script is Pascal, and a
+			title carrying an apostrophe would otherwise end the string it sits in and leave
+			the rest to be read as code.
+	**/
+	static function pascal(said:String):String {
+		return StringTools.replace(said, "'", "''");
 	}
 
 	static function identity(project:Project):String {

@@ -433,6 +433,9 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   anything is unpacked, and a file that does not match is deleted rather than run. That says the
   download arrived whole, not that it is genuine: the Sigstore signature beside each file is what
   answers that, and checking one of those is still something you do yourself.
+- **An installer that knows what is already there.** Running it over an existing copy says which
+  version is installed and which one it carries, and asks before replacing it, whether that is an
+  update, the same version again, or a downgrade.
 - **A translatable interface.** Every string it shows comes from one table rather than from
   the code, so adding a language is a file rather than a change to the program. Hardware and
   format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation
