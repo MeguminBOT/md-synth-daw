@@ -81,6 +81,40 @@ Pass `--x86_64` or `--arm64` to say which, or set `MDD_ARCH`. There is no 32-bit
 Arm64 is built by the workflows and has not been run on hardware yet, so treat a first arm64 build
 as unproven until `mdd gate` has passed on one.
 
+## Warnings a build prints
+
+A clean build is not a silent one. Two warnings come out of hxcpp rather than out of this
+repository, and both were measured before being left alone, by compiling the same thing twice and
+comparing the bytes that came out.
+
+**`treating 'c-header' input as 'c++-header' when in C++ mode` `[-Wdeprecated]`**, twice per clang
+build. hxcpp hands clang its precompiled header without saying which language it is in, and clang
+says so. Told explicitly or left to guess, clang writes the same header, and an object compiled
+through either one is the same as well:
+
+    the precompiled header   895211bf1e316670 either way
+    an object through it     ab6201f1215973cd either way
+
+Silencing it takes `-Wno-deprecated`, which would also hide real deprecation warnings in this
+repository's own C++, or turning hxcpp's precompiled headers off, which makes every build slower.
+Two lines of noise are cheaper than either, so it stays.
+
+**`has C-linkage specified, but returns user-defined type 'String'` `[-Wreturn-type-c-linkage]`**,
+three times per build, naming `alloc_hxs_wchar`, `alloc_hxs_utf16` and `alloc_hxs_utf8` in hxcpp's
+`src/hx/CFFI.cpp`. Those three are how a loadable ndll hands strings back to Haxe, and nothing here
+loads one: the words `CFFI`, `ndll` and `cpp.Lib.load` appear nowhere in `src`, `test` or `tools`.
+A compile produces the same object with the warning and without it:
+
+    the object      d309f4287e3e6ca5 either way
+
+`vendor/` is fetched and never patched, so `mdd.xml` turns that one off with a compiler flag on
+everything except MSVC, which does not know the name.
+
+**What is not ignorable** is a warning from the linker about versions. `ld: warning: building for
+macOS-11.0, but linking with dylib ... built for newer version 26.0` meant exactly what it said:
+the 0.3.0 macOS packages carried an SDL3 that would not load on the macOS they claimed to support.
+That one was a fault, and the macOS jobs now aim at the version their libraries were built for.
+
 ## Continuous integration
 
 Two workflows under `.github/workflows`, both started by hand from the Actions tab.
