@@ -119,28 +119,15 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 
 | | |
 | --- | --- |
-| **OS** | Windows 10 or higher, macOS 26 or higher, or Ubuntu, Fedora, Arch and the like |
+| **OS** | Windows 10 or higher, macOS 26 or higher, or Linux: Ubuntu, Debian, Fedora, Arch, Mint |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
 | **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
 | **Storage** | 500 MB |
 
-The Linux packages are built on Debian 13, so they want a distribution of that vintage or newer.
-SDL is carried beside the binary, so there is nothing to install.
-
-The renderer can be changed in the preferences or with `--renderer=`:
-
-| backend | wants |
-| --- | --- |
-| `direct3d11` | Direct3D 11, feature level 10_0. Windows uses this unless told otherwise |
-| `opengl` | OpenGL 2.0. Linux and macOS use this |
-| `direct3d` | Direct3D 9 with Shader Model 2.0 |
-| `direct3d12` | Direct3D 12 |
-| `opengles2` | OpenGL ES 2.0 |
-| `vulkan` | Vulkan 1.0 |
-| `software` | nothing at all, and it draws on the processor |
-
-Only Direct3D 11 and OpenGL are vetted with playback running.
+[**System requirements in detail**](docs/REQUIREMENTS.md): which release of each distribution the
+packages want, what an export costs as a piece gets longer, every renderer backend and what it
+needs, and how to measure the lot on your own machine.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
