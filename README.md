@@ -119,15 +119,16 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 
 | | |
 | --- | --- |
-| **OS** | Windows 10 or higher, macOS 26 or higher, or Linux: Ubuntu, Debian, Fedora, Arch, Mint |
+| **OS** | Windows 10, macOS 26, or Linux: Ubuntu 25.04, Debian 13, Fedora 42. Each or newer |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
 | **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
 | **Storage** | 500 MB |
 
-[**System requirements in detail**](docs/REQUIREMENTS.md): which release of each distribution the
-packages want, what an export costs as a piece gets longer, every renderer backend and what it
-needs, and how to measure the lot on your own machine.
+Arch and anything rolling is current by definition, and Mint, Pop!_OS and Zorin want whichever
+release tracks the Ubuntu above. [**System requirements in detail**](docs/REQUIREMENTS.md) has the
+rest: what an export costs as a piece gets longer, every renderer backend and what it needs, which
+machines get no support, and how to measure the lot on your own machine.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
