@@ -36,6 +36,47 @@ class Project {
 	static final EPOCH:Date = new Date(1980, 0, 1, 0, 0, 0);
 
 	/**
+		The longest a sample may declare itself.
+
+		The length in the document is a hint: the bytes arrive separately, from a chunk or
+		from a file beside it, and replace whatever this reserved. Taken at its word it is
+		an allocation of any size a file cares to name, so a document of a few hundred
+		bytes asks for gigabytes and the process is killed before anything is read. This
+		is a hundred and sixty seconds at the fastest rate the converter runs at, which is
+		far past anything a cartridge holds and still only sixteen megabytes.
+	**/
+	static inline final LONGEST = 1 << 22;
+
+	/**
+		The most a packed project is allowed to turn into.
+
+		A project is a zip, and a zip says nothing honest about how much it holds until it
+		has been unpacked. Deflate reaches about a thousand to one on a run of one byte, so
+		a small file that arrives by mail unpacks into more memory than the machine has and
+		the allocator kills the process. A real project of this size would carry an hour of
+		samples.
+	**/
+	static inline final UNPACKED = 512 * 1024 * 1024;
+
+	/**
+		Keeps an index the document names inside the range the model has room for.
+
+		Every one of these ends up as an array position. A part index reaches the per part
+		state, which is a fixed vector, and a lane target indexes the register bases, which
+		is a fixed array: neither is bounds checked once a release build has dropped the
+		checks, so a number out of range is read out of bounds on the render thread rather
+		than refused at the door. A file is not trusted to be one this application wrote.
+
+		@param value What the document said.
+		@param most One past the highest the model has room for.
+		@param fallback What to use instead where it is out of range.
+		@return A value that is safe to index with.
+	**/
+	static inline function within(value:Int, most:Int, fallback:Int = 0):Int {
+		return value < 0 || value >= most ? fallback : value;
+	}
+
+	/**
 		Writes the song as a JSON document, without the sample bytes.
 
 		@param song The song to write.
@@ -480,8 +521,10 @@ class Project {
 			final sample = new Sample(held.get("name").saying(""), held.get("rate").whole(8000),
 				held.get("root").whole(60));
 
+			final many = held.get("length").whole(0);
+
 			sample.loop = held.get("loop").whole(-1);
-			sample.hold(new Vector<Int>(held.get("length").whole(0)));
+			sample.hold(new Vector<Int>(many < 0 ? 0 : (many > LONGEST ? LONGEST : many)));
 			song.sample(sample);
 		}
 
@@ -510,10 +553,11 @@ class Project {
 
 				if (drives >= 0) {
 					made.kind = Clip.AUTOMATION;
-					made.part = drives;
+					made.part = within(drives, Part.COUNT);
 
-					final line = new Automation(clip.get("target").whole(0),
-						clip.get("slot").whole(0));
+					final line = new Automation(
+						within(clip.get("target").whole(0), Automation.BASES.length),
+						within(clip.get("slot").whole(0), Automation.SLOTS));
 
 					final points = clip.get("points");
 					for (index in 0...points.length()) line.add(taken(points.at(index)));
@@ -535,7 +579,7 @@ class Project {
 		@return The instrument.
 	**/
 	static function readInstrument(node:Node):Instrument {
-		final kind:Part = node.get("kind").whole(0);
+		final kind:Part = within(node.get("kind").whole(0), Part.COUNT);
 		final instrument = new Instrument(node.get("name").saying(""), kind);
 
 		instrument.sample = node.get("sample").whole(-1);
@@ -679,8 +723,9 @@ class Project {
 
 			for (at in 0...lines.length()) {
 				final line = lines.at(at);
-				final automation = new Automation(line.get("target").whole(0),
-					line.get("slot").whole(0));
+				final automation = new Automation(
+					within(line.get("target").whole(0), Automation.BASES.length),
+					within(line.get("slot").whole(0), Automation.SLOTS));
 
 				final points = line.get("points");
 
@@ -916,10 +961,20 @@ class Project {
 		final entries = haxe.zip.Reader.readZip(new haxe.io.BytesInput(File.getBytes(from)));
 
 		var said = "";
+		var unpacked = 0;
+
 		final held:Map<String, Bytes> = new Map();
 
 		for (entry in entries) {
 			final body = haxe.zip.Reader.unzip(entry);
+
+			unpacked += body.length;
+
+			if (unpacked > UNPACKED) {
+				throw "not a project worth opening: it unpacks to more than "
+					+ Std.int(UNPACKED / (1024 * 1024)) + " MB";
+			}
+
 			if (entry.fileName == STRUCTURE) said = body.toString();
 			else held.set(entry.fileName, body);
 		}

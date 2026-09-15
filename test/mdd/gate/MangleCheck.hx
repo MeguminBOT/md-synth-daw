@@ -33,6 +33,7 @@ class MangleCheck {
 		kept();
 		waves(rounds, seed);
 		patches(rounds, seed);
+		shaped();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -402,6 +403,47 @@ class MangleCheck {
 		says("and a mangled tfi does not either", spent < PATIENCE,
 			rounds + " corruptions of a " + whole.length + " byte tfi in " + round(spent, 2)
 			+ " s, " + read + " read through and " + threw + " refused");
+	}
+
+	/**
+		Reads documents that are not corruptions of a real one.
+
+		Chewing a valid file changes bytes, so it never reaches a document whose shape is
+		the attack: one that nests until the stack runs out, or one that declares a length
+		it does not carry and is believed. Neither is reachable by mutation and both take
+		the process down, so they are written out rather than stumbled on.
+	**/
+	static function shaped():Void {
+		final open = new StringBuf();
+		final shut = new StringBuf();
+
+		for (step in 0...200000) {
+			open.add("[");
+			shut.add("]");
+		}
+
+		final deep = open.toString() + shut.toString();
+		var read = false;
+
+		try {
+			mdd.format.Json.parse(deep);
+			read = true;
+		} catch (e:Dynamic) {}
+
+		says("a document that nests too deep is refused", read,
+			deep.length + " bytes of nothing but brackets, 200000 deep, read without faulting");
+
+		final asked = '{"name":"huge","samples":[{"name":"one","rate":8000,"root":60,'
+			+ '"loop":-1,"length":2000000000}]}';
+
+		var held = -1;
+
+		try {
+			held = mdd.format.Project.read(asked).samples[0].length();
+		} catch (e:Dynamic) {}
+
+		says("a sample cannot declare a huge block", held >= 0 && held <= 1 << 22,
+			asked.length + " bytes declaring 2000000000 samples reserved " + held);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

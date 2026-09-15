@@ -220,8 +220,19 @@ class Json {
 	whole.
 **/
 private class Reader {
+	/**
+		How many tables and lists may be open at once.
+
+		A document nests as deep as it likes and each level costs a pair of stack frames,
+		so without a ceiling a file of nothing but opening brackets runs the stack out and
+		takes the process down before a single value is read. The deepest a project, a
+		preset library or a release document actually reaches is six.
+	**/
+	static inline final DEEPEST = 128;
+
 	final said:String;
 	var at:Int = 0;
+	var deep:Int = 0;
 
 	public function new(said:String) {
 		this.said = said;
@@ -240,8 +251,8 @@ private class Reader {
 		if (at >= said.length) return Node.EMPTY;
 
 		return switch (StringTools.fastCodeAt(said, at)) {
-			case 123: table();
-			case 91: list();
+			case 123: deep >= DEEPEST ? Node.EMPTY : table();
+			case 91: deep >= DEEPEST ? Node.EMPTY : list();
 			case 34: Node.words(string());
 			case 116: word("true", Node.flag(true));
 			case 102: word("false", Node.flag(false));
@@ -257,7 +268,9 @@ private class Reader {
 
 	function table():Node {
 		final node = new Node(Node.TABLE);
+
 		at++;
+		deep++;
 
 		while (true) {
 			skip();
@@ -284,12 +297,15 @@ private class Reader {
 			if (at <= began) break;
 		}
 
+		deep--;
 		return node;
 	}
 
 	function list():Node {
 		final node = new Node(Node.LIST);
+
 		at++;
+		deep++;
 
 		while (true) {
 			skip();
@@ -311,6 +327,7 @@ private class Reader {
 			if (at <= began) break;
 		}
 
+		deep--;
 		return node;
 	}
 

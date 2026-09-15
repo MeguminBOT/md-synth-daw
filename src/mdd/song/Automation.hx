@@ -89,6 +89,12 @@ final class Automation {
 	}
 
 	/**
+		How many operators a slot may name. A lane that writes a per channel register
+		leaves it at nought.
+	**/
+	public static inline final SLOTS = 4;
+
+	/**
 		How many points a lane may hold before it stops taking them.
 	**/
 	public static inline final ROOM = 8192;
