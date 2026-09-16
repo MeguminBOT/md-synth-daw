@@ -1,6 +1,6 @@
 package mdd.app;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 
 @:unreflective
 
@@ -52,9 +52,9 @@ final class Task {
 	**/
 	public var cancellable:Bool = false;
 
-	final held:AtomicInt = new AtomicInt(IDLE);
-	final reached:AtomicInt = new AtomicInt(UNKNOWN);
-	final stopping:AtomicInt = new AtomicInt(0);
+	final held:Atomic = new Atomic(IDLE);
+	final reached:Atomic = new Atomic(UNKNOWN);
+	final stopping:Atomic = new Atomic(0);
 
 	/**
 		Builds a task that is not running.

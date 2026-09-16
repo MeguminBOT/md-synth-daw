@@ -1,6 +1,6 @@
 package mdd.play;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 import mdd.song.Instrument;
 import mdd.song.Part;
 import mdd.song.Song;
@@ -41,8 +41,8 @@ final class Transport {
 	**/
 	public var position(default, null):Int = 0;
 
-	final running:AtomicInt = new AtomicInt(0);
-	final hushing:AtomicInt = new AtomicInt(0);
+	final running:Atomic = new Atomic(0);
+	final hushing:Atomic = new Atomic(0);
 
 	/**
 		Whether playback wraps at `loopTo`.

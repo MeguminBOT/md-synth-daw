@@ -44,6 +44,7 @@ class StreamCheck {
 		raced();
 		hushed();
 		grown();
+		survived();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -223,6 +224,43 @@ class StreamCheck {
 			asked.grows && asked.capacity == Stream.roomFor(mdd.song.Tempo.TICKS * 60),
 			"a minute reserves " + asked.capacity + " writes, "
 			+ Math.round(asked.capacity * 16 / 1048576) + " MB, rather than the worst case");
+	}
+
+	/**
+		A value two threads share is still the value after the collector has run.
+
+		The queue's head and tail, the transport's state and the updater's are all kept this
+		way. `haxe.atomic.AtomicInt` keeps its value in an array only a pointer refers to, which
+		the collector does not follow, and the fixture below changed one of 256 of those from
+		106 to 2 on every run. What is measured here is the replacement, through the same
+		churn.
+	**/
+	static function survived():Void {
+		final held:Array<mdd.host.Atomic> = [];
+
+		for (index in 0...256) held.push(new mdd.host.Atomic(index * 7 + 1));
+
+		var churned = 0;
+
+		for (round in 0...40) {
+			final junk:Array<Array<Int>> = [];
+
+			for (index in 0...20000) junk.push([0x5A5A, 0x5A5A]);
+
+			churned += junk.length;
+			cpp.vm.Gc.run(round % 4 == 0);
+		}
+
+		var wrong = 0;
+
+		for (index in 0...held.length) if (held[index].load() != index * 7 + 1) wrong++;
+
+		final swapped = held[0].exchange(9);
+		final stored = held[0].load();
+
+		says("shared values survive collection", wrong == 0 && swapped == 1 && stored == 9,
+			wrong + " of " + held.length + " changed after " + churned
+			+ " allocations and 40 collections, and an exchange handed back " + swapped);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
@@ -496,10 +534,10 @@ class StreamCheck {
 
 		transport.rewind();
 
-		final alive = new haxe.atomic.AtomicInt(1);
-		final ons = new haxe.atomic.AtomicInt(0);
-		final offs = new haxe.atomic.AtomicInt(0);
-		final served = new haxe.atomic.AtomicInt(0);
+		final alive = new mdd.host.Atomic(1);
+		final ons = new mdd.host.Atomic(0);
+		final offs = new mdd.host.Atomic(0);
+		final served = new mdd.host.Atomic(0);
 
 		sys.thread.Thread.create(function():Void {
 			while (alive.load() == 1) {
@@ -569,8 +607,8 @@ class StreamCheck {
 		render.transport = session.transport;
 		session.transport.play();
 
-		final blocks = new haxe.atomic.AtomicInt(0);
-		final alive = new haxe.atomic.AtomicInt(1);
+		final blocks = new mdd.host.Atomic(0);
+		final alive = new mdd.host.Atomic(1);
 
 		sys.thread.Thread.create(function():Void {
 			while (alive.load() == 1) {

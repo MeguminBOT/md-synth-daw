@@ -1,6 +1,6 @@
 package mdd.play;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 import haxe.ds.Vector;
 import mdd.song.Song;
 import mdd.song.Tempo;
@@ -69,17 +69,17 @@ final class Mixdown {
 		How many renders this job is, so a progress bar spans all of them rather than
 		jumping back to nothing at every stem.
 	**/
-	public final passes:AtomicInt = new AtomicInt(1);
+	public final passes:Atomic = new Atomic(1);
 
 	/**
 		Which of those renders is running.
 	**/
-	public final pass:AtomicInt = new AtomicInt(0);
+	public final pass:Atomic = new Atomic(0);
 
 	/**
 		How far through the render in hand it is, from nought to `WHOLE`.
 	**/
-	public final reached:AtomicInt = new AtomicInt(0);
+	public final reached:Atomic = new Atomic(0);
 
 	/**
 		How far through the whole job it is, from nought to `WHOLE`.
@@ -90,8 +90,8 @@ final class Mixdown {
 		boundary combines a pass that has started with the one before it finishing,
 		which reads as a bar that jumps backwards.
 	**/
-	final whole:AtomicInt = new AtomicInt(0);
-	public final stopping:AtomicInt = new AtomicInt(0);
+	final whole:Atomic = new Atomic(0);
+	public final stopping:Atomic = new Atomic(0);
 
 	/**
 		Private: use `of` or `made`.

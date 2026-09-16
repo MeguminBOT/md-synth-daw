@@ -892,7 +892,7 @@ final class Files {
 	**/
 	public var mixdown:Null<Mixdown> = null;
 
-	final writing:haxe.atomic.AtomicInt = new haxe.atomic.AtomicInt(1);
+	final writing:mdd.host.Atomic = new mdd.host.Atomic(1);
 
 	/**
 		Where the last export went.

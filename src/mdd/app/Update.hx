@@ -1,6 +1,6 @@
 package mdd.app;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 import mdd.format.Json;
 import mdd.format.Node;
 import mdd.host.Paths;
@@ -172,7 +172,7 @@ final class Update {
 	var weighs:Int = 0;
 	var lock:Null<sys.io.FileOutput> = null;
 
-	final held:AtomicInt = new AtomicInt(IDLE);
+	final held:Atomic = new Atomic(IDLE);
 
 	/**
 		Builds an updater. Anything left empty is worked out from the running copy.

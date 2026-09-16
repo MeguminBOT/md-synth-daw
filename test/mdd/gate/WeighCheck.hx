@@ -1,6 +1,6 @@
 package mdd.gate;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 import mdd.format.Midi;
 import mdd.format.Vgm;
 import mdd.format.Xgm;
@@ -495,12 +495,12 @@ class WeighCheck {
 private class Gauge {
 	static inline final EVERY = 0.002;
 
-	final most:AtomicInt;
-	final alive:AtomicInt;
+	final most:Atomic;
+	final alive:Atomic;
 
 	public function new() {
-		most = new AtomicInt(Std.int(Usage.ram() * 1024));
-		alive = new AtomicInt(1);
+		most = new Atomic(Std.int(Usage.ram() * 1024));
+		alive = new Atomic(1);
 
 		final held = this;
 

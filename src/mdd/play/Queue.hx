@@ -1,6 +1,6 @@
 package mdd.play;
 
-import haxe.atomic.AtomicInt;
+import mdd.host.Atomic;
 import haxe.ds.Vector;
 
 /**
@@ -60,8 +60,8 @@ final class Queue {
 
 	final words:Vector<Int>;
 	final mask:Int;
-	final head:AtomicInt = new AtomicInt(0);
-	final tail:AtomicInt = new AtomicInt(0);
+	final head:Atomic = new Atomic(0);
+	final tail:Atomic = new Atomic(0);
 
 	/**
 		Builds a ring.

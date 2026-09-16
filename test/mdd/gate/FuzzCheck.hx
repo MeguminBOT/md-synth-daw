@@ -170,8 +170,8 @@ class FuzzCheck {
 		}
 
 		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
-		final alive = new haxe.atomic.AtomicInt(1);
-		final blocks = new haxe.atomic.AtomicInt(0);
+		final alive = new mdd.host.Atomic(1);
+		final blocks = new mdd.host.Atomic(0);
 
 		render.transport = session.transport;
 		session.transport.play();

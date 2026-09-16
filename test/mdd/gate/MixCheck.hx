@@ -1165,7 +1165,7 @@ class MixCheck {
 			mixing.fade = 0.5;
 
 			final made = Mixdown.made();
-			final left = new haxe.atomic.AtomicInt(0);
+			final left = new mdd.host.Atomic(0);
 
 			sys.thread.Thread.create(function():Void {
 				try {
