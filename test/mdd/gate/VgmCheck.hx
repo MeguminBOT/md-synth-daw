@@ -1965,7 +1965,7 @@ class VgmCheck {
 	**/
 	static function streamed(song:mdd.song.Song):mdd.play.Stream {
 		final span = song.tempo.samplesAt(song.ends());
-		final stream = new mdd.play.Stream(mdd.play.Mixdown.roomFor(span));
+		final stream = mdd.play.Stream.reserved(span);
 
 		new mdd.play.Sequencer(song).spanned(stream, 0, span);
 		return stream;

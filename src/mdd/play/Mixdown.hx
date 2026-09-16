@@ -18,9 +18,6 @@ import mdd.song.Tempo;
 **/
 @:unreflective
 final class Mixdown {
-	public static inline final PER_SECOND = 32768;
-	public static inline final LEAST_ROOM = 1 << 20;
-	public static inline final MOST_ROOM = 1 << 25;
 
 	public var samples(default, null):Vector<cpp.Float32>;
 	public var frames(default, null):Int = 0;
@@ -101,17 +98,6 @@ final class Mixdown {
 	**/
 	function new() {
 		samples = new Vector<cpp.Float32>(0);
-	}
-
-	/**
-		@param span How many samples the export covers.
-		@return How many floats a buffer needs to hold it, in stereo.
-	**/
-	public static function roomFor(span:Int):Int {
-		final seconds = span / Tempo.TICKS;
-		final want = Std.int(seconds * PER_SECOND);
-
-		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
 	}
 
 	/**
@@ -251,7 +237,7 @@ final class Mixdown {
 			cpp.vm.Gc.safePoint();
 		}
 
-		feeding = new Stream(roomFor(span));
+		feeding = Stream.reserved(span);
 
 		final stream = feeding;
 		final sequencer = new Sequencer(song);

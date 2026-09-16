@@ -131,7 +131,7 @@ final class Filming {
 		for (index in 0...Part.COUNT) if (song.carries(index)) parts.push(index);
 		if (parts.length == 0) for (index in 0...Part.COUNT) parts.push(index);
 
-		stream = new Stream(Mixdown.roomFor(span));
+		stream = Stream.reserved(span);
 		new Sequencer(song).spanned(stream, 0, span);
 
 		render = new Render(made.rate, Render.BLOCK);

@@ -43,6 +43,7 @@ class StreamCheck {
 		sought(args);
 		raced();
 		hushed();
+		grown();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -169,6 +170,59 @@ class StreamCheck {
 			apart + " of the registers the song sets differ from what playing to eight"
 			+ " seconds would have left" + (first < 0 ? "" : ", the first being "
 			+ StringTools.hex(first, 3)));
+	}
+
+	/**
+		A stream that grows rather than dropping, and one that still drops.
+
+		Reserving the worst case for an export is half a gigabyte for a quarter of an hour
+		and twenty times what a busy piece uses, so an offline stream starts at a guess and
+		takes more where the guess was low. What that must not do is lose or reorder a
+		single write, which is what is read back here.
+
+		Nothing the render thread touches grows, and the flag being off by default is what
+		holds that: a reader on another thread would be left holding the buffer that was
+		replaced.
+	**/
+	static function grown():Void {
+		final many = 5000;
+
+		final wide = new Stream(16);
+		wide.grows = true;
+
+		for (index in 0...many) wide.raw(index, Stream.YM, index & 3, index & 0xFF);
+
+		var wrong = -1;
+
+		for (index in 0...wide.count) {
+			if (wide.tickAt(index) == index && wide.kindAt(index) == Stream.YM
+				&& wide.portAt(index) == (index & 3)
+				&& wide.valueAt(index) == (index & 0xFF)) continue;
+
+			wrong = index;
+			break;
+		}
+
+		says("a stream grows into what it needs",
+			wide.count == many && wide.dropped == 0 && wrong < 0,
+			many + " writes into room for 16, grown to " + wide.capacity
+			+ ", none dropped and none out of order");
+
+		final tight = new Stream(16);
+
+		for (index in 0...many) tight.raw(index, Stream.YM, index & 3, index & 0xFF);
+
+		says("and one that may not still drops",
+			tight.count == 16 && tight.dropped == many - 16 && tight.capacity == 16,
+			tight.count + " writes kept and " + tight.dropped
+			+ " dropped, which is what the render thread reads");
+
+		final asked = Stream.reserved(mdd.song.Tempo.TICKS * 60);
+
+		says("and an export starts on a guess",
+			asked.grows && asked.capacity == Stream.roomFor(mdd.song.Tempo.TICKS * 60),
+			"a minute reserves " + asked.capacity + " writes, "
+			+ Math.round(asked.capacity * 16 / 1048576) + " MB, rather than the worst case");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

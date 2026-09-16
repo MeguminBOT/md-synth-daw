@@ -1554,7 +1554,7 @@ class MixCheck {
 	**/
 	static function converted(song:mdd.song.Song):Int {
 		final span = song.tempo.samplesAt(song.ends());
-		final stream = new mdd.play.Stream(mdd.play.Mixdown.roomFor(span));
+		final stream = mdd.play.Stream.reserved(span);
 
 		new mdd.play.Sequencer(song).spanned(stream, 0, span);
 

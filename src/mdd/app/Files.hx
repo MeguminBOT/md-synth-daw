@@ -855,32 +855,6 @@ final class Files {
 	}
 
 	/**
-		How many register writes a second to make room for in an export.
-	**/
-	public static inline final PER_SECOND = 32768;
-
-	/**
-		The smallest an export stream buffer is.
-	**/
-	public static inline final LEAST_ROOM = 1 << 20;
-
-	/**
-		The largest.
-	**/
-	public static inline final MOST_ROOM = 1 << 25;
-
-	/**
-		@param span How many samples the export covers.
-		@return How many register writes to make room for.
-	**/
-	public static function roomFor(span:Int):Int {
-		final seconds = span / Tempo.TICKS;
-		final want = Std.int(seconds * PER_SECOND);
-
-		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
-	}
-
-	/**
 		Writes the whole piece out as a register log.
 
 		@param where The file to write.
@@ -890,7 +864,7 @@ final class Files {
 		final named = suffixed(where, "vgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
 
-		final stream = new Stream(roomFor(span));
+		final stream = Stream.reserved(span);
 		final sequencer = new Sequencer(session.song);
 
 		sequencer.spanned(stream, 0, span);
@@ -1325,7 +1299,7 @@ final class Files {
 		final named = suffixed(where, "xgm");
 		final span = session.song.tempo.samplesAt(session.song.ends());
 
-		final stream = new Stream(roomFor(span));
+		final stream = Stream.reserved(span);
 		final sequencer = new Sequencer(session.song);
 
 		sequencer.spanned(stream, 0, span);
@@ -1378,7 +1352,7 @@ final class Files {
 			return "";
 		}
 
-		final stream = new Stream(roomFor(span));
+		final stream = Stream.reserved(span);
 		final sequencer = new Sequencer(session.song);
 		sequencer.spanned(stream, 0, span);
 

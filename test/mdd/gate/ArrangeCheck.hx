@@ -541,7 +541,7 @@ class ArrangeCheck {
 
 	static function played(song:Song):Stream {
 		final span = song.tempo.samplesAt(song.ends());
-		final stream = new Stream(mdd.play.Mixdown.roomFor(span));
+		final stream = Stream.reserved(span);
 
 		new Sequencer(song).spanned(stream, 0, span);
 

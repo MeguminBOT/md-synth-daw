@@ -34,6 +34,7 @@ import mdd.chip.Ym2612;
 import mdd.song.Envelope;
 import mdd.song.Part;
 import mdd.song.Patch;
+import mdd.song.Tempo;
 
 /**
 	The one thing in this application that produces a register write.
@@ -164,14 +165,74 @@ final class Stream {
 	**/
 	public var dropped(default, null):Int = 0;
 
-	final ticks:Vector<Int>;
-	final kinds:Vector<Int>;
-	final ports:Vector<Int>;
-	final values:Vector<Int>;
+	/**
+		The most writes a stream that grows will reach before it starts dropping them, which
+		is the last stop rather than a size anything is expected to need.
+	**/
+	public static inline final CEILING = 1 << 25;
+
+	/**
+		Whether a full buffer is made larger rather than dropping the write.
+
+		**It is off, and it stays off for anything the render thread reads.** Growing
+		replaces the four vectors, and a reader holding the old ones while the writer swaps
+		them is a race nothing would report. An offline bounce has one thread writing and
+		nothing reading until it has finished, which is why that is the one place this is
+		turned on: the alternative there is reserving the worst case in one block, half a
+		gigabyte for a quarter of an hour, on a machine that may not have it.
+	**/
+	public var grows:Bool = false;
+
+	var ticks:Vector<Int>;
+	var kinds:Vector<Int>;
+	var ports:Vector<Int>;
+	var values:Vector<Int>;
 	var noised:Int = -1;
 	final settled:Vector<Int> = new Vector<Int>(512);
 	final words:Vector<Int> = new Vector<Int>(10);
 	final whens:Vector<Int> = new Vector<Int>(10);
+
+	/**
+		How many register writes a second to reserve at the start. It is a guess at a busy
+		piece rather than the worst case, because a stream that grows costs a copy where it
+		is wrong and half a gigabyte where the worst case is reserved and never used.
+	**/
+	public static inline final PER_SECOND = 2048;
+
+	/**
+		The least to reserve, whatever the span.
+	**/
+	public static inline final LEAST_ROOM = 1 << 18;
+
+	/**
+		The most to reserve at the start. Past this the stream grows into what it needs.
+	**/
+	public static inline final MOST_ROOM = 1 << 22;
+
+	/**
+		@param span How many output samples the span covers.
+		@return How many writes to reserve for it.
+	**/
+	public static function roomFor(span:Int):Int {
+		final seconds = span / Tempo.TICKS;
+		final want = Std.int(seconds * PER_SECOND);
+
+		return want < LEAST_ROOM ? LEAST_ROOM : (want > MOST_ROOM ? MOST_ROOM : want);
+	}
+
+	/**
+		Builds a stream for a span that is written once and read afterwards, which is what
+		every export and every offline render is.
+
+		@param span How many output samples the span covers.
+		@return A stream reserved for a piece that busy, and free to grow past it.
+	**/
+	public static function reserved(span:Int):Stream {
+		final made = new Stream(roomFor(span));
+		made.grows = true;
+
+		return made;
+	}
 
 	public function new(capacity:Int = 8192) {
 		this.capacity = capacity < 16 ? 16 : capacity;
@@ -182,6 +243,43 @@ final class Stream {
 		values = new Vector<Int>(this.capacity);
 
 		forget();
+	}
+
+	/**
+		Doubles the room, where this stream is one that grows.
+
+		Doubling rather than adding a block keeps the copying to a constant share of the
+		writing however large it gets, and the buffer that is thrown away is half the size
+		of the one taking over, so the peak is one and a half times what is kept rather
+		than twice it.
+
+		@return Whether there is now room for another write.
+	**/
+	function widens():Bool {
+		if (!grows || capacity >= CEILING) return false;
+
+		final want = capacity > CEILING >> 1 ? CEILING : capacity * 2;
+
+		ticks = wider(ticks, want, count);
+		kinds = wider(kinds, want, count);
+		ports = wider(ports, want, count);
+		values = wider(values, want, count);
+
+		capacity = want;
+		return true;
+	}
+
+	/**
+		@param from The buffer that is full.
+		@param room How many it should hold.
+		@param many How many of it are worth carrying over.
+		@return A buffer of that size holding what the old one held.
+	**/
+	static function wider(from:Vector<Int>, room:Int, many:Int):Vector<Int> {
+		final out = new Vector<Int>(room);
+		Vector.blit(from, 0, out, 0, many);
+
+		return out;
 	}
 
 	/**
@@ -245,7 +343,7 @@ final class Stream {
 		@param value The byte to write.
 	**/
 	public function raw(tick:Int, kind:Int, port:Int, value:Int):Void {
-		if (count >= capacity) {
+		if (count >= capacity && !widens()) {
 			dropped++;
 			return;
 		}

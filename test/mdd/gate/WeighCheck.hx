@@ -95,13 +95,14 @@ class WeighCheck {
 		});
 
 		final span = song.tempo.samplesAt(ticks);
-		final room = Mixdown.roomFor(span);
+		final room = Stream.roomFor(span);
 
 		var stream:Null<Stream> = null;
 
 		weighed("reserving the stream", function():String {
-			stream = new Stream(room);
-			return room + " writes of room, " + say(room * 4 * 4 / 1048576) + " MB of vectors";
+			stream = Stream.reserved(span);
+			return room + " writes of room, " + say(room * 4 * 4 / 1048576)
+				+ " MB of vectors, growing from there";
 		});
 
 		final made = stream;
@@ -116,8 +117,10 @@ class WeighCheck {
 		});
 
 		says("the stream held every write it was given", made.dropped == 0,
-			made.dropped == 0 ? made.count + " writes, none dropped"
-				: made.dropped + " writes dropped: " + room + " was not enough room");
+			made.dropped == 0 ? made.count + " writes in room for " + made.capacity
+				+ ", none dropped"
+				: made.dropped + " writes dropped: " + made.capacity
+				+ " was as far as it would grow");
 
 		weighed("writing a vgm", function():String {
 			final out = Vgm.write(made, 0, span, song.tempo.rate, song.name, "");
