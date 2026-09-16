@@ -63,6 +63,7 @@ class UpdateCheck {
 		installed(where, port);
 		bare();
 		tentative();
+		truthful(port);
 
 		shuts();
 
@@ -156,7 +157,7 @@ class UpdateCheck {
 		final parts = line.split(" ");
 		final path = parts.length > 1 ? parts[1] : "";
 
-		if (path.indexOf("/releases/latest") >= 0) {
+		if (path.indexOf("/releases/latest") >= 0 && papers != "") {
 			sends(client, "application/json", haxe.io.Bytes.ofString(papers));
 			return;
 		}
@@ -350,6 +351,74 @@ class UpdateCheck {
 
 	static function fresh():Update {
 		return new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+	}
+
+	/**
+		The states a real repository actually puts it in, driven end to end.
+
+		Both of these were reached by a copy in the field and neither may raise a notice.
+		A release whose tag is the version already running is not newer, and a releases
+		page that answers 404, which is what one carrying only pre-releases does, is not
+		an answer at all. Each is checked through the whole path rather than by reading
+		the document, because reaching the waiting state is what puts the notice up.
+
+		@param port The port the server is on.
+	**/
+	static function truthful(port:Int):Void {
+		final was = papers;
+
+		papers = "{\"tag_name\":\"v0.1.0\",\"html_url\":\"http://127.0.0.1:" + port
+			+ "/release\",\"body\":\"same\",\"assets\":[]}";
+
+		final same = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		same.looksAt("http://127.0.0.1:" + port + "/repos/");
+		same.look();
+
+		final settledAt = waits(same);
+
+		says("a release matching the running version", settledAt == Update.CURRENT,
+			"0.1.0 offered to 0.1.0 settled at " + phase(settledAt) + " rather than waiting");
+
+		papers = "";
+
+		final gone = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		gone.looksAt("http://127.0.0.1:" + port + "/repos/");
+		gone.look();
+
+		final missed = waits(gone);
+
+		says("and a releases page that answers 404", missed == Update.UNREACHABLE,
+			"settled at " + phase(missed) + " rather than waiting");
+
+		papers = was;
+	}
+
+	/**
+		@param update One that has been told to look.
+		@return The state it settles in, once it has stopped looking.
+	**/
+	static function waits(update:Update):Int {
+		final until = Sys.time() + PATIENCE;
+
+		while (Sys.time() < until) {
+			final now = update.state();
+			if (now != Update.IDLE && now != Update.LOOKING) return now;
+
+			Sys.sleep(0.02);
+		}
+
+		return update.state();
+	}
+
+	static function phase(state:Int):String {
+		return switch (state) {
+			case Update.IDLE: "idle";
+			case Update.LOOKING: "looking";
+			case Update.CURRENT: "current";
+			case Update.WAITING: "WAITING";
+			case Update.UNREACHABLE: "unreachable";
+			case _: "" + state;
+		}
 	}
 
 	static function settles(update:Update, want:Int):Bool {
