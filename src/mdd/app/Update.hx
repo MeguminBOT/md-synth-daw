@@ -163,6 +163,11 @@ final class Update {
 	**/
 	public var wrong(default, null):String = "";
 
+	/**
+		What the downloader last exited with, or a negative number where it never ran.
+	**/
+	var answered:Int = -1;
+
 	var endpoint:String = API;
 	var weighs:Int = 0;
 	var lock:Null<sys.io.FileOutput> = null;
@@ -245,7 +250,22 @@ final class Update {
 		where they are sitting, so it is reported the same way.
 	**/
 	function asked():Void {
+		final settled = reading();
+
+		held.store(settled);
+		records(settled);
+	}
+
+	/**
+		Asks the releases page and works out what the answer means.
+
+		@return The state the look settles in. It is the caller that stores it, so that
+			every way out of here is written down by the same line.
+	**/
+	function reading():Int {
 		var said = "";
+
+		answered = -1;
 
 		try {
 			said = fetched(checkAt());
@@ -253,29 +273,87 @@ final class Update {
 			said = "";
 		}
 
-		if (said == "") {
-			held.store(UNREACHABLE);
-			return;
-		}
+		if (said == "") return UNREACHABLE;
 
 		try {
 			read(said);
 		} catch (e:Dynamic) {
-			held.store(UNREACHABLE);
-			return;
+			return UNREACHABLE;
 		}
 
-		if (offered == "" || !newer(offered, running)) {
-			held.store(CURRENT);
-			return;
-		}
+		if (offered == "" || !newer(offered, running)) return CURRENT;
+		if (saidAt == "") return UNREACHABLE;
 
-		if (saidAt == "") {
-			held.store(UNREACHABLE);
-			return;
-		}
+		return WAITING;
+	}
 
-		held.store(WAITING);
+	/**
+		How many looks the log keeps before the oldest is dropped.
+	**/
+	static inline final KEPT = 200;
+
+	/**
+		Writes down what one look did.
+
+		Four looks in one sitting left nothing behind, and a notice that should have been
+		impossible could then only be argued about from the state the repository happens
+		to be in afterwards rather than read back. A line a look answers it directly: what
+		was asked, what the downloader exited with, what the document offered, what is
+		running, and what was decided between them.
+
+		It is written from the looking thread, after everything else that thread does, and
+		a failure to write is not a failure to look.
+
+		@param settled The state the look settles in.
+	**/
+	function records(settled:Int):Void {
+		try {
+			final where = Paths.within("logs") + "/updates.txt";
+
+			final line = Date.now().toString() + "  " + checkAt()
+				+ "  curl " + answered
+				+ "  offered " + (offered == "" ? "none" : offered)
+				+ "  running " + running
+				+ "  -> " + naming(settled)
+				+ (wrong == "" ? "" : ": " + wrong);
+
+			final kept:Array<String> = [];
+
+			if (FileSystem.exists(where)) {
+				for (held in File.getContent(where).split("
+")) {
+					if (StringTools.trim(held) != "") kept.push(held);
+				}
+			}
+
+			kept.push(line);
+
+			while (kept.length > KEPT) kept.shift();
+
+			File.saveContent(where, kept.join("
+") + "
+");
+		} catch (e:Dynamic) {}
+	}
+
+	/**
+		@param state One of the states above.
+		@return What to call it in the log.
+	**/
+	static function naming(state:Int):String {
+		return switch (state) {
+			case IDLE: "idle";
+			case LOOKING: "looking";
+			case CURRENT: "current";
+			case WAITING: "waiting, a notice goes up";
+			case UNREACHABLE: "unreachable";
+			case FETCHING: "fetching";
+			case FETCHED: "fetched";
+			case APPLYING: "applying";
+			case APPLIED: "applied";
+			case BROKEN: "broken";
+			case _: "" + state;
+		}
 	}
 
 	/**
@@ -475,23 +553,33 @@ final class Update {
 		Downloads the file. This is the download thread.
 	**/
 	function pulled():Void {
-		wrong = "";
+		final settled = downloaded();
 
-		if (Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]) != 0) {
-			held.store(UNREACHABLE);
-			return;
-		}
+		held.store(settled);
+		records(settled);
+	}
+
+	/**
+		Downloads the chosen file and checks it. This is the download thread.
+
+		@return The state the download settles in, which the caller stores and writes down.
+	**/
+	function downloaded():Int {
+		wrong = "";
+		answered = Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]);
+
+		if (answered != 0) return UNREACHABLE;
 
 		final fault = unmatched();
 
 		if (fault != "") {
 			wrong = fault;
 			discards();
-			held.store(BROKEN);
-			return;
+
+			return BROKEN;
 		}
 
-		held.store(FETCHED);
+		return FETCHED;
 	}
 
 	/**
@@ -893,7 +981,7 @@ final class Update {
 		@param url The address.
 		@return What came back, or an empty string.
 	**/
-	static function fetched(url:String):String {
+	function fetched(url:String):String {
 		final run = new sys.io.Process("curl", [
 			"-sL", "--fail", "--max-time", "10",
 			"-H", "Accept: application/vnd.github+json",
@@ -905,6 +993,8 @@ final class Update {
 		final code = run.exitCode();
 
 		run.close();
+		answered = code;
+
 		return code == 0 ? said : "";
 	}
 
