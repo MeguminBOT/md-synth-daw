@@ -131,6 +131,7 @@ class UiCheck {
 		saying();
 		modal();
 		dimmed();
+		questions();
 		banded();
 		notices();
 		remembers();
@@ -1370,6 +1371,83 @@ class UiCheck {
 		says("and one that arrived early", before.fade.value > 0.004,
 			"arriving with no root behind it leaves it at "
 			+ round(before.fade.value * 100, 0) + " per cent");
+	}
+
+	/**
+		The question sheet gives one answer and then gives no more.
+
+		Which answer a press lands on is worked out from where the row was drawn rather
+		than from a widget that knows where it is, so the arithmetic is what is driven
+		here, along with the two keys that answer without a pointer.
+	**/
+	static function questions():Void {
+		final root = shaped();
+		root.resize(1280, 800);
+
+		final sheet = new mdd.view.overlay.Asking();
+		root.raise(sheet);
+
+		sheet.ask("chords", "some of these notes cannot sound",
+			["move them", "remove them", "leave them"]);
+
+		for (step in 0...20) root.advance(0.05);
+
+		says("a question is seen", sheet.fade.value > 0.004,
+			"the sheet is at " + round(sheet.fade.value * 100, 0) + " per cent");
+
+		final metrics = root.metrics;
+		final tall = metrics.whole(32);
+		final middle = sheet.y + sheet.height - metrics.inset - tall * 0.5;
+		final wide = (sheet.width - metrics.inset * 2 - metrics.gap * 2) / 3;
+
+		var found = 0;
+
+		for (which in 0...3) {
+			final at = sheet.x + metrics.inset + which * (wide + metrics.gap) + wide * 0.5;
+			if (sheet.answerAt(at, middle) == which) found++;
+		}
+
+		says("each answer is where it is drawn", found == 3,
+			"three of three found, and above the row picks none at "
+			+ sheet.answerAt(sheet.x + sheet.width * 0.5, sheet.y + metrics.inset));
+
+		var given:Array<Int> = [];
+		sheet.onAnswer = function(which:Int):Void given.push(which);
+
+		final at = sheet.x + metrics.inset + (wide + metrics.gap) + wide * 0.5;
+
+		root.pressed(at, middle, Pointer.Left, Mod.None);
+		root.released(at, middle, Pointer.Left, Mod.None);
+
+		says("pressing one gives that answer", given.length == 1 && given[0] == 1,
+			"the middle answer came back as " + (given.length == 0 ? -1 : given[0]));
+
+		sheet.gives(0);
+
+		says("and it is answered only once", given.length == 1,
+			"a second answer after the sheet closed added nothing");
+
+		final after = new mdd.view.overlay.Asking();
+		root.raise(after);
+		after.ask("unsaved", "there are changes", ["save", "do not save", "cancel"]);
+
+		var told = -1;
+		after.onAnswer = function(which:Int):Void told = which;
+
+		root.key(true, Key.Escape, Mod.None);
+
+		says("escape answers the last", told == 2, "escape came back as " + told);
+
+		final last = new mdd.view.overlay.Asking();
+		root.raise(last);
+		last.ask("unsaved", "there are changes", ["save", "do not save", "cancel"]);
+
+		told = -1;
+		last.onAnswer = function(which:Int):Void told = which;
+
+		root.key(true, Key.Return, Mod.None);
+
+		says("and enter answers the first", told == 0, "enter came back as " + told);
 	}
 
 	static function modal():Void {
