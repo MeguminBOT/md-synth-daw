@@ -243,6 +243,16 @@ final class Shell extends Widget {
 	}
 
 	/**
+		How far either side of a seam a press still takes hold of it, in logical pixels.
+
+		A seam is a hairline, and nobody hits a hairline, so the band it answers to is
+		wider than what is drawn. Four is where it stays: the grips say where the seam is
+		and the pointer changes shape over it, and a wider band starts taking presses
+		meant for the pane beside it, which is worse than a drag that missed.
+	**/
+	static inline final REACH = 4;
+
+	/**
 		@param px A point, across.
 		@param py A point, down.
 		@return Which seam is under it, or -1 for none.
@@ -251,7 +261,7 @@ final class Shell extends Widget {
 		final root = root();
 		if (root == null) return -1;
 
-		final reach = root.metrics.whole(4);
+		final reach = root.metrics.whole(REACH);
 		final body = zones[RAIL];
 
 		if (py >= body.y && py < body.y + body.height) {
@@ -260,6 +270,19 @@ final class Shell extends Widget {
 		}
 
 		return -1;
+	}
+
+	/**
+		Says a seam can be dragged before anything has been pressed, which is the one
+		signal a reader already knows to look for.
+
+		@param px A point, across.
+		@param py A point, down.
+		@return The arrow across over a seam, and the ordinary arrow everywhere else.
+	**/
+	override public function cursorAt(px:Float, py:Float):Int {
+		return nearDivider(px, py) >= 0 ? mdd.host.Sdl.CURSOR_ACROSS
+			: mdd.host.Sdl.CURSOR_ARROW;
 	}
 
 	/**

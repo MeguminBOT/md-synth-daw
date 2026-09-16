@@ -859,6 +859,18 @@ class UiCheck {
 
 		says("drag a divider", Math.abs((was - now) - 60) < 1.5,
 			"rail grew 60, centre lost " + Math.round(was - now));
+
+		final moved = shell.divider(Shell.RAIL);
+
+		says("and the pointer says it can be", shell.cursorAt(moved, 400)
+			== mdd.host.Sdl.CURSOR_ACROSS
+			&& shell.cursorAt(moved + 40, 400) == mdd.host.Sdl.CURSOR_ARROW,
+			"the arrow across over the seam and the ordinary one a pane away from it");
+
+		says("and the band beats the hairline",
+			shell.cursorAt(moved - 3, 400) == mdd.host.Sdl.CURSOR_ACROSS
+			&& shell.cursorAt(moved + 3, 400) == mdd.host.Sdl.CURSOR_ACROSS,
+			"a hairline nobody can hit answers to three pixels either side of itself");
 	}
 
 	static function sheets(renderer:cpp.Star<Canvas>, target:cpp.Star<Texture>, face:String,
