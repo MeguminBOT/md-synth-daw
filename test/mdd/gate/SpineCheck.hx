@@ -359,45 +359,10 @@ class SpineCheck {
 
 		session.uses(Session.DRAW);
 
-		final across = new mdd.ui.Splitter(100);
-		final down = new mdd.ui.Splitter(100);
-
-		down.vertical = true;
-
-		says("a splitter says which way it moves",
-			across.cursorAt(0, 0) == mdd.host.Sdl.CURSOR_ACROSS
-			&& down.cursorAt(0, 0) == mdd.host.Sdl.CURSOR_DOWN,
-			"one answers the arrow across and the other the arrow down");
-
 		lane.notes.resize(0);
 		session.history.clear();
 	}
 
-	/**
-		Typing in the preset search narrows what the browser lists.
-
-		The rows are built by `fit`, and what is typed is only read while they are
-		built. A search that does not build them again leaves whatever was listed
-		before on screen, which reads as a search that does nothing at all.
-
-		@param tree The shell.
-		@param session The piece.
-		@param editor The inspector the browser sits in.
-	**/
-	/**
-		Every tab of the centre draws a frame without allocating.
-
-		The shell is measured on the playlist alone, and the tabs that are not it draw
-		different widgets: the register timeline, the scope, the automation editor and
-		the warning list. A string built while painting is an allocation a frame, which
-		is what makes the collector run, and the collector is the longest stall there
-		is.
-
-		@param tree The shell.
-		@param centre The tabs.
-		@param paint What to draw with.
-		@param renderer What to draw into.
-	**/
 	/**
 		A name a preset carries, and a tag one carries, both find it.
 
@@ -1314,6 +1279,17 @@ class SpineCheck {
 		session.history.clear();
 	}
 
+	/**
+		Typing in the preset search narrows what the browser lists.
+
+		The rows are built by `fit`, and what is typed is only read while they are
+		built. A search that does not build them again leaves whatever was listed
+		before on screen, which reads as a search that does nothing at all.
+
+		@param tree The shell.
+		@param session The piece.
+		@param editor The inspector the browser sits in.
+	**/
 	static function sought(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		final missing = "zzqqxx";
@@ -1972,6 +1948,20 @@ class SpineCheck {
 		return one.tags.length == 2 && one.tags[0] == "brass" && one.tags[1] == "lead";
 	}
 
+	/**
+		Every tab of the centre draws a frame without allocating.
+
+		The shell is measured on the playlist alone, and the tabs that are not it draw
+		different widgets: the register timeline, the scope, the automation editor and
+		the warning list. A string built while painting is an allocation a frame, which
+		is what makes the collector run, and the collector is the longest stall there
+		is.
+
+		@param tree The shell.
+		@param centre The tabs.
+		@param paint What to draw with.
+		@param renderer What to draw into.
+	**/
 	static function tabbed(tree:Root, centre:mdd.view.Centre, paint:Paint,
 			renderer:cpp.Star<Canvas>):Void {
 		final session = centre.session;

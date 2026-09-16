@@ -217,8 +217,14 @@ final class Shell extends Widget {
 	}
 
 	/**
+		Where a seam sits.
+
+		`STATUS` is here to be drawn rather than to be dragged. The status bar is one line
+		of text at a height the metrics fix, so there is nothing for a drag to give it, and
+		`nearDivider` leaving it out is the answer rather than an omission.
+
 		@param which A seam.
-		@return Where it sits.
+		@return Where it sits, or -1 for anything that is not a seam.
 	**/
 	public function divider(which:Int):Float {
 		final root = root();
