@@ -352,6 +352,51 @@ final class Shell extends Widget {
 
 		if (upright) paint.rect(back, from, thick, span, colour, lit ? 0.9 : 1);
 		else paint.rect(from, back, span, thick, colour, lit ? 0.9 : 1);
+
+		gripped(paint, theme, lit, at, from, span, hair, upright);
+	}
+
+	/**
+		How many marks sit in the middle of a seam.
+	**/
+	static inline final GRIPS = 5;
+
+	/**
+		Draws the marks that say a seam can be taken hold of.
+
+		A seam at rest is a hairline the width of every other border in the window, so
+		nothing about it says it is the one line that moves, and the brightening it does
+		under the pointer is only found by somebody already on it. The marks are there
+		before the pointer is, which is the whole point of them.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param lit Whether the seam is hovered or being dragged.
+		@param at Where the seam sits across its own thickness.
+		@param from Where it starts along its length.
+		@param span How long it is.
+		@param hair How thick the seam line is.
+		@param upright Whether it runs down rather than across.
+	**/
+	function gripped(paint:Paint, theme:Theme, lit:Bool, at:Float, from:Float, span:Float,
+			hair:Float, upright:Bool):Void {
+		final dot = hair * 2;
+		final step = dot * 2;
+		final run = (GRIPS * 2 - 1) * dot;
+
+		if (span < run * 3) return;
+
+		final start = from + (span - run) * 0.5;
+		final across = at + hair * 0.5 - dot * 0.5;
+		final colour = lit ? theme.accent : theme.dim;
+		final alpha = lit ? 1.0 : 0.85;
+
+		for (index in 0...GRIPS) {
+			final along = start + index * step;
+
+			if (upright) paint.rect(across, along, dot, dot, colour, alpha);
+			else paint.rect(along, across, dot, dot, colour, alpha);
+		}
 	}
 
 	/**
