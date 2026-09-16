@@ -48,4 +48,14 @@ extern class Usage {
 	**/
 	@:native("mdd_usage_gpu")
 	public static function gpu():Float;
+
+	/**
+		Graphics memory this process has to itself, which is what the glyph atlases and the
+		render targets sit in. Approximate: the counter is per process and what a driver
+		reports against it is its own business.
+
+		@return Megabytes held, or a negative number where it cannot be measured.
+	**/
+	@:native("mdd_usage_vram")
+	public static function vram():Float;
 }

@@ -22,6 +22,7 @@ static double heldCpu = 0;
 
 static PDH_HQUERY gpuQuery = nullptr;
 static PDH_HCOUNTER gpuCounter = nullptr;
+static PDH_HCOUNTER vramCounter = nullptr;
 static bool gpuReady = false;
 
 static ULONGLONG filed(const FILETIME &held) {
@@ -57,6 +58,13 @@ extern "C" void mdd_usage_start() {
 		return;
 	}
 
+	swprintf(path, 128, L"\\GPU Process Memory(pid_%lu*)\\Dedicated Usage",
+		(unsigned long)GetCurrentProcessId());
+
+	if (PdhAddEnglishCounterW(gpuQuery, path, 0, &vramCounter) != ERROR_SUCCESS) {
+		vramCounter = nullptr;
+	}
+
 	PdhCollectQueryData(gpuQuery);
 	gpuReady = true;
 }
@@ -68,6 +76,7 @@ extern "C" void mdd_usage_stop() {
 
 	gpuQuery = nullptr;
 	gpuCounter = nullptr;
+	vramCounter = nullptr;
 	gpuReady = false;
 }
 
@@ -111,6 +120,37 @@ extern "C" double mdd_usage_peak() {
 
 	if (!GetProcessMemoryInfo(GetCurrentProcess(), &held, sizeof(held))) return -1;
 	return (double)held.PeakWorkingSetSize / (1024.0 * 1024.0);
+}
+
+extern "C" double mdd_usage_vram() {
+	if (!gpuReady || vramCounter == nullptr) return -1;
+
+	if (PdhCollectQueryData(gpuQuery) != ERROR_SUCCESS) return -1;
+
+	DWORD bytes = 0;
+	DWORD count = 0;
+
+	PDH_STATUS state = PdhGetFormattedCounterArrayW(vramCounter, PDH_FMT_LARGE, &bytes,
+		&count, nullptr);
+
+	if (state != (PDH_STATUS)PDH_MORE_DATA || bytes == 0) return 0;
+
+	PDH_FMT_COUNTERVALUE_ITEM_W *items = (PDH_FMT_COUNTERVALUE_ITEM_W *)malloc(bytes);
+	if (items == nullptr) return 0;
+
+	double much = 0;
+
+	if (PdhGetFormattedCounterArrayW(vramCounter, PDH_FMT_LARGE, &bytes, &count, items)
+			== ERROR_SUCCESS) {
+		for (DWORD index = 0; index < count; index++) {
+			much += (double)items[index].FmtValue.largeValue;
+		}
+	}
+
+	free(items);
+
+	if (much < 0) much = 0;
+	return much / (1024.0 * 1024.0);
 }
 
 extern "C" double mdd_usage_gpu() {
@@ -246,6 +286,10 @@ extern "C" double mdd_usage_peak() {
 }
 
 extern "C" double mdd_usage_gpu() {
+	return -1;
+}
+
+extern "C" double mdd_usage_vram() {
 	return -1;
 }
 
