@@ -122,6 +122,11 @@ final class Panels {
 	public var naming:Null<Naming> = null;
 
 	/**
+		The sheet that asks a question and takes one of up to three answers.
+	**/
+	public var asking:Null<mdd.view.overlay.Asking> = null;
+
+	/**
 		The about sheet.
 	**/
 	public var about:Null<mdd.view.overlay.About> = null;

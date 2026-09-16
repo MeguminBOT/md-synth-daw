@@ -361,7 +361,11 @@ class App {
 
 			files.takesMidi(strands, instead);
 			changed();
+			chorded();
 		};
+
+		panels.asking = new mdd.view.overlay.Asking();
+		panels.asking.onShut = function():Void stage.root.lower();
 
 		files.onSurvey = function(called:String,
 				strands:Array<mdd.format.Strand>):Void panels.surveyed(called, strands);
@@ -618,12 +622,49 @@ class App {
 	}
 
 	/**
-		Takes a piece that has just been read: points the session, the sound, the
-		panels and the file operations at it rather than building new ones, because a
-		rebuilt object silently drops every callback nobody re-attached.
+		Asks what to do about the notes an import left where no channel will sound them.
 
-		@param song The piece.
+		A file written for anything polyphonic puts chords on one part, and this console
+		gives that part to whichever note keyed on last. Nothing is asked where the piece
+		has none, and a part with no key to be in is not counted, so a drum kit or an
+		atonal run never raises this.
 	**/
+	function chorded():Void {
+		if (panels.asking == null) return;
+
+		final many = mdd.song.edit.ThinChords.counted(session.song);
+		if (many == 0) return;
+
+		final sheet = panels.asking;
+		stage.root.raise(sheet);
+
+		sheet.ask(sheet.translate(Locale.CHORDS),
+			sheet.filled(Locale.CHORDS_SAID, ["" + many]),
+			[sheet.translate(Locale.CHORDS_MOVE), sheet.translate(Locale.CHORDS_REMOVE),
+			sheet.translate(Locale.CHORDS_KEEP)]);
+
+		sheet.onAnswer = function(which:Int):Void thins(which, many);
+	}
+
+	/**
+		Does what was answered, on the undo stack, so it is one step back to the import
+		as the file wrote it.
+
+		@param which Which answer: move them, remove them, or leave them.
+		@param many How many notes that was about.
+	**/
+	function thins(which:Int, many:Int):Void {
+		if (which != 0 && which != 1) return;
+
+		final moves = which == 0;
+
+		session.does(new mdd.song.edit.ThinChords(moves));
+		session.says(moves ? Locale.SAID_CHORDS_MOVED : Locale.SAID_CHORDS_REMOVED,
+			"" + many);
+
+		changed();
+	}
+
 	/**
 		Puts a piece at the top of the list the file menu offers, and drops the oldest
 		where that makes it too long.
@@ -639,6 +680,13 @@ class App {
 		while (recent.length > RECENT) recent.pop();
 	}
 
+	/**
+		Takes a piece that has just been read: points the session, the sound, the
+		panels and the file operations at it rather than building new ones, because a
+		rebuilt object silently drops every callback nobody re-attached.
+
+		@param song The piece.
+	**/
 	function loaded(song:Song):Void {
 		final held = session == null ? Session.UNITY : session.master;
 		final automates = session == null ? Session.LANES : session.automating;

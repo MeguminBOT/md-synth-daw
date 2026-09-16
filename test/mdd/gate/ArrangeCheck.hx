@@ -39,6 +39,8 @@ class ArrangeCheck {
 		dressed();
 		cut();
 		uniqued();
+		chorded();
+		thinned();
 		ranged();
 		reversed();
 		nudged();
@@ -116,6 +118,117 @@ class ArrangeCheck {
 		says("undo restores the sharing",
 			half.pattern == clip.pattern && song.patterns.length == patterns,
 			"pattern " + half.pattern + " again, " + song.patterns.length + " patterns");
+	}
+
+	/**
+		A chord on one channel keeps one note, and a line played legato keeps all of them.
+
+		The second half is the one worth guarding. A melody where each note runs a little
+		past the start of the next is what a monophonic channel is for, and reading that as
+		a chord would throw away every other note of it.
+	**/
+	static function chorded():Void {
+		final lane = new mdd.song.Lane(mdd.song.Part.Fm1);
+
+		lane.add(new mdd.song.Note(0, 96, 60, 100));
+		lane.add(new mdd.song.Note(0, 96, 64, 100));
+		lane.add(new mdd.song.Note(0, 96, 67, 100));
+
+		final key = mdd.check.Chording.keyed(lane.notes);
+		final gone = mdd.check.Chording.silenced(lane.notes, key);
+
+		says("a chord keeps one note", gone.length == 2,
+			"three notes together leave " + (lane.notes.length - gone.length)
+			+ " sounding and " + gone.length + " silent");
+
+		var kept = -1;
+		for (note in lane.notes) if (gone.indexOf(note) < 0) kept = note.pitch;
+
+		says("and keeps the top of it", kept == 67, "note " + kept + " of 60, 64 and 67");
+
+		final line = new mdd.song.Lane(mdd.song.Part.Fm1);
+
+		for (step in 0...8) line.add(new mdd.song.Note(step * 48, 56, 60 + step, 100));
+
+		final held = mdd.check.Chording.silenced(line.notes,
+			mdd.check.Chording.keyed(line.notes));
+
+		says("a legato line keeps every note", held.length == 0,
+			"eight notes overlapping by 8 ticks leave " + held.length + " silent");
+
+		final atonal = new mdd.song.Lane(mdd.song.Part.Fm1);
+		for (step in 0...12) atonal.add(new mdd.song.Note(step * 96, 48, 60 + step, 100));
+
+		says("twelve semitones have no key",
+			mdd.check.Chording.keyed(atonal.notes).kind == mdd.song.Scale.CHROMATIC,
+			"a run of all twelve reads as chromatic");
+
+		final major = new mdd.song.Lane(mdd.song.Part.Fm1);
+		for (pitch in [60, 62, 64, 65, 67, 69, 71]) {
+			major.add(new mdd.song.Note(major.notes.length * 96, 48, pitch, 100));
+		}
+
+		final found = mdd.check.Chording.keyed(major.notes);
+
+		says("and a major scale is found", found.kind == mdd.song.Scale.MAJOR && found.root == 0,
+			"root " + found.root + ", kind " + found.kind + " for the notes of C major");
+	}
+
+	/**
+		Thinning a chord down to what sounds, and putting it back.
+	**/
+	static function thinned():Void {
+		final song = new mdd.song.Song("thin", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("one", 384));
+		final lane = pattern.lane(mdd.song.Part.Fm1);
+
+		for (pitch in [60, 64, 67]) lane.add(new mdd.song.Note(0, 96, pitch, 100));
+		for (pitch in [62, 65, 69]) lane.add(new mdd.song.Note(192, 96, pitch, 100));
+
+		final found = mdd.song.edit.ThinChords.counted(song);
+
+		says("two chords silence four notes", found == 4,
+			found + " of the " + lane.notes.length + " cannot sound");
+
+		final history = new History();
+		history.does(song, new mdd.song.edit.ThinChords(false));
+
+		says("removing them leaves what sounds", lane.notes.length == 2,
+			lane.notes.length + " notes left, at " + lane.notes[0].pitch
+			+ " and " + lane.notes[1].pitch);
+
+		history.undo(song);
+
+		says("and undo brings them back", lane.notes.length == 6,
+			lane.notes.length + " notes again");
+
+		history.does(song, new mdd.song.edit.ThinChords(true));
+
+		final spare = song.patterns.length > 1 ? song.patterns[1] : null;
+
+		says("moving them makes a pattern",
+			song.patterns.length == 2 && spare != null
+				&& spare.lane(mdd.song.Part.Fm1).notes.length == 4
+				&& lane.notes.length == 2,
+			spare == null ? "no pattern made"
+				: "\"" + spare.name + "\" holds "
+				+ spare.lane(mdd.song.Part.Fm1).notes.length + " of them");
+
+		history.undo(song);
+
+		says("and undo takes that away too",
+			song.patterns.length == 1 && lane.notes.length == 6,
+			song.patterns.length + " pattern, " + lane.notes.length + " notes");
+
+		final drums = new mdd.song.Song("drums", 96, 120);
+		final beat = drums.add(new mdd.song.Pattern("beat", 384));
+
+		for (step in 0...12) {
+			beat.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 96, 60 + step, 100));
+		}
+
+		says("a part with no key is left alone", mdd.song.edit.ThinChords.counted(drums) == 0,
+			"twelve semitones together read as chromatic and are untouched");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
