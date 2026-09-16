@@ -241,6 +241,9 @@ class App {
 
 		dress();
 		stage.measured();
+
+		looked();
+
 		outputSaid = settings.of("output", "");
 		sound.open(session.transport, outputSaid);
 		scoped();
@@ -248,6 +251,21 @@ class App {
 		stage.show(settings == null || settings.asFlag("maximised", true));
 		collector.minds();
 		return true;
+	}
+
+	/**
+		Asks the releases page once, if the settings allow it at all.
+
+		Once a run, and only here. This used to sit with the settings being applied, which
+		happens again every time the output device or the language is changed, so choosing
+		either of those asked again: a copy told at startup that there was nothing new
+		would put a notice up later in the same sitting, having never been asked to look.
+	**/
+	function looked():Void {
+		if (settings == null || update == null) return;
+		if (!settings.asFlag("update", true) || !update.possible()) return;
+
+		update.look();
 	}
 
 	/**
@@ -1105,8 +1123,6 @@ class App {
 		final looks = settings.asFlag("update", true);
 		final automating = settings.asWhole("automating", Session.LANES);
 		final snapping = settings.asWhole("snapping", Session.SIXTEENTH);
-
-		if (looks && update.possible()) update.look();
 
 		files.projectsAt = settings.of("projects", "");
 		files.presetsAt = settings.of("presets", "");

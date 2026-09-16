@@ -297,6 +297,11 @@ final class Update {
 		offered = trimmed(node.get("tag_name").saying(""));
 		notes = firstLine(node.get("body").saying(""));
 
+		if (node.get("prerelease").truth(false) || node.get("draft").truth(false)) {
+			offered = "";
+			return;
+		}
+
 		final listed = node.get("assets");
 		assets = listed.length();
 

@@ -62,6 +62,7 @@ class UpdateCheck {
 		carried(where, port, archive);
 		installed(where, port);
 		bare();
+		tentative();
 
 		shuts();
 
@@ -311,13 +312,44 @@ class UpdateCheck {
 		can do and tells them so afterwards.
 	**/
 	static function bare():Void {
-		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		final update = fresh();
 
 		update.read("{\"tag_name\":\"v" + OFFERED + "\",\"body\":\"newer\",\"assets\":[]}");
 
 		says("a release with no files offers nothing", update.saidAt == "",
 			"tag " + update.offered + " read, " + update.assets
 			+ " assets, nowhere to download from");
+	}
+
+	/**
+		A release the document marks as unfinished is not offered.
+
+		The releases page is asked for the latest, which leaves pre-releases and drafts
+		out on its own, so nothing here should ever see one. This holds if that is ever
+		pointed somewhere that does answer with one, and costs a pair of reads to do it.
+	**/
+	static function tentative():Void {
+		final flagged = fresh();
+		flagged.read("{\"tag_name\":\"v" + OFFERED + "\",\"prerelease\":true,\"assets\":[]}");
+
+		says("a release flagged as a pre-release goes", flagged.offered == "",
+			"tag v" + OFFERED + " flagged prerelease, offered \"" + flagged.offered + "\"");
+
+		final drafted = fresh();
+		drafted.read("{\"tag_name\":\"v" + OFFERED + "\",\"draft\":true,\"assets\":[]}");
+
+		says("and so is a draft", drafted.offered == "",
+			"tag v" + OFFERED + " flagged draft, offered \"" + drafted.offered + "\"");
+
+		final whole = fresh();
+		whole.read("{\"tag_name\":\"v" + OFFERED + "\",\"assets\":[]}");
+
+		says("while a finished one is still read", whole.offered == OFFERED,
+			"tag v" + OFFERED + " offered " + whole.offered);
+	}
+
+	static function fresh():Update {
+		return new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
 	}
 
 	static function settles(update:Update, want:Int):Bool {
