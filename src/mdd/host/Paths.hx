@@ -85,8 +85,28 @@ class Paths {
 			A marker file or a userdata folder beside the executable says so.
 	**/
 	public static function portable():Bool {
-		return sys.FileSystem.exists(beside() + "/portable.txt")
-			|| sys.FileSystem.exists(beside() + "/" + USERDATA);
+		final held = beside() + "/" + USERDATA;
+
+		final marked = sys.FileSystem.exists(beside() + "/portable.txt")
+			|| sys.FileSystem.exists(held);
+
+		return marked && usable(held);
+	}
+
+	/**
+		@param where A directory this would keep things in.
+		@return Whether it is there, or can be made.
+
+		The marker on its own is not enough to go by. An installer carried one into
+		Program Files, where nothing is written without being asked for, so a copy that
+		took the marker at its word put its settings where they could not go: every run
+		started as though it were the first, asking again which language to use and
+		remembering nothing that was chosen. A place that will not even be made is not a
+		place to keep anything.
+	**/
+	static function usable(where:String):Bool {
+		make(where);
+		return sys.FileSystem.exists(where);
 	}
 
 	/**
