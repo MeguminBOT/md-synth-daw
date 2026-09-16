@@ -986,6 +986,62 @@ final class Paint {
 			triangle(points[a * 2], points[a * 2 + 1], points[b * 2], points[b * 2 + 1],
 				points[c * 2], points[c * 2 + 1], colour, alpha);
 		}
+
+		edged(points, count, colour, alpha);
+	}
+
+	/**
+		Softens a filled polygon's edges.
+
+		A fill on its own has hard ones: a diagonal comes out as a staircase of whole
+		pixels, which is what made the transport glyphs read as coarse beside the icons
+		beside them, which are rasterised from coverage and have a hundred shades along an
+		edge. Every edge gets a band half a pixel wide fading to nothing, the same way the
+		arc of a rounded corner already did.
+
+		The band sits outside the edge rather than across it, which grows the shape by half
+		a pixel. Insetting the fill instead would hold the size, and for shapes this small
+		it costs more than the half pixel is worth.
+
+		@param points The corners, two numbers each.
+		@param count How many corners.
+		@param colour What to draw in.
+		@param alpha How solid the fill is.
+	**/
+	function edged(points:Vector<Float>, count:Int, colour:Colour, alpha:Float):Void {
+		if (count < 3 || alpha <= 0) return;
+
+		var twice = 0.0;
+
+		for (index in 0...count) {
+			final next = (index + 1) % count;
+
+			twice += points[index * 2] * points[next * 2 + 1]
+				- points[next * 2] * points[index * 2 + 1];
+		}
+
+		final turn = twice < 0 ? -FEATHER : FEATHER;
+
+		for (index in 0...count) {
+			final next = (index + 1) % count;
+
+			final ax = points[index * 2];
+			final ay = points[index * 2 + 1];
+			final bx = points[next * 2];
+			final by = points[next * 2 + 1];
+
+			final runX = bx - ax;
+			final runY = by - ay;
+			final run = Math.sqrt(runX * runX + runY * runY);
+
+			if (run <= 0) continue;
+
+			final outX = runY / run * turn;
+			final outY = -runX / run * turn;
+
+			faded(ax, ay, alpha, ax + outX, ay + outY, 0, bx + outX, by + outY, 0, colour);
+			faded(ax, ay, alpha, bx + outX, by + outY, 0, bx, by, alpha, colour);
+		}
 	}
 
 	/**
