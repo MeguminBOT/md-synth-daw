@@ -159,6 +159,17 @@ class Widget {
 	}
 
 	/**
+		Says this widget has just been taken out of the sheet layer, however that came
+		about.
+
+		`Root.lower` is reached from more than the button a sheet drew for it: Escape
+		lowers anything not sealed, and raising something else lowers what was there. A
+		sheet with something to record about being dismissed records it here, or it only
+		happens on the one path it drew a button for.
+	**/
+	public function lowered():Void {}
+
+	/**
 		@return The root this belongs to, or null where it is not in one.
 	**/
 	public function root():Null<Root> {

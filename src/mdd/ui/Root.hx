@@ -471,9 +471,12 @@ final class Root {
 	public function lower():Void {
 		if (sheet == null) return;
 
+		final was = sheet;
+
 		@:privateAccess sheet.attach(null);
 		sheet = null;
 
+		was.lowered();
 		start(scrim, 0, Motion.leaving(Motion.ENTER));
 		reshape();
 		focusOn(null);

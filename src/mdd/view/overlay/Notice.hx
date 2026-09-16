@@ -192,6 +192,22 @@ final class Notice extends Widget {
 		session.changed();
 	}
 
+	/**
+		Treats being dismissed any other way as being asked about later.
+
+		Without this, Escape takes the notice off the screen and leaves the updater still
+		waiting to be answered, so the next frame puts it straight back up: the one key
+		everybody reaches for to make something go away was the one that would not.
+
+		A download already under way is left alone. Taking the update lowers this too, and
+		by then the answer has been given.
+	**/
+	override public function lowered():Void {
+		if (update == null || update.state() != mdd.app.Update.WAITING) return;
+
+		update.refuse();
+	}
+
 	override function hovered(on:Bool):Void {
 		if (!on) hoverAt = -1;
 		super.hovered(on);
