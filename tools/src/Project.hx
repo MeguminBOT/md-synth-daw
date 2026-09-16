@@ -50,11 +50,19 @@ typedef Toolchain = {
 }
 
 /**
-	One typeface file: its name, its file and its weight.
+	One typeface file: its name and where it is fetched from.
+
+	A face that one language needs and nothing else does also names that language, the
+	commit it is fetched at and the SHA-256 of the file there. An installer may leave such a
+	face out, and the application fetches it again from that commit when the language is
+	picked, so the pin is what makes the face it downloads the face the build ships.
 **/
 typedef Face = {
 	final name:String;
 	final from:String;
+	final language:String;
+	final commit:String;
+	final sha256:String;
 }
 
 /**
@@ -303,7 +311,10 @@ class Project {
 
 					switch (held.nodeName) {
 						case "face":
-							faces.push({name: held.get("name"), from: held.get("from")});
+							faces.push({name: held.get("name"), from: held.get("from"),
+								language: attribute(held, "language"),
+								commit: attribute(held, "commit"),
+								sha256: attribute(held, "sha256").toLowerCase()});
 
 						case "typeface":
 							typefaces.push({name: held.get("name"), sans: held.get("sans"),
@@ -521,6 +532,15 @@ class Project {
 
 	static inline function has(node:Xml, name:String):Bool {
 		return node.exists(name);
+	}
+
+	/**
+		@param node An element.
+		@param name An attribute.
+		@return Its value, or an empty string where the element does not carry it.
+	**/
+	static function attribute(node:Xml, name:String):String {
+		return has(node, name) ? node.get(name) : "";
 	}
 
 	static function number(node:Xml, name:String, fallback:Int):Int {

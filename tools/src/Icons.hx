@@ -190,12 +190,15 @@ class Icons {
 	}
 
 	/**
-		Writes the generated names the code refers to typeface pairings by.
+		Writes the generated names the code refers to typeface pairings by, and the faces a
+		language can fetch when an installer left them out.
 
 		@param project What the build file declares.
 		@param into The folder the generated file goes in.
+		@param fonts The folder the faces were fetched into, which is where the size of a
+			face the application may download is read from.
 	**/
-	public static function typefaces(project:Project, into:String):Void {
+	public static function typefaces(project:Project, into:String, fonts:String):Void {
 		final out = new StringBuf();
 
 		out.add("package mdd;\n\n");
@@ -210,12 +213,59 @@ class Icons {
 		out.add("\n");
 		out.add(listed("FALLBACK", project.fallbacks));
 		out.add("\n");
+
+		final pinned = [for (face in project.faces) if (face.language != "" && face.commit != ""
+			&& face.sha256 != "") face];
+
+		out.add(listed("LANGUAGE_FACES", [for (face in pinned) face.name]));
+		out.add("\n");
+		out.add(listed("LANGUAGE_FACE_FOR", [for (face in pinned) face.language]));
+		out.add("\n");
+		out.add(listed("LANGUAGE_FACE_FROM", [for (face in pinned) located(face)]));
+		out.add("\n");
+		out.add(listed("LANGUAGE_FACE_SHA256", [for (face in pinned) face.sha256]));
+		out.add("\n");
+		out.add(listed("LANGUAGE_FACE_NOTICE", [for (face in pinned) noticed(face)]));
+		out.add("\n");
+		out.add("\tpublic static final LANGUAGE_FACE_BYTES:Array<Int> = ["
+			+ [for (face in pinned) "" + weighed(fonts + "/" + face.name)].join(", ") + "];\n\n");
 		out.add("\tpublic static inline final CONDENSED = \"" + project.condensed
 			+ "\";\n");
 		out.add("}\n");
 
 		tree(into + "/mdd");
 		File.saveContent(into + "/mdd/Typeface.hx", out.toString());
+	}
+
+	/**
+		@param face A pinned face.
+		@return The address of the file at the commit it is pinned to.
+	**/
+	static function located(face:Project.Face):String {
+		final at = face.from.indexOf(":");
+		final tail = at < 0 ? face.from : face.from.substr(at + 1);
+
+		return "https://raw.githubusercontent.com/google/fonts/" + face.commit + "/ofl/"
+			+ StringTools.replace(StringTools.replace(tail, "[", "%5B"), "]", "%5D");
+	}
+
+	/**
+		@param face A pinned face.
+		@return The name the licence fetched beside it is saved under.
+	**/
+	static function noticed(face:Project.Face):String {
+		final at = face.from.indexOf(":");
+		final tail = at < 0 ? face.from : face.from.substr(at + 1);
+
+		return "OFL-" + tail.split("/")[0] + ".txt";
+	}
+
+	/**
+		@param path A file.
+		@return How many bytes it holds, or nought where it is not there.
+	**/
+	static function weighed(path:String):Int {
+		return sys.FileSystem.exists(path) ? sys.FileSystem.stat(path).size : 0;
 	}
 
 	static function listed(name:String, held:Array<String>):String {
@@ -228,7 +278,7 @@ class Icons {
 		for (index in 0...held.length) {
 			final said = "\"" + held[index] + "\"" + (index == held.length - 1 ? "" : ",");
 
-			if (line.length + said.length > 100) {
+			if (line.length > 2 && line.length + said.length > 100) {
 				out.add(line + "\n");
 				line = "\t\t";
 			}

@@ -712,7 +712,7 @@ class Run {
 		configure(root, project, spoken);
 		Catalogue.named(project, root, root + "/" + project.generated);
 		Icons.named(project, root + "/" + project.generated);
-		Icons.typefaces(project, root + "/" + project.generated);
+		Icons.typefaces(project, root + "/" + project.generated, root + "/" + project.typefacePath);
 		final xml = nativeXml(root, project);
 
 		for (one in project.targets) {
@@ -962,7 +962,7 @@ class Run {
 		configure(root, project, spoken);
 		Catalogue.named(project, root, root + "/" + project.generated);
 		Icons.named(project, root + "/" + project.generated);
-		Icons.typefaces(project, root + "/" + project.generated);
+		Icons.typefaces(project, root + "/" + project.generated, root + "/" + project.typefacePath);
 		Icons.built(root, project, root + "/" + project.output + "/icons", false);
 
 		final xml = nativeXml(root, project);
@@ -2143,7 +2143,10 @@ class Run {
 				continue;
 			}
 
-			if (!download(ofl + encoded(tail), held)) {
+			final base = face.commit == "" ? ofl
+				: "https://raw.githubusercontent.com/google/fonts/" + face.commit + "/ofl/";
+
+			if (!download(base + encoded(tail), held)) {
 				every = false;
 				continue;
 			}

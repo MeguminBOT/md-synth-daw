@@ -324,9 +324,18 @@
 		<face name="RobotoMono.ttf"          from="ofl:robotomono/RobotoMono[wght].ttf" />
 		<face name="OpenSans.ttf"            from="ofl:opensans/OpenSans[wdth,wght].ttf" />
 
-		<face name="NotoSansJP.ttf"          from="ofl:notosansjp/NotoSansJP[wght].ttf" />
-		<face name="NotoSansSC.ttf"          from="ofl:notosanssc/NotoSansSC[wght].ttf" />
-		<face name="NotoSansKR.ttf"          from="ofl:notosanskr/NotoSansKR[wght].ttf" />
+		<!-- one language each needs these and nothing else does, so the installer offers them as
+		     choices and the application fetches one when its language is picked without it. The
+		     commit and the hash pin the exact file, which is the file the build ships -->
+		<face name="NotoSansJP.ttf"          from="ofl:notosansjp/NotoSansJP[wght].ttf"
+		      language="ja-JP" commit="295d98a7a0c17c68f1341eaeea354e7960ea70d3"
+		      sha256="c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f" />
+		<face name="NotoSansSC.ttf"          from="ofl:notosanssc/NotoSansSC[wght].ttf"
+		      language="zh-CN" commit="2894aab31764f10f29c421bdfd2340d3b382d384"
+		      sha256="a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da" />
+		<face name="NotoSansKR.ttf"          from="ofl:notosanskr/NotoSansKR[wght].ttf"
+		      language="ko-KR" commit="4efc2774c63917927efe769ca845def6bd6debae"
+		      sha256="194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252" />
 
 		<!-- looked through in this order -->
 		<fallback name="NotoSans.ttf" />

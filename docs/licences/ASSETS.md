@@ -96,9 +96,9 @@ place, as `<condensed>`.
 | Work Sans | SIL OFL 1.1 | 2026-09-03 | github.com/google/fonts, `ofl/worksans` |
 | Roboto Mono | SIL OFL 1.1 | 2026-09-03 | github.com/google/fonts, `ofl/robotomono` |
 | Open Sans | SIL OFL 1.1 | 2026-09-03 | github.com/google/fonts, `ofl/opensans` |
-| Noto Sans JP | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosansjp` |
-| Noto Sans SC | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosanssc` |
-| Noto Sans KR | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosanskr` |
+| Noto Sans JP | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosansjp` at `295d98a` |
+| Noto Sans SC | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosanssc` at `2894aab` |
+| Noto Sans KR | SIL OFL 1.1 | 2026-09-07 | github.com/google/fonts, `ofl/notosanskr` at `4efc277` |
 
 The last three are not interface faces and are never chosen in preferences. They are the fallback
 chain: a glyph the chosen face has no outline for is cut from the first of them that does, one
