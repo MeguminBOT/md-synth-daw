@@ -42,6 +42,16 @@ final class Menus {
 	public var onSave:Null<Void -> Void> = null;
 
 	/**
+		Asked for the pieces opened most recently, newest first, as the file menu is built.
+	**/
+	public var onRecent:Null<Void -> Array<String>> = null;
+
+	/**
+		Called with the one chosen out of those.
+	**/
+	public var onOpen:Null<String -> Void> = null;
+
+	/**
 		Called to quit.
 	**/
 	public var onQuit:Null<Void -> Void> = null;
@@ -109,6 +119,51 @@ final class Menus {
 	}
 
 	/**
+		@param path A piece on disk.
+		@return What to call it in the menu: the file, and the folder holding it where
+			that is what tells two of the same name apart.
+	**/
+	static function named(path:String):String {
+		final leaf = haxe.io.Path.withoutDirectory(path);
+		final folder = haxe.io.Path.withoutDirectory(haxe.io.Path.directory(path));
+
+		return folder == "" ? leaf : folder + " / " + leaf;
+	}
+
+	/**
+		Offers the pieces opened most recently, as a menu that opens beside this one.
+
+		The list is asked for as the menu is built rather than kept here, so it is whatever
+		was opened up to now. Nothing on it is opened at startup: it is somewhere to go
+		back to, not somewhere to be taken.
+
+		@param file The file menu.
+	**/
+	function again(file:Menu):Void {
+		final held = onRecent == null ? [] : onRecent();
+		final choice = file.offer(new Choice(said(Locale.FILE_OPEN_RECENT)));
+
+		if (held.length == 0) {
+			choice.enabled = false;
+			choice.reason = said(Locale.FILE_NO_RECENT);
+
+			return;
+		}
+
+		final list = new Menu();
+
+		for (where in held) {
+			final path = where;
+			final one = list.offer(new Choice(named(path)));
+
+			one.reason = path;
+			fired(one, function():Void if (onOpen != null) onOpen(path));
+		}
+
+		choice.submenu = list;
+	}
+
+	/**
 		Builds the file and edit menus.
 	**/
 	function commands():Void {
@@ -118,6 +173,8 @@ final class Menus {
 			if (onNew != null) onNew());
 		fired(file.offer(new Choice(said(Locale.FILE_OPEN), Bindings.of(bindings, Bindings.OPEN))), function():Void
 			asks(Files.OPEN));
+		again(file);
+
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE), Bindings.of(bindings, Bindings.SAVE))), function():Void
 			saves());
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE_AS))), function():Void

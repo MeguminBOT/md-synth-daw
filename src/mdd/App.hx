@@ -73,6 +73,38 @@ class App {
 	final progress:Working = new Working();
 	final presence:Presence = new Presence();
 
+	/**
+		The host monitor is off: the status bar says nothing about what this is costing.
+	**/
+	public static inline final MONITOR_OFF = 0;
+
+	/**
+		The host monitor shows what it always showed: processor, memory, graphics load and
+		how much sound is waiting to be played.
+	**/
+	public static inline final MONITOR_PLAIN = 1;
+
+	/**
+		The host monitor shows all of that, and the high water mark of memory, the graphics
+		memory held, and which renderer backend is drawing.
+	**/
+	public static inline final MONITOR_EVERYTHING = 2;
+
+	var monitoring:Int = MONITOR_PLAIN;
+
+	/**
+		How many pieces the file menu offers to open again.
+	**/
+	public static inline final RECENT = 10;
+
+	/**
+		The pieces opened most recently, newest first. It is what the file menu offers and
+		nothing else: none of them is opened on its own at startup, which is deliberate.
+		A piece takes a while to load and the one wanted next is rarely the one left open
+		last, so the choice stays with the reader.
+	**/
+	public final recent:Array<String> = [];
+
 	var rendering:Null<mdd.play.Mixdown> = null;
 	var running:Bool = true;
 	var last:Float = 0;
@@ -377,6 +409,16 @@ class App {
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
 
+		panels.preferences.onHostMonitor = function(which:Int):Void {
+			monitoring = which;
+
+			usageAt = 0;
+			usageSaid = "";
+
+			costed();
+			keeps();
+		};
+
 		panels.preferences.onPresence = function(which:Int):Void {
 			presence.level = which;
 			presence.tick(Presence.DIAL_EVERY);
@@ -476,6 +518,8 @@ class App {
 		menus.update = update;
 		menus.onAsk = function(which:Int):Void files.ask(stage.window, which);
 		menus.onSave = function():Void keeping();
+		menus.onRecent = function():Array<String> return recent;
+		menus.onOpen = function(where:String):Void opens(where);
 		menus.onQuit = function():Void running = false;
 		menus.onRelabel = function():Void relabel();
 		menus.onUndo = function():Void undone();
@@ -580,6 +624,21 @@ class App {
 
 		@param song The piece.
 	**/
+	/**
+		Puts a piece at the top of the list the file menu offers, and drops the oldest
+		where that makes it too long.
+
+		@param where The file it was read from, which is empty for a piece never saved.
+	**/
+	function remembers(where:String):Void {
+		if (where == "") return;
+
+		recent.remove(where);
+		recent.unshift(where);
+
+		while (recent.length > RECENT) recent.pop();
+	}
+
 	function loaded(song:Song):Void {
 		final held = session == null ? Session.UNITY : session.master;
 		final automates = session == null ? Session.LANES : session.automating;
@@ -597,6 +656,7 @@ class App {
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
 
 		files.follows(session);
+		remembers(files.path);
 
 		session.master = held;
 		session.automating = automates;
@@ -1026,9 +1086,13 @@ class App {
 
 		usageAt = now;
 
+		if (monitoring == MONITOR_OFF) {
+			usageSaid = "";
+			return usageSaid;
+		}
+
 		final cpu = Usage.cpu();
 		final ram = Usage.ram();
-		final gpu = Usage.gpu();
 
 		if (cpu < 0 && ram < 0) {
 			usageSaid = "";
@@ -1036,12 +1100,28 @@ class App {
 		}
 
 		var held = "cpu " + Math.round(cpu) + "%   ram " + Math.round(ram) + " MB";
+
+		if (monitoring == MONITOR_EVERYTHING) {
+			final peak = Usage.peak();
+			if (peak >= 0) held += "   peak " + Math.round(peak) + " MB";
+		}
+
+		final gpu = Usage.gpu();
 		if (gpu >= 0) held += "   gpu " + Math.round(gpu) + "%";
+
+		if (monitoring == MONITOR_EVERYTHING) {
+			final vram = Usage.vram();
+			if (vram >= 0) held += "   vram " + Math.round(vram) + " MB";
+		}
 
 		final render = sound.render;
 
 		if (render != null && render.rate > 0 && render.leastHeld > 0) {
 			held += "   ring " + Math.round(render.leastHeld * 1000.0 / render.rate) + " ms";
+		}
+
+		if (monitoring == MONITOR_EVERYTHING && stage.renderer != null) {
+			held += "   " + (Sdl.rendererName(stage.renderer) : String);
 		}
 
 		usageSaid = held;
@@ -1121,6 +1201,20 @@ class App {
 		final backups = settings.asWhole("backups", 3);
 		final backupAge = settings.asWhole("backupAge", 2);
 		final looks = settings.asFlag("update", true);
+		final watching = settings.asWhole("hostMonitor", MONITOR_PLAIN);
+
+		recent.resize(0);
+
+		for (held in settings.of("recent", "").split("|")) {
+			if (held != "" && sys.FileSystem.exists(held)) recent.push(held);
+			if (recent.length >= RECENT) break;
+		}
+
+		monitoring = watching < MONITOR_OFF || watching > MONITOR_EVERYTHING
+			? MONITOR_PLAIN : watching;
+
+		usageAt = 0;
+		usageSaid = "";
 		final automating = settings.asWhole("automating", Session.LANES);
 		final snapping = settings.asWhole("snapping", Session.SIXTEENTH);
 
@@ -1169,6 +1263,7 @@ class App {
 		panels.preferences.chose(Preferences.BACKUPS, backups);
 		panels.preferences.chose(Preferences.BACKUP_AGE, backupAge);
 		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
+		panels.preferences.chose(Preferences.HOST_MONITOR, monitoring);
 
 		keyboards();
 		outputs();
@@ -1242,7 +1337,8 @@ class App {
 		if (stage.shown) settings.flag("maximised", stage.maximised());
 		settings.whole("width", Sdl.windowWidth(stage.window));
 		settings.whole("height", Sdl.windowHeight(stage.window));
-		settings.put("song", files == null ? "" : files.path);
+		settings.put("recent", recent.join("|"));
+		settings.whole("hostMonitor", monitoring);
 		settings.put("language", stage.root.translation.language);
 		settings.put("midi", midiSaid);
 		settings.put("output", outputSaid);

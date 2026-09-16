@@ -75,6 +75,11 @@ final class Preferences extends Widget {
 	public static inline final PART_COLOURS = 25;
 
 	/**
+		Row: how much the status bar says about what this is costing the machine.
+	**/
+	public static inline final HOST_MONITOR = 26;
+
+	/**
 		How many rows there are in all.
 	**/
 	public static inline final ROWS = 26;
@@ -124,7 +129,8 @@ final class Preferences extends Widget {
 		Locale.GROUP_KEYBOARD, Locale.GROUP_SHARING];
 
 	static final GROUPED:Array<Array<Int>> = [
-		[THEME, PART_COLOURS, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER],
+		[THEME, PART_COLOURS, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER,
+			HOST_MONITOR],
 		[AUTOMATING, TAIL, TEMPO, ACCIDENTALS, NOTE_LETTERS],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
@@ -164,10 +170,13 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
 		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE,
-		Locale.PREFERENCE_PART_COLOURS];
+		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
+
+	static final MONITORS:Array<Locale> = [Locale.MONITOR_OFF, Locale.MONITOR_PLAIN,
+		Locale.MONITOR_EVERYTHING];
 
 	static final ASSOCIATES:Array<Locale> = [Locale.ASSOCIATE_NO, Locale.ASSOCIATE_YES];
 
@@ -357,6 +366,11 @@ final class Preferences extends Widget {
 	public var presence(default, null):Int = mdd.app.Presence.FULL;
 
 	/**
+		How much the status bar says about what this is costing the machine.
+	**/
+	public var hostMonitor(default, null):Int = mdd.App.MONITOR_PLAIN;
+
+	/**
 		What the presence connection is doing.
 	**/
 	public var presenceSaid:String = "";
@@ -460,6 +474,11 @@ final class Preferences extends Widget {
 		Called when how much Discord is told changes.
 	**/
 	public var onPresence:Null<Int -> Void> = null;
+
+	/**
+		Called when how much the status bar says about the machine changes.
+	**/
+	public var onHostMonitor:Null<Int -> Void> = null;
 
 	/**
 		Called when a chord changes.
@@ -994,6 +1013,7 @@ final class Preferences extends Widget {
 			case ACCIDENTALS: ACCIDENTAL_NAMES;
 			case NOTE_LETTERS: LETTER_NAMES;
 			case PRESENCE: PRESENCES;
+			case HOST_MONITOR: MONITORS;
 			case ASSOCIATE: ASSOCIATES;
 			case _: NO_KEYS;
 		}
@@ -1220,6 +1240,10 @@ final class Preferences extends Widget {
 			case PRESENCE:
 				presence = which;
 				if (onPresence != null) onPresence(which);
+
+			case HOST_MONITOR:
+				hostMonitor = which;
+				if (onHostMonitor != null) onHostMonitor(which);
 
 			case ASSOCIATE:
 				if (which > 0) Associations.takes();
