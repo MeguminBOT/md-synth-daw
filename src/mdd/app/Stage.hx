@@ -313,7 +313,12 @@ final class Stage {
 
 		shed();
 
-		for (name in Typeface.FALLBACK) spare.adds(where + "/" + name);
+		final fetched = mdd.app.Faces.keptFolder();
+
+		for (name in Typeface.FALLBACK) {
+			spare.adds(where + "/" + name);
+			spare.adds(fetched + "/" + name);
+		}
 
 		if (!baked(metrics, where, scale * textScale)) {
 			Sys.println("mdd: the fonts would not bake");
@@ -433,6 +438,22 @@ final class Stage {
 		Bakes the faces again, which changing the pairing or the density needs.
 	**/
 	public function redressed():Void {
+		if (!faces(root.metrics)) return;
+
+		drawn();
+		measured();
+		root.reshape();
+	}
+
+	/**
+		Reads the fallback faces from disk again and bakes everything, which a face fetched
+		since they were read needs: the list already names where it would be, but a face is
+		only looked for when the list is first read, and every glyph that missed before is
+		remembered as missing until the faces are baked again.
+	**/
+	public function refaced():Void {
+		spare.shut();
+
 		if (!faces(root.metrics)) return;
 
 		drawn();

@@ -439,6 +439,11 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   with the last folder already filled in and how much disk space the install takes. Uninstalling
   removes the whole install folder, so if you pick a folder that already has other files in it,
   the installer makes a folder of its own inside it and tells you.
+- **A language whose font is missing still shows up.** The first run sheet and the preferences list
+  it with the size of its font. Picking it downloads the font from the commit the build pins,
+  checks the SHA-256 before the file is used, and switches language once it lands. A download that
+  fails or does not match is deleted and says so. A language saved in the settings whose font has
+  gone since starts the application in English rather than drawing nothing.
 - **A translatable interface.** Every string it shows comes from one table rather than from
   the code, so adding a language is a file rather than a change to the program. Hardware and
   format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation

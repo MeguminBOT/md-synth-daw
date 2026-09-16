@@ -31,6 +31,12 @@ final class Welcome extends Widget {
 	public final languages:Array<String> = Languages.shipped();
 
 	/**
+		What each of them is called on the sheet, in the same order. Empty until it is given
+		one, which draws each in its own name.
+	**/
+	public var names:Array<String> = [];
+
+	/**
 		Which language is chosen.
 	**/
 	public var chosen(default, null):Int = 0;
@@ -106,6 +112,19 @@ final class Welcome extends Widget {
 
 		root.start(rise, 1, Motion.ENTER);
 		root.start(fade, 1, Motion.ENTER);
+	}
+
+	/**
+		Moves the choice without starting the sheet over, which a language that could not
+		be spoken yet needs: the row goes back to the one being read.
+
+		@param code The language to show as chosen.
+	**/
+	public function marks(code:String):Void {
+		final at = languages.indexOf(code);
+		chosen = at < 0 ? 0 : at;
+
+		invalidate();
 	}
 
 	/**
@@ -444,7 +463,8 @@ final class Welcome extends Widget {
 				metrics.radiusRow);
 
 			paint.reface(font);
-			paint.text(Languages.named(languages[at]), x + metrics.inset * 2,
+			paint.text(at < names.length ? names[at] : Languages.named(languages[at]),
+				x + metrics.inset * 2,
 				top + (tall - font.height) * 0.5 + font.ascent,
 				at == chosen ? theme.ink : theme.dim, alpha);
 

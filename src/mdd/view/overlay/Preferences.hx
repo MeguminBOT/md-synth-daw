@@ -244,7 +244,7 @@ final class Preferences extends Widget {
 	public var session:Session;
 
 	/**
-		The languages that ship.
+		What each language that ships is called on the sheet.
 	**/
 	public final languages:Array<String> = [];
 
@@ -266,7 +266,7 @@ final class Preferences extends Widget {
 		"OpenGL", "OpenGL ES"];
 
 	/**
-		What each language is called, in itself.
+		The code of each language that ships, in the same order.
 	**/
 	public final spoken:Array<String> = [];
 
@@ -585,13 +585,18 @@ final class Preferences extends Widget {
 
 		@param codes The language codes.
 		@param code Which one is spoken now.
+		@param names What to call each of them, in the same order, or null for each one's
+			own name. A language whose face is not here cannot be drawn in its own name.
 	**/
-	public function speaks(codes:Array<String>, code:String):Void {
+	public function speaks(codes:Array<String>, code:String,
+			names:Null<Array<String>> = null):Void {
 		languages.resize(0);
 		spoken.resize(0);
 
-		for (held in codes) {
-			languages.push(Languages.named(held));
+		for (at in 0...codes.length) {
+			final held = codes[at];
+
+			languages.push(names != null && at < names.length ? names[at] : Languages.named(held));
 			spoken.push(held);
 		}
 

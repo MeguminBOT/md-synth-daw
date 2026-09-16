@@ -39,6 +39,8 @@ class LangCheck {
 		drawable(shipped, args.length > 0 ? args[0] : Gate.root);
 		scripted(args.length > 0 ? args[0] : Gate.root);
 		crowded(args.length > 0 ? args[0] : Gate.root);
+		pinned(args.length > 0 ? args[0] : Gate.root);
+		fetched();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -79,6 +81,128 @@ class LangCheck {
 		says("korean and english still break between words",
 			spoken == korean.lastIndexOf(" ", hangul) && written == latin.lastIndexOf(" ", 12),
 			"at " + spoken + " and at " + written);
+	}
+
+	/**
+		The faces a language can download are the faces the build ships.
+
+		An installer can leave one out and the application fetches it again from the commit
+		the build file pins, checked against the hash pinned beside it. Where the file in
+		`vendor/fonts` is not that file, a full install and a download would disagree, and the
+		download would be refused on every machine the moment the pin went stale.
+
+		@param root The repository root.
+	**/
+	static function pinned(root:String):Void {
+		final names = mdd.Typeface.LANGUAGE_FACES;
+		var matched = 0;
+		var weighed = 0;
+		var said = "";
+
+		for (at in 0...names.length) {
+			final path = root + "/vendor/fonts/" + names[at];
+
+			if (!sys.FileSystem.exists(path)) {
+				said += " " + names[at] + " is not fetched";
+				continue;
+			}
+
+			final bytes = sys.io.File.getBytes(path);
+
+			if (haxe.crypto.Sha256.make(bytes).toHex().toLowerCase()
+				== mdd.Typeface.LANGUAGE_FACE_SHA256[at]) {
+				matched++;
+			} else {
+				said += " " + names[at] + " is not the pinned file";
+			}
+
+			if (bytes.length == mdd.Typeface.LANGUAGE_FACE_BYTES[at]) weighed++;
+		}
+
+		says("downloadable faces are the ones that ship",
+			names.length > 0 && matched == names.length && weighed == names.length,
+			matched + " of " + names.length + " match their pins and " + weighed
+			+ " their sizes" + said);
+
+		var named = 0;
+
+		for (code in mdd.Typeface.LANGUAGE_FACE_FOR) {
+			if (Languages.known(code) && Languages.called(code) >= 0) named++;
+		}
+
+		says("and each of their languages has a name",
+			named == mdd.Typeface.LANGUAGE_FACE_FOR.length,
+			named + " of " + mdd.Typeface.LANGUAGE_FACE_FOR.length
+			+ " ship and have a name that draws without their face");
+	}
+
+	/**
+		A language whose face is missing is known to be, and a download only lands where it
+		is the file it should be.
+
+		The download is driven through `file://`, which curl reads the same way as the network
+		and which needs no connection, so the check answers for the part this repository wrote:
+		the partial name, the hash, and what is left behind when either goes wrong.
+	**/
+	static function fetched():Void {
+		final into = "R:/tmp/mdd-gate-faces";
+		final installed = into + "/installed";
+		final kept = into + "/kept";
+
+		mdd.host.Paths.clear(into);
+		mdd.host.Paths.make(installed);
+
+		final faces = new mdd.app.Faces(installed, kept);
+		final code = mdd.Typeface.LANGUAGE_FACE_FOR[0];
+		final name = mdd.Typeface.LANGUAGE_FACES[0];
+
+		final missing = faces.absent(Languages.shipped());
+
+		says("a language without its face is missing",
+			!faces.present(code) && faces.present("en-GB") && faces.present("sv-SE")
+			&& missing.length == mdd.Typeface.LANGUAGE_FACES.length,
+			missing.join(", ") + " need a face, and English and Swedish never do");
+
+		mdd.host.Paths.make(kept);
+		sys.io.File.saveContent(kept + "/" + name, "a face");
+
+		says("and one fetched before is found", faces.present(code),
+			name + " under the userdata folder counts as much as one in the install");
+
+		mdd.host.Paths.clear(kept);
+
+		final source = into + "/source.bin";
+		final body = haxe.io.Bytes.ofString("not really a face, but bytes all the same");
+		sys.io.File.saveBytes(source, body);
+
+		final want = haxe.crypto.Sha256.make(body).toHex().toLowerCase();
+		final address = "file:///" + source;
+		final where = kept + "/" + name;
+
+		final landed = mdd.app.Faces.into(address, want, where);
+
+		says("a download that matches lands",
+			landed == mdd.app.Faces.FETCHED && sys.FileSystem.exists(where)
+			&& !sys.FileSystem.exists(where + ".part") && faces.present(code),
+			"settled at " + landed + ", in place, with no partial file left");
+
+		mdd.host.Paths.clear(where);
+
+		final wrong = mdd.app.Faces.into(address, "00" + want.substr(2), where);
+
+		says("and one that does not is deleted",
+			wrong == mdd.app.Faces.BROKEN && !sys.FileSystem.exists(where)
+			&& !sys.FileSystem.exists(where + ".part"),
+			"settled at " + wrong + ", and neither the face nor the partial file is there");
+
+		final gone = mdd.app.Faces.into("file:///" + into + "/nowhere.bin", want, where);
+
+		says("and one that never arrives leaves nothing",
+			gone == mdd.app.Faces.UNREACHABLE && !sys.FileSystem.exists(where)
+			&& !sys.FileSystem.exists(where + ".part"),
+			"settled at " + gone + " with nothing written");
+
+		mdd.host.Paths.clear(into);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

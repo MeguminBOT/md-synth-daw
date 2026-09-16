@@ -2,6 +2,7 @@ package mdd;
 
 import mdd.app.Bindings;
 import mdd.app.Files;
+import mdd.app.Faces;
 import mdd.app.Filming;
 import mdd.app.Keyboard;
 import mdd.app.Mapping;
@@ -65,6 +66,11 @@ class App {
 	var update:Null<Update> = null;
 
 	var firstRun:Bool = false;
+
+	/**
+		The faces a language needs that may not be installed, and the download of one.
+	**/
+	var faces:Null<Faces> = null;
 	var asking:cpp.Star<mdd.host.Chooser> = null;
 	var asked:Int = -1;
 
@@ -492,9 +498,12 @@ class App {
 		};
 
 		panels.preferences.onSpeak = function(code:String):Void {
+			if (downloads(code)) return;
+
 			Languages.speak(stage.root.translation, code);
 			settings.put("language", code);
 
+			listed(code);
 			relabel();
 			stage.root.reshape();
 		};
@@ -1081,13 +1090,138 @@ class App {
 
 	/**
 		Loads the language the settings ask for.
+
+		A language whose face is not here is not spoken, whether the settings named it or
+		the account's own language did: every word would draw as nothing. The first run
+		sheet and the preferences still list it, with what picking it downloads.
 	**/
 	function spoken():Void {
+		faces = new Faces(stage.fonts(), Faces.keptFolder());
+
 		final held = settings.of("language", "");
-		final code = held != "" && Languages.known(held) ? held : Languages.guessed();
+		var code = held != "" && Languages.known(held) ? held : Languages.guessed();
+
+		if (!faces.present(code)) code = Languages.first();
 
 		Languages.speak(stage.root.translation, code);
-		panels.preferences.speaks(Languages.shipped(), code);
+		listed(code);
+	}
+
+	/**
+		Gives both language lists what to call every language, in the language now in force.
+
+		@param code Which language is spoken now.
+	**/
+	function listed(code:String):Void {
+		final codes = Languages.shipped();
+		final names = [for (held in codes) nameOf(held)];
+
+		panels.preferences.speaks(codes, code, names);
+
+		final welcome = panels.welcome;
+		if (welcome != null) welcome.names = names;
+	}
+
+	/**
+		@param code A language code.
+		@return What a language list calls it: its own name, or, where its face is not here,
+			its name in the language in force and how much picking it downloads.
+	**/
+	function nameOf(code:String):String {
+		if (faces == null || faces.present(code)) return Languages.named(code);
+
+		final key = Languages.called(code);
+		final named = key < 0 ? code : stage.root.translate(key);
+		final megabytes = Math.round(Faces.bytesOf(code) / 1048576);
+
+		return Translation.filled(stage.root.translate(Locale.LANGUAGE_DOWNLOAD),
+			[named, "" + megabytes]);
+	}
+
+	/**
+		Starts fetching the face a picked language needs, where it is not here, and puts the
+		lists back on the language being read until it lands.
+
+		@param code The language that was picked.
+		@return Whether a download stands in for the picking.
+	**/
+	function downloads(code:String):Bool {
+		if (faces == null || faces.present(code)) return false;
+
+		final now = stage.root.translation.language;
+
+		listed(now);
+		if (panels.welcome != null) panels.welcome.marks(now);
+
+		if (!faces.fetches(code)) return true;
+
+		final key = Languages.called(code);
+		shows(Locale.WORKING_FONT, key < 0 ? code : stage.root.translate(key));
+		session.changed();
+
+		return true;
+	}
+
+	/**
+		Moves the progress bar on while a face downloads.
+
+		@param since How long since the last frame.
+		@return Whether one is downloading.
+	**/
+	function facing(since:Float):Bool {
+		if (faces == null || faces.state() != Faces.FETCHING) return false;
+
+		task.holds(faces.pulling());
+		progress.advance(since);
+
+		return true;
+	}
+
+	/**
+		Acts on a face download that has finished: speaks the language it was for, or says
+		why it cannot.
+
+		@return Whether anything happened.
+	**/
+	function faced():Bool {
+		if (faces == null) return false;
+
+		final now = faces.state();
+		if (now == Faces.IDLE || now == Faces.FETCHING) return false;
+
+		final code = faces.language;
+		final key = Languages.called(code);
+		final named = key < 0 ? code : stage.root.translate(key);
+
+		faces.forget();
+		settled();
+
+		if (now != Faces.FETCHED) {
+			session.says(now == Faces.BROKEN ? Locale.SAID_FONT_BROKEN : Locale.SAID_FONT_UNREACHABLE,
+				named);
+			session.changed();
+			return true;
+		}
+
+		stage.refaced();
+		Languages.speak(stage.root.translation, code);
+
+		final welcome = panels.welcome;
+
+		if (welcome != null && stage.root.sheet == welcome) {
+			welcome.marks(code);
+		} else {
+			settings.put("language", code);
+			keeps();
+		}
+
+		listed(code);
+		relabel();
+		stage.root.reshape();
+
+		session.says(Locale.SAID_FONT_FETCHED, Languages.named(code));
+		session.changed();
+		return true;
 	}
 
 	/**
@@ -1098,10 +1232,13 @@ class App {
 
 		final welcome = new Welcome(session);
 		panels.welcome = welcome;
+		listed(stage.root.translation.language);
 
 		welcome.onChoose = function(code:String):Void {
+			if (downloads(code)) return;
+
 			Languages.speak(stage.root.translation, code);
-			panels.preferences.speaks(Languages.shipped(), code);
+			listed(code);
 
 			relabel();
 			stage.root.reshape();
@@ -1804,9 +1941,9 @@ class App {
 				stage.root.soil();
 			}
 			folded();
-			if (rendered(since) || pulling(since)) stage.root.soil();
+			if (rendered(since) || pulling(since) || facing(since)) stage.root.soil();
 			if (files != null && files.tick(since)) stage.root.soil();
-			if (watched()) stage.root.soil();
+			if (watched() || faced()) stage.root.soil();
 			watch();
 
 			final showing = bounce.running() ? bounce : task;

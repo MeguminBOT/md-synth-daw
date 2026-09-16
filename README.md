@@ -247,6 +247,11 @@ application does, and an honest list of what it does not do and why.
 Pick one on the first run, or change it later in preferences. The interface falls back to
 English for anything a language does not carry.
 
+Japanese, Simplified Chinese and Korean each need a font of their own: 9 MB, 17 MB and 10 MB. If
+you pick one that isn't installed, the application downloads its font from the exact commit the
+build ships, checks it against the SHA-256 pinned in the build, and switches once it's in place.
+Every other language needs no extra font and is always installed.
+
 | Language | Code | Translated by |
 | --- | --- | --- |
 | English (United Kingdom) | `en-GB` | written here, and the language every other one is measured against |

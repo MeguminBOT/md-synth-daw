@@ -38,6 +38,22 @@ class Languages {
 	}
 
 	/**
+		@param code A language code.
+		@return The string naming it in whichever language is in force, or -1 where there is
+			none. Only a language needing a face of its own has one: its own name is written
+			in that face, so it cannot be drawn until the face is here, and the list has to
+			call it something that can.
+	**/
+	public static function called(code:String):Int {
+		return switch (code) {
+			case "ja-JP": Locale.LANGUAGE_NAME_JA_JP;
+			case "zh-CN": Locale.LANGUAGE_NAME_ZH_CN;
+			case "ko-KR": Locale.LANGUAGE_NAME_KO_KR;
+			case _: -1;
+		}
+	}
+
+	/**
 		Loads a language into a table, falling back to the first for any key it does not
 		carry.
 
