@@ -409,6 +409,7 @@ class App {
 		panels.preferences.onKeeping = function(every:Float):Void files.every = every;
 		panels.preferences.onBackups = function():Void backing();
 		panels.preferences.onAutomating = function(which:Int):Void keeps();
+		panels.preferences.onRightClick = function():Void keeps();
 		panels.preferences.onUpdates = function(on:Bool):Void {
 			settings.flag("update", on);
 			settings.save();
@@ -859,6 +860,7 @@ class App {
 		final snaps = session == null ? Session.SIXTEENTH : session.snapping;
 		final notes = session == null ? 0 : session.notation;
 		final palette = session == null ? 0 : session.partColours;
+		final rightly = session == null ? Session.DELETES : session.rightClick;
 
 		sound.stop();
 
@@ -877,6 +879,7 @@ class App {
 		session.snapping = snaps;
 		session.notation = notes;
 		session.partColours = palette;
+		session.rightClick = rightly;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -1460,6 +1463,8 @@ class App {
 
 		sound.monitors(Session.gainOf(session.master));
 		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
+		session.rightClick = settings.asWhole("rightClick", Session.DELETES) == Session.OPENS
+			? Session.OPENS : Session.DELETES;
 		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
 
 		stage.root.theme.wear(which);
@@ -1478,6 +1483,7 @@ class App {
 		panels.preferences.chose(Preferences.BACKUP_AGE, backupAge);
 		panels.preferences.chose(Preferences.UPDATES, looks ? 1 : 0);
 		panels.preferences.chose(Preferences.HOST_MONITOR, monitoring);
+		panels.preferences.chose(Preferences.RIGHT_CLICK, session.rightClick);
 
 		keyboards();
 		outputs();
@@ -1539,6 +1545,7 @@ class App {
 		settings.whole("partColours", session.partColours);
 		settings.whole("motion", session.motion);
 		settings.whole("automating", session.automating);
+		settings.whole("rightClick", session.rightClick);
 		settings.whole("snapping", session.snapping);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("textSize", panels.preferences.textSize);

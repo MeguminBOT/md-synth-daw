@@ -2268,6 +2268,60 @@ class SpineCheck {
 			+ " px and the roll keeps " + Math.round(roll.grid()));
 	}
 
+	/**
+		What the right hand button does to a clip, which is a preference because it is a
+		habit rather than a rule.
+
+		Removing outright is what this has always done and is what stays; opening the menu
+		is what every other sequencer does with that button, and somebody arriving from one
+		will have taken a clip off the playlist before working out why.
+	**/
+	static function buttoned(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		centre.show(Centre.PLAYLIST);
+
+		final list = centre.playlist;
+		final track = session.song.tracks[0];
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		track.clips.resize(0);
+		track.add(new mdd.song.Clip(0, 0, 384));
+
+		final px = list.atTick(192);
+		final py = list.atTrack(0) + (list.atTrack(1) - list.atTrack(0)) * 0.5;
+
+		says("a clip is where the pointer says", list.clipAt(px, py) != null,
+			"the clip on the first row covers the point the presses are aimed at");
+
+		session.rightClick = mdd.app.Session.DELETES;
+
+		tree.pressed(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.released(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("removing a clip is the default", track.clips.length == 0
+			&& tree.popups.length == 0,
+			"the clip is gone and no menu was opened");
+
+		session.undo();
+		session.rightClick = mdd.app.Session.OPENS;
+
+		tree.pressed(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+		tree.released(px, py, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+		says("and opens the menu where asked", track.clips.length == 1
+			&& tree.popups.length == 1,
+			"the clip is still there and a menu of "
+			+ (tree.popups.length == 0 ? 0 : tree.popups[0].commands()) + " is open on it");
+
+		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
+
+		session.rightClick = mdd.app.Session.DELETES;
+		track.clips.resize(0);
+		session.history.clear();
+	}
+
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
 		final held = new mdd.view.overlay.Preferences(session);
 
@@ -2309,6 +2363,18 @@ class SpineCheck {
 		says("a category shows its own rows", held.rowsIn().length == wanted
 			&& held.rowsIn()[0] == mdd.view.overlay.Preferences.KEEPING,
 			"Files carries " + held.rowsIn().length + " rows, the first being autosave");
+
+		final clicking = mdd.view.overlay.Preferences.RIGHT_CLICK;
+		final wasClicking = session.rightClick;
+
+		held.chose(clicking, mdd.app.Session.OPENS);
+
+		says("a preference reaches its reader",
+			session.rightClick == mdd.app.Session.OPENS
+			&& held.holding(clicking) == mdd.app.Session.OPENS,
+			"the row and the session agree that the right button opens a clip's menu");
+
+		held.chose(clicking, wasClicking);
 
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 
@@ -3831,6 +3897,7 @@ class SpineCheck {
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
+		buttoned(tree, session, centre);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		commanded(tree, session, centre);

@@ -80,9 +80,14 @@ final class Preferences extends Widget {
 	public static inline final HOST_MONITOR = 26;
 
 	/**
+		Row: what right clicking a clip on the playlist does.
+	**/
+	public static inline final RIGHT_CLICK = 27;
+
+	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 26;
+	public static inline final ROWS = 28;
 
 	/**
 		What each choice of the text size row multiplies the faces by.
@@ -131,7 +136,7 @@ final class Preferences extends Widget {
 	static final GROUPED:Array<Array<Int>> = [
 		[THEME, PART_COLOURS, TYPEFACE, MOTION, DENSITY, TEXT_SIZE, LANGUAGE, RENDERER,
 			HOST_MONITOR],
-		[AUTOMATING, TAIL, TEMPO, ACCIDENTALS, NOTE_LETTERS],
+		[AUTOMATING, TAIL, RIGHT_CLICK, TEMPO, ACCIDENTALS, NOTE_LETTERS],
 		#if mac
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS],
 		#else
@@ -170,13 +175,17 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_TEMPO, Locale.PREFERENCE_PRESENCE, Locale.PREFERENCE_ASSOCIATE,
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
 		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE,
-		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR];
+		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR,
+		Locale.PREFERENCE_RIGHT_CLICK];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
 
 	static final MONITORS:Array<Locale> = [Locale.MONITOR_OFF, Locale.MONITOR_PLAIN,
 		Locale.MONITOR_EVERYTHING];
+
+	static final RIGHT_CLICKS:Array<Locale> = [Locale.RIGHT_CLICK_DELETES,
+		Locale.RIGHT_CLICK_MENU];
 
 	static final ASSOCIATES:Array<Locale> = [Locale.ASSOCIATE_NO, Locale.ASSOCIATE_YES];
 
@@ -414,6 +423,11 @@ final class Preferences extends Widget {
 		Called when looking for updates is turned on or off.
 	**/
 	public var onUpdates:Null<Bool -> Void> = null;
+
+	/**
+		Called when what right clicking a clip does has changed.
+	**/
+	public var onRightClick:Null<Void -> Void> = null;
 
 	/**
 		Called when automation moves between lanes and clips.
@@ -1014,6 +1028,7 @@ final class Preferences extends Widget {
 			case NOTE_LETTERS: LETTER_NAMES;
 			case PRESENCE: PRESENCES;
 			case HOST_MONITOR: MONITORS;
+			case RIGHT_CLICK: RIGHT_CLICKS;
 			case ASSOCIATE: ASSOCIATES;
 			case _: NO_KEYS;
 		}
@@ -1035,7 +1050,7 @@ final class Preferences extends Widget {
 			case MIDI_CHANNEL: channels();
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
 				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS, NOTE_LETTERS,
-				PART_COLOURS: NOTHING;
+				PART_COLOURS, RIGHT_CLICK: NOTHING;
 			case _: languages;
 		}
 	}
@@ -1141,6 +1156,7 @@ final class Preferences extends Widget {
 			case ACCIDENTALS: mdd.song.Notation.accidentalsOf(session.notation);
 			case NOTE_LETTERS: mdd.song.Notation.lettersOf(session.notation);
 			case PRESENCE: presence;
+			case RIGHT_CLICK: session.rightClick;
 			case ASSOCIATE: associated ? 1 : 0;
 			case RENDERER: renderer;
 			case TEXT_SIZE: textSize;
@@ -1244,6 +1260,10 @@ final class Preferences extends Widget {
 			case HOST_MONITOR:
 				hostMonitor = which;
 				if (onHostMonitor != null) onHostMonitor(which);
+
+			case RIGHT_CLICK:
+				session.rightClick = which == Session.OPENS ? Session.OPENS : Session.DELETES;
+				if (onRightClick != null) onRightClick();
 
 			case ASSOCIATE:
 				if (which > 0) Associations.takes();

@@ -205,6 +205,22 @@ final class Session {
 	public var partColours:Int = 0;
 
 	/**
+		Right clicking a clip takes it off the playlist, with undo the only way back.
+	**/
+	public static inline final DELETES = 0;
+
+	/**
+		Right clicking a clip opens the menu that is otherwise behind the triangle in its
+		corner, which is what every other sequencer does with that button.
+	**/
+	public static inline final OPENS = 1;
+
+	/**
+		Which of those two.
+	**/
+	public var rightClick:Int = DELETES;
+
+	/**
 		How much motion the interface uses.
 	**/
 	public var motion:Int = 0;

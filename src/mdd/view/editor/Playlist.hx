@@ -616,13 +616,21 @@ final class Playlist extends Widget {
 		}
 
 		if (event.button == Pointer.Right) {
-			if (under != null) {
-				picked.drops(under);
-				if (chosen == under) chosen = picked.lead();
+			if (under == null) return true;
 
-				session.does(new RemoveClip(which, under));
+			if (session.rightClick == Session.OPENS) {
+				alters(under, which, false, false);
+				clipped(under, which, event.x, event.y);
+
 				invalidate();
+				return true;
 			}
+
+			picked.drops(under);
+			if (chosen == under) chosen = picked.lead();
+
+			session.does(new RemoveClip(which, under));
+			invalidate();
 			return true;
 		}
 
