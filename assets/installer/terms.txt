@@ -1,0 +1,62 @@
+{title}: terms of use and licence
+
+Please read these terms before you install. You need to accept them to continue.
+
+IF YOU PAID FOR THIS SOFTWARE, YOU'VE BEEN SCAMMED
+
+{title} is free, and it will always be free and open source. Nobody sells it on behalf of its
+author, and there is no paid edition, licence key or subscription. If someone charged you for it,
+ask for your money back and report the seller wherever you paid.
+
+ONLY INSTALL A COPY FROM THE OFFICIAL PAGE
+
+The official place to download {title} is:
+{releases}
+
+If you're not sure where this installer came from, or whether it can be trusted, don't run it.
+Close it and download {title} again from the page above. A copy from anywhere else may have been
+changed, and a changed copy can do things the real one never does. Every official release lists a
+SHA-256 checksum for each file, so you can check that your download is the file that was published.
+
+FREE AND OPEN SOURCE
+
+{title} is released under the MIT licence, printed in full at the end of these terms. You may use it
+for any purpose, including music you sell, without paying anything or asking permission. The source
+code is public at:
+{source}
+
+NO WARRANTY, AND NO LIABILITY
+
+{title} is provided as is, without warranty of any kind. The author and collaborators of {title} are
+not responsible for any issues that may arise from installing or using it, including lost or
+damaged projects, damaged files, lost income, or problems with your computer or other software.
+You use it at your own risk. Save your work often and keep backups of anything you can't afford to
+lose.
+
+YOUR WORK IS YOURS
+
+Music, projects, presets and exports you make with {title} belong to you. Files you import, such as
+VGM or MIDI files, keep whatever rights their owners hold, and you're responsible for having the
+right to use them.
+
+WHAT IT CONNECTS TO
+
+{title} has no account, no advertising and no tracking, and it sends nothing about you or your
+work to its author. It uses the internet only to:
+- check GitHub for a newer version when it starts, unless you turn update checks off in Preferences
+- download an update, and only after you choose to
+- download the font a language needs, and only when you pick a language whose font isn't installed
+
+While Discord is running on your computer, {title} shows what you're working on in your Discord
+status. You can change how much it shows, or turn it off, in Preferences under Sharing.
+
+SOFTWARE AND FONTS MADE BY OTHERS
+
+{title} includes work by others, such as SDL3, miniaudio, stb_truetype, libogg, libvorbis, libopus,
+libvpx, libwebm, the Go fonts and fonts from Google Fonts. Each keeps its own licence, and those
+licences are installed alongside the files they cover.
+
+CHANGES TO THESE TERMS
+
+A later version of {title} may come with updated terms, which you'll be asked to accept when you
+install it.

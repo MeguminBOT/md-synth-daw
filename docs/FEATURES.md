@@ -435,6 +435,10 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
 - **An installer that knows what is already there.** Running it over an existing copy says which
   version is installed and which one it carries, and asks before replacing it, whether that is an
   update, the same version again, or a downgrade.
+- **Terms before anything is installed.** The installer shows its terms of use and the MIT licence
+  first, and installs nothing until you accept them. They say plainly that MD Synth DAW is free, so
+  anyone who charged for a copy scammed you, where the official downloads are, and what the
+  application connects to.
 - **You choose where it goes.** The installer always shows the folder page, on an update too,
   with the last folder already filled in and how much disk space the install takes. Uninstalling
   removes the whole install folder, so if you pick a folder that already has other files in it,

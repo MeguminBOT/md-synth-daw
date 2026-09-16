@@ -304,6 +304,10 @@
 	<languages path="assets/lang" />
 	<appicon   path="assets/icon" />
 
+	<!-- the terms the Windows installer asks to be accepted before it installs anything. {title},
+	     {releases} and {source} are filled in, and the licence is printed after them -->
+	<terms     path="assets/installer/terms.txt" />
+
 	<!-- the faces fetched into vendor/fonts, what each is fetched from, which faces a glyph is
 	     looked for in when the chosen one has none, and the pairings offered in preferences -->
 	<typefaces path="vendor/fonts">

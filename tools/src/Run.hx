@@ -1392,6 +1392,76 @@ class Run {
 	}
 
 	/**
+		Writes the terms the installer asks to be accepted: the template from the build file
+		with the project's name and pages filled in, and the licence after it.
+
+		The page they are shown on wraps text to its own width, so a paragraph wrapped in the
+		template is joined back into one line here, and a line starting with a dash stays a
+		line of its own.
+
+		@param root The repository root.
+		@param project What the build file declares.
+		@return The file written, or an empty string where the build file names no template
+			or it is not there.
+	**/
+	static function termed(root:String, project:Project):String {
+		final from = root + "/" + project.terms;
+		if (project.terms == "" || !FileSystem.exists(from)) return "";
+
+		final page = "https://github.com/" + project.github;
+
+		var said = File.getContent(from);
+		said = StringTools.replace(said, "{title}", project.title);
+		said = StringTools.replace(said, "{releases}", page + "/releases");
+		said = StringTools.replace(said, "{source}", page);
+
+		final licence = root + "/LICENSE";
+		if (FileSystem.exists(licence)) said += "\n" + File.getContent(licence);
+
+		final into = root + "/" + project.output + "/package/terms.txt";
+		File.saveContent(into, unwrapped(said));
+
+		return into;
+	}
+
+	/**
+		@param said Text wrapped by hand.
+		@return The same text with each paragraph on one line, blank lines between them kept,
+			and each line that starts with a dash or follows a colon kept on its own.
+	**/
+	static function unwrapped(said:String):String {
+		final out = new StringBuf();
+		var line = "";
+
+		for (raw in StringTools.replace(said, "\r\n", "\n").split("\n")) {
+			final held = StringTools.trim(raw);
+
+			if (held == "") {
+				if (line != "") out.add(line + "\r\n");
+				out.add("\r\n");
+				line = "";
+				continue;
+			}
+
+			final alone = StringTools.startsWith(held, "- ") || StringTools.startsWith(held, "http")
+				|| StringTools.endsWith(line, ":");
+
+			if (line == "") {
+				line = held;
+			} else if (alone) {
+				out.add(line + "\r\n");
+				line = held;
+			} else {
+				line += " " + held;
+			}
+		}
+
+		if (line != "") out.add(line + "\r\n");
+
+		return out.toString();
+	}
+
+	/**
 		@param code A language code.
 		@return The installer component a language's face is listed under.
 	**/
@@ -1491,6 +1561,10 @@ class Run {
 		if (FileSystem.exists(ico)) out.add("SetupIconFile=" + StringTools.replace(ico,
 			"/", "\\") + "\n");
 
+		final agreed = termed(root, project);
+
+		if (agreed != "") out.add("LicenseFile=" + StringTools.replace(agreed, "/", "\\") + "\n");
+
 		out.add("WizardStyle=modern\n");
 		out.add("DisableProgramGroupPage=yes\n");
 		out.add("DisableDirPage=no\n");
@@ -1503,6 +1577,12 @@ class Run {
 			+ " takes [mb] MB of disk space with these languages.\n");
 		out.add("ComponentsDiskSpaceGBLabel=" + project.title
 			+ " takes [gb] GB of disk space with these languages.\n");
+		out.add("WizardLicense=Terms of use and licence\n");
+		out.add("LicenseLabel=Please read these terms before installing " + project.title + ".\n");
+		out.add("LicenseLabel3=You need to accept the terms of use and the licence before "
+			+ project.title + " is installed.\n");
+		out.add("LicenseAccepted=I &accept the terms\n");
+		out.add("LicenseNotAccepted=I &do not accept the terms\n");
 		out.add("SelectComponentsLabel2=Every language is included. Clear one to leave out the"
 			+ " font it needs; picking it later in " + project.title
 			+ " downloads the font again.\n\n");

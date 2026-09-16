@@ -135,6 +135,12 @@ class Project {
 	public var languages(default, null):String = "assets/lang";
 	public var appIcon(default, null):String = "assets/icon";
 
+	/**
+		The terms the Windows installer shows before it installs anything, with `{title}`,
+		`{releases}` and `{source}` left to be filled in.
+	**/
+	public var terms(default, null):String = "assets/installer/terms.txt";
+
 	public var typefacePath(default, null):String = "vendor/fonts";
 	public var faces(default, null):Array<Face> = [];
 	public var typefaces(default, null):Array<Typeface> = [];
@@ -302,6 +308,9 @@ class Project {
 
 			case "appicon":
 				appIcon = node.get("path");
+
+			case "terms":
+				terms = node.get("path");
 
 			case "typefaces":
 				typefacePath = node.get("path");
