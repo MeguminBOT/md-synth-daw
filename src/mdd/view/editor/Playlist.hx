@@ -773,6 +773,21 @@ final class Playlist extends Widget {
 		invalidate();
 	}
 
+	/**
+		Gives a clip a pattern nothing else is looking at, so editing it stops editing
+		every other clip that was showing the same one.
+
+		@param clip The clip.
+	**/
+	function uniqued(clip:Clip):Void {
+		if (!mdd.song.edit.UniqueClip.shares(session.song, clip)) return;
+
+		session.does(new mdd.song.edit.UniqueClip(clip));
+		session.changed();
+
+		invalidate();
+	}
+
 	function sliced(which:Int, clip:Clip, at:Int):Void {
 		if (!SliceClip.splits(clip, at)) return;
 
@@ -1294,6 +1309,11 @@ final class Playlist extends Widget {
 
 		open.enabled = onOpen != null;
 		fires(open, function():Void if (onOpen != null) onOpen(clip));
+
+		final alone = menu.offer(new Choice(translate(Locale.CLIP_UNIQUE)));
+
+		alone.enabled = mdd.song.edit.UniqueClip.shares(session.song, clip);
+		fires(alone, function():Void uniqued(clip));
 
 		menu.divide();
 

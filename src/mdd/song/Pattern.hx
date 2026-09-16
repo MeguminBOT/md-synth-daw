@@ -51,6 +51,33 @@ final class Pattern {
 	}
 
 	/**
+		Copies the whole pattern: every note and every automation lane, each its own.
+
+		Nothing here is shared with the pattern it came from, which is the point. Two
+		clips on the playlist showing the same pattern are the same music by design, and
+		a copy is how one of them stops being.
+
+		@param called What to call the copy.
+		@return The copy.
+	**/
+	public function copy(called:String):Pattern {
+		final out = new Pattern(called, length, colour);
+		out.part = part;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+
+			final from = lane(part);
+			final into = out.lane(part);
+
+			for (note in from.notes) into.add(note.copy());
+			for (line in from.automation) into.automation.push(line.copy());
+		}
+
+		return out;
+	}
+
+	/**
 		@param part Which part.
 		@return That part lane, which always exists.
 	**/

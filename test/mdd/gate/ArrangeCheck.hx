@@ -38,6 +38,7 @@ class ArrangeCheck {
 		fitted();
 		dressed();
 		cut();
+		uniqued();
 		ranged();
 		reversed();
 		nudged();
@@ -51,6 +52,70 @@ class ArrangeCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		A sliced clip is still the same music as the one it came from, and making it
+		unique is what parts them.
+
+		Slicing cuts where a clip starts and ends, not what it plays, so both halves point
+		at one pattern and a note put in either shows up in both. That is what a pattern is
+		for, and it is also the thing a reader coming from another sequencer does not
+		expect to be permanent.
+	**/
+	static function uniqued():Void {
+		final song = rich();
+		final history = new History();
+
+		final clip = song.tracks[0].clips[0];
+		final at = clip.at + 96;
+
+		history.does(song, new mdd.song.edit.SliceClip(0, clip, at));
+
+		final half = song.tracks[0].clips[1];
+		final patterns = song.patterns.length;
+
+		says("a slice leaves both halves shared",
+			half.pattern == clip.pattern
+				&& mdd.song.edit.UniqueClip.shares(song, half),
+			"both halves play pattern " + clip.pattern + " of "
+			+ patterns + ", which is what makes them the same music");
+
+		final from = song.patternAt(clip.pattern);
+		final notes = from == null ? 0 : from.lane(mdd.song.Part.Fm1).notes.length;
+
+		history.does(song, new mdd.song.edit.UniqueClip(half));
+
+		final made = song.patternAt(half.pattern);
+
+		says("making one unique parts them",
+			song.patterns.length == patterns + 1 && half.pattern != clip.pattern
+				&& made != null && made != from,
+			"pattern " + half.pattern + " of " + song.patterns.length
+			+ (made == null ? "" : ", called " + made.name));
+
+		says("the copy carries the notes",
+			made != null && made.lane(mdd.song.Part.Fm1).notes.length == notes,
+			(made == null ? 0 : made.lane(mdd.song.Part.Fm1).notes.length)
+			+ " notes against " + notes);
+
+		if (made != null && from != null && notes > 0) {
+			made.lane(mdd.song.Part.Fm1).notes[0].pitch += 5;
+
+			says("editing one no longer edits both",
+				made.lane(mdd.song.Part.Fm1).notes[0].pitch
+					!= from.lane(mdd.song.Part.Fm1).notes[0].pitch,
+				"the copy moved to " + made.lane(mdd.song.Part.Fm1).notes[0].pitch
+				+ " and the first stayed at " + from.lane(mdd.song.Part.Fm1).notes[0].pitch);
+
+			made.lane(mdd.song.Part.Fm1).notes[0].pitch -= 5;
+		}
+
+		history.undo(song);
+
+		says("undo restores the sharing",
+			half.pattern == clip.pattern && song.patterns.length == patterns,
+			"pattern " + half.pattern + " again, " + song.patterns.length + " patterns");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

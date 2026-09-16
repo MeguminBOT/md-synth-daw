@@ -49,20 +49,37 @@ final class Patterns {
 		final from = session.song.patternAt(at);
 		if (from == null) return;
 
-		final made = new Pattern(from.name + " 2", from.length, from.colour);
-		made.part = from.part;
-
 		session.holds();
 
-		for (index in 0...Part.COUNT) {
-			final part:Part = index;
-			for (note in from.lane(part).notes) made.lane(part).add(note.copy());
-		}
+		final made = from.copy(named(from.name));
 
 		session.frees();
 
 		session.does(new AddPattern(made));
 		session.chooses(session.song.patterns.length - 1);
+	}
+
+	/**
+		@param from The name being copied.
+		@return A name nothing in the song is already called. Appending the same number
+			every time gave two patterns one name as soon as anything was duplicated
+			twice, and the list has nothing else to tell them apart by.
+	**/
+	function named(from:String):String {
+		var count = 2;
+
+		while (taken(from + " " + count)) count++;
+
+		return from + " " + count;
+	}
+
+	/**
+		@param name A name.
+		@return Whether a pattern is already called that.
+	**/
+	function taken(name:String):Bool {
+		for (pattern in session.song.patterns) if (pattern.name == name) return true;
+		return false;
 	}
 
 	/**

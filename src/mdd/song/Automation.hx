@@ -203,6 +203,16 @@ final class Automation {
 	}
 
 	/**
+		@return A lane with the same target and slot and its own copy of every point.
+	**/
+	public function copy():Automation {
+		final out = new Automation(target, slot);
+		for (point in points) out.points.push(point.copy());
+
+		return out;
+	}
+
+	/**
 		Puts a point in, in tick order, unless the lane is full.
 
 		@param point The point to add.
