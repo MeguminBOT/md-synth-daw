@@ -37,6 +37,7 @@ class TierCheck {
 		sampling();
 		filed();
 		keeping();
+		losing();
 		levelled();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -332,6 +333,53 @@ class TierCheck {
 		says("a portable copy is told by a file", !mdd.host.Settings.carried()
 			|| sys.FileSystem.exists(mdd.host.Paths.beside() + "/portable.txt"),
 			"settings live beside the program only when a marker beside it says so");
+	}
+
+	/**
+		Whether the piece is known to hold work no file has.
+
+		This is what decides whether opening something else asks first, so the answer has
+		to be right in both directions: a false yes makes every open a question nobody
+		asked for, and a false no throws an afternoon away without saying anything.
+
+		The undo stack is not what is read, and this shows why: a patch edited straight
+		on the instrument never goes near it.
+	**/
+	static function losing():Void {
+		final into = Gate.root + "/export/losing";
+
+		wipe(into);
+		sys.FileSystem.createDirectory(into);
+
+		final session = Session.started(mdd.song.Library.embedded());
+		final files = new Files(session);
+
+		files.forget();
+
+		says("a piece nothing touched is saved", !files.unsaved(),
+			"a session as it was made has nothing to lose");
+
+		final note = new mdd.song.Note(0, 48, 60, 100);
+		session.does(new mdd.song.edit.AddNote(0, Part.Fm1, note));
+
+		says("and one note makes it unsaved", files.unsaved(), "one note is a change");
+
+		session.undo();
+
+		says("and undo takes that back", !files.unsaved(),
+			"undone to where it was last written, so there is nothing to ask about");
+
+		session.does(new mdd.song.edit.AddNote(0, Part.Fm1, note));
+		files.save(into + "/held");
+
+		says("and saving settles it", !files.unsaved(),
+			"written to " + Files.name(files.path));
+
+		final patch = session.song.patchOf(Part.Fm1);
+		if (patch != null) patch.writes(3, 0, patch.reads(3, 0) == 20 ? 30 : 20);
+
+		says("and a patch edit counts too", patch != null && files.unsaved(),
+			"a total level changed with no command behind it is still work to lose");
 	}
 
 	static function started(made:Transcription):Array<Int> {

@@ -452,6 +452,21 @@ final class Files {
 	}
 
 	/**
+		Whether the piece holds work that is in no file yet, which is what has to be
+		asked about before anything replaces it.
+
+		This reads the whole piece rather than watching the undo stack, because a sample
+		read in and a name typed are changes the stack never saw. It costs one pass over
+		the piece and it is asked once, when the reader does something that would throw
+		the work away.
+
+		@return Whether the piece differs from what was last read or written.
+	**/
+	public function unsaved():Bool {
+		return marked() != stamp;
+	}
+
+	/**
 		Opens a dialog. It does not block: `poll` finds out what happened.
 
 		@param window The window it belongs to.

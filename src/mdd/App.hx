@@ -359,9 +359,12 @@ class App {
 		panels.importing.onImport = function(strands:Array<mdd.format.Strand>):Void {
 			final instead = panels.importing.lands == mdd.view.overlay.Importing.INSTEAD;
 
-			files.takesMidi(strands, instead);
-			changed();
-			chorded();
+			if (!instead) {
+				imported(strands, false);
+				return;
+			}
+
+			guards(function():Void imported(strands, true));
 		};
 
 		panels.asking = new mdd.view.overlay.Asking();
@@ -520,11 +523,11 @@ class App {
 
 		menus = new Menus(stage, panels);
 		menus.update = update;
-		menus.onAsk = function(which:Int):Void files.ask(stage.window, which);
+		menus.onAsk = function(which:Int):Void asks(which);
 		menus.onSave = function():Void keeping();
 		menus.onRecent = function():Array<String> return recent;
 		menus.onOpen = function(where:String):Void opens(where);
-		menus.onQuit = function():Void running = false;
+		menus.onQuit = function():Void quits();
 		menus.onRelabel = function():Void relabel();
 		menus.onUndo = function():Void undone();
 		menus.onRedo = function():Void redone();
@@ -533,7 +536,7 @@ class App {
 		menus.bindings = bindings;
 		bound();
 
-		menus.onNew = function():Void fresh();
+		menus.onNew = function():Void guards(function():Void fresh());
 		menus.onEdit = function(what:Int):Void edited(what);
 
 		menus.onPart = function(part:Int):Void {
@@ -560,6 +563,8 @@ class App {
 		session.say(stage.root.translate(Locale.READY));
 
 		keeps();
+		files.forget();
+
 		greeting();
 		handed();
 
@@ -605,6 +610,34 @@ class App {
 	public function opens(where:String):Void {
 		final suffix = haxe.io.Path.extension(where).toLowerCase();
 
+		if (!replaces(suffix)) {
+			opened(where, suffix);
+			return;
+		}
+
+		guards(function():Void opened(where, suffix));
+	}
+
+	/**
+		@param suffix A file suffix, in lower case.
+		@return Whether reading it puts a different piece in the window. A recording and a
+			patch are added to the piece that is open, and a MIDI file is only surveyed
+			until the import sheet is answered, so none of those loses anything.
+	**/
+	static function replaces(suffix:String):Bool {
+		return switch (suffix) {
+			case "mid", "midi", "wav", "tfi": false;
+			case _: true;
+		}
+	}
+
+	/**
+		Reads a file, whatever has already been decided about the piece it replaces.
+
+		@param where The file.
+		@param suffix Its suffix, in lower case.
+	**/
+	function opened(where:String, suffix:String):Void {
 		try {
 			switch (suffix) {
 				case "vgm", "vgz": files.readVgm(where);
@@ -619,6 +652,139 @@ class App {
 		}
 
 		changed();
+	}
+
+	/**
+		What to do once the question about unsaved work has been answered.
+	**/
+	var pending:Null<Void -> Void> = null;
+
+	/**
+		Whether that answer sent the reader to the save dialog, so what happens next
+		waits on which file was chosen rather than on the sheet.
+	**/
+	var saving:Bool = false;
+
+	/**
+		Asks about work in no file yet before doing something that would throw it away.
+
+		Nothing is asked where the piece matches what was last read or written, so the
+		ordinary case costs one pass over the piece and no sheet at all.
+
+		@param what What to do once that is settled. It is not called at all where the
+			answer was to stop.
+	**/
+	function guards(what:Void -> Void):Void {
+		if (panels.asking == null || files == null || !files.unsaved()) {
+			what();
+			return;
+		}
+
+		pending = what;
+		saving = false;
+
+		final sheet = panels.asking;
+		stage.root.raise(sheet);
+
+		sheet.ask(sheet.translate(Locale.UNSAVED),
+			sheet.filled(Locale.UNSAVED_SAID, [piece()]),
+			[sheet.translate(Locale.FILE_SAVE), sheet.translate(Locale.UNSAVED_DISCARD),
+			sheet.translate(Locale.EXPORT_CANCEL)]);
+
+		sheet.onAnswer = function(which:Int):Void answered(which);
+	}
+
+	/**
+		@return What to call the piece in the question: the file it came from, or the
+			name it carries where it has never been in one.
+	**/
+	function piece():String {
+		if (files.path != "") return Files.name(files.path);
+
+		final called = session.song.name;
+		return called == "" ? stage.root.translate(Locale.FILE_NEW) : called;
+	}
+
+	/**
+		Acts on the answer.
+
+		@param which 0 to save first, 1 to go on without saving, anything else to stop.
+	**/
+	function answered(which:Int):Void {
+		final what = pending;
+
+		if (which != 0 && which != 1) {
+			pending = null;
+			return;
+		}
+
+		if (which == 1) {
+			pending = null;
+			if (what != null) what();
+			return;
+		}
+
+		if (files.path != "") {
+			pending = null;
+
+			keeping();
+			if (what != null) what();
+			return;
+		}
+
+		saving = true;
+		files.ask(stage.window, Files.SAVE);
+	}
+
+	/**
+		Goes on with whatever was waiting on a save, once the dialog has been answered.
+
+		A dialog that was closed with nothing chosen is the same answer as stopping: the
+		reader asked to save, did not, and the piece is still the one in the window.
+	**/
+	function written():Void {
+		if (!saving) return;
+
+		saving = false;
+
+		final what = pending;
+		pending = null;
+
+		if (what != null && files.path != "") what();
+	}
+
+	/**
+		Asks about unsaved work first where the dialog leads to a different piece in the
+		window.
+
+		@param which Which dialog.
+	**/
+	function asks(which:Int):Void {
+		if (which != Files.OPEN && which != Files.READ_VGM && which != Files.READ_XGM) {
+			files.ask(stage.window, which);
+			return;
+		}
+
+		guards(function():Void files.ask(stage.window, which));
+	}
+
+	/**
+		Stops the application, asking about unsaved work first.
+	**/
+	function quits():Void {
+		guards(function():Void running = false);
+	}
+
+	/**
+		Takes what the import sheet chose, and asks about the chords it landed.
+
+		@param strands What to take, and where each strand goes.
+		@param instead Whether it becomes a piece of its own rather than one more track.
+	**/
+	function imported(strands:Array<mdd.format.Strand>, instead:Bool):Void {
+		files.takesMidi(strands, instead);
+		changed();
+		chorded();
 	}
 
 	/**
@@ -1477,8 +1643,8 @@ class App {
 		switch (action) {
 			case Bindings.UNDO: undone();
 			case Bindings.REDO: redone();
-			case Bindings.NEW: fresh();
-			case Bindings.OPEN: files.ask(stage.window, Files.OPEN);
+			case Bindings.NEW: guards(function():Void fresh());
+			case Bindings.OPEN: asks(Files.OPEN);
 			case Bindings.SAVE: keeping();
 			case Bindings.PREFERENCES: panels.opened();
 			case Bindings.PLAY: panels.bar.press(TransportBar.PLAY);
@@ -1613,7 +1779,7 @@ class App {
 
 		while (running) {
 			while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) {
-				if (!stage.took(event)) running = false;
+				if (!stage.took(event)) quits();
 			}
 
 			if (!running) break;
@@ -1626,7 +1792,10 @@ class App {
 			if (keyed()) stage.root.soil();
 
 			stage.root.advance(since);
-			if (files != null && files.poll()) stage.root.soil();
+			if (files != null && files.poll()) {
+				written();
+				stage.root.soil();
+			}
 			folded();
 			if (rendered(since) || pulling(since)) stage.root.soil();
 			if (files != null && files.tick(since)) stage.root.soil();
