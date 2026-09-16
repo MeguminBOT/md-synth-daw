@@ -1156,6 +1156,7 @@ final class Preferences extends Widget {
 			case ACCIDENTALS: mdd.song.Notation.accidentalsOf(session.notation);
 			case NOTE_LETTERS: mdd.song.Notation.lettersOf(session.notation);
 			case PRESENCE: presence;
+			case HOST_MONITOR: hostMonitor;
 			case RIGHT_CLICK: session.rightClick;
 			case ASSOCIATE: associated ? 1 : 0;
 			case RENDERER: renderer;

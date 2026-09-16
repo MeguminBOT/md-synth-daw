@@ -2366,6 +2366,22 @@ class SpineCheck {
 
 		held.chose(clicking, wasClicking);
 
+		final monitor = mdd.view.overlay.Preferences.HOST_MONITOR;
+		final wasMonitor = held.holding(monitor);
+
+		held.chose(monitor, mdd.App.MONITOR_EVERYTHING);
+		final everything = held.holding(monitor);
+
+		held.chose(monitor, mdd.App.MONITOR_OFF);
+		final off = held.holding(monitor);
+
+		held.chose(monitor, wasMonitor);
+
+		says("the monitor row shows its choice",
+			everything == mdd.App.MONITOR_EVERYTHING && off == mdd.App.MONITOR_OFF,
+			"it reads " + everything + " and " + off + " back rather than the language's place in"
+			+ " its own list");
+
 		while (tree.popups.length > 0) tree.shut(tree.popups[0]);
 
 		rebound(tree, held);
