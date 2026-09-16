@@ -435,6 +435,10 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
 - **An installer that knows what is already there.** Running it over an existing copy says which
   version is installed and which one it carries, and asks before replacing it, whether that is an
   update, the same version again, or a downgrade.
+- **You choose where it goes.** The installer always shows the folder page, on an update too,
+  with the last folder already filled in and how much disk space the install takes. Uninstalling
+  removes the whole install folder, so if you pick a folder that already has other files in it,
+  the installer makes a folder of its own inside it and tells you.
 - **A translatable interface.** Every string it shows comes from one table rather than from
   the code, so adding a language is a file rather than a change to the program. Hardware and
   format names are not in the table: `FM3`, `$4C`, `TL` and `bpm` stay as the documentation

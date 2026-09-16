@@ -1405,6 +1405,20 @@ class Run {
 		desktop(root, project);
 	}
 
+	/**
+		Writes the Windows installer script and compiles it where Inno Setup is installed.
+
+		The folder page is always shown, an update included, with the last folder filled
+		in, and it says how much the install takes. A folder that already holds other
+		files gets a folder of its own made inside it: uninstalling removes the whole
+		install folder, and a program put straight into a shared folder would take
+		everything else in there with it. Inno's own warning about an existing folder is
+		off, because it asked whether to install there anyway just before this said it
+		would not.
+
+		@param root The repository root.
+		@param project What the build file declares.
+	**/
 	static function inno(root:String, project:Project):Void {
 		final into = root + "/" + project.output + "/package/windows";
 		staged(root, project, into);
@@ -1442,7 +1456,13 @@ class Run {
 			"/", "\\") + "\n");
 
 		out.add("WizardStyle=modern\n");
-		out.add("DisableProgramGroupPage=yes\n\n");
+		out.add("DisableProgramGroupPage=yes\n");
+		out.add("DisableDirPage=no\n");
+		out.add("DirExistsWarning=no\n\n");
+
+		out.add("[Messages]\n");
+		out.add("DiskSpaceMBLabel=" + project.title + " takes [mb] MB of disk space.\n");
+		out.add("DiskSpaceGBLabel=" + project.title + " takes [gb] GB of disk space.\n\n");
 
 		out.add("[Files]\n");
 		out.add("Source: \"" + StringTools.replace(into, "/", "\\")
@@ -1585,6 +1605,37 @@ class Run {
 		out.add("    Said + #13#10 + #13#10 +\n");
 		out.add("    'Your projects, presets and settings are left alone either way.',\n");
 		out.add("    mbConfirmation, MB_YESNO, IDYES) = IDYES;\n");
+		out.add("end;\n\n");
+		out.add("function Crowded(Where: String): Boolean;\n");
+		out.add("var Found: TFindRec;\n");
+		out.add("begin\n");
+		out.add("  Result := False;\n");
+		out.add("  if not FindFirst(AddBackslash(Where) + '*', Found) then Exit;\n\n");
+		out.add("  try\n");
+		out.add("    repeat\n");
+		out.add("      if (Found.Name <> '.') and (Found.Name <> '..') then Result := True;\n");
+		out.add("    until Result or not FindNext(Found);\n");
+		out.add("  finally\n");
+		out.add("    FindClose(Found);\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+		out.add("function NextButtonClick(CurPageID: Integer): Boolean;\n");
+		out.add("var Where: String;\n");
+		out.add("begin\n");
+		out.add("  Result := True;\n");
+		out.add("  if CurPageID <> wpSelectDir then Exit;\n\n");
+		out.add("  Where := RemoveBackslashUnlessRoot(WizardDirValue());\n\n");
+		out.add("  if FileExists(AddBackslash(Where) + '" + project.short + ".exe') then Exit;\n");
+		out.add("  if not Crowded(Where) then Exit;\n\n");
+		out.add("  WizardForm.DirEdit.Text := AddBackslash(Where) + '" + project.title + "';\n\n");
+		out.add("  MsgBox(\n");
+		out.add("    'That folder already has other files in it, so " + project.title
+			+ " will go in a folder of its own inside it:' + #13#10 + #13#10 +\n");
+		out.add("    WizardForm.DirEdit.Text + #13#10 + #13#10 +\n");
+		out.add("    'Uninstalling removes the whole install folder, so nothing else should be"
+			+ " in it.',\n");
+		out.add("    mbInformation, MB_OK);\n\n");
+		out.add("  Result := False;\n");
 		out.add("end;\n\n");
 		out.add("function InitializeUninstall(): Boolean;\n");
 		out.add("begin\n");
