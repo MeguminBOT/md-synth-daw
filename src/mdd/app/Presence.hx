@@ -10,9 +10,9 @@ import mdd.song.Song;
 /**
 	What Discord is told about what is being worked on.
 
-	It is off unless it is turned on, it is a one way announcement, and it says only
-	what the level allows: the piece name and the transport at full, nothing but the
-	application at plain, and nothing at all when hidden.
+	It starts at full, it is a one way announcement, and it says only what the level
+	allows: the piece name and the transport at full, nothing but the application at
+	plain, and nothing at all when hidden.
 **/
 final class Presence {
 	/**

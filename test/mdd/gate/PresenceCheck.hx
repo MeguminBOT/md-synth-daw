@@ -241,6 +241,15 @@ class PresenceCheck {
 	}
 
 	static function levelled():Void {
+		final fresh = new Presence();
+		final sheet = new mdd.view.overlay.Preferences(
+			mdd.app.Session.started(mdd.song.Library.embedded()));
+
+		says("presence starts at the full level", fresh.level == Presence.FULL
+			&& sheet.presence == Presence.FULL,
+			"a new presence is at " + fresh.level + " and the preferences sheet shows "
+			+ sheet.presence + ", which the settings fall back to as well");
+
 		final held = made();
 		named(held, "Green Hill Zone");
 		held.level = Presence.PLAIN;

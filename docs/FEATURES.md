@@ -475,8 +475,9 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
   pointed arrow with the pan tool in hand.
 - **One instance.** Opening a second project hands it to the copy already running.
-- **Discord presence**, off by default, speaking Discord's local IPC directly rather than through
-  an SDK.
+- **Discord presence**, on by default and showing the piece and what the transport is doing,
+  speaking Discord's local IPC directly rather than through an SDK. Preferences can cut it down to
+  the application's name alone or turn it off.
 - **Crash reports that name the Haxe line**, out of a release build that carries no stack frames,
   written where your settings live. Functions the compiler inlined are named too, rather than the
   fault being blamed on the call site.
