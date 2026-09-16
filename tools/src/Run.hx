@@ -1391,6 +1391,36 @@ class Run {
 			+ Math.round(FileSystem.stat(archive).size / 1024) + " kb");
 	}
 
+	/**
+		@param code A language code.
+		@return The installer component a language's face is listed under.
+	**/
+	static function component(code:String):String {
+		return "languages\\" + StringTools.replace(code, "-", "").toLowerCase();
+	}
+
+	/**
+		@param root The repository root.
+		@param project What the build file declares.
+		@param code A language code.
+		@return What the language is called in English, from the reference language's own
+			table, or the code where the table does not name it.
+	**/
+	static function called(root:String, project:Project, code:String):String {
+		final from = root + "/" + project.languages + "/en-GB.json";
+		if (!FileSystem.exists(from)) return code;
+
+		try {
+			final table:Dynamic = haxe.Json.parse(File.getContent(from));
+			final said:Null<String> = Reflect.field(table, "languageName."
+				+ StringTools.replace(code, "-", ""));
+
+			return said == null ? code : said;
+		} catch (e:Dynamic) {
+			return code;
+		}
+	}
+
 	static function installer(root:String, project:Project):Void {
 		if (windows()) {
 			inno(root, project);
@@ -1415,6 +1445,12 @@ class Run {
 		everything else in there with it. Inno's own warning about an existing folder is
 		off, because it asked whether to install there anyway just before this said it
 		would not.
+
+		A face only one language needs is a choice on the components page, ticked unless it
+		is cleared. Clearing it leaves the face out, and the application downloads it again
+		if that language is picked; running the installer again without it deletes the copy
+		an earlier install left, so clearing one is what makes the install smaller rather
+		than only what stops it growing.
 
 		@param root The repository root.
 		@param project What the build file declares.
@@ -1462,11 +1498,63 @@ class Run {
 
 		out.add("[Messages]\n");
 		out.add("DiskSpaceMBLabel=" + project.title + " takes [mb] MB of disk space.\n");
-		out.add("DiskSpaceGBLabel=" + project.title + " takes [gb] GB of disk space.\n\n");
+		out.add("DiskSpaceGBLabel=" + project.title + " takes [gb] GB of disk space.\n");
+		out.add("ComponentsDiskSpaceMBLabel=" + project.title
+			+ " takes [mb] MB of disk space with these languages.\n");
+		out.add("ComponentsDiskSpaceGBLabel=" + project.title
+			+ " takes [gb] GB of disk space with these languages.\n");
+		out.add("SelectComponentsLabel2=Every language is included. Clear one to leave out the"
+			+ " font it needs; picking it later in " + project.title
+			+ " downloads the font again.\n\n");
+
+		final optional = [for (face in project.faces) if (face.language != "" && face.commit != ""
+			&& face.sha256 != "") face];
+
+		out.add("[Types]\n");
+		out.add("Name: \"full\"; Description: \"Every language\"\n");
+		out.add("Name: \"custom\"; Description: \"Choose the languages\"; Flags: iscustom\n\n");
+
+		out.add("[Components]\n");
+		out.add("Name: \"core\"; Description: \"" + project.title
+			+ ", with every language that needs no font of its own\"; Types: full custom;"
+			+ " Flags: fixed\n");
+
+		if (optional.length > 0) {
+			out.add("Name: \"languages\"; Description: \"Languages that need a font of their own\";"
+				+ " Types: full\n");
+
+			for (face in optional) {
+				out.add("Name: \"" + component(face.language) + "\"; Description: \""
+					+ called(root, project, face.language) + "\"; Types: full\n");
+			}
+		}
+
+		out.add("\n");
+
+		final source = StringTools.replace(into, "/", "\\");
 
 		out.add("[Files]\n");
-		out.add("Source: \"" + StringTools.replace(into, "/", "\\")
-			+ "\\*\"; DestDir: \"{app}\"; Flags: recursesubdirs ignoreversion\n\n");
+		out.add("Source: \"" + source + "\\*\"; DestDir: \"{app}\"; Components: core;"
+			+ " Excludes: \"" + [for (face in optional) "\\fonts\\" + face.name].join(",")
+			+ "\"; Flags: recursesubdirs ignoreversion\n");
+
+		for (face in optional) {
+			out.add("Source: \"" + source + "\\fonts\\" + face.name + "\"; DestDir: \"{app}\\fonts\";"
+				+ " Components: " + component(face.language) + "; Flags: ignoreversion\n");
+		}
+
+		out.add("\n");
+
+		if (optional.length > 0) {
+			out.add("[InstallDelete]\n");
+
+			for (face in optional) {
+				out.add("Type: files; Name: \"{app}\\fonts\\" + face.name + "\"; Components: not "
+					+ component(face.language) + "\n");
+			}
+
+			out.add("\n");
+		}
 
 		out.add("[Icons]\n");
 		out.add("Name: \"{group}\\" + project.title + "\"; Filename: \"{app}\\"

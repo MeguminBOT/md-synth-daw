@@ -100,7 +100,8 @@ That is because almost none of it is somebody else's code:
 
 62,000 lines of Haxe and 7,300 of C++, all told. Most of what a packaged copy weighs is the bundled
 typefaces rather than the program: the three CJK faces alone are 36 MB of the download, and they are
-there so the interface has something to fall back to in any language.
+there so the interface has something to fall back to in any language. The installer lets you leave
+them out, and the application downloads one again if you pick its language later.
 
 ### Built With
 
@@ -134,7 +135,8 @@ machines get no support, and how to measure the lot on your own machine.
 
 Download the latest build from the [Releases page][releases-url], then either
 
-- run the **installer**, or
+- run the **installer**, which asks where to install and lets you leave out the Japanese, Chinese
+  and Korean fonts, or
 - unzip the **portable archive** anywhere and run `mdd`.
 
 Nothing else is needed. The portable archive keeps its settings beside itself rather than in your
@@ -247,10 +249,11 @@ application does, and an honest list of what it does not do and why.
 Pick one on the first run, or change it later in preferences. The interface falls back to
 English for anything a language does not carry.
 
-Japanese, Simplified Chinese and Korean each need a font of their own: 9 MB, 17 MB and 10 MB. If
-you pick one that isn't installed, the application downloads its font from the exact commit the
-build ships, checks it against the SHA-256 pinned in the build, and switches once it's in place.
-Every other language needs no extra font and is always installed.
+Japanese, Simplified Chinese and Korean each need a font of their own: 9 MB, 17 MB and 10 MB. The
+installer includes all three unless you clear them. If you pick one that isn't installed, the
+application downloads its font from the exact commit the build ships, checks it against the SHA-256
+pinned in the build, and switches once it's in place. Every other language needs no extra font and
+is always installed.
 
 | Language | Code | Translated by |
 | --- | --- | --- |

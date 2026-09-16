@@ -439,6 +439,10 @@ hxcpp, and a project that reorders itself between saves is not byte identical.
   with the last folder already filled in and how much disk space the install takes. Uninstalling
   removes the whole install folder, so if you pick a folder that already has other files in it,
   the installer makes a folder of its own inside it and tells you.
+- **You choose which fonts it installs.** Japanese, Simplified Chinese and Korean each need a font
+  of their own, 36 MB together, so the installer lists them as options, all three ticked. Clear one
+  and its font is left out, and running the installer again without it deletes the copy an earlier
+  install left. English and every other language need no extra font and are always installed.
 - **A language whose font is missing still shows up.** The first run sheet and the preferences list
   it with the size of its font. Picking it downloads the font from the commit the build pins,
   checks the SHA-256 before the file is used, and switches language once it lands. A download that

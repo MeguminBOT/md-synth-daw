@@ -107,6 +107,12 @@ ideographs, which no Latin face does, and together they are 38 MB of the 45 MB i
 They are read from disk only when a codepoint first misses, so a session that never leaves Latin
 never loads them.
 
+These three are pinned to a commit each in `mdd.xml`, with the SHA-256 of the file there. The
+Windows installer can leave any of them out, and the application downloads a missing one when its
+language is picked, from that commit and checked against that hash, so the downloaded face is the
+face a full install ships, unmodified. The family's `OFL.txt` is copied from the install beside the
+downloaded face, which keeps the licence travelling with it.
+
 **The bundling reading of OFL 1.1.** The licence permits a font to be bundled with software and
 redistributed, with or without modification, provided the font is not sold on its own, the copyright
 notice and licence travel with it, and no Reserved Font Name is used for a modified version. This
