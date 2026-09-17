@@ -325,7 +325,9 @@ WAV, FLAC, Ogg Vorbis and Opus. Set per export:
 - normalise to a ceiling, and dither
 - encoder quality, and for Opus the application mode, frame size and bitrate mode
 - which output stage the render goes through
-- title, artist, album, year and comment, written into the file as tags
+- title, artist, album, year and comment, written into the file as tags along with the composer,
+  genre and track number, all of them the project's own description, so changing one here changes
+  it in the project
 - **stems**, by track or by channel: one file per track or per part beside the mix, in a folder
   named after it
 
@@ -424,6 +426,12 @@ saves of the same song differ.
 so a double click opens it, and unregistered again from preferences. The JSON reader and writer are
 this repository's own, because a `Map` insertion order is preserved on some Haxe targets and not on
 hxcpp, and a project that reorders itself between saves is not byte identical.
+
+A project carries its own description: title, artist, composer, album, year, genre, track number and
+comment, filled in under **Project info** in the file menu, and one step on the undo stack however
+many change. Every audio export is tagged with them, including one started from the command line, a
+VGM or XGM export writes the title, artist, album, year and comment into its tag block, and
+importing one reads those back.
 
 ---
 

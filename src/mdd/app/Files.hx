@@ -645,6 +645,10 @@ final class Files {
 		if (vgm.title != "") made.song.name = vgm.title;
 		if (vgm.author != "") made.song.author = vgm.author;
 
+		made.song.album = vgm.game;
+		made.song.year = vgm.released;
+		made.song.comment = vgm.notes;
+
 		path = "";
 		if (onLoad != null) onLoad(made.song);
 		forget();
@@ -665,6 +669,10 @@ final class Files {
 
 		if (xgm.title != "") made.song.name = xgm.title;
 		if (xgm.author != "") made.song.author = xgm.author;
+
+		made.song.album = xgm.game;
+		made.song.year = xgm.released;
+		made.song.comment = xgm.notes;
 
 		path = "";
 		if (onLoad != null) onLoad(made.song);
@@ -869,7 +877,8 @@ final class Files {
 
 		sequencer.spanned(stream, 0, span);
 		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate,
-			session.song.name, session.song.author));
+			session.song.name, session.song.author, session.song.album, session.song.year,
+			session.song.comment));
 
 		final lost = sequencer.lost + stream.dropped;
 
@@ -1335,17 +1344,29 @@ final class Files {
 	}
 
 	/**
-		@return The metadata to write into the file, one entry a name and a value.
+		@return The metadata to write into the file, one entry a name and a value. A tag the export
+			sheet leaves empty is taken from the piece's own description, so an export started from
+			the command line is tagged the same as one started from the sheet.
 	**/
-	function tagged():Array<String> {
+	public function tagged():Array<String> {
 		final held:Array<String> = [];
+		final song = session.song;
 
-		if (mixing.title != "") held.push("TITLE=" + mixing.title);
-		if (mixing.artist != "") held.push("ARTIST=" + mixing.artist);
-		if (mixing.album != "") held.push("ALBUM=" + mixing.album);
-		if (mixing.year != "") held.push("DATE=" + mixing.year);
-		if (mixing.track != "") held.push("TRACKNUMBER=" + mixing.track);
-		if (mixing.comment != "") held.push("COMMENT=" + mixing.comment);
+		final title = mixing.title != "" ? mixing.title : song.name;
+		final artist = mixing.artist != "" ? mixing.artist : song.author;
+		final album = mixing.album != "" ? mixing.album : song.album;
+		final year = mixing.year != "" ? mixing.year : song.year;
+		final track = mixing.track != "" ? mixing.track : song.trackNumber;
+		final comment = mixing.comment != "" ? mixing.comment : song.comment;
+
+		if (title != "") held.push("TITLE=" + title);
+		if (artist != "") held.push("ARTIST=" + artist);
+		if (song.composer != "") held.push("COMPOSER=" + song.composer);
+		if (album != "") held.push("ALBUM=" + album);
+		if (year != "") held.push("DATE=" + year);
+		if (song.genre != "") held.push("GENRE=" + song.genre);
+		if (track != "") held.push("TRACKNUMBER=" + track);
+		if (comment != "") held.push("COMMENT=" + comment);
 
 		final beats = session.song.tempo.beatsAt(0);
 		if (beats > 0) held.push("BPM=" + Math.round(beats * 100) / 100);

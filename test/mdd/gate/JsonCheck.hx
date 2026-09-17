@@ -30,11 +30,62 @@ class JsonCheck {
 		agreed();
 		timed();
 		banked();
+		described();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    failed");
 
 		return failed == 0 ? 0 : 1;
+	}
+
+	/**
+		A piece's descriptions are kept in the project file, undo, and reach what is exported: the
+		tags of an audio file and the tag block of a VGM.
+	**/
+	static function described():Void {
+		final song = new mdd.song.Song("Hyper Loop Zone");
+		final wanted:Array<String> = ["Hyper Loop Zone", "Mega \"Drive\" Bänd", "作曲家",
+			"Sonic Tribute", "2026", "Drum and bass", "7", "a line, with a comma"];
+
+		for (which in 0...mdd.song.Song.DESCRIPTIONS) song.describes(which, wanted[which]);
+
+		final back = mdd.format.Project.read(mdd.format.Project.text(song));
+		var kept = 0;
+
+		for (which in 0...mdd.song.Song.DESCRIPTIONS) {
+			if (back.described(which) == wanted[which]) kept++;
+		}
+
+		says("a piece's descriptions are kept", kept == mdd.song.Song.DESCRIPTIONS,
+			kept + " of " + mdd.song.Song.DESCRIPTIONS + " read back from the project text, quotes and"
+			+ " letters outside ASCII included");
+
+		final change = new mdd.song.edit.DescribeSong(mdd.song.Song.COMPOSER, "someone else");
+		change.apply(song);
+		final changed = song.composer;
+		change.revert(song);
+
+		says("and a change to one undoes", changed == "someone else" && song.composer == wanted[2],
+			"the composer became '" + changed + "' and undo put back '" + song.composer + "'");
+
+		final stream = new mdd.play.Stream(64);
+		stream.ym(0, 0, 0x28, 0);
+
+		final logged = mdd.format.Vgm.read(mdd.format.Vgm.write(stream, 0, 44100, 60, song.name,
+			song.author, song.album, song.year, song.comment), new mdd.play.Stream(64));
+
+		says("and a VGM carries them", logged.title == song.name && logged.author == song.author
+			&& logged.game == song.album && logged.released == song.year && logged.notes == song.comment,
+			"title '" + logged.title + "', author '" + logged.author + "', game '" + logged.game
+			+ "', date '" + logged.released + "' and notes '" + logged.notes + "' out of the tag block");
+
+		final files = new mdd.app.Files(new mdd.app.Session(song));
+		final tags = files.tagged().join("; ");
+
+		says("and an audio file is tagged with them", tags.indexOf("COMPOSER=" + song.composer) >= 0
+			&& tags.indexOf("GENRE=" + song.genre) >= 0 && tags.indexOf("TRACKNUMBER=7") >= 0
+			&& tags.indexOf("TITLE=" + song.name) >= 0 && tags.indexOf("DATE=2026") >= 0,
+			"an export with nothing typed on its sheet tags " + tags);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

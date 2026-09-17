@@ -179,6 +179,8 @@ final class Menus {
 			saves());
 		fired(file.offer(new Choice(said(Locale.FILE_SAVE_AS))), function():Void
 			asks(Files.SAVE));
+		fired(file.offer(new Choice(said(Locale.FILE_INFO))), function():Void
+			panels.described());
 		file.divide();
 
 		final looking = file.offer(new Choice(said(Locale.FILE_UPDATE)));

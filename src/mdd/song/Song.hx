@@ -17,9 +17,128 @@ final class Song {
 	public var name:String;
 
 	/**
-		Who wrote it.
+		Who wrote it: the artist a file's tags name.
 	**/
 	public var author:String = "";
+
+	/**
+		Who composed it, where that is someone other than the artist.
+	**/
+	public var composer:String = "";
+
+	/**
+		The album or game it belongs to.
+	**/
+	public var album:String = "";
+
+	/**
+		The year it came out, as typed.
+	**/
+	public var year:String = "";
+
+	/**
+		Its genre, as typed.
+	**/
+	public var genre:String = "";
+
+	/**
+		Where it sits on its album, as typed.
+	**/
+	public var trackNumber:String = "";
+
+	/**
+		Anything else worth saying about it.
+	**/
+	public var comment:String = "";
+
+	/**
+		Description: the title, which is `name`.
+	**/
+	public static inline final TITLE = 0;
+
+	/**
+		Description: the artist, which is `author`.
+	**/
+	public static inline final ARTIST = 1;
+
+	/**
+		Description: the composer.
+	**/
+	public static inline final COMPOSER = 2;
+
+	/**
+		Description: the album.
+	**/
+	public static inline final ALBUM = 3;
+
+	/**
+		Description: the year.
+	**/
+	public static inline final YEAR = 4;
+
+	/**
+		Description: the genre.
+	**/
+	public static inline final GENRE = 5;
+
+	/**
+		Description: the track number.
+	**/
+	public static inline final TRACK_NUMBER = 6;
+
+	/**
+		Description: the comment.
+	**/
+	public static inline final COMMENT = 7;
+
+	/**
+		How many descriptions a piece carries.
+	**/
+	public static inline final DESCRIPTIONS = 8;
+
+	/**
+		The key each description is kept under in a project file, in the order of the constants.
+	**/
+	public static final DESCRIBED:Array<String> = ["name", "author", "composer", "album", "year",
+		"genre", "track", "comment"];
+
+	/**
+		@param which Which description, `TITLE` to `COMMENT`.
+		@return What it holds, or an empty string for a description that is not one.
+	**/
+	public function described(which:Int):String {
+		return switch (which) {
+			case TITLE: name;
+			case ARTIST: author;
+			case COMPOSER: composer;
+			case ALBUM: album;
+			case YEAR: year;
+			case GENRE: genre;
+			case TRACK_NUMBER: trackNumber;
+			case COMMENT: comment;
+			case _: "";
+		}
+	}
+
+	/**
+		Sets one description.
+
+		@param which Which description, `TITLE` to `COMMENT`.
+		@param value What it holds now.
+	**/
+	public function describes(which:Int, value:String):Void {
+		switch (which) {
+			case TITLE: name = value;
+			case ARTIST: author = value;
+			case COMPOSER: composer = value;
+			case ALBUM: album = value;
+			case YEAR: year = value;
+			case GENRE: genre = value;
+			case TRACK_NUMBER: trackNumber = value;
+			case COMMENT: comment = value;
+			case _:
+		}
+	}
 
 	/**
 		Whether the FM part LFO runs.
@@ -376,7 +495,7 @@ final class Song {
 	public function unshared():Song {
 		final out = new Song(name, tempo.ppqn, tempo.bpm[0]);
 
-		out.author = author;
+		for (which in 0...DESCRIPTIONS) out.describes(which, described(which));
 		out.lfoOn = lfoOn;
 		out.stallAt = stallAt;
 		out.stallFor = stallFor;

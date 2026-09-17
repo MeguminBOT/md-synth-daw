@@ -122,6 +122,11 @@ final class Panels {
 	public var naming:Null<Naming> = null;
 
 	/**
+		The sheet that describes the piece: title, artist, composer and the rest of its tags.
+	**/
+	public var describing:Null<mdd.view.overlay.Describing> = null;
+
+	/**
 		The sheet that asks a question and takes one of up to three answers.
 	**/
 	public var asking:Null<mdd.view.overlay.Asking> = null;
@@ -230,6 +235,17 @@ final class Panels {
 		if (preferences != null) preferences.session = session;
 		if (notice != null) notice.session = session;
 		if (welcome != null) welcome.session = session;
+		if (describing != null) describing.session = session;
+	}
+
+	/**
+		Raises the sheet that describes the piece, filled in with what it says now.
+	**/
+	public function described():Void {
+		if (describing == null) return;
+
+		describing.ask();
+		stage.root.raise(describing);
 	}
 
 	/**

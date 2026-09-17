@@ -93,11 +93,10 @@ class Project {
 		out.key("version");
 		out.whole(VERSION);
 
-		out.key("name");
-		out.text(song.name);
-
-		out.key("author");
-		out.text(song.author);
+		for (which in 0...Song.DESCRIPTIONS) {
+			out.key(Song.DESCRIBED[which]);
+			out.text(song.described(which));
+		}
 
 		out.key("lfo");
 		out.whole((song.lfoOn ? 8 : 0) | (song.lfoRate & 7));
@@ -452,7 +451,9 @@ class Project {
 		final node = Json.parse(said);
 		final song = new Song(node.get("name").saying("untitled"));
 
-		song.author = node.get("author").saying("");
+		for (which in Song.ARTIST...Song.DESCRIPTIONS) {
+			song.describes(which, node.get(Song.DESCRIBED[which]).saying(""));
+		}
 
 		final lfo = node.get("lfo").whole(0);
 		song.lfoOn = (lfo & 8) != 0;

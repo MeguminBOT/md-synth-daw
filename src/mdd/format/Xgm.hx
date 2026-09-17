@@ -665,10 +665,13 @@ final class Xgm {
 		@return The block.
 	**/
 	static function tagging(song:Song):Bytes {
-		if (song.name == "" && song.author == "") return Bytes.alloc(0);
+		if (song.name == "" && song.author == "" && song.album == "" && song.year == ""
+				&& song.comment == "") {
+			return Bytes.alloc(0);
+		}
 
-		final fields:Array<String> = [song.name, "", "", "", "", "", song.author, "",
-			"", "", ""];
+		final fields:Array<String> = [song.name, "", song.album, "", "", "", song.author, "",
+			song.year, "", song.comment];
 
 		final body = new BytesOutput();
 

@@ -329,9 +329,9 @@ class ShotCheck {
 				held.mixing.rate = 48000;
 			}
 
-			held.mixing.artist = "MeguminBOT";
-			held.mixing.album = "Mega Drive";
-			held.mixing.year = "2026";
+			session.song.author = "MeguminBOT";
+			session.song.album = "Mega Drive";
+			session.song.year = "2026";
 
 			tree.raise(held);
 			held.ask();
@@ -366,6 +366,14 @@ class ShotCheck {
 			final held = new mdd.view.overlay.Naming();
 
 			held.ask("Preset name", "Brass section");
+			tree.raise(held);
+		} else if (sheet == "describing") {
+			final held = new mdd.view.overlay.Describing(session);
+
+			if (session.song.author == "") session.song.author = "MeguminBOT";
+			if (session.song.year == "") session.song.year = "2026";
+
+			held.ask();
 			tree.raise(held);
 		}
 

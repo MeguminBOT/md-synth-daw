@@ -173,6 +173,12 @@ final class Export extends Widget {
 	static final LABELS:Array<Locale> = [Locale.EXPORT_TITLE, Locale.EXPORT_ARTIST,
 		Locale.EXPORT_ALBUM, Locale.EXPORT_YEAR, Locale.EXPORT_COMMENT];
 
+	/**
+		Which of the piece's descriptions each tag field shows, in the order of `LABELS`.
+	**/
+	static final TAGS:Array<Int> = [mdd.song.Song.TITLE, mdd.song.Song.ARTIST, mdd.song.Song.ALBUM,
+		mdd.song.Song.YEAR, mdd.song.Song.COMMENT];
+
 	static final FORMATS:Array<String> = ["WAV", "FLAC", "Ogg Vorbis", "Opus"];
 
 	static final SIZED:Array<String> = ["1280 × 720", "1920 × 1080", "2560 × 1440", "3840 × 2160"];
@@ -441,14 +447,7 @@ final class Export extends Widget {
 		ordered();
 
 		if (fields.length == FIELDS) {
-			if (mixing.title == "") mixing.title = session.song.name;
-			if (mixing.artist == "") mixing.artist = session.song.author;
-
-			fields[0].set(mixing.title);
-			fields[1].set(mixing.artist);
-			fields[2].set(mixing.album);
-			fields[3].set(mixing.year);
-			fields[4].set(mixing.comment);
+			for (index in 0...FIELDS) fields[index].set(session.song.described(TAGS[index]));
 		}
 
 		fills();
@@ -463,6 +462,11 @@ final class Export extends Widget {
 		root.start(fade, 1, Motion.ENTER);
 	}
 
+	/**
+		Takes the tags typed into the sheet, and writes any that changed back to the piece as one
+		step on the undo stack, since the tags are the piece's own descriptions rather than something
+		the export keeps apart from them.
+	**/
 	function kept():Void {
 		if (fields.length < FIELDS) return;
 
@@ -471,6 +475,17 @@ final class Export extends Widget {
 		mixing.album = fields[2].value;
 		mixing.year = fields[3].value;
 		mixing.comment = fields[4].value;
+
+		final all = new mdd.song.edit.Together("describe the piece");
+
+		for (index in 0...FIELDS) {
+			final said = StringTools.trim(fields[index].value);
+			if (said == session.song.described(TAGS[index])) continue;
+
+			all.also(new mdd.song.edit.DescribeSong(TAGS[index], said));
+		}
+
+		if (all.count() > 0) session.does(all);
 	}
 
 	function fired():Void {

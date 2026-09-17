@@ -326,6 +326,9 @@ class App {
 		panels.naming = new Naming();
 		panels.naming.onShut = function():Void stage.root.lower();
 
+		panels.describing = new mdd.view.overlay.Describing(session);
+		panels.describing.onShut = function():Void stage.root.lower();
+
 		panels.working = new Working();
 
 		panels.about = new mdd.view.overlay.About();

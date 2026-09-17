@@ -441,10 +441,14 @@ final class Vgm {
 		@param rate Frames a second to declare.
 		@param title The title tag.
 		@param author The author tag.
+		@param game The game tag, which is where an album goes.
+		@param released The release date tag.
+		@param notes The notes tag, which is where a comment goes.
 		@return The file.
 	**/
 	public static function write(stream:Stream, from:Int, to:Int, rate:Int = 60,
-			title:String = "", author:String = ""):Bytes {
+			title:String = "", author:String = "", game:String = "", released:String = "",
+			notes:String = ""):Bytes {
 		final body = new BytesOutput();
 		var tick = from;
 
@@ -501,7 +505,7 @@ final class Vgm {
 		body.writeByte(END);
 
 		final made = body.getBytes();
-		final tagged = tagging(title, author);
+		final tagged = tagging(title, author, game, released, notes);
 		final out = Bytes.alloc(HEADER + made.length + tagged.length);
 
 		out.blit(HEADER, made, 0, made.length);
@@ -527,12 +531,18 @@ final class Vgm {
 
 		@param title The title tag.
 		@param author The author tag.
+		@param game The game tag.
+		@param released The release date tag.
+		@param notes The notes tag.
 		@return The block.
 	**/
-	static function tagging(title:String, author:String):Bytes {
-		if (title == "" && author == "") return Bytes.alloc(0);
+	static function tagging(title:String, author:String, game:String, released:String,
+			notes:String):Bytes {
+		if (title == "" && author == "" && game == "" && released == "" && notes == "") {
+			return Bytes.alloc(0);
+		}
 
-		final fields:Array<String> = [title, "", "", "", "", "", author, "", "", "", ""];
+		final fields:Array<String> = [title, "", game, "", "", "", author, "", released, "", notes];
 		final body = new BytesOutput();
 
 		for (held in fields) {
