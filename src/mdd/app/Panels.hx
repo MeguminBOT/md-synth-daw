@@ -208,6 +208,7 @@ final class Panels {
 			centre.automation.follows(clip);
 			centre.show(Centre.AUTOMATION);
 		};
+		centre.playlist.onRenamePattern = function(which:Int):Void renamedPattern(which);
 		centre.tracker.onAudition = function(part:Part, pitch:Int):Void
 			session.transport.auditions(part, pitch);
 		rail.hardware.budget = budget;

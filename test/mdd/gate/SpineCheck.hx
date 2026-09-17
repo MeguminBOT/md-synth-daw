@@ -3370,6 +3370,13 @@ class SpineCheck {
 			+ Math.round(clip.length * playlist.perTick) + " wide answer, and the body"
 			+ " beside them does not");
 
+		final word = tree.translate(mdd.app.Locale.PATTERN_RENAME);
+		final wasRenaming = playlist.onRenamePattern;
+		var asked = -1;
+		var offered = -1;
+
+		playlist.onRenamePattern = function(which:Int):Void asked = which;
+
 		tree.dismiss();
 		tree.pressed(at + size * 0.5, row + size * 0.5, mdd.ui.Pointer.Left,
 			mdd.ui.Mod.None);
@@ -3380,6 +3387,24 @@ class SpineCheck {
 			&& playlist.picked.holds(clip),
 			many + " commands under the corner, and the clip it belongs to is the one"
 			+ " selected");
+
+		if (tree.popups.length > 0) {
+			final menu = tree.popups[0];
+
+			for (index in 0...menu.choices.length) {
+				if (menu.choices[index].label == word) offered = index;
+			}
+
+			if (offered >= 0) menu.fire(offered);
+		}
+
+		says("and one renames its pattern", offered >= 0 && asked == clip.pattern,
+			offered < 0 ? "no '" + word + "' under the corner"
+			: (asked < 0 ? "'" + word + "' is under the corner and asks for nothing"
+			: "'" + word + "' asks to rename pattern " + asked + ", which the clip plays "
+			+ clip.pattern));
+
+		playlist.onRenamePattern = wasRenaming;
 
 		tree.dismiss();
 		for (track in tracks) track.clips.resize(0);

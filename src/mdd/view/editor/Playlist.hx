@@ -99,6 +99,11 @@ final class Playlist extends Widget {
 	public var onRename:Null<Int -> Void> = null;
 
 	/**
+		Called to rename the pattern a clip plays, with the pattern's index.
+	**/
+	public var onRenamePattern:Null<Int -> Void> = null;
+
+	/**
 		Called to open a clip in the roll or the automation editor.
 	**/
 	public var onOpen:Null<Clip -> Void> = null;
@@ -1322,6 +1327,12 @@ final class Playlist extends Widget {
 
 		alone.enabled = mdd.song.edit.UniqueClip.shares(session.song, clip);
 		fires(alone, function():Void uniqued(clip));
+
+		final rename = menu.offer(new Choice(translate(Locale.PATTERN_RENAME)));
+
+		rename.enabled = onRenamePattern != null && !clip.automates()
+			&& session.song.patternAt(clip.pattern) != null;
+		fires(rename, function():Void if (onRenamePattern != null) onRenamePattern(clip.pattern));
 
 		menu.divide();
 
