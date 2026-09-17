@@ -676,7 +676,30 @@ final class Transcription {
 				shadow[(half << 8) | (0x40 + group * 4 + within)] & 0x7F;
 		}
 
+		restarted(at, channel);
 		exact(at, channel);
+	}
+
+	/**
+		Makes a level point written on the tick a note keys on belong to that note.
+
+		A driver sets a note's total level and keys it on inside one frame, so the write lands on the
+		key on's tick while it is still measured from the note before. The sequencer starts a note on
+		the level a point exactly at its start holds, which is how a fade in is written, so that point
+		has to hold nought: the new note's velocity already carries the level it was keyed at.
+
+		@param at The sample the key on happens at.
+		@param channel Which channel, 0 to 5.
+	**/
+	function restarted(at:Int, channel:Int):Void {
+		final when = ticked(at);
+
+		for (line in pattern.lane(channel).automation) {
+			if (line.target != mdd.song.Automation.LEVEL || line.points.length == 0) continue;
+
+			final last = line.points[line.points.length - 1];
+			if (last.at == when) last.value = 0;
+		}
 	}
 
 	/**

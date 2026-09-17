@@ -34,6 +34,7 @@ class AutomationCheck {
 		resumed();
 		covered();
 		quieted();
+		faded();
 		driven();
 		named();
 		switched();
@@ -699,6 +700,93 @@ class AutomationCheck {
 		says("a level clip stops the envelope", written.length <= 2 && last == 5,
 			written.length + " attenuations over a bar and a half of a sixteen step decay, ending on " + last
 			+ ", where the clip holds 5");
+	}
+
+	/**
+		A fade in written from a note's start starts quiet. A level point exactly on a note start was
+		passed over, so the note keyed on at its full level and dropped a frame later to where the
+		fade began, which is heard as a click before every fade.
+	**/
+	static function faded():Void {
+		final song = new Song("faded", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN));
+		final start = SPAN >> 4;
+
+		song.rack[Part.Fm1.index()] = wired(song, "plain", 0, 0);
+
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(start, SPAN - start - 24, 60, 127));
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(start, SPAN - start - 24, 60, 127));
+
+		final carrier = new Automation(Automation.LEVEL, 3);
+		final from = new Point(start, 26);
+		from.shape = Automation.LINEAR;
+		carrier.add(from);
+		carrier.add(new Point(start + 192, 0));
+		pattern.lane(Part.Fm1).automation.push(carrier);
+
+		final square = new Automation(Automation.LEVEL, 0);
+		final rising = new Point(start, 8);
+		rising.shape = Automation.LINEAR;
+		square.add(rising);
+		square.add(new Point(start + 192, 0));
+		pattern.lane(Part.Psg1).automation.push(square);
+
+		song.track(new mdd.song.Track("one")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final keyed = song.tempo.samplesAt(start);
+		final faded = song.tempo.samplesAt(start + 192);
+		final base = mdd.play.Stream.levelOf(new mdd.song.Patch(), 3, 127);
+
+		var address = 0;
+		var level = -1;
+		var atKey = -1;
+		var louder = 0;
+		var squareAtKey = -1;
+		var squareLouder = 0;
+		var latched = 0;
+		var quiet = -1;
+
+		for (index in 0...stream.count) {
+			final tick = stream.tickAt(index);
+			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) == mdd.play.Stream.PSG) {
+				if ((value & 0x80) == 0) continue;
+
+				latched = (value >> 4) & 7;
+				if (latched != 1) continue;
+
+				final was = quiet;
+				quiet = value & 0x0F;
+
+				if (tick == keyed) squareAtKey = quiet;
+				else if (tick > keyed && tick < faded && was >= 0 && quiet > was) squareLouder++;
+
+				continue;
+			}
+
+			if ((stream.portAt(index) & 1) == 0) {
+				address = value;
+				continue;
+			}
+
+			if (address == 0x4C) {
+				final was = level;
+				level = value;
+				if (tick > keyed && tick < faded && was >= 0 && level > was) louder++;
+			} else if (address == 0x28 && value == 0xF0 && tick == keyed) {
+				atKey = level;
+			}
+		}
+
+		says("a fade in starts where it is written", atKey == base + 26 && louder == 0
+			&& squareAtKey == 8 && squareLouder == 0,
+			"FM1 keys on with its carrier at " + atKey + " against " + base + " full and "
+			+ (base + 26) + " where the fade starts, " + louder + " steps back up; the square starts at "
+			+ squareAtKey + " where the fade starts at 8, " + squareLouder + " steps back up");
 	}
 
 	/**

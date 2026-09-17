@@ -496,6 +496,32 @@ final class Sequencer {
 	}
 
 	/**
+		@param part Which part.
+		@param lane The lane the note is in.
+		@param local Where the note starts in that lane.
+		@param tick Where it starts on the playlist.
+		@param driven Whether any automation clip drives the part.
+		@return Whether a square or the noise channel has a level point exactly where the note starts,
+			in its own lane or in a clip driving it. That point is the level the note starts at, and
+			it is written in place of the loudness the key on would write, which would otherwise
+			land after it and put the note back at its full level for a frame.
+	**/
+	function levelled(part:Part, lane:mdd.song.Lane, local:Int, tick:Int, driven:Bool):Bool {
+		if (!part.square() && !part.noise()) return false;
+
+		for (line in lane.automation) {
+			if (line.held(mdd.song.Automation.LEVEL, 0) && line.marks(local)) return true;
+		}
+
+		if (!driven) return false;
+
+		final clip = driverOf(part, mdd.song.Automation.LEVEL, 0, tick);
+		final line = clip == null ? null : clip.line;
+
+		return line != null && line.marks(tick - clip.at);
+	}
+
+	/**
 		Collects what the automation clips driving an FM part's operators hold where a note keys
 		on, which is what the note starts on in place of its patch's own values, the same as a
 		lane in the note's own pattern.
@@ -852,7 +878,8 @@ final class Sequencer {
 					} else push(onSample, part, TUNE, periodic(offset, want, transpose), 2);
 				}
 
-				if (!tied && !(part.sampled() && tuning != null)) {
+				if (!tied && !(part.sampled() && tuning != null)
+						&& !levelled(part, lane, local, start, driven)) {
 					push(onSample, part, ON, velocity, named);
 				}
 
@@ -1161,7 +1188,7 @@ final class Sequencer {
 				final at = tempo.samplesAt(origin + point.at);
 
 				if (at >= fromSample && at < toSample
-						&& !(riding && starts(point.at))) {
+						&& !(riding && line.target == mdd.song.Automation.TUNE && starts(point.at))) {
 					put(at, part, line, point.value, transpose, riding, point.at);
 				}
 
