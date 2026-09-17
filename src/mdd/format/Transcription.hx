@@ -610,9 +610,13 @@ final class Transcription {
 
 		if (was < 0 || !everKeyed[channel]) return;
 
-		final line = lined(channel, mdd.song.Automation.LEVEL, slot,
-			was - keyedLevel[which]);
+		final fresh = !leveling(channel, slot);
+		final line = lined(channel, mdd.song.Automation.LEVEL, slot, 0);
 		if (line == null) return;
+
+		if (fresh && was != keyedLevel[which]) {
+			line.add(new mdd.song.Point(ticked(startedAt[channel]), was - keyedLevel[which]));
+		}
 
 		line.add(new mdd.song.Point(ticked(at), value - keyedLevel[which]));
 	}
@@ -681,12 +685,14 @@ final class Transcription {
 	}
 
 	/**
-		Makes a level point written on the tick a note keys on belong to that note.
+		Brings every level lane on a channel back to nought where a note keys on.
 
-		A driver sets a note's total level and keys it on inside one frame, so the write lands on the
-		key on's tick while it is still measured from the note before. The sequencer starts a note on
-		the level a point exactly at its start holds, which is how a fade in is written, so that point
-		has to hold nought: the new note's velocity already carries the level it was keyed at.
+		A note starts at whatever level its lane holds, the way a total level holds on the chip from
+		one note to the next, but a note read out of a register log already carries the level it was
+		keyed at in its velocity. A lane a fade left away from nought would take that level off it a
+		second time, so it gets a point of nought on the key on. A driver sets a note's total level
+		and keys it on inside one frame, so a write can land on the key on's tick while it is still
+		measured from the note before; that point is the one set to nought.
 
 		@param at The sample the key on happens at.
 		@param channel Which channel, 0 to 5.
@@ -698,8 +704,23 @@ final class Transcription {
 			if (line.target != mdd.song.Automation.LEVEL || line.points.length == 0) continue;
 
 			final last = line.points[line.points.length - 1];
+
 			if (last.at == when) last.value = 0;
+			else if (line.heldAt(when) != 0) line.add(new mdd.song.Point(when, 0));
 		}
+	}
+
+	/**
+		@param channel Which channel, 0 to 5.
+		@param slot Which operator.
+		@return Whether the channel already has a level lane for that operator.
+	**/
+	function leveling(channel:Int, slot:Int):Bool {
+		for (held in pattern.lane(channel).automation) {
+			if (held.held(mdd.song.Automation.LEVEL, slot)) return true;
+		}
+
+		return false;
 	}
 
 	/**

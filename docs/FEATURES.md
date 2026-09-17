@@ -119,6 +119,12 @@ Any parameter that corresponds to a register can be automated, including the one
 register: `$B4` holds the stereo bits and both LFO sensitivities, and the automation lane owns the
 whole byte so nothing else can fight it.
 
+A lane holds its value from one note to the next, the way a register does on the chip. A note starts
+at whatever its lanes hold where it begins, a level lane included, even though a key on loads the
+whole preset, and a note before a lane's first point takes that first point's value. A level lane on
+a square or the noise channel takes the place of the instrument's envelope, and stays silent in a
+rest rather than sounding the channel again.
+
 A **preset lane** lets one channel play several instruments in turn. Right-click a preset and
 choose to switch the channel at the playhead: from that point on, every note loads the whole preset
 at its key on, including a note that names an instrument of its own. That is how a driver changes

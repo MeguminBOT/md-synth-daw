@@ -549,24 +549,52 @@ final class Sequencer {
 		@param local Where the note starts in that lane.
 		@param tick Where it starts on the playlist.
 		@param driven Whether any automation clip drives the part.
-		@return Whether a square or the noise channel has a level point exactly where the note starts,
-			in its own lane or in a clip driving it. That point is the level the note starts at, and
-			it is written in place of the loudness the key on would write, which would otherwise
-			land after it and put the note back at its full level for a frame.
+		@return Whether a square or the noise channel has a level lane over the note, in its own
+			pattern or in a clip driving it. The level that lane holds where the note starts is
+			written in place of the loudness the key on would write, which would otherwise land
+			after it and put the note back at its full level for a frame.
 	**/
 	function levelled(part:Part, lane:mdd.song.Lane, local:Int, tick:Int, driven:Bool):Bool {
 		if (!part.square() && !part.noise()) return false;
 
 		for (line in lane.automation) {
-			if (line.held(mdd.song.Automation.LEVEL, 0) && line.marks(local)) return true;
+			if (line.held(mdd.song.Automation.LEVEL, 0) && line.points.length > 0) return true;
 		}
 
-		if (!driven) return false;
+		return driven && driverOf(part, mdd.song.Automation.LEVEL, 0, tick) != null;
+	}
 
-		final clip = driverOf(part, mdd.song.Automation.LEVEL, 0, tick);
-		final line = clip == null ? null : clip.line;
+	/**
+		Collects the level every level lane over a note holds where it keys on, so the note starts
+		at that level rather than at its instrument's own until the lane next moves. A key on loads
+		the whole preset, and a level lane holds from one note to the next the way a total level
+		does on the chip. A point exactly where the note starts is left to be written where it
+		sits.
 
-		return line != null && line.marks(tick - clip.at);
+		@param part Which part.
+		@param local Where the note starts in its lane.
+		@param tick Where it starts on the playlist.
+		@param at The sample it keys on at.
+		@param driven Whether any automation clip drives the part.
+		@param transpose Semitones to shift every note by.
+		@param pitch The note, before the transpose.
+		@param velocity Its velocity, 0 to 127.
+		@param named Which instrument it plays.
+	**/
+	function keyedLevels(part:Part, local:Int, tick:Int, at:Int, driven:Bool, transpose:Int, pitch:Int,
+			velocity:Int, named:Int):Void {
+		if (!part.fm() && !part.square() && !part.noise()) return;
+
+		for (slot in 0...(part.fm() ? 4 : 1)) {
+			final clip = driven ? driverOf(part, mdd.song.Automation.LEVEL, slot, tick) : null;
+			final line = clip == null ? lines[slot] : clip.line;
+			if (line == null || line.points.length == 0) continue;
+
+			final within = clip == null ? local : tick - clip.at;
+			if (line.marks(within)) continue;
+
+			lined(at, part, line, line.valueAt(within), transpose, pitch, velocity, named);
+		}
 	}
 
 	/**
@@ -605,10 +633,12 @@ final class Sequencer {
 	/**
 		@param part Which part.
 		@param tick A tick.
-		@return The note sounding on that part at that tick, or null for none.
+		@return The note sounding on that part at that tick, or null for none. An FM note still
+			sounds in its release after it ends; a square's or the noise channel's does not.
 	**/
 	function noteUnder(part:Part, tick:Int):Null<mdd.song.Note> {
 		var found:Null<mdd.song.Note> = null;
+		var ended = false;
 		underTranspose = 0;
 		underLane = null;
 
@@ -628,11 +658,14 @@ final class Sequencer {
 					if (note.at > local) break;
 
 					found = note;
+					ended = note.ends() <= local;
 					underTranspose = clip.transpose;
 					underLane = pattern.lane(part);
 				}
 			}
 		}
+
+		if (ended && !part.fm()) found = null;
 
 		return found;
 	}
@@ -931,6 +964,11 @@ final class Sequencer {
 					push(onSample, part, ON, velocity, named);
 				}
 
+				if (!tied) {
+					keyedLevels(part, local, start, onSample, driven, transpose, voices.pitchAt(slice),
+						voices.velocityAt(slice), named);
+				}
+
 				if (!part.sampled()) {
 					final was = owed[part.index()];
 					final due = held ? HELD : offSample + 1;
@@ -1111,6 +1149,10 @@ final class Sequencer {
 	/**
 		Records one automation value, reading whatever note is sounding under it.
 
+		A lane that rides a note writes nothing where there is no note under it to ride, or where
+		a square or the noise channel's note has ended, which would otherwise sound the channel
+		again in a rest. The next note's key on writes what the lane holds by then.
+
 		@param at The sample it happens at.
 		@param part Which part it plays on.
 		@param line The automation lane being read.
@@ -1121,7 +1163,13 @@ final class Sequencer {
 	**/
 	function put(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
 			riding:Bool, tick:Int):Void {
-		final under = riding ? sounding(tick) : -1;
+		var under = riding ? sounding(tick) : -1;
+
+		if (riding) {
+			if (under >= 0 && !part.fm() && voices.endAt(under) <= tick) under = -1;
+			if (under < 0) return;
+		}
+
 		if (under == wroteUnder && value == wroteValue) return;
 
 		wroteUnder = under;
@@ -1348,19 +1396,19 @@ final class Sequencer {
 				: spread(part, sider.line, tick - sider.at, named), 1);
 		}
 
+		final sounded = under != null && (part.fm() || under.ends() > local) ? under : null;
+
 		if (lane != null) {
 			for (line in lane.automation) {
 				if (!carries(part, line)) continue;
-				if (line.points.length == 0 || line.points[0].at > local) continue;
+				if (line.points.length == 0) continue;
 				if (driverOf(part, line.target, line.slot, tick) != null) continue;
 
-				restored(at, part, line, local, under == null ? 0 : under.at, under, transpose, named);
+				restored(at, part, line, local, sounded, transpose, named);
 			}
 		}
 
 		if (alone >= 0) return;
-
-		final began = under == null ? 0 : tick - local + under.at;
 
 		for (track in song.tracks) {
 			if (track.muted) continue;
@@ -1371,38 +1419,39 @@ final class Sequencer {
 
 				final line = clip.line;
 				if (line == null || !carries(part, line)) continue;
-				if (line.points.length == 0 || line.points[0].at > tick - clip.at) continue;
+				if (line.points.length == 0) continue;
 				if (driverOf(part, line.target, line.slot, tick) != clip) continue;
 
-				restored(at, part, line, tick - clip.at, began - clip.at, under, transpose, named);
+				restored(at, part, line, tick - clip.at, sounded, transpose, named);
 			}
 		}
 	}
 
 	/**
-		Writes what one automation lane holds at a position being seeked to.
+		Writes what one automation lane holds at a position being seeked to, which is what the same
+		lane would have written by then had the song played up to it. A lane that rides a note
+		writes nothing where no note sounds there.
 
 		@param at The sample being seeked to.
 		@param part Which part.
 		@param line The lane, from the part's own pattern or from a clip driving it.
 		@param within The position in the lane's own ticks.
-		@param began Where the note sounding there started, in the same ticks.
 		@param under The note sounding there, or null for none.
 		@param transpose Semitones to shift every note by.
 		@param named Which instrument the note plays.
 	**/
-	function restored(at:Int, part:Part, line:mdd.song.Automation, within:Int, began:Int,
+	function restored(at:Int, part:Part, line:mdd.song.Automation, within:Int,
 			under:Null<mdd.song.Note>, transpose:Int, named:Int):Void {
-		final want = line.heldAt(within);
-		if (want < 0 && !rides(part, line)) return;
+		final riding = rides(part, line);
+		final want = riding && line.target == mdd.song.Automation.LEVEL ? line.valueAt(within)
+			: line.heldAt(within);
 
-		if (!rides(part, line) || under == null) {
-			lined(at, part, line, want, transpose, -1, -1, -1);
+		if (!riding) {
+			if (want >= 0) lined(at, part, line, want, transpose, -1, -1, -1);
 			return;
 		}
 
-		final held = line.seek(within + 1) - 1;
-		if (held >= 0 && line.points[held].at < began) return;
+		if (under == null) return;
 
 		lined(at, part, line, want, transpose, under.pitch, under.velocity, named);
 	}

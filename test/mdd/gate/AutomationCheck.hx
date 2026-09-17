@@ -35,6 +35,7 @@ class AutomationCheck {
 		covered();
 		quieted();
 		faded();
+		carried();
 		driven();
 		named();
 		switched();
@@ -486,8 +487,8 @@ class AutomationCheck {
 		That reads as a level that jumps back at the join.
 	**/
 	static function sliced():Void {
-		final whole = levelled(false);
-		final cut = levelled(true);
+		final whole = [for (value in levelled(false)) if (value < 15) value];
+		final cut = [for (value in levelled(true)) if (value < 15) value];
 
 		var back = 0;
 		for (index in 1...cut.length) {
@@ -506,9 +507,10 @@ class AutomationCheck {
 	}
 
 	/**
-		The lane carries no note on purpose. A sliced clip releases the note it was
-		playing and the next one strikes it again, which is what a cut means, and those
-		two attenuations would be read as automation going backwards.
+		One note runs under the whole lane, because a level lane only writes while a note sounds. A
+		sliced clip releases the note it was playing and the next one strikes it again, which is
+		what a cut means, so the silence written at each release is left out by the caller rather
+		than read as automation going backwards.
 
 		@param cut Whether the clip is sliced in two at the halfway point.
 		@return Every attenuation a square is given across the piece.
@@ -518,6 +520,7 @@ class AutomationCheck {
 		final pattern = song.add(new Pattern("pattern 1", SPAN * 4));
 
 		final lane = pattern.lane(Part.Psg1);
+		lane.add(new mdd.song.Note(0, SPAN * 4 - 24, 60, 127));
 
 		final line = new Automation(Automation.LEVEL, 0);
 
@@ -787,6 +790,97 @@ class AutomationCheck {
 			"FM1 keys on with its carrier at " + atKey + " against " + base + " full and "
 			+ (base + 26) + " where the fade starts, " + louder + " steps back up; the square starts at "
 			+ squareAtKey + " where the fade starts at 8, " + squareLouder + " steps back up");
+	}
+
+	/**
+		A level lane holds from one note to the next, as a total level holds on the chip. Every key
+		on loaded the preset's own level and the lane was only written where its points sat, so a
+		lane turned down once played every later note at full level, and a filter swept across a run
+		of notes clicked bright at each one. A square's lane written in a rest sounded the square
+		again with nothing playing.
+	**/
+	static function carried():Void {
+		final song = new Song("carried", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+
+		song.rack[Part.Fm1.index()] = wired(song, "plain", 0, 0);
+
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(0, SPAN - 24, 60, 127));
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(SPAN, SPAN - 24, 62, 127));
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(0, SPAN - 48, 60, 127));
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(SPAN, SPAN - 48, 62, 127));
+
+		final carrier = new Automation(Automation.LEVEL, 3);
+		carrier.add(new Point(0, 20));
+		pattern.lane(Part.Fm1).automation.push(carrier);
+
+		final square = new Automation(Automation.LEVEL, 0);
+		square.add(new Point(0, 4));
+		square.add(new Point(SPAN - 24, 6));
+		pattern.lane(Part.Psg1).automation.push(square);
+
+		song.track(new mdd.song.Track("one")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final second = song.tempo.samplesAt(SPAN);
+		final rest = song.tempo.samplesAt(SPAN - 48);
+		final base = mdd.play.Stream.levelOf(new mdd.song.Patch(), 3, 127);
+
+		var address = 0;
+		var level = -1;
+		var atKey = -1;
+		var quiet = 15;
+		var squareAtKey = -1;
+		var sounded = 0;
+
+		for (index in 0...stream.count) {
+			final tick = stream.tickAt(index);
+			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) == mdd.play.Stream.PSG) {
+				if ((value & 0x80) == 0 || ((value >> 4) & 7) != 1) continue;
+
+				quiet = value & 0x0F;
+				if (tick >= rest && tick < second && quiet < 15) sounded++;
+				if (tick == second) squareAtKey = quiet;
+
+				continue;
+			}
+
+			if ((stream.portAt(index) & 1) == 0) {
+				address = value;
+				continue;
+			}
+
+			if (address == 0x4C) level = value;
+			else if (address == 0x28 && value == 0xF0 && tick == second) atKey = level;
+		}
+
+		final seeked = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).prime(seeked, song.tempo.samplesAt(SPAN + 96));
+
+		address = 0;
+		var primed = -1;
+
+		for (index in 0...seeked.count) {
+			if (seeked.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final value = seeked.valueAt(index);
+
+			if ((seeked.portAt(index) & 1) == 0) address = value;
+			else if (address == 0x4C) primed = value;
+		}
+
+		says("a level lane holds across notes", atKey == base + 20 && primed == base + 20,
+			"FM1's second note keys on with its carrier at " + atKey + " and a seek into it writes "
+			+ primed + ", where the lane holds 20 under the preset's " + base + " from its only point,"
+			+ " before the first note");
+
+		says("and a square's holds without a rest", squareAtKey == 6 && sounded == 0,
+			"the second square note starts at " + squareAtKey + ", where a point in the rest before it"
+			+ " holds 6, and " + sounded + " writes sound the square in that rest");
 	}
 
 	/**
