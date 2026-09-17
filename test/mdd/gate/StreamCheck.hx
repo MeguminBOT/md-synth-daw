@@ -44,6 +44,7 @@ class StreamCheck {
 		raced();
 		hushed();
 		restruck();
+		legato();
 		grown();
 		survived();
 
@@ -331,6 +332,99 @@ class StreamCheck {
 		@param stream A sequenced stream.
 		@return A copy with every key off moved one sample later, onto the key on after it.
 	**/
+	/**
+		A tied note changes the pitch of the note before it without striking it again: one key on
+		and one key off for a whole tied line on an FM channel, and on a square no silence at a tie
+		and an envelope that carries on rather than starting over.
+	**/
+	static function legato():Void {
+		final song = new Song("legato", 96, 120);
+		final beat = song.tempo.ppqn;
+		final pattern = song.add(new Pattern("pattern 1", beat * 4));
+		final decaying = new Instrument("decaying", Part.Psg1);
+
+		if (decaying.envelope != null) {
+			for (step in 0...8) decaying.envelope.steps.push(step);
+			decaying.envelope.speed = 4;
+		}
+
+		song.instrument(decaying);
+		final square = song.instruments.length - 1;
+
+		for (index in 0...3) {
+			final fm = new Note(index * beat, beat, 60 + index * 4, 127);
+			final held = new Note(index * beat, beat, 60 + index * 4, 127, square);
+
+			fm.tied = index > 0;
+			held.tied = index > 0;
+
+			pattern.lane(Part.Fm1).add(fm);
+			pattern.lane(Part.Psg1).add(held);
+		}
+
+		song.track(new Track("one")).add(new Clip(0, 0, pattern.length));
+
+		final stream = new Stream(1 << 16);
+		new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final ended = song.tempo.samplesAt(beat * 3);
+
+		var address = 0;
+		var ons = 0;
+		var offs = 0;
+		var early = 0;
+		var latched = 0;
+		var last = -1;
+		var backwards = 0;
+		var silenced = 0;
+		var tones = 0;
+
+		for (index in 0...stream.count) {
+			final tick = stream.tickAt(index);
+			final value = stream.valueAt(index);
+
+			if (stream.kindAt(index) == Stream.PSG) {
+				if ((value & 0x80) == 0) continue;
+
+				latched = (value >> 4) & 7;
+
+				if (latched == 0) tones++;
+				if (latched != 1) continue;
+
+				final level = value & 0x0F;
+
+				if (level == 15 && tick < ended) silenced++;
+				if (level < 15 && last >= 0 && level < last) backwards++;
+				if (level < 15) last = level;
+
+				continue;
+			}
+
+			if (stream.kindAt(index) != Stream.YM) continue;
+
+			if ((stream.portAt(index) & 1) == 0) {
+				address = value;
+				continue;
+			}
+
+			if (address != 0x28 || (value & 7) != 0) continue;
+
+			if ((value & 0xF0) != 0) ons++;
+			else {
+				offs++;
+				if (tick < ended - 1) early++;
+			}
+		}
+
+		says("a tied FM line keys on once", ons == 1 && offs == 1 && early == 0,
+			ons + " key ons and " + offs + " key offs on FM1 for three tied notes, " + early
+			+ " of the key offs before the line ends");
+
+		says("and a tied square does not start over", silenced == 0 && backwards == 0 && tones >= 3,
+			silenced + " silences before the line ends, " + backwards + " envelope steps that go back"
+			+ " toward the start, and " + tones + " tone writes for three pitches");
+	}
+
 	static function touching(stream:Stream):Stream {
 		final out = new Stream(stream.count + 16);
 		var index = 0;

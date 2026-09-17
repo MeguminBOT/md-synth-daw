@@ -926,8 +926,9 @@ final class Sequencer {
 			if (ends <= start) continue;
 
 			final local = start - origin;
-			final tied = part.fm() && voices.tiedAt(slice);
-			final held = part.fm() && voices.heldAt(slice);
+			final legato = part.fm() || part.square();
+			final tied = legato && voices.tiedAt(slice);
+			final held = legato && voices.heldAt(slice);
 
 			final onSample = tempo.samplesAt(start);
 			final ending = tempo.samplesAt(ends);
@@ -1011,7 +1012,15 @@ final class Sequencer {
 			}
 			else if ((part.square() || part.noise()) && lines[0] == null
 					&& !(driven && driverOf(part, mdd.song.Automation.LEVEL, 0, start) != null)) {
-				shaped(onSample, offSample, part, named, velocity, fromSample, toSample);
+				final head = tied ? tiedFrom(lane, voices.startAt(slice)) : null;
+
+				if (head == null) {
+					shaped(onSample, offSample, part, named, velocity, fromSample, toSample);
+				} else {
+					shaped(tempo.samplesAt(origin + head.at), offSample, part,
+						chosen(lane, part, head.instrument, head.at), louder(part, head.velocity),
+						onSample > fromSample ? onSample : fromSample, toSample);
+				}
 			}
 		}
 	}
@@ -1592,6 +1601,33 @@ final class Sequencer {
 			when += step;
 			index++;
 		}
+	}
+
+	/**
+		Finds where a run of tied notes began, which is where a square's envelope started: a tie
+		changes the note without starting it again. Allocates nothing.
+
+		@param lane The lane the notes are in.
+		@param at Where a tied note starts in that lane.
+		@return The first note of the run, or null where no note starts there.
+	**/
+	function tiedFrom(lane:mdd.song.Lane, at:Int):Null<mdd.song.Note> {
+		final notes = lane.notes;
+		var index = -1;
+
+		for (which in 0...notes.length) {
+			if (notes[which].at > at) break;
+			if (notes[which].at == at) {
+				index = which;
+				break;
+			}
+		}
+
+		if (index < 0) return null;
+
+		while (index > 0 && notes[index].tied && notes[index - 1].ends() >= notes[index].at) index--;
+
+		return notes[index];
 	}
 
 	/**
