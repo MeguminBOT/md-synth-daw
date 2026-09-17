@@ -48,6 +48,16 @@ final class Lanes extends Widget {
 	**/
 	public static inline final ROW = 92;
 
+	/**
+		The fewest values a lane may be zoomed in to show.
+	**/
+	public static inline final LEAST_SPAN = 8;
+
+	/**
+		What one turn of the wheel over a lane's scale multiplies the values it shows by.
+	**/
+	static inline final ZOOM = 0.5;
+
 	static inline final REACH = 8;
 	static inline final KNOB = 5;
 	static inline final TRACE = 512;
@@ -97,6 +107,27 @@ final class Lanes extends Widget {
 	final heights:Array<Float> = [];
 	final remembered:Map<Int, Float> = new Map<Int, Float>();
 	final shut:Map<Int, Bool> = new Map<Int, Bool>();
+
+	/**
+		The lowest value each zoomed lane shows, by lane. A lane with no entry shows every value its
+		parameter takes.
+	**/
+	final lows:Map<Int, Int> = new Map<Int, Int>();
+
+	/**
+		The highest value each zoomed lane shows, by lane.
+	**/
+	final highs:Map<Int, Int> = new Map<Int, Int>();
+
+	/**
+		The lanes last fitted to their points and not zoomed since, which a double click on the scale
+		returns to every value rather than fitting again.
+	**/
+	final fitted:Map<Int, Bool> = new Map<Int, Bool>();
+
+	var ranging:Int = -1;
+	var rangeFrom:Float = 0;
+	var rangeLow:Int = 0;
 
 	/**
 		Called to open the menu that chooses which lane a row shows.
@@ -1023,12 +1054,13 @@ final class Lanes extends Widget {
 		final held = parameterOf(row);
 		if (held == null) return plotTop(row);
 
-		final span = held.high - held.low;
+		final low = lowOf(row);
+		final span = highOf(row) - low;
 		if (span <= 0) return plotTop(row);
 
 		final inset = padding();
 		final room = plotTall(row) - inset * 2;
-		final part = (value - held.low) / span;
+		final part = (value - low) / span;
 		final up = held.attenuates() ? 1 - part : part;
 
 		return plotTop(row) + inset + room * (1 - up);
@@ -1038,17 +1070,264 @@ final class Lanes extends Widget {
 		final held = parameterOf(row);
 		if (held == null) return 0;
 
+		final low = lowOf(row);
+		return held.holds(low + Math.round((highOf(row) - low) * partAt(row, py)));
+	}
+
+	/**
+		@param row Which lane row.
+		@param py A point, down.
+		@return How far up the values the row shows the point sits, from nought at its lowest value to
+			one at its highest, held inside the plot.
+	**/
+	function partAt(row:Int, py:Float):Float {
+		final held = parameterOf(row);
 		final inset = padding();
 		final room = plotTall(row) - inset * 2;
-		if (room <= 0) return held.low;
+		if (held == null || room <= 0) return 0;
 
 		var up = 1 - (py - plotTop(row) - inset) / room;
 		if (up < 0) up = 0;
 		if (up > 1) up = 1;
 
-		final part = held.attenuates() ? 1 - up : up;
+		return held.attenuates() ? 1 - up : up;
+	}
 
-		return held.holds(held.low + Math.round((held.high - held.low) * part));
+	/**
+		@param row Which lane row.
+		@return The lane a row shows, packed as a target and a slot, which is what its zoom is kept
+			under, so a zoom follows its lane to whichever row shows it.
+	**/
+	function keyOf(row:Int):Int {
+		final line = driven();
+		if (line != null) return (line.target << 8) | line.slot;
+
+		return row >= 0 && row < targets.length ? targets[row] : -1;
+	}
+
+	/**
+		@param row Which lane row.
+		@return The lowest value the row shows, which is the lowest its parameter takes unless the row
+			is zoomed.
+	**/
+	public function lowOf(row:Int):Int {
+		final held = parameterOf(row);
+		if (held == null) return 0;
+
+		final key = keyOf(row);
+		return lows.exists(key) ? lows.get(key) : held.low;
+	}
+
+	/**
+		@param row Which lane row.
+		@return The highest value the row shows.
+	**/
+	public function highOf(row:Int):Int {
+		final held = parameterOf(row);
+		if (held == null) return 0;
+
+		final key = keyOf(row);
+		return highs.exists(key) ? highs.get(key) : held.high;
+	}
+
+	/**
+		@param row Which lane row.
+		@return Whether the row shows fewer values than its parameter takes.
+	**/
+	public function zoomed(row:Int):Bool {
+		return lows.exists(keyOf(row));
+	}
+
+	/**
+		Shows a row between two values, held inside what its parameter takes and to at least
+		`LEAST_SPAN` of them. A range as wide as the parameter is forgotten rather than kept.
+
+		@param row Which lane row.
+		@param low The lowest value to show.
+		@param high The highest.
+	**/
+	function ranged(row:Int, low:Int, high:Int):Void {
+		final held = parameterOf(row);
+		if (held == null) return;
+
+		final full = held.high - held.low;
+		final least = LEAST_SPAN < full ? LEAST_SPAN : full;
+
+		var span = high - low;
+		if (span < least) span = least;
+		if (span > full) span = full;
+
+		var from = low;
+		if (from + span > held.high) from = held.high - span;
+		if (from < held.low) from = held.low;
+
+		final key = keyOf(row);
+
+		if (span >= full) {
+			lows.remove(key);
+			highs.remove(key);
+		} else {
+			lows.set(key, from);
+			highs.set(key, from + span);
+		}
+
+		fitted.remove(key);
+		invalidate();
+	}
+
+	/**
+		Zooms the values a row shows in or out, keeping the value under the pointer where it is.
+
+		@param row Which lane row.
+		@param py Where the pointer is, down.
+		@param by What to multiply the span shown by: under one zooms in.
+	**/
+	public function zooms(row:Int, py:Float, by:Float):Void {
+		if (parameterOf(row) == null) return;
+
+		final low = lowOf(row);
+		final span = highOf(row) - low;
+		if (span <= 0) return;
+
+		final part = partAt(row, py);
+		final want = Math.round(span * by);
+		final from = Math.round(low + span * part - want * part);
+
+		ranged(row, from, from + want);
+	}
+
+	/**
+		Zooms a row to the values its points reach, with a little room either side. A lane that is an
+		offset keeps nought in view, and a row with no points shows every value again.
+
+		@param row Which lane row.
+	**/
+	public function fits(row:Int):Void {
+		final held = parameterOf(row);
+		final line = lineOf(row);
+		if (held == null) return;
+
+		if (line == null || line.points.length == 0) {
+			unzooms(row);
+			return;
+		}
+
+		var least = line.points[0].value;
+		var most = least;
+
+		for (point in line.points) {
+			if (point.value < least) least = point.value;
+			if (point.value > most) most = point.value;
+		}
+
+		if (held.offset) {
+			if (least > 0) least = 0;
+			if (most < 0) most = 0;
+		}
+
+		final room = Math.ceil((most - least) * 0.1) + 1;
+		final span = most - least + room * 2;
+
+		if (span >= LEAST_SPAN) {
+			ranged(row, least - room, most + room);
+		} else {
+			final from = Math.floor((least + most - LEAST_SPAN) * 0.5);
+			ranged(row, from, from + LEAST_SPAN);
+		}
+
+		fitted.set(keyOf(row), true);
+	}
+
+	/**
+		Shows every value a row's parameter takes again.
+
+		@param row Which lane row.
+	**/
+	public function unzooms(row:Int):Void {
+		final key = keyOf(row);
+
+		lows.remove(key);
+		highs.remove(key);
+		fitted.remove(key);
+
+		invalidate();
+	}
+
+	/**
+		Moves the values a zoomed row shows with the pointer dragging its scale, so what is under the
+		pointer stays under it.
+
+		@param py Where the pointer is, down.
+	**/
+	function panned(py:Float):Void {
+		final held = parameterOf(ranging);
+		final room = plotTall(ranging) - padding() * 2;
+		if (held == null || room <= 0) return;
+
+		final span = highOf(ranging) - lowOf(ranging);
+		final by = Math.round((py - rangeFrom) / room * span) * (held.attenuates() ? -1 : 1);
+
+		if (zoomed(ranging)) ranged(ranging, rangeLow + by, rangeLow + by + span);
+	}
+
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return The row whose scale the point is on, which is the strip of values beside its plot, or
+			-1 for none.
+	**/
+	function scaleAt(px:Float, py:Float):Int {
+		if (left <= 0 || px < x || px >= x + left) return -1;
+
+		final row = rowAt(py);
+		if (row < 0 || folded(row) || parameterOf(row) == null) return -1;
+
+		final top = plotTop(row);
+		return py >= top && py < top + plotTall(row) ? row : -1;
+	}
+
+	/**
+		Offers what a row's scale can show: fitted to its points, every value, and for a lane that is
+		an offset, a span either side of nought.
+
+		@param row Which lane row.
+		@param px Where the menu opens, across.
+		@param py Where it opens, down.
+	**/
+	function scaled(row:Int, px:Float, py:Float):Void {
+		final root = root();
+		final held = parameterOf(row);
+		if (root == null || held == null) return;
+
+		final menu = new mdd.ui.control.Menu();
+		final line = lineOf(row);
+
+		final fit = menu.offer(new mdd.ui.control.Choice(translate(Locale.LANE_FIT)));
+		fit.enabled = line != null && line.points.length > 0;
+		fires(fit, function():Void fits(row));
+
+		final whole = menu.offer(new mdd.ui.control.Choice(translate(Locale.LANE_RESET)));
+		whole.enabled = zoomed(row);
+		fires(whole, function():Void unzooms(row));
+
+		if (held.offset && held.low < 0 && held.high > 0) {
+			menu.divide();
+
+			var reach = 1;
+			while (reach * 2 < held.high) reach *= 2;
+
+			while (reach * 2 >= LEAST_SPAN) {
+				final each = reach;
+				final choice = menu.offer(new mdd.ui.control.Choice("±" + each));
+
+				choice.enabled = lowOf(row) != -each || highOf(row) != each;
+				fires(choice, function():Void ranged(row, -each, each));
+
+				reach = Std.int(reach / 2);
+			}
+		}
+
+		root.pop(menu, px, py, this);
 	}
 
 	function padding():Float {
@@ -1129,13 +1408,21 @@ final class Lanes extends Widget {
 		@return Which cursor shape belongs there.
 	**/
 	override function cursorAt(px:Float, py:Float):Int {
-		if (sizing != -1 || edgeAt(px, py) != -1) return mdd.host.Sdl.CURSOR_DOWN;
+		if (sizing != -1 || ranging != -1 || edgeAt(px, py) != -1) return mdd.host.Sdl.CURSOR_DOWN;
+		if (scaleAt(px, py) != -1) return mdd.host.Sdl.CURSOR_DOWN;
 
 		return mdd.host.Sdl.CURSOR_ARROW;
 	}
 
 	override function took(event:Input):Bool {
 		switch (event.kind) {
+			case Kind.Wheel:
+				final row = scaleAt(event.x, event.y);
+				if (row < 0 || event.dy == 0) return false;
+
+				zooms(row, event.y, event.dy > 0 ? ZOOM : 1 / ZOOM);
+				return true;
+
 			case Kind.PointerDown:
 				return pressed(event);
 
@@ -1150,6 +1437,7 @@ final class Lanes extends Widget {
 				dragging = null;
 				bending = -1;
 				sizing = -1;
+				ranging = -1;
 				fining = false;
 				return true;
 
@@ -1182,6 +1470,27 @@ final class Lanes extends Widget {
 
 		if (onFoot(event.x, event.y)) {
 			if (onOffer != null) onOffer(this, -1, event.x, event.y);
+			return true;
+		}
+
+		final scale = scaleAt(event.x, event.y);
+
+		if (scale >= 0) {
+			if (event.button == Pointer.Right) {
+				scaled(scale, event.x, event.y);
+				return true;
+			}
+
+			if (event.clicks > 1) {
+				if (fitted.exists(keyOf(scale))) unzooms(scale);
+				else fits(scale);
+
+				return true;
+			}
+
+			ranging = scale;
+			rangeFrom = event.y;
+			rangeLow = lowOf(scale);
 			return true;
 		}
 
@@ -1492,6 +1801,11 @@ final class Lanes extends Widget {
 			return true;
 		}
 
+		if (ranging != -1) {
+			panned(event.y);
+			return true;
+		}
+
 		if (banding) {
 			bandToX = event.x;
 			bandToY = event.y;
@@ -1736,7 +2050,11 @@ final class Lanes extends Widget {
 
 		gridded(paint, theme, metrics, row);
 
-		if (held.offset) {
+		final low = lowOf(row);
+		final high = highOf(row);
+		final nought = held.offset && low < 0 && high > 0;
+
+		if (nought) {
 			final zero = atValue(row, 0);
 			paint.rect(x + left, zero, width - left, metrics.whole(1), theme.frame, 0.8);
 		}
@@ -1748,15 +2066,15 @@ final class Lanes extends Widget {
 
 		final ceiling = plotTop(row) + padding();
 		final floor = plotTop(row) + plotTall(row) - padding();
-		final upper = held.attenuates() ? held.low : held.high;
+		final lift = zoomed(row) ? 0.75 : 0.45;
 
-		paint.textRight(told(held, upper), x + left - metrics.unit,
-			ceiling + small.ascent * 0.5, theme.dim, 0.45);
+		paint.textRight(told(held, held.attenuates() ? low : high), x + left - metrics.unit,
+			ceiling + small.ascent * 0.5, theme.dim, lift);
 
-		paint.textRight(told(held, held.attenuates() ? held.high : held.low),
-			x + left - metrics.unit, floor + small.ascent * 0.5, theme.dim, 0.45);
+		paint.textRight(told(held, held.attenuates() ? high : low),
+			x + left - metrics.unit, floor + small.ascent * 0.5, theme.dim, lift);
 
-		if (!held.offset) return;
+		if (!nought) return;
 
 		paint.textRight("0", x + left - metrics.unit,
 			atValue(row, 0) + small.ascent * 0.5, theme.dim, 0.55);

@@ -109,6 +109,12 @@ point, so a long lane does not cost more to read than a short one. The square on
 maximizes it, folding every other lane to its header until you press it again, which is the room a
 wide range such as a frequency needs.
 
+The scale beside a lane zooms what the lane shows. Turn the wheel over it to zoom in or out around
+the value under the pointer, and drag it to move the values shown. Double click it to fit the lane
+to its points and again to show every value, or right click it to pick a span either side of nought.
+A vibrato a dozen frequency steps wide then fills the lane instead of drawing as a flat line, and a
+point you add lands on the value drawn where you pressed.
+
 Any parameter that corresponds to a register can be automated, including the ones that share a
 register: `$B4` holds the stereo bits and both LFO sensitivities, and the automation lane owns the
 whole byte so nothing else can fight it.

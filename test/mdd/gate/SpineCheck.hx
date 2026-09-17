@@ -1792,6 +1792,7 @@ class SpineCheck {
 
 		traded(tree, roll);
 		pointed(tree, session, roll);
+		ranged(tree, session, roll);
 
 		says("and both undo", after == null || after.points.length == 0,
 			"the lane is back to " + (after == null ? "no line at all"
@@ -2310,6 +2311,94 @@ class SpineCheck {
 		session.rightClick = mdd.app.Session.DELETES;
 		track.clips.resize(0);
 		session.history.clear();
+	}
+
+	/**
+		A lane's values zoom under the wheel over its scale.
+
+		A frequency lane spans four thousand steps and a vibrato swings a dozen of them, which drew as
+		a flat line with nothing to change it. The scale beside a lane now zooms and moves what the
+		lane shows, a double click fits it to its points, and a point is added at the value drawn where
+		the press was rather than at the value the whole range would have put there.
+	**/
+	static function ranged(tree:Root, session:mdd.app.Session, roll:mdd.view.editor.PianoRoll):Void {
+		final stack = roll.stack;
+
+		session.uses(mdd.app.Session.DRAW);
+		laid(tree);
+
+		final held = stack.parameterOf(0);
+		if (stack.rows() == 0 || held == null) return;
+
+		final low = stack.lowOf(0);
+		final high = stack.highOf(0);
+		final scale = stack.x + stack.left * 0.5;
+		final middle = stack.plotTop(0) + stack.plotTall(0) * 0.5;
+
+		for (turn in 0...2) {
+			final wheel = new mdd.ui.Input();
+			wheel.turned(scale, middle, 0, 1, mdd.ui.Mod.None);
+			stack.took(wheel);
+		}
+
+		final shown = stack.highOf(0) - stack.lowOf(0);
+		final centred = Math.abs((stack.lowOf(0) + stack.highOf(0)) - (low + high)) <= 2;
+
+		says("a lane zooms under the wheel",
+			stack.zoomed(0) && Math.abs(shown * 4 - (high - low)) <= 4 && centred,
+			"two turns over the scale show " + stack.lowOf(0) + " to " + stack.highOf(0) + " of "
+			+ low + " to " + high + ", around the value that was under the pointer");
+
+		final from = stack.lowOf(0);
+
+		stack.took(pressAt(scale, middle));
+		stack.took(moveAt(scale, middle + stack.plotTall(0) * 0.25));
+		stack.took(releaseAt(scale, middle + stack.plotTall(0) * 0.25));
+
+		final moved = stack.lowOf(0) - from;
+
+		says("and dragging the scale moves them", moved != 0
+			&& stack.highOf(0) - stack.lowOf(0) == shown,
+			"a quarter of the lane down moved what it shows by " + moved + " and kept " + shown
+			+ " values in view");
+
+		final top = held.attenuates() ? stack.lowOf(0) : stack.highOf(0);
+		final across = stack.atTick(session.song.tempo.ppqn * 7);
+		final depth = session.history.depth();
+
+		stack.took(pressAt(across, stack.plotTop(0) + 1));
+		stack.took(releaseAt(across, stack.plotTop(0) + 1));
+
+		final added = session.history.depth() > depth && stack.chosen != null;
+		final value = added ? stack.chosen.value : 0;
+
+		says("and a point takes the value drawn", added && value == top,
+			added ? "pressed at the top of the zoomed lane, the point holds " + value
+				+ " where the lane shows " + top + " and the whole range would have given "
+				+ (held.attenuates() ? low : high)
+				: "no point was added");
+
+		final twice = new mdd.ui.Input();
+		twice.pointer(mdd.ui.Kind.PointerDown, scale, middle, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 2);
+
+		stack.took(twice);
+		stack.took(releaseAt(scale, middle));
+
+		final fitted = stack.zoomed(0) && stack.lowOf(0) <= value && stack.highOf(0) >= value
+			&& stack.highOf(0) - stack.lowOf(0) < high - low;
+		final fitLow = stack.lowOf(0);
+		final fitHigh = stack.highOf(0);
+
+		stack.took(twice);
+		stack.took(releaseAt(scale, middle));
+
+		says("and a double click fits the points",
+			fitted && !stack.zoomed(0) && stack.lowOf(0) == low && stack.highOf(0) == high,
+			"fitted to " + fitLow + " to " + fitHigh + " around the point at " + value
+			+ ", then back to " + stack.lowOf(0) + " to " + stack.highOf(0));
+
+		if (added) session.undo();
+		stack.unzooms(0);
 	}
 
 	/**
