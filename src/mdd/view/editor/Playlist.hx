@@ -1906,7 +1906,10 @@ final class Playlist extends Widget {
 				final deep = tall - 5;
 				final quiet = track.muted;
 
+				final label = Math.fceil(font.height + metrics.whole(2));
+
 				var strip = Math.ffloor(deep * 0.28);
+				if (strip < label) strip = deep >= label * LABELLED ? label : (deep >= font.height ? deep : strip);
 				if (strip < metrics.whole(6)) strip = metrics.whole(6);
 				if (strip > deep) strip = deep;
 
@@ -1933,20 +1936,20 @@ final class Playlist extends Widget {
 				final tail = clip.transpose == 0 ? ""
 					: (clip.transpose > 0 ? "  +" + clip.transpose : "  " + clip.transpose);
 
-				if (wide < metrics.whole(24)) continue;
+				if (wide < metrics.whole(12)) continue;
 
 				final inset = metrics.whole(1);
 				final body = deep - strip - inset * 2;
 
 				paint.pushClip(at, row + 2, wide - metrics.unit, deep);
 
-				if (pattern != null && body >= metrics.whole(4)) {
+				if (pattern != null && body >= metrics.whole(4) && wide >= metrics.whole(24)) {
 					inked(paint, metrics, pattern, clip, quiet ? colour.sink(0.4) : colour, at,
 						row + 2 + strip + inset, wide, body);
 				}
 
 				if (strip >= font.height * 0.9) {
-					paint.text(said + tail, at + metrics.unit,
+					paint.text(said + tail, at + labelAt(wide, metrics),
 						row + 2 + (strip - font.height) * 0.5 + font.ascent,
 						colour.sink(0.74));
 				}
@@ -1954,6 +1957,25 @@ final class Playlist extends Widget {
 				paint.popClip();
 			}
 		}
+	}
+
+	/**
+		How many label heights a clip has to be before its name gets a strip of its own over the notes.
+		A shorter clip gives the name the whole clip, where it fits, and draws no notes.
+	**/
+	static inline final LABELLED = 1.8;
+
+	/**
+		@param wide How wide the clip is on screen.
+		@param metrics The sizes the interface draws at.
+		@return How far in from the clip's left edge its name starts: clear of the corner that opens
+			its menu where that is drawn, with a gap after it, and close to the edge where it is not.
+	**/
+	public function labelAt(wide:Float, metrics:Metrics):Float {
+		final size = cornerSize();
+		if (wide < size * 2 || trackTall() < size * 1.6) return metrics.unit;
+
+		return size - metrics.whole(3) + metrics.whole(4);
 	}
 
 	static inline final CURVE = 256;

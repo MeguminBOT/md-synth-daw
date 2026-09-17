@@ -3370,6 +3370,16 @@ class SpineCheck {
 			+ Math.round(clip.length * playlist.perTick) + " wide answer, and the body"
 			+ " beside them does not");
 
+		final metrics = tree.metrics;
+		final arrow = size - metrics.whole(3);
+		final named = playlist.labelAt(clip.length * playlist.perTick, metrics);
+		final narrow = playlist.labelAt(size, metrics);
+
+		says("and its name starts clear of it", named >= arrow + metrics.whole(3) && narrow < arrow,
+			"the name starts " + Math.round(named - arrow) + " px after the arrow's edge at "
+			+ Math.round(arrow) + ", and at " + Math.round(narrow) + " px on a clip too narrow to"
+			+ " carry the arrow");
+
 		final word = tree.translate(mdd.app.Locale.PATTERN_RENAME);
 		final wasRenaming = playlist.onRenamePattern;
 		var asked = -1;
