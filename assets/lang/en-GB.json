@@ -117,6 +117,8 @@
   "export.scopeView": "Scope",
   "export.sides": "Channels",
   "export.stems": "Export stems",
+  "export.stemsChannels": "Channels",
+  "export.stemsTracks": "Tracks",
   "export.stereo": "Stereo",
   "export.tail": "Silence after",
   "export.title": "Title",

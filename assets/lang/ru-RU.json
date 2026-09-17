@@ -117,6 +117,8 @@
   "export.scopeView": "Осциллограф",
   "export.sides": "Каналы",
   "export.stems": "Экспорт стемов",
+  "export.stemsChannels": "Каналы",
+  "export.stemsTracks": "Дорожки",
   "export.stereo": "Стерео",
   "export.tail": "Тишина в конце",
   "export.title": "Название",

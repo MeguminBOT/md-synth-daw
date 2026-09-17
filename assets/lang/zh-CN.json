@@ -117,6 +117,8 @@
   "export.scopeView": "示波器",
   "export.sides": "声道",
   "export.stems": "导出分轨",
+  "export.stemsChannels": "通道",
+  "export.stemsTracks": "轨道",
   "export.stereo": "立体声",
   "export.tail": "结尾静音",
   "export.title": "标题",

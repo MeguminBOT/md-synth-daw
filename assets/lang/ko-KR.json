@@ -117,6 +117,8 @@
   "export.scopeView": "스코프",
   "export.sides": "채널 수",
   "export.stems": "스템 내보내기",
+  "export.stemsChannels": "채널",
+  "export.stemsTracks": "트랙",
   "export.stereo": "스테레오",
   "export.tail": "뒤쪽 무음",
   "export.title": "제목",

@@ -193,6 +193,8 @@ final class Export extends Widget {
 	static final KILOBITS:Array<String> = ["96k", "128k", "160k", "192k", "256k", "384k"];
 	static final SIDINGS:Array<Locale> = [Locale.EXPORT_MONO, Locale.EXPORT_STEREO];
 	static final SWITCHES:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_ON];
+	static final STEMMED:Array<Locale> = [Locale.EXPORT_OFF, Locale.EXPORT_STEMS_TRACKS,
+		Locale.EXPORT_STEMS_CHANNELS];
 
 	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
@@ -581,6 +583,7 @@ final class Export extends Widget {
 			case TUNE: TUNINGS;
 			case SCOPE_VIEW: VIEWS;
 			case SCOPE_ACCURACY: ACCURACIES;
+			case STEMS: STEMMED;
 
 			case FORMAT, RATE, DEPTH, LEAD, TAIL, FADE, QUALITY, OPUS_SPAN, SIZE, FRAME_RATE,
 				RATE_CONTROL, ENCODER_SPEED, KEYFRAMES, SCOPE_SPEED, CHROMA: NO_KEYS;
@@ -682,7 +685,7 @@ final class Export extends Widget {
 			case OPUS_BITRATE: mixing.opusBitrateMode;
 			case OPUS_SPAN: spanAt();
 			case QUALITY: mixing.quality;
-			case STEMS: mixing.stems ? 1 : 0;
+			case STEMS: mixing.stems;
 			case SIZE: mixing.size;
 			case FRAME_RATE: nearest(Mixing.FRAME_RATES, mixing.fps);
 			case RATE_CONTROL: mixing.rateControl;
@@ -774,7 +777,7 @@ final class Export extends Widget {
 			case OPUS_SPAN: mixing.opusSpan = SPANS[which];
 
 			case QUALITY: mixing.quality = which;
-			case STEMS: mixing.stems = which == 1;
+			case STEMS: mixing.stems = which;
 			case SIZE: mixing.size = which;
 			case FRAME_RATE: mixing.fps = Mixing.FRAME_RATES[which];
 			case RATE_CONTROL: mixing.rateControl = which;
@@ -878,7 +881,7 @@ final class Export extends Widget {
 		@return Whether it is drawn as one field that opens a menu of its choices.
 	**/
 	function dropped(row:Int):Bool {
-		return counted(row) >= DROPPED;
+		return counted(row) >= DROPPED || row == STEMS;
 	}
 
 	/**

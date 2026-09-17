@@ -57,6 +57,11 @@ final class Mixdown {
 	public var onlyPart:Int = -1;
 
 	/**
+		Which track this render is of, by index, or -1 for the whole mix.
+	**/
+	public var onlyTrack:Int = -1;
+
+	/**
 		The gain to scale by instead of working one out, or nought to work one out.
 
 		A stem takes the gain the mix arrived at, so the stems sum back to the mix. A
@@ -242,6 +247,7 @@ final class Mixdown {
 		final stream = feeding;
 		final sequencer = new Sequencer(song);
 		sequencer.onlyPart = onlyPart;
+		sequencer.onlyTrack = onlyTrack;
 
 		sequencer.spanned(stream, 0, span);
 

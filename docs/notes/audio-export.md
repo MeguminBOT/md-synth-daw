@@ -231,3 +231,22 @@ bounce has kept the output identical:
 | six stems, each against the same part rendered alone | byte for byte |
 | two exports of one piece | byte for byte |
 | one export of a two second piece | 1.01 s |
+
+## How closely the stems sum to the mix
+
+A stem by track is the piece rendered with only one track's notes, and only the channels those notes
+play, so the automation of every other channel stays out of it. Without that, an automation clip on
+one track panning a channel moved that channel's resting level in every stem at once.
+
+The stems sum back to the mix only as closely as the chip lets a write land at the same slot in both.
+The part holds a write for two slots, and a write arriving while one is held lands the held one at
+once, so two channels written on the same sample share that latch: in the mix the second channel's
+writes land the first channel's early, and in a stem that has only the first channel they land at
+its own slot. A note starts up to a sample away from where it started in the mix, which on a low
+note is a difference of about -40 dB. Measured on a bass, two leads and a square over two seconds,
+past the first 50 ms:
+
+| | tracks | channels |
+| --- | --- | --- |
+| a bass note keying on with a lead on the same sample | -39 dB | -39 dB |
+| every note a few ticks from any other | -140 dB | -138 dB |

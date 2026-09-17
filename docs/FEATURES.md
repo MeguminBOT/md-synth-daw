@@ -326,7 +326,8 @@ WAV, FLAC, Ogg Vorbis and Opus. Set per export:
 - encoder quality, and for Opus the application mode, frame size and bitrate mode
 - which output stage the render goes through
 - title, artist, album, year and comment, written into the file as tags
-- **stems**: one file per part beside the mix, in a folder named after it
+- **stems**, by track or by channel: one file per track or per part beside the mix, in a folder
+  named after it
 
 The FLAC encoder is this repository's own, written in Haxe from the format specification: LPC
 prediction, partitioned Rice coding, stereo decorrelation and the MD5 signature, with no libFLAC
@@ -335,13 +336,21 @@ signature matches libFLAC's.
 
 The export is rendered offline at the rate asked for, not resampled from a 44.1 kHz render.
 
-A stem is that part rendered on its own, not the mix with everything else muted: the events of every
-other part never reach the chips. Every stem takes the gain the mix worked out rather than being
-normalised on its own, so the set of them sums back to the mix. Measured on a three part piece, the
-stems sum to within -111 dB of the mix at worst and -138 dB once the output stage has settled.
+A stem by channel is that part rendered on its own, not the mix with everything else muted: the
+events of every other part never reach the chips. A stem by track is named after the track and holds
+only that track's notes and the channels they play on, with the automation clips on any track still
+driving those channels, so it sounds the way the track does in the mix. Two tracks sharing a name
+get numbered files rather than one over the other. Every stem takes the gain the mix worked out
+rather than being normalised on its own, so the set of them sums back to the mix. Measured on a
+three part piece, the stems sum to within -111 dB of the mix at worst and -138 dB once the output
+stage has settled. Two channels keyed on the same sample share the chip's one write latch, so in a
+stem that holds only one of them a note can start a sample away from where it started in the mix,
+and there the sum is only within about -40 dB on a low note.
 
 Only the parts the arrangement actually sounds get a stem, so a piece using four channels gives four
-files rather than eleven.
+files rather than eleven, and only tracks that place notes get one, so a track holding nothing but
+automation gives none. Track stems sum back to the mix wherever no two tracks play the same channel
+at once.
 
 ### Video
 

@@ -117,6 +117,8 @@
   "export.scopeView": "Oscilloskop",
   "export.sides": "Kanaler",
   "export.stems": "Exportera stems",
+  "export.stemsChannels": "Kanaler",
+  "export.stemsTracks": "Spår",
   "export.stereo": "Stereo",
   "export.tail": "Tystnad efter",
   "export.title": "Titel",

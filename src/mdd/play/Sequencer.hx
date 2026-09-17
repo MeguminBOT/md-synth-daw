@@ -100,8 +100,25 @@ final class Sequencer {
 	public var onlyPart:Int = -1;
 
 	/**
+		Sequence only the clips on this track, by index, or -1 for every track.
+
+		This is what makes a track stem. The notes on every other track are never gathered, and
+		only the parts this track plays notes on are sounded, with whatever automation clips on any
+		track drive them. A part the track never plays is left alone entirely, so an automation clip
+		panning it does not move its resting level in every stem at once and the set of them still
+		sums back to the mix.
+	**/
+	public var onlyTrack:Int = -1;
+
+	/**
+		The parts the track `onlyTrack` names plays notes on, one bit a part, worked out at the start
+		of every span.
+	**/
+	var trackParts:Int = 0;
+
+	/**
 		Sequence only this pattern, or -1 for the whole arrangement. This is a pattern
-		index and not a track: there is no per track render.
+		index and not a track, which `onlyTrack` is for.
 	**/
 	public var alone:Int = -1;
 
@@ -235,6 +252,7 @@ final class Sequencer {
 
 		if (fromSample <= 0) push(0, Part.Fm1, SETUP, (song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
 
+		tracked();
 		settle(fromSample);
 		gather(fromSample, toSample);
 		sort();
@@ -292,6 +310,16 @@ final class Sequencer {
 	}
 
 	/**
+		@param track A track.
+		@return Whether the notes on it are sounded: it is not muted, and it is the track a track
+			stem is of where one is being rendered.
+	**/
+	inline function heard(track:mdd.song.Track):Bool {
+		return !track.muted && (onlyTrack < 0
+			|| (onlyTrack < song.tracks.length && song.tracks[onlyTrack] == track));
+	}
+
+	/**
 		@param part Which part.
 		@param tick Where the playhead is.
 		@param held Whether the note sounds until the next one, so that any note started before
@@ -308,7 +336,7 @@ final class Sequencer {
 		}
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.kind != mdd.song.Clip.PATTERN) continue;
@@ -342,11 +370,31 @@ final class Sequencer {
 
 	/**
 		@param part A part.
-		@return Whether this render should sound it, which takes the mixer and the stem
-			filter both into account.
+		@return Whether this render should sound it, which takes the mixer and both stem
+			filters into account.
 	**/
 	inline function wanted(part:Part):Bool {
-		return song.audible(part) && (onlyPart < 0 || part.index() == onlyPart);
+		return song.audible(part) && (onlyPart < 0 || part.index() == onlyPart)
+			&& (onlyTrack < 0 || (trackParts & (1 << part.index())) != 0);
+	}
+
+	/**
+		Works out which parts the track a track stem is of plays notes on.
+	**/
+	function tracked():Void {
+		trackParts = 0;
+		if (onlyTrack < 0 || onlyTrack >= song.tracks.length) return;
+
+		for (clip in song.tracks[onlyTrack].clips) {
+			if (clip.kind != mdd.song.Clip.PATTERN) continue;
+
+			final pattern = song.patternAt(clip.pattern);
+			if (pattern == null) continue;
+
+			for (index in 0...Part.COUNT) {
+				if (pattern.lanes[index].notes.length > 0) trackParts |= 1 << index;
+			}
+		}
 	}
 
 	/**
@@ -385,7 +433,7 @@ final class Sequencer {
 		}
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!heard(track)) continue;
 
 			var index = 0;
 
@@ -474,7 +522,7 @@ final class Sequencer {
 		if (alone >= 0) return false;
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.kind != mdd.song.Clip.PATTERN) continue;
@@ -565,7 +613,7 @@ final class Sequencer {
 		underLane = null;
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.kind != mdd.song.Clip.PATTERN) continue;
@@ -1215,6 +1263,8 @@ final class Sequencer {
 		driver.forget();
 		if (paced != null) paced.forget();
 
+		tracked();
+
 		push(fromSample, Part.Fm1, SETUP,
 			(song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
 
@@ -1252,7 +1302,7 @@ final class Sequencer {
 			}
 		} else {
 			for (track in song.tracks) {
-				if (track.muted) continue;
+				if (!heard(track)) continue;
 
 				for (clip in track.clips) {
 					if (clip.at > tick || clip.ends() <= tick) continue;

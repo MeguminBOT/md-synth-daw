@@ -265,13 +265,28 @@ final class Mixing {
 	public var console:Int = mdd.play.Render.MODEL_ONE;
 
 	/**
-		Whether the export writes one file per part beside the mix.
+		Stems: none written beside the mix.
+	**/
+	public static inline final NO_STEMS = 0;
+
+	/**
+		Stems: one file per track that plays notes, named after the track.
+	**/
+	public static inline final TRACK_STEMS = 1;
+
+	/**
+		Stems: one file per part the arrangement sounds, named after the part.
+	**/
+	public static inline final CHANNEL_STEMS = 2;
+
+	/**
+		Which stems the export writes beside the mix: `NO_STEMS`, `TRACK_STEMS` or `CHANNEL_STEMS`.
 
 		Every stem is scaled by the gain the mix worked out rather than normalised on its
 		own, so the stems sum back to the mix instead of each arriving at its own
 		loudness.
 	**/
-	public var stems:Bool = false;
+	public var stems:Int = NO_STEMS;
 
 	/**
 		Tag written into the file, where the format has tags.

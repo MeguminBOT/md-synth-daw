@@ -931,7 +931,7 @@ final class Files {
 	public function renders(where:String):Mixdown {
 		final made = Mixdown.made();
 		final song = session.song;
-		final parts = mixing.stems && !mixing.moving() ? stemParts(song) : [];
+		final parts = mixing.moving() ? [] : stemsOf(song);
 
 		mixdown = made;
 
@@ -966,14 +966,76 @@ final class Files {
 
 	/**
 		@param song The piece.
-		@return Which parts are worth a stem, which is every one the arrangement
-			actually sounds.
+		@return What gets a stem, as indices: for stems by channel every part the arrangement
+			actually sounds, for stems by track every track that is not muted and places a pattern
+			with notes in it, and nothing where the export writes no stems.
 	**/
-	function stemParts(song:mdd.song.Song):Array<Int> {
+	public function stemsOf(song:mdd.song.Song):Array<Int> {
 		final out:Array<Int> = [];
 
-		for (index in 0...mdd.song.Part.COUNT) {
-			if (song.carries(index)) out.push(index);
+		if (mixing.stems == Mixing.CHANNEL_STEMS) {
+			for (index in 0...mdd.song.Part.COUNT) {
+				if (song.carries(index)) out.push(index);
+			}
+		}
+
+		if (mixing.stems == Mixing.TRACK_STEMS) {
+			for (index in 0...song.tracks.length) {
+				if (noted(song, song.tracks[index])) out.push(index);
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		@param song The piece.
+		@param track One of its tracks.
+		@return Whether the track is heard in the mix and places a pattern that holds notes.
+	**/
+	static function noted(song:mdd.song.Song, track:mdd.song.Track):Bool {
+		if (track.muted) return false;
+
+		for (clip in track.clips) {
+			if (clip.kind != mdd.song.Clip.PATTERN) continue;
+
+			final pattern = song.patternAt(clip.pattern);
+			if (pattern == null) continue;
+
+			for (index in 0...mdd.song.Part.COUNT) {
+				if (pattern.lanes[index].notes.length > 0) return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+		@param song The piece.
+		@param stems What gets a stem, as `stemsOf` gave it.
+		@return The file name each stem is written under, without a suffix: the part's name for a
+			stem by channel, and the track's name for a stem by track, numbered where two tracks
+			share a name so neither is written over the other.
+	**/
+	public function stemNames(song:mdd.song.Song, stems:Array<Int>):Array<String> {
+		final out:Array<String> = [];
+
+		for (index in stems) {
+			if (mixing.stems != Mixing.TRACK_STEMS) {
+				final part:mdd.song.Part = index;
+				out.push(part.name());
+				continue;
+			}
+
+			final given = StringTools.trim(song.tracks[index].name);
+			final base = safely(given == "" ? "Track " + (index + 1) : given);
+
+			var named = base;
+			var count = 2;
+
+			while (out.indexOf(named) >= 0) named = base + " " + count++;
+
+			out.push(named);
 		}
 
 		return out;
@@ -989,7 +1051,8 @@ final class Files {
 	}
 
 	/**
-		Renders one file per part beside the mix, on the thread the mix was rendered on.
+		Renders one file per part or per track beside the mix, on the thread the mix was rendered
+		on.
 
 		Every stem takes the gain the mix arrived at rather than being normalised on its
 		own, so the set of them sums back to the mix.
@@ -1002,34 +1065,37 @@ final class Files {
 		@param where The file the mix was written to.
 		@param song The piece.
 		@param made The bounce the mix was rendered with, reused for every stem.
-		@param parts Which parts to render.
+		@param stems What to render, as `stemsOf` gave it.
 	**/
 	function stemsInto(where:String, song:mdd.song.Song, made:Mixdown,
-			parts:Array<Int>):Void {
+			stems:Array<Int>):Void {
 		final into = stemFolder(where);
 		final gain = made.gain;
+		final names = stemNames(song, stems);
+		final tracked = mixing.stems == Mixing.TRACK_STEMS;
 
 		mdd.host.Paths.make(into);
 
 		var written = 0;
 
-		for (index in parts) {
+		for (at in 0...stems.length) {
 			if (made.stopped()) break;
 
 			made.steps(written + 1);
-			made.onlyPart = index;
+			made.onlyPart = tracked ? -1 : stems[at];
+			made.onlyTrack = tracked ? stems[at] : -1;
 			made.sharedGain = gain;
 
 			made.runs(song, mixing);
 			if (made.stopped()) break;
 
-			final part:mdd.song.Part = index;
-			wrote(into + "/" + part.name(), made);
+			wrote(into + "/" + names[at], made);
 
 			written++;
 		}
 
 		made.onlyPart = -1;
+		made.onlyTrack = -1;
 		made.sharedGain = 0;
 
 		wroteKey = wroteKey == Locale.SAID_WROTE_AUDIO_LIFTED
@@ -1189,10 +1255,8 @@ final class Files {
 		final made = Mixdown.of(song, mixing);
 		final named = wrote(where, made);
 
-		if (mixing.stems) {
-			final parts = stemParts(song);
-			if (parts.length > 0) stemsInto(where, song, made, parts);
-		}
+		final stems = stemsOf(song);
+		if (stems.length > 0) stemsInto(where, song, made, stems);
 
 		session.saying(wroteKey, wroteWith);
 		return named;

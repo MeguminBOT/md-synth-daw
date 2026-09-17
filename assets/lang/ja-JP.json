@@ -117,6 +117,8 @@
   "export.scopeView": "スコープ",
   "export.sides": "チャンネル数",
   "export.stems": "ステムを書き出す",
+  "export.stemsChannels": "チャンネル",
+  "export.stemsTracks": "トラック",
   "export.stereo": "ステレオ",
   "export.tail": "末尾の無音",
   "export.title": "タイトル",

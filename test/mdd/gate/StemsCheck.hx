@@ -49,8 +49,8 @@ class StemsCheck {
 			parts.length + " parts sound, so the export writes that many stems beside the"
 			+ " mix");
 
-		final first = exported(song, root + "/export/gate-stems-one.wav");
-		final second = exported(song, root + "/export/gate-stems-two.wav");
+		final first = exported(song, root + "/export/gate-stems-one.wav", Mixing.CHANNEL_STEMS);
+		final second = exported(song, root + "/export/gate-stems-two.wav", Mixing.CHANNEL_STEMS);
 
 		if (first == null || second == null) {
 			says("a stem export finishes", false, "the export did not write");
@@ -62,8 +62,156 @@ class StemsCheck {
 
 		matched(song, first, parts);
 		repeated(first, second);
+		tracked(root);
 
 		return done();
+	}
+
+	/**
+		Stems by track: one file per track that plays notes, named after it, each holding that
+		track's notes with the automation of every track still driving them, and the set of them
+		summing back to the mix.
+	**/
+	static function tracked(root:String):Void {
+		final song = layered();
+		final held = exported(song, root + "/export/gate-stems-tracks.wav", Mixing.TRACK_STEMS);
+
+		if (held == null) {
+			says("a track stem export finishes", false, "the export did not write");
+			return;
+		}
+
+		final wanted:Array<String> = ["Bass", "Lead", "Lead 2"];
+		final names:Array<String> = [for (one in held) one.name];
+
+		names.sort(function(one:String, two:String):Int return one < two ? -1 : (one > two ? 1 : 0));
+
+		says("every track with notes gets a stem by name", names.join(", ") == wanted.join(", "),
+			names.join(", ") + " written for a bass track, two lead tracks both called Lead and a"
+			+ " track holding only automation");
+
+		final mixing = new Mixing();
+
+		mixing.kind = Mixing.WAV;
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = true;
+
+		final mix = Mixdown.made();
+		mix.runs(song, mixing);
+
+		final sum = new haxe.ds.Vector<Float>(mix.frames * mix.channels);
+		for (at in 0...sum.length) sum[at] = 0;
+
+		var same = 0;
+
+		for (index in 0...3) {
+			final alone = Mixdown.made();
+
+			alone.onlyTrack = index;
+			alone.sharedGain = mix.gain;
+			alone.runs(song, mixing);
+
+			final want = Wav.write(alone.samples, alone.frames, alone.channels, alone.rate,
+				mixing.depth, mixing.dither && mixing.depth < 32);
+
+			for (one in held) {
+				if (one.name == wanted[index] && want.compare(one.bytes) == 0) same++;
+			}
+
+			for (at in 0...sum.length) {
+				if (at < alone.frames * alone.channels) sum[at] += alone.samples[at];
+			}
+		}
+
+		var worst = 0.0;
+		var worstAt = 0;
+		var loudest = 0.0;
+		final settled = Std.int(mixing.rate * 0.05) * mix.channels;
+
+		final channels = new haxe.ds.Vector<Float>(mix.frames * mix.channels);
+		for (at in 0...channels.length) channels[at] = 0;
+
+		for (index in 0...Part.COUNT) {
+			if (!song.carries(index)) continue;
+
+			final alone = Mixdown.made();
+
+			alone.onlyPart = index;
+			alone.sharedGain = mix.gain;
+			alone.runs(song, mixing);
+
+			for (at in 0...channels.length) {
+				if (at < alone.frames * alone.channels) channels[at] += alone.samples[at];
+			}
+		}
+
+		var channelWorst = 0.0;
+
+		for (at in settled...sum.length) {
+			final apart = Math.abs(sum[at] - mix.samples[at]);
+			if (apart > worst) {
+				worst = apart;
+				worstAt = at;
+			}
+
+			final off = Math.abs(channels[at] - mix.samples[at]);
+			if (off > channelWorst) channelWorst = off;
+
+			final level = Math.abs(mix.samples[at]);
+			if (level > loudest) loudest = level;
+		}
+
+		final decibels = worst <= 0 ? -300.0 : 20 * Math.log(worst) / Math.log(10);
+
+		says("and a track stem is that track rendered alone", same == 3,
+			same + " of 3 track stems are byte for byte what the same track renders to on its own");
+
+		says("and the track stems sum back to the mix", loudest > 0.01 && decibels < -90,
+			"the three tracks summed sit within " + Math.round(decibels) + " dB of a mix peaking at "
+			+ Math.round(loudest * 1000) / 1000 + ", past the output stage's first 50 ms, worst at frame "
+			+ Std.int(worstAt / mix.channels) + " of " + mix.frames + "; the channel stems of the same"
+			+ " piece sit within " + Math.round(20 * Math.log(channelWorst > 0 ? channelWorst : 1e-15)
+			/ Math.log(10)) + " dB");
+	}
+
+	/**
+		@return A short piece laid out on tracks: a bass, two leads sharing a name on channels of
+			their own, and a track that only pans the bass. No two notes start on the same tick: writes
+			to two channels on one sample share the chip's write latch, which moves a note in the mix
+			by up to a sample against the stem that holds it alone, and the sum then only meets the mix
+			to about -40 dB.
+	**/
+	static function layered():Song {
+		final song = new Song("tracks", 96, 120);
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			song.instrument(new Instrument(part.name().toLowerCase(), part));
+			song.rack[index] = index;
+		}
+
+		final bass = song.add(new Pattern("bass", 384));
+		bass.lane(Part.Fm1).add(new Note(0, 180, 36, 110));
+		bass.lane(Part.Fm1).add(new Note(192, 180, 38, 110));
+
+		final lead = song.add(new Pattern("lead", 384));
+		lead.lane(Part.Fm2).add(new Note(12, 84, 72, 100));
+		lead.lane(Part.Psg1).add(new Note(108, 84, 76, 90));
+
+		final answer = song.add(new Pattern("answer", 384));
+		answer.lane(Part.Fm3).add(new Note(204, 84, 79, 100));
+
+		song.track(new Track("Bass")).add(new Clip(0, 0, 384));
+		song.track(new Track("Lead")).add(new Clip(1, 0, 384));
+		song.track(new Track("Lead")).add(new Clip(2, 0, 384));
+
+		final panning = Clip.drives(Part.Fm1, mdd.song.Automation.SIDES, 0, 0, 384);
+		if (panning.line != null) panning.line.add(new mdd.song.Point(0, 0x80));
+		song.track(new Track("Pan")).add(panning);
+
+		return song;
 	}
 
 	/**
@@ -72,10 +220,11 @@ class StemsCheck {
 
 		@param song The piece.
 		@param into The file the mix goes to.
-		@return The stems, each a part name and the bytes written for it, or null where
-			the export did not finish.
+		@param stems Which stems to write, from `Mixing`.
+		@return The stems, each a name and the bytes written for it, in the order the export
+			wrote them, or null where the export did not finish.
 	**/
-	static function exported(song:Song, into:String):Null<Array<Held>> {
+	static function exported(song:Song, into:String, stems:Int):Null<Array<Held>> {
 		final session = new Session(song);
 		final files = new Files(session);
 		final mixing = new Mixing();
@@ -85,7 +234,7 @@ class StemsCheck {
 		mixing.padStart = 0;
 		mixing.padEnd = 0;
 		mixing.normalise = true;
-		mixing.stems = true;
+		mixing.stems = stems;
 
 		files.mixing = mixing;
 

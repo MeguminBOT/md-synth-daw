@@ -117,6 +117,8 @@
   "export.scopeView": "Oscilloscope",
   "export.sides": "Canaux",
   "export.stems": "Exporter les stems",
+  "export.stemsChannels": "Canaux",
+  "export.stemsTracks": "Pistes",
   "export.stereo": "Stéréo",
   "export.tail": "Silence à la fin",
   "export.title": "Titre",
