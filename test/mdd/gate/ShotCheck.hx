@@ -42,6 +42,9 @@ class ShotCheck {
 		var parts = Theme.STANDARD;
 		var part = 0;
 		var vgm = "";
+		var project = "";
+		var perBar = 0;
+		var from = 0;
 		var lang = "en-GB";
 		var sheet = "";
 		var lane = 0;
@@ -73,6 +76,9 @@ class ShotCheck {
 				case "--parts": parts = whole(held, parts); at++;
 				case "--part": part = whole(held, part); at++;
 				case "--vgm": vgm = held; at++;
+				case "--project": project = held; at++;
+				case "--bar": perBar = whole(held, perBar); at++;
+				case "--from": from = whole(held, from); at++;
 				case "--lang": lang = held; at++;
 				case "--drives": drives = true;
 				case "--drums": drums = true;
@@ -140,7 +146,8 @@ class ShotCheck {
 
 		metrics.dress(body, small, mono, mono, condensed);
 
-		final session = vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm);
+		final session = project != "" ? new Session(mdd.format.Project.open(project))
+			: (vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm));
 
 		if (drums) {
 			final song = session.song;
@@ -429,6 +436,17 @@ class ShotCheck {
 			: null;
 
 		if (film != null && sheet == "film-spectrum") film.shows(Scope.SPECTRUM);
+
+		if (perBar > 0) {
+			final ticks = session.song.tempo.ppqn * 4;
+
+			tree.top.measure(tree.width, tree.height);
+			tree.top.arrange(0, 0, tree.width, tree.height);
+
+			centre.playlist.framed();
+			centre.playlist.perTick = perBar / ticks;
+			centre.playlist.scrollTo((from > 0 ? from - 1 : 0) * perBar);
+		}
 
 		if (!direct) Draw.setTarget(renderer, texture);
 
