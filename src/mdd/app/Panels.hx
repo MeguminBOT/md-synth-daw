@@ -320,7 +320,7 @@ final class Panels {
 		@return A name for a new pattern that nothing else already has.
 	**/
 	public function namedPattern():String {
-		return stage.root.translate(Locale.PATTERN) + " " + (session.song.patterns.length + 1);
+		return patterns.numbered(stage.root.translate(Locale.PATTERN));
 	}
 
 	/**

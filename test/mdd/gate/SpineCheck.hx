@@ -3044,7 +3044,33 @@ class SpineCheck {
 		clipped(session, centre);
 		brushed(tree, session, centre);
 		cornered(tree, session, centre);
+		numbered(session);
 		gathered(tree, session, centre.roll);
+	}
+
+	/**
+		A new pattern's name carries a number, and the number is one nothing in the song is already
+		called by, where counting the patterns alone repeats a name once one has been removed.
+	**/
+	static function numbered(session:mdd.app.Session):Void {
+		final patterns = new mdd.app.Patterns(session);
+		final song = session.song;
+		final next = song.patterns.length + 1;
+		final names:Array<String> = [for (pattern in song.patterns) pattern.name];
+
+		for (index in 0...song.patterns.length) song.patterns[index].name = "Pattern " + (index + 1);
+
+		final plain = patterns.numbered("Pattern");
+
+		song.patterns[0].name = "Pattern " + next;
+		final moved = patterns.numbered("Pattern");
+
+		for (index in 0...song.patterns.length) song.patterns[index].name = names[index];
+
+		says("a new pattern takes a free number", plain == "Pattern " + next
+			&& moved == "Pattern " + (next + 1),
+			"'" + plain + "' beside " + song.patterns.length + " patterns, and '" + moved
+			+ "' once one of them is already called 'Pattern " + next + "'");
 	}
 
 	static function stepped(tree:Root, session:mdd.app.Session,

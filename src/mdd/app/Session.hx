@@ -348,7 +348,7 @@ final class Session {
 		kit.sample = 0;
 		song.rack[Part.Dac.index()] = song.instruments.length - 1;
 
-		song.add(new Pattern("pattern 1", 384));
+		song.add(new Pattern("Pattern 1", 384));
 
 		for (index in 0...TRACKS) song.track(new mdd.song.Track("track " + (index + 1)));
 

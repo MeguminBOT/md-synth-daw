@@ -60,6 +60,20 @@ final class Patterns {
 	}
 
 	/**
+		@param word What a pattern is called in the language being worn.
+		@return The word and a number, which is one past the patterns in the song unless a pattern is
+			already called that, and then the first free number after it. Counting the patterns alone
+			gave a new pattern the name of one already there as soon as any had been removed.
+	**/
+	public function numbered(word:String):String {
+		var count = session.song.patterns.length + 1;
+
+		while (taken(word + " " + count)) count++;
+
+		return word + " " + count;
+	}
+
+	/**
 		@param from The name being copied.
 		@return A name nothing in the song is already called. Appending the same number
 			every time gave two patterns one name as soon as anything was duplicated
