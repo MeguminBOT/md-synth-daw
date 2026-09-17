@@ -404,7 +404,12 @@ final class TransportBar extends Widget {
 		invalidate();
 	}
 
-	function onPicker(px:Float, py:Float):Bool {
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the pattern picker.
+	**/
+	public function onPicker(px:Float, py:Float):Bool {
 		final button = size();
 		final top = y + (height - button) * 0.5;
 
@@ -476,6 +481,11 @@ final class TransportBar extends Widget {
 				return true;
 
 			case Kind.Wheel:
+				if (onPicker(event.x, event.y)) {
+					cycled(event.dy);
+					return true;
+				}
+
 				if (!onVolume(event.x, event.y)) return false;
 
 				leaned(trackLeft() + trackWide() * session.master / Song.LOUDEST
@@ -487,6 +497,37 @@ final class TransportBar extends Widget {
 		}
 
 		return false;
+	}
+
+	/**
+		How far the wheel has turned over the picker without yet moving a whole pattern, so a
+		touchpad that reports a turn in small pieces steps a pattern at a time rather than on every
+		piece.
+	**/
+	var turning:Float = 0;
+
+	/**
+		Chooses the pattern after the chosen one or the one before it, wrapping round the list, which
+		is what turning the wheel over the picker does.
+
+		@param dy How far the wheel turned: down moves on to the next pattern, up back to the one
+			before.
+	**/
+	public function cycled(dy:Float):Void {
+		final many = session.song.patterns.length;
+		if (many < 2 || dy == 0) return;
+
+		if ((dy > 0) != (turning > 0)) turning = 0;
+		turning += dy;
+
+		while (turning >= 1 || turning <= -1) {
+			final step = turning > 0 ? -1 : 1;
+
+			turning += step;
+			session.chooses((session.pattern + step + many) % many);
+		}
+
+		invalidate();
 	}
 
 	/**

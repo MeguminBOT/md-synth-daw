@@ -2408,6 +2408,56 @@ class SpineCheck {
 		The editors measured from the start of the song whatever clip a pattern was opened from, so a
 		pattern placed at bar fifty three was drawn at bar one, and scrubbing it moved the song there.
 	**/
+	/**
+		Turning the wheel over the pattern picker steps through the patterns and wraps round the list.
+	**/
+	static function picked(tree:Root, session:mdd.app.Session, bar:TransportBar):Void {
+		final song = session.song;
+		final had = song.patterns.length;
+		final was = session.pattern;
+
+		while (song.patterns.length < 3) song.add(new mdd.song.Pattern("Pattern " + (song.patterns.length + 1), 384));
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final py = bar.y + bar.height * 0.5;
+		var px = -1.0;
+
+		var across = bar.x;
+		while (across < bar.x + bar.width && px < 0) {
+			if (bar.onPicker(across, py)) px = across + 8;
+			across += 2;
+		}
+
+		session.chooses(0);
+		tree.moved(px, py, mdd.ui.Mod.None);
+
+		tree.turned(0, -1, mdd.ui.Mod.None);
+		final down = session.pattern;
+
+		tree.turned(0, 1, mdd.ui.Mod.None);
+		final up = session.pattern;
+
+		tree.turned(0, 1, mdd.ui.Mod.None);
+		final wrapped = session.pattern;
+
+		for (piece in 0...4) tree.turned(0, -0.25, mdd.ui.Mod.None);
+		final pieces = session.pattern;
+
+		final last = song.patterns.length - 1;
+
+		says("the wheel steps the pattern picker", px >= 0 && down == 1 && up == 0 && wrapped == last
+			&& pieces == 0,
+			px < 0 ? "no picker found on the transport bar"
+			: "down from the first chose " + (down + 1) + ", up again " + (up + 1) + ", up from the first "
+			+ (wrapped + 1) + " of " + (last + 1) + ", and four quarter turns " + (pieces + 1));
+
+		while (song.patterns.length > had) song.patterns.pop();
+		session.chooses(was < song.patterns.length ? was : 0);
+	}
+
 	static function reopened(tree:Root, session:mdd.app.Session, centre:Centre):Void {
 		centre.show(Centre.PLAYLIST);
 		laid(tree);
@@ -4118,6 +4168,7 @@ class SpineCheck {
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
 		reopened(tree, session, centre);
+		picked(tree, session, bar);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		commanded(tree, session, centre);
