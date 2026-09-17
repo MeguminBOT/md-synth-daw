@@ -330,6 +330,13 @@ class TierCheck {
 			"a song that was never saved by hand is kept at "
 			+ Files.name(recovery.recovered));
 
+		final own = Gate.root + "/export/gate/userdata/";
+
+		says("and the gate keeps it to itself", StringTools.startsWith(recovery.recovered, own)
+			&& StringTools.startsWith(recovery.backups(), own),
+			"the recovery file and its backups go under " + own + " rather than the account's"
+			+ " own userdata folder, at " + recovery.recovered);
+
 		says("a portable copy is told by a file", !mdd.host.Settings.carried()
 			|| sys.FileSystem.exists(mdd.host.Paths.beside() + "/portable.txt"),
 			"settings live beside the program only when a marker beside it says so");

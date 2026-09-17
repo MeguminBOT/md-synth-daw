@@ -110,10 +110,21 @@ class Paths {
 	}
 
 	/**
-		@return Where this copy keeps everything the reader owns, which depends on whether it is
-			portable.
+		The environment variable that puts the userdata folder somewhere else entirely, ahead of
+		portable mode and the documents folder. The gate sets it, so nothing it saves, backs up or
+		logs reaches the account's own userdata folder.
+	**/
+	public static inline final USERDATA_VARIABLE = "MDD_USERDATA";
+
+	/**
+		@return Where this copy keeps everything the reader owns: the folder `USERDATA_VARIABLE`
+			names where it is set, and otherwise beside the program or in the documents folder,
+			depending on whether this copy is portable.
 	**/
 	public static function userdata():String {
+		final given = env(USERDATA_VARIABLE);
+		if (given != "") return tidy(given);
+
 		if (portable()) return beside() + "/" + USERDATA;
 		return documents() + "/" + mdd.Config.TITLE;
 	}

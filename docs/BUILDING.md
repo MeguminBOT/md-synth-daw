@@ -230,6 +230,11 @@ application binary cannot reach them. Everything the gate runs is one binary: `m
 dispatches on its first argument to the `run(args)` each check exposes. Adding a program means
 adding `run(args)` and a case in `Gate`, and nothing else.
 
+The gate points the userdata folder at `export/gate/userdata` before any program runs, through the
+`MDD_USERDATA` environment variable, so nothing a check saves, backs up or logs reaches your own
+projects, backups or logs. The application reads the same variable, so setting it before starting
+`mdd` keeps a separate set of settings and projects wherever it names.
+
 `mdd gate` exits nonzero on any failure and is the only claim of working that counts. Every check
 from the render path onward has an offline half, because a host being right is not the same as an
 engine being right, and the only way to tell them apart is to render with no host anywhere near it.

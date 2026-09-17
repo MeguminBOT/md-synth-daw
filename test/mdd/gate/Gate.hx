@@ -14,6 +14,8 @@ class Gate {
 			args.splice(flag, 2);
 		}
 
+		Sys.putEnv(mdd.host.Paths.USERDATA_VARIABLE, root + "/export/gate/userdata");
+
 		mdd.host.Native.ready();
 		mdd.host.Crash.watch(root + "/export/fault.txt", "The gate", false);
 
