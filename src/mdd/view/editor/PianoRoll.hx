@@ -1359,6 +1359,101 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
+		Offers tying and untying on a menu. Tying is only offered where the channel can hold a
+		note across a tie.
+
+		@param menu The menu to add them to.
+	**/
+	function tying(menu:Menu):Void {
+		final tie = menu.offer(new Choice(translate(Locale.ROLL_TIE)));
+
+		if (ties()) fires(tie, function():Void tied());
+		else {
+			tie.enabled = false;
+			tie.reason = translate(Locale.ROLL_TIE_WHY);
+		}
+
+		fires(menu.offer(new Choice(translate(Locale.ROLL_UNTIE))), function():Void untied());
+	}
+
+	/**
+		@return Whether the chosen channel holds a note across a tie: an FM channel changes the
+			pitch without a key on, and a square without starting its envelope again.
+	**/
+	function ties():Bool {
+		return session.part.fm() || session.part.square();
+	}
+
+	/**
+		Ties every note to the one before it, so the line plays with one key on and changes pitch
+		at each tie. A note that stops short of the next is stretched to it and one that runs into
+		it is cut back to it. Notes that start together are a chord and are left untied, because a
+		channel holds one note. One step on the undo stack.
+	**/
+	public function tied():Bool {
+		if (!ties()) return false;
+
+		final reach = reaching();
+		if (reach.length < 2) return false;
+
+		reach.sort(function(one:Note, two:Note):Int return one.at - two.at);
+
+		final group = new mdd.song.edit.Together("tie " + counted(reach.length));
+		var many = 0;
+
+		for (index in 1...reach.length) {
+			final before = reach[index - 1];
+			final note = reach[index];
+
+			if (note.at <= before.at) continue;
+
+			if (before.ends() != note.at) {
+				group.also(new mdd.song.edit.SizeNote(session.pattern, session.part, before,
+					note.at - before.at));
+			}
+
+			if (note.tied) continue;
+
+			group.also(new mdd.song.edit.TieNote(note, true));
+			many++;
+		}
+
+		if (many == 0) return false;
+
+		session.does(group);
+		session.says(Locale.SAID_NOTES_TIED, "" + many);
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	/**
+		Unties every tied note, so each one keys on again. One step on the undo stack.
+	**/
+	public function untied():Bool {
+		final reach = reaching();
+		final group = new mdd.song.edit.Together("untie " + counted(reach.length));
+		var many = 0;
+
+		for (note in reach) {
+			if (!note.tied) continue;
+
+			group.also(new mdd.song.edit.TieNote(note, false));
+			many++;
+		}
+
+		if (many == 0) return false;
+
+		session.does(group);
+		session.says(Locale.SAID_NOTES_UNTIED, "" + many);
+		session.changed();
+
+		invalidate();
+		return true;
+	}
+
+	/**
 		Folds a run of notes on one key into one.
 
 		Where a note reaches the one after it on the same key, the first grows to cover both
@@ -1895,6 +1990,7 @@ final class PianoRoll extends Widget {
 			fires(menu.offer(new Choice(translate(Locale.ROLL_LEGATO))), function():Void
 				stretched());
 			fires(menu.offer(new Choice(translate(Locale.ROLL_GLUE))), function():Void glued());
+			tying(menu);
 
 			menu.divide();
 
@@ -1938,6 +2034,7 @@ final class PianoRoll extends Widget {
 			fires(menu.offer(new Choice(translate(Locale.ROLL_LEGATO))), function():Void
 				stretched());
 			fires(menu.offer(new Choice(translate(Locale.ROLL_GLUE))), function():Void glued());
+			tying(menu);
 
 			menu.divide();
 
@@ -2843,8 +2940,10 @@ final class PianoRoll extends Widget {
 			ghost:Bool):Void {
 		final left = x + gutter();
 		final radius = metrics.radiusSmall;
+		final notes = lane.notes;
 
-		for (note in lane.notes) {
+		for (index in 0...notes.length) {
+			final note = notes[index];
 			final at = atTick(note.at);
 			final wide = note.length * perTick;
 
@@ -2872,6 +2971,14 @@ final class PianoRoll extends Widget {
 			if (picked.holds(note)) {
 				paint.outline(at, row, wide, tall, theme.ink, metrics.whole(1),
 					note == chosen ? 1 : 0.65, radius);
+			}
+
+			if (note.tied && index > 0 && notes[index - 1].ends() >= note.at) {
+				final from = atPitch(notes[index - 1].pitch) + tall * 0.5;
+				final reach = metrics.whole(4);
+
+				paint.line(at - reach, from, at + reach, row + tall * 0.5, metrics.whole(2),
+					theme.ink, 0.85);
 			}
 		}
 	}

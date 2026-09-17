@@ -79,10 +79,14 @@ clip panning a channel keeps it panned from note to note.
   of the bar line still copies onto the line instead of drifting forward each time.
 - `Ctrl` and an arrow moves a note by an octave, `Shift` and an arrow leans it louder or
   quieter, and an arrow on its own still moves it by a semitone or a grid step.
-- Quantise, legato and glue, from the roll's right click menu. Each acts on what you have
-  selected, or on the whole channel where you have selected nothing, and each undoes in one
+- Quantise, legato, glue, tie and untie, from the roll's right click menu. Each acts on what you
+  have selected, or on the whole channel where you have selected nothing, and each undoes in one
   step. Quantise is the one an import wants: a driver writes a key on wherever its own timer
   landed, so almost nothing read out of a register log starts on a line.
+- **Tie** joins each note to the one before it, the way a driver plays a legato line. An FM
+  channel changes pitch with no new key on, and a square without starting its envelope again,
+  so the line slides from note to note instead of striking each one. A tie is drawn as a stroke
+  joining the two notes, and ties read out of an imported file show the same way.
 - Velocity per note, and a drag across the velocity strip paints every note it passes. A note
   that is part of a selection leans the whole selection by the same amount instead, so the
   shape of a phrase survives a change of level.
