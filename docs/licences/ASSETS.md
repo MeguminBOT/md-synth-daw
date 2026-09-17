@@ -215,6 +215,15 @@ Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profi
 samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
 costs the machine nothing.
 
+## The example projects
+
+`assets/example-projects/console-tricks.mdsyn` is this repository's own work, covered by its
+licence like any other file in it, and `console-tricks.md` beside it explains the project. It is 19
+four bar patterns, one a track, each showing a way around a limit of the YM2612 or the SN76489.
+Nothing in it is read out of a recording. Its presets are the default bank the application builds
+in code, 29 instruments made for it out of operator values and envelope steps, and the synthesised
+Drum Kit above, whose 13 hits are the only samples it holds.
+
 ## Read but never shipped
 
 | source | licence | why it is here |
