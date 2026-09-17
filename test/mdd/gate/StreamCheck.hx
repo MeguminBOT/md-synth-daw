@@ -43,6 +43,7 @@ class StreamCheck {
 		sought(args);
 		raced();
 		hushed();
+		restruck();
 		grown();
 		survived();
 
@@ -261,6 +262,142 @@ class StreamCheck {
 		says("shared values survive collection", wrong == 0 && swapped == 1 && stored == 9,
 			wrong + " of " + held.length + " changed after " + churned
 			+ " allocations and 40 collections, and an exchange handed back " + swapped);
+	}
+
+	/**
+		Notes laid end to end on an FM channel each attack. The chip copies its key register once a
+		slot and holds a write for two slots before it lands, and a write arriving while one is held
+		lands the held one at once. A key off and a key on on one sample are then an edge or not
+		depending on where the channel's own slot falls: the first channel still attacked, and a
+		run of back to back notes on any of the other five played its first note and then silence.
+	**/
+	static function restruck():Void {
+		var gapped = 0;
+		var joined = 0;
+		var loudest = 0.0;
+		var quietest = 1.0;
+		final lost:Array<String> = [];
+
+		for (channel in 0...6) {
+			final part:Part = channel;
+			final song = new Song("restruck", 96, 120);
+			final plucked = new Instrument("plucked", part);
+			final patch = plucked.patch;
+
+			if (patch != null) {
+				patch.algorithm = 7;
+
+				for (slot in 0...4) {
+					patch.totalLevel[slot] = slot == 3 ? 0 : 127;
+					patch.decay[slot] = 24;
+					patch.sustain[slot] = 24;
+					patch.sustainLevel[slot] = 15;
+				}
+			}
+
+			song.instrument(plucked);
+			song.rack[part.index()] = song.instruments.length - 1;
+
+			final beat = song.tempo.ppqn;
+			final pattern = song.add(new Pattern("pattern 1", beat * 4));
+
+			for (index in 0...4) pattern.lane(part).add(new Note(index * beat, beat, 60, 127));
+
+			song.track(new Track("one")).add(new Clip(0, 0, pattern.length));
+
+			final stream = new Stream(1 << 16);
+			new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+			final struck = attacks(song, stream, beat);
+			final touched = attacks(song, touching(stream), beat);
+
+			gapped += Std.int(struck[0]);
+			joined += Std.int(touched[0]);
+
+			if (struck[1] > loudest) loudest = struck[1];
+			if (struck[1] < quietest) quietest = struck[1];
+			if (touched[0] < 3) lost.push(part.name());
+		}
+
+		says("back to back notes each attack", gapped == 18 && joined < 18,
+			gapped + " of the 18 notes that follow another with no gap attack across the six FM"
+			+ " channels, peaking between " + Math.round(quietest * 1000) / 1000 + " and "
+			+ Math.round(loudest * 1000) / 1000 + "; with each key off moved onto its key on's"
+			+ " sample, " + joined + " do" + (lost.length == 0 ? "" : ", losing notes on "
+			+ lost.join(", ")));
+	}
+
+	/**
+		@param stream A sequenced stream.
+		@return A copy with every key off moved one sample later, onto the key on after it.
+	**/
+	static function touching(stream:Stream):Stream {
+		final out = new Stream(stream.count + 16);
+		var index = 0;
+
+		while (index < stream.count) {
+			final paired = stream.kindAt(index) == Stream.YM && (stream.portAt(index) & 1) == 0
+				&& index + 1 < stream.count;
+			final off = paired && stream.valueAt(index) == 0x28 && (stream.valueAt(index + 1) & 0xF0) == 0;
+			final many = paired ? 2 : 1;
+
+			for (at in index...index + many) {
+				out.raw(stream.tickAt(at) + (off ? 1 : 0), stream.kindAt(at), stream.portAt(at),
+					stream.valueAt(at));
+			}
+
+			index += many;
+		}
+
+		return out;
+	}
+
+	/**
+		@param song The song the stream was sequenced from, four notes a beat apart.
+		@param stream What to render.
+		@param beat How many ticks a beat is.
+		@return How many of the last three notes attack, the loudest of them in the 20 ms after it
+			keys on, and the loudest in the 20 ms before.
+	**/
+	static function attacks(song:Song, stream:Stream, beat:Int):Array<Float> {
+		final span = song.tempo.samplesAt(beat * 4);
+		final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+		final loud = new Vector<Float>(span);
+		var done = 0;
+
+		while (done < span) {
+			final many = render.serve(stream, done, mdd.play.Render.BLOCK);
+			if (many <= 0) break;
+
+			for (index in 0...many) {
+				if (done + index >= span) break;
+
+				final value = render.block[index * 2];
+				loud[done + index] = value < 0 ? -value : value;
+			}
+
+			done += many;
+		}
+
+		final window = 882;
+		var attacked = 0;
+		var before = 0.0;
+		var after = 0.0;
+
+		for (index in 1...4) {
+			final start = song.tempo.samplesAt(index * beat);
+			var quiet = 0.0;
+			var struck = 0.0;
+
+			for (at in start - window...start) if (loud[at] > quiet) quiet = loud[at];
+			for (at in start...start + window) if (loud[at] > struck) struck = loud[at];
+
+			if (struck > 0.01 && struck > quiet * 4) attacked++;
+			if (quiet > before) before = quiet;
+			if (struck > after) after = struck;
+		}
+
+		return [attacked, after, before];
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

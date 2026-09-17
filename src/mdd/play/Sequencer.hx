@@ -71,10 +71,13 @@ final class Sequencer {
 	public static inline final ENVELOPE_TICKS = 735;
 
 	/**
-		How many samples to leave between a key off and the key on after it. Nought, since
-		the part does not need one.
+		How many samples early a key off on an FM channel is written where another note keys the
+		channel on at the same sample. The chip copies its key register once a slot, so a key off
+		and a key on on one sample are no edge at all and the second note never attacks. One is
+		enough: every write due at a sample is applied before the chip steps, and it steps at least
+		once a sample. Every other key off lands where its note ends.
 	**/
-	static inline final GUARD = 0;
+	static inline final GUARD = 1;
 
 	/**
 		The song being read.
@@ -402,6 +405,41 @@ final class Sequencer {
 		}
 	}
 
+	/**
+		@param part Which part.
+		@param tick A tick on the playlist where a voice ends.
+		@param slice The voice, among the ones resolved for the lane being sounded.
+		@param origin Where that lane's pattern starts on the playlist.
+		@return Whether another note keys the part on exactly there: the next voice in the same
+			lane, or a note in any clip playing the part from that tick, which is how a note at the
+			start of one bar follows the last note of the bar before.
+	**/
+	function struckAt(part:Part, tick:Int, slice:Int, origin:Int):Bool {
+		if (slice + 1 < voices.count && origin + voices.startAt(slice + 1) == tick) return true;
+		if (alone >= 0) return false;
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.kind != mdd.song.Clip.PATTERN) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final pattern = song.patternAt(clip.pattern);
+				if (pattern == null) continue;
+
+				final local = tick - clip.origin();
+
+				for (note in pattern.lane(part).notes) {
+					if (note.at > local) break;
+					if (note.at == local) return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	var underTranspose:Int = 0;
 	var underLane:Null<mdd.song.Lane> = null;
 	var reading:Null<mdd.song.Lane> = null;
@@ -674,7 +712,8 @@ final class Sequencer {
 
 			final onSample = tempo.samplesAt(start);
 			final ending = tempo.samplesAt(ends);
-			final offSample = !held && ending - onSample > GUARD * 2 ? ending - GUARD : ending;
+			final offSample = !held && part.fm() && ending - onSample > GUARD * 2
+				&& struckAt(part, ends, slice, origin) ? ending - GUARD : ending;
 			final pitch = voices.pitchAt(slice) + transpose;
 			final velocity = louder(part, voices.velocityAt(slice));
 			final named = chosen(lane, part, voices.instrumentAt(slice), voices.startAt(slice));
