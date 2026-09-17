@@ -99,6 +99,13 @@ extern "C" void mdd_window_maximise(SDL_Window *window) {
 	if (window != nullptr) SDL_MaximizeWindow(window);
 }
 
+extern "C" void mdd_window_raise(SDL_Window *window) {
+	if (window == nullptr) return;
+
+	if ((SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0) SDL_RestoreWindow(window);
+	SDL_RaiseWindow(window);
+}
+
 extern "C" int mdd_window_maximised(SDL_Window *window) {
 	if (window == nullptr) return 0;
 	return (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) != 0 ? 1 : 0;

@@ -133,7 +133,10 @@ class App {
 			Config.TITLE + " " + Config.VERSION, true);
 
 		if (Instance.claim(Config.SHORT + LOCK) == 0) {
-			Sdl.message(Config.TITLE, Config.TITLE + " is already running.");
+			if (!handsOver(mdd.host.Arguments.all())) {
+				Sdl.message(Config.TITLE, Config.TITLE + " is already running.");
+			}
+
 			Sdl.quit();
 			Sys.exit(0);
 		}
@@ -164,6 +167,35 @@ class App {
 		Usage.stop();
 		Instance.release();
 		Sdl.quit();
+	}
+
+	/**
+		How long a second copy keeps trying to reach the first, in milliseconds, which covers a
+		first copy that has taken the lock and is still opening its window.
+	**/
+	static inline final HANDING = 10000;
+
+	/**
+		Hands what this copy was opened with to the copy already running, which opens it and comes
+		to the front. A copy opened with no file brings that one to the front and nothing else.
+
+		@param args What this copy was started with.
+		@return False where the copy running could not be reached, or this one was asked to export,
+			which the copy running would not do.
+	**/
+	static function handsOver(args:Array<String>):Bool {
+		for (arg in args) if (StringTools.startsWith(arg, "--export")) return false;
+
+		var path = "";
+
+		for (arg in args) {
+			if (StringTools.startsWith(arg, "-") || !sys.FileSystem.exists(arg)) continue;
+
+			path = haxe.io.Path.normalize(sys.FileSystem.absolutePath(arg));
+			break;
+		}
+
+		return Instance.hand(Config.SHORT + LOCK, path, HANDING) != 0;
 	}
 
 	static function recorded(e:haxe.Exception):Void {
@@ -256,7 +288,7 @@ class App {
 		@return False where any of that would not work.
 	**/
 	function open():Bool {
-		final args = Sys.args();
+		final args = mdd.host.Arguments.all();
 
 		settings = new Settings();
 
@@ -288,6 +320,25 @@ class App {
 
 		stage.show(settings == null || settings.asFlag("maximised", true));
 		collector.minds();
+
+		Instance.listen(Config.SHORT + LOCK);
+		return true;
+	}
+
+	/**
+		Opens what a second copy handed over, and comes to the front for it. A handover naming no
+		file only brings the window forward.
+
+		@return Whether anything arrived.
+	**/
+	function received():Bool {
+		if (Instance.take() < 0) return false;
+
+		final path = (Instance.taken() : String);
+
+		stage.raise();
+		if (path != "" && sys.FileSystem.exists(path)) opens(path);
+
 		return true;
 	}
 
@@ -586,7 +637,7 @@ class App {
 	}
 
 	public function forced():Void {
-		for (arg in Sys.args()) {
+		for (arg in mdd.host.Arguments.all()) {
 			if (!StringTools.startsWith(arg, "--export=")) continue;
 
 			final where = arg.substr(9);
@@ -598,14 +649,14 @@ class App {
 			return;
 		}
 
-		if (Sys.args().indexOf("--exporting") >= 0) panels.sounded();
+		if (mdd.host.Arguments.all().indexOf("--exporting") >= 0) panels.sounded();
 	}
 
 	/**
 		Opens whatever file the application was started with.
 	**/
 	function handed():Void {
-		for (arg in Sys.args()) {
+		for (arg in mdd.host.Arguments.all()) {
 			if (StringTools.startsWith(arg, "-")) continue;
 			if (!sys.FileSystem.exists(arg)) continue;
 
@@ -1955,6 +2006,7 @@ class App {
 
 			if (shared()) stage.root.soil();
 			if (costed()) stage.root.soil();
+			if (received()) stage.root.soil();
 
 			collector.rests(since, stage.draw());
 		}
@@ -2182,10 +2234,10 @@ class App {
 	}
 
 	/**
-		Claims the one instance lock, and hands the file to the copy already running
-		where one has it.
+		Keeps the line the preferences sheet shows for Discord presence in step with what the
+		presence is doing, while that sheet is up.
 
-		@return False where another copy is already running.
+		@return Whether the line changed, so the frame needs drawing again.
 	**/
 	function shared():Bool {
 		if (panels == null || panels.preferences == null) return false;

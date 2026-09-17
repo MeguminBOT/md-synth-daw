@@ -493,7 +493,10 @@ importing one reads those back.
 - **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line
   between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
   pointed arrow with the pan tool in hand.
-- **One instance.** Opening a second project hands it to the copy already running.
+- **One instance.** Opening a second project hands it to the copy already running, by a double
+  click or from a terminal, and that copy comes to the front and opens it, asking first about
+  unsaved work the way any open does. Starting a second copy with nothing to open brings the first
+  one forward. A path with letters outside ASCII in it opens the same way.
 - **Discord presence**, on by default and showing the piece and what the transport is doing,
   speaking Discord's local IPC directly rather than through an SDK. Preferences can cut it down to
   the application's name alone or turn it off.

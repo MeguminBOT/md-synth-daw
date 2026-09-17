@@ -194,6 +194,12 @@ extern class Sdl {
 	public static function maximiseWindow(window:cpp.Star<Window>):Void;
 
 	/**
+		Brings the window in front of the others, restoring it first where it was minimised.
+	**/
+	@:native("mdd_window_raise")
+	public static function raiseWindow(window:cpp.Star<Window>):Void;
+
+	/**
 		Whether it is maximised.
 	**/
 	@:native("mdd_window_maximised")

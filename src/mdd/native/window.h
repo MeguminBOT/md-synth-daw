@@ -123,6 +123,13 @@ void mdd_window_show(SDL_Window *window);
 void mdd_window_maximise(SDL_Window *window);
 
 /**
+ * Brings the window in front of the others, restoring it first where it was minimised.
+ *
+ * @param window The window.
+ */
+void mdd_window_raise(SDL_Window *window);
+
+/**
  * @param window The window.
  * @return Nonzero where it is maximised.
  */

@@ -265,6 +265,13 @@ final class Stage {
 	}
 
 	/**
+		Brings the window in front of the others, restoring it where it was minimised.
+	**/
+	public function raise():Void {
+		if (window != null) Sdl.raiseWindow(window);
+	}
+
+	/**
 		@return Whether the window is maximised.
 	**/
 	public function maximised():Bool {
