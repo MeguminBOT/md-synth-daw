@@ -106,6 +106,14 @@ final class Sequencer {
 	public var alone:Int = -1;
 
 	/**
+		The parts an automation clip on the playlist drives anywhere in the song, one bit a part,
+		so a key on only looks for a clip over it where one can be. It is the whole song rather
+		than the span, so a note that starts in one span and ends in the next is read the same way
+		in both.
+	**/
+	var drivenParts:Int = 0;
+
+	/**
 		How many ticks are gathered between collector safe points, so a long span does not
 		hold the collector off.
 	**/
@@ -355,6 +363,8 @@ final class Sequencer {
 
 		final high = tempo.tickAt(toSample) + 1;
 
+		drivenParts = 0;
+
 		if (alone >= 0) {
 			final pattern = song.patternAt(alone);
 			if (pattern != null) {
@@ -362,6 +372,16 @@ final class Sequencer {
 			}
 
 			return;
+		}
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (clip.automates() && clip.part >= 0 && clip.part < Part.COUNT) {
+					drivenParts |= 1 << clip.part;
+				}
+			}
 		}
 
 		for (track in song.tracks) {
@@ -393,6 +413,8 @@ final class Sequencer {
 			}
 		}
 
+		if (drivenParts == 0) return;
+
 		for (track in song.tracks) {
 			if (track.muted) continue;
 
@@ -403,6 +425,39 @@ final class Sequencer {
 				drove(clip, low, high, fromSample, toSample);
 			}
 		}
+	}
+
+	/**
+		@param part Which part.
+		@param target Which parameter.
+		@param slot Which operator, or -1 for any.
+		@param tick A tick on the playlist.
+		@return The automation clip driving that lane of the part over the tick, or null where
+			none does. Nothing does while a pattern plays alone, which is when no clip writes
+			either, and where two clips cover the same tick the one furthest down the playlist
+			answers.
+	**/
+	function driverOf(part:Part, target:Int, slot:Int, tick:Int):Null<mdd.song.Clip> {
+		if (alone >= 0) return null;
+
+		var found:Null<mdd.song.Clip> = null;
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (!clip.automates() || clip.part != part.index()) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final line = clip.line;
+				if (line == null || line.points.length == 0 || line.target != target) continue;
+				if (slot >= 0 && line.slot != slot) continue;
+
+				found = clip;
+			}
+		}
+
+		return found;
 	}
 
 	/**
@@ -438,6 +493,35 @@ final class Sequencer {
 		}
 
 		return false;
+	}
+
+	/**
+		Collects what the automation clips driving an FM part's operators hold where a note keys
+		on, which is what the note starts on in place of its patch's own values, the same as a
+		lane in the note's own pattern.
+
+		@param part An FM part.
+		@param tick Where the note starts on the playlist.
+		@param at The sample it keys on at.
+	**/
+	function operated(part:Part, tick:Int, at:Int):Void {
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (!clip.automates() || clip.part != part.index()) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final line = clip.line;
+				if (line == null || line.points.length == 0) continue;
+				if (!mdd.song.Automation.operates(line.target)) continue;
+				if (line.target == mdd.song.Automation.LEVEL) continue;
+				if (driverOf(part, line.target, line.slot, tick) != clip) continue;
+
+				push(at, part, TWEAK, (line.slot << 8) | (line.heldAt(tick - clip.at) & 0xFF),
+					2 + line.target);
+			}
+		}
 	}
 
 	var underTranspose:Int = 0;
@@ -701,6 +785,8 @@ final class Sequencer {
 			if (line.slot >= 0 && line.slot < 4) lines[line.slot] = line;
 		}
 
+		final driven = (drivenParts & (1 << part.index())) != 0;
+
 		for (slice in 0...voices.count) {
 			var start = origin + voices.startAt(slice);
 			var ends = origin + voices.endAt(slice);
@@ -723,17 +809,26 @@ final class Sequencer {
 
 			if (part.sampled() && song.drums && song.drumAt(pitch) < 0) continue;
 
+			final bender = driven ? driverOf(part, mdd.song.Automation.TUNE, 0, start) : null;
+			final tuning = bender == null ? bent : bender.line;
+			final tunedAt = bender == null ? local : start - bender.at;
+
 			if (onSample >= fromSample && onSample < toSample) {
 				if (!tied) {
 					push(onSample, part, PATCH, named,
-						bent != null && part.noise() ? -1 : velocity);
+						tuning != null && part.noise() ? -1 : velocity);
 
 					if (part.fm()) {
-						push(onSample, part, TWEAK, spread(part, sided, local, named), 1);
+						final sider = driven
+							? driverOf(part, mdd.song.Automation.SIDES, -1, start) : null;
+
+						push(onSample, part, TWEAK, sider == null ? spread(part, sided, local, named)
+							: spread(part, sider.line, start - sider.at, named), 1);
 
 						for (line in lane.automation) {
 							if (!mdd.song.Automation.operates(line.target)) continue;
 							if (line.target == mdd.song.Automation.LEVEL) continue;
+							if (driven && driverOf(part, line.target, line.slot, start) != null) continue;
 
 							final want = line.heldAt(local);
 							if (want < 0) continue;
@@ -741,13 +836,15 @@ final class Sequencer {
 							push(onSample, part, TWEAK, (line.slot << 8) | (want & 0xFF),
 								2 + line.target);
 						}
+
+						if (driven) operated(part, start, onSample);
 					}
 				}
 
-				if (bent == null || !rides(part, bent)) {
+				if (tuning == null || !rides(part, tuning)) {
 					push(onSample, part, TUNE, pitch, 0);
 				} else {
-					final offset = bent.heldAt(local);
+					final offset = tuning.heldAt(tunedAt);
 					final want = voices.pitchAt(slice);
 
 					if (part.fm()) {
@@ -755,7 +852,7 @@ final class Sequencer {
 					} else push(onSample, part, TUNE, periodic(offset, want, transpose), 2);
 				}
 
-				if (!tied && !(part.sampled() && bent != null)) {
+				if (!tied && !(part.sampled() && tuning != null)) {
 					push(onSample, part, ON, velocity, named);
 				}
 
@@ -769,14 +866,15 @@ final class Sequencer {
 			}
 
 			if (!held && offSample >= fromSample && offSample < toSample
-					&& !(part.sampled() && bent != null)) {
+					&& !(part.sampled() && tuning != null)) {
 				push(offSample, part, OFF, 0, 0);
 			}
 
 			if (part.sampled()) {
 				sampled(onSample, offSample, named, pitch, fromSample, toSample);
 			}
-			else if ((part.square() || part.noise()) && lines[0] == null) {
+			else if ((part.square() || part.noise()) && lines[0] == null
+					&& !(driven && driverOf(part, mdd.song.Automation.LEVEL, 0, start) != null)) {
 				shaped(onSample, offSample, part, named, velocity, fromSample, toSample);
 			}
 		}
@@ -1166,34 +1264,70 @@ final class Sequencer {
 		}
 
 		if (part.fm()) {
+			final sider = driverOf(part, mdd.song.Automation.SIDES, -1, tick);
+
 			push(at, part, PATCH, named, under == null ? 127 : louder(part, under.velocity));
-			push(at, part, TWEAK, spread(part, sided, local, named), 1);
+			push(at, part, TWEAK, sider == null ? spread(part, sided, local, named)
+				: spread(part, sider.line, tick - sider.at, named), 1);
 		}
 
-		if (lane == null) return;
+		if (lane != null) {
+			for (line in lane.automation) {
+				if (!carries(part, line)) continue;
+				if (line.points.length == 0 || line.points[0].at > local) continue;
+				if (driverOf(part, line.target, line.slot, tick) != null) continue;
 
-		for (line in lane.automation) {
-			if (!carries(part, line)) continue;
-			if (line.points.length == 0 || line.points[0].at > local) continue;
-
-			final want = line.heldAt(local);
-			if (want < 0 && !rides(part, line)) continue;
-
-			if (!rides(part, line)) {
-				lined(at, part, line, want, transpose, -1, -1, -1);
-				continue;
+				restored(at, part, line, local, under == null ? 0 : under.at, under, transpose, named);
 			}
-
-			if (under == null) {
-				lined(at, part, line, want, transpose, -1, -1, -1);
-				continue;
-			}
-
-			final held = line.seek(local + 1) - 1;
-			if (held >= 0 && line.points[held].at < under.at) continue;
-
-			lined(at, part, line, want, transpose, under.pitch, under.velocity, named);
 		}
+
+		if (alone >= 0) return;
+
+		final began = under == null ? 0 : tick - local + under.at;
+
+		for (track in song.tracks) {
+			if (track.muted) continue;
+
+			for (clip in track.clips) {
+				if (!clip.automates() || clip.part != part.index()) continue;
+				if (clip.at > tick || clip.ends() <= tick) continue;
+
+				final line = clip.line;
+				if (line == null || !carries(part, line)) continue;
+				if (line.points.length == 0 || line.points[0].at > tick - clip.at) continue;
+				if (driverOf(part, line.target, line.slot, tick) != clip) continue;
+
+				restored(at, part, line, tick - clip.at, began - clip.at, under, transpose, named);
+			}
+		}
+	}
+
+	/**
+		Writes what one automation lane holds at a position being seeked to.
+
+		@param at The sample being seeked to.
+		@param part Which part.
+		@param line The lane, from the part's own pattern or from a clip driving it.
+		@param within The position in the lane's own ticks.
+		@param began Where the note sounding there started, in the same ticks.
+		@param under The note sounding there, or null for none.
+		@param transpose Semitones to shift every note by.
+		@param named Which instrument the note plays.
+	**/
+	function restored(at:Int, part:Part, line:mdd.song.Automation, within:Int, began:Int,
+			under:Null<mdd.song.Note>, transpose:Int, named:Int):Void {
+		final want = line.heldAt(within);
+		if (want < 0 && !rides(part, line)) return;
+
+		if (!rides(part, line) || under == null) {
+			lined(at, part, line, want, transpose, -1, -1, -1);
+			return;
+		}
+
+		final held = line.seek(within + 1) - 1;
+		if (held >= 0 && line.points[held].at < began) return;
+
+		lined(at, part, line, want, transpose, under.pitch, under.velocity, named);
 	}
 
 	/**

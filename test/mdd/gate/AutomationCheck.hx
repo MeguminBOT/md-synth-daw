@@ -32,6 +32,8 @@ class AutomationCheck {
 		clipped();
 		sliced();
 		resumed();
+		covered();
+		quieted();
 		driven();
 		named();
 		switched();
@@ -565,6 +567,138 @@ class AutomationCheck {
 		says("and with its pitch offset", cut[1] == whole[1] && whole[1] != plain,
 			"frequency word $" + StringTools.hex(cut[1], 4) + " cut and $" + StringTools.hex(whole[1], 4)
 			+ " whole, against $" + StringTools.hex(plain, 4) + " with no offset");
+	}
+
+	/**
+		A note keys on with what the automation clips over it hold, the same as with a lane in its
+		own pattern. A clip only wrote at its points, and every key on after that put the patch's
+		own stereo byte and the plain pitch back, so a clip panning a channel hard right snapped
+		back to the middle on the next note.
+	**/
+	static function covered():Void {
+		final plain = under(false);
+		final clipped = under(true);
+
+		says("a key on keeps a clip's sides", clipped[0] == 0x40 && plain[0] != 0x40,
+			"the second note sounds on $B4 = $" + StringTools.hex(clipped[0], 2)
+			+ " under a clip holding $40, against $" + StringTools.hex(plain[0], 2) + " with none");
+
+		says("and with its pitch offset", clipped[1] == plain[1] + 40,
+			"frequency word $" + StringTools.hex(clipped[1], 4) + " under a clip holding 40, against $"
+			+ StringTools.hex(plain[1], 4) + " with none");
+
+		says("and a seek into it lands there", clipped[2] == 0x40,
+			"a seek half way into the second note writes $B4 = $" + StringTools.hex(clipped[2], 2));
+	}
+
+	/**
+		@param clipped Whether a clip on a track of its own holds FM1's sides and pitch offset.
+		@return The stereo byte and the frequency word FM1 holds at its second key on, and the
+			stereo byte a seek into the second note writes.
+	**/
+	static function under(clipped:Bool):Array<Int> {
+		final song = new Song("covered", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+		final lane = pattern.lane(Part.Fm1);
+
+		lane.add(new mdd.song.Note(0, SPAN - 24, 62, 110));
+		lane.add(new mdd.song.Note(SPAN, SPAN - 24, 62, 110));
+
+		song.track(new mdd.song.Track("notes")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		if (clipped) {
+			final sides = mdd.song.Clip.drives(Part.Fm1, Automation.SIDES, 0, 0, SPAN * 2);
+			final tune = mdd.song.Clip.drives(Part.Fm1, Automation.TUNE, 0, 0, SPAN * 2);
+
+			if (sides.line != null) sides.line.add(new Point(0, 0x40));
+			if (tune.line != null) tune.line.add(new Point(0, 40));
+
+			song.track(new mdd.song.Track("sides")).add(sides);
+			song.track(new mdd.song.Track("tune")).add(tune);
+		}
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final second = song.tempo.samplesAt(SPAN);
+		final out:Array<Int> = [-1, -1, -1];
+
+		var address = 0;
+		var held = -1;
+		var high = 0;
+		var low = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				address = ((port >> 1) << 8) | value;
+				continue;
+			}
+
+			switch (address) {
+				case 0xB4: held = value;
+				case 0xA4: high = value;
+				case 0xA0: low = value;
+				case 0x28:
+					if (value == 0xF0 && stream.tickAt(index) >= second) {
+						out[0] = held;
+						out[1] = (high << 8) | low;
+					}
+				case _:
+			}
+		}
+
+		final seeked = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).prime(seeked, song.tempo.samplesAt(SPAN + 96));
+
+		address = 0;
+
+		for (index in 0...seeked.count) {
+			if (seeked.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = seeked.portAt(index);
+			final value = seeked.valueAt(index);
+
+			if ((port & 1) == 0) address = ((port >> 1) << 8) | value;
+			else if (address == 0xB4) out[2] = value;
+		}
+
+		return out;
+	}
+
+	/**
+		A square under a clip riding its level stops following its instrument's envelope, as it
+		does under a level lane in its own pattern. The envelope went on stepping underneath the
+		clip and wrote over the level the clip held a frame later.
+	**/
+	static function quieted():Void {
+		final song = new Song("quieted", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+		final decaying = new mdd.song.Instrument("decaying", Part.Psg1);
+
+		if (decaying.envelope != null) for (step in 0...16) decaying.envelope.steps.push(step);
+		song.instrument(decaying);
+
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(0, SPAN * 2, 60, 127, song.instruments.length - 1));
+		song.track(new mdd.song.Track("notes")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final clip = mdd.song.Clip.drives(Part.Psg1, Automation.LEVEL, 0, 0, SPAN * 2);
+		if (clip.line != null) clip.line.add(new Point(48, 5));
+		song.track(new mdd.song.Track("level")).add(clip);
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(SPAN + (SPAN >> 1)));
+
+		final written = attenuations(stream);
+		final last = written.length == 0 ? -1 : written[written.length - 1];
+
+		says("a level clip stops the envelope", written.length <= 2 && last == 5,
+			written.length + " attenuations over a bar and a half of a sixteen step decay, ending on " + last
+			+ ", where the clip holds 5");
 	}
 
 	/**

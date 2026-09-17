@@ -38,7 +38,9 @@ starts, so slicing one keeps the music where it was rather than restarting it.
 Drawing lays a clip where you press and another for every length of it you drag across, so four
 bars of a pattern is one stroke rather than four clicks, and the whole run undoes in one step.
 
-A track can also drive one automation lane of a channel it does not otherwise own.
+A track can also drive one automation lane of a channel it does not otherwise own. A note that starts
+under that clip starts on what the clip holds, the same as under a lane in its own pattern, so a
+clip panning a channel keeps it panned from note to note.
 
 ### The piano roll
 
