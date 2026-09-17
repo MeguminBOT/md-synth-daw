@@ -151,6 +151,28 @@ final class Centre extends Widget {
 		warnings.visible = false;
 
 		tabs.onChoose = function(which:Int):Void show(which);
+		playlist.onOpen = function(clip:mdd.song.Clip):Void opens(clip);
+	}
+
+	/**
+		Opens a clip where it is edited: an automation clip in the automation editor, and a pattern in
+		the piano roll, with its pattern and one of its channels chosen and the roll scrolled to where
+		in the pattern the clip starts reading.
+
+		@param clip The clip.
+	**/
+	public function opens(clip:mdd.song.Clip):Void {
+		if (clip.automates()) {
+			automation.follows(clip);
+			show(AUTOMATION);
+			return;
+		}
+
+		automation.follows(null);
+		session.opens(clip);
+
+		show(ROLL);
+		roll.scrollTo(clip.offset * roll.perTick, roll.offsetY);
 	}
 
 	static final ALLOWS:Array<Int> = [
@@ -232,17 +254,29 @@ final class Centre extends Widget {
 	}
 
 	/**
-		Scrolls whichever editor is showing to keep the playhead in view.
+		Scrolls whichever editor is showing to keep the playhead in view, and tells the roll and the
+		automation editor where in the song the chosen pattern sits.
 
-		@param tick Where the playhead is.
+		@param tick Where the playhead is in the song, in ticks.
 	**/
 	public function playhead(tick:Int):Void {
-		if (roll.playhead == tick && playlist.playhead == tick
-			&& automation.playhead == tick) return;
+		final origin = session.origin(tick);
+
+		if (roll.playhead == tick && playlist.playhead == tick && automation.playhead == tick
+			&& roll.origin == origin && automation.origin == origin) return;
+
+		final placed = roll.origin != origin || automation.origin != origin;
 
 		roll.playhead = tick;
+		roll.origin = origin;
 		playlist.playhead = tick;
 		automation.playhead = tick;
+		automation.origin = origin;
+
+		if (placed) {
+			roll.relayout();
+			automation.relayout();
+		}
 
 		if (!session.transport.playing) return;
 
@@ -252,8 +286,11 @@ final class Centre extends Widget {
 
 		if (!tracker.visible) return;
 
+		final local = tick - origin;
+		if (local < 0) return;
+
 		final step = tracker.step();
-		final row = Std.int(tick / (step < 1 ? 1 : step));
+		final row = Std.int(local / (step < 1 ? 1 : step));
 
 		if (row == tracker.row) return;
 

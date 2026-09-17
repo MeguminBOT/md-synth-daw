@@ -48,9 +48,15 @@ final class AutomationEditor extends Widget {
 	public var offsetX:Float = 0;
 
 	/**
-		Where the playhead is, or -1 for nowhere.
+		Where the playhead is in the song, or -1 for nowhere.
 	**/
 	public var playhead:Int = -1;
+
+	/**
+		Where the chosen pattern starts in the song, in ticks, which the ruler, the playhead and
+		scrubbing are measured from while no automation clip is open.
+	**/
+	public var origin:Int = 0;
 
 	/**
 		The clip being edited, where one automation clip is open rather than a pattern.
@@ -239,7 +245,7 @@ final class AutomationEditor extends Widget {
 		stack.perTick = perTick;
 		stack.offsetX = offsetX;
 		stack.left = gutter();
-		stack.playhead = playhead;
+		stack.playhead = playhead < 0 ? -1 : playhead - start();
 
 		stack.spreads(room);
 		stack.offsetY = 0;
@@ -422,12 +428,20 @@ final class AutomationEditor extends Widget {
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
 
-		final at = holding == null ? want : holding.at + want;
+		final at = start() + want;
 
 		session.transport.seek(session.song.tempo.samplesAt(at));
 		playhead = at;
 
 		invalidate();
+	}
+
+	/**
+		@return Where what is being edited starts in the song, in ticks: the open automation clip, or
+			else the chosen pattern.
+	**/
+	function start():Int {
+		return holding == null ? origin : holding.at;
 	}
 
 	function onRuler(px:Float, py:Float):Bool {
@@ -561,7 +575,7 @@ final class AutomationEditor extends Widget {
 		rein(paint, theme, metrics);
 
 		if (playhead >= 0) {
-			final at = atTick(holding == null ? playhead : playhead - holding.at);
+			final at = atTick(playhead - start());
 
 			if (at >= x + gutter() && at < x + width) {
 				paint.rect(at, y + head(), metrics.whole(2), height - head(), theme.warn, 0.9);
@@ -632,7 +646,7 @@ final class AutomationEditor extends Widget {
 				paint.rect(at, top, metrics.whole(1), tall, theme.frame, 0.8);
 
 				if (at >= written) {
-					final said = "" + (Std.int(tick / bar) + 1);
+					final said = "" + (Std.int((start() + tick) / bar) + 1);
 
 					paint.text(said, at + metrics.unit,
 						top + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.8);

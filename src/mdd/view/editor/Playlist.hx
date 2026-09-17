@@ -104,7 +104,8 @@ final class Playlist extends Widget {
 	public var onRenamePattern:Null<Int -> Void> = null;
 
 	/**
-		Called to open a clip in the roll or the automation editor.
+		Called to open a clip, from a double click or the clip menu: a pattern in the roll, an
+		automation clip in the automation editor.
 	**/
 	public var onOpen:Null<Clip -> Void> = null;
 
@@ -471,7 +472,7 @@ final class Playlist extends Widget {
 				if (event.clicks > 1 && event.button == Pointer.Left) {
 					final under = clipAt(event.x, event.y);
 
-					if (under != null && under.automates() && onOpen != null) {
+					if (under != null && onOpen != null) {
 						chosen = under;
 						chosenTrack = trackAt(event.y);
 

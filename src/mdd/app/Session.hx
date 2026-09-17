@@ -544,6 +544,82 @@ final class Session {
 	}
 
 	/**
+		The clip the chosen pattern was last opened from on the playlist, or null. Where a pattern is
+		placed more than once, this is the placement the editors draw it at while the playhead is in
+		none of them.
+	**/
+	public var opened:Null<mdd.song.Clip> = null;
+
+	/**
+		Opens a clip's pattern for editing: chooses the pattern and a channel it carries, keeping the
+		chosen channel where the pattern carries that one, and remembers the clip.
+
+		@param clip A clip that plays a pattern. An automation clip is left alone.
+	**/
+	public function opens(clip:mdd.song.Clip):Void {
+		if (clip.kind != mdd.song.Clip.PATTERN) return;
+
+		final held = song.patternAt(clip.pattern);
+		if (held == null) return;
+
+		opened = clip;
+		pattern = clip.pattern;
+
+		if (!carries(held, part)) {
+			for (index in 0...Part.COUNT) {
+				if (!carries(held, index)) continue;
+
+				part = index;
+				break;
+			}
+		}
+
+		follows();
+		changed();
+	}
+
+	/**
+		@param held A pattern.
+		@param part A channel.
+		@return Whether the pattern writes notes or automation on that channel.
+	**/
+	static function carries(held:Pattern, part:Part):Bool {
+		final lane = held.lane(part);
+		return lane.notes.length > 0 || lane.automation.length > 0;
+	}
+
+	/**
+		Where the chosen pattern starts in the song, which the editors measure their ruler, their
+		playhead and their scrubbing from, so a pattern placed at bar fifty three is drawn there.
+
+		@param tick Where the playhead is in the song, in ticks.
+		@return Nought while the pattern plays alone. Otherwise where the pattern would start for the
+			clip playing it at that tick, or else for the clip it was opened from, or else for its
+			first clip, and nought where no clip plays it.
+	**/
+	public function origin(tick:Int):Int {
+		if (alone) return 0;
+
+		var first:Null<mdd.song.Clip> = null;
+		var still = false;
+
+		for (track in song.tracks) {
+			for (clip in track.clips) {
+				if (clip.kind != mdd.song.Clip.PATTERN || clip.pattern != pattern) continue;
+				if (tick >= clip.at && tick < clip.ends()) return clip.origin();
+
+				if (clip == opened) still = true;
+				if (first == null || clip.at < first.at) first = clip;
+			}
+		}
+
+		final held = opened;
+		if (still && held != null) return held.origin();
+
+		return first == null ? 0 : first.origin();
+	}
+
+	/**
 		Puts a tool in hand.
 
 		@param which Which tool.

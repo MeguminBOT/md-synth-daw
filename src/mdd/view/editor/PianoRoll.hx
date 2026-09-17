@@ -118,9 +118,15 @@ final class PianoRoll extends Widget {
 	public var offsetY:Float = 0;
 
 	/**
-		Where the playhead is, or -1 for nowhere.
+		Where the playhead is in the song, or -1 for nowhere.
 	**/
 	public var playhead:Int = -1;
+
+	/**
+		Where the pattern starts in the song, in ticks, which the ruler, the playhead and scrubbing are
+		measured from.
+	**/
+	public var origin:Int = 0;
 
 	/**
 		What says which notes the hardware will not sound, so they can be hatched.
@@ -260,7 +266,7 @@ final class PianoRoll extends Widget {
 		stack.perTick = perTick;
 		stack.offsetX = offsetX;
 		stack.left = gutter();
-		stack.playhead = playhead;
+		stack.playhead = playhead < 0 ? -1 : playhead - origin;
 		stack.visible = showLanes && showing > 0 && tall > 0;
 
 		stack.arrange(x, y + height - tall, width, tall);
@@ -1069,7 +1075,7 @@ final class PianoRoll extends Widget {
 	**/
 	public function scrubbed(px:Float):Void {
 		final tick = session.snapped(tickAt(px));
-		final want = tick < 0 ? 0 : tick;
+		final want = origin + (tick < 0 ? 0 : tick);
 
 		session.transport.seek(session.song.tempo.samplesAt(want));
 		playhead = want;
@@ -1142,7 +1148,7 @@ final class PianoRoll extends Widget {
 
 			case mdd.ui.Edit.PASTE:
 				if (session.copiedNotes.length == 0) return false;
-				pasted(session.snapped(playhead < 0 ? 0 : playhead));
+				pasted(session.snapped(playhead - origin < 0 ? 0 : playhead - origin));
 				return true;
 
 			case mdd.ui.Edit.DOUBLE:
@@ -2329,7 +2335,7 @@ final class PianoRoll extends Widget {
 		if (banding) band(paint, theme, metrics);
 
 		if (playhead >= 0) {
-			final at = atTick(playhead);
+			final at = atTick(playhead - origin);
 			if (at >= left && at < x + width) {
 				paint.rect(at, top, metrics.whole(2), grid(), theme.warn, 0.9);
 			}
@@ -3060,7 +3066,7 @@ final class PianoRoll extends Widget {
 			if (at > x + width) break;
 
 			if (at >= left && at >= written) {
-				final said = Std.string(Std.int(tick / bar) + 1);
+				final said = Std.string(Std.int((origin + tick) / bar) + 1);
 
 				paint.text(said, at + metrics.unit,
 					y + (tall - font.height) * 0.5 + font.ascent, theme.dim);

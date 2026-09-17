@@ -38,6 +38,12 @@ starts, so slicing one keeps the music where it was rather than restarting it.
 Drawing lays a clip where you press and another for every length of it you drag across, so four
 bars of a pattern is one stroke rather than four clicks, and the whole run undoes in one step.
 
+Double click a clip to open it: a pattern opens in the piano roll with one of its channels chosen,
+and an automation clip opens in the automation editor. The roll and the automation editor number
+their bars from where the pattern sits in the song, so a pattern placed at bar 53 reads bar 53 there
+too, and scrubbing them moves the song to that bar. A pattern placed more than once follows the clip
+playing it, or else the one you opened it from.
+
 The triangle in a clip's corner opens its menu: open it, make it unique, rename its pattern, copy,
 cut, paste, delete, or move it an octave. A new pattern is called Pattern and a number no other
 pattern has, and auto naming a track's clips calls its patterns after the track, numbered in the

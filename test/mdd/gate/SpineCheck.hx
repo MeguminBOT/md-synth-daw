@@ -2312,6 +2312,69 @@ class SpineCheck {
 		session.history.clear();
 	}
 
+	/**
+		A double click on a pattern clip opens its pattern in the roll, and the roll measures its ruler
+		and scrubbing from where that clip sits in the song.
+
+		The editors measured from the start of the song whatever clip a pattern was opened from, so a
+		pattern placed at bar fifty three was drawn at bar one, and scrubbing it moved the song there.
+	**/
+	static function reopened(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		centre.show(Centre.PLAYLIST);
+		laid(tree);
+
+		final list = centre.playlist;
+		final tracks = session.song.tracks;
+		final track = tracks[0];
+		final kept = [for (each in tracks) each.clips.copy()];
+		final bar = session.song.tempo.ppqn * 4;
+		final was = session.pattern;
+
+		for (each in tracks) each.clips.resize(0);
+		final clip = track.add(new mdd.song.Clip(0, bar * 2, bar));
+
+		laid(tree);
+
+		final px = list.atTick(bar * 2 + Std.int(bar / 2));
+		final py = list.atTrack(0) + (list.atTrack(1) - list.atTrack(0)) * 0.5;
+
+		tree.pressed(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.pressed(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 2);
+		tree.released(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("a double click opens a pattern", centre.showing == Centre.ROLL
+			&& session.opened == clip && session.pattern == clip.pattern,
+			"the roll is " + (centre.showing == Centre.ROLL ? "" : "not ") + "showing, on pattern "
+			+ (session.pattern + 1) + " from the clip at bar 3");
+
+		laid(tree);
+
+		centre.playhead(0);
+		final roll = centre.roll;
+		final origin = roll.origin;
+
+		roll.scrubbed(roll.atTick(Std.int(bar / 4)));
+		final landed = session.transport.tick();
+
+		says("and it scrubs where the clip sits", origin == bar * 2 && landed >= bar * 2
+			&& landed < bar * 3,
+			"the roll measures from tick " + origin + " and scrubbing its first beat moved the song to "
+			+ landed + ", inside the clip at " + clip.at);
+
+		session.transport.seek(0);
+		session.opened = null;
+		session.chooses(was);
+
+		for (index in 0...tracks.length) {
+			tracks[index].clips.resize(0);
+			for (held in kept[index]) tracks[index].add(held);
+		}
+
+		centre.show(Centre.PLAYLIST);
+		laid(tree);
+	}
+
 	static function sheeted(tree:Root, session:mdd.app.Session):Void {
 		final held = new mdd.view.overlay.Preferences(session);
 
@@ -3965,6 +4028,7 @@ class SpineCheck {
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
+		reopened(tree, session, centre);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		commanded(tree, session, centre);
