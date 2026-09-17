@@ -627,7 +627,8 @@ final class Sequencer {
 		Walks one pattern and collects every lane in it.
 
 		@param pattern The pattern to read.
-		@param origin Where the clip starts, in ticks.
+		@param origin Where the pattern starts on the playlist, in ticks: its clip's position less
+			how far into the pattern the clip reads.
 		@param from The first tick inside the pattern to read.
 		@param until One past the last.
 		@param transpose Semitones to shift every note by.
@@ -668,7 +669,8 @@ final class Sequencer {
 		ones general midi leaves empty stay quiet.
 
 		@param lane The lane to read.
-		@param origin Where the clip starts, in ticks.
+		@param origin Where the pattern starts on the playlist, in ticks: its clip's position less
+			how far into the pattern the clip reads.
 		@param from The first tick to read.
 		@param until One past the last.
 		@param transpose Semitones to shift every note by.
@@ -707,6 +709,7 @@ final class Sequencer {
 			if (ends > until) ends = until;
 			if (ends <= start) continue;
 
+			final local = start - origin;
 			final tied = part.fm() && voices.tiedAt(slice);
 			final held = part.fm() && voices.heldAt(slice);
 
@@ -726,14 +729,13 @@ final class Sequencer {
 						bent != null && part.noise() ? -1 : velocity);
 
 					if (part.fm()) {
-						push(onSample, part, TWEAK, spread(part, sided, start - from,
-							named), 1);
+						push(onSample, part, TWEAK, spread(part, sided, local, named), 1);
 
 						for (line in lane.automation) {
 							if (!mdd.song.Automation.operates(line.target)) continue;
 							if (line.target == mdd.song.Automation.LEVEL) continue;
 
-							final want = line.heldAt(start - from);
+							final want = line.heldAt(local);
 							if (want < 0) continue;
 
 							push(onSample, part, TWEAK, (line.slot << 8) | (want & 0xFF),
@@ -745,7 +747,7 @@ final class Sequencer {
 				if (bent == null || !rides(part, bent)) {
 					push(onSample, part, TUNE, pitch, 0);
 				} else {
-					final offset = bent.heldAt(start - from);
+					final offset = bent.heldAt(local);
 					final want = voices.pitchAt(slice);
 
 					if (part.fm()) {
@@ -1025,7 +1027,8 @@ final class Sequencer {
 		Collects the per note automation a lane carries, as against a channel wide lane.
 
 		@param lane The lane to read.
-		@param origin Where the clip starts, in ticks.
+		@param origin Where the pattern starts on the playlist, in ticks: its clip's position less
+			how far into the pattern the clip reads.
 		@param part Which part it plays on.
 		@param head The first tick to read.
 		@param tail One past the last.

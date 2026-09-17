@@ -31,6 +31,7 @@ class AutomationCheck {
 		played();
 		clipped();
 		sliced();
+		resumed();
 		driven();
 		named();
 		switched();
@@ -541,6 +542,94 @@ class AutomationCheck {
 			song.tempo.samplesAt(pattern.length));
 
 		return attenuations(stream);
+	}
+
+	/**
+		A clip that reads its pattern from part way through keys each note on with the stereo bits
+		and the pitch offset its pattern holds where that note sits.
+
+		A key on read both lanes at the note's distance from where its clip starts on the playlist,
+		which is the same place only for a clip reading its pattern from the start. A pattern laid
+		out a bar at a time played every bar after the first with the values of the first.
+	**/
+	static function resumed():Void {
+		final whole = struck(false);
+		final cut = struck(true);
+
+		says("a cut clip keys on with its sides", cut[0] == whole[0] && whole[0] == 0x40,
+			"the second bar's note sounds on $B4 = $" + StringTools.hex(cut[0], 2) + " cut and $"
+			+ StringTools.hex(whole[0], 2) + " whole, where the lane holds $40 from there");
+
+		final plain = mdd.play.Stream.wordOf(62);
+
+		says("and with its pitch offset", cut[1] == whole[1] && whole[1] != plain,
+			"frequency word $" + StringTools.hex(cut[1], 4) + " cut and $" + StringTools.hex(whole[1], 4)
+			+ " whole, against $" + StringTools.hex(plain, 4) + " with no offset");
+	}
+
+	/**
+		@param cut Whether the clip reads only the pattern's second bar, from where that bar sits.
+		@return The stereo byte and the frequency word FM1 holds at the last key on.
+	**/
+	static function struck(cut:Bool):Array<Int> {
+		final song = new Song("resumed", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+		final lane = pattern.lane(Part.Fm1);
+
+		lane.add(new mdd.song.Note(0, SPAN - 24, 60, 110));
+		lane.add(new mdd.song.Note(SPAN, SPAN - 24, 62, 110));
+
+		final sides = new Automation(Automation.SIDES, 0);
+		sides.add(new Point(0, 0x80));
+		sides.add(new Point(SPAN, 0x40));
+		lane.automation.push(sides);
+
+		final tune = new Automation(Automation.TUNE, 0);
+		tune.add(new Point(0, 0));
+		tune.add(new Point(SPAN, 40));
+		lane.automation.push(tune);
+
+		final track = song.track(new mdd.song.Track("one"));
+
+		if (cut) track.add(new mdd.song.Clip(0, SPAN, SPAN, 0, SPAN));
+		else track.add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final from = song.tempo.samplesAt(SPAN);
+		final out = [-1, -1];
+
+		var address = 0;
+		var held = -1;
+		var high = 0;
+		var low = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if ((port & 1) == 0) {
+				address = ((port >> 1) << 8) | value;
+				continue;
+			}
+
+			switch (address) {
+				case 0xB4: held = value;
+				case 0xA4: high = value;
+				case 0xA0: low = value;
+				case 0x28:
+					if (value == 0xF0 && stream.tickAt(index) >= from) {
+						out[0] = held;
+						out[1] = (high << 8) | low;
+					}
+				case _:
+			}
+		}
+
+		return out;
 	}
 
 	static function busy(driving:Bool, ceiling:Int = 0):mdd.play.Stream {
