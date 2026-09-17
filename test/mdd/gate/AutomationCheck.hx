@@ -36,6 +36,7 @@ class AutomationCheck {
 		quieted();
 		faded();
 		carried();
+		oscillated();
 		driven();
 		named();
 		switched();
@@ -790,6 +791,66 @@ class AutomationCheck {
 			"FM1 keys on with its carrier at " + atKey + " against " + base + " full and "
 			+ (base + 26) + " where the fade starts, " + louder + " steps back up; the square starts at "
 			+ squareAtKey + " where the fade starts at 8, " + squareLouder + " steps back up");
+	}
+
+	/**
+		The song's LFO is set as one undo step and reaches the chip while the song plays. It was
+		only ever written at the start of playback or at a seek, and nothing in the editor could
+		set it, so a preset's vibrato and tremolo depths did nothing in a song that had not been
+		imported with the LFO already running.
+	**/
+	static function oscillated():Void {
+		final song = new Song("oscillated", 96, 120);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(0, SPAN * 2 - 24, 60, 127));
+		song.track(new mdd.song.Track("one")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final sequencer = new mdd.play.Sequencer(song);
+		final first = new mdd.play.Stream(1 << 16);
+		sequencer.emit(first, 0, song.tempo.samplesAt(SPAN));
+
+		final set = new mdd.song.edit.SetLfo(true, 3);
+		set.apply(song);
+		sequencer.edited = true;
+
+		final second = new mdd.play.Stream(1 << 16);
+		sequencer.emit(second, song.tempo.samplesAt(SPAN), song.tempo.samplesAt(SPAN * 2));
+
+		final before = written(first, 0x22);
+		final after = written(second, 0x22);
+
+		set.revert(song);
+
+		final hertz = mdd.chip.Ym2612.lfoHertz(3);
+
+		says("the lfo is set while a song plays", before == 0 && after == 0x0B && !song.lfoOn
+			&& song.lfoRate == 0 && Math.abs(hertz - 6.21) < 0.01,
+			"$22 is written $" + StringTools.hex(before, 2) + " at the start and $" + StringTools.hex(after, 2)
+			+ " in the span after switching it to rate 3, " + Math.round(hertz * 100) / 100
+			+ " Hz as the chip runs it, and an undo leaves it off at rate " + song.lfoRate);
+	}
+
+	/**
+		@param stream A register stream.
+		@param wanted A register on the first half of the part.
+		@return The last value written to it, or -1 for none.
+	**/
+	static function written(stream:mdd.play.Stream, wanted:Int):Int {
+		var address = -1;
+		var found = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			final port = stream.portAt(index);
+			final value = stream.valueAt(index);
+
+			if (port == 0) address = value;
+			else if (port == 1 && address == wanted) found = value;
+		}
+
+		return found;
 	}
 
 	/**

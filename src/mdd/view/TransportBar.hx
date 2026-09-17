@@ -20,7 +20,7 @@ import mdd.ui.control.Number;
 @:unreflective
 
 /**
-	The bar under the menus: play, stop, loop, the tempo and the grid, the pattern
+	The bar under the menus: play, stop, loop, the tempo, the LFO and the grid, the pattern
 	picker, the output stage, the monitoring volume and the meter.
 **/
 final class TransportBar extends Widget {
@@ -78,6 +78,13 @@ final class TransportBar extends Widget {
 	final video:Number;
 
 	/**
+		The chip's LFO: nought is off, and one to eight are its eight rates. The part has one LFO for
+		every channel, so this is the song's rather than a preset's; a preset only says how deeply
+		its channel takes it.
+	**/
+	final lfo:Number;
+
+	/**
 		What the editors snap to.
 	**/
 	public final snap:Number;
@@ -114,18 +121,22 @@ final class TransportBar extends Widget {
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
 		resolution = new Number("", song.tempo.ppqn, 24, 48000);
 		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
+		lfo = new Number("", lfoIndex(song), 0, 8);
 		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
 		offset = new Number("", song.offset, -960, 960);
 
-		held = [tempo, resolution, video, snap, offset];
+		held = [tempo, resolution, video, lfo, snap, offset];
 
 		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
+		lfo.derived = function(value:Int):String
+			return value == 0 ? translate(Locale.EXPORT_OFF) : hertz(value - 1);
 		snap.derived = function(value:Int):String
 			return SNAPS[value] == 0 ? translate(Locale.EXPORT_OFF) : SNAP_NAMES[value];
 
 		tempo.label = "BPM";
 		resolution.label = "PPQN";
 		video.label = "";
+		lfo.label = "LFO";
 		snap.label = "";
 		offset.label = "SHIFT";
 
@@ -134,6 +145,7 @@ final class TransportBar extends Widget {
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
 		resolution.onChange = function(from:Number):Void resolutionChanged(from);
 		video.onChange = function(from:Number):Void videoChanged(from);
+		lfo.onChange = function(from:Number):Void lfoChanged(from);
 		snap.onChange = function(from:Number):Void snapChanged(from);
 		offset.onChange = function(from:Number):Void offsetChanged(from);
 	}
@@ -173,6 +185,7 @@ final class TransportBar extends Widget {
 		offset.set(session.song.offset);
 		resolution.set(session.song.tempo.ppqn);
 		video.set(session.song.tempo.rate == 50 ? 0 : 1);
+		lfo.set(lfoIndex(session.song));
 		snap.set(snapIndex());
 
 		settling = false;
@@ -228,6 +241,41 @@ final class TransportBar extends Widget {
 
 		session.song.tempo.rate = from.value == 0 ? 50 : 60;
 		session.changed();
+	}
+
+	/**
+		@param song A song.
+		@return Where its LFO sits on the field: nought when it is off, and its rate plus one when
+			it runs.
+	**/
+	static function lfoIndex(song:Song):Int {
+		return song.lfoOn ? (song.lfoRate & 7) + 1 : 0;
+	}
+
+	/**
+		@param rate One of the LFO's eight rates.
+		@return How fast it swings at that rate, to three figures.
+	**/
+	static function hertz(rate:Int):String {
+		final value = mdd.chip.Ym2612.lfoHertz(rate);
+		final rounded = value < 10 ? Math.round(value * 100) / 100 : Math.round(value * 10) / 10;
+
+		return rounded + " Hz";
+	}
+
+	/**
+		Switches the LFO on or off, or changes its rate, as one step on the undo stack.
+
+		@param from The field that changed.
+	**/
+	function lfoChanged(from:Number):Void {
+		if (settling) return;
+
+		final on = from.value > 0;
+		final rate = on ? from.value - 1 : session.song.lfoRate;
+		if (on == session.song.lfoOn && rate == session.song.lfoRate) return;
+
+		session.does(new mdd.song.edit.SetLfo(on, rate));
 	}
 
 	/**

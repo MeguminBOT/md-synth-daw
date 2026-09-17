@@ -184,6 +184,13 @@ final class Sequencer {
 	public var edited:Bool = false;
 
 	/**
+		The LFO setting last written, as register `$22` holds it, or -1 before any. An edit that
+		changes the song's LFO is written at the start of the next span, so it is heard while the
+		song plays rather than only from the next start or seek.
+	**/
+	var lfoSet:Int = -1;
+
+	/**
 		Builds a sequencer over a song.
 
 		@param song The song to read.
@@ -250,7 +257,10 @@ final class Sequencer {
 
 		if (toSample <= fromSample) return 0;
 
-		if (fromSample <= 0) push(0, Part.Fm1, SETUP, (song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
+		if (fromSample <= 0) {
+			lfoSet = lfoOf(song);
+			push(0, Part.Fm1, SETUP, lfoSet, 0);
+		}
 
 		tracked();
 		settle(fromSample);
@@ -284,6 +294,14 @@ final class Sequencer {
 	}
 
 	/**
+		@param song A song.
+		@return Its LFO switch and rate packed as register `$22` holds them.
+	**/
+	static inline function lfoOf(song:Song):Int {
+		return (song.lfoOn ? 8 : 0) | (song.lfoRate & 7);
+	}
+
+	/**
 		Keys off every part owed a key off that is not coming: one due before this span, and, where
 		the song may have changed, one whose note is no longer there to end it.
 
@@ -292,6 +310,11 @@ final class Sequencer {
 	function settle(fromSample:Int):Void {
 		final checking = edited;
 		edited = false;
+
+		if (checking && lfoSet >= 0 && lfoOf(song) != lfoSet) {
+			lfoSet = lfoOf(song);
+			push(fromSample, Part.Fm1, SETUP, lfoSet, 0);
+		}
 
 		final tick = checking ? song.tempo.tickAt(fromSample) : 0;
 
@@ -1313,8 +1336,8 @@ final class Sequencer {
 
 		tracked();
 
-		push(fromSample, Part.Fm1, SETUP,
-			(song.lfoOn ? 8 : 0) | (song.lfoRate & 7), 0);
+		lfoSet = lfoOf(song);
+		push(fromSample, Part.Fm1, SETUP, lfoSet, 0);
 
 		final tick = song.tempo.tickAt(fromSample);
 

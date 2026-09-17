@@ -169,6 +169,10 @@ Every YM2612 parameter, laid out per operator: attack, decay, sustain rate, rele
 total level, multiple, detune, rate scaling, SSG-EG, and the channel's algorithm, feedback, LFO
 amplitude and pitch sensitivity, and stereo.
 
+The chip has one LFO for every channel, so a preset only says how deeply its channel takes it. The
+LFO itself belongs to the song: the LFO field in the transport bar switches it off or picks one of its
+eight rates, shown in hertz as the chip runs them, and a change is heard straight away.
+
 The algorithm is drawn as separate wires rather than one line through every box, so which operator
 modulates which is visible instead of implied. Envelopes are drawn per operator.
 

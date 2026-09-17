@@ -110,6 +110,17 @@ final class Ym2612 {
 	static final SWEEP:Vector<Int> = Vector.fromArrayCopy([108, 77, 71, 67, 62, 44, 8, 5]);
 
 	/**
+		How fast the LFO swings at one of its eight rates, as this part runs it: the phase moves on
+		once every `SWEEP` samples and takes 128 steps to go round.
+
+		@param rate A rate, 0 to 7.
+		@return The LFO's frequency in hertz.
+	**/
+	public static function lfoHertz(rate:Int):Float {
+		return CLOCK / PER_SAMPLE / (128.0 * SWEEP[rate & 7]);
+	}
+
+	/**
 		The four amplitude sensitivities as shifts, so 7 is no swing at all.
 	**/
 	static final TREMOLO:Vector<Int> = Vector.fromArrayCopy([7, 3, 1, 0]);
