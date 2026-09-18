@@ -140,6 +140,14 @@ final class Transcription {
 	var dacHead:Int = -1;
 	var dacLast:Int = 0;
 
+	/**
+		The last byte written to the converter while it was switched off, and when. The chip
+		keeps it and plays it the moment the converter is switched on, so a byte written in
+		the same sample as the switch is the first byte of the run that follows.
+	**/
+	var dacLatched:Int = 0x80;
+	var dacLatchedAt:Int = -1;
+
 	static inline final PER_TICK = 1;
 
 	/**
@@ -160,6 +168,11 @@ final class Transcription {
 		The fewest bytes a run must have to count as a sample at all.
 	**/
 	static inline final DAC_LEAST = 128;
+
+	/**
+		The fewest bytes a run must have to be read as a recording already read, cut short.
+	**/
+	static inline final DAC_FEWEST = 8;
 	static inline final STALL_REACH = 48;
 	static inline final STEADY = 32;
 	static inline final STEADY_TURN = 1.3;
@@ -381,6 +394,7 @@ final class Transcription {
 			final on = (value & 0x80) != 0;
 
 			if (!on && dacOn) sampled(at);
+			if (on && !dacOn && dacLatchedAt == at && dacHead < 0) resumed(at);
 
 			dacOn = on;
 			switched(at, on);
@@ -416,7 +430,11 @@ final class Transcription {
 		}
 
 		if (half == 0 && address == 0x2A) {
-			if (!dacOn) return;
+			if (!dacOn) {
+				dacLatched = value & 0xFF;
+				dacLatchedAt = at;
+				return;
+			}
 
 			if (dacHead >= 0 && at - dacLast > DAC_GAP) sampled(dacLast + 1);
 
@@ -775,6 +793,21 @@ final class Transcription {
 	}
 
 	/**
+		Starts a run with the byte the converter was holding when it was switched on.
+
+		@param at The sample the switch happens at.
+	**/
+	function resumed(at:Int):Void {
+		dacHead = at;
+		dacBytes.resize(0);
+		dacWhen.resize(0);
+
+		dacBytes.push(dacLatched);
+		dacWhen.push(at);
+		dacLast = at;
+	}
+
+	/**
 		Follows one converter write, gathering a run of them into a sample.
 
 		@param at The sample the write happens at.
@@ -926,12 +959,19 @@ final class Transcription {
 	}
 
 	/**
-		Breaks the one pattern everything was read into one pattern per part, each on its
-		own track.
+		Cuts a run of converter writes into hits, one at every real pause and at every point
+		the driver changes the rate it writes at, and places each.
+
+		A run that never writes one byte twice in a row comes from a writer that skips the
+		writes that would change nothing, and in it a long gap is a byte held, most of all in a
+		quiet tail that changes only now and then. Such a run is one hit until the converter
+		is switched off or a gap long enough to end a sample, because cutting it at its gaps
+		would drop the tail.
 	**/
 	function split():Void {
 		final middle = spacing();
-		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
+		final held = dacWhen.length > 1 && !repeats(0, dacWhen.length - 1);
+		final most = held ? DAC_GAP : (middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8);
 
 		var head = 0;
 
@@ -940,7 +980,7 @@ final class Transcription {
 
 			while (last + 1 < dacWhen.length
 					&& dacWhen[last + 1] - dacWhen[last] <= most) {
-				if (last - head >= DAC_LEAST && shifts(last)) break;
+				if (!held && last - head >= DAC_LEAST && shifts(last)) break;
 
 				last++;
 			}
@@ -1059,31 +1099,162 @@ final class Transcription {
 		@param rate The rate it was written at.
 	**/
 	function hit(head:Int, last:Int, ends:Int, rate:Int):Void {
-		if (last - head + 1 < DAC_LEAST) return;
+		if (last - head + 1 < DAC_FEWEST) return;
 
 		final from = ticked(dacWhen[head]);
 		var until = ticked(ends);
 		if (until <= from) until = from + 1;
 
-		evened(head, last);
-		if (dacTake.length < DAC_LEAST) return;
+		final pace = evened(head, last, rate);
+		final known = prefixed(pace);
 
-		final which = sampleInstrument(rate);
+		if (known >= 0) {
+			placed(Part.Dac, from, until, rootOf(known), known);
+			return;
+		}
+
+		if (last - head + 1 < DAC_LEAST || dacTake.length < DAC_LEAST) return;
+
+		final which = sampleInstrument(pace);
 		if (which < 0) return;
 
 		placed(Part.Dac, from, until, rootOf(which), which);
 	}
 
 	/**
+		Finds a recording already read that the run is the first bytes of: the same hit cut
+		short by its note. Matching bytes is exact where comparing shapes is not, and it is
+		the only way a hit too short to be a recording of its own is read at all. A run longer
+		than the recording is left to the comparison of shapes, because taking its bytes into
+		the recording can make it a copy of another one already read.
+
+		@param rate The rate the run was written at.
+		@return The instrument, or -1 where no recording starts with the same bytes.
+	**/
+	function prefixed(rate:Int):Int {
+		final many = dacTake.length;
+
+		for (index in 0...kits.length) {
+			if (index >= song.samples.length || index >= prints.length) break;
+
+			final sample = song.samples[index];
+			final length = sample.length();
+			final apart = sample.rate - rate;
+
+			if ((apart < 0 ? -apart : apart) * 10 > sample.rate) continue;
+
+			if (many > length) continue;
+
+			var same = true;
+
+			for (at in 0...many) {
+				if (sample.bytes[at] == dacTake[at]) continue;
+
+				same = false;
+				break;
+			}
+
+			if (same) return kits[index];
+		}
+
+		return -1;
+	}
+
+	/**
 		Fills in the gaps of a run so the sample is evenly spaced, which is what playing
 		it back at one rate needs.
 
+		A write that would leave the converter where it is can be skipped, because the
+		converter holds its value, and this application's own stream skips every one. A gap
+		a whole number of steps long in such a run is therefore that many steps of the byte
+		before it, and a sample read without them is shorter than the one that was played,
+		so everything after its first held byte comes early. A run that writes a byte twice
+		in a row comes from a writer that skips nothing, and its gaps are pauses, which are
+		left out; where the driver stalls, the stall is played back by the song rather than
+		by the sample, and the gaps are left as they are too.
+
 		@param head The first write of the run.
 		@param last The last.
+		@param rate The rate the run was measured at.
+		@return The rate the filled run plays at, which spreads its bytes over exactly the
+			time the run took.
 	**/
-	function evened(head:Int, last:Int):Void {
+	function evened(head:Int, last:Int, rate:Int):Int {
 		dacTake.resize(0);
-		for (index in head...last + 1) dacTake.push(dacBytes[index]);
+		dacTake.push(dacBytes[head]);
+
+		if (song.stallAt >= 0 || last <= head || repeats(head, last)) {
+			for (index in head + 1...last + 1) dacTake.push(dacBytes[index]);
+			return rate;
+		}
+
+		final step = stepOf(head, last);
+
+		for (index in head + 1...last + 1) {
+			var held = Math.round((dacWhen[index] - dacWhen[index - 1]) / step) - 1;
+
+			while (held > 0) {
+				dacTake.push(dacBytes[index - 1]);
+				held--;
+			}
+
+			dacTake.push(dacBytes[index]);
+		}
+
+		final span = dacWhen[last] - dacWhen[head];
+		if (span <= 0) return rate;
+
+		final paced = Math.round((dacTake.length - 1) * (Tempo.TICKS / span));
+		return paced < 2000 ? 2000 : (paced > Tempo.TICKS ? Tempo.TICKS : paced);
+	}
+
+	/**
+		Whether a run writes the same byte twice in a row. A writer that does never skips one,
+		so a gap in its run is the driver pausing rather than a byte held, and a pause is not
+		part of the recording: filling it would give every playing of one drum a length of its
+		own, and the kit would stop recognising it.
+
+		@param head The first converter write of a run.
+		@param last The last.
+		@return Whether two neighbouring writes carry the same byte.
+	**/
+	function repeats(head:Int, last:Int):Bool {
+		for (index in head + 1...last + 1) if (dacBytes[index] == dacBytes[index - 1]) return true;
+
+		return false;
+	}
+
+	/**
+		@param head The first converter write of a run.
+		@param last The last.
+		@return How long one step of the run is, in samples: the mean of the gaps no more than
+			half as long again as the middle one, which leaves out every gap a held byte made.
+	**/
+	function stepOf(head:Int, last:Int):Float {
+		final gaps:Array<Int> = [];
+
+		for (index in head + 1...last + 1) {
+			final apart = dacWhen[index] - dacWhen[index - 1];
+			if (apart >= 1) gaps.push(apart);
+		}
+
+		if (gaps.length == 0) return 1;
+
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+
+		final most = gaps[gaps.length >> 1] * 1.5;
+
+		var total = 0;
+		var counted = 0;
+
+		for (apart in gaps) {
+			if (apart > most) break;
+
+			total += apart;
+			counted++;
+		}
+
+		return counted == 0 ? gaps[0] : total / counted;
 	}
 
 	/**

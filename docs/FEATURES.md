@@ -236,7 +236,10 @@ MIDI drums off, those hits are laid out one after another from C2 in the order t
 `Hit 2` comes before `Hit 10`. The list is shown in key order, every key can be moved by hand, and
 the running total is shown against what you have set aside. A run of converter
 writes is not one sample played at one rate, so the importer takes the rate from the gaps between
-writes with real pauses excluded, rather than from the run measured end to end.
+writes with real pauses excluded, rather than from the run measured end to end. A byte that is
+never written because the converter already holds it is kept for as long as the gap lasts, so a
+sample keeps its length, and a hit cut short by its note is read as the recording it was cut from.
+A VGM this application wrote therefore imports with its drums where they were.
 
 ---
 

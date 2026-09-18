@@ -55,6 +55,7 @@ class VgmCheck {
 
 		corpus(where, files);
 		headed();
+		drummed();
 		marks();
 		sliced(files[0]);
 		marks();
@@ -2002,6 +2003,113 @@ class VgmCheck {
 		}
 
 		return -2;
+	}
+
+	/**
+		A VGM this build wrote imports with its drums where they were. The stream skips a
+		converter write that would not change it, so a hit read back without the bytes it held is
+		short, and everything after its first held byte plays early; and the first byte of a hit is
+		written in the same sample the converter is switched on in, and a quiet tail that
+		changes only now and then leaves gaps long enough to look like a pause.
+	**/
+	static function drummed():Void {
+		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
+		var kit:Null<mdd.song.Bank> = null;
+
+		for (bank in song.banks) if (bank.name == "Drum Kit") kit = bank;
+
+		if (kit == null || kit.instruments.length < 4) {
+			says("a vgm this build wrote keeps its drums", false, "no shipped kit to play");
+			return;
+		}
+
+		final roots:Array<Int> = [];
+
+		for (index in kit.instruments) {
+			final sample = song.sampleAt(song.instruments[index].sample);
+			if (sample == null || roots.indexOf(sample.root) >= 0) continue;
+
+			roots.push(sample.root);
+			if (roots.length == 4) break;
+		}
+
+		song.rack[Part.Dac.index()] = kit.instruments[0];
+		song.drums = true;
+
+		final pattern = song.patterns[0];
+		final lane = pattern.lane(Part.Dac);
+
+		for (step in 0...8) {
+			lane.add(new mdd.song.Note(step * 48, step % 2 == 0 ? 48 : 12, roots[step % roots.length]));
+		}
+
+		for (track in song.tracks) track.clips.resize(0);
+		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
+
+		final span = song.tempo.samplesAt(pattern.length);
+		final made = new Stream(1 << 20);
+		new mdd.play.Sequencer(song).spanned(made, 0, span);
+
+		final back = new Stream(1 << 20);
+		final vgm = Vgm.read(Vgm.write(made, 0, span, song.tempo.rate), back);
+		final read = Transcription.of(back, vgm.rate, "drums").song;
+
+		final again = new Stream(1 << 20);
+		new mdd.play.Sequencer(read).spanned(again, 0, span);
+
+		final one = converted(made, span);
+		final two = converted(again, span);
+
+		var sounding = 0;
+		var same = 0;
+
+		for (tick in 0...span) {
+			if (one[tick] == 0x80 && two[tick] == 0x80) continue;
+
+			sounding++;
+			if (one[tick] == two[tick]) same++;
+		}
+
+		says("a vgm this build wrote keeps its drums", sounding > 0 && same == sounding,
+			same + " of " + sounding + " samples of converter output the same after writing 8 hits "
+			+ "out and reading them back, " + round(same * 100.0 / (sounding < 1 ? 1 : sounding), 2)
+			+ " per cent");
+	}
+
+	/**
+		@param stream A register stream.
+		@param span How much of it.
+		@return What the converter puts out at every sample: the byte it holds while it is
+			switched on, and the middle while it is off.
+	**/
+	static function converted(stream:Stream, span:Int):haxe.ds.Vector<Int> {
+		final out = new haxe.ds.Vector<Int>(span);
+		var on = false;
+		var value = 0x80;
+		var address = -1;
+		var index = 0;
+
+		for (tick in 0...span) {
+			while (index < stream.count && stream.tickAt(index) <= tick) {
+				if (stream.kindAt(index) == Stream.YM) {
+					final port = stream.portAt(index);
+
+					if ((port & 1) == 0) {
+						address = port == 0 ? stream.valueAt(index) : -1;
+					} else if (address == 0x2A) {
+						value = stream.valueAt(index);
+					} else if (address == 0x2B) {
+						on = (stream.valueAt(index) & 0x80) != 0;
+					}
+				}
+
+				index++;
+			}
+
+			out[tick] = on ? value : 0x80;
+		}
+
+		return out;
 	}
 
 	/**
