@@ -184,3 +184,8 @@ extern "C" const char *mdd_clipboard_get(void) {
 	SDL_free(held);
 	return clipboard;
 }
+
+extern "C" int mdd_open_url(const char *url) {
+	if (url == nullptr || url[0] == '\0') return 0;
+	return SDL_OpenURL(url) ? 1 : 0;
+}

@@ -270,6 +270,10 @@ writes with real pauses excluded, rather than from the run measured end to end.
   bank, including projects made before it. It keeps everything the channel has: the whole patch
   with its LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the
   same name replaces it.
+- **Open folder**, at the top of the preset browser, opens the presets folder in your file
+  manager. A subfolder you make there is a bank of its own, named for the folder, and a preset
+  moved from one folder to another moves to that bank as soon as you come back to the window.
+  Patch files and bank documents work in any folder.
 - Your own presets load beside the shipped ones rather than replacing them. A project keeps its
   own copy of every preset it carries, so it opens the same on a machine that has none of them.
 

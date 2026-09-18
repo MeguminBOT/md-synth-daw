@@ -385,6 +385,7 @@
   "preset.delete": "삭제",
   "preset.duplicate": "복제",
   "preset.expandAll": "모두 펼치기",
+  "preset.folder": "폴더 열기",
   "preset.keep": "이 프리셋들을 보관",
   "preset.kept": "보관함",
   "preset.kit": "이 킷 불러오기",

@@ -308,6 +308,7 @@ class App {
 		if (!stage.open()) return false;
 
 		stage.onDrop = function(where:String):Void opens(where);
+		stage.onFocus = function():Void rereads();
 
 		dress();
 		stage.measured();
@@ -375,6 +376,13 @@ class App {
 			if (files.keepsPreset(made, sample) == "") {
 				session.says(Locale.SAID_PRESET_UNWRITTEN, files.within("presets"));
 			}
+
+			presetsStamp = files.presetsStamp();
+		};
+
+		panels.onPresetFolder = function():Void {
+			final where = files.within("presets");
+			if (!mdd.host.Paths.reveal(where)) session.say(where);
 		};
 		panels.onImportSample = function():Void files.ask(stage.window, Files.READ_WAV);
 
@@ -1569,17 +1577,42 @@ class App {
 	}
 
 	/**
-		Reads the presets folder into the library and gives the piece whatever it gained,
-		which starting up and choosing another folder both need.
+		What the presets folder held when it was last read, so coming back to the window
+		reads it again only where something in it changed.
 	**/
-	function rescanned():Void {
+	var presetsStamp:String = "";
+
+	/**
+		Reads the presets folder again where anything in it has changed since it was
+		last read, which is what lets a subfolder made in the file manager show up as a
+		bank without a restart.
+	**/
+	function rereads():Void {
+		if (files == null || session == null) return;
+		if (files.presetsStamp() == presetsStamp) return;
+
+		rescanned(true);
+	}
+
+	/**
+		Reads the presets folder from nothing and gives the piece what it gained.
+
+		@param prunes Whether a preset the folder no longer holds where it did leaves the
+			piece's banks as well, which is right when the same folder was changed and
+			wrong when another folder was chosen.
+	**/
+	function rescanned(prunes:Bool):Void {
+		final before = library.sheds();
+
 		library.within(files.within("presets"), files.savedInto);
+		presetsStamp = files.presetsStamp();
 
 		session.holds();
 		final added = library.into(session.song);
+		final gone = prunes ? library.prunes(session.song, before) : 0;
 		session.frees();
 
-		if (added > 0) session.changed();
+		if (added > 0 || gone > 0) session.changed();
 	}
 
 	/**
@@ -1602,7 +1635,7 @@ class App {
 				files.presetsAt = where;
 				panels.preferences.presetsAt = where;
 				settings.put("presets", where);
-				rescanned();
+				rescanned(false);
 			}
 
 			settings.save();
@@ -1649,7 +1682,7 @@ class App {
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
 
-		rescanned();
+		rescanned(false);
 
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
 			if (session != null) session.transport.auditions(session.part, pitch, velocity, true);

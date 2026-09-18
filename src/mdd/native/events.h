@@ -101,6 +101,15 @@ void mdd_clipboard_set(const char *text);
  */
 const char *mdd_clipboard_get(void);
 
+/**
+ * Hands a location to the desktop to open: a folder opens in the file manager and a
+ * web address in the browser.
+ *
+ * @param url A URL. On Windows a plain path is taken as well.
+ * @return Nonzero where the desktop took it.
+ */
+int mdd_open_url(const char *url);
+
 #ifdef __cplusplus
 }
 #endif

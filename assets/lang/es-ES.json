@@ -385,6 +385,7 @@
   "preset.delete": "Eliminar",
   "preset.duplicate": "Duplicar",
   "preset.expandAll": "Expandir todo",
+  "preset.folder": "Abrir carpeta",
   "preset.keep": "Conservar estos presets",
   "preset.kept": "conservados",
   "preset.kit": "Cargar este kit",

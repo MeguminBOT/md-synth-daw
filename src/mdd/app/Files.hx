@@ -1226,6 +1226,52 @@ final class Files {
 	}
 
 	/**
+		Lists every file under the presets folder with its size and when it last changed,
+		as deep as the library reads, so two calls answer whether anything in it moved.
+
+		@return The listing, which means nothing except compared with another.
+	**/
+	public function presetsStamp():String {
+		final out = new StringBuf();
+		stamped(within("presets"), 0, out);
+
+		return out.toString();
+	}
+
+	/**
+		@param where A folder.
+		@param depth How far down from the presets folder it is.
+		@param out Where the listing goes.
+	**/
+	static function stamped(where:String, depth:Int, out:StringBuf):Void {
+		try {
+			final held = FileSystem.readDirectory(where);
+			held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+
+			for (name in held) {
+				final path = where + "/" + name;
+
+				if (FileSystem.isDirectory(path)) {
+					out.add(path);
+					out.add("\n");
+
+					if (depth < mdd.song.Library.DEPTH) stamped(path, depth + 1, out);
+					continue;
+				}
+
+				final stat = FileSystem.stat(path);
+
+				out.add(path);
+				out.add(" ");
+				out.add(stat.size);
+				out.add(" ");
+				out.add(stat.mtime.getTime());
+				out.add("\n");
+			}
+		} catch (e:Dynamic) {}
+	}
+
+	/**
 		Writes the chosen patch out as a patch file.
 
 		@param where The file to write.

@@ -9,8 +9,8 @@ import mdd.format.Tfi;
 
 	A library is copied into a song, so a song never depends on a bank being installed
 	to open. The shipped banks are read once; the folder is read at startup and again
-	when another is chosen, and every preset saved from the browser is written into
-	it, so a preset saved in one piece is offered in every other.
+	whenever it may have changed, and every preset saved from the browser is written
+	into it, so a preset saved in one piece is offered in every other.
 **/
 @:unreflective
 final class Library {
@@ -417,6 +417,76 @@ final class Library {
 	}
 
 	/**
+		Takes every bank that came out of the presets folder out of the library, so the
+		folder can be read again from nothing.
+
+		@return A library holding what was taken out, which `prunes` compares against.
+	**/
+	public function sheds():Library {
+		final out = new Library();
+		var at = 0;
+
+		while (at < names.length) {
+			if (!owned[at]) {
+				at++;
+				continue;
+			}
+
+			out.names.push(names[at]);
+			out.instruments.push(instruments[at]);
+			out.samples.push(samples[at]);
+			out.owned.push(true);
+
+			names.splice(at, 1);
+			instruments.splice(at, 1);
+			samples.splice(at, 1);
+			owned.splice(at, 1);
+		}
+
+		return out;
+	}
+
+	/**
+		Takes out of a song's banks each preset the presets folder held before it was
+		read again and no longer holds in that bank, so a preset moved into a subfolder
+		or deleted in the file manager leaves the bank it was in. Only a preset still
+		exactly as the folder had it is taken out: one edited in the song, or one the
+		song brought with it, stays. Nothing leaves the song itself, so whatever plays
+		it still does.
+
+		@param song The song.
+		@param before What `sheds` took out before the folder was read again.
+		@return How many presets left a bank.
+	**/
+	public function prunes(song:Song, before:Library):Int {
+		var many = 0;
+
+		for (at in 0...before.names.length) {
+			final name = before.names[at];
+			final now = names.indexOf(name);
+
+			for (bank in song.banks) {
+				if (bank.name != name) continue;
+
+				for (instrument in before.instruments[at]) {
+					if (now >= 0 && holding(now, instrument) >= 0) continue;
+
+					final index = offers(song, bank, instrument);
+					if (index < 0) continue;
+
+					final held = song.instrumentAt(index);
+					if (held == null || !alike(held, instrument)) continue;
+
+					bank.remove(index);
+					many++;
+				}
+			}
+		}
+
+		return many;
+	}
+
+	/**
 		What a bank document is called on disk.
 	**/
 	public static inline final SUFFIX = ".json";
@@ -427,17 +497,34 @@ final class Library {
 	public static inline final PATCH = ".tfi";
 
 	/**
+		How deep into subfolders a presets folder is read.
+	**/
+	public static inline final DEPTH = 4;
+
+	/**
 		Reads a folder of bank documents and loose presets, so a reader's own presets
 		load beside the shipped ones rather than replacing them.
 
-		A bank document with a name of its own is that bank. A loose preset, which is a
-		patch file or a document with no name, goes into the bank named `saved`.
+		A bank document with a name of its own is that bank wherever it sits. A loose
+		preset, which is a patch file or a document with no name, goes into the bank its
+		folder stands for: the one named `saved` at the top, and one named for the
+		subfolder below it, so a subfolder made in the file manager is a bank.
 
 		@param where The folder to read.
-		@param saved The bank loose presets go into.
+		@param saved The bank loose presets at the top of it go into.
 		@return How many instruments were read.
 	**/
 	public function within(where:String, saved:String):Int {
+		return gathered(where, saved, 0);
+	}
+
+	/**
+		@param where The folder to read.
+		@param loose The bank loose presets in it go into.
+		@param depth How many folders down from the top it is.
+		@return How many instruments were read.
+	**/
+	function gathered(where:String, loose:String, depth:Int):Int {
 		if (where == "" || !sys.FileSystem.exists(where)) return 0;
 		if (!sys.FileSystem.isDirectory(where)) return 0;
 
@@ -445,14 +532,21 @@ final class Library {
 		held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
 
 		var many = 0;
+		final below:Array<String> = [];
 
 		for (name in held) {
 			final path = where + "/" + name;
-			final lower = name.toLowerCase();
 
 			try {
+				if (sys.FileSystem.isDirectory(path)) {
+					below.push(name);
+					continue;
+				}
+
+				final lower = name.toLowerCase();
+
 				if (StringTools.endsWith(lower, SUFFIX)) {
-					many += reads(sys.io.File.getContent(path), true, saved);
+					many += reads(sys.io.File.getContent(path), true, loose);
 				} else if (StringTools.endsWith(lower, PATCH)) {
 					final patch = Tfi.read(sys.io.File.getBytes(path));
 					if (patch == null) continue;
@@ -462,9 +556,18 @@ final class Library {
 					one.patch = patch;
 					one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
 
-					if (adds(saved, one, null, true)) many++;
+					if (adds(loose, one, null, true)) many++;
 				}
 			} catch (e:Dynamic) {}
+		}
+
+		if (depth >= DEPTH) return many;
+
+		for (name in below) {
+			if (StringTools.startsWith(name, ".")) continue;
+
+			many += gathered(where + "/" + name, depth == 0 ? name : loose + " / " + name,
+				depth + 1);
 		}
 
 		return many;

@@ -158,6 +158,52 @@ class Paths {
 	}
 
 	/**
+		Opens a folder in the desktop's file manager, making it first where it is missing.
+
+		@param where The folder.
+		@return Whether the desktop took it.
+	**/
+	public static function reveal(where:String):Bool {
+		make(where);
+		if (!FileSystem.exists(where)) return false;
+
+		#if windows
+		final said = StringTools.replace(FileSystem.fullPath(where), "/", "\\");
+		#else
+		final said = "file://" + escaped(FileSystem.fullPath(where));
+		#end
+
+		return Sdl.openUrl(said) != 0;
+	}
+
+	/**
+		@param path A path.
+		@return It with every byte a URL cannot carry as it stands written as a percent
+			escape.
+	**/
+	static function escaped(path:String):String {
+		final bytes = haxe.io.Bytes.ofString(path);
+		final out = new StringBuf();
+
+		for (at in 0...bytes.length) {
+			final code = bytes.get(at);
+
+			final letter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+			final digit = code >= 48 && code <= 57;
+			final mark = code == 45 || code == 46 || code == 95 || code == 126 || code == 47;
+
+			if (letter || digit || mark) {
+				out.addChar(code);
+			} else {
+				out.add("%");
+				out.add(StringTools.hex(code, 2));
+			}
+		}
+
+		return out.toString();
+	}
+
+	/**
 		Removes a file, or a folder and everything under it.
 
 		@param where What to remove. Nothing happens where it does not exist.

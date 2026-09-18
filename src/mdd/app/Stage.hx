@@ -96,6 +96,13 @@ final class Stage {
 	**/
 	public var onDrop:Null<String -> Void> = null;
 
+	/**
+		Called when the window comes back to the front, which is when something changed
+		in another program, such as the presets folder in the file manager, is looked
+		for.
+	**/
+	public var onFocus:Null<Void -> Void> = null;
+
 	var icons:Null<Icons> = null;
 
 	final spare:Fallback = new Fallback();
@@ -516,6 +523,10 @@ final class Stage {
 
 			case Sdl.EVENT_WINDOW_EXPOSED:
 				root.soil();
+
+			case Sdl.EVENT_WINDOW_FOCUS_GAINED:
+				final held = onFocus;
+				if (held != null && event.windowID == windowID) held();
 
 			case Sdl.EVENT_MOUSE_MOVE:
 				root.moved(event.x, event.y, event.mods);

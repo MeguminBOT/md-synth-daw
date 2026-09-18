@@ -158,6 +158,12 @@ final class Panels {
 	public var onPreset:Null<(mdd.song.Instrument, Null<mdd.song.Sample>) -> Void> = null;
 
 	/**
+		Called when the browser asks for the presets folder to be opened in the file
+		manager.
+	**/
+	public var onPresetFolder:Null<Void -> Void> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -220,6 +226,8 @@ final class Panels {
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onTags = function(which:Int):Void taggedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();
+		inspector.presets.onFolder = function():Void
+			if (onPresetFolder != null) onPresetFolder();
 		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
 		bar.onPatterns = function(which:Int):Void commanded(which);

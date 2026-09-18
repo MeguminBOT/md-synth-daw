@@ -90,6 +90,12 @@ final class Presets extends Widget {
 	**/
 	public var onSave:Null<Void -> Void> = null;
 
+	/**
+		Called to open the presets folder in the file manager, where a subfolder made
+		becomes a bank of its own.
+	**/
+	public var onFolder:Null<Void -> Void> = null;
+
 	var menu:Null<Menu> = null;
 
 	final named:Array<Int> = [];
@@ -521,8 +527,53 @@ final class Presets extends Widget {
 			&& px < left + orderWide();
 	}
 
+	/**
+		@return How wide the folder button is.
+	**/
+	public function folderWide():Float {
+		final root = root();
+		if (root == null) return 80;
+
+		final metrics = root.metrics;
+		final font = metrics.small == null ? metrics.body : metrics.small;
+		if (font == null) return metrics.whole(80);
+
+		return font.measure(translate(Locale.PRESET_FOLDER)) + metrics.gap * 2;
+	}
+
+	/**
+		@return Where it sits, across: just left of the order button.
+	**/
+	public function folderLeft():Float {
+		final root = root();
+		final gap = root == null ? 8 : root.metrics.gap;
+
+		return orderLeft() - gap * 0.5 - folderWide();
+	}
+
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Whether the point is on the folder button.
+	**/
+	public function onFolderButton(px:Float, py:Float):Bool {
+		final root = root();
+		if (root == null) return false;
+
+		final left = folderLeft();
+
+		return py >= y && py < y + root.metrics.head && px >= left
+			&& px < left + folderWide();
+	}
+
 	override function took(event:mdd.ui.Input):Bool {
 		if (event.kind != mdd.ui.Kind.PointerDown) return false;
+
+		if (onFolderButton(event.x, event.y)) {
+			if (onFolder != null) onFolder();
+			return true;
+		}
+
 		if (!onOrder(event.x, event.y)) return false;
 
 		turns();
@@ -744,6 +795,37 @@ final class Presets extends Widget {
 		return StringTools.trim(search.value);
 	}
 
+	/**
+		Draws one of the buttons in the title strip.
+
+		@param paint Where to draw.
+		@param label What it says.
+		@param left Where it sits, across.
+		@param chip How wide it is.
+	**/
+	function chipped(paint:Paint, label:String, left:Float, chip:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final font = metrics.small == null ? metrics.body : metrics.small;
+		if (font == null) return;
+
+		final deep = metrics.whole(17);
+		final at = y + (metrics.head - deep) * 0.5;
+
+		paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.raise2, 0.9);
+		paint.outline(left, at, chip, deep, theme.frame, metrics.whole(1), 0.7,
+			metrics.radiusSmall);
+
+		paint.reface(font);
+		paint.pushClip(left, at, chip, deep);
+		paint.textCentred(label, left + chip * 0.5,
+			at + (deep - font.height) * 0.5 + font.ascent, theme.ink, 0.85);
+		paint.popClip();
+	}
+
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null || root.metrics.body == null) return;
@@ -765,19 +847,8 @@ final class Presets extends Widget {
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
-		final chip = orderWide();
-		final left = orderLeft();
-		final deep = metrics.whole(17);
-		final at = y + (top - deep) * 0.5;
-
-		paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.raise2, 0.9);
-		paint.outline(left, at, chip, deep, theme.frame, metrics.whole(1), 0.7,
-			metrics.radiusSmall);
-
-		paint.pushClip(left, at, chip, deep);
-		paint.textCentred(translate(ORDER_NAMES[order]), left + chip * 0.5,
-			at + (deep - font.height) * 0.5 + font.ascent, theme.ink, 0.85);
-		paint.popClip();
+		chipped(paint, translate(Locale.PRESET_FOLDER), folderLeft(), folderWide());
+		chipped(paint, translate(ORDER_NAMES[order]), orderLeft(), orderWide());
 
 		if (listed == 0) {
 			paint.text(translate(Locale.PANEL_NO_PRESETS), x + metrics.inset,

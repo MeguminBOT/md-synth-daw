@@ -390,6 +390,16 @@ extern class Sdl {
 	public static function clipboard():cpp.ConstCharStar;
 
 	/**
+		Hands a location to the desktop to open: a folder opens in the file manager and a
+		web address in the browser.
+
+		@param url A URL. On Windows a plain path is taken as well.
+		@return Nonzero where the desktop took it.
+	**/
+	@:native("mdd_open_url")
+	public static function openUrl(url:cpp.ConstCharStar):Int;
+
+	/**
 		Cursor: the ordinary arrow.
 	**/
 	public static inline final CURSOR_ARROW = 0;

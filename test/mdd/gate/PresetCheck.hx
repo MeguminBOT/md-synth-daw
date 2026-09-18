@@ -10,12 +10,14 @@ import mdd.song.Song;
 @:unreflective
 
 /**
-	A preset saved in one piece has to be offered in every other.
+	A preset saved in one piece has to be offered in every other, and the presets folder has to be
+	what the browser shows.
 
 	Each kind of preset is written the way the browser saves one and read back through the library,
 	and nothing a patch or an envelope holds may be lost on the way. A piece that already carries
-	the saved bank is given what was saved after it, once, and a shipped bank it carries is left as
-	it is.
+	the saved bank is given what was saved after it, once. A folder with subfolders reads as one
+	bank per subfolder, and a preset moved into a subfolder in the file manager leaves the bank it
+	was in, while one edited in the piece stays.
 **/
 class PresetCheck {
 	static var failed:Int = 0;
@@ -41,6 +43,8 @@ class PresetCheck {
 		mdd.host.Paths.clear(where);
 		mdd.host.Paths.make(where);
 
+		folded(where);
+		moved(where);
 		written(where);
 
 		mdd.host.Paths.clear(where);
@@ -163,6 +167,78 @@ class PresetCheck {
 
 		says("a shipped bank is left as it is", added == 0 && bank.instruments.length == before - 1,
 			added + " added back into '" + at + "', which holds " + bank.instruments.length);
+	}
+
+	/**
+		A folder with subfolders reads as one bank per subfolder.
+	**/
+	static function folded(where:String):Void {
+		sys.FileSystem.createDirectory(where + "/Bass");
+		sys.FileSystem.createDirectory(where + "/Bass/Soft");
+
+		sys.io.File.saveContent(where + "/Lead.json", Library.saved(patched("Lead"), null));
+		sys.io.File.saveContent(where + "/Bass/Sub.json", Library.saved(patched("Sub"), null));
+		sys.io.File.saveBytes(where + "/Bass/Slap.tfi", mdd.format.Tfi.write(patched("Slap").patch));
+		sys.io.File.saveContent(where + "/Bass/Soft/Round.json",
+			Library.saved(patched("Round"), null));
+
+		final library = new Library();
+		final many = library.within(where, SAVED);
+
+		final banks:Array<String> = [];
+
+		for (at in 0...library.names.length) {
+			final held:Array<String> = [];
+			for (one in library.instruments[at]) held.push(one.name);
+
+			banks.push(library.names[at] + " (" + held.join(", ") + ")");
+		}
+
+		says("each subfolder is a bank", many == 4 && banks.join("; ")
+			== SAVED + " (Lead); Bass (Slap, Sub); Bass / Soft (Round)", banks.join("; "));
+	}
+
+	/**
+		A preset moved into a subfolder leaves the bank it was in, in the piece that is open, and
+		one edited in the piece stays where it is.
+	**/
+	static function moved(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		sys.io.File.saveContent(where + "/Lead.json", Library.saved(patched("Lead"), null));
+		sys.io.File.saveContent(where + "/Keys.json", Library.saved(patched("Keys"), null));
+
+		final library = new Library();
+		library.within(where, SAVED);
+
+		final song = new Song();
+		library.into(song);
+
+		for (held in song.instruments) {
+			if (held.name == "Keys" && held.patch != null) held.patch.feedback = 2;
+		}
+
+		sys.FileSystem.createDirectory(where + "/Leads");
+		sys.FileSystem.rename(where + "/Lead.json", where + "/Leads/Lead.json");
+		sys.FileSystem.createDirectory(where + "/Keys");
+		sys.FileSystem.rename(where + "/Keys.json", where + "/Keys/Keys.json");
+
+		final count = song.instruments.length;
+		final before = library.sheds();
+
+		library.within(where, SAVED);
+
+		final added = library.into(song);
+		final gone = library.prunes(song, before);
+
+		final saved = listed(song, SAVED);
+		final leads = listed(song, "Leads");
+
+		says("a preset moved into a subfolder moves", gone == 1 && leads == "Lead"
+			&& saved == "Keys" && song.instruments.length == count + added,
+			added + " added, " + gone + " left; " + SAVED + " holds " + saved + ", Leads holds "
+			+ leads);
 	}
 
 	/**
