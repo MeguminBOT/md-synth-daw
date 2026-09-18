@@ -90,6 +90,20 @@ final class Xgm {
 	static inline final READS = 1;
 
 	/**
+		How long the driver spends on one command, in stream ticks. Its loop takes one
+		command a slot, and a slot is 254 cycles of the 3.58 MHz Z80 between two bytes to
+		the converter, so two writes in separate commands reach the chip 71 microseconds
+		apart where two inside one command are about 11 apart.
+	**/
+	static inline final SLOT = Tempo.TICKS * 254.0 / 3579545.0;
+
+	/**
+		Frames the driver keeps the converter switched on after the last sample has run out,
+		before it gives FM6 back.
+	**/
+	static inline final LINGER = 3;
+
+	/**
 		Command: end the frame.
 	**/
 	public static inline final WAIT = 0x00;
@@ -231,6 +245,8 @@ final class Xgm {
 	var block:Null<Bytes> = null;
 	var sounding:Bool = false;
 	var poured:Float = 0;
+	var converting:Bool = false;
+	var lingers:Int = 0;
 
 	/**
 		Private: use `read` or `write`.
@@ -363,8 +379,8 @@ final class Xgm {
 
 		var at = from;
 		var tick = 0.0;
+		var inside = 0.0;
 
-		into.ym(0, 0, 0x2B, CENTRE);
 		into.ym(0, 0, 0x2A, CENTRE);
 
 		while (at < ends) {
@@ -375,7 +391,9 @@ final class Xgm {
 			if (code == WAIT) {
 				mixed(into, tick, tick + step);
 				tick += step;
+				inside = 0;
 				frames++;
+				rested(into, Math.round(tick));
 				continue;
 			}
 
@@ -390,7 +408,9 @@ final class Xgm {
 			}
 
 			final count = (code & 0x0F) + 1;
-			final now = Math.round(tick);
+			final now = Math.round(tick + inside);
+
+			inside += SLOT;
 
 			switch (code & 0xF0) {
 				case PSG:
@@ -434,6 +454,30 @@ final class Xgm {
 		}
 
 		if (sounding) into.ym(Math.round(tick), 0, 0x2A, CENTRE);
+	}
+
+	/**
+		Gives FM6 back once no sample has played for `LINGER` frames, the way the driver
+		switches the converter off at the end of a frame with nothing left to mix.
+
+		@param into Where the register writes read out of it go.
+		@param now Where the frame ends.
+	**/
+	function rested(into:Stream, now:Int):Void {
+		if (sounding) {
+			lingers = LINGER;
+			return;
+		}
+
+		if (!converting) return;
+
+		if (lingers > 0) {
+			lingers--;
+			return;
+		}
+
+		converting = false;
+		into.ym(now, 0, 0x2B, 0);
 	}
 
 	/**
@@ -516,6 +560,11 @@ final class Xgm {
 
 			sounding = true;
 
+			if (!converting) {
+				converting = true;
+				into.ym(now, 0, 0x2B, CENTRE);
+			}
+
 			final clamped = total < -128 ? -128 : (total > 127 ? 127 : total);
 			into.ym(now, 0, 0x2A, clamped + 128);
 		}
@@ -524,6 +573,12 @@ final class Xgm {
 	/**
 		Writes a register stream out as an XGM file, gathering the samples its converter
 		notes play into the bank.
+
+		Writes keep the order they were made in around a key write: a register written
+		after one goes into a command after it, and two key writes for one channel never
+		share a command. The driver runs one command a slot, so the writes inside one
+		command reach the chip closer together than it reads its key bits, and a key off
+		and a key on sharing one would give the note no attack.
 
 		@param song The song the samples come from.
 		@param stream The writes to put in it.
@@ -555,11 +610,6 @@ final class Xgm {
 
 			if (ends <= tick) break;
 
-			psg.resize(0);
-			low.resize(0);
-			high.resize(0);
-			keys.resize(0);
-
 			while (index < stream.count && stream.tickAt(index) < ends) {
 				if (stream.tickAt(index) < from) {
 					index++;
@@ -586,25 +636,25 @@ final class Xgm {
 
 				if (address == 0x2A || address == 0x2B) continue;
 
-				if (port < 2) {
-					if (address == 0x28) keys.push(value);
-					else {
-						low.push(address);
-						low.push(value);
-					}
+				if (port < 2 && address == 0x28) {
+					if (keyed(keys, value)) flushed(body, psg, low, high, keys);
 
+					keys.push(value);
 					continue;
 				}
 
-				high.push(address);
-				high.push(value);
+				if (keys.length > 0) flushed(body, psg, low, high, keys);
+
+				if (port < 2) {
+					low.push(address);
+					low.push(value);
+				} else {
+					high.push(address);
+					high.push(value);
+				}
 			}
 
-			bytes(body, PSG, psg, 1);
-			bytes(body, YM_LOW, low, 2);
-			bytes(body, YM_HIGH, high, 2);
-			bytes(body, KEY, keys, 1);
-
+			flushed(body, psg, low, high, keys);
 			bank.struck(body, frame);
 
 			body.writeByte(WAIT);
@@ -692,6 +742,40 @@ final class Xgm {
 		out.blit(12, said, 0, said.length);
 
 		return out;
+	}
+
+	/**
+		Writes out what a frame has gathered since the last key write, in the order the
+		driver runs it, and empties the lists for what comes after.
+
+		@param body Where the commands go.
+		@param psg Writes to the square part.
+		@param low Register and value pairs to the first half of the FM registers.
+		@param high The same for the second half.
+		@param keys Writes to the key register.
+	**/
+	static function flushed(body:BytesOutput, psg:Array<Int>, low:Array<Int>, high:Array<Int>,
+			keys:Array<Int>):Void {
+		bytes(body, PSG, psg, 1);
+		bytes(body, YM_LOW, low, 2);
+		bytes(body, YM_HIGH, high, 2);
+		bytes(body, KEY, keys, 1);
+
+		psg.resize(0);
+		low.resize(0);
+		high.resize(0);
+		keys.resize(0);
+	}
+
+	/**
+		@param keys The key writes gathered for one command.
+		@param value Another key write.
+		@return Whether one of them is for the same channel.
+	**/
+	static function keyed(keys:Array<Int>, value:Int):Bool {
+		for (held in keys) if ((held & 7) == (value & 7)) return true;
+
+		return false;
 	}
 
 	/**

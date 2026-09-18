@@ -14,9 +14,13 @@ far as the driver is concerned, so **XGM timing is frame quantised and a VGM's s
 A VGM that writes a register 3 samples after another lands both in the same XGM frame.
 
 The DAC is the driver's, not the music's. XGM mixes up to four PCM voices in software and writes the
-sum to the YM2612's DAC, so FM6 is never available to a track and raw writes to `$2A` and `$2B` have
-no place in the music data. That is why the export drops them and the import puts them back by
-running the mixer.
+sum to the YM2612's DAC, and it switches the converter itself: `src/snd/drv_xgm.s80` in SGDK writes
+`$80` to `$2B` at the end of every frame a voice is live, keeps it there for three frames after the
+last one stops, and then writes the value it saved at start up, which is `$00` and which nothing on
+the 68000 side changes. FM6 therefore plays whenever no sample does. Raw writes to `$2A` and `$2B`
+have no place in the music data, because the driver writes over both. That is why the export drops
+them and the import puts them back by running the mixer and switching the converter the same way.
+Checked on 18 September 2026.
 
 **The rate is 14000 Hz exactly, and it is the driver's rather than the sample's.** Three places in
 SGDK say so and none of them disagree: `bin/xgm.txt` describes "up to 4 PCM channels (8 bits signed
@@ -79,14 +83,28 @@ Two things to know before writing one:
 
 X is four bits, so a run is at most 16 writes and a longer run is several commands.
 
+## One command a slot
+
+The driver's loop runs one command a slot, and a slot is 254 cycles of the 3.58 MHz Z80, the time
+between two bytes to the converter; the cycle counts beside every path in `drv_xgm.s80` add up to
+it. That is 71 microseconds. The writes inside one command are much closer: a `$4X` command writes
+each byte 40 cycles after the last, 11 microseconds, which is inside one 18.8 microsecond sample of
+the YM2612. The chip reads its key bits once a sample, so a key off and a key on for one channel in
+the same command are no edge at all, and the note after them never strikes.
+
+The export never puts two key writes for one channel in one command, and a register written after a
+key write goes into a command after it, so writes reach the chip in the order they were made. The
+import spreads the commands of a frame a slot apart for the same reason.
+
 ## What this build does with it
 
-**Reading.** Frame waits advance the tick by 44100 divided by the rate. Register writes go straight
-into `mdd.play.Stream`, so an XGM reaches `mdd.format.Transcription` by the same path a VGM does and
-becomes an editable song. PCM commands drive four voices through the same software mixer the driver
-uses: each output step sums the live voices as signed bytes, clamps, and writes the result to `$2A`.
-The converter is enabled once at the start and centred whenever every voice has run out, which is
-what the driver's own output does with nothing to play.
+**Reading.** Frame waits advance the tick by 44100 divided by the rate, and each command inside a
+frame lands a slot after the one before. Register writes go straight into `mdd.play.Stream`, so an
+XGM reaches `mdd.format.Transcription` by the same path a VGM does and becomes an editable song. PCM
+commands drive four voices through the same software mixer the driver uses: each output step sums
+the live voices as signed bytes, clamps, and writes the result to `$2A`. The converter is switched on
+when a voice starts, centred whenever every voice has run out, and switched off three frames after
+that, which is what the driver does.
 
 **Writing.** The register stream comes from `mdd.play.Sequencer`, the same producer everything else
 consumes, and is cut into frames. `$2A` and `$2B` are dropped. The converter's notes come from the
@@ -100,7 +118,8 @@ the ceiling and anything past it is counted rather than written.
 
 The round trip is checked by `mdd gate xgm`: a song is written, read back, and every register the
 song wrote has to come back holding the same value. The same program checks that a kit exports one
-sample per hit and stops each where its note ends.
+sample per hit and stops each where its note ends, that back to back notes keep their attack, and
+that FM6 comes back once a sample is over.
 
 ## Still open
 

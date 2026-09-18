@@ -449,8 +449,9 @@ and Opus are both compiled in, so there is nothing else to install.
 ### Register and note formats
 
 - **VGM**, which reads back as the same register stream it was written from.
-- **XGM**, the format SGDK's driver plays. A kit exports each hit its keys pick, and a hit stops
-  where its note ends. Timing is rounded to the driver's frame, a sixtieth of a second.
+- **XGM**, the format SGDK's driver plays. A kit exports each hit its keys pick, a hit stops where
+  its note ends, and FM6 plays between samples, because the driver only takes channel six while a
+  sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second.
 - **MIDI**, which reads back as the notes it was written from.
 - **TFI**, one patch at a time.
 

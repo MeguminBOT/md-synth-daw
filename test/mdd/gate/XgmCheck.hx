@@ -60,6 +60,8 @@ class XgmCheck {
 		sounded(back, song, name);
 		drawn();
 		kitted();
+		attacked();
+		sixth();
 		lengthy(song);
 
 		final into = args.indexOf("--wav");
@@ -224,6 +226,56 @@ class XgmCheck {
 	}
 
 	/**
+		@param bytes An XGM file.
+		@return How many key commands carry two writes for one channel, which the driver makes
+			inside a single sample of the chip.
+	**/
+	static function crowdedKeys(bytes:haxe.io.Bytes):Int {
+		final block = bytes.getUInt16(0x0100) * Xgm.ALIGN;
+		final many = bytes.getInt32(0x0104 + block);
+
+		var at = 0x0108 + block;
+		final ends = at + many;
+		var out = 0;
+
+		while (at < ends) {
+			final code = bytes.get(at);
+			at++;
+
+			if (code == Xgm.WAIT) continue;
+			if (code == Xgm.END) break;
+
+			if (code == Xgm.LOOP) {
+				at += 3;
+				continue;
+			}
+
+			final count = (code & 0x0F) + 1;
+
+			switch (code & 0xF0) {
+				case Xgm.PSG: at += count;
+				case Xgm.YM_LOW, Xgm.YM_HIGH: at += count * 2;
+				case Xgm.PCM: at++;
+				case Xgm.KEY:
+					var seen = 0;
+					var twice = false;
+
+					for (index in 0...count) {
+						final channel = 1 << (bytes.get(at + index) & 7);
+						if ((seen & channel) != 0) twice = true;
+						seen |= channel;
+					}
+
+					if (twice) out++;
+					at += count;
+				case _: break;
+			}
+		}
+
+		return out;
+	}
+
+	/**
 		A kit on the converter exports the hit each key picks rather than one sample for every
 		note, and a note shorter than its hit stops the hit where the note ends, as the piece
 		does.
@@ -278,6 +330,112 @@ class XgmCheck {
 
 		says("and a hit stops where its note does", stops == 6,
 			stops + " stops for 6 notes a sixty fourth long, each shorter than its hit");
+	}
+
+	/**
+		Two FM notes back to back keep the second one's attack. The key off and the key on go into
+		separate commands, a slot apart, where one command would put them inside a single sample
+		of the chip and the note would never strike.
+	**/
+	static function attacked():Void {
+		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
+		final pattern = song.patterns[0];
+		final lane = pattern.lane(mdd.song.Part.Fm1);
+
+		for (step in 0...8) lane.add(new mdd.song.Note(step * 48, 48, 60 + (step & 1) * 2));
+
+		for (track in song.tracks) track.clips.resize(0);
+		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
+
+		final wrote = exported(song, song.tempo.samplesAt(pattern.length));
+		final crowded = crowdedKeys(wrote.written);
+
+		final back = new Stream(1 << 18);
+		Xgm.read(wrote.written, back);
+
+		var ons = 0;
+		var apart = 0;
+		var offAt = -1;
+		var address = -1;
+
+		for (index in 0...back.count) {
+			if (back.kindAt(index) != Stream.YM) continue;
+
+			final port = back.portAt(index);
+
+			if ((port & 1) == 0) {
+				address = port == 0 ? back.valueAt(index) : -1;
+				continue;
+			}
+
+			if (address != 0x28 || (back.valueAt(index) & 7) != 0) continue;
+
+			final value = back.valueAt(index);
+
+			if ((value & 0xF0) == 0) {
+				offAt = back.tickAt(index);
+				continue;
+			}
+
+			ons++;
+			if (offAt >= 0 && offAt < back.tickAt(index)) apart++;
+		}
+
+		says("back to back notes keep their attack", crowded == 0 && ons == 8 && apart == 7,
+			crowded + " key commands write one channel twice, and " + apart + " of the "
+			+ (ons - 1) + " key ons after the first read back after their key off");
+	}
+
+	/**
+		FM6 sounds between samples. The driver switches the converter on only while a sample
+		plays and for a few frames after, so a file read back gives channel six back once the
+		hit is over.
+	**/
+	static function sixth():Void {
+		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
+		final pattern = song.patterns[0];
+
+		pattern.lane(mdd.song.Part.Dac).add(new mdd.song.Note(0, 24, 60));
+		pattern.lane(mdd.song.Part.Fm6).add(new mdd.song.Note(192, 96, 60));
+
+		for (track in song.tracks) track.clips.resize(0);
+		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
+
+		final wrote = exported(song, song.tempo.samplesAt(pattern.length));
+		final back = new Stream(1 << 20);
+
+		Xgm.read(wrote.written, back);
+
+		final switched:Array<String> = [];
+		var keyed = -1;
+		var off = -1;
+		var address = -1;
+
+		for (index in 0...back.count) {
+			if (back.kindAt(index) != Stream.YM) continue;
+
+			final port = back.portAt(index);
+
+			if ((port & 1) == 0) {
+				address = port == 0 ? back.valueAt(index) : -1;
+				continue;
+			}
+
+			final value = back.valueAt(index);
+
+			if (address == 0x2B) {
+				switched.push(StringTools.hex(value, 2));
+				if (value == 0) off = back.tickAt(index);
+			}
+
+			if (address == 0x28 && (value & 7) == 6 && (value & 0xF0) != 0 && keyed < 0) {
+				keyed = back.tickAt(index);
+			}
+		}
+
+		says("FM6 sounds between samples", switched.join(" ") == "80 00" && off >= 0
+			&& keyed > off, "the converter goes " + switched.join(" then ") + ", off at "
+			+ off + " and FM6 keyed on at " + keyed);
 	}
 
 	static function named(read:Xgm, bytes:haxe.io.Bytes):Void {
