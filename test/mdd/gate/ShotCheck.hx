@@ -58,6 +58,7 @@ class ShotCheck {
 		var direct = false;
 		var backend = mdd.App.PINNED;
 		var frames = 1;
+		var sweep = "";
 
 		var at = 0;
 
@@ -94,6 +95,7 @@ class ShotCheck {
 				case "--direct": direct = true;
 				case "--renderer": backend = held; at++;
 				case "--frames": frames = whole(held, frames); at++;
+				case "--sweep": sweep = held; at++;
 				case _:
 			}
 
@@ -111,7 +113,7 @@ class ShotCheck {
 		final monoFace = root + "/vendor/fonts/Go-Mono.ttf";
 
 		final window = Sdl.createWindow("mdd shot", wide, tall, 0, 0);
-		final renderer = Sdl.createRenderer(window, 0, backend);
+		final renderer = Sdl.createRenderer(window, sweep != "" ? 1 : 0, backend);
 
 		if (renderer != null && backend != "") {
 			final got = (Sdl.rendererName(renderer) : String);
@@ -456,6 +458,12 @@ class ShotCheck {
 			centre.playlist.scrollTo((from > 0 ? from - 1 : 0) * perBar);
 		}
 
+		if (direct && sweep != "") {
+			Sdl.showWindow(window);
+			swept(tree, centre, centreTab, paint, renderer, frames, sweep);
+			frames = 1;
+		}
+
 		if (!direct) Draw.setTarget(renderer, texture);
 
 		final ground = tree.theme.ground;
@@ -502,6 +510,71 @@ class ShotCheck {
 		Sdl.quit();
 
 		return 0;
+	}
+
+	/**
+		Zooms the playlist or the roll from all the way out to all the way in, a wheel step at a
+		time, presenting every step into the window for a while. Each step's number goes into a
+		file as it starts, so a capture taken from outside the process can say which step it saw.
+
+		@param tree The interface.
+		@param centre The centre panel.
+		@param tab Which view is shown.
+		@param paint What draws.
+		@param renderer The window's renderer.
+		@param frames How many frames each step is presented for.
+		@param into The file the step goes into.
+	**/
+	static function swept(tree:Root, centre:Centre, tab:Int, paint:Paint,
+			renderer:cpp.Star<mdd.host.Canvas>, frames:Int, into:String):Void {
+		final event = new mdd.host.Event();
+		final ground = tree.theme.ground;
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final roll = tab == Centre.ROLL;
+		var step = 0;
+
+		if (roll) {
+			centre.roll.perTick = centre.roll.zoomed(0);
+		} else {
+			centre.playlist.fit();
+		}
+
+		while (step < 60) {
+			final level = roll ? centre.roll.perTick : centre.playlist.perTick;
+			sys.io.File.saveContent(into, step + " " + level);
+
+			for (pass in 0...frames) {
+				while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) {}
+
+				Sdl.renderClear(renderer, ground.red / 255, ground.green / 255,
+					ground.blue / 255, 1);
+
+				tree.reshape();
+				tree.soil();
+				tree.frame(paint);
+				paint.flush();
+
+				Sdl.renderPresent(renderer);
+			}
+
+			step++;
+
+			if (roll) {
+				final was = centre.roll.perTick;
+				centre.roll.zoom(1.25, centre.roll.x + centre.roll.width * 0.5);
+				if (centre.roll.perTick == was) break;
+			} else {
+				final was = centre.playlist.perTick;
+				centre.playlist.zoom(1.25, centre.playlist.x + centre.playlist.width * 0.5);
+				if (centre.playlist.perTick == was) break;
+			}
+		}
+
+		sys.io.File.saveContent(into, "done");
 	}
 
 	static function driving(session:mdd.app.Session):Void {

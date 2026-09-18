@@ -195,6 +195,23 @@ What would settle it is a capture of the window taken at the moment somebody is
 watching it go wrong, rather than a capture of a run that was started to look
 for it.
 
+## Zoom
+
+Both reports say the fault shows at certain zoom levels. `mdd gate shot --direct --sweep <file>`
+shows its window and zooms the playlist, or with `--centre 1` the roll, from all the way out to all
+the way in, a wheel step of 1.25 at a time, presenting every step for as many frames as `--frames`
+asks at vsync and writing the step's number into the file as it starts. A capture taken from outside
+the process at every step, with `PrintWindow` and `PW_RENDERFULLCONTENT`, reads what the compositor
+was given rather than what was rendered.
+
+| what was swept | steps | agreement |
+| --- | --- | --- |
+| the playlist of Hyper Loop, 1600x1000, 60 frames a step | 22 | direct3d11, vulkan and direct3d12 byte identical at every step |
+
+So no zoom level draws wrongly when it is held still. Each step presents the same frame sixty
+times, and a flicker needs frames that differ, so what this leaves is the interface changing
+while the zoom is where the reports put it.
+
 ## The window going bright
 
 The other half of what is reported is the window flashing white, which is not a
