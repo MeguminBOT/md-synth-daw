@@ -42,10 +42,12 @@ class XgmCheck {
 		final span = Tempo.TICKS * SECONDS;
 		final made = new Stream(1 << 22);
 		final sequencer = new Sequencer(song, null, Sequencer.CHUNK * 2);
+		final strikes:Array<Int> = [];
 
+		sequencer.strikes = strikes;
 		sequencer.spanned(made, 0, span);
 
-		final wrote = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final wrote = Xgm.write(song, made, strikes, 0, span, song.tempo.rate);
 		final bytes = wrote.written;
 
 		shaped(bytes);
@@ -57,6 +59,7 @@ class XgmCheck {
 		agreed(made, back, span);
 		sounded(back, song, name);
 		drawn();
+		kitted();
 		lengthy(song);
 
 		final into = args.indexOf("--wav");
@@ -132,11 +135,7 @@ class XgmCheck {
 		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
 
 		final span = song.tempo.samplesAt(pattern.length);
-		final made = new Stream(1 << 20);
-
-		new Sequencer(song).spanned(made, 0, span);
-
-		final wrote = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final wrote = exported(song, span);
 
 		says("a converter note that names no instrument still exports",
 			wrote.samples == 1 && wrote.struck == 4 && hits(wrote.written) == 4,
@@ -146,7 +145,7 @@ class XgmCheck {
 
 		song.muted[mdd.song.Part.Dac.index()] = true;
 
-		final quiet = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final quiet = exported(song, span);
 
 		says("and a muted converter exports none of them",
 			quiet.samples == 0 && quiet.struck == 0,
@@ -157,13 +156,128 @@ class XgmCheck {
 		song.name = "a drawn song";
 		song.author = "the gate";
 
-		final tagged = Xgm.write(song, made, 0, span, song.tempo.rate);
+		final tagged = exported(song, span);
 		final again = new Stream(1 << 18);
 		final read = Xgm.read(tagged.written, again);
 
 		says("and the song's name and author survive the round trip",
 			read.title == song.name && read.author == song.author,
 			"the file says '" + read.title + "' by '" + read.author + "'");
+	}
+
+	/**
+		Sequences a song and writes it as an XGM, the way the export does.
+
+		@param song The song.
+		@param span How much of it, in samples.
+		@return What was written.
+	**/
+	static function exported(song:Song, span:Int):Xgm {
+		final made = new Stream(1 << 20);
+		final sequencer = new Sequencer(song);
+		final strikes:Array<Int> = [];
+
+		sequencer.strikes = strikes;
+		sequencer.spanned(made, 0, span);
+
+		return Xgm.write(song, made, strikes, 0, span, song.tempo.rate);
+	}
+
+	/**
+		@param bytes An XGM file.
+		@return Every sample command in its music, as the byte after the command code, in
+			order: the id started, or nought for a stop.
+	**/
+	static function played(bytes:haxe.io.Bytes):Array<Int> {
+		final out:Array<Int> = [];
+		final block = bytes.getUInt16(0x0100) * Xgm.ALIGN;
+		final many = bytes.getInt32(0x0104 + block);
+
+		var at = 0x0108 + block;
+		final ends = at + many;
+
+		while (at < ends) {
+			final code = bytes.get(at);
+			at++;
+
+			if (code == Xgm.WAIT) continue;
+			if (code == Xgm.END) break;
+
+			if (code == Xgm.LOOP) {
+				at += 3;
+				continue;
+			}
+
+			final count = (code & 0x0F) + 1;
+
+			switch (code & 0xF0) {
+				case Xgm.PSG, Xgm.KEY: at += count;
+				case Xgm.YM_LOW, Xgm.YM_HIGH: at += count * 2;
+				case Xgm.PCM:
+					out.push(bytes.get(at));
+					at++;
+				case _: break;
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		A kit on the converter exports the hit each key picks rather than one sample for every
+		note, and a note shorter than its hit stops the hit where the note ends, as the piece
+		does.
+	**/
+	static function kitted():Void {
+		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
+		var kit:Null<mdd.song.Bank> = null;
+
+		for (bank in song.banks) if (bank.name == "Drum Kit") kit = bank;
+
+		if (kit == null || kit.instruments.length < 3) {
+			says("a kit exports every hit it plays", false, "no shipped kit to play");
+			return;
+		}
+
+		final roots:Array<Int> = [];
+
+		for (index in kit.instruments) {
+			final sample = song.sampleAt(song.instruments[index].sample);
+			if (sample == null || roots.indexOf(sample.root) >= 0) continue;
+
+			roots.push(sample.root);
+			if (roots.length == 3) break;
+		}
+
+		song.rack[mdd.song.Part.Dac.index()] = kit.instruments[0];
+		song.drums = true;
+
+		final pattern = song.patterns[0];
+		final lane = pattern.lane(mdd.song.Part.Dac);
+
+		for (step in 0...6) lane.add(new mdd.song.Note(step * 48, 6, roots[step % 3]));
+
+		for (track in song.tracks) track.clips.resize(0);
+		song.tracks[0].clips.push(new mdd.song.Clip(0, 0, pattern.length));
+
+		final wrote = exported(song, song.tempo.samplesAt(pattern.length));
+		final commands = played(wrote.written);
+
+		final started:Array<Int> = [];
+		var stops = 0;
+
+		for (id in commands) {
+			if (id == 0) stops++;
+			else started.push(id);
+		}
+
+		says("a kit exports every hit it plays", wrote.samples == 3
+			&& started.join(" ") == "1 2 3 1 2 3",
+			"6 notes on keys " + roots.join(", ") + " write " + wrote.samples
+			+ " samples and start ids " + started.join(" "));
+
+		says("and a hit stops where its note does", stops == 6,
+			stops + " stops for 6 notes a sixty fourth long, each shorter than its hit");
 	}
 
 	static function named(read:Xgm, bytes:haxe.io.Bytes):Void {
@@ -325,7 +439,7 @@ class XgmCheck {
 		final empty = new Stream(1024);
 
 		final began = haxe.Timer.stamp();
-		final out = Xgm.write(song, empty, 0, long, 60).written;
+		final out = Xgm.write(song, empty, [], 0, long, 60).written;
 		final spent = haxe.Timer.stamp() - began;
 
 		final frames = Std.int(long / (Tempo.TICKS / 60));

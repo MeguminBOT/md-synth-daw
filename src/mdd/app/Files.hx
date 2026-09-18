@@ -1526,10 +1526,12 @@ final class Files {
 
 		final stream = Stream.reserved(span);
 		final sequencer = new Sequencer(session.song);
+		final strikes:Array<Int> = [];
 
+		sequencer.strikes = strikes;
 		sequencer.spanned(stream, 0, span);
 
-		final made = Xgm.write(session.song, stream, 0, span, session.song.tempo.rate);
+		final made = Xgm.write(session.song, stream, strikes, 0, span, session.song.tempo.rate);
 		final body = made.written;
 
 		sys.io.File.saveBytes(named, body);

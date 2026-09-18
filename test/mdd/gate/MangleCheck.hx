@@ -140,9 +140,13 @@ class MangleCheck {
 		final span = song.tempo.samplesAt(384);
 		final made = new Stream(1 << 16);
 
-		new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK).spanned(made, 0, span);
+		final sequencer = new mdd.play.Sequencer(song, null, mdd.play.Sequencer.CHUNK);
+		final strikes:Array<Int> = [];
 
-		final whole = mdd.format.Xgm.write(song, made, 0, span, song.tempo.rate).written;
+		sequencer.strikes = strikes;
+		sequencer.spanned(made, 0, span);
+
+		final whole = mdd.format.Xgm.write(song, made, strikes, 0, span, song.tempo.rate).written;
 
 		final random = new Random(seed + 5);
 		final began = haxe.Timer.stamp();

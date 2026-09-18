@@ -156,6 +156,15 @@ final class Sequencer {
 	**/
 	public var lost(default, null):Int = 0;
 
+	/**
+		Where a writer that plays samples its own way, which is what an XGM does, collects each
+		converter note as it is sounded: where it starts and where it ends, in samples, and which
+		instrument it plays, three entries a note, in the order they are sounded. A kit's hit is
+		the instrument its key picks. Null unless such a writer asks, which keeps it off the render
+		thread, where nothing may grow.
+	**/
+	public var strikes:Null<Array<Int>> = null;
+
 	final ticks:Vector<Int>;
 	final parts:Vector<Int>;
 	final kinds:Vector<Int>;
@@ -1568,6 +1577,14 @@ final class Sequencer {
 
 		final sample = song.sampleAt(instrument.sample);
 		if (sample == null || sample.length() == 0) return;
+
+		final held = strikes;
+
+		if (held != null && onSample >= fromSample && onSample < toSample) {
+			held.push(onSample);
+			held.push(offSample);
+			held.push(kit >= 0 ? kit : (named >= 0 ? named : song.rack[Part.Dac.index()]));
+		}
 
 		final rate = sample.rate < 1 ? 1 : sample.rate;
 		final step = Tempo.TICKS / rate;

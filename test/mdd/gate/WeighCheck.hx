@@ -108,8 +108,13 @@ class WeighCheck {
 		final made = stream;
 		if (made == null) return 1;
 
+		final strikes:Array<Int> = [];
+
 		weighed("sequencing it", function():String {
-			final lost = new Sequencer(song, null, Sequencer.CHUNK).spanned(made, 0, span);
+			final sequencer = new Sequencer(song, null, Sequencer.CHUNK);
+			sequencer.strikes = strikes;
+
+			final lost = sequencer.spanned(made, 0, span);
 
 			return made.count + " writes"
 				+ (made.dropped > 0 ? ", " + made.dropped + " DROPPED for want of room" : "")
@@ -128,7 +133,7 @@ class WeighCheck {
 		});
 
 		weighed("writing an xgm", function():String {
-			final out = Xgm.write(song, made, 0, span, song.tempo.rate).written;
+			final out = Xgm.write(song, made, strikes, 0, span, song.tempo.rate).written;
 			return out == null ? "nothing" : out.length + " bytes";
 		});
 

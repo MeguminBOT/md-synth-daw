@@ -82,7 +82,11 @@ class AutomationCheck {
 
 		final span = song.tempo.samplesAt(pattern.length);
 		final stream = new mdd.play.Stream(1 << 16);
-		new mdd.play.Sequencer(song).spanned(stream, 0, span);
+		final sequencer = new mdd.play.Sequencer(song);
+		final strikes:Array<Int> = [];
+
+		sequencer.strikes = strikes;
+		sequencer.spanned(stream, 0, span);
 
 		final rack = (1 << 3) | 2;
 		final preset = (6 << 3) | 5;
@@ -106,8 +110,8 @@ class AutomationCheck {
 			spoken(logged) + " out of the file's own bytes");
 
 		final xgm = new mdd.play.Stream(1 << 16);
-		mdd.format.Xgm.read(mdd.format.Xgm.write(song, stream, 0, span, song.tempo.rate).written,
-			xgm);
+		mdd.format.Xgm.read(mdd.format.Xgm.write(song, stream, strikes, 0, span,
+			song.tempo.rate).written, xgm);
 
 		final driven = patched(xgm);
 

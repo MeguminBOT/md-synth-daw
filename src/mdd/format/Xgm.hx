@@ -522,20 +522,23 @@ final class Xgm {
 	}
 
 	/**
-		Writes a register stream out as an XGM file, gathering the samples it uses into
-		the bank.
+		Writes a register stream out as an XGM file, gathering the samples its converter
+		notes play into the bank.
 
 		@param song The song the samples come from.
 		@param stream The writes to put in it.
+		@param strikes The converter notes the stream was made with, the way
+			`Sequencer.strikes` collects them: where each starts and ends and which
+			instrument plays it.
 		@param from The first sample to write.
 		@param to One past the last.
 		@param rate Frames a second to declare.
 		@return What was written, with the file in `written`.
 	**/
-	public static function write(song:Song, stream:Stream, from:Int, to:Int,
+	public static function write(song:Song, stream:Stream, strikes:Array<Int>, from:Int, to:Int,
 			rate:Int = 60):Xgm {
 		final made = new Xgm();
-		final bank = new Bank(song, rate);
+		final bank = new Bank(song, strikes, from, rate);
 		final body = new BytesOutput();
 
 		final psg:Array<Int> = [];
@@ -719,7 +722,12 @@ final class Xgm {
 
 /**
 	The sample bank an XGM file carries: sixty three slots, each holding one sample
-	aligned to a boundary.
+	aligned to a boundary, and the frames each converter note starts and stops in.
+
+	The notes come from the sequencer rather than from a walk over the song, so a kit's
+	hit is the one its key picks and a muted or silenced part sends nothing. A note is
+	stopped where it ends when its sample would outlast it, because that is where the
+	piece stops it.
 **/
 private class Bank {
 	public var count(default, null):Int = 0;
@@ -733,44 +741,53 @@ private class Bank {
 	final named:Array<Int> = [];
 
 	final when:Array<Int> = [];
+	final until:Array<Int> = [];
 	final which:Array<Int> = [];
 
 	final free:Vector<Int> = new Vector<Int>(Xgm.VOICES);
+	final due:Vector<Int> = new Vector<Int>(Xgm.VOICES);
 
 	final rate:Int;
+	final volume:Int;
 	var read:Int = 0;
 
-	public function new(song:Song, rate:Int) {
+	/**
+		@param song The song the samples come from.
+		@param strikes Each converter note: where it starts and ends, in samples, and
+			which instrument plays it.
+		@param from The sample the file starts at.
+		@param rate Frames a second.
+	**/
+	public function new(song:Song, strikes:Array<Int>, from:Int, rate:Int) {
 		this.rate = rate < 1 ? 1 : rate;
+		volume = song.volume[Part.Dac.index()];
 
-		for (voice in 0...Xgm.VOICES) free[voice] = 0;
-
-		if (!song.audible(Part.Dac)) {
-			order();
-			return;
+		for (voice in 0...Xgm.VOICES) {
+			free[voice] = 0;
+			due[voice] = -1;
 		}
 
 		final step = Tempo.TICKS / this.rate;
-		final racked = song.rack[Part.Dac.index()];
+		var at = 0;
 
-		for (track in song.tracks) {
-			if (track.muted) continue;
+		while (at + 2 < strikes.length) {
+			final on = strikes[at] - from;
+			final off = strikes[at + 1] - from;
+			final instrument = strikes[at + 2];
 
-			for (clip in track.clips) {
-				final pattern = song.patternAt(clip.pattern);
-				if (pattern == null) continue;
+			at += 3;
 
-				for (note in pattern.lane(Part.Dac).notes) {
-					final at = clip.origin() + note.at;
-					if (at >= clip.ends() || at < clip.at) continue;
+			if (on < 0) continue;
 
-					final slot = slotOf(song, note.instrument >= 0 ? note.instrument : racked);
-					if (slot < 0) continue;
+			final slot = slotOf(song, instrument);
+			if (slot < 0) continue;
 
-					when.push(Math.floor(song.tempo.samplesAt(at) / step));
-					which.push(slot);
-				}
-			}
+			final start = Math.floor(on / step);
+			final end = Math.floor(off / step);
+
+			when.push(start);
+			until.push(end > start ? end : start + 1);
+			which.push(slot);
 		}
 
 		order();
@@ -779,21 +796,33 @@ private class Bank {
 	function order():Void {
 		for (index in 1...when.length) {
 			final at = when[index];
-			final held = which[index];
+			final ends = until[index];
+			final slot = which[index];
 
 			var back = index - 1;
 
 			while (back >= 0 && when[back] > at) {
 				when[back + 1] = when[back];
+				until[back + 1] = until[back];
 				which[back + 1] = which[back];
 				back--;
 			}
 
 			when[back + 1] = at;
-			which[back + 1] = held;
+			until[back + 1] = ends;
+			which[back + 1] = slot;
 		}
 	}
 
+	/**
+		Finds the slot an instrument's sample is in, putting it in the bank the first
+		time: resampled to the driver's rate, made signed, and scaled by the converter's
+		volume the way the piece scales every byte it plays.
+
+		@param song The song.
+		@param instrument The instrument, by index.
+		@return Its slot, or -1 where it has no sample or the bank is full.
+	**/
 	function slotOf(song:Song, instrument:Int):Int {
 		for (index in 0...count) if (named[index] == instrument) return index;
 
@@ -818,7 +847,8 @@ private class Bank {
 			var at = Math.floor(index * rate / Xgm.PCM_RATE);
 			if (at >= sample.length()) at = sample.length() - 1;
 
-			held.push((sample.bytes[at] & 0xFF) - 128);
+			final value = (sample.bytes[at] & 0xFF) - 128;
+			held.push(volume >= Song.LOUDEST ? value : Std.int(value * volume / Song.LOUDEST));
 		}
 
 		while (held.length % Xgm.ALIGN != 0) held.push(0);
@@ -851,9 +881,30 @@ private class Bank {
 		return many < 1 ? 1 : many;
 	}
 
+	/**
+		Writes the commands a frame needs: a stop for each voice whose note has ended
+		while its sample still plays, then a start for each note beginning.
+
+		@param body Where the commands go.
+		@param frame Which frame.
+	**/
 	public function struck(body:BytesOutput, frame:Int):Void {
+		for (voice in 0...Xgm.VOICES) {
+			if (due[voice] < 0 || due[voice] > frame) continue;
+
+			due[voice] = -1;
+			if (free[voice] <= frame) continue;
+
+			free[voice] = frame;
+
+			body.writeByte(Xgm.PCM | voice);
+			body.writeByte(0);
+		}
+
 		while (read < when.length && when[read] <= frame) {
 			final slot = which[read];
+			final ends = until[read];
+
 			read++;
 
 			var voice = -1;
@@ -870,7 +921,10 @@ private class Bank {
 				continue;
 			}
 
-			free[voice] = frame + busy(slot);
+			final runs = frame + busy(slot);
+
+			free[voice] = runs;
+			due[voice] = ends < runs ? ends : -1;
 			placed++;
 
 			body.writeByte(Xgm.PCM | voice);

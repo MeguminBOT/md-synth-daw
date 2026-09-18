@@ -90,13 +90,17 @@ what the driver's own output does with nothing to play.
 
 **Writing.** The register stream comes from `mdd.play.Sequencer`, the same producer everything else
 consumes, and is cut into frames. `$2A` and `$2B` are dropped. The converter's notes come from the
-song's DAC lane instead: each note's sample is resampled to 14 kHz, converted from the YM2612's
-unsigned bytes to signed, padded to a multiple of 256, and given a table entry; the note becomes a
-`$5X` command in the frame it starts in. Sixty three samples is the ceiling and anything past it is
-counted rather than written.
+sequencer too, which records each one as it sounds it: where it starts, where it ends and which
+instrument plays it. A kit's hit is therefore the one its key picks, and a muted part sends nothing.
+Each sample is resampled to 14 kHz, scaled by the converter's volume, converted from the YM2612's
+unsigned bytes to signed, padded to a multiple of 256, and given a table entry. A note becomes a
+`$5X` command in the frame it starts in, and a stop, `$5X` with id 0, in the frame it ends in where
+its sample would still be playing, because that is where the piece stops it. Sixty three samples is
+the ceiling and anything past it is counted rather than written.
 
 The round trip is checked by `mdd gate xgm`: a song is written, read back, and every register the
-song wrote has to come back holding the same value.
+song wrote has to come back holding the same value. The same program checks that a kit exports one
+sample per hit and stops each where its note ends.
 
 ## Still open
 
