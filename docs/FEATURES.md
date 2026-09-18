@@ -448,7 +448,9 @@ and Opus are both compiled in, so there is nothing else to install.
 
 ### Register and note formats
 
-- **VGM**, which reads back as the same register stream it was written from.
+- **VGM**, which reads back as the same register stream it was written from. A VGM holds the
+  writes rather than the sound, so a player runs them through its own chip cores with no board
+  after them, which is the chip alone output stage rather than a Mega Drive's.
 - **XGM**, the format SGDK's driver plays. A kit exports each hit its keys pick, a hit stops where
   its note ends, and FM6 plays between samples, because the driver only takes channel six while a
   sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second.

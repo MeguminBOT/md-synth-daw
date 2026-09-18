@@ -54,6 +54,7 @@ class VgmCheck {
 		}
 
 		corpus(where, files);
+		headed();
 		marks();
 		sliced(files[0]);
 		marks();
@@ -2001,6 +2002,20 @@ class VgmCheck {
 		}
 
 		return -2;
+	}
+
+	/**
+		A written header names the square part's noise the way the Mega Drive's part makes it:
+		taps 0x0009 on a shift register 16 bits wide. A width left at nought leaves a player to
+		guess, and the plain SN76489's 15 bits pitch every periodic noise over a semitone sharp.
+	**/
+	static function headed():Void {
+		final bytes = Vgm.write(new Stream(16), 0, Vgm.TICKS, 60);
+		final taps = bytes.getUInt16(0x28);
+		final width = bytes.get(0x2A);
+
+		says("a written header names the noise register", taps == 0x0009 && width == 16,
+			"taps " + StringTools.hex(taps, 4) + " on a shift register " + width + " bits wide");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

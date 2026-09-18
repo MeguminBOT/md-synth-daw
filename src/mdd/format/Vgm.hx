@@ -93,6 +93,19 @@ final class Vgm {
 	static inline final STEREO = 0x4F;
 
 	/**
+		The shift register taps the header names for the square part's noise: bits 0 and 3,
+		which is the part built into the Mega Drive's video chip.
+	**/
+	public static inline final NOISE_TAPS = 0x0009;
+
+	/**
+		How wide the header says that shift register is. The Mega Drive's is 16 bits where a
+		plain SN76489's is 15, and a header that leaves the width at nought leaves it to the
+		player, which may pitch every periodic noise more than a semitone sharp.
+	**/
+	public static inline final NOISE_WIDTH = 16;
+
+	/**
 		The version the header declares.
 	**/
 	public var version(default, null):Int = 0x150;
@@ -519,7 +532,8 @@ final class Vgm {
 		out.setInt32(0x0C, mdd.chip.Sn76489.CLOCK);
 		out.setInt32(0x18, to - from);
 		out.setInt32(0x24, rate);
-		out.setInt32(0x28, 0x0009);
+		out.setUInt16(0x28, NOISE_TAPS);
+		out.set(0x2A, NOISE_WIDTH);
 		out.setInt32(0x2C, mdd.chip.Ym2612.CLOCK);
 		out.setInt32(0x34, HEADER - 0x34);
 
