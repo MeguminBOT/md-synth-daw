@@ -520,6 +520,7 @@
   "said.pointsPasted": "points collés : {0}",
   "said.pointsSelected": "points sélectionnés : {0}",
   "said.presetSwitched": "{0} joue sur {1} depuis la tête de lecture",
+  "said.presetUnwritten": "impossible d’enregistrer le preset dans {0}",
   "said.readDriver": "{0} lu, {1} notes sur {2} motifs à {3} bpm, {4} échantillons et {5} frappes du convertisseur",
   "said.readDriverPartly": "{0} lu, {1} notes sur {2} motifs à {3} bpm, {4} échantillons et {5} frappes du convertisseur, arrêté sur une commande inconnue",
   "said.readNotes": "{0} lu, {1} notes sur {2} motifs à {3} bpm",

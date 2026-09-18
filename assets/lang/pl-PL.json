@@ -520,6 +520,7 @@
   "said.pointsPasted": "wklejone punkty: {0}",
   "said.pointsSelected": "zaznaczone punkty: {0}",
   "said.presetSwitched": "{0} gra na {1} od głowicy odtwarzania",
+  "said.presetUnwritten": "nie udało się zapisać presetu w {0}",
   "said.readDriver": "wczytano {0}, nut: {1}, wzorców: {2}, {3} bpm, sampli: {4}, uderzeń przetwornika: {5}",
   "said.readDriverPartly": "wczytano {0}, nut: {1}, wzorców: {2}, {3} bpm, sampli: {4}, uderzeń przetwornika: {5}, zatrzymano na nieznanym poleceniu",
   "said.readNotes": "wczytano {0}, nut: {1}, wzorców: {2}, {3} bpm",

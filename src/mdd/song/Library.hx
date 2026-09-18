@@ -7,8 +7,10 @@ import mdd.format.Tfi;
 	The preset banks: what ships inside the binary, and what a reader has put in their
 	own presets folder.
 
-	A library is read once and copied into a song, so a song never depends on a bank
-	being installed to open.
+	A library is copied into a song, so a song never depends on a bank being installed
+	to open. The shipped banks are read once; the folder is read at startup and again
+	when another is chosen, and every preset saved from the browser is written into
+	it, so a preset saved in one piece is offered in every other.
 **/
 @:unreflective
 final class Library {
@@ -26,6 +28,13 @@ final class Library {
 		The sample each instrument needs, where it needs one.
 	**/
 	public final samples:Array<Array<Null<Sample>>> = [];
+
+	/**
+		Whether each bank came out of the presets folder rather than the binary. A song
+		that already carries a bank of that name is given whatever the folder has gained
+		since; a shipped bank it carries is left as it is.
+	**/
+	public final owned:Array<Bool> = [];
 
 	public function new() {}
 
@@ -60,80 +69,280 @@ final class Library {
 	}
 
 	/**
-		Reads one bank document and adds it.
+		Reads one bank document and adds it. A bank of the same name already here takes
+		the presets it does not have yet, and keeps its own where both have one.
 
 		@param said The bank as JSON.
+		@param owned Whether it came out of the presets folder.
+		@param loose The bank a document with no name of its own goes into, which is how
+			a single saved preset is written. Empty to pass such a document over.
+		@return How many instruments it added.
+	**/
+	public function reads(said:String, owned:Bool = false, loose:String = ""):Int {
+		return taken(said, owned, loose, false);
+	}
+
+	/**
+		Reads a bank document the application has just written, so each preset in it
+		takes the place of one with the same name rather than being passed over.
+
+		@param said The bank as JSON.
+		@param loose The bank a document with no name of its own goes into.
 		@return How many instruments it carried.
 	**/
-	public function reads(said:String):Int {
+	public function replaces(said:String, loose:String = ""):Int {
+		return taken(said, true, loose, true);
+	}
+
+	/**
+		@param said The bank as JSON.
+		@param owned Whether it came out of the presets folder.
+		@param loose The bank a document with no name of its own goes into.
+		@param over Whether a preset replaces one of the same name.
+		@return How many instruments it added or replaced.
+	**/
+	function taken(said:String, owned:Bool, loose:String, over:Bool):Int {
 		final node = Json.parse(said);
 		if (node == null) return 0;
 
-		final named = node.get("name").saying("");
-		if (named == "" || names.indexOf(named) >= 0) return 0;
-
-		final made:Array<Instrument> = [];
-		final held:Array<Null<Sample>> = [];
+		final named = node.get("name").saying(loose);
+		if (named == "") return 0;
 
 		final presets = node.get("presets");
+		var many = 0;
 
 		for (index in 0...presets.length()) {
 			final one = presets.at(index);
+			final instrument = preset(one);
+			if (instrument == null) continue;
 
-			final pcm = one.get("pcm").saying("");
-			final noise = one.get("noise");
-			final drawn = noise.get("steps");
-			final beats = drawn.length();
+			final sample = instrument.kind.sampled() ? sampled(instrument.name,
+				one.get("pcm").saying(""), one.get("rate").whole(8000),
+				one.get("root").whole(60)) : null;
 
-			final patch = pcm == "" && beats == 0
-				? patched(one.get("tfi").saying("")) : null;
+			if (instrument.kind.sampled() && sample == null) continue;
+			if (sample != null) sample.loop = one.get("loop").whole(-1);
 
-			if (patch == null && pcm == "" && beats == 0) continue;
-
-			final sample = pcm == "" ? null : sampled(one.get("name").saying("hit"),
-				pcm, one.get("rate").whole(8000), one.get("root").whole(60));
-
-			if (patch == null && sample == null && beats == 0) continue;
-
-			final where = beats > 0 ? Part.Noise : (patch == null ? Part.Dac : Part.Fm1);
-			final instrument = new Instrument(one.get("name").saying("patch"), where);
-
-			if (patch != null) instrument.patch = patch;
-
-			final envelope = instrument.envelope;
-
-			if (beats > 0 && envelope != null) {
-				for (step in 0...beats) envelope.steps.push(drawn.at(step).whole(15));
-
-				envelope.turns(Envelope.NOISE, noise.get("mode").whole(7));
-				envelope.turns(Envelope.SPEED, noise.get("speed").whole(1));
-				envelope.turns(Envelope.LOOP, noise.get("loop").whole(-1));
+			if (over) {
+				keeps(named, instrument, sample);
+				many++;
+			} else if (adds(named, instrument, sample, owned)) {
+				many++;
 			}
-
-			instrument.icon = mdd.Icon.NAMES.indexOf(one.get("icon").saying(""));
-
-			final tags = one.get("tags");
-			for (at in 0...tags.length()) {
-				final tag = tags.at(at).saying("");
-				if (tag != "") instrument.tags.push(tag);
-			}
-
-			made.push(instrument);
-			held.push(sample);
 		}
 
-		if (made.length == 0) return 0;
+		return many;
+	}
 
-		names.push(named);
-		instruments.push(made);
-		samples.push(held);
+	/**
+		Reads one preset out of a bank document, in either layout: the one the shipped
+		banks are written in, or a whole instrument as a project carries it.
 
-		return made.length;
+		@param one The preset.
+		@return The instrument, or null where it carries nothing that plays.
+	**/
+	static function preset(one:mdd.format.Node):Null<Instrument> {
+		final pcm = one.get("pcm").saying("");
+
+		if (one.has("instrument")) {
+			final made = mdd.format.Project.readInstrument(one.get("instrument"));
+			made.sample = -1;
+
+			if (made.kind.sampled() && pcm == "") return null;
+			if (made.kind.fm() && made.patch == null) return null;
+			if ((made.kind.square() || made.kind.noise()) && made.envelope == null) return null;
+
+			return made;
+		}
+
+		final noise = one.get("noise");
+		final drawn = noise.get("steps");
+		final beats = drawn.length();
+
+		final patch = pcm == "" && beats == 0 ? patched(one.get("tfi").saying("")) : null;
+		if (patch == null && pcm == "" && beats == 0) return null;
+
+		final where = beats > 0 ? Part.Noise : (patch == null ? Part.Dac : Part.Fm1);
+		final instrument = new Instrument(one.get("name").saying("patch"), where);
+
+		if (patch != null) instrument.patch = patch;
+
+		final envelope = instrument.envelope;
+
+		if (beats > 0 && envelope != null) {
+			for (step in 0...beats) envelope.steps.push(drawn.at(step).whole(15));
+
+			envelope.turns(Envelope.NOISE, noise.get("mode").whole(7));
+			envelope.turns(Envelope.SPEED, noise.get("speed").whole(1));
+			envelope.turns(Envelope.LOOP, noise.get("loop").whole(-1));
+		}
+
+		instrument.icon = mdd.Icon.NAMES.indexOf(one.get("icon").saying(""));
+
+		final tags = one.get("tags");
+		for (at in 0...tags.length()) {
+			final tag = tags.at(at).saying("");
+			if (tag != "") instrument.tags.push(tag);
+		}
+
+		return instrument;
+	}
+
+	/**
+		Finds a bank by name, making an empty one where there is none.
+
+		@param name What it is called.
+		@param owned Whether it came out of the presets folder.
+		@return Where it is.
+	**/
+	function banked(name:String, owned:Bool):Int {
+		var at = names.indexOf(name);
+
+		if (at < 0) {
+			names.push(name);
+			instruments.push([]);
+			samples.push([]);
+			this.owned.push(owned);
+
+			at = names.length - 1;
+		} else if (owned) {
+			this.owned[at] = true;
+		}
+
+		return at;
+	}
+
+	/**
+		Puts a preset into a bank, unless the bank already has one of the same name for
+		the same kind of part.
+
+		@param bank The bank's name. It is made where there is none.
+		@param instrument The preset. The library keeps it rather than a copy.
+		@param sample The sample it plays, or null.
+		@param owned Whether it came out of the presets folder.
+		@return False where the bank already had one of that name.
+	**/
+	public function adds(bank:String, instrument:Instrument, sample:Null<Sample>,
+			owned:Bool):Bool {
+		final at = banked(bank, owned);
+		if (holding(at, instrument) >= 0) return false;
+
+		instruments[at].push(instrument);
+		samples[at].push(sample);
+
+		return true;
+	}
+
+	/**
+		Puts a preset into a bank the presets folder owns, taking the place of one with
+		the same name for the same kind of part.
+
+		@param bank The bank's name. It is made where there is none.
+		@param instrument The preset. The library keeps it rather than a copy.
+		@param sample The sample it plays, or null.
+	**/
+	public function keeps(bank:String, instrument:Instrument, sample:Null<Sample>):Void {
+		final at = banked(bank, true);
+		final held = holding(at, instrument);
+
+		if (held < 0) {
+			instruments[at].push(instrument);
+			samples[at].push(sample);
+			return;
+		}
+
+		instruments[at][held] = instrument;
+		samples[at][held] = sample;
+	}
+
+	/**
+		@param at A bank, by position.
+		@param instrument A preset.
+		@return Where the bank holds one of the same name for the same kind of part, or
+			-1 where it holds none.
+	**/
+	function holding(at:Int, instrument:Instrument):Int {
+		final held = instruments[at];
+
+		for (which in 0...held.length) {
+			if (held[which].name == instrument.name && kin(held[which].kind, instrument.kind)) {
+				return which;
+			}
+		}
+
+		return -1;
+	}
+
+	/**
+		@param one A part.
+		@param two Another.
+		@return Whether an instrument for one plays on the other.
+	**/
+	public static function kin(one:Part, two:Part):Bool {
+		if (one.fm()) return two.fm();
+		if (one.square()) return two.square();
+		if (one.noise()) return two.noise();
+
+		return one.sampled() && two.sampled();
+	}
+
+	/**
+		@param one An instrument.
+		@param two Another.
+		@return Whether they are the same preset: the same name, for the same kind of
+			part, with the same patch or envelope. Samples are not compared.
+	**/
+	public static function alike(one:Instrument, two:Instrument):Bool {
+		if (one.name != two.name || !kin(one.kind, two.kind)) return false;
+
+		final patch = one.patch;
+		final other = two.patch;
+
+		if ((patch == null) != (other == null)) return false;
+
+		if (patch != null && other != null) {
+			if (patch.algorithm != other.algorithm || patch.feedback != other.feedback
+					|| patch.ams != other.ams || patch.pms != other.pms) {
+				return false;
+			}
+
+			for (slot in 0...Patch.SLOTS) {
+				if (patch.tremolo[slot] != other.tremolo[slot]) return false;
+
+				for (row in 0...Patch.ROWS) {
+					if (patch.reads(slot, row) != other.reads(slot, row)) return false;
+				}
+			}
+		}
+
+		final envelope = one.envelope;
+		final shape = two.envelope;
+
+		if ((envelope == null) != (shape == null)) return false;
+
+		if (envelope != null && shape != null) {
+			if (envelope.loop != shape.loop || envelope.speed != shape.speed
+					|| envelope.noise != shape.noise
+					|| envelope.steps.length != shape.steps.length) {
+				return false;
+			}
+
+			for (step in 0...envelope.steps.length) {
+				if (envelope.steps[step] != shape.steps[step]) return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
 		Copies every bank into a song, with its own instruments and samples, so nothing
 		is shared with the library afterwards.
+
+		A shipped bank the song already carries is left as it is. A bank out of the
+		presets folder that the song already carries is given each preset it does not
+		have a preset of that name for, so what was saved while another piece was open
+		reaches this one too.
 
 		@param song The song to copy into.
 		@return How many instruments were added.
@@ -142,17 +351,15 @@ final class Library {
 		var many = 0;
 
 		for (at in 0...names.length) {
-			var carries = false;
-			for (bank in song.banks) {
-				if (bank.name == names[at] && bank.instruments.length > 0) carries = true;
-			}
-
-			if (carries) continue;
+			final carried = carries(song, names[at]);
+			if (carried && !owned[at]) continue;
 
 			final bank = song.banked(names[at]);
 			final held = instruments[at];
 
 			for (which in 0...held.length) {
+				if (carried && offers(song, bank, held[which]) >= 0) continue;
+
 				final made = held[which].copy();
 				final sample = samples[at][which];
 
@@ -177,15 +384,57 @@ final class Library {
 		return many;
 	}
 
+	/**
+		@param song A song.
+		@param name A bank's name.
+		@return Whether the song has a bank of that name with anything in it.
+	**/
+	static function carries(song:Song, name:String):Bool {
+		for (bank in song.banks) {
+			if (bank.name == name && bank.instruments.length > 0) return true;
+		}
+
+		return false;
+	}
+
+	/**
+		@param song A song.
+		@param bank One of its banks.
+		@param instrument A preset.
+		@return The song's instrument in that bank with the preset's name, for the same
+			kind of part, by index into the song, or -1 where there is none.
+	**/
+	static function offers(song:Song, bank:Bank, instrument:Instrument):Int {
+		for (index in bank.instruments) {
+			final held = song.instrumentAt(index);
+
+			if (held != null && held.name == instrument.name && kin(held.kind, instrument.kind)) {
+				return index;
+			}
+		}
+
+		return -1;
+	}
+
+	/**
+		What a bank document is called on disk.
+	**/
 	public static inline final SUFFIX = ".json";
+
+	/**
+		What a patch file is called on disk.
+	**/
 	public static inline final PATCH = ".tfi";
 
 	/**
-		Reads a folder of bank documents and loose patch files, so a reader's own presets
+		Reads a folder of bank documents and loose presets, so a reader's own presets
 		load beside the shipped ones rather than replacing them.
 
+		A bank document with a name of its own is that bank. A loose preset, which is a
+		patch file or a document with no name, goes into the bank named `saved`.
+
 		@param where The folder to read.
-		@param saved The name of the bank loose patches go into.
+		@param saved The bank loose presets go into.
 		@return How many instruments were read.
 	**/
 	public function within(where:String, saved:String):Int {
@@ -198,49 +447,27 @@ final class Library {
 		var many = 0;
 
 		for (name in held) {
-			if (name.toLowerCase().indexOf(SUFFIX) < 0) continue;
+			final path = where + "/" + name;
+			final lower = name.toLowerCase();
 
 			try {
-				many += reads(sys.io.File.getContent(where + "/" + name));
+				if (StringTools.endsWith(lower, SUFFIX)) {
+					many += reads(sys.io.File.getContent(path), true, saved);
+				} else if (StringTools.endsWith(lower, PATCH)) {
+					final patch = Tfi.read(sys.io.File.getBytes(path));
+					if (patch == null) continue;
+
+					final one = new Instrument(stem(name), Part.Fm1);
+
+					one.patch = patch;
+					one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
+
+					if (adds(saved, one, null, true)) many++;
+				}
 			} catch (e:Dynamic) {}
 		}
 
-		final made:Array<Instrument> = [];
-
-		for (name in held) {
-			if (name.toLowerCase().indexOf(PATCH) < 0) continue;
-
-			try {
-				final patch = Tfi.read(sys.io.File.getBytes(where + "/" + name));
-				if (patch == null) continue;
-
-				final one = new Instrument(stem(name), Part.Fm1);
-
-				one.patch = patch;
-				one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
-
-				made.push(one);
-			} catch (e:Dynamic) {}
-		}
-
-		if (made.length == 0) return many;
-
-		var at = names.indexOf(saved);
-
-		if (at < 0) {
-			names.push(saved);
-			instruments.push([]);
-			samples.push([]);
-
-			at = names.length - 1;
-		}
-
-		for (one in made) {
-			instruments[at].push(one);
-			samples[at].push(null);
-		}
-
-		return many + made.length;
+		return many;
 	}
 
 	/**
@@ -336,6 +563,51 @@ final class Library {
 			out.close();
 		}
 
+		out.ends();
+		out.close();
+
+		return out.toString();
+	}
+
+	/**
+		Writes one preset as a document of its own with no bank name, which is how the
+		browser saves a preset into the presets folder: the folder the file sits in says
+		which bank it belongs to. It carries the whole instrument, in the layout a project
+		writes, so nothing a patch or an envelope holds is lost on the way.
+
+		@param instrument The preset.
+		@param sample The sample it plays, or null.
+		@return The document.
+	**/
+	public static function saved(instrument:Instrument, sample:Null<Sample>):String {
+		final plain = instrument.copy();
+		plain.sample = -1;
+
+		final out = new mdd.format.Json();
+
+		out.open();
+		out.key("presets");
+		out.list();
+		out.open();
+
+		out.key("instrument");
+		mdd.format.Project.wroteInstrument(out, plain);
+
+		if (sample != null && sample.length() > 0) {
+			out.key("rate");
+			out.whole(sample.rate);
+
+			out.key("root");
+			out.whole(sample.root);
+
+			out.key("loop");
+			out.whole(sample.loop);
+
+			out.key("pcm");
+			out.text(coded(sample));
+		}
+
+		out.close();
 		out.ends();
 		out.close();
 

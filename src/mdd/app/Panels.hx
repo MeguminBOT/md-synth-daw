@@ -152,6 +152,12 @@ final class Panels {
 	public var onImportSample:Null<Void -> Void> = null;
 
 	/**
+		Called with a preset just saved from the browser and the sample it plays, so it
+		can be written into the presets folder and offered in every other piece.
+	**/
+	public var onPreset:Null<(mdd.song.Instrument, Null<mdd.song.Sample>) -> Void> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -397,7 +403,9 @@ final class Panels {
 	}
 
 	/**
-		Lifts the chosen patch into the library under a name the reader is asked for.
+		Saves the chosen part's preset under a name the reader is asked for: into the
+		piece's saved bank, taking the place there of one with the same name, and out to
+		the presets folder through `onPreset`, so every other piece offers it too.
 	**/
 	public function savedPreset():Void {
 		if (naming == null) return;
@@ -408,13 +416,36 @@ final class Panels {
 
 		naming.ask(stage.root.translate(Locale.PRESET_NAME), from.name);
 		naming.onName = function(said:String):Void {
+			final song = session.song;
 			final made = from.copy();
 			made.name = said;
 
+			final bank = song.banked(stage.root.translate(Locale.PRESET_SAVED));
+
 			session.holds();
-			session.song.instrument(made);
-			session.song.rack[part.index()] = session.song.instruments.length - 1;
+
+			for (index in bank.instruments.copy()) {
+				final held = song.instrumentAt(index);
+
+				if (held != null && held.name == said
+						&& mdd.song.Library.kin(held.kind, made.kind)) {
+					bank.remove(index);
+				}
+			}
+
+			song.instrument(made);
+
+			final index = song.instruments.length - 1;
+
+			song.rack[part.index()] = index;
+			song.bank(0).remove(index);
+			bank.add(index);
+			bank.kept = true;
+
 			session.frees();
+
+			if (onPreset != null) onPreset(made, song.sampleAt(made.sample));
+
 			session.say(said);
 			session.changed();
 		};

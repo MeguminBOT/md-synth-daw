@@ -361,9 +361,6 @@ class App {
 		Builds the panels and the menus and wires every callback between them.
 	**/
 	function dress():Void {
-		library.within(mdd.host.Paths.within("presets"),
-			stage.root.translate(Locale.PRESET_SAVED));
-
 		session = Session.started(library);
 		presence.follows(session);
 
@@ -371,7 +368,14 @@ class App {
 		panels.dress(session);
 
 		files = new Files(session);
+		files.library = library;
 		files.onLoad = function(song:Song):Void loaded(song);
+
+		panels.onPreset = function(made:mdd.song.Instrument, sample:Null<mdd.song.Sample>):Void {
+			if (files.keepsPreset(made, sample) == "") {
+				session.says(Locale.SAID_PRESET_UNWRITTEN, files.within("presets"));
+			}
+		};
 		panels.onImportSample = function():Void files.ask(stage.window, Files.READ_WAV);
 
 		panels.naming = new Naming();
@@ -1565,6 +1569,20 @@ class App {
 	}
 
 	/**
+		Reads the presets folder into the library and gives the piece whatever it gained,
+		which starting up and choosing another folder both need.
+	**/
+	function rescanned():Void {
+		library.within(files.within("presets"), files.savedInto);
+
+		session.holds();
+		final added = library.into(session.song);
+		session.frees();
+
+		if (added > 0) session.changed();
+	}
+
+	/**
 		Takes the folder a dialog answered with.
 	**/
 	function folded():Void {
@@ -1584,6 +1602,7 @@ class App {
 				files.presetsAt = where;
 				panels.preferences.presetsAt = where;
 				settings.put("presets", where);
+				rescanned();
 			}
 
 			settings.save();
@@ -1629,6 +1648,8 @@ class App {
 		files.projectsAt = settings.of("projects", "");
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
+
+		rescanned();
 
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
 			if (session != null) session.transport.auditions(session.part, pitch, velocity, true);

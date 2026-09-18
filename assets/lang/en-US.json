@@ -520,6 +520,7 @@
   "said.pointsPasted": "points pasted: {0}",
   "said.pointsSelected": "points selected: {0}",
   "said.presetSwitched": "{0} plays on {1} from the playhead",
+  "said.presetUnwritten": "could not write the preset into {0}",
   "said.readDriver": "read {0}, {1} notes on {2} patterns at {3} bpm, {4} samples and {5} converter hits",
   "said.readDriverPartly": "read {0}, {1} notes on {2} patterns at {3} bpm, {4} samples and {5} converter hits, stopped at a command it does not know",
   "said.readNotes": "read {0}, {1} notes on {2} patterns at {3} bpm",

@@ -274,7 +274,7 @@ class Project {
 		@param out Where it goes.
 		@param instrument The instrument.
 	**/
-	static function wroteInstrument(out:Json, instrument:Instrument):Void {
+	public static function wroteInstrument(out:Json, instrument:Instrument):Void {
 		out.open();
 
 		out.key("name");
@@ -579,7 +579,7 @@ class Project {
 		@param node One instrument out of the document.
 		@return The instrument.
 	**/
-	static function readInstrument(node:Node):Instrument {
+	public static function readInstrument(node:Node):Instrument {
 		final kind:Part = within(node.get("kind").whole(0), Part.COUNT);
 		final instrument = new Instrument(node.get("name").saying(""), kind);
 

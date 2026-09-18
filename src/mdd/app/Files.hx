@@ -206,9 +206,16 @@ final class Files {
 	var midiName:String = "";
 
 	/**
-		Where the last save went.
+		The bank a preset saved from the browser or read out of a patch file goes into,
+		named in the reader's language.
 	**/
 	public var savedInto:String = "";
+
+	/**
+		The preset library, where a preset written into the presets folder is put as
+		well, so every piece opened afterwards offers it. Null in a check that has none.
+	**/
+	public var library:Null<mdd.song.Library> = null;
 
 	/**
 		Called when something long starts, so a progress bar can be raised.
@@ -753,6 +760,8 @@ final class Files {
 		held.into(session.song);
 		session.frees();
 
+		if (library != null) library.replaces(said);
+
 		session.says(Locale.SAID_KIT, kit.name, "" + kit.taken(), "" + kit.bytes());
 		session.changed();
 
@@ -1127,7 +1136,7 @@ final class Files {
 			return;
 		}
 
-		final made = new mdd.song.Instrument(name(where), mdd.song.Part.Fm1);
+		final made = new mdd.song.Instrument(bare(where), mdd.song.Part.Fm1);
 
 		made.patch = held;
 		made.icon = mdd.Icon.NAMES.indexOf("synthesizer");
@@ -1146,14 +1155,74 @@ final class Files {
 		session.frees();
 
 		final into = within("presets");
-		final named = into + "/" + safely(name(where)) + ".tfi";
+		final named = into + "/" + safely(bare(where)) + ".tfi";
 
 		if (!FileSystem.exists(named)) {
 			Paths.make(into);
 			sys.io.File.saveBytes(named, mdd.format.Tfi.write(held));
 		}
 
-		session.say(name(where));
+		if (library != null && savedInto != "" && sameTfi(named, held)) {
+			library.adds(savedInto, made.copy(), null, true);
+		}
+
+		session.say(bare(where));
+	}
+
+	/**
+		Writes a preset into the presets folder as a file of its own and puts it in the
+		library, so every piece opened from now on offers it. A file of that name holding
+		anything but a saved preset of the same name and kind is left alone, and the
+		preset is written beside it under a number.
+
+		@param made The preset.
+		@param sample The sample it plays, or null.
+		@return Where it was written, or an empty string where it could not be.
+	**/
+	public function keepsPreset(made:mdd.song.Instrument, sample:Null<mdd.song.Sample>):String {
+		final into = within("presets");
+		final said = mdd.song.Library.saved(made, sample);
+		final base = into + "/" + safely(made.name);
+
+		var named = base + mdd.song.Library.SUFFIX;
+		var at = 2;
+
+		while (FileSystem.exists(named) && !overwrites(named, made)) {
+			named = base + " " + at + mdd.song.Library.SUFFIX;
+			at++;
+		}
+
+		try {
+			Paths.make(into);
+			sys.io.File.saveContent(named, said);
+		} catch (e:Dynamic) {
+			return "";
+		}
+
+		if (library != null && savedInto != "") library.replaces(said, savedInto);
+
+		return named;
+	}
+
+	/**
+		@param where A file in the presets folder.
+		@param made A preset about to be saved.
+		@return Whether the file holds a saved preset with that name for the same kind of
+			part and nothing else, which saving it again may write over.
+	**/
+	function overwrites(where:String, made:mdd.song.Instrument):Bool {
+		try {
+			final node = mdd.format.Json.parse(sys.io.File.getContent(where));
+			if (node == null || node.has("name")) return false;
+
+			final presets = node.get("presets");
+			if (presets.length() != 1 || !presets.at(0).has("instrument")) return false;
+
+			final held = mdd.format.Project.readInstrument(presets.at(0).get("instrument"));
+			return held.name == made.name && mdd.song.Library.kin(held.kind, made.kind);
+		} catch (e:Dynamic) {
+			return false;
+		}
 	}
 
 	/**
@@ -1179,10 +1248,10 @@ final class Files {
 	}
 
 	/**
-		Reads every patch file in the presets folder into the library, skipping any that
-		is already there.
+		Writes every patch the piece carries into the presets folder as a patch file,
+		skipping any already there, and puts each one in the library.
 
-		@return How many were read.
+		@return How many were written.
 	**/
 	public function liftsPatches():Int {
 		final where = within("presets");
@@ -1210,12 +1279,37 @@ final class Files {
 
 				if (FileSystem.exists(tried)) continue;
 				sys.io.File.saveBytes(tried, mdd.format.Tfi.write(patch));
-			} else sys.io.File.saveBytes(named, mdd.format.Tfi.write(patch));
+				lifted(held, tried);
+			} else {
+				sys.io.File.saveBytes(named, mdd.format.Tfi.write(patch));
+				lifted(held, named);
+			}
 
 			many++;
 		}
 
 		return many;
+	}
+
+	/**
+		Puts a patch just written into the presets folder in the library, under the name
+		its file was given.
+
+		@param held The instrument it came from.
+		@param where The file.
+	**/
+	function lifted(held:mdd.song.Instrument, where:String):Void {
+		if (library == null || savedInto == "") return;
+
+		final made = new mdd.song.Instrument(bare(where), mdd.song.Part.Fm1);
+		final patch = held.patch;
+
+		made.patch = patch == null ? null : patch.copy();
+		made.icon = held.icon;
+
+		for (tag in held.tags) made.tags.push(tag);
+
+		library.adds(savedInto, made, null, true);
 	}
 
 	/**
@@ -1482,5 +1576,13 @@ final class Files {
 	**/
 	public static function name(where:String):String {
 		return haxe.io.Path.withoutDirectory(where);
+	}
+
+	/**
+		@param where A path.
+		@return The file name without its suffix.
+	**/
+	public static function bare(where:String):String {
+		return haxe.io.Path.withoutExtension(name(where));
 	}
 }

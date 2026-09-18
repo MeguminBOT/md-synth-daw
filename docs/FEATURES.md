@@ -265,7 +265,13 @@ writes with real pauses excluded, rather than from the run measured end to end.
   you export: nothing at all for a render, no bank at all for a VGM, an XGM's own table for an XGM,
   and whatever you set aside for a cartridge. It starts at a quarter of a one megabyte cartridge,
   which is a convention rather than a limit of the machine, and you can set it to your own.
-- Your own patches load beside the shipped ones rather than replacing them.
+- **A saved preset reaches every project.** Saving a channel as a preset writes it into your
+  presets folder as a file of its own, and every project you open afterwards finds it in its saved
+  bank, including projects made before it. It keeps everything the channel has: the whole patch
+  with its LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the
+  same name replaces it.
+- Your own presets load beside the shipped ones rather than replacing them. A project keeps its
+  own copy of every preset it carries, so it opens the same on a machine that has none of them.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
 channel volume apart from the voice and adds it in at every key on. Loading one therefore

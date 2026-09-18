@@ -520,6 +520,7 @@
   "said.pointsPasted": "inklistrade punkter: {0}",
   "said.pointsSelected": "valda punkter: {0}",
   "said.presetSwitched": "{0} spelar på {1} från spelhuvudet",
+  "said.presetUnwritten": "kunde inte spara presetet i {0}",
   "said.readDriver": "läste {0}, {1} noter på {2} mönster i {3} bpm, {4} ljud och {5} omvandlarslag",
   "said.readDriverPartly": "läste {0}, {1} noter på {2} mönster i {3} bpm, {4} ljud och {5} omvandlarslag, stannade vid ett okänt kommando",
   "said.readNotes": "läste {0}, {1} noter på {2} mönster i {3} bpm",
