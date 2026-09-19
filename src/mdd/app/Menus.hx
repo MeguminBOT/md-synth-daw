@@ -501,21 +501,6 @@ final class Menus {
 			if (onRelabel != null) onRelabel();
 		});
 
-		final declicking = held.offer(new Choice(said(session.song.declick
-			? Locale.VIEW_UNDECLICK : Locale.VIEW_DECLICK)));
-
-		declicking.reason = said(Locale.VIEW_DECLICK_WHY);
-
-		fired(declicking, function():Void {
-			session.does(new mdd.song.edit.DeclickSong(!session.song.declick));
-			session.transport.silence();
-
-			session.say(said(session.song.declick ? Locale.VIEW_DECLICK_ON
-				: Locale.VIEW_DECLICK_OFF));
-
-			if (onRelabel != null) onRelabel();
-		});
-
 		final following = held.offer(new Choice(said(session.following ? Locale.VIEW_UNFOLLOW
 			: Locale.VIEW_FOLLOW), Bindings.of(bindings, Bindings.FOLLOW)));
 

@@ -329,16 +329,18 @@ and the checks compare the live stream against the offline one on every run.
   and a loop that sends it back scrolls back with it; in the tracker the cursor rides along with
   it. It is on to start with, it is kept between sessions, and it can be given a shortcut in the
   Keyboard preferences.
-- **Declick**, in the View menu, smooths the edges the chips would otherwise click on. A sample
-  that stops away from the middle, cut by its note or ending there, returns to the middle over
-  1.5 ms instead of stepping there. An FM channel still sounding is let go at its quickest 4 ms
-  before its next note keys it on, so the phase that key on resets starts about 50 dB down;
-  a patch whose carriers attack slowly is left alone, because it swells legato from wherever the
-  last note left it. Every write this adds is one a driver on the machine could make, so an
-  export carries it too. A new piece has it on, while an import and a project saved before it
-  existed have it off, because an import reproduces what the game wrote. The squares and the noise
-  channel are left as they are: a square's output is a run of hard edges already, and a note
-  starting or stopping adds no more to it than one of those edges does.
+- **Declick**, in the Sound preferences and again in the export options, smooths the edges the
+  chips would otherwise click on. A sample that stops away from the middle, cut by its note or
+  ending there, returns to the middle over 1.5 ms instead of stepping there. An FM channel still
+  sounding is let go at its quickest 4 ms before its next note keys it on, so the phase that key
+  on resets starts about 50 dB down; a patch whose carriers attack slowly is left alone, because
+  it swells legato from wherever the last note left it. Every write this adds is one a driver on
+  the machine could make, so an export carries it too. Both start on, and what an export writes
+  follows what you are listening to until you set the export's own row, the same way the output
+  stage does. Switch it off for an export meant to hold exactly what a piece plays, such as a VGM
+  read back register by register. The squares and the noise channel are left as they are: a
+  square's output is a run of hard edges already, and a note starting or stopping adds no more to
+  it than one of those edges does.
 - Three polyphony behaviours: **strict**, where a part that runs out of voices drops the note;
   **stealing**, where the oldest voice gives way; and **arpeggio**, where notes beyond the channel
   count are cycled through it.

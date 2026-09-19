@@ -259,7 +259,6 @@ final class Transcription {
 		final ppqn = Math.round(Tempo.TICKS * 60.0 / (beats * PER_TICK));
 
 		song = new Song(name, ppqn, beats);
-		song.declick = false;
 		perTick = Tempo.TICKS * 60.0 / (beats * ppqn);
 
 		for (i in 0...shadow.length) shadow[i] = 0;

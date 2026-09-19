@@ -260,6 +260,13 @@ final class Mixing {
 	public var dither:Bool = true;
 
 	/**
+		Whether the writes smooth the edges the parts would otherwise click on, which is what the
+		sequencer's own switch does. A register format written to hold exactly what a piece plays
+		can be written with it off.
+	**/
+	public var declick:Bool = true;
+
+	/**
 		Which output stage the render goes through, from `mdd.play.Render`.
 	**/
 	public var console:Int = mdd.play.Render.MODEL_ONE;
@@ -435,6 +442,7 @@ final class Mixing {
 		out.ceiling = ceiling;
 		out.dither = dither;
 		out.console = console;
+		out.declick = declick;
 		out.stems = stems;
 		out.title = title;
 		out.artist = artist;

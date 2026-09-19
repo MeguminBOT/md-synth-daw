@@ -528,6 +528,11 @@ class App {
 			keeps();
 		};
 
+		panels.preferences.onDeclick = function(declick:Bool):Void {
+			declicked(declick);
+			keeps();
+		};
+
 		panels.preferences.onKeyboard = function(which:Int):Void {
 			final names = panels.preferences.keyboards;
 			listens(which <= 0 || which >= names.length ? "" : names[which]);
@@ -969,6 +974,8 @@ class App {
 		menus.dress(session);
 		bound();
 		scoped();
+
+		if (panels.preferences != null) session.transport.declick = panels.preferences.declick;
 
 		session.transport.silence();
 		sound.follows(session.transport);
@@ -1751,6 +1758,8 @@ class App {
 		panels.preferences.chose(Preferences.CONSOLE,
 			settings.asWhole("console", mdd.play.Render.MODEL_ONE));
 
+		panels.preferences.chose(Preferences.DECLICK, settings.asFlag("declick", true) ? 1 : 0);
+
 		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
 
 		panels.preferences.chose(Preferences.PRESENCE,
@@ -1827,6 +1836,7 @@ class App {
 		settings.whole("midiChannel", panels.preferences.keyboardChannel);
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
 		settings.whole("console", panels.preferences.console);
+		settings.flag("declick", panels.preferences.declick);
 		settings.whole("tempo", panels.preferences.tempo);
 		settings.whole("presence", panels.preferences.presence);
 		settings.put("keys", bindings.said());
@@ -2104,6 +2114,18 @@ class App {
 		if (sound.render != null) sound.render.console = which;
 		if (panels != null && panels.exporting != null) panels.exporting.follows(which);
 		if (panels != null && panels.exportingVideo != null) panels.exportingVideo.follows(which);
+	}
+
+	/**
+		Switches whether playback smooths the edges the parts would otherwise click on, and tells
+		the export panels so they keep their own rather than following this.
+
+		@param declick Whether to smooth them.
+	**/
+	function declicked(declick:Bool):Void {
+		if (session != null) session.transport.declick = declick;
+		if (panels != null && panels.exporting != null) panels.exporting.declicks(declick);
+		if (panels != null && panels.exportingVideo != null) panels.exportingVideo.declicks(declick);
 	}
 
 	/**

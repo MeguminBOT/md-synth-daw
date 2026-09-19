@@ -65,6 +65,7 @@ final class Export extends Widget {
 	static inline final DITHER = 8;
 	static inline final QUALITY = 9;
 	static inline final CONSOLE = 10;
+	static inline final DECLICK = 25;
 	static inline final OPUS_MODE = 11;
 	static inline final OPUS_SPAN = 12;
 	static inline final OPUS_BITRATE = 13;
@@ -127,7 +128,7 @@ final class Export extends Widget {
 	/**
 		How many rows there are.
 	**/
-	public static inline final KINDS = 25;
+	public static inline final KINDS = 26;
 
 	/**
 		How many metadata fields there are.
@@ -163,7 +164,7 @@ final class Export extends Widget {
 		Locale.EXPORT_VIDEO_SIZE, Locale.EXPORT_FRAME_RATE, Locale.EXPORT_RATE_CONTROL,
 		Locale.EXPORT_ENCODER_SPEED, Locale.EXPORT_KEYFRAMES, Locale.EXPORT_TUNE,
 		Locale.EXPORT_SCOPE_VIEW, Locale.EXPORT_SCOPE_SPEED, Locale.EXPORT_SCOPE_ACCURACY,
-		Locale.EXPORT_CHROMA];
+		Locale.EXPORT_CHROMA, Locale.EXPORT_DECLICK];
 
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
@@ -393,6 +394,7 @@ final class Export extends Widget {
 			showing.push(QUALITY);
 			showing.push(CEILING);
 			showing.push(CONSOLE);
+			showing.push(DECLICK);
 
 			if (mixing.rateControl != Mixing.Q) entered.push(0);
 			if (mixing.rateControl == Mixing.CQ || mixing.rateControl == Mixing.Q) entered.push(1);
@@ -409,6 +411,7 @@ final class Export extends Widget {
 		showing.push(SIDES);
 		showing.push(CEILING);
 		showing.push(CONSOLE);
+		showing.push(DECLICK);
 
 		if (mixing.kind == Mixing.OPUS) {
 			showing.push(OPUS_MODE);
@@ -696,6 +699,7 @@ final class Export extends Widget {
 			case FADE: closest(TAILS, mixing.fade);
 			case CEILING: mixing.normalise ? 1 : 0;
 			case CONSOLE: mixing.console;
+			case DECLICK: mixing.declick ? 1 : 0;
 			case OPUS_MODE: mixing.opusMode;
 			case OPUS_BITRATE: mixing.opusBitrateMode;
 			case OPUS_SPAN: spanAt();
@@ -748,6 +752,21 @@ final class Export extends Widget {
 	}
 
 	/**
+		Takes the declicking playback is set to, for a sheet whose own row has not been chosen
+		from. Once it has, the sheet keeps its own.
+
+		@param declick Whether playback smooths the edges the parts would otherwise click on.
+	**/
+	public function declicks(declick:Bool):Void {
+		if (!declicked) mixing.declick = declick;
+	}
+
+	/**
+		Whether the declick row has been chosen from, which is what stops it following playback.
+	**/
+	var declicked:Bool = false;
+
+	/**
 		Takes the view, speed and accuracy the scope on screen is set to, for a video sheet none
 		of whose scope rows has been chosen from yet. Once one has, the sheet keeps its own.
 
@@ -787,6 +806,7 @@ final class Export extends Widget {
 				mixing.ceiling = 0;
 
 			case CONSOLE: { mixing.console = which; picked = true; }
+			case DECLICK: { mixing.declick = which > 0; declicked = true; }
 			case OPUS_MODE: mixing.opusMode = which;
 			case OPUS_BITRATE: mixing.opusBitrateMode = which;
 			case OPUS_SPAN: mixing.opusSpan = SPANS[which];

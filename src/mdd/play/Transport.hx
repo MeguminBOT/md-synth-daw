@@ -124,6 +124,22 @@ final class Transport {
 	}
 
 	/**
+		Whether playback smooths the edges the parts would otherwise click on. An export has a
+		setting of its own, because what is monitored and what is written are chosen separately,
+		the same way the output stage is.
+	**/
+	public var declick(get, set):Bool;
+
+	function get_declick():Bool {
+		return sequencer.declick;
+	}
+
+	function set_declick(value:Bool):Bool {
+		sequencer.declick = value;
+		return value;
+	}
+
+	/**
 		@return Whether the transport is running.
 	**/
 	function get_playing():Bool {

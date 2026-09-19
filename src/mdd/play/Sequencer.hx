@@ -80,7 +80,7 @@ final class Sequencer {
 	static inline final GUARD = 1;
 
 	/**
-		How long before a key on an FM channel is let go where the song declicks, in samples: 4 ms.
+		How long before a key on an FM channel is let go where declicking is on, in samples: 4 ms.
 		A key on starts every operator's phase again from nought, and a channel still sounding
 		jumps to wherever that is. The quickest release falls 13 dB a millisecond, so the jump
 		starts about 50 dB down rather than from the whole note, and the fall itself is too
@@ -103,17 +103,26 @@ final class Sequencer {
 	static inline final FAST_ATTACK = 26;
 
 	/**
-		How long a converter hit takes to return to the middle where the song declicks, in
+		How long a converter hit takes to return to the middle where declicking is on, in
 		samples: 1.5 ms. The converter holds the last byte it is given, so a hit that stops away
 		from the middle steps there and then steps again when the channel is let go.
 	**/
 	static inline final SETTLE = 66;
 
 	/**
-		How far before a span a note may end and still owe it a write, in samples, where the song
-		declicks: the settle, and room for a hit read at a low rate.
+		How far before a span a note may end and still owe it a write, in samples, where declicking
+		is on: the settle, and room for a hit read at a low rate.
 	**/
 	static inline final SETTLE_REACH = 128;
+
+	/**
+		Whether to smooth the edges the parts would otherwise click on: a converter hit returns to
+		the middle rather than stopping away from it, and an FM channel still sounding is let go
+		just before the next note keys it on again. Every write it adds is one a driver could make.
+		Playback takes this from the Sound preferences and an export from its own settings, so a
+		register format written for the exactness of what it holds can leave it off.
+	**/
+	public var declick:Bool = true;
 
 	/**
 		Whether the gather under way is only looking one lead ahead for the FM key ons a fade has
@@ -316,7 +325,7 @@ final class Sequencer {
 		tracked();
 		settle(fromSample);
 		gather(fromSample, toSample);
-		if (song.declick) fades(fromSample, toSample);
+		if (declick) fades(fromSample, toSample);
 		sort();
 
 		driver.on = song.driving;
@@ -494,7 +503,7 @@ final class Sequencer {
 	function gather(fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
 
-		var low = tempo.tickAt(song.declick && !fading ? fromSample - SETTLE_REACH : fromSample) - 1;
+		var low = tempo.tickAt(declick && !fading ? fromSample - SETTLE_REACH : fromSample) - 1;
 		if (low < 0) low = 0;
 
 		final high = tempo.tickAt(toSample) + 1;
@@ -1079,7 +1088,7 @@ final class Sequencer {
 			}
 
 			final letGo = part.sampled() ? sampled(onSample, offSample, named, pitch,
-				song.declick && struckAt(part, ends, slice, origin), fromSample, toSample) : offSample;
+				declick && struckAt(part, ends, slice, origin), fromSample, toSample) : offSample;
 
 			if (!held && letGo >= fromSample && letGo < toSample
 					&& !(part.sampled() && tuning != null)) {
@@ -1628,7 +1637,7 @@ final class Sequencer {
 		Collects the sample channel bytes one note plays, at the rate the sample was
 		recorded at.
 
-		Where the song declicks, a hit that stops away from the middle returns there over
+		Where declicking is on, a hit that stops away from the middle returns there over
 		`SETTLE`, from where it ran out or from where its note cut it, unless the next hit starts
 		exactly where it was cut and takes the converter over.
 
@@ -1699,7 +1708,7 @@ final class Sequencer {
 			index++;
 		}
 
-		if (!song.declick || playing || index == 0) return offSample;
+		if (!declick || playing || index == 0) return offSample;
 
 		final cut = index < sample.length();
 		if (cut && struck) return offSample;

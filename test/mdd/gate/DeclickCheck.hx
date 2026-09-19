@@ -27,8 +27,9 @@ import mdd.song.Track;
 	are measured the same way, because that is where a fade runs, and a fade that clicked itself
 	would only have moved the click.
 
-	It also holds what the switch must not change: a slow attack still swells legato, the writes
-	come out the same whatever length of span they are sequenced in, and the switch is saved.
+	It also holds what the switch must not change: a slow attack still swells legato, and the writes
+	come out the same whatever length of span they are sequenced in. Playback takes the switch from
+	the Sound preferences and an export from its own settings, so both are checked where they are.
 **/
 @:unreflective
 class DeclickCheck {
@@ -66,7 +67,7 @@ class DeclickCheck {
 		swelled();
 		squares();
 		spans();
-		saved();
+		settings();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    failed");
@@ -295,7 +296,6 @@ class DeclickCheck {
 		}
 
 		placed(song, pattern);
-		song.declick = true;
 
 		final span = song.tempo.samplesAt(96 * 8) + 4000;
 		final whole = new Stream(1 << 18);
@@ -308,6 +308,8 @@ class DeclickCheck {
 			final pieces = new Stream(1 << 18);
 			final sequencer = new Sequencer(song, null, 1 << 17);
 			var at = 0;
+
+			sequencer.declick = true;
 
 			while (at < span) {
 				final until = at + block < span ? at + block : span;
@@ -327,23 +329,24 @@ class DeclickCheck {
 	}
 
 	/**
-		The switch is part of the song: saved and read back, and off for a project written before it
-		existed.
+		The switch is a setting rather than anything the song carries: playback takes it from the
+		Sound preferences and an export from its own settings, and both start on.
 	**/
-	static function saved():Void {
+	static function settings():Void {
 		final song = made();
-		song.declick = false;
-		final back = Project.read(Project.text(song));
+		final transport = new mdd.play.Transport(song);
+		final mixing = new Mixing();
 
-		song.declick = true;
-		final again = Project.read(Project.text(song));
+		transport.declick = false;
+		final off = transport.declick;
+		transport.declick = true;
 
-		final older = Project.read(StringTools.replace(Project.text(song), '"declick"', '"unknown"'));
+		mixing.declick = false;
 
-		says("the switch is saved with the song", !back.declick && again.declick && !older.declick,
-			"off reads back " + back.declick + ", on reads back " + again.declick + ", and a project without it reads "
-			+ older.declick);
-		says("a new song declicks", new Song().declick, "a song made from nothing starts with it " + new Song().declick);
+		says("playback takes the switch from the transport", new Sequencer(song).declick && !off && transport.declick,
+			"a sequencer starts declicking, and the transport switches it off and on again");
+		says("an export carries its own switch", new Mixing().declick && !mixing.copy().declick,
+			"a fresh export declicks, and one switched off stays off when it is copied for the render");
 	}
 
 	/**
@@ -396,9 +399,8 @@ class DeclickCheck {
 			the switch as given.
 	**/
 	static function rendered(song:Song, declick:Bool, part:Part):Vector<Float> {
-		song.declick = declick;
-
 		final mixing = new Mixing();
+		mixing.declick = declick;
 		mixing.kind = Mixing.WAV;
 		mixing.rate = 44100;
 		mixing.padStart = 0;
@@ -516,10 +518,11 @@ class DeclickCheck {
 		@return How many release rate writes of 15 the song's stream holds with the switch as given.
 	**/
 	static function faded(song:Song, declick:Bool):Int {
-		song.declick = declick;
-
 		final stream = new Stream(1 << 16);
-		new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(song.ends()) + 4000);
+		final sequencer = new Sequencer(song);
+
+		sequencer.declick = declick;
+		sequencer.spanned(stream, 0, song.tempo.samplesAt(song.ends()) + 4000);
 
 		var many = 0;
 		var index = 0;

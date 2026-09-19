@@ -87,7 +87,12 @@ final class Preferences extends Widget {
 	/**
 		How many rows there are in all.
 	**/
-	public static inline final ROWS = 28;
+	/**
+		Row: whether playback smooths the edges the parts would otherwise click on.
+	**/
+	public static inline final DECLICK = 28;
+
+	public static inline final ROWS = 29;
 
 	/**
 		What each choice of the text size row multiplies the faces by.
@@ -144,7 +149,7 @@ final class Preferences extends Widget {
 		#end
 		[UPDATES],
 		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
-		[AUDIO_DEVICE, CONSOLE],
+		[AUDIO_DEVICE, CONSOLE, DECLICK],
 		[],
 		[PRESENCE]
 	];
@@ -176,7 +181,7 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
 		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE,
 		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR,
-		Locale.PREFERENCE_RIGHT_CLICK];
+		Locale.PREFERENCE_RIGHT_CLICK, Locale.PREFERENCE_DECLICK];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -197,6 +202,8 @@ final class Preferences extends Widget {
 
 	static final CONSOLES:Array<Locale> = [Locale.CONSOLE_CHIP, Locale.CONSOLE_ONE,
 		Locale.CONSOLE_TWO];
+
+	static final DECLICKS:Array<Locale> = [Locale.DECLICK_OFF, Locale.DECLICK_ON];
 
 	static final VELOCITIES:Array<Locale> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
 
@@ -365,6 +372,12 @@ final class Preferences extends Widget {
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
 
 	/**
+		Whether playback smooths the edges the parts would otherwise click on. What an export
+		writes is the export panel's own setting.
+	**/
+	public var declick(default, null):Bool = true;
+
+	/**
 		Which frame rate the machine runs at.
 	**/
 	public var tempo(default, null):Int = 0;
@@ -458,6 +471,11 @@ final class Preferences extends Widget {
 		Called when the monitored output stage changes.
 	**/
 	public var onConsole:Null<Int -> Void> = null;
+
+	/**
+		Called when declicking is switched.
+	**/
+	public var onDeclick:Null<Bool -> Void> = null;
 
 	/**
 		Called when the frame rate changes.
@@ -1028,6 +1046,7 @@ final class Preferences extends Widget {
 			case TAIL: TAILS;
 			case MIDI_VELOCITY: VELOCITIES;
 			case CONSOLE: CONSOLES;
+			case DECLICK: DECLICKS;
 			case TEMPO: TEMPOS;
 			case ACCIDENTALS: ACCIDENTAL_NAMES;
 			case NOTE_LETTERS: LETTER_NAMES;
@@ -1054,8 +1073,8 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
-				MIDI_VELOCITY, CONSOLE, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS, NOTE_LETTERS,
-				PART_COLOURS, RIGHT_CLICK: NOTHING;
+				MIDI_VELOCITY, CONSOLE, DECLICK, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS,
+				NOTE_LETTERS, PART_COLOURS, RIGHT_CLICK: NOTHING;
 			case _: languages;
 		}
 	}
@@ -1157,6 +1176,7 @@ final class Preferences extends Widget {
 			case MIDI_CHANNEL: keyboardChannel;
 			case MIDI_VELOCITY: keyboardVelocity;
 			case CONSOLE: console;
+			case DECLICK: declick ? 1 : 0;
 			case TEMPO: tempo;
 			case ACCIDENTALS: mdd.song.Notation.accidentalsOf(session.notation);
 			case NOTE_LETTERS: mdd.song.Notation.lettersOf(session.notation);
@@ -1244,6 +1264,10 @@ final class Preferences extends Widget {
 			case CONSOLE:
 				console = which;
 				if (onConsole != null) onConsole(which);
+
+			case DECLICK:
+				declick = which > 0;
+				if (onDeclick != null) onDeclick(declick);
 
 			case ACCIDENTALS:
 				session.notation = mdd.song.Notation.styled(which,

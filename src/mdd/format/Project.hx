@@ -107,9 +107,6 @@ class Project {
 		out.key("driving");
 		out.flag(song.driving);
 
-		out.key("declick");
-		out.flag(song.declick);
-
 		out.key("drums");
 		out.flag(song.drums);
 
@@ -465,7 +462,6 @@ class Project {
 
 		final stall = node.get("stall");
 		song.driving = node.get("driving").truth(false);
-		song.declick = node.get("declick").truth(false);
 		song.drums = node.get("drums").truth(false);
 		song.stallAt = stall.at(0).whole(-1);
 		song.stallFor = stall.at(1).whole(0);

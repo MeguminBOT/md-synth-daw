@@ -132,7 +132,9 @@ final class Filming {
 		if (parts.length == 0) for (index in 0...Part.COUNT) parts.push(index);
 
 		stream = Stream.reserved(span);
-		new Sequencer(song).spanned(stream, 0, span);
+		final sequencer = new Sequencer(song);
+		sequencer.declick = mixing.declick;
+		sequencer.spanned(stream, 0, span);
 
 		render = new Render(made.rate, Render.BLOCK);
 		render.console = mixing.console;

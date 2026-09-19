@@ -271,8 +271,8 @@ class StreamCheck {
 		lands the held one at once. A key off and a key on on one sample are then an edge or not
 		depending on where the channel's own slot falls: the first channel still attacked, and a
 		run of back to back notes on any of the other five played its first note and then silence.
-		The song does not declick, because a fade keys the channel off well before the key on and
-		would hide the one sample this measures.
+		The sequencer does not declick here, because a fade keys the channel off well before the key
+		on and would hide the one sample this measures.
 	**/
 	static function restruck():Void {
 		var gapped = 0;
@@ -284,8 +284,6 @@ class StreamCheck {
 		for (channel in 0...6) {
 			final part:Part = channel;
 			final song = new Song("restruck", 96, 120);
-			song.declick = false;
-
 			final plucked = new Instrument("plucked", part);
 			final patch = plucked.patch;
 
@@ -311,7 +309,10 @@ class StreamCheck {
 			song.track(new Track("one")).add(new Clip(0, 0, pattern.length));
 
 			final stream = new Stream(1 << 16);
-			new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+			final sequencer = new Sequencer(song);
+
+			sequencer.declick = false;
+			sequencer.spanned(stream, 0, song.tempo.samplesAt(pattern.length));
 
 			final struck = attacks(song, stream, beat);
 			final touched = attacks(song, touching(stream), beat);

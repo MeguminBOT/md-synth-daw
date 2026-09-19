@@ -25,6 +25,12 @@ final class Mixdown {
 	public var rate(default, null):Int = 44100;
 	public var console(default, null):Int = Render.MODEL_ONE;
 
+	/**
+		Whether the writes smooth the edges the parts would otherwise click on, taken from the
+		export's own settings.
+	**/
+	public var declick(default, null):Bool = true;
+
 	public var peak(default, null):Float = 0;
 	public var gain(default, null):Float = 1;
 	public var writes(default, null):Int = 0;
@@ -214,6 +220,7 @@ final class Mixdown {
 		rate = mixing.worksAt();
 		channels = mixing.channels();
 		console = mixing.console;
+		declick = mixing.declick;
 
 		final span = song.tempo.samplesAt(song.ends());
 		final sounding = Std.int(span * (rate / Tempo.TICKS));
@@ -246,6 +253,7 @@ final class Mixdown {
 
 		final stream = feeding;
 		final sequencer = new Sequencer(song);
+		sequencer.declick = declick;
 		sequencer.onlyPart = onlyPart;
 		sequencer.onlyTrack = onlyTrack;
 
