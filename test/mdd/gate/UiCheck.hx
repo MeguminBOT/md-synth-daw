@@ -142,6 +142,7 @@ class UiCheck {
 		sheets(renderer, target, face, monoFace);
 		chooses();
 		crowded(renderer, face, monoFace);
+		envelopes();
 
 		Draw.destroyTexture(target);
 		Sdl.destroyRenderer(renderer);
@@ -336,6 +337,67 @@ class UiCheck {
 			"a point under the menu belongs to no entry");
 
 		root.dismiss();
+	}
+
+	/**
+		An operator's envelope is drawn inside its own box. The line has a thickness of its own, so
+		a patch loud enough to reach the top of the box would draw half that line above it.
+	**/
+	static function envelopes():Void {
+		final root = shaped();
+		root.resize(1280, 720);
+
+		final session = new mdd.app.Session(new mdd.song.Song());
+		final editor = new mdd.view.editor.FmEditor(session);
+
+		root.top.add(editor);
+		editor.arrange(0, 0, 520, 700);
+
+		final patch = new mdd.song.Patch();
+		final box = new Vector<Float>(4);
+		final points = new Vector<Float>(10);
+		final hair = root.metrics.whole(2) * 0.5;
+
+		patch.algorithm = 7;
+
+		var outside = 0;
+		var worst = 0.0;
+
+		for (loudest in [true, false]) {
+			for (slot in 0...mdd.song.Patch.SLOTS) {
+				patch.totalLevel[slot] = loudest ? 0 : 127;
+				patch.attack[slot] = loudest ? 31 : 0;
+				patch.decay[slot] = 0;
+				patch.sustain[slot] = 0;
+				patch.sustainLevel[slot] = 0;
+				patch.release[slot] = loudest ? 15 : 0;
+			}
+
+			for (slot in 0...mdd.song.Patch.SLOTS) {
+				editor.boxAt(slot, box);
+				editor.envelopeAt(slot, patch, points);
+
+				for (index in 0...5) {
+					final px = points[index * 2];
+					final py = points[index * 2 + 1];
+
+					final over = [box[0] - (px - hair), (px + hair) - (box[0] + box[2]),
+						box[1] - (py - hair), (py + hair) - (box[1] + box[3])];
+
+					for (much in over) {
+						if (much <= 0.001) continue;
+
+						outside++;
+						if (much > worst) worst = much;
+					}
+				}
+			}
+		}
+
+		says("an envelope stays in its box", outside == 0,
+			outside == 0 ? "every point of all 8 envelopes drawn, at both ends of the range, sits inside its"
+			+ " box with room for the line's thickness"
+			: outside + " points reach past it, the worst by " + round(worst, 2));
 	}
 
 	static function shaped():Root {

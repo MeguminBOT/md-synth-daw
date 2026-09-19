@@ -106,6 +106,11 @@ final class FmEditor extends Widget {
 	final points:Vector<Float> = new Vector<Float>(64);
 
 	/**
+		Where one envelope box sits, kept here so painting a frame allocates nothing.
+	**/
+	final box:Vector<Float> = new Vector<Float>(4);
+
+	/**
 		How far the pointer moves for one step with the precision key held.
 	**/
 	static inline final FINE = 4.0;
@@ -665,61 +670,101 @@ final class FmEditor extends Widget {
 		return (32 - rate) / 32.0;
 	}
 
-	function envelopes(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
+	/**
+		How thick the line an envelope is drawn with is, before the display scale.
+	**/
+	static inline final HAIR = 2;
+
+	/**
+		Where one operator's envelope box sits, as left, top, width and height, in `into`.
+
+		The box is what the curve is drawn inside. A caller measuring the curve against it has to
+		allow half the line's thickness on every side, which `envelopeAt` has already taken off.
+
+		@param slot Which operator.
+		@param into Four numbers to fill.
+	**/
+	public function boxAt(slot:Int, into:Vector<Float>):Void {
+		final root = root();
+		final inset = root == null ? 6 : root.metrics.gap;
 		final wide = columns();
-		final tall = curve();
 		final top = y + head();
-		final inset = metrics.gap;
+
+		into[0] = x + slot * wide + inset;
+		into[1] = top + inset;
+		into[2] = wide - inset * 2;
+		into[3] = curve() - inset * 2;
+	}
+
+	/**
+		One operator's envelope as the five points it is drawn through, as x and y pairs in `into`.
+
+		Every point sits half the line's thickness inside the box `boxAt` gives, so the line itself
+		stays within it however loud or quiet the operator is. An operator at a total level of
+		nought would otherwise draw its peak along the top edge with half the line above it.
+
+		@param slot Which operator.
+		@param patch The patch it belongs to.
+		@param into Ten numbers to fill.
+	**/
+	public function envelopeAt(slot:Int, patch:Patch, into:Vector<Float>):Void {
+		final root = root();
+		final hair = root == null ? HAIR : root.metrics.whole(HAIR);
+		final edge = hair * 0.5;
+
+		boxAt(slot, box);
+
+		final left = box[0] + edge;
+		final room = box[2] - hair;
+		final ceiling = box[1] + edge;
+		final floor = box[1] + box[3] - edge;
+		final reach = floor - ceiling;
+
+		final peak = (127 - patch.totalLevel[slot]) / 127.0;
+		final held = patch.sustainLevel[slot] / 15.0;
+		final rest = peak * (1 - held);
+
+		final attack = spanOf(patch.attack[slot]);
+		final decay = spanOf(patch.decay[slot]);
+		final sustain = spanOf(patch.sustain[slot]);
+		final release = spanOf(patch.release[slot] * 2);
+
+		final total = attack + decay + sustain + release;
+		final scale = total <= 0 ? 0 : room / total;
+
+		var pen = left;
+
+		into[0] = pen;
+		into[1] = floor;
+
+		pen += attack * scale;
+		into[2] = pen;
+		into[3] = floor - reach * peak;
+
+		pen += decay * scale;
+		into[4] = pen;
+		into[5] = floor - reach * rest;
+
+		pen += sustain * scale;
+		into[6] = pen;
+		into[7] = floor - reach * rest * 0.35;
+
+		pen += release * scale;
+		into[8] = pen;
+		into[9] = floor;
+	}
+
+	function envelopes(paint:Paint, theme:Theme, metrics:Metrics, patch:Patch):Void {
+		final hair = metrics.whole(HAIR);
 
 		for (slot in 0...Patch.SLOTS) {
-			final left = x + slot * wide + inset;
-			final room = wide - inset * 2;
-			final floor = top + tall - inset;
-			final ceiling = top + inset;
-			final reach = floor - ceiling;
+			boxAt(slot, box);
+			paint.rect(box[0], box[1], box[2], box[3], theme.sink, 0.5);
 
-			paint.rect(left, ceiling, room, reach, theme.sink, 0.5);
-
-			final peak = (127 - patch.totalLevel[slot]) / 127.0;
-			final held = patch.sustainLevel[slot] / 15.0;
-			final rest = peak * (1 - held);
-
-			var attack = spanOf(patch.attack[slot]);
-			var decay = spanOf(patch.decay[slot]);
-			var sustain = spanOf(patch.sustain[slot]);
-			var release = spanOf(patch.release[slot] * 2);
-
-			final total = attack + decay + sustain + release;
-			final scale = total <= 0 ? 0 : room / total;
+			envelopeAt(slot, patch, points);
 
 			final carrier = patch.carries(slot);
 			final ink = carrier ? theme.part(session.part.index()) : theme.dim;
-			final hair = metrics.whole(2);
-
-			var pen = left;
-			var level = 0.0;
-
-			points[0] = pen;
-			points[1] = floor;
-
-			pen += attack * scale;
-			level = peak;
-			points[2] = pen;
-			points[3] = floor - reach * level;
-
-			pen += decay * scale;
-			level = rest;
-			points[4] = pen;
-			points[5] = floor - reach * level;
-
-			pen += sustain * scale;
-			level = rest * 0.35;
-			points[6] = pen;
-			points[7] = floor - reach * level;
-
-			pen += release * scale;
-			points[8] = pen;
-			points[9] = floor;
 
 			paint.polyline(points, 5, hair, ink, carrier ? 1 : 0.7);
 		}
