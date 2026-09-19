@@ -225,6 +225,10 @@ void mdd_render_clear(SDL_Renderer *renderer, float r, float g, float b, float a
  * alternating the two reads as heavy flicker. An idle frame must skip this rather
  * than present nothing.
  *
+ * On the vulkan backend it then waits for the device to finish the frame, because
+ * SDL copies the next frame's vertices over buffers a submitted frame may not have
+ * read yet.
+ *
  * @param renderer The renderer.
  */
 void mdd_render_present(SDL_Renderer *renderer);

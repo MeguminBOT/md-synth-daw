@@ -1,11 +1,10 @@
 /**
  * The window, the renderer and the clock, through SDL3.
  *
- * Windows defaults to direct3d11. All six SDL backends open a window and paint a
- * still interface correctly, and the fault in two of them appears only once the
- * transport is running and the playhead, the scope and the meters are redrawing
- * every frame. A flag or a setting names another, which is what makes the fault
- * reachable to look at.
+ * Windows defaults to direct3d11, and a flag or a setting names another. The vulkan
+ * backend is given two things the others are not, a wait for its device after every
+ * present and adaptive vsync, because without them it draws single frames with
+ * another frame's vertices and shows a frame from two presents earlier.
  *
  * The clock is at full precision and the sleep asks the operating system for a fine
  * enough scheduler tick first, because a timestamp rounded to whole milliseconds is
@@ -13,9 +12,85 @@
  */
 #include "window.h"
 
+#include <SDL3/SDL_vulkan.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+/**
+ * The calling convention vulkan's entry points use, which is only different from the
+ * default on 32 bit Windows.
+ */
+#if defined(_WIN32) && !defined(_WIN64)
+#define MDD_VKAPI __stdcall
+#else
+#define MDD_VKAPI
+#endif
+
+/**
+ * Any vulkan entry point, as the loader hands one back.
+ */
+typedef void (MDD_VKAPI *mdd_vk_function)(void);
+
+/**
+ * vkGetInstanceProcAddr, which finds an entry point by name for an instance.
+ */
+typedef mdd_vk_function (MDD_VKAPI *mdd_vk_instance_proc)(void *instance, const char *name);
+
+/**
+ * vkDeviceWaitIdle, which returns once a device has finished everything submitted to it.
+ */
+typedef int (MDD_VKAPI *mdd_vk_device_wait)(void *device);
+
+/**
+ * Where the renderer's own properties keep the instance the wait below was looked up
+ * for, and the wait itself.
+ */
+#define MDD_VULKAN_INSTANCE "mdd.vulkan.instance"
+#define MDD_VULKAN_WAIT "mdd.vulkan.wait"
+
+/**
+ * Waits for the vulkan renderer's device to finish everything submitted to it, and
+ * does nothing on any other backend.
+ *
+ * SDL's vulkan renderer copies each frame's vertices into one set of mapped buffers
+ * starting from the first again every frame, and before recording the next frame it
+ * waits only for the frame as many presents back as the swap chain has images. A
+ * frame it has submitted can still be waiting for its image when the next one is
+ * copied over its vertices, and it is then drawn with the next frame's vertices and
+ * its own draw calls: every quad after the first place the two frames differ lands
+ * on another quad's corners and texture coordinates, which is read as wrong glyphs
+ * and flicker whenever the interface is changing. Waiting here keeps one frame in
+ * flight, so the copy never lands on vertices a frame still needs.
+ *
+ * The instance and the device are read each time, because SDL makes new ones when it
+ * recovers a lost device, and the wait is looked up again when the instance changes.
+ *
+ * @param renderer The renderer.
+ */
+static void mdd_vulkan_settle(SDL_Renderer *renderer) {
+	const char *name = SDL_GetRendererName(renderer);
+	if (name == nullptr || SDL_strcmp(name, "vulkan") != 0) return;
+
+	const SDL_PropertiesID props = SDL_GetRendererProperties(renderer);
+	void *instance = SDL_GetPointerProperty(props, SDL_PROP_RENDERER_VULKAN_INSTANCE_POINTER, nullptr);
+	void *device = SDL_GetPointerProperty(props, SDL_PROP_RENDERER_VULKAN_DEVICE_POINTER, nullptr);
+	if (instance == nullptr || device == nullptr) return;
+
+	void *wait = SDL_GetPointerProperty(props, MDD_VULKAN_WAIT, nullptr);
+
+	if (wait == nullptr || SDL_GetPointerProperty(props, MDD_VULKAN_INSTANCE, nullptr) != instance) {
+		const mdd_vk_instance_proc lookup = (mdd_vk_instance_proc)SDL_Vulkan_GetVkGetInstanceProcAddr();
+		if (lookup == nullptr) return;
+
+		wait = (void *)lookup(instance, "vkDeviceWaitIdle");
+		SDL_SetPointerProperty(props, MDD_VULKAN_INSTANCE, instance);
+		SDL_SetPointerProperty(props, MDD_VULKAN_WAIT, wait);
+	}
+
+	if (wait != nullptr) ((mdd_vk_device_wait)wait)(device);
+}
 
 extern "C" int mdd_sdl_init(void) {
 	SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");
@@ -165,6 +240,27 @@ extern "C" const char *mdd_render_driver(int index) {
 	return name == nullptr ? "" : name;
 }
 
+/**
+ * The vsync setting a renderer is given.
+ *
+ * On the vulkan backend a synchronised swap chain is asked for with adaptive vsync,
+ * which SDL turns into the relaxed FIFO present mode, rather than the strict one. Under
+ * strict FIFO a window on Windows was seen showing the image from two presents earlier
+ * for one refresh, about a dozen times a minute, measured on screen and never on direct3d11,
+ * direct3d12 or opengl; under relaxed FIFO it did not happen at all. Relaxed FIFO still
+ * waits for the display, and only presents at once when a frame is already late.
+ *
+ * @param renderer The renderer.
+ * @param vsync Nonzero to wait for the display.
+ * @return What to pass SDL_SetRenderVSync.
+ */
+static int mdd_vsync_for(SDL_Renderer *renderer, int vsync) {
+	if (vsync == 0) return SDL_RENDERER_VSYNC_DISABLED;
+
+	const char *name = SDL_GetRendererName(renderer);
+	return name != nullptr && SDL_strcmp(name, "vulkan") == 0 ? SDL_RENDERER_VSYNC_ADAPTIVE : 1;
+}
+
 extern "C" SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync, const char *driver) {
 	const char *wanted = driver == nullptr || driver[0] == 0 ? nullptr : driver;
 
@@ -173,7 +269,7 @@ extern "C" SDL_Renderer *mdd_renderer_create(SDL_Window *window, int vsync, cons
 	if (renderer == nullptr && wanted != nullptr) renderer = SDL_CreateRenderer(window, nullptr);
 	if (renderer == nullptr) return nullptr;
 
-	SDL_SetRenderVSync(renderer, vsync != 0 ? 1 : SDL_RENDERER_VSYNC_DISABLED);
+	SDL_SetRenderVSync(renderer, mdd_vsync_for(renderer, vsync));
 	SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	return renderer;
@@ -202,7 +298,10 @@ extern "C" void mdd_render_clear(SDL_Renderer *renderer, float r, float g, float
 }
 
 extern "C" void mdd_render_present(SDL_Renderer *renderer) {
-	if (renderer != nullptr) SDL_RenderPresent(renderer);
+	if (renderer == nullptr) return;
+
+	SDL_RenderPresent(renderer);
+	mdd_vulkan_settle(renderer);
 }
 
 extern "C" void mdd_set_clip(SDL_Renderer *renderer, int x, int y, int width, int height) {
