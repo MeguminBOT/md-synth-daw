@@ -80,6 +80,48 @@ final class Sequencer {
 	static inline final GUARD = 1;
 
 	/**
+		How long before a key on an FM channel is let go where the song declicks, in samples: 4 ms.
+		A key on starts every operator's phase again from nought, and a channel still sounding
+		jumps to wherever that is. The quickest release falls 13 dB a millisecond, so the jump
+		starts about 50 dB down rather than from the whole note, and the fall itself is too
+		gradual to click.
+	**/
+	public static inline final FADE_LEAD = 176;
+
+	/**
+		What a key off event's second value is where it lets the channel go at its quickest
+		rather than at its patch's own release. It sorts after a plain key off on the same sample
+		and before the next note's patch, which puts the release back.
+	**/
+	static inline final FADE = 1;
+
+	/**
+		The slowest attack rate every carrier must have for a key on to be faded into. A slower
+		carrier keys on from wherever the last note left it, which is what makes a legato swell,
+		and letting it go first would be heard as a gap.
+	**/
+	static inline final FAST_ATTACK = 26;
+
+	/**
+		How long a converter hit takes to return to the middle where the song declicks, in
+		samples: 1.5 ms. The converter holds the last byte it is given, so a hit that stops away
+		from the middle steps there and then steps again when the channel is let go.
+	**/
+	static inline final SETTLE = 66;
+
+	/**
+		How far before a span a note may end and still owe it a write, in samples, where the song
+		declicks: the settle, and room for a hit read at a low rate.
+	**/
+	static inline final SETTLE_REACH = 128;
+
+	/**
+		Whether the gather under way is only looking one lead ahead for the FM key ons a fade has
+		to precede.
+	**/
+	var fading:Bool = false;
+
+	/**
 		The song being read.
 	**/
 	public final song:Song;
@@ -274,6 +316,7 @@ final class Sequencer {
 		tracked();
 		settle(fromSample);
 		gather(fromSample, toSample);
+		if (song.declick) fades(fromSample, toSample);
 		sort();
 
 		driver.on = song.driving;
@@ -293,6 +336,19 @@ final class Sequencer {
 		driver.paces(scratch, stream, toSample);
 
 		return count;
+	}
+
+	/**
+		Collects a fade for every FM key on one lead past the span, so each fade lands inside the
+		span it belongs to and a span of any length finds the same ones.
+
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
+	function fades(fromSample:Int, toSample:Int):Void {
+		fading = true;
+		gather(fromSample + FADE_LEAD, toSample + FADE_LEAD);
+		fading = false;
 	}
 
 	/**
@@ -438,7 +494,7 @@ final class Sequencer {
 	function gather(fromSample:Int, toSample:Int):Void {
 		final tempo = song.tempo;
 
-		var low = tempo.tickAt(fromSample) - 1;
+		var low = tempo.tickAt(song.declick && !fading ? fromSample - SETTLE_REACH : fromSample) - 1;
 		if (low < 0) low = 0;
 
 		final high = tempo.tickAt(toSample) + 1;
@@ -493,7 +549,7 @@ final class Sequencer {
 			}
 		}
 
-		if (drivenParts == 0) return;
+		if (drivenParts == 0 || fading) return;
 
 		for (track in song.tracks) {
 			if (track.muted) continue;
@@ -867,6 +923,7 @@ final class Sequencer {
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			if (!wanted(part)) continue;
+			if (fading && !part.fm()) continue;
 
 			final lane = pattern.lane(part);
 			if (lane.notes.length == 0 && lane.automation.length == 0) continue;
@@ -877,7 +934,7 @@ final class Sequencer {
 
 			voices.resolve(lane, head, high - origin + 1);
 			sound(lane, origin, from, until, transpose, part, fromSample, toSample);
-			tweaked(lane, origin, part, head, high - origin + 1, transpose, fromSample, toSample);
+			if (!fading) tweaked(lane, origin, part, head, high - origin + 1, transpose, fromSample, toSample);
 		}
 	}
 
@@ -940,6 +997,16 @@ final class Sequencer {
 			final held = legato && voices.heldAt(slice);
 
 			final onSample = tempo.samplesAt(start);
+
+			if (fading) {
+				if (!tied && onSample >= fromSample && onSample < toSample && attacksFast(chosen(lane,
+						part, voices.instrumentAt(slice), voices.startAt(slice)), part)) {
+					push(onSample - FADE_LEAD, part, OFF, 0, FADE);
+				}
+
+				continue;
+			}
+
 			final ending = tempo.samplesAt(ends);
 			final offSample = !held && part.fm() && ending - onSample > GUARD * 2
 				&& struckAt(part, ends, slice, origin) ? ending - GUARD : ending;
@@ -1011,15 +1078,15 @@ final class Sequencer {
 
 			}
 
-			if (!held && offSample >= fromSample && offSample < toSample
+			final letGo = part.sampled() ? sampled(onSample, offSample, named, pitch,
+				song.declick && struckAt(part, ends, slice, origin), fromSample, toSample) : offSample;
+
+			if (!held && letGo >= fromSample && letGo < toSample
 					&& !(part.sampled() && tuning != null)) {
-				push(offSample, part, OFF, 0, 0);
+				push(letGo, part, OFF, 0, 0);
 			}
 
-			if (part.sampled()) {
-				sampled(onSample, offSample, named, pitch, fromSample, toSample);
-			}
-			else if ((part.square() || part.noise()) && lines[0] == null
+			if ((part.square() || part.noise()) && lines[0] == null
 					&& !(driven && driverOf(part, mdd.song.Automation.LEVEL, 0, start) != null)) {
 				final head = tied ? tiedFrom(lane, voices.startAt(slice)) : null;
 
@@ -1561,22 +1628,29 @@ final class Sequencer {
 		Collects the sample channel bytes one note plays, at the rate the sample was
 		recorded at.
 
+		Where the song declicks, a hit that stops away from the middle returns there over
+		`SETTLE`, from where it ran out or from where its note cut it, unless the next hit starts
+		exactly where it was cut and takes the converter over.
+
 		@param onSample Where the note begins.
 		@param offSample Where it ends.
 		@param named Which instrument the note plays.
 		@param pitch The note sounding, which is the key a kit is read at.
+		@param struck Whether another note keys the converter on exactly where this one ends.
 		@param fromSample The first sample of the span.
 		@param toSample One past the last sample of the span.
+		@return Where the converter may be let go: where the note ends, or later where the return
+			to the middle runs past it.
 	**/
-	function sampled(onSample:Int, offSample:Int, named:Int, pitch:Int,
-			fromSample:Int, toSample:Int):Void {
+	function sampled(onSample:Int, offSample:Int, named:Int, pitch:Int, struck:Bool,
+			fromSample:Int, toSample:Int):Int {
 		final kit = song.drums ? song.drumAt(pitch) : -1;
 		final instrument = kit >= 0 ? song.instrumentAt(kit)
 			: instrumentOf(named, Part.Dac);
-		if (instrument == null) return;
+		if (instrument == null) return offSample;
 
 		final sample = song.sampleAt(instrument.sample);
-		if (sample == null || sample.length() == 0) return;
+		if (sample == null || sample.length() == 0) return offSample;
 
 		final held = strikes;
 
@@ -1601,6 +1675,7 @@ final class Sequencer {
 		if (stalls) while (next < onSample) next += frame;
 
 		var index = 0;
+		var playing = false;
 
 		while (index < sample.length()) {
 			if (stalls && when >= next) {
@@ -1610,7 +1685,12 @@ final class Sequencer {
 			}
 
 			final at = Math.round(when);
-			if (at >= toSample || at >= offSample) break;
+			if (at >= offSample) break;
+
+			if (at >= toSample) {
+				playing = true;
+				break;
+			}
 
 			if (at >= fromSample) push(at, Part.Dac, DATA, quieter(sample.bytes[index]),
 				DAC_BYTE);
@@ -1618,6 +1698,60 @@ final class Sequencer {
 			when += step;
 			index++;
 		}
+
+		if (!song.declick || playing || index == 0) return offSample;
+
+		final cut = index < sample.length();
+		if (cut && struck) return offSample;
+
+		final last = quieter(sample.bytes[index - 1]);
+		if (last == 0x80) return offSample;
+
+		final many = Math.ceil(SETTLE / step);
+		var letGo = offSample;
+
+		for (left in 0...many) {
+			final at = Math.round(when);
+			if (struck && at >= offSample) break;
+
+			if (at >= fromSample && at < toSample) {
+				push(at, Part.Dac, DATA, 0x80 + Math.round((last - 0x80) * eased(many - 1 - left, many)),
+					DAC_BYTE);
+			}
+
+			if (at + 1 > letGo) letGo = at + 1;
+			when += step;
+		}
+
+		return letGo;
+	}
+
+	/**
+		@param left How many steps are left after this one.
+		@param many How many the whole return takes.
+		@return How much of the way from the middle a step that far from the end still stands: a
+			half cosine from one down to nought on the last step.
+	**/
+	static inline function eased(left:Int, many:Int):Float {
+		return 0.5 - 0.5 * Math.cos(Math.PI * left / many);
+	}
+
+	/**
+		@param named Which instrument a note plays.
+		@param part Its FM part.
+		@return Whether every carrier of that instrument's patch attacks at `FAST_ATTACK` or faster,
+			so a fade before its key on is filled straight back in.
+	**/
+	function attacksFast(named:Int, part:Part):Bool {
+		final instrument = instrumentOf(named, part);
+		final patch = instrument == null ? null : instrument.patch;
+		if (patch == null) return false;
+
+		for (slot in 0...4) {
+			if (patch.carries(slot) && patch.attack[slot] < FAST_ATTACK) return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -1851,10 +1985,13 @@ final class Sequencer {
 
 			switch (kinds[at]) {
 				case OFF:
-					stream.silence(tick, part);
+					if (second == FADE) stream.fades(tick, part);
+					else {
+						stream.silence(tick, part);
 
-					final due = owed[part.index()];
-					if (due != HELD && tick + 1 >= due) owed[part.index()] = 0;
+						final due = owed[part.index()];
+						if (due != HELD && tick + 1 >= due) owed[part.index()] = 0;
+					}
 
 				case PATCH:
 					final instrument = instrumentOf(first, part);

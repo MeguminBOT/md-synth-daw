@@ -161,6 +161,15 @@ final class Song {
 	public var driving:Bool = false;
 
 	/**
+		Whether the sequencer smooths the edges the parts would otherwise click on: a converter hit
+		returns to the middle over a moment rather than at once, and an FM channel still sounding is
+		let go at its quickest just before the next note keys it on again. Every write this adds is
+		one a driver could make, so an export carries it too. A new piece has it on; an import and a
+		project saved before it existed have it off, because an import reproduces what the game wrote.
+	**/
+	public var declick:Bool = true;
+
+	/**
 		Where a deliberate driver stall begins, in ticks, or -1 for none. This is how a
 		piece can be made to sound the way it does on hardware that is busy elsewhere.
 	**/

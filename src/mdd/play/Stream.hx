@@ -189,6 +189,12 @@ final class Stream {
 	var values:Vector<Int>;
 	var noised:Int = -1;
 	final settled:Vector<Int> = new Vector<Int>(512);
+
+	/**
+		Per FM channel, whether the last key write keyed it on: 1 on, 0 off, -1 not known since the
+		last `forget`.
+	**/
+	final keyed:Vector<Int> = new Vector<Int>(6);
 	final words:Vector<Int> = new Vector<Int>(10);
 	final whens:Vector<Int> = new Vector<Int>(10);
 
@@ -289,6 +295,7 @@ final class Stream {
 	public function forget():Void {
 		noised = -1;
 		for (index in 0...settled.length) settled[index] = -1;
+		for (index in 0...keyed.length) keyed[index] = -1;
 		for (index in 0...words.length) words[index] = -1;
 		for (index in 0...whens.length) whens[index] = -1;
 	}
@@ -582,6 +589,7 @@ final class Stream {
 	**/
 	public function keyOn(tick:Int, part:Part):Void {
 		if (!part.fm()) return;
+		keyed[part.index()] = 1;
 		ym(tick, 0, 0x28, 0xF0 | select(part));
 	}
 
@@ -593,7 +601,31 @@ final class Stream {
 	**/
 	public function keyOff(tick:Int, part:Part):Void {
 		if (!part.fm()) return;
+		keyed[part.index()] = 0;
 		ym(tick, 0, 0x28, select(part));
+	}
+
+	/**
+		Lets an FM channel go at its quickest: every operator's release rate to 15, keeping the
+		sustain level beside it, and then a key off where the channel is keyed on. The next key
+		on's patch puts the release back, so this only ever shortens a note that is about to be cut
+		anyway, and a channel already quiet at its quickest release costs no writes at all.
+
+		@param tick When the write happens, in output samples from the start of the span.
+		@param part Which channel the write is for.
+	**/
+	public function fades(tick:Int, part:Part):Void {
+		if (!part.fm()) return;
+
+		final half = halfOf(part);
+		final channel = channelOf(part);
+
+		for (group in 0...4) {
+			final at = 0x80 + group * 4 + channel;
+			ym(tick, half, at, (settled[(half << 8) | at] & 0xF0) | 0x0F);
+		}
+
+		if (keyed[part.index()] != 0) keyOff(tick, part);
 	}
 
 	/**

@@ -62,6 +62,20 @@ model to it exactly rather than to a threshold.
 The shift rate is the low two bits of the noise control register: once every 10h, 20h or 40h counts,
 or the third channel's own period.
 
+## A note's edge is one more edge
+
+The output is nought or the attenuated level, never both ways around nought, so a square is a run of
+hard steps and the coupling capacitor after the chip takes its mean away. Measured the way
+`mdd gate declick` measures an FM key on, on a 110 Hz square through the Mega Drive 2's output stage,
+a key on puts -16.6 dB through the high pass against the note, which is exactly what the square puts
+through it in the middle of the note. A key off lands on the square's low half there and adds
+nothing, and landing on its high half would add one step the square makes anyway. Noise keyed on
+puts -2.2 dB through against its own -2.1. Nothing is smoothed here, because there is no click to
+take away that the part is not already making.
+
+The squares reach the output through a resampler of their own, heard 238 samples behind the writes
+at 44100 Hz against the FM part's 212, and noise 84 samples behind.
+
 ## What this does not cover
 
 There is no fixture suite for this part, so nothing here compares it against a known-good
