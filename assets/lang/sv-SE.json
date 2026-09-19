@@ -387,6 +387,7 @@
   "preset.duplicate": "Duplicera",
   "preset.expandAll": "Fäll ut alla",
   "preset.folder": "Öppna mapp",
+  "preset.fromFile": "Från projektfilen",
   "preset.keep": "Behåll förinställningarna",
   "preset.kept": "behållna",
   "preset.kit": "Läs in det här kitet",

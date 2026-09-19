@@ -26,6 +26,12 @@ class PresetCheck {
 	static inline final SAVED = "Saved presets";
 
 	/**
+		What the bank of presets a piece was read from is called, in the reader's language. The
+		application passes the translation; this is what it reads in English.
+	**/
+	static inline final FROM_FILE = "From Project File";
+
+	/**
 		@param args The gate's arguments, unused.
 		@return Nought where every case held.
 	**/
@@ -38,6 +44,7 @@ class PresetCheck {
 		carried();
 		reached();
 		shipped();
+		filed();
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -167,6 +174,77 @@ class PresetCheck {
 
 		says("a shipped bank is left as it is", added == 0 && bank.instruments.length == before - 1,
 			added + " added back into '" + at + "', which holds " + bank.instruments.length);
+	}
+
+	/**
+		A piece read from a file has its presets filed by where they came from: the library's own
+		banks for what the library offers, the starting bank for the set every piece begins with,
+		and one bank for what the file itself brought, however the file had them grouped. A piece
+		carrying the same preset twice, as one written before the presets folder had a name of its
+		own does, lists it once.
+	**/
+	static function filed():Void {
+		final library = Library.embedded();
+		library.keeps(SAVED, patched("My Own Lead"), null);
+
+		final song = new Song("my piece");
+		mdd.song.Shipped.into(song);
+
+		final shippedBank = library.names.length == 0 ? "" : library.names[0];
+		final fromShipped = library.instruments[0][0].name;
+
+		library.into(song);
+
+		final starter = listed(song, Library.STARTERS);
+		final mine = song.instrument(patched("Bass Of Mine"));
+		final swapped = song.instrument(enveloped("Square Of Mine", Part.Psg1));
+		final imported = song.instrument(patched("Lead Of Mine"));
+
+		final named = song.banked("my piece");
+		final blank = song.banked("");
+		final importing = song.banked("from the import");
+
+		song.bank(0).remove(song.instruments.length - 1);
+		song.bank(0).remove(song.instruments.length - 2);
+		song.bank(0).remove(song.instruments.length - 3);
+
+		named.add(song.instruments.indexOf(mine));
+		named.add(song.instruments.indexOf(swapped));
+		importing.add(song.instruments.indexOf(imported));
+
+		for (index in song.banked(shippedBank).instruments) named.add(index);
+		for (index in song.banked(SAVED).instruments) blank.add(index);
+
+		final twin = song.instrument(patched("My Own Lead"));
+		song.bank(0).remove(song.instruments.indexOf(twin));
+		blank.add(song.instruments.indexOf(twin));
+
+		final was = song.instruments.length;
+		final rack = song.rack[0];
+
+		library.files(song, FROM_FILE);
+		final added = library.into(song);
+
+		says("what the file brought is one bank", listed(song, FROM_FILE)
+			== "Bass Of Mine, Square Of Mine, Lead Of Mine",
+			"'" + FROM_FILE + "' holds " + listed(song, FROM_FILE) + ", from a bank named after the piece and one"
+			+ " named for an import");
+
+		says("a shipped preset goes back to its bank", listed(song, shippedBank).indexOf(fromShipped) >= 0
+			&& listed(song, "my piece") == "" && listed(song, "") == "",
+			"'" + fromShipped + "' is in '" + shippedBank + "' again, and the banks named after the piece and after"
+			+ " nothing are empty");
+
+		says("a preset carried twice is listed once", listed(song, SAVED) == "My Own Lead",
+			"'" + SAVED + "' holds " + listed(song, SAVED) + " for a piece carrying it twice");
+
+		says("the starting presets stay where they are", listed(song, Library.STARTERS) == starter,
+			Library.STARTERS + " holds the same " + song.banked(Library.STARTERS).instruments.length + " presets");
+
+		says("nothing a note names moves", song.instruments.length == was && added == 0
+			&& song.rack[0] == rack,
+			song.instruments.length + " instruments before and after, " + added + " added by the library afterwards,"
+			+ " and the rack still names " + rack);
 	}
 
 	/**

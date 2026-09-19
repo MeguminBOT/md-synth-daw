@@ -387,6 +387,7 @@
   "preset.duplicate": "创建副本",
   "preset.expandAll": "全部展开",
   "preset.folder": "打开文件夹",
+  "preset.fromFile": "来自工程文件",
   "preset.keep": "保留这些预设",
   "preset.kept": "已保留",
   "preset.kit": "载入此套件",

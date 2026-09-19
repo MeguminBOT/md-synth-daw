@@ -385,6 +385,165 @@ final class Library {
 	}
 
 	/**
+		The bank a piece's starting presets sit in, which is where the application puts the set
+		every new piece begins with.
+	**/
+	public static inline final STARTERS = "Default";
+
+	/**
+		Files every preset a piece carries under the bank it belongs in, which is what a piece read
+		from a file needs: `STARTERS` where it is one of the set every piece begins with, one of
+		this library's banks where the library offers the same preset, and `named` for the rest,
+		which is what the file itself brought. The starting set is asked first, so the bank a piece
+		opens with holds what it always holds rather than scattering into the shipped banks that
+		some of it also sits in. A preset the bank already holds is left out of every bank
+		rather than listed twice, so a project carrying the presets folder twice, as one written
+		before the folder had a name of its own does, lists each preset once.
+
+		Bank membership is what the preset browser groups by and nothing else. No instrument is
+		added, removed or renumbered here, so nothing a note, a rack or a preset lane names moves.
+
+		@param song The piece.
+		@param named The bank for a preset neither this library nor the starting set offers.
+		@return How many presets changed bank.
+	**/
+	public function files(song:Song, named:String):Int {
+		final starting = starters();
+		final home = song.banked(named);
+		var moved = 0;
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instrumentAt(index);
+			if (held == null) continue;
+
+			var want = starting.offering(song, held);
+			if (want == "") want = offering(song, held);
+			if (want == "") want = named;
+
+			final bank = want == named ? home : song.banked(want);
+			var changed = false;
+
+			for (one in song.banks) {
+				if (one != bank && one.remove(index)) changed = true;
+			}
+
+			final twin = twinned(song, bank, held, index);
+
+			if (twin >= 0) {
+				if (bank.remove(index)) changed = true;
+			} else if (!bank.holds(index)) {
+				bank.add(index);
+				changed = true;
+			}
+
+			if (changed) moved++;
+		}
+
+		return moved;
+	}
+
+	/**
+		@param song The piece the preset belongs to, for the sample a converter preset plays.
+		@param instrument A preset.
+		@return The name of the bank here that offers the same preset, or an empty string where
+			none does.
+	**/
+	function offering(song:Song, instrument:Instrument):String {
+		for (at in 0...names.length) {
+			final which = holding(at, instrument);
+			if (which < 0 || !alike(instruments[at][which], instrument)) continue;
+			if (!carriesSample(song, instrument, samples[at][which])) continue;
+
+			return names[at];
+		}
+
+		return "";
+	}
+
+	/**
+		@param song A song.
+		@param bank One of its banks.
+		@param instrument A preset in it, by value.
+		@param index That preset, by index into the song.
+		@return Another preset already in that bank that is the same one, by index into the song,
+			or -1 where the bank holds no other copy of it.
+	**/
+	static function twinned(song:Song, bank:Bank, instrument:Instrument, index:Int):Int {
+		for (at in bank.instruments) {
+			if (at == index) continue;
+
+			final held = song.instrumentAt(at);
+			if (held == null || !alike(held, instrument)) continue;
+			if (!sameHit(song, held, instrument)) continue;
+
+			return at;
+		}
+
+		return -1;
+	}
+
+	/**
+		A converter preset is only the same preset as another where it plays the same recording.
+		`alike` answers on the name, the kind and the patch or envelope alone, which two hits named
+		`Kick` in different kits both pass.
+
+		@param song The piece both belong to.
+		@param one A preset.
+		@param two Another.
+		@return Whether they play the same bytes at the same rate, or neither is a converter preset.
+	**/
+	static function sameHit(song:Song, one:Instrument, two:Instrument):Bool {
+		if (!one.kind.sampled() || !two.kind.sampled()) return true;
+
+		return heard(song.sampleAt(one.sample), song.sampleAt(two.sample));
+	}
+
+	/**
+		@param song The piece the preset belongs to.
+		@param instrument A preset.
+		@param sample What a bank here has it playing, or null.
+		@return Whether the preset plays that recording, or is not a converter preset at all.
+	**/
+	static function carriesSample(song:Song, instrument:Instrument, sample:Null<Sample>):Bool {
+		if (!instrument.kind.sampled()) return true;
+
+		return heard(song.sampleAt(instrument.sample), sample);
+	}
+
+	/**
+		@param one A recording, or null.
+		@param two Another, or null.
+		@return Whether both are missing, or both hold the same bytes at the same rate.
+	**/
+	static function heard(one:Null<Sample>, two:Null<Sample>):Bool {
+		if (one == null || two == null) return one == null && two == null;
+		if (one.rate != two.rate || one.length() != two.length()) return false;
+
+		for (index in 0...one.length()) {
+			if (one.bytes[index] != two.bytes[index]) return false;
+		}
+
+		return true;
+	}
+
+	/**
+		@return A library of the presets every new piece begins with, in one bank named `STARTERS`.
+	**/
+	static function starters():Library {
+		final out = new Library();
+		final song = new Song("starters");
+
+		mdd.song.Shipped.into(song);
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instrumentAt(index);
+			if (held != null) out.adds(STARTERS, held, null, false);
+		}
+
+		return out;
+	}
+
+	/**
 		@param song A song.
 		@param name A bank's name.
 		@return Whether the song has a bank of that name with anything in it.

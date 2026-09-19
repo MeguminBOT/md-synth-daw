@@ -946,6 +946,7 @@ class App {
 
 		sound.stop();
 
+		library.files(song, stage.root.translate(Locale.PRESET_FROM_FILE));
 		library.into(song);
 
 		session = new Session(song);

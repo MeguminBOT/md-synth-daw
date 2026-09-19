@@ -387,6 +387,7 @@
   "preset.duplicate": "複製",
   "preset.expandAll": "すべて展開",
   "preset.folder": "フォルダーを開く",
+  "preset.fromFile": "プロジェクトファイルから",
   "preset.keep": "これらのプリセットを保存する",
   "preset.kept": "保存しました",
   "preset.kit": "このキットを読み込む",

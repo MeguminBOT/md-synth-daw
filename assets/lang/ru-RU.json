@@ -387,6 +387,7 @@
   "preset.duplicate": "Дублировать",
   "preset.expandAll": "Развернуть всё",
   "preset.folder": "Открыть папку",
+  "preset.fromFile": "Из файла проекта",
   "preset.keep": "Оставить эти пресеты",
   "preset.kept": "оставлено",
   "preset.kit": "Загрузить этот набор",

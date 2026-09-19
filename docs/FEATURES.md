@@ -279,6 +279,14 @@ A VGM this application wrote therefore imports with its drums where they were.
   Patch files and bank documents work in any folder.
 - Your own presets load beside the shipped ones rather than replacing them. A project keeps its
   own copy of every preset it carries, so it opens the same on a machine that has none of them.
+- **What a file brought is one bank.** Opening a project, or importing a VGM, VGZ or XGM, files
+  every preset it carries by where it belongs rather than by how the file had it grouped: a
+  shipped bank or one of your own folders where the preset lives there, the starting set where it
+  is one of those, and **From Project File** for everything the file itself brought, which is the
+  presets its channels play and the ones its preset lanes swap in. The bank is the same one
+  whatever the file was called, so it does not multiply as you open pieces, and a preset a file
+  carries twice is listed once. Only the grouping moves: no preset is added, removed or
+  renumbered, so nothing a note or a preset lane names changes.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
 channel volume apart from the voice and adds it in at every key on. Loading one therefore

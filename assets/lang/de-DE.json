@@ -387,6 +387,7 @@
   "preset.duplicate": "Duplizieren",
   "preset.expandAll": "Alle ausklappen",
   "preset.folder": "Ordner öffnen",
+  "preset.fromFile": "Aus der Projektdatei",
   "preset.keep": "Diese Presets behalten",
   "preset.kept": "behalten",
   "preset.kit": "Dieses Kit laden",
