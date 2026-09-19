@@ -307,7 +307,12 @@ left exactly as it was written, because it already carries the level it was play
   lane has pixels is drawn with every peak in it rather than only its first samples. Both
   settings are kept between sessions.
 - **A hardware meter** for what the song is asking of the parts.
-- **Warnings that link to their cause.** Click one and it selects the channel and the note.
+- **Warnings that link to their cause.** Click one and it selects the channel and the note. Among
+  them are the two ways a piece is left sounding with nothing playing it: a note whose patch has a
+  release rate of nought or one on a carrier, which is slower than anything a piece waits for, so
+  its key off is never heard; and a square or the noise channel held past its last note by a level
+  lane, over the silence that note ended on. A driver hides the first by always keying on again in
+  time, and a piece that stops does not.
 - **Hardware profiles.** Mega Drive and Master System, which is why the chips are named for chips:
   the Master System has the same PSG in it.
 - **Three output stages.** The chip alone, the Mega Drive, or the Mega Drive 2, which differ in the
@@ -341,6 +346,12 @@ and the checks compare the live stream against the offline one on every run.
   read back register by register. The squares and the noise channel are left as they are: a
   square's output is a run of hard edges already, and a note starting or stopping adds no more to
   it than one of those edges does.
+- **Stop stuck notes**, in the export options, ends what nothing is playing: a note whose patch
+  cannot release is let go at the part's quickest rate where it ends, and the squares and the
+  noise channel are written silent where the piece ends, which is what a level lane holding one
+  past its last note would otherwise leave sounding. It is off to start with, because what a patch
+  does is what the part does, and a piece whose notes all let go renders the same either way. The
+  warnings say when a piece needs it.
 - Three polyphony behaviours: **strict**, where a part that runs out of voices drops the note;
   **stealing**, where the oldest voice gives way; and **arpeggio**, where notes beyond the channel
   count are cycled through it.

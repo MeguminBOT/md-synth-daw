@@ -134,6 +134,7 @@ final class Filming {
 		stream = Stream.reserved(span);
 		final sequencer = new Sequencer(song);
 		sequencer.declick = mixing.declick;
+		sequencer.stuck = mixing.stuck;
 		sequencer.spanned(stream, 0, span);
 
 		render = new Render(made.rate, Render.BLOCK);

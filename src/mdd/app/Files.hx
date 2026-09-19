@@ -885,6 +885,7 @@ final class Files {
 		final sequencer = new Sequencer(session.song);
 
 		sequencer.declick = mixing.declick;
+		sequencer.stuck = mixing.stuck;
 		sequencer.spanned(stream, 0, span);
 		sys.io.File.saveBytes(named, Vgm.write(stream, 0, span, session.song.tempo.rate,
 			session.song.name, session.song.author, session.song.album, session.song.year,
@@ -1530,6 +1531,7 @@ final class Files {
 		final strikes:Array<Int> = [];
 
 		sequencer.declick = mixing.declick;
+		sequencer.stuck = mixing.stuck;
 		sequencer.strikes = strikes;
 		sequencer.spanned(stream, 0, span);
 
@@ -1585,6 +1587,7 @@ final class Files {
 		final sequencer = new Sequencer(session.song);
 
 		sequencer.declick = mixing.declick;
+		sequencer.stuck = mixing.stuck;
 		sequencer.spanned(stream, 0, span);
 
 		final held = new Vector<cpp.Float32>(frames * 2);

@@ -96,6 +96,19 @@ final class Sequencer {
 	static inline final FADE = 1;
 
 	/**
+		What a key off event's second value is where it ends a note whose patch cannot release, by
+		letting the channel go at its quickest as well as keying it off. It is a key off in every
+		other way, so the note it ends is no longer owed one.
+	**/
+	static inline final HUSH = 2;
+
+	/**
+		The slowest release rate that ever lets go. A carrier at nought or one is slower than
+		anything a piece waits for, so its key off is never heard and the note sounds on.
+	**/
+	static inline final NEVER_RELEASES = 1;
+
+	/**
 		The slowest attack rate every carrier must have for a key on to be faded into. A slower
 		carrier keys on from wherever the last note left it, which is what makes a legato swell,
 		and letting it go first would be heard as a gap.
@@ -123,6 +136,14 @@ final class Sequencer {
 		register format written for the exactness of what it holds can leave it off.
 	**/
 	public var declick:Bool = true;
+
+	/**
+		Whether to end what nothing is playing: a note whose patch cannot release is let go at the
+		quickest rate the part has where it ends, and the squares and the noise channel are written
+		silent where the piece ends, which is what a level lane holding one past its last note
+		would otherwise leave sounding. Everything that does let go is left exactly as it was.
+	**/
+	public var stuck:Bool = false;
 
 	/**
 		Whether the gather under way is only looking one lead ahead for the FM key ons a fade has
@@ -326,6 +347,8 @@ final class Sequencer {
 		settle(fromSample);
 		gather(fromSample, toSample);
 		if (declick) fades(fromSample, toSample);
+		if (stuck) hushes(fromSample, toSample);
+
 		sort();
 
 		driver.on = song.driving;
@@ -345,6 +368,27 @@ final class Sequencer {
 		driver.paces(scratch, stream, toSample);
 
 		return count;
+	}
+
+	/**
+		Collects a write silencing every square and the noise channel where the piece ends, so a
+		level lane holding one past its last note does not leave it sounding with nothing playing
+		it. A part already silent takes the write and sounds no different for it.
+
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
+	function hushes(fromSample:Int, toSample:Int):Void {
+		final ends = song.tempo.samplesAt(song.ends());
+		if (ends < fromSample || ends >= toSample) return;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			if (!part.square() && !part.noise()) continue;
+			if (!wanted(part)) continue;
+
+			push(ends, part, OFF, 0, 0);
+		}
 	}
 
 	/**
@@ -1092,7 +1136,7 @@ final class Sequencer {
 
 			if (!held && letGo >= fromSample && letGo < toSample
 					&& !(part.sampled() && tuning != null)) {
-				push(letGo, part, OFF, 0, 0);
+				push(letGo, part, OFF, 0, stuck && part.fm() && !releases(named, part) ? HUSH : 0);
 			}
 
 			if ((part.square() || part.noise()) && lines[0] == null
@@ -1748,6 +1792,24 @@ final class Sequencer {
 	/**
 		@param named Which instrument a note plays.
 		@param part Its FM part.
+		@return Whether its patch lets go at a key off, which a carrier at `NEVER_RELEASES` or below
+			does not.
+	**/
+	function releases(named:Int, part:Part):Bool {
+		final instrument = instrumentOf(named, part);
+		final patch = instrument == null ? null : instrument.patch;
+		if (patch == null) return true;
+
+		for (slot in 0...4) {
+			if (patch.carries(slot) && patch.release[slot] <= NEVER_RELEASES) return false;
+		}
+
+		return true;
+	}
+
+	/**
+		@param named Which instrument a note plays.
+		@param part Its FM part.
 		@return Whether every carrier of that instrument's patch attacks at `FAST_ATTACK` or faster,
 			so a fade before its key on is filled straight back in.
 	**/
@@ -1996,7 +2058,8 @@ final class Sequencer {
 				case OFF:
 					if (second == FADE) stream.fades(tick, part);
 					else {
-						stream.silence(tick, part);
+						if (second == HUSH) stream.fades(tick, part);
+						else stream.silence(tick, part);
 
 						final due = owed[part.index()];
 						if (due != HELD && tick + 1 >= due) owed[part.index()] = 0;

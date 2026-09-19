@@ -211,6 +211,8 @@ final class Budget {
 
 			overlapping(index, part, lane.notes);
 			ranged(index, part, lane.notes);
+			sounding(song, index, part, lane);
+			droning(index, part, lane, pattern.length);
 		}
 
 		final dac = pattern.lane(Part.Dac);
@@ -261,6 +263,78 @@ final class Budget {
 
 			sounding = note.ends();
 			held = note;
+		}
+	}
+
+	/**
+		Finds notes played by a patch that never lets go. A release rate of nought or one is slower
+		than anything a piece waits for, so the key off at the note's end is not heard and the
+		channel sounds on until the next note keys it on again, or forever where none does. A
+		driver hides it by always keying on again in time; a piece that stops does not.
+
+		@param song The song, for the patch a note plays.
+		@param pattern Which pattern.
+		@param part Which part.
+		@param lane Its lane.
+	**/
+	function sounding(song:Song, pattern:Int, part:Part, lane:mdd.song.Lane):Void {
+		if (!part.fm()) return;
+
+		for (note in lane.notes) {
+			final named = note.instrument >= 0 ? note.instrument : song.rack[part.index()];
+			final instrument = song.instrumentAt(named);
+			final patch = instrument == null ? null : instrument.patch;
+
+			if (patch == null) continue;
+
+			var slowest = 15;
+
+			for (slot in 0...4) {
+				if (!patch.carries(slot)) continue;
+				if (patch.release[slot] < slowest) slowest = patch.release[slot];
+			}
+
+			if (slowest > 1) continue;
+
+			raise(Diagnostic.WARNING, part, note.at, Locale.WARN_NEVER_RELEASES,
+				Locale.WARN_NEVER_RELEASES_WHY, Locale.WARN_NEVER_RELEASES_FIX,
+				[instrument == null ? "" : instrument.name, "" + slowest], pattern, note);
+
+			return;
+		}
+	}
+
+	/**
+		Finds a square or the noise channel left sounding by a level lane after its last note. A
+		note's end writes the channel silent, and a point after it writes the lane's own value over
+		that, so the channel carries on with nothing playing it.
+
+		@param pattern Which pattern.
+		@param part Which part.
+		@param lane Its lane.
+		@param length How long the pattern is, in ticks.
+	**/
+	function droning(pattern:Int, part:Part, lane:mdd.song.Lane, length:Int):Void {
+		if (!part.square() && !part.noise()) return;
+
+		var ends = 0;
+		for (note in lane.notes) if (note.ends() > ends) ends = note.ends();
+
+		for (line in lane.automation) {
+			if (line.target != mdd.song.Automation.LEVEL || line.slot > 0) continue;
+			if (line.points.length == 0) continue;
+
+			final last = line.points[line.points.length - 1];
+			if (last.at < ends) continue;
+
+			final held = line.heldAt(length - 1);
+			if (held < 0 || held >= mdd.play.Velocity.PSG_OFF) continue;
+
+			raise(Diagnostic.WARNING, part, last.at, Locale.WARN_LEFT_SOUNDING,
+				Locale.WARN_LEFT_SOUNDING_WHY, Locale.WARN_LEFT_SOUNDING_FIX,
+				[part.name(), "" + held], pattern, lane.notes.length > 0 ? lane.notes[0] : null);
+
+			return;
 		}
 	}
 

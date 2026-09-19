@@ -267,6 +267,14 @@ final class Mixing {
 	public var declick:Bool = true;
 
 	/**
+		Whether the writes end what nothing is playing: a note whose patch cannot release, and a
+		square or the noise channel left sounding by a level lane where the piece ends. Off, because
+		what a patch does is what the part does; on, for a piece that would otherwise carry a note
+		nothing ever stops.
+	**/
+	public var stuck:Bool = false;
+
+	/**
 		Which output stage the render goes through, from `mdd.play.Render`.
 	**/
 	public var console:Int = mdd.play.Render.MODEL_ONE;
@@ -443,6 +451,7 @@ final class Mixing {
 		out.dither = dither;
 		out.console = console;
 		out.declick = declick;
+		out.stuck = stuck;
 		out.stems = stems;
 		out.title = title;
 		out.artist = artist;

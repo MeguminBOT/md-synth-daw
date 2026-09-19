@@ -36,6 +36,7 @@ class CheckCheck {
 		speed();
 		crowded();
 		scales();
+		stuck();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -216,6 +217,75 @@ class CheckCheck {
 	static function round(value:Float, places:Int):Float {
 		final scale = Math.pow(10, places);
 		return Math.round(value * scale) / scale;
+	}
+
+	/**
+		What is left sounding with nothing playing it: a note whose patch cannot release, and a
+		square a level lane holds past its last note. Both are what the chip would do, and both are
+		worth saying, because a piece that stops carries them into its silence.
+	**/
+	static function stuck():Void {
+		final song = bare("stuck");
+		final stopping = new Instrument("stopping", Part.Fm1);
+		final held = new Instrument("held", Part.Fm1);
+
+		for (slot in 0...4) {
+			stopping.patch.totalLevel[slot] = slot == 3 ? 20 : 127;
+			stopping.patch.release[slot] = 8;
+			held.patch.totalLevel[slot] = slot == 3 ? 20 : 127;
+			held.patch.release[slot] = 0;
+		}
+
+		stopping.patch.algorithm = 7;
+		held.patch.algorithm = 7;
+
+		song.instrument(stopping);
+		song.instrument(held);
+
+		final lane = song.patterns[0].lane(Part.Fm1);
+		lane.add(new Note(0, 96, 60, 100, song.instruments.length - 2));
+
+		final quiet = new Budget(Profile.megaDrive());
+		quiet.overSong(song);
+		final before = quiet.warnings();
+
+		final never = lane.add(new Note(192, 96, 60, 100, song.instruments.length - 1));
+
+		final budget = new Budget(Profile.megaDrive());
+		budget.overSong(song);
+
+		says("a patch that never releases is called out", before == 0 && budget.warnings() == 1
+			&& budget.troubled(never),
+			before + " warnings for a patch that releases at 8, and " + budget.warnings()
+			+ " for one that releases at 0, naming the note that plays it");
+
+		final square = bare("droning");
+		final squares = square.patterns[0].lane(Part.Psg1);
+
+		squares.add(new Note(0, 96, 60, 100));
+
+		final line = new mdd.song.Automation(mdd.song.Automation.LEVEL, 0);
+		line.add(new mdd.song.Point(192, 2));
+		squares.automation.push(line);
+
+		final droning = new Budget(Profile.megaDrive());
+		droning.overSong(square);
+
+		final ended = bare("ending");
+		final ending = ended.patterns[0].lane(Part.Psg1);
+
+		ending.add(new Note(0, 96, 60, 100));
+
+		final quietly = new mdd.song.Automation(mdd.song.Automation.LEVEL, 0);
+		quietly.add(new mdd.song.Point(192, 15));
+		ending.automation.push(quietly);
+
+		final settled = new Budget(Profile.megaDrive());
+		settled.overSong(ended);
+
+		says("a square left sounding is called out", droning.warnings() == 1 && settled.warnings() == 0,
+			droning.warnings() + " warning where a level lane holds a square at 2 past its last note, and "
+			+ settled.warnings() + " where the lane ends at 15");
 	}
 
 	static function bare(name:String):Song {

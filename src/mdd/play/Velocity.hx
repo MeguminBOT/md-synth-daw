@@ -24,7 +24,7 @@ final class Velocity {
 	/**
 		The square attenuation that is silence.
 	**/
-	static inline final PSG_OFF = 15;
+	public static inline final PSG_OFF = 15;
 
 	/**
 		What one step of FM total level is worth.

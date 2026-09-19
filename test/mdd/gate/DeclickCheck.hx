@@ -67,6 +67,7 @@ class DeclickCheck {
 		swelled();
 		squares();
 		spans();
+		stuck();
 		settings();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -269,6 +270,55 @@ class DeclickCheck {
 	}
 
 	/**
+		An export may stop what nothing is playing: a note whose patch cannot release, and the
+		squares and the noise channel where the piece ends. It has to leave every piece that does
+		stop exactly as it was, which is what makes it safe to turn on.
+	**/
+	static function stuck():Void {
+		final song = made();
+		final never = sineOn(song, "never", 31);
+		final holding = song.instrumentAt(never);
+
+		if (holding != null && holding.patch != null) {
+			for (slot in 0...4) holding.patch.release[slot] = 0;
+		}
+
+		final pattern = song.add(new Pattern("one", 96 * 4));
+		pattern.lane(Part.Fm1).add(new Note(0, 48, 45, 110, never));
+		placed(song, pattern);
+
+		final loose = rendered(song, false, Part.Fm1, false);
+		final stopped = rendered(song, false, Part.Fm1, true);
+		final rest = song.tempo.samplesAt(96 * 2);
+
+		says("a note that cannot release is stopped", steady(loose, rest, 4410) > 0.002
+			&& steady(stopped, rest, 4410) < 0.0002,
+			"a second after its note ends it stands at " + round(20 * Math.log(steady(loose, rest, 4410) + 1e-12)
+			/ Math.log(10)) + " dBFS with the switch off and " + round(20 * Math.log(steady(stopped, rest, 4410)
+			+ 1e-12) / Math.log(10)) + " with it on");
+
+		final plain = made();
+		final sine = sineOn(plain, "sine", 31);
+		final notes = plain.add(new Pattern("two", 96 * 4));
+
+		for (index in 0...4) notes.lane(Part.Fm1).add(new Note(index * 96, 48, 45 + index, 110, sine));
+		placed(plain, notes);
+
+		final was = rendered(plain, false, Part.Fm1, false);
+		final now = rendered(plain, false, Part.Fm1, true);
+		var apart = 0.0;
+
+		for (index in 0...was.length) {
+			final gap = Math.abs(was[index] - now[index]);
+			if (gap > apart) apart = gap;
+		}
+
+		says("a piece that does stop is left alone", apart == 0,
+			"a piece whose patch releases renders " + (apart == 0 ? "exactly the same" : "up to " + apart + " apart")
+			+ " with the switch on");
+	}
+
+	/**
 		What is written does not depend on how the song is cut into spans: the render thread takes
 		short ones, an export long ones, and a fade or a return to the middle has to land in the
 		same place either way.
@@ -398,9 +448,10 @@ class DeclickCheck {
 		@return The part rendered alone through the Mega Drive's output stage, as one channel, with
 			the switch as given.
 	**/
-	static function rendered(song:Song, declick:Bool, part:Part):Vector<Float> {
+	static function rendered(song:Song, declick:Bool, part:Part, stuck:Bool = false):Vector<Float> {
 		final mixing = new Mixing();
 		mixing.declick = declick;
+		mixing.stuck = stuck;
 		mixing.kind = Mixing.WAV;
 		mixing.rate = 44100;
 		mixing.padStart = 0;

@@ -31,6 +31,11 @@ final class Mixdown {
 	**/
 	public var declick(default, null):Bool = true;
 
+	/**
+		Whether the writes end what nothing is playing, taken from the export's own settings.
+	**/
+	public var stuck(default, null):Bool = false;
+
 	public var peak(default, null):Float = 0;
 	public var gain(default, null):Float = 1;
 	public var writes(default, null):Int = 0;
@@ -221,6 +226,7 @@ final class Mixdown {
 		channels = mixing.channels();
 		console = mixing.console;
 		declick = mixing.declick;
+		stuck = mixing.stuck;
 
 		final span = song.tempo.samplesAt(song.ends());
 		final sounding = Std.int(span * (rate / Tempo.TICKS));
@@ -254,6 +260,7 @@ final class Mixdown {
 		final stream = feeding;
 		final sequencer = new Sequencer(song);
 		sequencer.declick = declick;
+		sequencer.stuck = stuck;
 		sequencer.onlyPart = onlyPart;
 		sequencer.onlyTrack = onlyTrack;
 
