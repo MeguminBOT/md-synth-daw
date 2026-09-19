@@ -2260,6 +2260,119 @@ class SpineCheck {
 	}
 
 	/**
+		The editor in front keeps the playhead in sight while the song plays.
+
+		A song could play off the right edge of the playlist and the roll and leave them behind. With
+		following on, the view turns a page when the playhead reaches its edge and comes back when a
+		loop sends the playhead behind it; with following off, or with the song stopped, nothing moves.
+	**/
+	static function followed(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		final transport = session.transport;
+		final list = centre.playlist;
+		final roll = centre.roll;
+		final track = session.song.tracks[0];
+		final pattern = session.current();
+		final length = pattern.length;
+		final bar = session.song.tempo.ppqn * 4;
+
+		final listZoom = list.perTick;
+		final listScroll = list.offsetX;
+		final rollZoom = roll.perTick;
+		final rollScroll = roll.offsetX;
+
+		track.clips.resize(0);
+		for (index in 0...64) track.add(new mdd.song.Clip(session.pattern, index * bar, bar));
+
+		centre.show(Centre.PLAYLIST);
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		list.perTick = 1;
+		list.scrollTo(0);
+
+		final room = list.width - list.names();
+		final far = Std.int(room) + 700;
+
+		session.following = true;
+		transport.play();
+		centre.playhead(far);
+
+		final at = far * list.perTick - list.offsetX;
+		final turned = at >= 0 && at < room && at < room * 0.1;
+
+		final held = list.offsetX;
+		centre.playhead(far + 40);
+		final steady = list.offsetX == held;
+
+		centre.playhead(10);
+		final back = list.offsetX == 0;
+
+		says("the playlist follows the playhead", turned && steady && back,
+			"a playhead " + Std.int(far - room) + " ticks past the right edge lands " + Std.int(at)
+			+ " px in from the left, a step inside the view moves nothing, and a loop back to the start"
+			+ " scrolls back to " + list.offsetX);
+
+		session.following = false;
+		list.scrollTo(0);
+		centre.playhead(far + 80);
+		final unfollowed = list.offsetX == 0;
+
+		session.following = true;
+		transport.stop();
+		centre.playhead(far + 120);
+		final stopped = list.offsetX == 0;
+
+		says("and stays put when it should", unfollowed && stopped,
+			"with following off the view stays at " + list.offsetX + ", and with the song stopped too");
+
+		pattern.length = bar * 32;
+		track.clips.resize(0);
+		track.add(new mdd.song.Clip(session.pattern, 0, pattern.length));
+
+		centre.show(Centre.ROLL);
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		roll.perTick = 2;
+		roll.scrollTo(0, roll.offsetY);
+
+		final spread = roll.width - roll.gutter();
+		final later = Std.int(spread / roll.perTick) + 300;
+
+		transport.play();
+		centre.playhead(later);
+
+		final rolled = later * roll.perTick - roll.offsetX;
+
+		says("and so does the roll", rolled >= 0 && rolled < spread * 0.1,
+			"a playhead " + (later - Std.int(spread / roll.perTick)) + " ticks past the roll's edge"
+			+ " lands " + Std.int(rolled) + " px in from the left");
+
+		transport.stop();
+
+		final was = session.following;
+		centre.tools.press(mdd.view.Tools.FOLLOW);
+		final flipped = session.following != was;
+		centre.tools.press(mdd.view.Tools.FOLLOW);
+
+		says("and the tools switch it", flipped && session.following == was,
+			"the follow button turns following " + (was ? "off" : "on") + " and back");
+
+		pattern.length = length;
+		track.clips.resize(0);
+		track.add(new mdd.song.Clip(0, 0, 384));
+		transport.seek(0);
+
+		roll.perTick = rollZoom;
+		roll.scrollTo(rollScroll, roll.offsetY);
+		centre.show(Centre.PLAYLIST);
+		list.perTick = listZoom;
+		list.scrollTo(listScroll);
+	}
+
+	/**
 		What the right hand button does to a clip, which is a preference because it is a
 		habit rather than a rule.
 
@@ -4167,6 +4280,7 @@ class SpineCheck {
 		tabbed(tree, centre, paint, renderer);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
+		followed(tree, session, centre);
 		reopened(tree, session, centre);
 		picked(tree, session, bar);
 		synthed(tree, session, editor);

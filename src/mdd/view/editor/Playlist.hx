@@ -384,6 +384,28 @@ final class Playlist extends Widget {
 	}
 
 	/**
+		How far in from the left edge the playhead lands when the view turns to keep it in sight,
+		as a share of the view.
+	**/
+	static inline final LEAD = 0.02;
+
+	/**
+		Turns the view on a page to keep a position in sight: where it has reached the right edge or
+		is left of the left one, the view scrolls to put it just in from the left edge.
+
+		@param tick A position in the song, in ticks.
+	**/
+	public function keeps(tick:Int):Void {
+		final room = width - names();
+		if (room <= 0 || perTick <= 0 || tick < 0) return;
+
+		final at = tick * perTick - offsetX;
+		if (at >= 0 && at < room) return;
+
+		scrollTo(tick * perTick - room * LEAD);
+	}
+
+	/**
 		Scrolls across, clamped to the piece.
 
 		@param px How far across.

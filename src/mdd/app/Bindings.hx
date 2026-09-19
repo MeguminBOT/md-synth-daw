@@ -40,18 +40,20 @@ final class Bindings {
 	public static inline final CUT = 20;
 	public static inline final PASTE = 21;
 	public static inline final DOUBLE = 22;
+	public static inline final FOLLOW = 23;
 
 	/**
 		How many actions there are.
 	**/
-	public static inline final COUNT = 23;
+	public static inline final COUNT = 24;
 
 	static final KEYS:Array<Key> = [
 		Key.Z, Key.Y, Key.N, Key.O, Key.S, Key.Comma,
 		Key.Space, Key.Space, Key.L, Key.E, Key.E,
 		Key.Left, Key.Right,
 		Key.E, Key.P, Key.D, Key.C, Key.H,
-		Key.A, Key.C, Key.X, Key.V, Key.B
+		Key.A, Key.C, Key.X, Key.V, Key.B,
+		Key.Unknown
 	];
 
 	static final MODS:Array<Int> = [
@@ -59,7 +61,8 @@ final class Bindings {
 		Mod.None, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl | Mod.Shift,
 		Mod.Ctrl, Mod.Ctrl,
 		Mod.None, Mod.None, Mod.None, Mod.None, Mod.None,
-		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl
+		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl,
+		Mod.None
 	];
 
 	/**
@@ -73,7 +76,7 @@ final class Bindings {
 		Locale.BIND_SELECT, Locale.BIND_DRAW, Locale.BIND_ERASE, Locale.BIND_SLICE,
 		Locale.BIND_PAN,
 		Locale.BIND_ALL, Locale.BIND_COPY, Locale.BIND_CUT, Locale.BIND_PASTE,
-		Locale.BIND_DOUBLE
+		Locale.BIND_DOUBLE, Locale.BIND_FOLLOW
 	];
 
 	final keys:Array<Key> = [];

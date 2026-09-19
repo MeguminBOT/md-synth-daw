@@ -68,6 +68,12 @@ class App {
 	var firstRun:Bool = false;
 
 	/**
+		Whether the playhead was being followed when the menus were last built, so they are built
+		again with the other label when it changes from the tools or a key.
+	**/
+	var followingShown:Bool = true;
+
+	/**
 		The faces a language needs that may not be installed, and the download of one.
 	**/
 	var faces:Null<Faces> = null;
@@ -936,6 +942,7 @@ class App {
 		final notes = session == null ? 0 : session.notation;
 		final palette = session == null ? 0 : session.partColours;
 		final rightly = session == null ? Session.DELETES : session.rightClick;
+		final following = session == null ? true : session.following;
 
 		sound.stop();
 
@@ -955,6 +962,7 @@ class App {
 		session.notation = notes;
 		session.partColours = palette;
 		session.rightClick = rightly;
+		session.following = following;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -985,6 +993,11 @@ class App {
 			panels.centre.warnings.fit();
 			panels.status.said = saying();
 			panels.status.invalidate();
+		}
+
+		if (menus != null && followingShown != session.following) {
+			followingShown = session.following;
+			relabel();
 		}
 	}
 
@@ -1711,6 +1724,7 @@ class App {
 		session.rightClick = settings.asWhole("rightClick", Session.DELETES) == Session.OPENS
 			? Session.OPENS : Session.DELETES;
 		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
+		session.following = settings.asFlag("following", true);
 
 		stage.root.theme.wear(which);
 		session.partColours = settings.asWhole("partColours", 0) == mdd.ui.Theme.SAFE
@@ -1792,6 +1806,7 @@ class App {
 		settings.whole("automating", session.automating);
 		settings.whole("rightClick", session.rightClick);
 		settings.whole("snapping", session.snapping);
+		settings.flag("following", session.following);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("textSize", panels.preferences.textSize);
 		settings.whole("tail", panels.preferences.tail);
@@ -1911,6 +1926,7 @@ class App {
 			case Bindings.CUT: return edited(mdd.ui.Edit.CUT);
 			case Bindings.PASTE: return edited(mdd.ui.Edit.PASTE);
 			case Bindings.DOUBLE: return edited(mdd.ui.Edit.DOUBLE);
+			case Bindings.FOLLOW: panels.centre.tools.press(mdd.view.Tools.FOLLOW);
 			case _: return false;
 		}
 

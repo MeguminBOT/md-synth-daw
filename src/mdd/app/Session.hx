@@ -123,6 +123,12 @@ final class Session {
 	public var ghosts:Bool = true;
 
 	/**
+		Whether the editor in front keeps the playhead in sight while the song plays, turning the
+		view on a page at a time as the playhead reaches its edge.
+	**/
+	public var following:Bool = true;
+
+	/**
 		The key and scale the roll highlights.
 	**/
 	public final scale:mdd.song.Scale = new mdd.song.Scale();

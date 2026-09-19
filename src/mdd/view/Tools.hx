@@ -12,7 +12,8 @@ import mdd.ui.Widget;
 @:unreflective
 
 /**
-	The tool buttons: select, draw, erase, slice, pan, and the snap.
+	The tool buttons: select, draw, erase, slice, pan, and the snap, the notes on other channels
+	and following the playhead, which are switches.
 
 	Not every editor allows every tool, so `allowed` says which are offered and the
 	rest are left out rather than drawn dead.
@@ -23,7 +24,12 @@ final class Tools extends Widget {
 	**/
 	public static inline final SNAP = Session.TOOLS;
 	static inline final GHOSTS = Session.TOOLS + 1;
-	static inline final CELLS = Session.TOOLS + 2;
+
+	/**
+		The switch that keeps the playhead in sight while the song plays.
+	**/
+	public static inline final FOLLOW = Session.TOOLS + 2;
+	static inline final CELLS = Session.TOOLS + 3;
 
 	/**
 		Which chord reaches each tool, for the tooltips.
@@ -35,7 +41,10 @@ final class Tools extends Widget {
 		@return The chord that reaches it, as text.
 	**/
 	function shortcutAt(index:Int):String {
-		if (bindings == null || index < 0 || index > 4) return "";
+		if (bindings == null) return "";
+		if (index == FOLLOW) return bindings.shortcut(mdd.app.Bindings.FOLLOW);
+		if (index < 0 || index > 4) return "";
+
 		return bindings.shortcut(mdd.app.Bindings.SELECT + index);
 	}
 
@@ -43,7 +52,8 @@ final class Tools extends Widget {
 		mdd.ui.Key.C, mdd.ui.Key.H];
 
 	static final TIPS:Array<Locale> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
-		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS];
+		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS,
+		Locale.TOOL_FOLLOW];
 
 	/**
 		The session to read.
@@ -193,12 +203,13 @@ final class Tools extends Widget {
 		return switch (index) {
 			case SNAP: session.snapping > 0;
 			case GHOSTS: session.ghosts;
+			case FOLLOW: session.following;
 			case _: session.tool == index;
 		}
 	}
 
 	/**
-		Puts a tool in hand, or steps the snap.
+		Puts a tool in hand, or turns one of the switches over.
 
 		@param index Which button.
 	**/
@@ -212,9 +223,17 @@ final class Tools extends Widget {
 				session.ghosts = !session.ghosts;
 				session.changed();
 
+			case FOLLOW:
+				session.following = !session.following;
+				session.say(translate(session.following ? Locale.SAID_FOLLOW_ON
+					: Locale.SAID_FOLLOW_OFF));
+				session.changed();
+
 			case _:
 				session.uses(index);
 		}
+
+		invalidate();
 	}
 
 	override function took(event:Input):Bool {
@@ -400,6 +419,20 @@ final class Tools extends Widget {
 			case GHOSTS:
 				paint.rect(middle - reach, centre - hair, reach * 1.2, hair * 2, ink, 0.4);
 				paint.rect(middle - reach * 0.2, centre - hair, reach * 1.2, hair * 2, ink);
+
+			case FOLLOW:
+				paint.rect(middle - reach * 0.7, centre - reach, hair, reach * 2, ink);
+
+				final arrow = new haxe.ds.Vector<Float>(6);
+
+				arrow[0] = middle - reach * 0.1;
+				arrow[1] = centre - reach * 0.7;
+				arrow[2] = middle + reach;
+				arrow[3] = centre;
+				arrow[4] = middle - reach * 0.1;
+				arrow[5] = centre + reach * 0.7;
+
+				paint.polygon(arrow, 3, ink);
 
 			case _:
 		}

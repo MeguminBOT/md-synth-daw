@@ -177,13 +177,13 @@ final class Centre extends Widget {
 
 	static final ALLOWS:Array<Int> = [
 		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
-			| (1 << Session.SLICE) | (1 << Session.PAN) | (1 << Tools.SNAP),
+			| (1 << Session.SLICE) | (1 << Session.PAN) | (1 << Tools.SNAP) | (1 << Tools.FOLLOW),
 		Tools.EVERY,
-		1 << Tools.SNAP,
+		(1 << Tools.SNAP) | (1 << Tools.FOLLOW),
 		0,
 		0,
 		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
-			| (1 << Session.PAN) | (1 << Tools.SNAP),
+			| (1 << Session.PAN) | (1 << Tools.SNAP) | (1 << Tools.FOLLOW),
 		0
 	];
 
@@ -254,8 +254,9 @@ final class Centre extends Widget {
 	}
 
 	/**
-		Scrolls whichever editor is showing to keep the playhead in view, and tells the roll and the
-		automation editor where in the song the chosen pattern sits.
+		Tells the editors where the playhead is and the roll and the automation editor where in the
+		song the chosen pattern sits, and while the song plays with following on, turns whichever
+		editor is showing on to keep the playhead in view.
 
 		@param tick Where the playhead is in the song, in ticks.
 	**/
@@ -283,6 +284,12 @@ final class Centre extends Widget {
 		if (roll.visible) roll.invalidate();
 		if (playlist.visible) playlist.invalidate();
 		if (automation.visible) automation.invalidate();
+
+		if (!session.following) return;
+
+		if (playlist.visible) playlist.keeps(tick);
+		if (roll.visible) roll.keeps(tick - origin);
+		if (automation.visible) automation.keeps(tick);
 
 		if (!tracker.visible) return;
 

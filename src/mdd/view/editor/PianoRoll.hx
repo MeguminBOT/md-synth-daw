@@ -1525,6 +1525,33 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
+		How far in from the left edge the playhead lands when the view turns to keep it in sight,
+		as a share of the view.
+	**/
+	static inline final LEAD = 0.02;
+
+	/**
+		Turns the view on a page to keep a position in the pattern in sight: where it has reached
+		the right edge or is left of the left one, the view scrolls to put it just in from the left
+		edge. A position outside the pattern moves nothing, because the playhead is then playing
+		some other part of the song.
+
+		@param local A position in the pattern, in ticks.
+	**/
+	public function keeps(local:Int):Void {
+		final pattern = session.current();
+		if (pattern == null || local < 0 || local > pattern.length) return;
+
+		final room = width - gutter();
+		if (room <= 0 || perTick <= 0) return;
+
+		final at = local * perTick - offsetX;
+		if (at >= 0 && at < room) return;
+
+		scrollTo(local * perTick - room * LEAD, offsetY);
+	}
+
+	/**
 		Scrolls to a position, clamped to the pattern.
 
 		@param px How far across.

@@ -315,6 +315,12 @@ and the checks compare the live stream against the offline one on every run.
 ## Playback
 
 - Play, pause, stop and rewind, seek, and loop.
+- **Follow playhead**, the last button in the editor's tools and an entry in the View menu, keeps
+  the playhead in sight while a song plays. When it reaches the right edge of the playlist, the
+  piano roll or the automation editor, the view turns a page so the playhead is back at the left,
+  and a loop that sends it back scrolls back with it; in the tracker the cursor rides along with
+  it. It is on to start with, it is kept between sessions, and it can be given a shortcut in the
+  Keyboard preferences.
 - Three polyphony behaviours: **strict**, where a part that runs out of voices drops the note;
   **stealing**, where the oldest voice gives way; and **arpeggio**, where notes beyond the channel
   count are cycled through it.

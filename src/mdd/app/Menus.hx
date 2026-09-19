@@ -501,6 +501,14 @@ final class Menus {
 			if (onRelabel != null) onRelabel();
 		});
 
+		final following = held.offer(new Choice(said(session.following ? Locale.VIEW_UNFOLLOW
+			: Locale.VIEW_FOLLOW), Bindings.of(bindings, Bindings.FOLLOW)));
+
+		fired(following, function():Void {
+			panels.centre.tools.press(mdd.view.Tools.FOLLOW);
+			if (onRelabel != null) onRelabel();
+		});
+
 		return held;
 	}
 
