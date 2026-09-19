@@ -143,6 +143,7 @@ class UiCheck {
 		chooses();
 		crowded(renderer, face, monoFace);
 		envelopes();
+		exports();
 
 		Draw.destroyTexture(target);
 		Sdl.destroyRenderer(renderer);
@@ -398,6 +399,45 @@ class UiCheck {
 			outside == 0 ? "every point of all 8 envelopes drawn, at both ends of the range, sits inside its"
 			+ " box with room for the line's thickness"
 			: outside + " points reach past it, the worst by " + round(worst, 2));
+	}
+
+	/**
+		The export sheets fit a screen no larger than the ones people still work on. The rows
+		scroll where they do not, so a longer list than this one still reaches its buttons.
+	**/
+	static function exports():Void {
+		final session = new mdd.app.Session(new mdd.song.Song());
+		var tight = 0;
+		var said = "";
+
+		for (video in [false, true]) {
+			for (screen in [[1280.0, 720.0], [1366.0, 768.0]]) {
+				final root = shaped();
+				root.resize(screen[0], screen[1]);
+
+				final sheet = new mdd.view.overlay.Export(session, video);
+				root.raise(sheet);
+				sheet.ask();
+				sheet.measure(screen[0], screen[1]);
+
+				final wide = sheet.wantWidth;
+				final tall = sheet.wantHeight;
+
+				sheet.arrange((screen[0] - wide) * 0.5, (screen[1] - tall) * 0.5, wide, tall);
+				sheet.scrollTo(1000000);
+
+				final reaches = sheet.content() <= sheet.room() + 0.5
+					|| sheet.room() + sheet.scrolled() >= sheet.content() - 0.5;
+
+				if (tall > screen[1] - root.metrics.whole(48) || wide > screen[0] || !reaches) tight++;
+
+				said += (video ? "video" : "audio") + " " + Math.round(screen[0]) + "x"
+					+ Math.round(screen[1]) + " wants " + Math.round(tall) + " tall"
+					+ (sheet.content() > sheet.room() ? " and scrolls" : "") + "; ";
+			}
+		}
+
+		says("an export sheet fits a small screen", tight == 0, said);
 	}
 
 	static function shaped():Root {

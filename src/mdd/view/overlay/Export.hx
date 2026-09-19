@@ -451,6 +451,7 @@ final class Export extends Widget {
 	**/
 	public function ask():Void {
 		ordered();
+		offsetY = 0;
 
 		if (fields.length == FIELDS) {
 			for (index in 0...FIELDS) fields[index].set(session.song.described(TAGS[index]));
@@ -512,7 +513,7 @@ final class Export extends Widget {
 	**/
 	public function rowTall():Float {
 		final root = root();
-		return root == null ? 42 : root.metrics.whole(42);
+		return root == null ? 34 : root.metrics.whole(34);
 	}
 
 	/**
@@ -520,7 +521,7 @@ final class Export extends Widget {
 	**/
 	public function fieldTall():Float {
 		final root = root();
-		return root == null ? 40 : root.metrics.whole(40);
+		return root == null ? 34 : root.metrics.whole(34);
 	}
 
 	/**
@@ -528,7 +529,69 @@ final class Export extends Widget {
 	**/
 	public function head():Float {
 		final root = root();
-		return root == null ? 46 : root.metrics.whole(46);
+		return root == null ? 42 : root.metrics.whole(42);
+	}
+
+	/**
+		@return How tall the band of buttons along the bottom is.
+	**/
+	public function foot():Float {
+		final root = root();
+		return root == null ? 56 : root.metrics.control + root.metrics.inset * 2;
+	}
+
+	/**
+		@return How far apart the rows and the typed numbers under them sit.
+	**/
+	function split():Float {
+		final root = root();
+		return root == null ? 12 : root.metrics.whole(12);
+	}
+
+	/**
+		@return How tall everything between the title and the buttons is, which is more than there
+			is room for on a short screen.
+	**/
+	public function content():Float {
+		final root = root();
+		if (root == null) return 0;
+
+		return rows() * rowTall() + split() + (fields.length + typed()) * fieldTall();
+	}
+
+	/**
+		@return How much of it is shown at once.
+	**/
+	public function room():Float {
+		final tall = height - head() - foot();
+		return tall < 0 ? 0 : tall;
+	}
+
+	/**
+		Scrolls what is between the title and the buttons, clamped to it.
+
+		@param py How far down.
+	**/
+	public function scrollTo(py:Float):Void {
+		final most = content() - room();
+		final held = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+
+		if (held == offsetY) return;
+
+		offsetY = held;
+		invalidate();
+	}
+
+	/**
+		How far the rows and fields are scrolled, which is nought until they do not fit.
+	**/
+	var offsetY:Float = 0;
+
+	/**
+		@return How far down the rows are scrolled.
+	**/
+	public function scrolled():Float {
+		return offsetY;
 	}
 
 	override function measure(availableWidth:Float, availableHeight:Float):Void {
@@ -543,8 +606,11 @@ final class Export extends Widget {
 		}
 
 		final count = rows();
-		wantHeight = head() + count * rowTall() + metrics.whole(24)
-			+ (fields.length + typed()) * fieldTall() + metrics.control + metrics.inset * 3;
+		final whole = head() + count * rowTall() + split()
+			+ (fields.length + typed()) * fieldTall() + foot();
+
+		final most = availableHeight - metrics.whole(64);
+		wantHeight = whole > most ? (most < metrics.whole(240) ? metrics.whole(240) : most) : whole;
 	}
 
 	override function layout():Void {
@@ -555,7 +621,7 @@ final class Export extends Widget {
 		final small = metrics.small == null ? metrics.body : metrics.small;
 		final label = small == null ? 12 : small.height;
 
-		var top = y + head() + rows() * rowTall() + metrics.whole(24);
+		var top = y + head() - offsetY + rows() * rowTall() + split();
 
 		for (index in 0...coded.length) {
 			final held = coded[index];
@@ -892,7 +958,9 @@ final class Export extends Widget {
 		@return Which row is there, or -1.
 	**/
 	public function rowAt(py:Float):Int {
-		final at = Std.int((py - y - head()) / rowTall());
+		if (py < y + head() || py > y + head() + room()) return -1;
+
+		final at = Std.int((py - y - head() + offsetY) / rowTall());
 		if (at < 0 || at >= rows()) return -1;
 
 		return showing[at];
@@ -1024,6 +1092,10 @@ final class Export extends Widget {
 		if (super.took(event)) return true;
 
 		switch (event.kind) {
+			case Kind.Wheel:
+				scrollTo(offsetY - event.dy * rowTall());
+				return true;
+
 			case Kind.KeyDown:
 				if (event.code != Key.Escape) return false;
 
@@ -1164,10 +1236,15 @@ final class Export extends Widget {
 		final tall = rowTall();
 		final left = x + metrics.whole(120);
 		final room = width - metrics.whole(120) - metrics.inset;
+		final band = this.room();
+
+		paint.pushClip(x, y + head(), width, band);
 
 		for (index in 0...rows()) {
 			final row = showing[index];
-			final top = y + head() + index * tall;
+			final top = y + head() - offsetY + index * tall;
+
+			if (top + tall < y + head() || top > y + head() + band) continue;
 
 			paint.reface(small);
 			paint.text(translate(named(row)), x + metrics.inset,
@@ -1209,7 +1286,7 @@ final class Export extends Widget {
 			}
 		}
 
-		var top = y + head() + rows() * tall + metrics.whole(24);
+		var top = y + head() - offsetY + rows() * tall + split();
 
 		paint.reface(small);
 
@@ -1243,6 +1320,9 @@ final class Export extends Widget {
 		for (held in timers) held.paint(paint);
 		for (held in fields) held.paint(paint);
 
+		paint.popClip();
+		reined(paint, theme, metrics, alpha);
+
 		go.label = translate(Locale.EXPORT_GO);
 		stop.label = translate(Locale.EXPORT_CANCEL);
 
@@ -1250,6 +1330,25 @@ final class Export extends Widget {
 		go.paint(paint);
 
 		paint.popTransform();
+	}
+
+	/**
+		Draws the bar that says how far down the rows are, where they do not all fit.
+	**/
+	function reined(paint:Paint, theme:Theme, metrics:mdd.ui.Metrics, alpha:Float):Void {
+		final band = room();
+		final reach = content();
+
+		if (reach <= band + 0.5) return;
+
+		final thick = metrics.whole(4);
+		final held = band * band / reach;
+		final least = metrics.whole(24);
+		final span = held < least ? least : held;
+		final at = offsetY / (reach - band) * (band - span);
+
+		paint.roundedRect(x + width - metrics.gap - thick, y + head() + at, thick, span,
+			thick * 0.5, theme.frame, alpha * 0.9);
 	}
 
 	function said():String {
