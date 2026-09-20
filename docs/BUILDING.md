@@ -255,7 +255,7 @@ which is 2. The gate names it in the summary and does not count it as a failure.
 missing data instead means nobody without that data can pass the gate, which is what `vgm` and `xgm`
 used to do.
 
-Ten programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
+Eleven programs answer to `mdd gate` without being part of it. They are outside `PROGRAMS`, so a run
 of the gate never reaches them, because each either stops the process on purpose, writes a file into
 the repository, or takes long enough that nobody would sit through it on every run.
 
@@ -268,6 +268,7 @@ the repository, or takes long enough that nobody would sit through it on every r
 | `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
 | `mdd gate kit <file>` | writes the drum kit, every hit of it arithmetic rather than a recording |
 | `mdd gate convert <folder> <file> [rate]` | turns a folder of recordings into a bank, working each hit's key out from the sound |
+| `mdd gate bank <into> <presets folder> <project>[=kit]...` | reads finished pieces' own presets out of their project files and writes them as bank documents. Everything that is not a recording goes into the default bank and each piece's hits become a kit named after the `=`. A preset a shipped bank, the default set or the named presets folder already has is left out, which is how anything that arrived from elsewhere stays out of what ships; `-` in place of the folder reads none |
 | `mdd gate drift` | measures how far a converter run drifts from the rate it was written at |
 | `mdd gate pulse` | measures where a recording's beat falls |
 | `mdd gate swap` | reads what each renderer backend hands a frame to draw into, which is how deep its swapchain is |

@@ -215,6 +215,35 @@ Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profi
 samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
 costs the machine nothing.
 
+## The banks lifted out of finished pieces
+
+`assets/presets/default.json` and the five kits beside it are this repository's author's own work
+rather than anybody else's, lifted out of eleven pieces finished with this program, so they are
+covered by this repository's own licence like every other file in it. `mdd gate bank` wrote them,
+which the gate does not run: it reads a project file, takes what the piece plays that nothing
+already ships, and writes it as a bank document. A preset that was already in the author's own
+presets folder was left out, because a folder is where anything that arrived from elsewhere
+arrives, and what ships has to be what was made here.
+
+`default.json` adds seventy two presets to the twenty five the application builds in code, so the
+bank every piece opens with holds ninety seven. Thirty seven are FM patches, sixteen are square
+envelopes and nineteen are noise envelopes. None of them is a recording.
+
+The five kits are recordings, mono, eight bit unsigned, at the rate each was converted at. Each
+sits in a bank of its own because a drum note picks its hit by note out of one bank.
+
+| kit | hits | bytes | roots |
+| --- | --- | --- | --- |
+| Fairy Kit | 3 | 12483 | 36, 41, 45 |
+| Trap Kit | 5 | 16161 | 36 to 40 |
+| Frost Kit | 4 | 16965 | 36, 38, 41, 45 |
+| Gabber Kit | 7 | 20172 | 36, 38, 40, 41, 43, 45, 47 |
+| Sub Kit | 5 | 36804 | 35 to 39 |
+| Hardcore Kit | 14 | 36825 | 34 to 47, and 60 to 63 for four vocal stabs |
+
+Together 139410 bytes, and the largest of them 36825, which is 14.0 per cent of the 262144 the
+Mega Drive profile allows for samples. None of it is spent until a note reaches for a hit.
+
 ## The example projects
 
 `assets/example-projects/console-tricks.mdsyn` is this repository's own work, covered by its

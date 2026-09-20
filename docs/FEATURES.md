@@ -266,11 +266,22 @@ A VGM this application wrote therefore imports with its drums where they were.
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
-- Two drum kits ship for the converter. One is thirteen hits synthesised rather than recorded:
+- **The bank every piece opens with is 97 presets**, twenty five built in and seventy two lifted
+  out of the finished pieces this program was written alongside: leads, basses, pads, plucks,
+  bells, organs and guitars for the FM channels, and hats, crashes, rides, sweeps and shakers for
+  the square and noise ones. Each is tagged with the piece it came out of, so a search finds
+  everything one track reached for.
+- Seven drum kits ship for the converter. One is thirteen hits synthesised rather than recorded:
   a kick, a snare, three toms, closed, pedal and open hats, a clap, a rim, a crash, a ride and a
-  cowbell. The other is ten hits in the manner of a TR-808. Every hit in both sits on the note
-  general MIDI puts that drum on, so a drum track imported from a MIDI lands on the right hit
-  with nothing to move.
+  cowbell. One is ten hits in the manner of a TR-808. The other five came out of finished pieces:
+  a Fairy kit of three, a Frost kit of four, Trap and Sub kits of five, a Gabber kit of seven and
+  a Hardcore kit of fourteen that carries vocal stabs as well as drums. Every hit in the first two
+  sits on the note general MIDI puts that drum on, so a drum track imported from a MIDI lands on
+  the right hit with nothing to move.
+- **A kit is a bank, and that is why each one is separate.** A drum note picks its hit by note out
+  of the bank the sample channel's own preset sits in, so two kicks on the same key cannot share a
+  bank: whichever came first would be the only one you ever heard. That is the one thing banks
+  decide rather than only show.
 - A bank costs the machine nothing until a note reaches for it. The sample counter reads what the
   music plays rather than what is loaded, the same way the channel counters do, so a new piece
   starts at nought however many banks ship.
