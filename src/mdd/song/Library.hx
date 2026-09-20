@@ -809,6 +809,123 @@ final class Library {
 	}
 
 	/**
+		What a cache of a read folder opens with.
+	**/
+	static inline final CACHED = "MDL1";
+
+	/**
+		Writes what this library holds as one file, with the listing of the folder it was read
+		from, so the next start reads one file rather than every file in a folder.
+
+		The cache is what was read rather than what is on disk: it is written after a folder read
+		and it is only read back while the listing still matches, so a file added, removed or
+		written to in the file manager throws it away. It holds no identity and no star, because
+		both are worked out from what a preset holds.
+
+		@param where The file to write.
+		@param stamp The folder listing it was read from.
+		@return Whether it was written.
+	**/
+	public function caches(where:String, stamp:String):Bool {
+		final out = new haxe.io.BytesOutput();
+
+		out.writeString(CACHED);
+		out.writeInt32(stamp.length);
+		out.writeString(stamp);
+		out.writeInt32(names.length);
+
+		for (at in 0...names.length) {
+			final bytes = mdd.format.Preset.write(names[at], instruments[at], samples[at]);
+
+			out.writeByte(owned[at] ? 1 : 0);
+			out.writeInt32(bytes.length);
+			out.write(bytes);
+		}
+
+		try {
+			sys.io.File.saveBytes(where, out.getBytes());
+		} catch (e:Dynamic) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+		Reads a cache back into a library holding nothing.
+
+		Nothing is compared against what is already here: a cache is written from a library that
+		already kept one of each, and it is only read into an empty one, so the duplicate check a
+		folder read pays for every preset against every preset already in its bank is work with a
+		known answer.
+
+		@param where The file to read.
+		@param stamp What the folder lists now.
+		@return How many presets it carried, or -1 where there is no cache, where it will not read
+			or where the folder has changed under it, all of which mean the folder has to be read.
+	**/
+	public function cached(where:String, stamp:String):Int {
+		if (where == "" || !sys.FileSystem.exists(where)) return -1;
+
+		try {
+			final from = new haxe.io.BytesInput(sys.io.File.getBytes(where));
+
+			if (from.readString(CACHED.length) != CACHED) return -1;
+
+			final length = from.readInt32();
+			if (length != stamp.length || from.readString(length) != stamp) return -1;
+
+			final banks = from.readInt32();
+			var many = 0;
+
+			for (at in 0...banks) {
+				final kept = from.readByte() != 0;
+				final held = mdd.format.Preset.read(from.read(from.readInt32()));
+
+				if (held == null || held.name == "") return -1;
+
+				final into = banked(held.name, kept);
+				final holding = instruments[into];
+				final playing = samples[into];
+
+				for (index in 0...held.presets.length) {
+					holding.push(held.presets[index]);
+					playing.push(held.samples[index]);
+
+					many++;
+				}
+			}
+
+			return many;
+		} catch (e:Dynamic) {}
+
+		return -1;
+	}
+
+	/**
+		Puts everything another library holds into this one, which is what a folder read through a
+		library of its own leaves to do.
+
+		@param other The library to take from. It keeps nothing back: this library holds the same
+			presets rather than copies of them.
+		@return How many presets were added.
+	**/
+	public function takes(other:Library):Int {
+		var many = 0;
+
+		for (at in 0...other.names.length) {
+			final held = other.instruments[at];
+			final sampled = other.samples[at];
+
+			for (index in 0...held.length) {
+				if (adds(other.names[at], held[index], sampled[index], other.owned[at])) many++;
+			}
+		}
+
+		return many;
+	}
+
+	/**
 		@param where The folder to read.
 		@param loose The bank loose presets in it go into.
 		@param depth How many folders down from the top it is.

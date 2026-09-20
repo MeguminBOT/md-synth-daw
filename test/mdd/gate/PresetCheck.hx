@@ -26,6 +26,11 @@ class PresetCheck {
 	static inline final SAVED = "Saved presets";
 
 	/**
+		How many times a read is timed, the best of which is what is reported.
+	**/
+	static inline final ROUNDS = 7;
+
+	/**
 		What the bank of presets a piece was read from is called, in the reader's language. The
 		application passes the translation; this is what it reads in English.
 	**/
@@ -60,6 +65,7 @@ class PresetCheck {
 		moved(where);
 		written(where);
 		poured(where);
+		keptBack(where);
 		familied(where);
 		sortedIn(where);
 
@@ -1024,6 +1030,112 @@ class PresetCheck {
 			"identity " + lead.id + " on both sides");
 
 		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		A folder read once is read back from one file, and the file is thrown away the moment the
+		folder stops matching it.
+
+		A reader's own folder is hundreds of patch files, each of which is an open, a read and a
+		close, and the cost is paid at every start. What the cache holds is what was read rather
+		than what is on disk, so what it has to show is that both sides answer the same presets.
+	**/
+	static function keptBack(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final folder = where + "/presets";
+		final many = 368;
+
+		mdd.host.Paths.make(folder + "/FM/Leads");
+		mdd.host.Paths.make(folder + "/DAC");
+
+		for (index in 0...many) {
+			final one = patched("Patch " + index);
+			one.patch.feedback = index & 7;
+
+			sys.io.File.saveBytes(folder + "/FM/Leads/Patch " + index + Library.PATCH,
+				mdd.format.Tfi.write(one.patch));
+		}
+
+		final drum = new Instrument("Kick", Part.Dac);
+
+		sys.io.File.saveBytes(folder + "/DAC/Kit" + Library.BANK,
+			mdd.format.Preset.write("Kit", [drum], [sampled("kick")]));
+
+		final cache = where + "/presets.cache";
+		final stamp = stamping(folder);
+
+		final read = new Library();
+		var cost = 1e9;
+
+		for (round in 0...ROUNDS) {
+			final one = new Library();
+			final opened = haxe.Timer.stamp();
+
+			one.within(folder, SAVED);
+
+			final took = (haxe.Timer.stamp() - opened) * 1000;
+			if (took < cost) cost = took;
+		}
+
+		read.within(folder, SAVED);
+		read.caches(cache, stamp);
+
+		final back = new Library();
+		var quick = 1e9;
+		var carried = 0;
+
+		for (round in 0...ROUNDS) {
+			final one = new Library();
+			final again = haxe.Timer.stamp();
+
+			carried = one.cached(cache, stamp);
+
+			final took = (haxe.Timer.stamp() - again) * 1000;
+			if (took < quick) quick = took;
+		}
+
+		back.cached(cache, stamp);
+
+		says("a folder is read back from one file", carried == read.count()
+			&& back.count() == read.count() && back.names.length == read.names.length,
+			carried + " of " + read.count() + " presets in " + back.names.length
+			+ " banks, read in " + Math.round(quick * 10) / 10 + " ms against "
+			+ Math.round(cost * 10) / 10 + " ms for " + (many + 1) + " files, best of "
+			+ ROUNDS + ", " + Math.round(cost / quick * 10) / 10 + " times faster");
+
+		final leads = back.names.indexOf("Leads");
+		final kit = back.names.indexOf("Kit");
+		final hit = kit < 0 ? null : back.samples[kit][0];
+
+		says("and it is the same presets it was written from", leads >= 0 && kit >= 0
+			&& back.instruments[leads].length == many && hit != null
+			&& hit.length() == sampled("kick").length() && back.owned[leads],
+			"Leads holds " + (leads < 0 ? 0 : back.instruments[leads].length)
+			+ ", Kit holds a recording of " + (hit == null ? 0 : hit.length()) + " bytes");
+
+		sys.io.File.saveBytes(folder + "/FM/Leads/One More" + Library.PATCH,
+			mdd.format.Tfi.write(patched("One More").patch));
+
+		final stale = new Library();
+		final answer = stale.cached(cache, stamping(folder));
+
+		says("and one more file throws the cache away", answer < 0 && stale.count() == 0,
+			"the cache answers " + answer + ", so the folder is read again");
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		@param where A folder.
+		@return What it lists, the way the application stamps the presets folder.
+	**/
+	static function stamping(where:String):String {
+		final files = new mdd.app.Files(new mdd.app.Session(new Song()));
+		files.presetsAt = where;
+
+		return files.presetsStamp();
 	}
 
 	/**

@@ -1644,9 +1644,18 @@ class App {
 	**/
 	function rescanned(prunes:Bool):Void {
 		final before = library.sheds();
+		final folder = new mdd.song.Library();
+		final where = files.within("presets");
+		final stamp = files.presetsStamp();
+		final cache = files.cache("presets");
 
-		library.within(files.within("presets"), files.savedInto);
-		presetsStamp = files.presetsStamp();
+		if (folder.cached(cache, stamp) < 0) {
+			folder.within(where, files.savedInto);
+			folder.caches(cache, stamp);
+		}
+
+		library.takes(folder);
+		presetsStamp = stamp;
 
 		session.holds();
 		final added = library.into(session.song);

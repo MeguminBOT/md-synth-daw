@@ -1478,6 +1478,16 @@ final class Files {
 
 		@return The listing, which means nothing except compared with another.
 	**/
+	/**
+		@param name What the cache holds.
+		@return The file it is kept in, which is beside the settings rather than in the folder it
+			caches: what a reader put in the presets folder is theirs, and nothing this writes
+			belongs there.
+	**/
+	public function cache(name:String):String {
+		return Paths.within("cache") + "/" + name + ".cache";
+	}
+
 	public function presetsStamp():String {
 		final out = new StringBuf();
 		stamped(within("presets"), 0, out);
