@@ -49,6 +49,7 @@ class PresetCheck {
 		recorded(Gate.root);
 		carriedOver(Gate.root);
 		loaded();
+		converted();
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -57,6 +58,7 @@ class PresetCheck {
 		folded(where);
 		moved(where);
 		written(where);
+		poured(where);
 		familied(where);
 		sortedIn(where);
 
@@ -862,6 +864,121 @@ class PresetCheck {
 			named + "; library holds " + shown.join(", ") + "; " + back
 			+ " read back from the folder, and the file that was already there "
 			+ (kept ? "still holds Kit" : "was written over"));
+	}
+
+	/**
+		A patch travels to a patch file and back with nothing lost, and a preset read from one is
+		the patch the file holds.
+
+		A patch file is forty two bytes of register values and carries no name, no tags and none
+		of the three the piece keeps beside the registers: the two LFO sensitivities and which
+		operators the LFO reaches. Those are the format rather than the writer, and what the round
+		trip has to show is that everything the format does carry comes back exactly.
+	**/
+	static function converted():Void {
+		final made = patched("Glass Lead");
+		final bytes = mdd.format.Tfi.write(made.patch);
+		final back = mdd.format.Tfi.read(bytes);
+
+		says("a patch goes to a patch file and back", bytes.length == mdd.format.Tfi.BYTES
+			&& back != null && mdd.format.Tfi.same(made.patch, back),
+			mdd.format.Tfi.BYTES + " bytes, and every field the format carries matches");
+
+		final one = new Instrument("Glass Lead", Part.Fm1);
+		one.patch = back;
+
+		final records = mdd.format.Preset.write("", [one], [null]);
+		final held = mdd.format.Preset.read(records);
+		final kept = held == null || held.presets.length != 1 ? null : held.presets[0].patch;
+
+		says("and on through a preset file", kept != null && mdd.format.Tfi.same(made.patch, kept),
+			"a patch file read in and written out as a preset is the same patch");
+
+		says("and the three it cannot carry are the format",
+			made.patch.ams == 2 && made.patch.pms == 5 && back.ams == 0 && back.pms == 0,
+			"the piece holds an LFO depth of " + made.patch.ams + " and " + made.patch.pms
+			+ ", a patch file holds neither");
+	}
+
+	/**
+		The three things the browser writes out: a preset as a patch file, what a converter preset
+		plays as a wave file, and a whole bank as one file, which reads back into a piece that has
+		none of them.
+	**/
+	static function poured(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final song = new Song();
+		final session = new mdd.app.Session(song);
+		final files = new mdd.app.Files(session);
+
+		files.presetsAt = where + "/presets";
+		files.savedInto = SAVED;
+
+		final lead = patched("Glass Lead");
+		final hit = enveloped("Blip", Part.Psg1);
+		final drum = new Instrument("Kick", Part.Dac);
+
+		lead.identifies(null);
+
+		song.sample(sampled("kick"));
+		drum.sample = song.samples.length - 1;
+
+		song.instrument(lead);
+		final leadAt = song.instruments.length - 1;
+
+		song.instrument(hit);
+		song.instrument(drum);
+		final drumAt = song.instruments.length - 1;
+
+		final bank = song.banked("Kit");
+
+		for (index in [leadAt, leadAt + 1, drumAt]) {
+			song.bank(0).remove(index);
+			bank.add(index);
+		}
+
+		files.chosen = leadAt;
+		final wrotePatch = files.writesPresetTfi(where + "/Glass Lead");
+
+		files.chosen = drumAt;
+		final wroteWave = files.writesPresetWav(where + "/Kick");
+
+		files.chosen = song.banks.indexOf(bank);
+		final wroteBank = files.writesBank(where + "/Kit");
+
+		final patch = mdd.format.Tfi.read(sys.io.File.getBytes(wrotePatch));
+		final wave = sys.io.File.getBytes(wroteWave);
+		final frames = wave == null ? 0 : (wave.length - 44);
+
+		says("a preset is written out as a patch file", patch != null
+			&& mdd.format.Tfi.same(lead.patch, patch),
+			mdd.app.Files.name(wrotePatch) + ", " + mdd.format.Tfi.BYTES + " bytes");
+
+		says("and what a hit plays as a wave file", frames == sampled("kick").length() * 2
+			&& wave.getString(0, 4) == "RIFF",
+			mdd.app.Files.name(wroteWave) + ", " + frames + " bytes of sound at "
+			+ sampled("kick").rate + " hertz");
+
+		final other = new Song();
+		final reading = new mdd.app.Files(new mdd.app.Session(other));
+
+		reading.presetsAt = where + "/read";
+		reading.savedInto = SAVED;
+		reading.readPresets(wroteBank);
+
+		says("and a bank reads back into a piece with none of it",
+			listed(other, "Kit") == "Glass Lead, Blip, Kick" && other.samples.length == 1,
+			listed(other, "Kit") + "; " + other.samples.length + " recording");
+
+		final home = other.identified(lead.id);
+
+		says("and it is the same preset it was written from", home != null
+			&& home.name == "Glass Lead" && mdd.format.Tfi.same(lead.patch, home.patch),
+			"identity " + lead.id + " on both sides");
+
+		mdd.host.Paths.clear(where);
 	}
 
 	/**

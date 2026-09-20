@@ -96,6 +96,22 @@ final class Presets extends Widget {
 	**/
 	public var onFolder:Null<Void -> Void> = null;
 
+	/**
+		Called to write one preset out as a patch file, by index into the piece.
+	**/
+	public var onWritePatch:Null<Int -> Void> = null;
+
+	/**
+		Called to write what one preset plays out as a wave file, by index into the piece.
+	**/
+	public var onWriteSample:Null<Int -> Void> = null;
+
+	/**
+		Called to write a whole bank out as one file, by index into the piece's banks.
+	**/
+	public var onWriteBank:Null<Int -> Void> = null;
+
+
 	var menu:Null<Menu> = null;
 
 	final named:Array<Int> = [];
@@ -275,6 +291,18 @@ final class Presets extends Widget {
 		fires(menu.offer(new Choice(translate(Locale.PRESET_DUPLICATE))), function():Void
 			duplicated(which));
 
+		if (instrument.patch != null || instrument.sample >= 0) menu.divide();
+
+		if (instrument.patch != null) {
+			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_PATCH))), function():Void
+				if (onWritePatch != null) onWritePatch(which));
+		}
+
+		if (instrument.sample >= 0) {
+			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_SAMPLE))), function():Void
+				if (onWriteSample != null) onWriteSample(which));
+		}
+
 		menu.divide();
 
 		fires(menu.offer(new Choice(translate(Locale.PRESET_DELETE))), function():Void
@@ -422,6 +450,11 @@ final class Presets extends Widget {
 
 		folding(menu);
 		menu.divide();
+
+		final which = grouped[at];
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_BANK))), function():Void
+			if (onWriteBank != null) onWriteBank(which));
 
 		final keep = menu.offer(new Choice(translate(Locale.PRESET_KEEP)));
 

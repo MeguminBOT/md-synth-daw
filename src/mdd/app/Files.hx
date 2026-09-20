@@ -117,6 +117,32 @@ final class Files {
 	public static inline final READ_HIT = 15;
 
 	/**
+		Dialog: writing a preset out as a patch file.
+	**/
+	public static inline final PRESET_TFI = 16;
+
+	/**
+		Dialog: writing what a converter preset plays out as a wave file.
+	**/
+	public static inline final PRESET_WAV = 17;
+
+	/**
+		Dialog: writing a whole bank out as one file.
+	**/
+	public static inline final PRESET_BANK = 18;
+
+	/**
+		Dialog: reading a preset file or a bank file into the piece.
+	**/
+	public static inline final READ_PRESETS = 19;
+
+	/**
+		Which preset the next preset dialog is about, by index into the song, or which bank for a
+		bank dialog. It is set before the dialog is asked for and read when it answers.
+	**/
+	public var chosen:Int = -1;
+
+	/**
 		The rate an import is measured at.
 	**/
 	public static inline final RATE = 44100;
@@ -499,7 +525,16 @@ final class Files {
 			case READ_WAV: Dialog.open(window, "wav", "wav", where);
 			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
 			case TFI: Dialog.save(window, "tfi", "tfi", where);
+			case PRESET_TFI: Dialog.save(window, "tfi", "tfi", where);
+			case PRESET_WAV: Dialog.save(window, "wav", "wav", where);
+
+			case PRESET_BANK:
+				Dialog.save(window, mdd.Config.BANK_FORMAT, mdd.Config.BANK, where);
 			case READ_TFI: Dialog.open(window, "tfi", "tfi", where);
+
+			case READ_PRESETS:
+				Dialog.open(window, mdd.Config.PRESET_FORMAT,
+					mdd.Config.PRESET + ";" + mdd.Config.BANK, where);
 			case READ_KIT: Dialog.folder(window, where);
 			case READ_HIT: Dialog.open(window, "wav", "wav", where);
 			case _: null;
@@ -610,6 +645,10 @@ final class Files {
 				case READ_MIDI: readMidi(where);
 				case READ_WAV: readWav(where);
 				case TFI: writeTfi(where);
+				case PRESET_TFI: writesPresetTfi(where);
+				case PRESET_WAV: writesPresetWav(where);
+				case PRESET_BANK: writesBank(where);
+				case READ_PRESETS: readPresets(where);
 				case READ_TFI: readTfi(where);
 				case READ_KIT: readKit(where);
 				case READ_HIT: readHit(where);
@@ -1172,6 +1211,111 @@ final class Files {
 	}
 
 	/**
+		Reads a preset file or a bank file into the piece that is open, and keeps a copy of it in
+		the presets folder so every other piece offers it too. The piece is not replaced: a bank
+		is presets, and opening one adds them.
+
+		A file that names its own bank is that bank. One that names none is the file itself, so a
+		single preset saved out and read back in sits under its own name rather than joining
+		whatever was last saved.
+
+		@param where The file to read.
+	**/
+	public function readPresets(where:String):Void {
+		final held = mdd.format.Preset.read(sys.io.File.getBytes(where));
+
+		if (held == null || held.presets.length == 0) {
+			session.says(Locale.SAID_NOT_PRESETS);
+			return;
+		}
+
+		final song = session.song;
+		final named = held.name == "" ? bare(where) : held.name;
+		final bank = song.banked(named);
+
+		session.holds();
+
+		var many = 0;
+
+		for (index in 0...held.presets.length) {
+			final made = held.presets[index].copy();
+			final sample = held.samples[index];
+
+			if (sample != null) {
+				song.sample(sample.copy());
+				made.sample = song.samples.length - 1;
+			}
+
+			song.instrument(made);
+
+			final at = song.instruments.length - 1;
+
+			song.bank(0).remove(at);
+			bank.add(at);
+
+			many++;
+		}
+
+		bank.kept = true;
+		session.frees();
+
+		keepsPresets(where, held, named);
+
+		session.says(Locale.SAID_PRESETS_READ, "" + many, named);
+	}
+
+	/**
+		Copies a preset file just read into the presets folder, under the family its presets share
+		where they share one, and puts what it holds in the library. A file already there is left
+		as it is.
+
+		@param where The file that was read.
+		@param held What it carried.
+		@param named The bank it was read under.
+	**/
+	function keepsPresets(where:String, held:mdd.format.Banked, named:String):Void {
+		final into = within("presets");
+		if (into == "") return;
+
+		var family = "";
+
+		for (preset in held.presets) {
+			final one = preset.kind.family();
+
+			if (family == "") family = one;
+			else if (family != one) family = "-";
+		}
+
+		final folder = family == "" || family == "-" ? into : into + "/" + family;
+		final at = folder + "/" + safely(bare(where)) + suffixOf(where);
+
+		if (!FileSystem.exists(at)) {
+			Paths.make(folder);
+
+			try {
+				sys.io.File.copy(where, at);
+			} catch (e:Dynamic) {
+				return;
+			}
+		}
+
+		if (library == null) return;
+
+		for (index in 0...held.presets.length) {
+			library.adds(named, held.presets[index].copy(), held.samples[index], true);
+		}
+	}
+
+	/**
+		@param where A path.
+		@return Its suffix with the dot, in lower case, or an empty string where it has none.
+	**/
+	static function suffixOf(where:String):String {
+		final held = haxe.io.Path.extension(where);
+		return held == "" ? "" : "." + held.toLowerCase();
+	}
+
+	/**
 		@param kind What family of part a preset is for.
 		@return The folder in the presets folder that family is kept in, which is the presets
 			folder itself where there is none set.
@@ -1393,6 +1537,93 @@ final class Files {
 		sys.io.File.saveBytes(named, mdd.format.Tfi.write(held.patch));
 
 		session.say(name(named));
+		return named;
+	}
+
+	/**
+		Writes one preset out as a patch file, which is what a reader hands to anything else that
+		plays this chip.
+
+		@param where The file to write.
+		@return What was written, or an empty string where the preset carries no patch.
+	**/
+	public function writesPresetTfi(where:String):String {
+		final held = session.song.instrumentAt(chosen);
+		final patch = held == null ? null : held.patch;
+
+		if (patch == null) {
+			session.says(Locale.SAID_NO_PATCH);
+			return "";
+		}
+
+		final named = suffixed(where, "tfi");
+		sys.io.File.saveBytes(named, mdd.format.Tfi.write(patch));
+
+		session.say(name(named));
+		return named;
+	}
+
+	/**
+		Writes what a converter preset plays out as a wave file, at the rate it was recorded at,
+		so a hit can be taken into anything that edits sound.
+
+		@param where The file to write.
+		@return What was written, or an empty string where the preset plays nothing.
+	**/
+	public function writesPresetWav(where:String):String {
+		final held = session.song.instrumentAt(chosen);
+		final sample = held == null || held.sample < 0 ? null : session.song.sampleAt(held.sample);
+
+		if (sample == null || sample.length() == 0) {
+			session.says(Locale.SAID_NO_SAMPLE);
+			return "";
+		}
+
+		final frames = sample.length();
+		final taken = new Vector<cpp.Float32>(frames);
+
+		for (at in 0...frames) taken[at] = (sample.bytes[at] - 128) / 127.0;
+
+		final named = suffixed(where, "wav");
+		sys.io.File.saveBytes(named, mdd.format.Wav.write(taken, frames, 1, sample.rate));
+
+		session.says(Locale.SAID_SAMPLE_WRITTEN, name(named), "" + frames, "" + sample.rate);
+		return named;
+	}
+
+	/**
+		Writes a whole bank out as one file, every preset in it and every recording they play, so
+		a folder of presets travels as one thing.
+
+		@param where The file to write.
+		@return What was written, or an empty string where the bank holds nothing.
+	**/
+	public function writesBank(where:String):String {
+		final song = session.song;
+
+		if (chosen < 0 || chosen >= song.banks.length) return "";
+
+		final bank = song.banks[chosen];
+		final presets:Array<mdd.song.Instrument> = [];
+		final samples:Array<Null<mdd.song.Sample>> = [];
+
+		for (index in bank.instruments) {
+			final held = song.instrumentAt(index);
+			if (held == null) continue;
+
+			presets.push(held);
+			samples.push(held.sample < 0 ? null : song.sampleAt(held.sample));
+		}
+
+		if (presets.length == 0) {
+			session.says(Locale.SAID_NO_PRESETS);
+			return "";
+		}
+
+		final named = suffixed(where, mdd.Config.BANK);
+		sys.io.File.saveBytes(named, mdd.format.Preset.write(bank.name, presets, samples));
+
+		session.says(Locale.SAID_BANK_WRITTEN, name(named), "" + presets.length);
 		return named;
 	}
 

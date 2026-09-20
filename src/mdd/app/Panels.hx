@@ -164,6 +164,24 @@ final class Panels {
 	public var onPresetFolder:Null<Void -> Void> = null;
 
 	/**
+		Called when the browser asks for one preset to be written out as a patch file, by index
+		into the piece.
+	**/
+	public var onWritePatch:Null<Int -> Void> = null;
+
+	/**
+		Called when the browser asks for what one preset plays to be written out as a wave file,
+		by index into the piece.
+	**/
+	public var onWriteSample:Null<Int -> Void> = null;
+
+	/**
+		Called when the browser asks for a whole bank to be written out as one file, by index into
+		the piece's banks.
+	**/
+	public var onWriteBank:Null<Int -> Void> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -228,6 +246,12 @@ final class Panels {
 		inspector.presets.onSave = function():Void savedPreset();
 		inspector.presets.onFolder = function():Void
 			if (onPresetFolder != null) onPresetFolder();
+		inspector.presets.onWritePatch = function(which:Int):Void
+			if (onWritePatch != null) onWritePatch(which);
+		inspector.presets.onWriteSample = function(which:Int):Void
+			if (onWriteSample != null) onWriteSample(which);
+		inspector.presets.onWriteBank = function(which:Int):Void
+			if (onWriteBank != null) onWriteBank(which);
 		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
 		bar.onPatterns = function(which:Int):Void commanded(which);

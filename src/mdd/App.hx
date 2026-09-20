@@ -392,6 +392,21 @@ class App {
 		};
 		panels.onImportSample = function():Void files.ask(stage.window, Files.READ_WAV);
 
+		panels.onWritePatch = function(which:Int):Void {
+			files.chosen = which;
+			files.ask(stage.window, Files.PRESET_TFI);
+		};
+
+		panels.onWriteSample = function(which:Int):Void {
+			files.chosen = which;
+			files.ask(stage.window, Files.PRESET_WAV);
+		};
+
+		panels.onWriteBank = function(which:Int):Void {
+			files.chosen = which;
+			files.ask(stage.window, Files.PRESET_BANK);
+		};
+
 		panels.naming = new Naming();
 		panels.naming.onShut = function():Void stage.root.lower();
 
@@ -714,6 +729,7 @@ class App {
 	static function replaces(suffix:String):Bool {
 		return switch (suffix) {
 			case "mid", "midi", "wav", "tfi": false;
+			case mdd.Config.PRESET, mdd.Config.BANK: false;
 			case _: true;
 		}
 	}
@@ -732,6 +748,7 @@ class App {
 				case "mid", "midi": files.readMidi(where);
 				case "wav": files.readWav(where);
 				case "tfi": files.readTfi(where);
+				case mdd.Config.PRESET, mdd.Config.BANK: files.readPresets(where);
 				case _: files.load(where);
 			}
 		} catch (e:Dynamic) {

@@ -404,6 +404,9 @@ final class Menus {
 		fired(held.offer(new Choice(said(Locale.FILE_READ_TFI))), function():Void
 			asks(Files.READ_TFI));
 
+		fired(held.offer(new Choice(said(Locale.FILE_READ_PRESETS))), function():Void
+			asks(Files.READ_PRESETS));
+
 		fired(held.offer(new Choice(said(Locale.PRESET_LIFT))), function():Void lifted());
 
 		return held;
