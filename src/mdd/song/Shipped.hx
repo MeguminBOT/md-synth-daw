@@ -206,6 +206,7 @@ final class Shipped {
 			final instrument = new Instrument(FM_NAMES[index], Part.Fm1);
 			instrument.patch = patched(FM_PATCHES[index]);
 			instrument.icon = FM_ICONS[index];
+			instrument.identifies(null);
 
 			song.instrument(instrument);
 			bank.add(song.instruments.length - 1);
@@ -222,6 +223,7 @@ final class Shipped {
 				envelope.loop = SQUARE_LOOPS[index];
 			}
 
+			instrument.identifies(null);
 			song.instrument(instrument);
 			bank.add(song.instruments.length - 1);
 		}
@@ -237,6 +239,7 @@ final class Shipped {
 				envelope.noise = NOISE_KINDS[index];
 			}
 
+			instrument.identifies(null);
 			song.instrument(instrument);
 			bank.add(song.instruments.length - 1);
 		}

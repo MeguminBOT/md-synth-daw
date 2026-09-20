@@ -45,6 +45,7 @@ class PresetCheck {
 		reached();
 		shipped();
 		filed();
+		identified();
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -348,6 +349,89 @@ class PresetCheck {
 		}
 
 		return -1;
+	}
+
+	/**
+		A preset is what everything in it says rather than what it is called. Two presets differing
+		anywhere differ in identity, two the same in every field are the same preset wherever each
+		sits, and a channel edited in a piece is no longer the preset it started as, which is what
+		lets a project carry its own and a reader keep theirs.
+	**/
+	static function identified():Void {
+		final one = patched("Bass");
+		final two = patched("Bass");
+
+		one.identifies(null);
+		two.identifies(null);
+
+		final alike = one.id == two.id && one.id.length == 32;
+
+		two.patch.totalLevel[3] = two.patch.totalLevel[3] + 1;
+		final level = two.identifies(null);
+
+		two.patch.totalLevel[3] = one.patch.totalLevel[3];
+		two.name = "Bass 2";
+		final named = two.identifies(null);
+
+		two.name = "Bass";
+		two.tags.push("soft");
+		final tagged = two.identifies(null);
+
+		two.tags.pop();
+		two.icon = one.icon + 1;
+		final iconed = two.identifies(null);
+
+		says("an identity is everything the preset holds", alike && level != one.id
+			&& named != one.id && tagged != one.id && iconed != one.id
+			&& level != named && named != tagged && tagged != iconed,
+			"two presets written the same way answer " + one.id.substr(0, 8) + ", and a total level, a"
+			+ " name, a tag and an icon each answer something else");
+
+		final held = enveloped("Pulse", Part.Psg1);
+		held.identifies(null);
+
+		final was = held.id;
+		held.envelope.steps.push(3);
+		final stepped = held.identifies(null);
+
+		held.envelope.steps.pop();
+		held.envelope.speed = held.envelope.speed + 1;
+		final sped = held.identifies(null);
+
+		final hit = new Instrument("Hit", Part.Dac);
+		final sample = sampled("Hit");
+
+		hit.identifies(sample);
+		final heard = hit.id;
+
+		sample.bytes[17] = (sample.bytes[17] + 1) & 0xFF;
+		final struck = hit.identifies(sample);
+
+		says("and that reaches an envelope and a recording", stepped != was && sped != was
+			&& stepped != sped && struck != heard,
+			"a step, a speed and one byte of a recording each answer something else");
+
+		final song = new Song("carrying");
+		final own = song.instrument(patched("Bass"));
+
+		own.patch.feedback = 6;
+		own.identifies(null);
+		own.from = one.id;
+
+		song.bank(0).remove(song.instruments.length - 1);
+		song.banked(FROM_FILE).add(song.instruments.length - 1);
+
+		final library = new Library();
+		library.reads(Library.saved(patched("Bass"), null), true, SAVED);
+
+		final added = library.into(song);
+		final kept = song.instrumentAt(song.instruments.indexOf(own));
+
+		says("a piece keeps its own against a reader's", kept != null && kept.patch.feedback == 6
+			&& listed(song, FROM_FILE) == "Bass" && added == 1 && kept.from == one.id,
+			"the piece still plays its own Bass at a feedback of " + (kept == null ? -1 : kept.patch.feedback)
+			+ ", the folder's arrived beside it as " + added + " more, and the piece's still says it came"
+			+ " from " + one.id.substr(0, 8));
 	}
 
 	/**

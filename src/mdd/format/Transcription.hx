@@ -1952,7 +1952,14 @@ final class Transcription {
 		if (song.instruments.length == 0) return;
 
 		final bank = song.banked("from the import", false);
-		for (index in 0...song.instruments.length) bank.add(index);
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instrumentAt(index);
+
+			if (held != null) held.identifies(song.sampleAt(held.sample));
+
+			bank.add(index);
+		}
 
 		song.banks[0].instruments.resize(0);
 	}

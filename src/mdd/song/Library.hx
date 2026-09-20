@@ -123,6 +123,8 @@ final class Library {
 			if (instrument.kind.sampled() && sample == null) continue;
 			if (sample != null) sample.loop = one.get("loop").whole(-1);
 
+			instrument.identifies(sample);
+
 			if (over) {
 				keeps(named, instrument, sample);
 				many++;
@@ -268,7 +270,7 @@ final class Library {
 	**/
 	public function keeps(bank:String, instrument:Instrument, sample:Null<Sample>):Void {
 		final at = banked(bank, true);
-		final held = holding(at, instrument);
+		final held = called(at, instrument);
 
 		if (held < 0) {
 			instruments[at].push(instrument);
@@ -289,6 +291,21 @@ final class Library {
 	function holding(at:Int, instrument:Instrument):Int {
 		final held = instruments[at];
 
+		for (which in 0...held.length) if (same(held[which], instrument)) return which;
+
+		return -1;
+	}
+
+	/**
+		@param at Which bank.
+		@param instrument A preset.
+		@return Where a preset of that name for that kind of part sits in the bank, or -1. This is
+			what a file stands for rather than what a preset is: a file keeps its name while what
+			is written into it changes, so a save over one takes the place of what it held.
+	**/
+	function called(at:Int, instrument:Instrument):Int {
+		final held = instruments[at];
+
 		for (which in 0...held.length) {
 			if (held[which].name == instrument.name && kin(held[which].kind, instrument.kind)) {
 				return which;
@@ -296,6 +313,19 @@ final class Library {
 		}
 
 		return -1;
+	}
+
+	/**
+		@param one A preset.
+		@param two Another.
+		@return Whether they are the same preset rather than two that read alike: their identities
+			where both carry one, and the name and the kind of part otherwise, which is all a
+			preset written before identities carries.
+	**/
+	public static function same(one:Instrument, two:Instrument):Bool {
+		if (one.id != "" && two.id != "") return one.id == two.id;
+
+		return one.name == two.name && kin(one.kind, two.kind);
 	}
 
 	/**
@@ -318,7 +348,7 @@ final class Library {
 			part, with the same patch or envelope. Samples are not compared.
 	**/
 	public static function alike(one:Instrument, two:Instrument):Bool {
-		if (one.name != two.name || !kin(one.kind, two.kind)) return false;
+		if (!same(one, two) || one.name != two.name) return false;
 
 		final patch = one.patch;
 		final other = two.patch;
@@ -524,7 +554,7 @@ final class Library {
 			if (at == index) continue;
 
 			final held = song.instrumentAt(at);
-			if (held == null || !alike(held, instrument)) continue;
+			if (held == null || !same(held, instrument) || !alike(held, instrument)) continue;
 			if (!sameHit(song, held, instrument)) continue;
 
 			return at;
@@ -617,10 +647,7 @@ final class Library {
 	static function offers(song:Song, bank:Bank, instrument:Instrument):Int {
 		for (index in bank.instruments) {
 			final held = song.instrumentAt(index);
-
-			if (held != null && held.name == instrument.name && kin(held.kind, instrument.kind)) {
-				return index;
-			}
+			if (held != null && same(held, instrument)) return index;
 		}
 
 		return -1;

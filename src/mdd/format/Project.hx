@@ -283,6 +283,11 @@ class Project {
 		out.key("kind");
 		out.whole(instrument.kind.index());
 
+		if (instrument.from != "") {
+			out.key("from");
+			out.text(instrument.from);
+		}
+
 		out.key("sample");
 		out.whole(instrument.sample);
 
@@ -572,6 +577,10 @@ class Project {
 			song.track(track);
 		}
 
+		for (instrument in song.instruments) {
+			instrument.identifies(instrument.sample < 0 ? null : song.sampleAt(instrument.sample));
+		}
+
 		return song;
 	}
 
@@ -585,6 +594,7 @@ class Project {
 
 		instrument.sample = node.get("sample").whole(-1);
 		instrument.icon = node.get("icon").whole(-1);
+		instrument.from = node.get("from").saying("");
 
 		final tagged = node.get("tags");
 

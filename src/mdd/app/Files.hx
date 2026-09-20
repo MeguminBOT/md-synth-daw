@@ -1282,6 +1282,8 @@ final class Files {
 		@return Where it was written, or an empty string where it could not be.
 	**/
 	public function keepsPreset(made:mdd.song.Instrument, sample:Null<mdd.song.Sample>):String {
+		made.identifies(sample);
+
 		final into = familied(made.kind);
 		final said = mdd.song.Library.saved(made, sample);
 		final base = into + "/" + safely(made.name);
@@ -1454,6 +1456,7 @@ final class Files {
 
 		made.patch = patch == null ? null : patch.copy();
 		made.icon = held.icon;
+		made.identifies(null);
 
 		for (tag in held.tags) made.tags.push(tag);
 
