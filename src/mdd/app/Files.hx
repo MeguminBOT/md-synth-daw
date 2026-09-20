@@ -1396,10 +1396,11 @@ final class Files {
 	}
 
 	/**
-		@param from A file in the presets folder.
+		@param from A file in the presets folder, of any kind read out of one.
 		@param name What it is called.
-		@return Which family of part it holds presets for, or an empty string where it holds no
-			preset, names a bank of its own, or carries more than one family.
+		@return Which family of part it holds presets for, or an empty string where it will not
+			read, holds no preset, or carries more than one family. A file naming a bank of its
+			own answers the same way, because it is that bank wherever it sits.
 	**/
 	function familyOf(from:String, name:String):String {
 		final lower = name.toLowerCase();
@@ -1408,13 +1409,18 @@ final class Files {
 			return mdd.song.Part.Fm1.family();
 		}
 
-		if (!StringTools.endsWith(lower, mdd.song.Library.SUFFIX)) return "";
-
 		try {
-			return mdd.song.Library.familyIn(sys.io.File.getContent(from));
-		} catch (e:Dynamic) {
-			return "";
-		}
+			if (StringTools.endsWith(lower, mdd.song.Library.RECORDS)
+					|| StringTools.endsWith(lower, mdd.song.Library.BANK)) {
+				return mdd.song.Library.familyOf(sys.io.File.getBytes(from));
+			}
+
+			if (StringTools.endsWith(lower, mdd.song.Library.SUFFIX)) {
+				return mdd.song.Library.familyIn(sys.io.File.getContent(from));
+			}
+		} catch (e:Dynamic) {}
+
+		return "";
 	}
 
 	/**

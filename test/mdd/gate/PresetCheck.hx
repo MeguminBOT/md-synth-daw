@@ -731,6 +731,13 @@ class PresetCheck {
 		sys.io.File.saveContent(where + "/Both.json",
 			banked("Two Families", [patched("Wide"), enveloped("Narrow", Part.Psg1)]));
 
+		sys.io.File.saveBytes(where + "/Pad" + Library.RECORDS,
+			mdd.format.Preset.write("", [patched("Pad")], [null]));
+
+		sys.io.File.saveBytes(where + "/Hits" + Library.BANK,
+			mdd.format.Preset.write("Metal", [new Instrument("Kick", Part.Dac)],
+			[sampled("kick")]));
+
 		final files = new mdd.app.Files(new mdd.app.Session(new Song()));
 		files.presetsAt = where;
 
@@ -741,15 +748,17 @@ class PresetCheck {
 			&& sys.FileSystem.exists(where + "/FM/Bass/Sub.json")
 			&& sys.FileSystem.exists(where + "/PSG/Beeps.json")
 			&& sys.FileSystem.exists(where + "/NOISE/Hits.json")
-			&& sys.FileSystem.exists(where + "/NOISE/Kit.json");
+			&& sys.FileSystem.exists(where + "/NOISE/Kit.json")
+			&& sys.FileSystem.exists(where + "/FM/Pad" + Library.RECORDS)
+			&& sys.FileSystem.exists(where + "/DAC/Hits" + Library.BANK);
 
 		final stayed = sys.FileSystem.exists(where + "/Both.json")
 			&& !sys.FileSystem.exists(where + "/Lead.json");
 
-		says("what was there is sorted by family", moved == 6 && landed && stayed,
+		says("what was there is sorted by family", moved == 8 && landed && stayed,
 			moved + " files moved, each under the folder its family stands in, the subfolder they"
-			+ " were in kept, a bank document of one family with them, and the one carrying two"
-			+ " families left where it is");
+			+ " were in kept, a preset file and a bank of one family with them, and the document"
+			+ " carrying two families left where it is");
 
 		final again = files.sortsPresets();
 

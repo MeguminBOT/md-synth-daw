@@ -141,6 +141,23 @@ final class Library {
 		@return The instrument, or null where it carries nothing that plays.
 	**/
 	/**
+		@param bytes A preset file or a bank file out of the presets folder.
+		@return Which family of part every preset in it is for, as `Part.family` names it, or an
+			empty string where it will not read, carries no preset or carries more than one
+			family. A file that answers one is a file that belongs in that family's folder.
+	**/
+	public static function familyOf(bytes:Null<haxe.io.Bytes>):String {
+		final held = mdd.format.Preset.read(bytes);
+		if (held == null || held.presets.length == 0) return "";
+
+		final out = held.presets[0].kind.family();
+
+		for (one in held.presets) if (one.kind.family() != out) return "";
+
+		return out;
+	}
+
+	/**
 		@param said A document out of the presets folder.
 		@return Which family of part every preset in it is for, as `Part.family` names it, or an
 			empty string where it carries no preset or carries more than one family. A file that
