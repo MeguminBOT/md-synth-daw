@@ -3048,6 +3048,71 @@ class SpineCheck {
 			+ " at a velocity of " + over.velocity) + " came from a copy of D-4 20");
 
 		lane.notes.resize(0);
+		reined(tree, tracker);
+	}
+
+	/**
+		The tracker's rows and columns both run past what it shows, and each has a bar to drag.
+	**/
+	static function reined(tree:Root, tracker:Tracker):Void {
+		final wasX = tracker.x;
+		final wasY = tracker.y;
+		final wasWide = tracker.width;
+		final wasTall = tracker.height;
+
+		if (tracker.contentHeight() <= tracker.downRoom()) {
+			tracker.arrange(wasX, wasY, wasWide, tracker.head() + tracker.contentHeight() * 0.5);
+		}
+
+		tracker.scrollTo(0, 0);
+		tracker.at(0, 0);
+
+		final thick = tracker.reinTall();
+		final across = tracker.acrossRoom();
+		final down = tracker.downRoom();
+
+		says("the tracker holds more than it shows",
+			tracker.contentWidth() > across + 0.5 && tracker.contentHeight() > down + 0.5,
+			Math.round(tracker.contentWidth()) + " wide and " + Math.round(tracker.contentHeight())
+			+ " deep against " + Math.round(across) + " by " + Math.round(down) + " shown");
+
+		final row = tracker.row;
+		final column = tracker.column;
+
+		final along = tracker.y + tracker.head() + down - thick * 0.5;
+		tree.pressed(tracker.x + tracker.width - thick, along, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 1);
+		tree.moved(tracker.x + tracker.width - thick, along, mdd.ui.Mod.None);
+		tree.released(tracker.x + tracker.width - thick, along, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final far = tracker.contentWidth() - across;
+
+		says("dragging the bar along the bottom scrolls the columns",
+			Math.abs(tracker.offsetX - far) < 1 && tracker.row == row && tracker.column == column,
+			"it sits at " + Math.round(tracker.offsetX) + " of " + Math.round(far)
+			+ ", and the cursor stayed on row " + tracker.row + " column " + tracker.column);
+
+		final side = tracker.x + tracker.width - thick * 0.5;
+		final middle = tracker.y + tracker.head() + down * 0.5;
+		final bottom = tracker.y + tracker.head() + down + thick;
+
+		tree.pressed(side, middle, mdd.ui.Pointer.Left, mdd.ui.Mod.None, 1);
+		tree.moved(side, bottom, mdd.ui.Mod.None);
+		tree.released(side, bottom, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final most = tracker.contentHeight() - down;
+
+		says("and the one down the side scrolls the rows",
+			Math.abs(tracker.offsetY - most) < 1 && tracker.row == row,
+			"it sits at " + Math.round(tracker.offsetY) + " of " + Math.round(most)
+			+ ", and the cursor stayed on row " + tracker.row);
+
+		tracker.scrollTo(0, 0);
+
+		says("and a press away from either bar still picks a cell", tracker.offsetX == 0
+			&& tracker.offsetY == 0,
+			"scrolled back to the top left for whatever comes next");
+
+		tracker.arrange(wasX, wasY, wasWide, wasTall);
 	}
 
 	static function sorted(tree:Root, presets:mdd.view.editor.Presets,

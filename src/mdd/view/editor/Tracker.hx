@@ -363,6 +363,163 @@ final class Tracker extends Widget {
 	}
 
 	/**
+		@return How thick a scrollbar is.
+	**/
+	public function reinTall():Float {
+		final root = root();
+		return root == null ? 8 : root.metrics.whole(8);
+	}
+
+	/**
+		@return How wide the rows are, which is every column end to end.
+	**/
+	public function contentWidth():Float {
+		return reach();
+	}
+
+	/**
+		@return How deep they run.
+	**/
+	public function contentHeight():Float {
+		return rows() * rowTall();
+	}
+
+	/**
+		@return How much of the width shows the columns.
+	**/
+	public function acrossRoom():Float {
+		final room = width - numbers();
+		return room < 0 ? 0 : room;
+	}
+
+	/**
+		@return How much of the height shows the rows.
+	**/
+	public function downRoom():Float {
+		final room = height - head();
+		return room < 0 ? 0 : room;
+	}
+
+	/**
+		Scrolls to a place, clamped to the rows and the columns.
+
+		@param px How far across.
+		@param py How far down.
+	**/
+	public function scrollTo(px:Float, py:Float):Void {
+		final far = contentWidth() - acrossRoom();
+		final most = contentHeight() - downRoom();
+
+		final across = px < 0 ? 0 : (px > far ? (far < 0 ? 0 : far) : px);
+		final down = py < 0 ? 0 : (py > most ? (most < 0 ? 0 : most) : py);
+
+		if (across == offsetX && down == offsetY) return;
+
+		offsetX = across;
+		offsetY = down;
+
+		invalidate();
+	}
+
+	/**
+		@param across How long the bar is.
+		@param reach How much it stands for.
+		@return How long its thumb is, never shorter than it can be grabbed by.
+	**/
+	function span(across:Float, reach:Float):Float {
+		final root = root();
+		final least = root == null ? 24.0 : root.metrics.whole(24);
+		final held = reach <= 0 ? across : across * across / reach;
+
+		return held < least ? least : held;
+	}
+
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return 1 where the bar along the bottom is there, 2 where the one down the side is, and
+			nought where neither is.
+	**/
+	function reinAt(px:Float, py:Float):Int {
+		final thick = reinTall();
+		final top = y + head();
+
+		if (py >= top + downRoom() - thick && py < top + downRoom() && px >= x + numbers()
+			&& contentWidth() > acrossRoom() + 0.5) return 1;
+
+		if (px >= x + width - thick && py >= top && py < top + downRoom()
+			&& contentHeight() > downRoom() + 0.5) return 2;
+
+		return 0;
+	}
+
+	/**
+		Scrolls to where a bar was dragged, with the thumb taken by its middle.
+
+		@param px Where the pointer is, across.
+		@param py Where it is, down.
+	**/
+	function reined(px:Float, py:Float):Void {
+		if (reining == 1) {
+			final across = acrossRoom();
+			final held = span(across, contentWidth());
+			final room = across - held;
+
+			if (room <= 0) return;
+
+			final want = (px - x - numbers() - held * 0.5) / room;
+			scrollTo(want * (contentWidth() - across), offsetY);
+			return;
+		}
+
+		final down = downRoom();
+		final held = span(down, contentHeight());
+		final room = down - held;
+
+		if (room <= 0) return;
+
+		final want = (py - y - head() - held * 0.5) / room;
+		scrollTo(offsetX, want * (contentHeight() - down));
+	}
+
+	/**
+		Draws the bar along the bottom and the one down the side, each only where its rows or its
+		columns run past what is shown.
+	**/
+	function reins(paint:Paint, theme:Theme, metrics:Metrics):Void {
+		final thick = reinTall();
+		final left = x + numbers();
+		final top = y + head();
+		final across = acrossRoom();
+		final down = downRoom();
+
+		if (contentWidth() > across + 0.5) {
+			final held = span(across, contentWidth());
+			final most = contentWidth() - across;
+			final at = most <= 0 ? 0 : offsetX / most * (across - held);
+
+			paint.rect(left, top + down - thick, across, thick, theme.sink, 0.7);
+			paint.roundedRect(left + at, top + down - thick + metrics.whole(2), held,
+				thick - metrics.whole(4), metrics.whole(2), theme.frame);
+		}
+
+		if (contentHeight() > down + 0.5) {
+			final held = span(down, contentHeight());
+			final most = contentHeight() - down;
+			final at = most <= 0 ? 0 : offsetY / most * (down - held);
+
+			paint.rect(x + width - thick, top, thick, down, theme.sink, 0.7);
+			paint.roundedRect(x + width - thick + metrics.whole(2), top + at,
+				thick - metrics.whole(4), held, metrics.whole(2), theme.frame);
+		}
+	}
+
+	/**
+		Which bar is being dragged: 1 along the bottom, 2 down the side, nought for neither.
+	**/
+	var reining:Int = 0;
+
+	/**
 		Scrolls the cursor into view.
 	**/
 	public function reveal():Void {
@@ -689,6 +846,14 @@ final class Tracker extends Widget {
 				return true;
 
 			case Kind.PointerDown:
+				final rein = reinAt(event.x, event.y);
+
+				if (rein != 0) {
+					reining = rein;
+					reined(event.x, event.y);
+					return true;
+				}
+
 				final at = rowAt(event.y);
 				final which = columnAt(event.x);
 
@@ -708,6 +873,18 @@ final class Tracker extends Widget {
 				else if (event.clicks > 1) opens();
 
 				invalidate();
+				return true;
+
+			case Kind.PointerMove:
+				if (reining == 0) return false;
+
+				reined(event.x, event.y);
+				return true;
+
+			case Kind.PointerUp:
+				if (reining == 0) return false;
+
+				reining = 0;
 				return true;
 
 			case Kind.Text:
@@ -987,6 +1164,8 @@ final class Tracker extends Widget {
 		paint.popClip();
 
 		paint.rect(x + numbers() - hair, top, hair, height - head(), theme.frame);
+
+		reins(paint, theme, metrics);
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, wide:Float):Void {
