@@ -223,6 +223,17 @@ name, or `Project.xml`, `project.hxp` or `project.lime`, makes the Lime editor e
 workspace and answer the Haxe language server with the output of a `lime` command that is not
 installed here, leaving the editor with no completion at all and nothing saying why.
 
+## The shipped presets
+
+The banks that ship are edited as text and shipped as records. `assets/presets/*.json` is one
+document per bank, holding the presets with their names, icons and tags, and the build turns each
+one into `export/banks/<name>.mdbank`, which is embedded in the binary as a resource. The
+conversion runs only where a document is newer than the bank built from it.
+
+That is where to fix a name or add a tag: edit the document, build, and the bank the application
+offers is what you wrote. The records are the same format a preset or a bank saved from the browser
+is written in, so nothing about a shipped bank is special beyond where it is kept.
+
 ## Adding a check
 
 The gate's programs live in `test/`, which only the `gate` target adds to its source path, so the

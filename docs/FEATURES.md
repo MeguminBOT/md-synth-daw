@@ -249,7 +249,18 @@ A VGM this application wrote therefore imports with its drums where they were.
 - **Switch at playhead**, on a preset's right-click menu, puts it in the channel's preset lane
   where the playhead is, so one channel can change instrument part way through a pattern.
 - Any patch in a song can be lifted into the library.
-- Patches import from TFI files and export back to them.
+- Patches import from TFI files and export back to them, and one preset writes out as a TFI from
+  its right-click menu. A TFI is forty two bytes of registers and nothing else, so a name, tags and
+  the two LFO depths stay behind; everything the format carries comes back exactly.
+- **A preset goes back to what it was.** Loading one into a channel gives the channel its own copy
+  of it, so playing with the knobs never touches the preset. Choose the same preset again and every
+  field goes back to what it held when you loaded it, in one undo step. Right-click a single dial
+  in the synthesizer, or a step of a square or noise envelope, to put that one parameter back and
+  leave the rest as you have it.
+- **A star is on the preset, not on the row.** Favourite one from its right-click menu and the
+  browser marks it wherever it appears, in this piece and in every other. The browser's order
+  button has a fourth setting, **Favourites**, which lists the starred on their own. A preset you
+  edit into something else is a different preset and keeps no star.
 - Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks
   and Mickey Mania, 374 patches in all. A patch is the value of a register at a key on, so
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
@@ -281,8 +292,23 @@ A VGM this application wrote therefore imports with its drums where they were.
   as soon as you come back to the window. Patch files and bank documents work in any folder, and
   a folder filled before this layout is sorted into it once, the first time you open the program
   after the change.
+- **A preset is a file you can hand to somebody.** One writes out as `.mdpreset`, a
+  **MD Synth Preset File**, and a whole bank as `.mdbank`, a **MD Synth Preset Bank**, from the
+  right-click menu on a preset or on a bank heading. Both are the same format: the parameters as
+  numbers rather than as text, every recording a converter preset plays included, so a kit travels
+  whole. Both suffixes register with the desktop, so a double click opens one, and dropping one on
+  the window or **Import presets** in the file menu reads it into the piece you have open without
+  replacing it. A copy goes into your presets folder at the same time, so every project afterwards
+  offers it too.
+- **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
+  at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
+  back in.
 - Your own presets load beside the shipped ones rather than replacing them. A project keeps its
   own copy of every preset it carries, so it opens the same on a machine that has none of them.
+- **The folder is read once and remembered.** A folder of hundreds of patch files is hundreds of
+  opens at every start, so what was read is kept beside your settings as one file and read back
+  from there: 369 presets read in 0.9 ms rather than 27.6. Add, remove or change anything in the
+  folder and it is read properly again, so nothing you do in the file manager is missed.
 - **What a file brought is one bank.** Opening a project, or importing a VGM, VGZ or XGM, files
   every preset it carries by where it belongs rather than by how the file had it grouped: a
   shipped bank or one of your own folders where the preset lives there, the starting set where it
@@ -382,6 +408,7 @@ and the checks compare the live stream against the offline one on every run.
 | **MIDI** | Notes and tempo. A file is looked through before any of it arrives, so you pick which of its tracks and channels to take and which part each one plays, and take it either as a piece of its own or as one more track in the piece you have open |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
 | **TFI** | A single FM patch |
+| **MD Synth Preset File** and **MD Synth Preset Bank** | One preset or a whole bank, with every recording they play. They are added to the piece you have open rather than replacing it |
 
 The VGM importer also analyses what it read: how many writes of each class the file makes, which
 channels are used, and where the driver writes registers a note model cannot hold.
@@ -500,6 +527,7 @@ and Opus are both compiled in, so there is nothing else to install.
   sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second.
 - **MIDI**, which reads back as the notes it was written from.
 - **TFI**, one patch at a time.
+- **`.mdpreset`** and **`.mdbank`**, one preset or a whole bank of them, with the recordings.
 
 ### The project
 
