@@ -303,8 +303,15 @@ A VGM this application wrote therefore imports with its drums where they were.
 - **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
   at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
   back in.
-- Your own presets load beside the shipped ones rather than replacing them. A project keeps its
-  own copy of every preset it carries, so it opens the same on a machine that has none of them.
+- Your own presets load beside the shipped ones rather than replacing them.
+- **A project file is the piece, not your preset folder.** It carries what the piece plays: the
+  presets on its channels, the ones its notes and preset lanes name, the whole of the kit behind
+  its sample channel, any bank you asked to keep, and anything your library could not hand back.
+  Everything else is offered again by the library when you open it, so a file does not grow as
+  your folder does. It still opens the same on a machine that has none of your presets, because
+  everything it plays is in it. Opening an older project rewrites it this way the first time you
+  save: one piece here went from 1231 presets and 92 recordings to 29 and 4, and from 2954 KB to
+  655, sounding register for register the same.
 - **The folder is read once and remembered.** A folder of hundreds of patch files is hundreds of
   opens at every start, so what was read is kept beside your settings as one file and read back
   from there: 369 presets read in 0.9 ms rather than 27.6. Add, remove or change anything in the
