@@ -783,23 +783,25 @@ final class Files {
 		@return Where it was written, or an empty string where nothing was.
 	**/
 	public function writeKit(kit:mdd.format.Kit):String {
-		final said = kit.written();
-		if (said == "") return "";
+		final made = kit.banked();
+		if (made == null) return "";
 
-		final into = within("presets");
+		final into = familied(mdd.song.Part.Dac);
 		Paths.make(into);
 
-		final named = into + "/" + safely(kit.name) + mdd.song.Library.SUFFIX;
-		sys.io.File.saveContent(named, said);
+		final named = into + "/" + safely(kit.name) + mdd.song.Library.BANK;
+		final bytes = mdd.format.Preset.write(made.name, made.presets, made.samples);
+
+		sys.io.File.saveBytes(named, bytes);
 
 		final held = new mdd.song.Library();
-		held.reads(said);
+		held.holds(bytes, true);
 
 		session.holds();
 		held.into(session.song);
 		session.frees();
 
-		if (library != null) library.replaces(said);
+		if (library != null) library.holds(bytes, true, "", true);
 
 		session.says(Locale.SAID_KIT, kit.name, "" + kit.taken(), "" + kit.bytes());
 		session.changed();

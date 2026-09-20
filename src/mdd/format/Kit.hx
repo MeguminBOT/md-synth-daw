@@ -305,11 +305,12 @@ final class Kit {
 	}
 
 	/**
-		@return The bank document, which is empty where nothing was converted.
+		@return Every hit that was converted, as a bank, or null where nothing was.
 	**/
-	public function written():String {
-		final made:Array<Instrument> = [];
-		final held:Array<Null<Sample>> = [];
+	public function banked():Null<mdd.format.Banked> {
+		final out = new mdd.format.Banked();
+
+		out.name = name == "" ? "Kit" : name;
 
 		for (slot in slots) {
 			final sample = slot.made;
@@ -321,13 +322,22 @@ final class Kit {
 
 			for (tag in tagged()) one.tags.push(tag);
 
-			made.push(one);
-			held.push(sample);
+			out.add(one, sample);
 		}
 
-		if (made.length == 0) return "";
+		return out.presets.length == 0 ? null : out;
+	}
 
-		return mdd.song.Library.written(name == "" ? "Kit" : name, made, held);
+	/**
+		@return The bank document, which is empty where nothing was converted. This is what the
+			shipped banks are edited as; what the application writes into a reader's own presets
+			folder is records.
+	**/
+	public function written():String {
+		final held = banked();
+		if (held == null) return "";
+
+		return mdd.song.Library.written(held.name, held.presets, held.samples);
 	}
 
 	static inline final KICK = 0;

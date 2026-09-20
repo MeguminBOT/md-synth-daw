@@ -746,9 +746,13 @@ final class Library {
 		@param bytes The file.
 		@param owned Whether it came out of the presets folder.
 		@param loose The bank a file naming none goes into.
+		@param over Whether a preset takes the place of one of the same name rather than being
+			passed over, which is right for a file the application has just written and wrong for
+			one it is reading for the first time.
 		@return How many presets it carried.
 	**/
-	public function holds(bytes:Null<haxe.io.Bytes>, owned:Bool = false, loose:String = ""):Int {
+	public function holds(bytes:Null<haxe.io.Bytes>, owned:Bool = false, loose:String = "",
+			over:Bool = false):Int {
 		final held = mdd.format.Preset.read(bytes);
 		if (held == null) return 0;
 
@@ -758,7 +762,12 @@ final class Library {
 		var many = 0;
 
 		for (index in 0...held.presets.length) {
-			if (adds(named, held.presets[index], held.samples[index], owned)) many++;
+			if (over) {
+				keeps(named, held.presets[index], held.samples[index]);
+				many++;
+			} else if (adds(named, held.presets[index], held.samples[index], owned)) {
+				many++;
+			}
 		}
 
 		return many;

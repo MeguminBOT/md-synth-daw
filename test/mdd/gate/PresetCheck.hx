@@ -66,6 +66,7 @@ class PresetCheck {
 		written(where);
 		poured(where);
 		raised(where);
+		fitted(where);
 		keptBack(where);
 		familied(where);
 		sortedIn(where);
@@ -1029,6 +1030,63 @@ class PresetCheck {
 		says("and it is the same preset it was written from", home != null
 			&& home.name == "Glass Lead" && mdd.format.Tfi.same(lead.patch, home.patch),
 			"identity " + lead.id + " on both sides");
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		A kit converted in the application is written into the converter's own folder as records,
+		and it reads straight back as one bank with its recordings.
+	**/
+	static function fitted(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final song = new Song();
+		final files = new mdd.app.Files(new mdd.app.Session(song));
+		final library = new Library();
+
+		files.presetsAt = where;
+		files.savedInto = SAVED;
+		files.library = library;
+
+		final kit = new mdd.format.Kit();
+
+		kit.name = "Metal";
+		kit.tags = "Drums, Metal";
+
+		for (name in ["Kick", "Snare", "Hat"]) {
+			final slot = new mdd.format.Slot("", name);
+
+			slot.made = sampled(name);
+			slot.icon = mdd.Icon.NAMES.indexOf("drumkit");
+
+			kit.slots.push(slot);
+		}
+
+		final named = files.writeKit(kit);
+		final under = mdd.app.Files.name(haxe.io.Path.directory(named));
+
+		final fresh = new Library();
+		fresh.within(where, SAVED);
+
+		final at = fresh.names.indexOf("Metal");
+		final held:Array<Instrument> = at < 0 ? [] : fresh.instruments[at];
+		final shown:Array<String> = [];
+
+		for (one in held) shown.push(one.name);
+
+		final hit = at < 0 || fresh.samples[at].length == 0 ? null : fresh.samples[at][0];
+
+		says("a converted kit is written as records", under == "DAC"
+			&& StringTools.endsWith(named, Library.BANK) && shown.join(", ") == "Kick, Snare, Hat"
+			&& hit != null && hit.length() == sampled("Kick").length(),
+			mdd.app.Files.name(named) + " under " + under + ", holding " + shown.join(", ")
+			+ ", each of " + (hit == null ? 0 : hit.length()) + " bytes");
+
+		says("and the piece is given it straight away",
+			listed(song, "Metal") == "Kick, Snare, Hat" && song.samples.length == 3,
+			listed(song, "Metal") + "; " + song.samples.length + " recordings");
 
 		mdd.host.Paths.clear(where);
 	}
