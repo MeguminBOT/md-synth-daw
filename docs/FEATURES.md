@@ -261,6 +261,9 @@ A VGM this application wrote therefore imports with its drums where they were.
   browser marks it wherever it appears, in this piece and in every other. The browser's order
   button has a fourth setting, **Favourites**, which lists the starred on their own. A preset you
   edit into something else is a different preset and keeps no star.
+- **67 more FM patches ship as Instruments**, by ulalume under CC0 and credited in the README:
+  pianos, guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads,
+  each tagged with the family it belongs to.
 - Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks
   and Mickey Mania, 374 patches in all. A patch is the value of a register at a key on, so
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the

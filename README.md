@@ -394,8 +394,14 @@ has no reason to carry, `wave-saw` and `wave-noise`, are drawn in this repositor
 
 ### The shipped preset banks
 
-The bundled FM patches were read out of VGM recordings of the soundtracks of Sonic the Hedgehog,
-Sonic the Hedgehog 2, Sonic the Hedgehog 3 and Mickey Mania. A patch here is the value of a register
+The **Instruments** bank is 67 FM patches by **[ulalume][ulalume-url]**, from
+[ym2612-patches][ym2612-patches-url], released under CC0 1.0 and included here with thanks. Pianos,
+guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads, each kept
+under the name and the family its author gave it. CC0 asks for nothing in return, so this credit is
+given rather than owed.
+
+The other bundled FM patches were read out of VGM recordings of the soundtracks of Sonic the
+Hedgehog, Sonic the Hedgehog 2, Sonic the Hedgehog 3 and Mickey Mania. A patch here is the value of a register
 at a key on: an algorithm, a feedback, and ten numbers for each of four operators, so forty two bytes
 of parameters that a chip is set to. They were read from recordings of the hardware rather than
 copied from anybody's source. This repository records where they came from and claims nothing beyond
@@ -448,3 +454,5 @@ rather than in a public issue. Everyone taking part is asked to follow the
 [gofonts-url]: https://go.dev/blog/go-fonts
 [googlefonts-url]: https://github.com/google/fonts
 [qlementine-url]: https://github.com/oclero/qlementine-icons
+[ulalume-url]: https://github.com/ulalume
+[ym2612-patches-url]: https://github.com/ulalume/ym2612-patches

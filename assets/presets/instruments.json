@@ -1,0 +1,4781 @@
+{
+  "name": "Instruments",
+  "presets": [
+    {
+      "instrument": {
+        "name": "Acoustic bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 30,
+        "tags": [
+          "Bass"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 2,
+              "multiple": 3,
+              "totalLevel": 12,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 19,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 6,
+              "totalLevel": 19,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 19,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 0,
+              "totalLevel": 15,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 3,
+              "sustainLevel": 3,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 9,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 30,
+        "tags": [
+          "Bass"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 15,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 22,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 11,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 19,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 0,
+              "totalLevel": 15,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 3,
+              "sustainLevel": 3,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 9,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "SSG bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 30,
+        "tags": [
+          "Bass"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 30,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 28,
+              "sustain": 23,
+              "sustainLevel": 13,
+              "release": 8,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 19,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 25,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 0,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Synth bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 30,
+        "tags": [
+          "Bass"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 33,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 3,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 23,
+              "sustain": 6,
+              "sustainLevel": 10,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 2,
+              "attack": 23,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 3,
+              "totalLevel": 3,
+              "keyScale": 1,
+              "attack": 23,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Synth bass 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 30,
+        "tags": [
+          "Bass"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 19,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 13,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 15,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 6,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 13,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "1op feedback trumpet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 42,
+        "tags": [
+          "Brass"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 6,
+          "ams": 1,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 7,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 11,
+              "sustain": 1,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Horn",
+        "kind": 0,
+        "sample": -1,
+        "icon": 42,
+        "tags": [
+          "Brass"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 24,
+              "keyScale": 0,
+              "attack": 11,
+              "decay": 3,
+              "sustain": 2,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 13,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 15,
+              "decay": 12,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 11,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Synth brass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 42,
+        "tags": [
+          "Brass"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 2,
+              "totalLevel": 17,
+              "keyScale": 1,
+              "attack": 16,
+              "decay": 8,
+              "sustain": 7,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 17,
+              "keyScale": 1,
+              "attack": 17,
+              "decay": 7,
+              "sustain": 7,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 7,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 15,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 13,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Trumpet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 42,
+        "tags": [
+          "Brass"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 2,
+              "multiple": 3,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 21,
+              "decay": 4,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 21,
+              "keyScale": 0,
+              "attack": 21,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 19,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 4,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Trumpet 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 42,
+        "tags": [
+          "Brass"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 1,
+              "attack": 18,
+              "decay": 10,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 1,
+              "attack": 20,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 24,
+              "keyScale": 1,
+              "attack": 20,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 3,
+              "keyScale": 1,
+              "attack": 24,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "2op glockenspiel",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 9,
+              "totalLevel": 11,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 2,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 31,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 7,
+              "sustainLevel": 4,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 31,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Bell",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 7,
+              "multiple": 11,
+              "totalLevel": 35,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 2,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 13,
+              "totalLevel": 33,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 14,
+              "release": 2,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 17,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Celesta",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 13,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 3,
+              "sustain": 1,
+              "sustainLevel": 4,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 4,
+              "keyScale": 3,
+              "attack": 28,
+              "decay": 7,
+              "sustain": 2,
+              "sustainLevel": 4,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 7,
+              "totalLevel": 19,
+              "keyScale": 2,
+              "attack": 28,
+              "decay": 8,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 1,
+              "attack": 28,
+              "decay": 9,
+              "sustain": 2,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Church bell",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 4,
+              "totalLevel": 21,
+              "keyScale": 2,
+              "attack": 26,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 6,
+              "totalLevel": 16,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 0,
+              "sustainLevel": 14,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 9,
+              "totalLevel": 7,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 11,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Distorted bell",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 3,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 9,
+              "totalLevel": 22,
+              "keyScale": 3,
+              "attack": 30,
+              "decay": 30,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 0,
+              "ssg": 12,
+              "tremolo": true
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 16,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 0,
+              "sustainLevel": 14,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 11,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 9,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glockenspiel",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 7,
+              "multiple": 11,
+              "totalLevel": 35,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 2,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 13,
+              "totalLevel": 33,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 14,
+              "release": 2,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 10,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 3,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 17,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 4,
+              "sustainLevel": 15,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glockenspiel 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Bell",
+          "Percussion"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 2,
+              "multiple": 0,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 23,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 14,
+              "ssg": 2,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 7,
+              "totalLevel": 27,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 2,
+              "ssg": 2,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 15,
+              "sustain": 3,
+              "sustainLevel": 7,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 9,
+              "sustain": 0,
+              "sustainLevel": 12,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Choir",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Ensemble",
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 0,
+              "totalLevel": 25,
+              "keyScale": 3,
+              "attack": 12,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 18,
+              "keyScale": 1,
+              "attack": 14,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 25,
+              "keyScale": 2,
+              "attack": 12,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 1,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Slow strings",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Ensemble",
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 31,
+              "keyScale": 1,
+              "attack": 21,
+              "decay": 8,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 41,
+              "keyScale": 1,
+              "attack": 26,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 14,
+              "keyScale": 1,
+              "attack": 23,
+              "decay": 9,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 1,
+              "keyScale": 1,
+              "attack": 15,
+              "decay": 4,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Whistle",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Ensemble",
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 5,
+          "ams": 2,
+          "pms": 6,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 13,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 7,
+              "totalLevel": 15,
+              "keyScale": 3,
+              "attack": 3,
+              "decay": 5,
+              "sustain": 5,
+              "sustainLevel": 3,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 3,
+              "multiple": 6,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 14,
+              "sustain": 12,
+              "sustainLevel": 4,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 4,
+              "multiple": 7,
+              "totalLevel": 0,
+              "keyScale": 3,
+              "attack": 3,
+              "decay": 5,
+              "sustain": 5,
+              "sustainLevel": 3,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Acoustic guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 3,
+              "totalLevel": 33,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 4,
+              "sustainLevel": 11,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 37,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 4,
+              "sustainLevel": 11,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 3,
+              "totalLevel": 34,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 11,
+              "sustain": 4,
+              "sustainLevel": 12,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 13,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Clean guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 3,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 4,
+              "totalLevel": 30,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 6,
+              "sustainLevel": 3,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 4,
+              "totalLevel": 19,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 16,
+              "sustain": 10,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 4,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 23,
+              "sustain": 5,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Distortion guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 12,
+              "totalLevel": 44,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 21,
+              "sustain": 30,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 14,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 3,
+              "totalLevel": 16,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 2,
+              "sustainLevel": 3,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Distortion guitar 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 19,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 21,
+              "sustain": 30,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 12,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 3,
+              "totalLevel": 12,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 5,
+              "totalLevel": 16,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 7,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Distortion guitar 3",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 15,
+              "totalLevel": 10,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 26,
+              "sustain": 14,
+              "sustainLevel": 15,
+              "release": 15,
+              "ssg": 8,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 0,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 15,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 15,
+              "sustain": 10,
+              "sustainLevel": 4,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 21,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 15,
+              "totalLevel": 41,
+              "keyScale": 1,
+              "attack": 3,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 3,
+              "totalLevel": 12,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 5,
+              "totalLevel": 16,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 7,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 4,
+              "sustainLevel": 4,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric guitar 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 8,
+              "totalLevel": 31,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 13,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 19,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 4,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 3,
+              "totalLevel": 24,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 7,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric guitar 3",
+        "kind": 0,
+        "sample": -1,
+        "icon": 24,
+        "tags": [
+          "Guitar"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 15,
+              "totalLevel": 25,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 26,
+              "sustain": 14,
+              "sustainLevel": 15,
+              "release": 15,
+              "ssg": 12,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 0,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 10,
+              "sustainLevel": 3,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 0,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Church organ",
+        "kind": 0,
+        "sample": -1,
+        "icon": 39,
+        "tags": [
+          "Organ",
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 14,
+              "totalLevel": 27,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 2,
+              "sustainLevel": 3,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 11,
+              "totalLevel": 27,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 19,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 6,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 19,
+              "decay": 6,
+              "sustain": 0,
+              "sustainLevel": 9,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric organ",
+        "kind": 0,
+        "sample": -1,
+        "icon": 39,
+        "tags": [
+          "Organ",
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 43,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 3,
+              "keyScale": 1,
+              "attack": 29,
+              "decay": 16,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 12,
+              "ssg": 8,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 29,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 29,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 12,
+              "ssg": 8,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric organ 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 39,
+        "tags": [
+          "Organ",
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 0,
+              "totalLevel": 39,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 14,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 5,
+              "ssg": 14,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 29,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 22,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Organ",
+        "kind": 0,
+        "sample": -1,
+        "icon": 39,
+        "tags": [
+          "Organ",
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 9,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 4,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 8,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 7,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Bright piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 7,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 25,
+              "decay": 8,
+              "sustain": 6,
+              "sustainLevel": 5,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 3,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 29,
+              "decay": 6,
+              "sustain": 7,
+              "sustainLevel": 4,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 5,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 30,
+              "decay": 16,
+              "sustain": 8,
+              "sustainLevel": 3,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 7,
+              "keyScale": 0,
+              "attack": 30,
+              "decay": 8,
+              "sustain": 5,
+              "sustainLevel": 7,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Bright piano 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 3,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 10,
+              "totalLevel": 35,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 11,
+              "sustainLevel": 4,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 38,
+              "keyScale": 2,
+              "attack": 30,
+              "decay": 4,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 40,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 6,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 6,
+              "keyScale": 2,
+              "attack": 29,
+              "decay": 4,
+              "sustain": 6,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Clavinet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 16,
+              "keyScale": 1,
+              "attack": 29,
+              "decay": 26,
+              "sustain": 5,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 2,
+              "totalLevel": 19,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 1,
+              "attack": 20,
+              "decay": 15,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 6,
+              "keyScale": 1,
+              "attack": 24,
+              "decay": 10,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric piano 1",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 15,
+              "totalLevel": 35,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 21,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 49,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 3,
+              "totalLevel": 23,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 9,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric piano 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 10,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 17,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 5,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 21,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 9,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric grand",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 0,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 24,
+              "decay": 4,
+              "sustain": 3,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 5,
+              "totalLevel": 38,
+              "keyScale": 2,
+              "attack": 25,
+              "decay": 4,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 15,
+              "totalLevel": 22,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 11,
+              "sustain": 3,
+              "sustainLevel": 4,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 1,
+              "keyScale": 2,
+              "attack": 29,
+              "decay": 4,
+              "sustain": 6,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Electric piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 14,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 21,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 54,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 23,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 23,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 9,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Gentle piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 4,
+              "totalLevel": 40,
+              "keyScale": 2,
+              "attack": 14,
+              "decay": 4,
+              "sustain": 2,
+              "sustainLevel": 4,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 47,
+              "keyScale": 2,
+              "attack": 12,
+              "decay": 4,
+              "sustain": 1,
+              "sustainLevel": 4,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 2,
+              "totalLevel": 41,
+              "keyScale": 2,
+              "attack": 18,
+              "decay": 13,
+              "sustain": 2,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 2,
+              "totalLevel": 6,
+              "keyScale": 2,
+              "attack": 18,
+              "decay": 7,
+              "sustain": 6,
+              "sustainLevel": 6,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Grand piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 4,
+              "totalLevel": 33,
+              "keyScale": 1,
+              "attack": 25,
+              "decay": 4,
+              "sustain": 6,
+              "sustainLevel": 4,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 3,
+              "totalLevel": 48,
+              "keyScale": 1,
+              "attack": 29,
+              "decay": 4,
+              "sustain": 5,
+              "sustainLevel": 4,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 5,
+              "totalLevel": 46,
+              "keyScale": 1,
+              "attack": 30,
+              "decay": 13,
+              "sustain": 6,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 7,
+              "keyScale": 1,
+              "attack": 30,
+              "decay": 7,
+              "sustain": 10,
+              "sustainLevel": 6,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Grand piano 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 19,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 11,
+              "sustainLevel": 4,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 7,
+              "totalLevel": 50,
+              "keyScale": 2,
+              "attack": 30,
+              "decay": 2,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 43,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 2,
+              "attack": 30,
+              "decay": 2,
+              "sustain": 6,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Harpsichord",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 7,
+              "multiple": 15,
+              "totalLevel": 45,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 11,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 7,
+              "totalLevel": 16,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 19,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 5,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 29,
+              "decay": 31,
+              "sustain": 5,
+              "sustainLevel": 3,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Harpsichord 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 5,
+              "multiple": 15,
+              "totalLevel": 37,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 7,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 10,
+              "totalLevel": 21,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 25,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 5,
+              "sustainLevel": 2,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 1,
+              "attack": 28,
+              "decay": 28,
+              "sustain": 7,
+              "sustainLevel": 3,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Honky tonk piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 0,
+              "totalLevel": 22,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 3,
+              "sustain": 3,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 5,
+              "totalLevel": 35,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 3,
+              "totalLevel": 16,
+              "keyScale": 2,
+              "attack": 28,
+              "decay": 4,
+              "sustain": 6,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 4,
+              "keyScale": 3,
+              "attack": 29,
+              "decay": 3,
+              "sustain": 6,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Keys"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 27,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 6,
+              "sustainLevel": 15,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 3,
+              "totalLevel": 52,
+              "keyScale": 2,
+              "attack": 22,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 10,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 5,
+              "totalLevel": 58,
+              "keyScale": 1,
+              "attack": 23,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 3,
+              "keyScale": 3,
+              "attack": 21,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 11,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Breathy flute",
+        "kind": 0,
+        "sample": -1,
+        "icon": 45,
+        "tags": [
+          "Pipe",
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 13,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 18,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 6,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 5,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Breathy flute 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 45,
+        "tags": [
+          "Pipe",
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 13,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 15,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 40,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 10,
+              "ssg": 10,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 4,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Clarinet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 45,
+        "tags": [
+          "Pipe",
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 5,
+          "ams": 1,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 8,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 22,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 27,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 18,
+              "sustain": 0,
+              "sustainLevel": 4,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 6,
+              "multiple": 8,
+              "totalLevel": 41,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 8,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Flute",
+        "kind": 0,
+        "sample": -1,
+        "icon": 45,
+        "tags": [
+          "Pipe",
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 1,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 19,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 10,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 7,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 2,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 10,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 11,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 7,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Old flute",
+        "kind": 0,
+        "sample": -1,
+        "icon": 45,
+        "tags": [
+          "Pipe",
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 7,
+          "ams": 1,
+          "pms": 1,
+          "slots": [
+            {
+              "detune": 2,
+              "multiple": 4,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 14,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 49,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 15,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 14,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 15,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 14,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 14,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Harp",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Strings"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 2,
+              "totalLevel": 27,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 14,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 43,
+              "keyScale": 0,
+              "attack": 30,
+              "decay": 8,
+              "sustain": 1,
+              "sustainLevel": 8,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 42,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 6,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 1,
+              "sustainLevel": 10,
+              "release": 2,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Koto",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Strings"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 21,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 8,
+              "sustainLevel": 2,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 40,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 9,
+              "sustainLevel": 2,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 32,
+              "keyScale": 3,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 9,
+              "sustainLevel": 1,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 11,
+              "sustain": 9,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Old violin",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Strings"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 7,
+          "ams": 1,
+          "pms": 2,
+          "slots": [
+            {
+              "detune": 6,
+              "multiple": 0,
+              "totalLevel": 43,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 4,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 13,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 3,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 14,
+              "keyScale": 0,
+              "attack": 15,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pizzicato violin",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Strings"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 5,
+          "ams": 1,
+          "pms": 2,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 25,
+              "decay": 30,
+              "sustain": 14,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 4,
+              "totalLevel": 21,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 19,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 31,
+              "sustain": 12,
+              "sustainLevel": 3,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Violin",
+        "kind": 0,
+        "sample": -1,
+        "icon": 37,
+        "tags": [
+          "Strings"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 7,
+          "ams": 1,
+          "pms": 2,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 1,
+              "totalLevel": 31,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 5,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 1,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 19,
+              "decay": 9,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 4,
+              "totalLevel": 21,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 3,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 17,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "1op feedback sawtooth",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "2op feedback square",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 35,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 3,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "2op feedback triangle",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "2op sawtooth",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 42,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "4op square",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 35,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 31,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 3,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "4op triangle",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 7,
+              "totalLevel": 29,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 29,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "4op triangle 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 7,
+              "totalLevel": 51,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 31,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 15,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Deep pad",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 7,
+              "decay": 7,
+              "sustain": 1,
+              "sustainLevel": 13,
+              "release": 11,
+              "ssg": 1,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 11,
+              "totalLevel": 46,
+              "keyScale": 3,
+              "attack": 6,
+              "decay": 7,
+              "sustain": 9,
+              "sustainLevel": 6,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 4,
+              "keyScale": 2,
+              "attack": 4,
+              "decay": 7,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 7,
+              "totalLevel": 9,
+              "keyScale": 0,
+              "attack": 5,
+              "decay": 11,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pad",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 4,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 12,
+              "keyScale": 1,
+              "attack": 3,
+              "decay": 10,
+              "sustain": 3,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            },
+            {
+              "detune": 4,
+              "multiple": 3,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 3,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 2,
+              "totalLevel": 15,
+              "keyScale": 0,
+              "attack": 8,
+              "decay": 3,
+              "sustain": 0,
+              "sustainLevel": 2,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pad 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 15,
+              "totalLevel": 9,
+              "keyScale": 1,
+              "attack": 21,
+              "decay": 13,
+              "sustain": 17,
+              "sustainLevel": 15,
+              "release": 15,
+              "ssg": 12,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 3,
+              "keyScale": 0,
+              "attack": 8,
+              "decay": 24,
+              "sustain": 7,
+              "sustainLevel": 5,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 7,
+              "keyScale": 0,
+              "attack": 8,
+              "decay": 24,
+              "sustain": 5,
+              "sustainLevel": 5,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 8,
+              "decay": 24,
+              "sustain": 8,
+              "sustainLevel": 5,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "SSG cocktail",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Pad"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 10,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 10,
+              "sustainLevel": 4,
+              "release": 2,
+              "ssg": 8,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 0,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 7,
+              "sustainLevel": 5,
+              "release": 0,
+              "ssg": 8,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 7,
+              "sustainLevel": 1,
+              "release": 3,
+              "ssg": 8,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 4,
+              "totalLevel": 0,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 7,
+              "sustainLevel": 6,
+              "release": 5,
+              "ssg": 8,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

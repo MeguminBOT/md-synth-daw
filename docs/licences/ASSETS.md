@@ -215,6 +215,32 @@ Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profi
 samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
 costs the machine nothing.
 
+## The Instruments bank
+
+`assets/presets/instruments.json` is 67 FM patches by ulalume, from
+<https://github.com/ulalume/ym2612-patches>, under CC0 1.0 Universal, which waives every right the
+licence can waive and asks for nothing back. Licence checked at the source on 2026-09-21. They are
+credited in `README.md` because it is right to, not because CC0 requires it.
+
+They arrived as DefleMask preset files, one per patch, in folders naming the family each belongs to.
+Each was read against the format specification at <https://www.deflemask.com/DMP_SPECS.txt> and
+written out as this repository's own bank document: nothing about them was changed but the layout,
+and the tag each carries is the folder it came from. Two kinds of name were tidied, an initial
+expanded and a trailing number given a space, so `E.piano1` reads as `Electric piano 1`.
+
+Which operator order the file uses was settled by measurement rather than by reading: with the
+operators taken in order, a patch's nearest neighbour by parameter distance sits in its own family
+39 times out of 67, and with the middle two swapped, 35. None of them carries a recording.
+
+| family | patches |
+| --- | --- |
+| piano | 14 |
+| guitar | 8 |
+| chromatic percussion, synth lead | 7 each |
+| bass, brass, pipe, strings | 5 each |
+| organ, synth pad | 4 each |
+| ensemble | 3 |
+
 ## The banks lifted out of finished pieces
 
 `assets/presets/default.json` and the five kits beside it are this repository's author's own work
