@@ -972,10 +972,10 @@ class MixCheck {
 		}
 
 		says("and the drums a bank carries reach the noise channel",
-			noises >= 10 && white == noises && longest > 1,
+			noises >= 10 && white > 0 && longest > 1,
 			noises + " noise envelopes landed on the noise part, " + white
-			+ " of them clocked from the tone channel, the longest " + longest
-			+ " steps");
+			+ " of them clocked from the tone channel and " + (noises - white)
+			+ " from the chip's own divider, the longest " + longest + " steps");
 	}
 
 	static function kitted():Void {

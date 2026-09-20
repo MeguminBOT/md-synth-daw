@@ -134,13 +134,6 @@ final class Library {
 	}
 
 	/**
-		Reads one preset out of a bank document, in either layout: the one the shipped
-		banks are written in, or a whole instrument as a project carries it.
-
-		@param one The preset.
-		@return The instrument, or null where it carries nothing that plays.
-	**/
-	/**
 		@param bytes A preset file or a bank file out of the presets folder.
 		@return Which family of part every preset in it is for, as `Part.family` names it, or an
 			empty string where it will not read, carries no preset or carries more than one
@@ -182,6 +175,13 @@ final class Library {
 		return family;
 	}
 
+	/**
+		Reads one preset out of a bank document, in either layout: the one the shipped
+		banks are written in, or a whole instrument as a project carries it.
+
+		@param one The preset.
+		@return The instrument, or null where it carries nothing that plays.
+	**/
 	static function preset(one:mdd.format.Node):Null<Instrument> {
 		final pcm = one.get("pcm").saying("");
 
@@ -428,6 +428,10 @@ final class Library {
 		have a preset of that name for, so what was saved while another piece was open
 		reaches this one too.
 
+		The set every piece begins with is the exception, because every piece carries it before
+		anything is read: it is built in code so that a new piece has something to play, and what
+		ships beside it is added to it rather than passed over.
+
 		A bank made here is the library's rather than the piece's, so a file written afterwards
 		leaves it out and the library puts it back at the next opening. One the piece already had
 		is left as the piece had it, which is what keeps a bank the reader asked to keep.
@@ -440,7 +444,7 @@ final class Library {
 
 		for (at in 0...names.length) {
 			final carried = carries(song, names[at]);
-			if (carried && !owned[at]) continue;
+			if (carried && !owned[at] && names[at] != STARTERS) continue;
 
 			final bank = song.banked(names[at], false);
 			final held = instruments[at];
@@ -611,7 +615,7 @@ final class Library {
 		@return The name of the bank here that offers the same preset, or an empty string where
 			none does.
 	**/
-	function offering(song:Song, instrument:Instrument):String {
+	public function offering(song:Song, instrument:Instrument):String {
 		for (at in 0...names.length) {
 			final which = holding(at, instrument);
 			if (which < 0 || !alike(instruments[at][which], instrument)) continue;
@@ -1128,6 +1132,33 @@ final class Library {
 			sample is passed over.
 		@return The document.
 	**/
+	/**
+		@param one A preset.
+		@return A copy of it that names no recording and no preset it came from, which is what a
+			bank document holds: a document is read into whichever piece opens it, and an index
+			into another piece means nothing there.
+	**/
+	static function plainly(one:Instrument):Instrument {
+		final out = one.copy();
+
+		out.sample = -1;
+		out.from = "";
+
+		return out;
+	}
+
+	/**
+		Writes a bank document, in the layout `reads` takes back.
+
+		A preset that plays a recording is written the way the shipped banks are, with the
+		recording beside it. One that does not is written whole, patch, envelope and all, which is
+		the other layout `reads` takes and the only one that can carry a patch.
+
+		@param named What the bank is called.
+		@param made The instruments, in the order they should appear.
+		@param held The sample each one plays, in the same order, or null where it plays none.
+		@return The document.
+	**/
 	public static function written(named:String, made:Array<Instrument>,
 			held:Array<Null<Sample>>):String {
 		final out = new mdd.format.Json();
@@ -1140,9 +1171,16 @@ final class Library {
 
 		for (index in 0...made.length) {
 			final sample = index < held.length ? held[index] : null;
-			if (sample == null || sample.length() == 0) continue;
-
 			final one = made[index];
+
+			if (sample == null || sample.length() == 0) {
+				out.open();
+				out.key("instrument");
+				mdd.format.Project.wroteInstrument(out, plainly(one));
+				out.close();
+
+				continue;
+			}
 
 			out.open();
 

@@ -1,0 +1,3515 @@
+{
+  "name": "Default",
+  "presets": [
+    {
+      "instrument": {
+        "name": "Bounce bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 8,
+              "sustainLevel": 4,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 16,
+              "sustain": 8,
+              "sustainLevel": 5,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 3,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 4,
+              "sustainLevel": 3,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Crystal piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 1,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 16,
+              "sustain": 6,
+              "sustainLevel": 10,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 9,
+              "sustain": 5,
+              "sustainLevel": 6,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 9,
+              "totalLevel": 48,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 22,
+              "sustain": 10,
+              "sustainLevel": 15,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 4,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 8,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Fairy trumpet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 43,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 22,
+              "decay": 6,
+              "sustain": 1,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 27,
+              "decay": 4,
+              "sustain": 1,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 2,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 20,
+              "decay": 6,
+              "sustain": 2,
+              "sustainLevel": 3,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 27,
+              "decay": 4,
+              "sustain": 1,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pizzicato",
+        "kind": 0,
+        "sample": -1,
+        "icon": 38,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 3,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 10,
+              "sustainLevel": 12,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 8,
+              "sustainLevel": 10,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 12,
+              "sustainLevel": 14,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 8,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 8,
+              "sustainLevel": 10,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Ice pad",
+        "kind": 0,
+        "sample": -1,
+        "icon": 38,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 14,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Icicle chime",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 7,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 8,
+              "sustainLevel": 12,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 7,
+              "sustainLevel": 10,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 16,
+              "sustain": 9,
+              "sustainLevel": 13,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 14,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 7,
+              "sustainLevel": 10,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Flute",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "envelope": {
+          "steps": [
+            4,
+            2,
+            1,
+            1,
+            2
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Soft pad",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "envelope": {
+          "steps": [
+            12,
+            10,
+            9,
+            9
+          ],
+          "loop": -1,
+          "speed": 4,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Sparkle",
+        "kind": 6,
+        "sample": -1,
+        "icon": 6,
+        "tags": [
+          "Ice Fairy"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            3,
+            6,
+            9,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Tone off",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Ice Fairy",
+          "Hyper Loop",
+          "Fracture",
+          "Night Drive",
+          "Glitch Candy Zone",
+          "Seismic Zone",
+          "Overdrive Zone",
+          "Iron Fortress Zone",
+          "Scarlet Frost Zone",
+          "Overclock Zone",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Closed hat",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Ice Fairy",
+          "Night Drive",
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            3,
+            7,
+            11,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Tight hat",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Ice Fairy",
+          "Night Drive",
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            8,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Open hat",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Ice Fairy",
+          "Night Drive",
+          "Iron Fortress Zone",
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            1,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Crash",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Ice Fairy",
+          "Night Drive",
+          "Glitch Candy Zone",
+          "Seismic Zone",
+          "Iron Fortress Zone",
+          "Scarlet Frost Zone",
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            3,
+            4,
+            4,
+            5,
+            6,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 3,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Cymbal swell",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Ice Fairy",
+          "Hyper Loop",
+          "Fracture",
+          "Night Drive",
+          "Glitch Candy Zone",
+          "Seismic Zone",
+          "Overdrive Zone",
+          "Iron Fortress Zone",
+          "Scarlet Frost Zone",
+          "Overclock Zone",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 6
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Noise sweep",
+        "kind": 9,
+        "sample": -1,
+        "icon": 13,
+        "tags": [
+          "Ice Fairy",
+          "Hyper Loop",
+          "Fracture",
+          "Night Drive",
+          "Glitch Candy Zone",
+          "Seismic Zone",
+          "Overdrive Zone",
+          "Iron Fortress Zone",
+          "Scarlet Frost Zone",
+          "Overclock Zone",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            12
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 7
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Open hat 2",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Hyper Loop",
+          "Fracture",
+          "Overdrive Zone",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6,
+            8,
+            10,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Crash 2",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Hyper Loop",
+          "Fracture",
+          "Overdrive Zone",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            3,
+            4,
+            4,
+            5,
+            6,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Ride",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Hyper Loop",
+          "Fracture",
+          "Fur Elise"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 5
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Tick hat",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Fracture"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            6,
+            10,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pitched roll",
+        "kind": 9,
+        "sample": -1,
+        "icon": 13,
+        "tags": [
+          "Fracture"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            3,
+            6,
+            9,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 7
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "808",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Night Drive"
+        ],
+        "patch": {
+          "algorithm": 6,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 11,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 3,
+              "sustainLevel": 15,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 12,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Night bell",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Night Drive"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 5,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 4,
+              "sustainLevel": 8,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 7,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 3,
+              "totalLevel": 42,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 4,
+              "sustainLevel": 8,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 3,
+              "sustainLevel": 7,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glide lead",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Night Drive"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 2,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 26,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Choir pad",
+        "kind": 0,
+        "sample": -1,
+        "icon": 38,
+        "tags": [
+          "Night Drive"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 8,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 52,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 7,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glass pluck",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Night Drive"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Air pad",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Night Drive",
+          "Seismic Zone"
+        ],
+        "envelope": {
+          "steps": [
+            12,
+            9,
+            7,
+            5,
+            4,
+            4
+          ],
+          "loop": -1,
+          "speed": 4,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Candy supersaw",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 24,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Candy piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 1,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 16,
+              "sustain": 6,
+              "sustainLevel": 10,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 9,
+              "sustain": 5,
+              "sustainLevel": 6,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 9,
+              "totalLevel": 48,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 22,
+              "sustain": 10,
+              "sustainLevel": 15,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 4,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 8,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Hardcore bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 22,
+              "keyScale": 2,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 22,
+              "sustainLevel": 3,
+              "release": 29,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 4,
+              "sustainLevel": 4,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Frenchcore tail",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 18,
+              "sustain": 8,
+              "sustainLevel": 10,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 8,
+              "sustainLevel": 12,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Wobble bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Square stab",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Glitch Candy Zone"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            4,
+            7,
+            10,
+            13,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Chip arp",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Glitch Candy Zone",
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            2,
+            5,
+            8,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Closed hat 2",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Glitch Candy Zone",
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            4,
+            9,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Open hat 3",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Glitch Candy Zone",
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            1,
+            3,
+            5,
+            8,
+            11,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "White blast",
+        "kind": 9,
+        "sample": -1,
+        "icon": 13,
+        "tags": [
+          "Glitch Candy Zone",
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            0,
+            0,
+            1,
+            2,
+            4,
+            7,
+            11,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Growl",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 3,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Reese",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 22,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 22,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Sine sub",
+        "kind": 0,
+        "sample": -1,
+        "icon": 9,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 127,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Screech",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 3,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glass bell",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 7,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 9,
+              "sustain": 4,
+              "sustainLevel": 8,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 8,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 3,
+              "sustain": 2,
+              "sustainLevel": 5,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Dark pad",
+        "kind": 0,
+        "sample": -1,
+        "icon": 38,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 3,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 10,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 46,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 9,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Metal stab",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 6,
+              "sustainLevel": 6,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 4,
+              "sustainLevel": 5,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 6,
+              "sustainLevel": 6,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 4,
+              "sustainLevel": 5,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Glass pluck 2",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "envelope": {
+          "steps": [
+            1,
+            3,
+            5,
+            7,
+            9,
+            11,
+            13,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Closed hat 3",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "envelope": {
+          "steps": [
+            1,
+            4,
+            8,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Open hat 4",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6,
+            8,
+            10,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Shaker",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Seismic Zone"
+        ],
+        "envelope": {
+          "steps": [
+            6,
+            9,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 5
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Square lead",
+        "kind": 0,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Overdrive Zone"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 1,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 31,
+              "sustainLevel": 0,
+              "release": 4,
+              "ssg": 2,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 0,
+              "keyScale": 1,
+              "attack": 11,
+              "decay": 0,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 2,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 0,
+              "totalLevel": 8,
+              "keyScale": 1,
+              "attack": 11,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 4,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 0,
+              "totalLevel": 8,
+              "keyScale": 1,
+              "attack": 16,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 4,
+              "ssg": 4,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Hard kick",
+        "kind": 0,
+        "sample": -1,
+        "icon": 52,
+        "tags": [
+          "Overdrive Zone"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 31,
+              "sustainLevel": 15,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 20,
+              "decay": 12,
+              "sustain": 0,
+              "sustainLevel": 3,
+              "release": 16,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 2,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 20,
+              "decay": 16,
+              "sustain": 0,
+              "sustainLevel": 6,
+              "release": 16,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 4,
+              "multiple": 2,
+              "totalLevel": 8,
+              "keyScale": 0,
+              "attack": 20,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 16,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pick bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 5,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 8,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 3,
+              "sustain": 1,
+              "sustainLevel": 3,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Lead guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 27,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 1,
+              "totalLevel": 4,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 28,
+              "decay": 3,
+              "sustain": 1,
+              "sustainLevel": 4,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Clean guitar",
+        "kind": 0,
+        "sample": -1,
+        "icon": 27,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 3,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 8,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 5,
+              "sustainLevel": 8,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 12,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 5,
+              "sustain": 3,
+              "sustainLevel": 6,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Rock organ",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "patch": {
+          "algorithm": 7,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Organ square",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            5,
+            3,
+            3,
+            4
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Power square",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Echo pluck",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Closed hat 4",
+        "kind": 9,
+        "sample": -1,
+        "icon": 55,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            4,
+            8,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Ride 2",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            2,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 3,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "China",
+        "kind": 9,
+        "sample": -1,
+        "icon": 56,
+        "tags": [
+          "Iron Fortress Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 5
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Frost bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 3,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 6,
+              "sustainLevel": 4,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 4,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Scarlet piano",
+        "kind": 0,
+        "sample": -1,
+        "icon": 22,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 5,
+              "sustainLevel": 8,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 7,
+              "sustain": 4,
+              "sustainLevel": 4,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 7,
+              "totalLevel": 46,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 8,
+              "sustainLevel": 14,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 4,
+              "sustainLevel": 5,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Spark trumpet",
+        "kind": 0,
+        "sample": -1,
+        "icon": 43,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 20,
+              "decay": 6,
+              "sustain": 1,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 26,
+              "decay": 4,
+              "sustain": 1,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 1,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 5,
+              "sustain": 1,
+              "sustainLevel": 2,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 8,
+              "keyScale": 0,
+              "attack": 26,
+              "decay": 4,
+              "sustain": 1,
+              "sustainLevel": 1,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Frost strings",
+        "kind": 0,
+        "sample": -1,
+        "icon": 38,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 3,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 18,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 2,
+              "multiple": 1,
+              "totalLevel": 6,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 2,
+              "totalLevel": 46,
+              "keyScale": 0,
+              "attack": 16,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 6,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 12,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Music box",
+        "kind": 0,
+        "sample": -1,
+        "icon": 19,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 0,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 4,
+              "totalLevel": 38,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 6,
+              "sustainLevel": 10,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 2,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 5,
+              "sustainLevel": 8,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 7,
+              "totalLevel": 44,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 14,
+              "sustain": 7,
+              "sustainLevel": 12,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 5,
+              "sustainLevel": 8,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Pulse pad",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            11,
+            9,
+            8,
+            7,
+            7
+          ],
+          "loop": -1,
+          "speed": 3,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Air pad 2",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            13,
+            11,
+            10,
+            9,
+            9
+          ],
+          "loop": -1,
+          "speed": 4,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Ice sparkle",
+        "kind": 6,
+        "sample": -1,
+        "icon": 6,
+        "tags": [
+          "Scarlet Frost Zone"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            3,
+            6,
+            9,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Distorted bass",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Overclock Zone"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 0,
+              "totalLevel": 18,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 10,
+              "sustain": 4,
+              "sustainLevel": 3,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 24,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 12,
+              "sustain": 4,
+              "sustainLevel": 4,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 1,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 8,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 10,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 3,
+              "sustainLevel": 2,
+              "release": 11,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Hoover",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Overclock Zone"
+        ],
+        "patch": {
+          "algorithm": 5,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 8,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 10,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 7,
+              "multiple": 2,
+              "totalLevel": 16,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Screech 2",
+        "kind": 0,
+        "sample": -1,
+        "icon": 12,
+        "tags": [
+          "Overclock Zone"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 7,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 6,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 24,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 4,
+              "sustain": 2,
+              "sustainLevel": 2,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 1,
+              "sustainLevel": 1,
+              "release": 9,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "instrument": {
+        "name": "Siren",
+        "kind": 6,
+        "sample": -1,
+        "icon": 10,
+        "tags": [
+          "Overclock Zone"
+        ],
+        "envelope": {
+          "steps": [
+            4,
+            2,
+            1,
+            1
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        }
+      }
+    }
+  ]
+}

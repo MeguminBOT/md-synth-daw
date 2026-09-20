@@ -168,13 +168,24 @@ class PresetCheck {
 	/**
 		A shipped bank a piece carries is left as the piece has it, so a preset taken out of it
 		does not come back.
+
+		The set every piece begins with is the one bank this is not true of, because every piece
+		carries it before anything is read, so what ships beside it is added to it. It is left out
+		here for that reason.
 	**/
 	static function shipped():Void {
 		final library = Library.embedded();
 		final song = new Song();
 		library.into(song);
 
-		final at = library.names.length == 0 ? "" : library.names[0];
+		var at = "";
+
+		for (name in library.names) {
+			if (name == Library.STARTERS) continue;
+
+			at = name;
+			break;
+		}
 		var bank:Null<mdd.song.Bank> = null;
 
 		for (held in song.banks) if (held.name == at) bank = held;
