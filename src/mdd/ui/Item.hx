@@ -35,6 +35,12 @@ class Item {
 	public var note:String = "";
 
 	/**
+		An icon drawn at the trailing edge of the row, or -1 for none. It is drawn in the accent
+		colour and the note is given whatever room is left beside it.
+	**/
+	public var mark:Int = -1;
+
+	/**
 		What its tooltip says.
 	**/
 	public var says:String = "";

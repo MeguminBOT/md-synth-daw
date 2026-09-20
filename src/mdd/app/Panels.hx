@@ -182,6 +182,13 @@ final class Panels {
 	public var onWriteBank:Null<Int -> Void> = null;
 
 	/**
+		The presets the reader has starred, which the browser marks and can list on its own. It is
+		set before `dress` and kept for the life of the application, so loading a piece leaves it
+		alone.
+	**/
+	public var favourites:Null<mdd.app.Favourites> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -241,6 +248,7 @@ final class Panels {
 		rail.hardware.levels = rack.levels;
 		inspector.samples.onImport = function():Void if (onImportSample != null) onImportSample();
 		inspector.samples.budget = budget;
+		inspector.presets.favourites = favourites;
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onTags = function(which:Int):Void taggedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();

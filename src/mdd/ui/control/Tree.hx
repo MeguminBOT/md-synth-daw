@@ -367,10 +367,23 @@ final class Tree extends Scroll {
 
 			pen = paint.text(item.label, pen, line, ink, item.enabled ? 1 : 0.45);
 
+			var edge = x + width - metrics.unit * 2;
+
+			if (item.mark >= 0 && root.icons != null) {
+				final wide = metrics.whole(12);
+
+				edge -= wide;
+
+				paint.icon(root.icons, item.mark, edge, top + (tall - wide) * 0.5, wide,
+					theme.accent, item.enabled ? 0.9 : 0.4);
+
+				edge -= metrics.unit;
+			}
+
 			if (item.note == "") continue;
 
 			final gap = metrics.unit * 3;
-			final room = x + width - metrics.unit * 2 - (pen + gap);
+			final room = edge - (pen + gap);
 
 			if (room < metrics.whole(18)) continue;
 

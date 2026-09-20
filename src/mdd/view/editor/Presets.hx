@@ -53,12 +53,17 @@ final class Presets extends Widget {
 	public static inline final BY_TAG = 2;
 
 	/**
+		Order: only the presets the reader has starred, by name.
+	**/
+	public static inline final BY_FAVOURITE = 3;
+
+	/**
 		How many orders there are.
 	**/
-	public static inline final ORDERS = 3;
+	public static inline final ORDERS = 4;
 
 	static final ORDER_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
-		Locale.PRESET_BY_TAG];
+		Locale.PRESET_BY_TAG, Locale.PRESET_FAVOURITES];
 
 	/**
 		Which order is chosen.
@@ -111,6 +116,11 @@ final class Presets extends Widget {
 	**/
 	public var onWriteBank:Null<Int -> Void> = null;
 
+	/**
+		The presets the reader has starred, or null where none are kept. A star is on the preset
+		rather than on the row, so it follows the preset into every piece that carries it.
+	**/
+	public var favourites:Null<mdd.app.Favourites> = null;
 
 	var menu:Null<Menu> = null;
 
@@ -291,6 +301,14 @@ final class Presets extends Widget {
 		fires(menu.offer(new Choice(translate(Locale.PRESET_DUPLICATE))), function():Void
 			duplicated(which));
 
+		final starring = favourites;
+
+		if (starring != null && instrument.id != "") {
+			fires(menu.offer(new Choice(translate(starring.favours(instrument.id)
+				? Locale.PRESET_UNFAVOURITE : Locale.PRESET_FAVOURITE))), function():Void
+				stars(which));
+		}
+
 		if (instrument.patch != null || instrument.sample >= 0) menu.divide();
 
 		if (instrument.patch != null) {
@@ -375,6 +393,26 @@ final class Presets extends Widget {
 
 		session.frees();
 		session.changed();
+	}
+
+	/**
+		Stars one preset, or takes the star off it, and says which it did.
+
+		@param which The preset, by index into the piece.
+	**/
+	function stars(which:Int):Void {
+		final starring = favourites;
+		final held = session.song.instrumentAt(which);
+
+		if (starring == null || held == null || held.id == "") return;
+
+		final on = starring.toggles(held.id);
+
+		session.say(translate(on ? Locale.PRESET_FAVOURITE : Locale.PRESET_UNFAVOURITE)
+			+ ": " + held.name);
+
+		fit();
+		invalidate();
 	}
 
 	function dropped(which:Int):Void {
@@ -628,7 +666,7 @@ final class Presets extends Widget {
 	function ordered(inside:Array<Int>):Void {
 		if (order == BY_BANK) return;
 
-		if (order == BY_NAME) {
+		if (order == BY_NAME || order == BY_FAVOURITE) {
 			inside.sort(function(one:Int, two:Int):Int {
 				final first = called(one);
 				final second = called(two);
@@ -673,7 +711,8 @@ final class Presets extends Widget {
 		final song = session.song;
 		final chosen = song.rack[session.part.index()];
 
-		final hunting = seeking() != "";
+		final hunting = seeking() != "" || order == BY_FAVOURITE;
+		final starring = favourites;
 		final root = root();
 		final warned = root == null ? -1 : (root.theme.warn : Int);
 
@@ -744,6 +783,8 @@ final class Presets extends Widget {
 						Theme.PARTS[kind.index()]));
 
 					child.icon = instrument.icon;
+					child.mark = starring != null && starring.favours(instrument.id)
+						? Icon.STAR : -1;
 					child.note = briefly(instrument.tags);
 					child.says = instrument.tags.length == 0 ? ""
 						: instrument.tags.join(", ");
@@ -787,6 +828,11 @@ final class Presets extends Widget {
 	function suits(instrument:Instrument, part:Part):Bool {
 		final want = seeking();
 		if (want != "" && !instrument.tagged(want)) return false;
+
+		if (order == BY_FAVOURITE) {
+			final starring = favourites;
+			if (starring == null || !starring.favours(instrument.id)) return false;
+		}
 
 		if (part.fm()) return instrument.kind.fm();
 		if (part.square()) return instrument.kind.square();

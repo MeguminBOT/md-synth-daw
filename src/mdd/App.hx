@@ -2,6 +2,7 @@ package mdd;
 
 import mdd.app.Bindings;
 import mdd.app.Files;
+import mdd.app.Favourites;
 import mdd.app.Faces;
 import mdd.app.Filming;
 import mdd.app.Keyboard;
@@ -55,6 +56,7 @@ class App {
 	final stage:Stage = new Stage();
 	final library:mdd.song.Library = mdd.song.Library.embedded();
 	final keyboard:Keyboard = new Keyboard();
+	final favourites:Favourites = new Favourites();
 	final sound:Sound = new Sound();
 
 	var panels:Null<Panels> = null;
@@ -372,6 +374,7 @@ class App {
 		presence.follows(session);
 
 		panels = new Panels(stage);
+		panels.favourites = favourites;
 		panels.dress(session);
 
 		files = new Files(session);
@@ -1719,6 +1722,13 @@ class App {
 		files.projectsAt = settings.of("projects", "");
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
+
+		favourites.reads(settings.of("favourites", ""));
+
+		favourites.onChange = function():Void {
+			settings.put("favourites", favourites.spelt());
+			settings.save();
+		};
 
 		if (!settings.asFlag("presetsSorted", false)) {
 			final moved = files.sortsPresets();

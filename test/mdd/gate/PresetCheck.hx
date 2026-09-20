@@ -50,6 +50,7 @@ class PresetCheck {
 		carriedOver(Gate.root);
 		loaded();
 		converted();
+		starred();
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -898,6 +899,50 @@ class PresetCheck {
 			made.patch.ams == 2 && made.patch.pms == 5 && back.ams == 0 && back.pms == 0,
 			"the piece holds an LFO depth of " + made.patch.ams + " and " + made.patch.pms
 			+ ", a patch file holds neither");
+	}
+
+	/**
+		A star is on a preset rather than on a row, so it follows the preset and it does not
+		follow an edit.
+	**/
+	static function starred():Void {
+		final held = new mdd.app.Favourites();
+		final one = patched("Glass Lead");
+		final two = enveloped("Blip", Part.Psg1);
+
+		one.identifies(null);
+		two.identifies(null);
+
+		var wrote = 0;
+		held.onChange = function():Void wrote++;
+
+		held.favour(one.id, true);
+		held.favour(one.id, true);
+		held.favour(two.id, true);
+
+		says("a star is kept once", held.count() == 2 && wrote == 2,
+			held.count() + " starred after three asks, written " + wrote + " times");
+
+		final back = new mdd.app.Favourites();
+		back.reads(held.spelt());
+
+		says("and it reads back as it was written", back.count() == 2 && back.favours(one.id)
+			&& back.favours(two.id) && back.spelt() == held.spelt(),
+			held.spelt());
+
+		final edited = one.copy();
+		edited.patch.feedback = 1;
+		edited.id = "";
+		edited.identifies(null);
+
+		says("and an edit is a different preset", !back.favours(edited.id)
+			&& edited.id != one.id,
+			"starred " + one.id + ", edited into " + edited.id);
+
+		back.toggles(one.id);
+
+		says("and a star comes off", !back.favours(one.id) && back.count() == 1,
+			back.count() + " left");
 	}
 
 	/**
