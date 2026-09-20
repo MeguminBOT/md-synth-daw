@@ -146,6 +146,7 @@ class Gate {
 			case "project": ProjectCheck.run(args);
 			case "bank": Lifted.run(args);
 			case "tidy": Tidied.run(args);
+			case "voice": Voiced.run(args);
 			case "weigh": WeighCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "swap": SwapCheck.run(args);
