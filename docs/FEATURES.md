@@ -274,9 +274,13 @@ A VGM this application wrote therefore imports with its drums where they were.
   with its LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the
   same name replaces it.
 - **Open folder**, at the top of the preset browser, opens the presets folder in your file
-  manager. A subfolder you make there is a bank of its own, named for the folder, and a preset
-  moved from one folder to another moves to that bank as soon as you come back to the window.
-  Patch files and bank documents work in any folder.
+  manager. It holds a folder for each family of part, `FM`, `PSG`, `NOISE` and `DAC`, and a
+  preset you save goes into the one its part belongs to. Those four are not banks themselves: a
+  preset sitting loose in one is a saved preset, while a subfolder you make inside one is a bank
+  of its own, named for the folder. A preset moved from one folder to another moves to that bank
+  as soon as you come back to the window. Patch files and bank documents work in any folder, and
+  a folder filled before this layout is sorted into it once, the first time you open the program
+  after the change.
 - Your own presets load beside the shipped ones rather than replacing them. A project keeps its
   own copy of every preset it carries, so it opens the same on a machine that has none of them.
 - **What a file brought is one bank.** Opening a project, or importing a VGM, VGZ or XGM, files

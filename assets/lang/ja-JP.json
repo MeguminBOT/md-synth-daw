@@ -531,6 +531,7 @@
   "said.pointsSelected": "選択したポイント: {0}",
   "said.presetSwitched": "再生位置から {1} で {0} を使います",
   "said.presetUnwritten": "プリセットを {0} に保存できませんでした",
+  "said.presetsSorted": "パートの種類ごとのフォルダーにプリセットを {0} 件並べ替えました",
   "said.readDriver": "{0} を読み込みました。ノート {1}、パターン {2}、{3} bpm、サンプル {4}、コンバーター発音 {5}",
   "said.readDriverPartly": "{0} を読み込みました。ノート {1}、パターン {2}、{3} bpm、サンプル {4}、コンバーター発音 {5}。未知のコマンドで停止しました",
   "said.readNotes": "{0} を読み込みました。ノート {1}、パターン {2}、{3} bpm",

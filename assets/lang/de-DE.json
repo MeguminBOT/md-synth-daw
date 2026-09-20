@@ -531,6 +531,7 @@
   "said.pointsSelected": "Punkte ausgewählt: {0}",
   "said.presetSwitched": "{0} spielt ab dem Abspielkopf auf {1}",
   "said.presetUnwritten": "Preset konnte nicht in {0} gespeichert werden",
+  "said.presetsSorted": "{0} Presets in Ordner nach Bauteil einsortiert",
   "said.readDriver": "{0} gelesen, {1} Noten auf {2} Patterns bei {3} bpm, {4} Samples und {5} Wandlerschläge",
   "said.readDriverPartly": "{0} gelesen, {1} Noten auf {2} Patterns bei {3} bpm, {4} Samples und {5} Wandlerschläge, bei einem unbekannten Befehl abgebrochen",
   "said.readNotes": "{0} gelesen, {1} Noten auf {2} Patterns bei {3} bpm",

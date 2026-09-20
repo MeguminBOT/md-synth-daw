@@ -53,6 +53,8 @@ class PresetCheck {
 		folded(where);
 		moved(where);
 		written(where);
+		familied(where);
+		sortedIn(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -277,6 +279,112 @@ class PresetCheck {
 	}
 
 	/**
+		The presets folder is laid out with a folder for each family of part. Those four stand for
+		no bank of their own: what is loose in one is saved, and a folder inside one is a bank
+		named for itself, the same as a folder at the top.
+	**/
+	static function familied(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		sys.FileSystem.createDirectory(where + "/FM");
+		sys.FileSystem.createDirectory(where + "/FM/Leads");
+		sys.FileSystem.createDirectory(where + "/PSG");
+
+		sys.io.File.saveContent(where + "/FM/Plain.json", Library.saved(patched("Plain"), null));
+		sys.io.File.saveContent(where + "/FM/Leads/Bright.json", Library.saved(patched("Bright"), null));
+		sys.io.File.saveContent(where + "/PSG/Pulse.json",
+			Library.saved(enveloped("Pulse", Part.Psg1), null));
+
+		final library = new Library();
+		final many = library.within(where, SAVED);
+		final banks:Array<String> = [];
+
+		for (at in 0...library.names.length) {
+			final held:Array<String> = [];
+			for (one in library.instruments[at]) held.push(one.name);
+
+			banks.push(library.names[at] + " (" + held.join(", ") + ")");
+		}
+
+		banks.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+
+		says("a folder for each family is not a bank", many == 3
+			&& banks.join("; ") == "Leads (Bright); " + SAVED + " (Plain, Pulse)",
+			banks.join("; "));
+	}
+
+	/**
+		What was in a presets folder before it was laid out by family is moved into it, a bank
+		document of one family with it, because a bank document is its own bank wherever it sits.
+		One carrying more than one family stays where it is, because no one folder is its place.
+	**/
+	static function sortedIn(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		sys.FileSystem.createDirectory(where + "/Bass");
+
+		sys.io.File.saveContent(where + "/Lead.json", Library.saved(patched("Lead"), null));
+		sys.io.File.saveBytes(where + "/Slap.tfi", mdd.format.Tfi.write(patched("Slap").patch));
+		sys.io.File.saveContent(where + "/Bass/Sub.json", Library.saved(patched("Sub"), null));
+		sys.io.File.saveContent(where + "/Beeps.json",
+			Library.saved(enveloped("Beeps", Part.Psg1), null));
+		sys.io.File.saveContent(where + "/Hits.json",
+			Library.saved(enveloped("Hits", Part.Noise), null));
+
+		sys.io.File.saveContent(where + "/Kit.json",
+			banked("A Kit Of Its Own", [enveloped("Tick", Part.Noise)]));
+
+		sys.io.File.saveContent(where + "/Both.json",
+			banked("Two Families", [patched("Wide"), enveloped("Narrow", Part.Psg1)]));
+
+		final files = new mdd.app.Files(new mdd.app.Session(new Song()));
+		files.presetsAt = where;
+
+		final moved = files.sortsPresets();
+
+		final landed = sys.FileSystem.exists(where + "/FM/Lead.json")
+			&& sys.FileSystem.exists(where + "/FM/Slap.tfi")
+			&& sys.FileSystem.exists(where + "/FM/Bass/Sub.json")
+			&& sys.FileSystem.exists(where + "/PSG/Beeps.json")
+			&& sys.FileSystem.exists(where + "/NOISE/Hits.json")
+			&& sys.FileSystem.exists(where + "/NOISE/Kit.json");
+
+		final stayed = sys.FileSystem.exists(where + "/Both.json")
+			&& !sys.FileSystem.exists(where + "/Lead.json");
+
+		says("what was there is sorted by family", moved == 6 && landed && stayed,
+			moved + " files moved, each under the folder its family stands in, the subfolder they"
+			+ " were in kept, a bank document of one family with them, and the one carrying two"
+			+ " families left where it is");
+
+		final again = files.sortsPresets();
+
+		says("and sorting again moves nothing", again == 0,
+			again + " files moved the second time, because everything is already where it belongs");
+	}
+
+	/**
+		@param name What the bank is called.
+		@param held What is in it.
+		@return The bank as a document, the way one written by hand into the presets folder reads.
+	**/
+	static function banked(name:String, held:Array<Instrument>):String {
+		final said:Array<String> = [];
+
+		for (one in held) {
+			final whole = Library.saved(one, null);
+			final from = whole.indexOf("[") + 1;
+
+			said.push(whole.substring(from, whole.lastIndexOf("]")));
+		}
+
+		return "{\"name\": " + haxe.Json.stringify(name) + ", \"presets\": ["
+			+ said.join(",") + "]}";
+	}
+
+	/**
 		A preset moved into a subfolder leaves the bank it was in, in the piece that is open, and
 		one edited in the piece stays where it is.
 	**/
@@ -336,7 +444,9 @@ class PresetCheck {
 		files.library = library;
 
 		final kit = "{\"name\": \"Drums\", \"presets\": []}";
-		sys.io.File.saveContent(where + "/Drums.json", kit);
+
+		sys.FileSystem.createDirectory(where + "/FM");
+		sys.io.File.saveContent(where + "/FM/Drums.json", kit);
 
 		final first = files.keepsPreset(patched("Drums"), null);
 		final again = patched("Drums");
@@ -344,7 +454,7 @@ class PresetCheck {
 		final second = files.keepsPreset(again, null);
 		final third = files.keepsPreset(patched("Bell"), null);
 
-		final kept = sys.io.File.getContent(where + "/Drums.json") == kit;
+		final kept = sys.io.File.getContent(where + "/FM/Drums.json") == kit;
 		final named = mdd.app.Files.name(first) + ", " + mdd.app.Files.name(second) + ", "
 			+ mdd.app.Files.name(third);
 

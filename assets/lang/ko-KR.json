@@ -531,6 +531,7 @@
   "said.pointsSelected": "선택한 포인트: {0}",
   "said.presetSwitched": "재생 위치부터 {1}에서 {0}을(를) 연주합니다",
   "said.presetUnwritten": "프리셋을 {0}에 저장할 수 없습니다",
+  "said.presetsSorted": "프리셋 {0} 개를 파트 종류별 폴더로 정리했습니다",
   "said.readDriver": "{0} 읽기 완료. 노트 {1}개, 패턴 {2}개, {3} bpm, 샘플 {4}개, 컨버터 발음 {5}회",
   "said.readDriverPartly": "{0} 읽기 완료. 노트 {1}개, 패턴 {2}개, {3} bpm, 샘플 {4}개, 컨버터 발음 {5}회. 알 수 없는 명령에서 멈췄습니다",
   "said.readNotes": "{0} 읽기 완료. 노트 {1}개, 패턴 {2}개, {3} bpm",

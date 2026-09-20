@@ -531,6 +531,7 @@
   "said.pointsSelected": "puntos seleccionados: {0}",
   "said.presetSwitched": "{0} suena en {1} desde el cursor de reproducción",
   "said.presetUnwritten": "no se pudo guardar el preset en {0}",
+  "said.presetsSorted": "{0} presets ordenados en una carpeta por familia de parte",
   "said.readDriver": "se leyó {0}, {1} notas en {2} patrones a {3} bpm, {4} muestras y {5} golpes del convertidor",
   "said.readDriverPartly": "se leyó {0}, {1} notas en {2} patrones a {3} bpm, {4} muestras y {5} golpes del convertidor, se detuvo en un comando desconocido",
   "said.readNotes": "se leyó {0}, {1} notas en {2} patrones a {3} bpm",

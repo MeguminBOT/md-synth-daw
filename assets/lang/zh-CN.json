@@ -531,6 +531,7 @@
   "said.pointsSelected": "已选节点：{0}",
   "said.presetSwitched": "从播放头开始 {1} 使用 {0}",
   "said.presetUnwritten": "无法将预设保存到 {0}",
+  "said.presetsSorted": "已把 {0} 个预设按声部类别分到各自的文件夹",
   "said.readDriver": "已读取 {0}，{1} 个音符，{2} 个模式，{3} bpm，{4} 个采样，{5} 次转换器发声",
   "said.readDriverPartly": "已读取 {0}，{1} 个音符，{2} 个模式，{3} bpm，{4} 个采样，{5} 次转换器发声，在未知命令处停止",
   "said.readNotes": "已读取 {0}，{1} 个音符，{2} 个模式，{3} bpm",

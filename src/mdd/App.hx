@@ -1703,6 +1703,13 @@ class App {
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
 
+		if (!settings.asFlag("presetsSorted", false)) {
+			final moved = files.sortsPresets();
+
+			settings.flag("presetsSorted", true);
+			if (moved > 0) session.says(Locale.SAID_PRESETS_SORTED, "" + moved);
+		}
+
 		rescanned(false);
 
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {

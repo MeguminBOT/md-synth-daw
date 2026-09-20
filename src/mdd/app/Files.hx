@@ -1156,7 +1156,7 @@ final class Files {
 
 		session.frees();
 
-		final into = within("presets");
+		final into = familied(mdd.song.Part.Fm1);
 		final named = into + "/" + safely(bare(where)) + ".tfi";
 
 		if (!FileSystem.exists(named)) {
@@ -1172,6 +1172,106 @@ final class Files {
 	}
 
 	/**
+		@param kind What family of part a preset is for.
+		@return The folder in the presets folder that family is kept in, which is the presets
+			folder itself where there is none set.
+	**/
+	public function familied(kind:mdd.song.Part):String {
+		final where = within("presets");
+		return where == "" ? "" : where + "/" + kind.family();
+	}
+
+	/**
+		Moves what is already in the presets folder into a folder for each family of part, which
+		is how the folder is laid out from now on: `FM`, `PSG`, `NOISE` and `DAC`, each holding
+		whatever folders of its own a reader has made under it. A file already inside one of the
+		four is left where it is, and so is a bank document, which names its own bank and may
+		carry more than one family. A file whose place is taken is left where it is as well.
+
+		@return How many files moved.
+	**/
+	public function sortsPresets():Int {
+		final where = within("presets");
+		if (where == "" || !FileSystem.exists(where) || !FileSystem.isDirectory(where)) return 0;
+
+		var many = 0;
+
+		for (name in FileSystem.readDirectory(where)) {
+			if (StringTools.startsWith(name, ".")) continue;
+			if (FileSystem.isDirectory(where + "/" + name) && mdd.song.Library.familied(name)) continue;
+
+			many += sorted(where, name, "");
+		}
+
+		for (family in mdd.song.Library.FAMILIES) Paths.make(where + "/" + family);
+
+		return many;
+	}
+
+	/**
+		Moves one file, or everything under one folder, into the family folder each belongs in.
+
+		@param where The presets folder.
+		@param name What sits in it, a file or a folder.
+		@param under The folders it sits in below the presets folder, or an empty string.
+		@return How many files moved.
+	**/
+	function sorted(where:String, name:String, under:String):Int {
+		final from = where + (under == "" ? "" : "/" + under) + "/" + name;
+
+		if (FileSystem.isDirectory(from)) {
+			var many = 0;
+			final inside = under == "" ? name : under + "/" + name;
+
+			for (held in FileSystem.readDirectory(from)) {
+				if (StringTools.startsWith(held, ".")) continue;
+				many += sorted(where, held, inside);
+			}
+
+			return many;
+		}
+
+		final family = familyOf(from, name);
+		if (family == "") return 0;
+
+		final into = where + "/" + family + (under == "" ? "" : "/" + under);
+		final named = into + "/" + name;
+
+		if (FileSystem.exists(named)) return 0;
+
+		try {
+			Paths.make(into);
+			FileSystem.rename(from, named);
+		} catch (e:Dynamic) {
+			return 0;
+		}
+
+		return 1;
+	}
+
+	/**
+		@param from A file in the presets folder.
+		@param name What it is called.
+		@return Which family of part it holds presets for, or an empty string where it holds no
+			preset, names a bank of its own, or carries more than one family.
+	**/
+	function familyOf(from:String, name:String):String {
+		final lower = name.toLowerCase();
+
+		if (StringTools.endsWith(lower, mdd.song.Library.PATCH)) {
+			return mdd.song.Part.Fm1.family();
+		}
+
+		if (!StringTools.endsWith(lower, mdd.song.Library.SUFFIX)) return "";
+
+		try {
+			return mdd.song.Library.familyIn(sys.io.File.getContent(from));
+		} catch (e:Dynamic) {
+			return "";
+		}
+	}
+
+	/**
 		Writes a preset into the presets folder as a file of its own and puts it in the
 		library, so every piece opened from now on offers it. A file of that name holding
 		anything but a saved preset of the same name and kind is left alone, and the
@@ -1182,7 +1282,7 @@ final class Files {
 		@return Where it was written, or an empty string where it could not be.
 	**/
 	public function keepsPreset(made:mdd.song.Instrument, sample:Null<mdd.song.Sample>):String {
-		final into = within("presets");
+		final into = familied(made.kind);
 		final said = mdd.song.Library.saved(made, sample);
 		final base = into + "/" + safely(made.name);
 
@@ -1302,7 +1402,7 @@ final class Files {
 		@return How many were written.
 	**/
 	public function liftsPatches():Int {
-		final where = within("presets");
+		final where = familied(mdd.song.Part.Fm1);
 		final song = session.song;
 
 		var many = 0;

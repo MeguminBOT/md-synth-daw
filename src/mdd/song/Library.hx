@@ -141,6 +141,31 @@ final class Library {
 		@param one The preset.
 		@return The instrument, or null where it carries nothing that plays.
 	**/
+	/**
+		@param said A document out of the presets folder.
+		@return Which family of part every preset in it is for, as `Part.family` names it, or an
+			empty string where it carries no preset or carries more than one family. A file that
+			answers one is a file that belongs in that family's folder. A document naming a bank
+			of its own answers the same way, because it is that bank wherever it sits.
+	**/
+	public static function familyIn(said:String):String {
+		final node = mdd.format.Json.parse(said);
+		if (node == null) return "";
+
+		final presets = node.get("presets");
+		var family = "";
+
+		for (index in 0...presets.length()) {
+			final held = preset(presets.at(index));
+			if (held == null) return "";
+			if (family != "" && family != held.kind.family()) return "";
+
+			family = held.kind.family();
+		}
+
+		return family;
+	}
+
 	static function preset(one:mdd.format.Node):Null<Instrument> {
 		final pcm = one.get("pcm").saying("");
 
@@ -656,9 +681,27 @@ final class Library {
 	public static inline final PATCH = ".tfi";
 
 	/**
-		How deep into subfolders a presets folder is read.
+		How deep into subfolders a presets folder is read, below the folder its family stands in.
 	**/
 	public static inline final DEPTH = 4;
+
+	/**
+		The folders a presets folder is divided into, one for each family of part, as
+		`Part.family` names them. They are not banks themselves: what a reader puts inside one is.
+	**/
+	public static final FAMILIES:Array<String> = ["FM", "PSG", "NOISE", "DAC"];
+
+	/**
+		@param name A folder's name.
+		@return Whether it stands for a family of part rather than for a bank of its own.
+	**/
+	public static function familied(name:String):Bool {
+		final lower = name.toLowerCase();
+
+		for (family in FAMILIES) if (family.toLowerCase() == lower) return true;
+
+		return false;
+	}
 
 	/**
 		Reads a folder of bank documents and loose presets, so a reader's own presets
@@ -668,6 +711,10 @@ final class Library {
 		preset, which is a patch file or a document with no name, goes into the bank its
 		folder stands for: the one named `saved` at the top, and one named for the
 		subfolder below it, so a subfolder made in the file manager is a bank.
+
+		The four folders a presets folder is divided into by family of part, which `FAMILIES`
+		names, stand for no bank of their own: what is loose in one is saved, and a folder inside
+		one is a bank the same way a folder at the top is.
 
 		@param where The folder to read.
 		@param saved The bank loose presets at the top of it go into.
@@ -725,8 +772,10 @@ final class Library {
 		for (name in below) {
 			if (StringTools.startsWith(name, ".")) continue;
 
-			many += gathered(where + "/" + name, depth == 0 ? name : loose + " / " + name,
-				depth + 1);
+			final family = depth == 0 && familied(name);
+			final into = family ? loose : (depth == 0 ? name : loose + " / " + name);
+
+			many += gathered(where + "/" + name, into, family ? 0 : depth + 1);
 		}
 
 		return many;
