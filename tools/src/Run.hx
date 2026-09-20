@@ -435,6 +435,18 @@ class Run {
 		out.add("\tpublic static inline final SUFFIX = \"" + project.formatSuffix + "\";\n");
 		out.add("\tpublic static inline final FORMAT = \"" + project.formatName + "\";\n");
 		out.add("\tpublic static inline final MIME = \"" + project.formatMime + "\";\n");
+		out.add("\n\t/**\n\t\tWhat a preset file is called, past the dot.\n\t**/\n");
+		out.add("\tpublic static inline final PRESET = \"" + project.presetSuffix + "\";\n");
+		out.add("\n\t/**\n\t\tWhat the desktop calls a preset file.\n\t**/\n");
+		out.add("\tpublic static inline final PRESET_FORMAT = \"" + project.presetName + "\";\n");
+		out.add("\n\t/**\n\t\tThe media type a preset file is served as.\n\t**/\n");
+		out.add("\tpublic static inline final PRESET_MIME = \"" + project.presetMime + "\";\n");
+		out.add("\n\t/**\n\t\tWhat a bank of presets is called, past the dot.\n\t**/\n");
+		out.add("\tpublic static inline final BANK = \"" + project.bankSuffix + "\";\n");
+		out.add("\n\t/**\n\t\tWhat the desktop calls a bank of presets.\n\t**/\n");
+		out.add("\tpublic static inline final BANK_FORMAT = \"" + project.bankName + "\";\n");
+		out.add("\n\t/**\n\t\tThe media type a bank of presets is served as.\n\t**/\n");
+		out.add("\tpublic static inline final BANK_MIME = \"" + project.bankMime + "\";\n");
 		out.add("}\n");
 
 		File.saveContent(into + "/Config.hx", out.toString());
@@ -933,21 +945,72 @@ class Run {
 			args.push(face + "@icon");
 		}
 
-		final banks = root + "/assets/presets";
+		final banks = root + "/export/banks";
 
 		if (FileSystem.exists(banks)) {
 			final held = FileSystem.readDirectory(banks);
 			held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
 
 			for (name in held) {
-				if (name.indexOf(".json") < 0) continue;
+				final dot = name.lastIndexOf(".");
+				if (dot <= 0) continue;
 
 				args.push("-resource");
-				args.push(banks + "/" + name + "@bank." + name.substr(0, name.length - 5));
+				args.push(banks + "/" + name + "@bank." + name.substr(0, dot));
 			}
 		}
 
 		return args;
+	}
+
+	/**
+		Writes the banks the application ships out as records, where a document has changed since
+		the records were last written. The documents are what anyone improving a name or a tag
+		edits, and what a build carries is what the application reads.
+
+		@param root The repository.
+		@param project What the build file says.
+	**/
+	static function banked(root:String, project:Project):Void {
+		final from = root + "/assets/presets";
+		final into = root + "/export/banks";
+
+		if (!FileSystem.exists(from)) return;
+
+		final suffix = "." + project.bankSuffix;
+
+		var stale = !FileSystem.exists(into);
+
+		if (!stale) {
+			for (name in FileSystem.readDirectory(from)) {
+				if (!StringTools.endsWith(name.toLowerCase(), ".json")) continue;
+
+				final made = into + "/" + name.substr(0, name.length - 5) + suffix;
+
+				if (!FileSystem.exists(made) || FileSystem.stat(made).mtime.getTime()
+						< FileSystem.stat(from + "/" + name).mtime.getTime()) {
+					stale = true;
+					break;
+				}
+			}
+		}
+
+		if (!stale) return;
+
+		Sys.println("  " + pad("banks") + "writing the shipped banks as records");
+
+		final here = Sys.getCwd();
+		Sys.setCwd(root);
+
+		final code = Sys.command("haxe", ["-cp", "src", "-cp", project.generated, "-cp", "tools/src",
+			"--run", "Banker", from, into]);
+
+		Sys.setCwd(here);
+
+		if (code != 0) {
+			Sys.println("mdd: the shipped banks could not be written");
+			Sys.exit(code);
+		}
 	}
 
 	static function built(root:String, project:Project, target:String, debug:Bool):Void {
@@ -964,6 +1027,7 @@ class Run {
 		Icons.named(project, root + "/" + project.generated);
 		Icons.typefaces(project, root + "/" + project.generated, root + "/" + project.typefacePath);
 		Icons.built(root, project, root + "/" + project.output + "/icons", false);
+		banked(root, project);
 
 		final xml = nativeXml(root, project);
 

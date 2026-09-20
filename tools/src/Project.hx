@@ -115,6 +115,25 @@ class Project {
 	public var formatName(default, null):String = "";
 	public var formatMime(default, null):String = "";
 
+	/**
+		What a preset file is called, what the desktop calls that kind of file, and its media type.
+	**/
+	public var presetSuffix(default, null):String = "";
+
+	public var presetName(default, null):String = "";
+
+	public var presetMime(default, null):String = "";
+
+	/**
+		What a bank of presets is called, what the desktop calls that kind of file, and its media
+		type. A bank is the same records as a preset with a name of its own on the front.
+	**/
+	public var bankSuffix(default, null):String = "";
+
+	public var bankName(default, null):String = "";
+
+	public var bankMime(default, null):String = "";
+
 	public var windowWidth(default, null):Int = 1280;
 	public var windowHeight(default, null):Int = 800;
 	public var leastWidth(default, null):Int = 640;
@@ -266,6 +285,12 @@ class Project {
 				formatSuffix = node.get("suffix");
 				formatName = node.get("name");
 				formatMime = node.get("mime");
+				presetSuffix = node.get("preset");
+				presetName = node.get("presetName");
+				presetMime = node.get("presetMime");
+				bankSuffix = node.get("bank");
+				bankName = node.get("bankName");
+				bankMime = node.get("bankMime");
 
 			case "toolchains":
 				for (held in node.elements()) {

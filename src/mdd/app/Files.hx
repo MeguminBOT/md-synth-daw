@@ -1285,25 +1285,27 @@ final class Files {
 		made.identifies(sample);
 
 		final into = familied(made.kind);
-		final said = mdd.song.Library.saved(made, sample);
+		final written = mdd.format.Preset.write("", [made], [sample]);
 		final base = into + "/" + safely(made.name);
 
-		var named = base + mdd.song.Library.SUFFIX;
+		var named = base + mdd.song.Library.RECORDS;
 		var at = 2;
 
 		while (FileSystem.exists(named) && !overwrites(named, made)) {
-			named = base + " " + at + mdd.song.Library.SUFFIX;
+			named = base + " " + at + mdd.song.Library.RECORDS;
 			at++;
 		}
 
 		try {
 			Paths.make(into);
-			sys.io.File.saveContent(named, said);
+			sys.io.File.saveBytes(named, written);
 		} catch (e:Dynamic) {
 			return "";
 		}
 
-		if (library != null && savedInto != "") library.replaces(said, savedInto);
+		if (library != null && savedInto != "") {
+			library.keeps(savedInto, made.copy(), sample == null ? null : sample.copy());
+		}
 
 		return named;
 	}
@@ -1316,14 +1318,11 @@ final class Files {
 	**/
 	function overwrites(where:String, made:mdd.song.Instrument):Bool {
 		try {
-			final node = mdd.format.Json.parse(sys.io.File.getContent(where));
-			if (node == null || node.has("name")) return false;
+			final held = mdd.format.Preset.read(sys.io.File.getBytes(where));
+			if (held == null || held.name != "" || held.presets.length != 1) return false;
 
-			final presets = node.get("presets");
-			if (presets.length() != 1 || !presets.at(0).has("instrument")) return false;
-
-			final held = mdd.format.Project.readInstrument(presets.at(0).get("instrument"));
-			return held.name == made.name && mdd.song.Library.kin(held.kind, made.kind);
+			return held.presets[0].name == made.name
+				&& mdd.song.Library.kin(held.presets[0].kind, made.kind);
 		} catch (e:Dynamic) {
 			return false;
 		}

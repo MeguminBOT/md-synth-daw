@@ -60,10 +60,7 @@ final class Library {
 
 		held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
 
-		for (name in held) {
-			final said = haxe.Resource.getString(name);
-			if (said != null) out.reads(said);
-		}
+		for (name in held) out.holds(haxe.Resource.getBytes(name));
 
 		return out;
 	}
@@ -734,6 +731,40 @@ final class Library {
 	public static inline final PATCH = ".tfi";
 
 	/**
+		What a preset file is called on disk, which is what this application writes.
+	**/
+	public static inline final RECORDS = mdd.format.Preset.SUFFIX;
+
+	/**
+		What a bank of presets is called on disk, which is the same records naming a bank.
+	**/
+	public static inline final BANK = mdd.format.Preset.BANK;
+
+	/**
+		Takes a bank out of a preset file.
+
+		@param bytes The file.
+		@param owned Whether it came out of the presets folder.
+		@param loose The bank a file naming none goes into.
+		@return How many presets it carried.
+	**/
+	public function holds(bytes:Null<haxe.io.Bytes>, owned:Bool = false, loose:String = ""):Int {
+		final held = mdd.format.Preset.read(bytes);
+		if (held == null) return 0;
+
+		final named = held.name == "" ? loose : held.name;
+		if (named == "") return 0;
+
+		var many = 0;
+
+		for (index in 0...held.presets.length) {
+			if (adds(named, held.presets[index], held.samples[index], owned)) many++;
+		}
+
+		return many;
+	}
+
+	/**
 		How deep into subfolders a presets folder is read, below the folder its family stands in.
 	**/
 	public static inline final DEPTH = 4;
@@ -804,7 +835,9 @@ final class Library {
 
 				final lower = name.toLowerCase();
 
-				if (StringTools.endsWith(lower, SUFFIX)) {
+				if (StringTools.endsWith(lower, RECORDS) || StringTools.endsWith(lower, BANK)) {
+					many += holds(sys.io.File.getBytes(path), true, loose);
+				} else if (StringTools.endsWith(lower, SUFFIX)) {
 					many += reads(sys.io.File.getContent(path), true, loose);
 				} else if (StringTools.endsWith(lower, PATCH)) {
 					final patch = Tfi.read(sys.io.File.getBytes(path));

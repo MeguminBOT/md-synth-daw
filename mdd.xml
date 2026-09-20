@@ -27,7 +27,11 @@
 	<window width="1440" height="900" least-width="960" least-height="600"
 	        vsync="true" resizable="true" high-dpi="true" />
 
-	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn" />
+	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn"
+	        preset="mdpreset" presetName="MD Synth Preset File"
+	        presetMime="application/x-mdpreset"
+	        bank="mdbank" bankName="MD Synth Preset Bank"
+	        bankMime="application/x-mdbank" />
 
 	<update github="MeguminBOT/md-synth-daw" />
 

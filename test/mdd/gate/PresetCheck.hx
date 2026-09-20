@@ -46,6 +46,8 @@ class PresetCheck {
 		shipped();
 		filed();
 		identified();
+		recorded(Gate.root);
+		carriedOver(Gate.root);
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -435,6 +437,138 @@ class PresetCheck {
 	}
 
 	/**
+		Every kind of preset there is survives being written as records and read back: a patch with
+		every field away from its default, an envelope with a loop and a noise of its own, and a
+		recording with an odd length and a loop part way through it. Identity answers for all of
+		it at once, because it is worked out over everything a preset holds.
+	**/
+	static function recorded(root:String):Void {
+		final patch = patched("Round");
+		final square = enveloped("Pulse", Part.Psg1);
+		final noise = enveloped("Tick", Part.Noise);
+		final hit = new Instrument("Thud", Part.Dac);
+		final sample = sampled("Thud");
+
+		patch.tags.push("warm");
+		patch.tags.push("soft");
+		patch.patch.tremolo[2] = true;
+
+		square.envelope.loop = 3;
+		square.envelope.speed = 5;
+		noise.envelope.noise = 7;
+		sample.loop = 121;
+
+		final held = [patch, square, noise, hit];
+		final playing:Array<Null<mdd.song.Sample>> = [null, null, null, sample];
+
+		for (index in 0...held.length) held[index].identifies(playing[index]);
+
+		final written = mdd.format.Preset.write("Everything", held, playing);
+		final back = mdd.format.Preset.read(written);
+
+		if (back == null) {
+			says("every kind of preset survives records", false, "the file did not read back");
+			return;
+		}
+
+		var same = 0;
+		var bytes = 0;
+
+		for (index in 0...back.presets.length) {
+			if (back.presets[index].id == held[index].id) same++;
+		}
+
+		final taken = back.samples[3];
+		if (taken != null) {
+			for (at in 0...taken.length()) if (taken.bytes[at] == sample.bytes[at]) bytes++;
+		}
+
+		says("every kind of preset survives records", back.name == "Everything"
+			&& back.presets.length == 4 && same == 4 && taken != null
+			&& taken.length() == sample.length() && bytes == sample.length()
+			&& taken.loop == sample.loop && taken.rate == sample.rate,
+			same + " of 4 read back as the same preset they went in as, and the recording's "
+			+ bytes + " of " + sample.length() + " bytes with its loop at "
+			+ (taken == null ? -1 : taken.loop));
+
+		says("and what is not a preset file is not read",
+			mdd.format.Preset.read(haxe.io.Bytes.ofString("not a preset at all")) == null
+			&& mdd.format.Preset.read(null) == null,
+			"a file that does not open with the right four bytes reads as nothing");
+	}
+
+	/**
+		The banks the application ships are kept as documents and carried as records. Every preset
+		has to come across exactly, or what a reader browses is not what was written for them.
+	**/
+	static function carriedOver(root:String):Void {
+		final documents = new Library();
+		final where = root + "/assets/presets";
+
+		if (!sys.FileSystem.exists(where)) {
+			says("every shipped preset comes across", false, "no bank documents to read");
+			return;
+		}
+
+		var text = 0;
+
+		for (name in sys.FileSystem.readDirectory(where)) {
+			if (!StringTools.endsWith(name.toLowerCase(), Library.SUFFIX)) continue;
+
+			text += sys.io.File.getContent(where + "/" + name).length;
+			documents.reads(sys.io.File.getContent(where + "/" + name));
+		}
+
+		final records = Library.embedded();
+		var carried = 0;
+		var missing = "";
+
+		for (at in 0...documents.names.length) {
+			final which = records.names.indexOf(documents.names[at]);
+
+			if (which < 0) {
+				missing = documents.names[at];
+				continue;
+			}
+
+			for (one in documents.instruments[at]) {
+				var found = false;
+
+				for (two in records.instruments[which]) if (one.id == two.id) found = true;
+
+				if (found) carried++;
+				else if (missing == "") missing = one.name;
+			}
+		}
+
+		var built = 0;
+
+		for (name in haxe.Resource.listNames()) {
+			if (name.length > 5 && name.substr(0, 5) == "bank.") built += haxe.Resource.getBytes(name).length;
+		}
+
+		says("every shipped preset comes across", carried == documents.count()
+			&& documents.count() > 0 && missing == "",
+			carried + " of " + documents.count() + " presets are the same preset as records"
+			+ (missing == "" ? "" : ", missing " + missing));
+
+		var quickest = 1000.0;
+
+		for (pass in 0...7) {
+			final began = Sys.time();
+			Library.embedded();
+			final took = Sys.time() - began;
+
+			if (took < quickest) quickest = took;
+		}
+
+		says("and records are smaller than documents", built < text && built > 0,
+			built + " bytes of records against " + text + " of documents, "
+			+ Math.round(100 - built * 100 / text) + " per cent less, read in "
+			+ Math.round(quickest * 100000) / 100 + " ms, best of 7");
+	}
+
+	/**
 		A folder with subfolders reads as one bank per subfolder.
 	**/
 	static function folded(where:String):Void {
@@ -628,10 +762,13 @@ class PresetCheck {
 		files.savedInto = SAVED;
 		files.library = library;
 
-		final kit = "{\"name\": \"Drums\", \"presets\": []}";
-
 		sys.FileSystem.createDirectory(where + "/FM");
-		sys.io.File.saveContent(where + "/FM/Drums.json", kit);
+
+		final other = patched("Kit");
+		other.identifies(null);
+
+		sys.io.File.saveBytes(where + "/FM/Drums" + Library.RECORDS,
+			mdd.format.Preset.write("", [other], [null]));
 
 		final first = files.keepsPreset(patched("Drums"), null);
 		final again = patched("Drums");
@@ -639,15 +776,17 @@ class PresetCheck {
 		final second = files.keepsPreset(again, null);
 		final third = files.keepsPreset(patched("Bell"), null);
 
-		final kept = sys.io.File.getContent(where + "/FM/Drums.json") == kit;
+		final held = mdd.format.Preset.read(sys.io.File.getBytes(where + "/FM/Drums" + Library.RECORDS));
+		final kept = held != null && held.presets.length == 1 && held.presets[0].name == "Kit";
+
 		final named = mdd.app.Files.name(first) + ", " + mdd.app.Files.name(second) + ", "
 			+ mdd.app.Files.name(third);
 
 		final at = library.names.indexOf(SAVED);
-		final held:Array<Instrument> = at < 0 ? [] : library.instruments[at];
+		final taken:Array<Instrument> = at < 0 ? [] : library.instruments[at];
 		final shown:Array<String> = [];
 
-		for (one in held) shown.push(one.name + " " + one.patch.algorithm);
+		for (one in taken) shown.push(one.name + " " + one.patch.algorithm);
 
 		final fresh = new Library();
 		fresh.within(where, SAVED);
@@ -655,10 +794,12 @@ class PresetCheck {
 		final reread = fresh.names.indexOf(SAVED);
 		final back = reread < 0 ? 0 : fresh.instruments[reread].length;
 
-		says("a saved preset is written beside a bank", kept && named
-			== "Drums 2.json, Drums 2.json, Bell.json" && shown.join(", ") == "Drums 3, Bell 7"
-			&& back == 2, named + "; library holds " + shown.join(", ") + "; " + back
-			+ " read back from the folder");
+		says("a saved preset is written beside what is there", kept && named
+			== "Drums 2" + Library.RECORDS + ", Drums 2" + Library.RECORDS + ", Bell" + Library.RECORDS
+			&& shown.join(", ") == "Drums 3, Bell 7" && back == 3,
+			named + "; library holds " + shown.join(", ") + "; " + back
+			+ " read back from the folder, and the file that was already there "
+			+ (kept ? "still holds Kit" : "was written over"));
 	}
 
 	/**
