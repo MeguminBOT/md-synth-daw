@@ -386,6 +386,20 @@ final class Song {
 		@param index Which instrument.
 		@return That instrument, or null where the index is out of range.
 	**/
+	/**
+		@param id A preset's identity.
+		@return The preset this piece carries with that identity, or null where it carries none.
+			This is what a channel came from: the piece keeps its own copy of it, so putting a
+			channel back to the preset it started as needs nothing but the piece.
+	**/
+	public function identified(id:String):Null<Instrument> {
+		if (id == "") return null;
+
+		for (instrument in instruments) if (instrument.id == id) return instrument;
+
+		return null;
+	}
+
 	public function instrumentAt(index:Int):Null<Instrument> {
 		return index < 0 || index >= instruments.length ? null : instruments[index];
 	}

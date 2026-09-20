@@ -126,6 +126,56 @@ final class PsgEditor extends Widget {
 		@param py A point, down.
 		@return Which dial is there, or -1.
 	**/
+	/**
+		@return The preset this channel was loaded from, which the piece carries its own copy of, or
+			null where the channel came from none.
+	**/
+	function preset():Null<mdd.song.Instrument> {
+		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		return held == null ? null : session.song.identified(held.from);
+	}
+
+	/**
+		Puts a dial, or the whole shape, back to what the preset the channel was loaded from holds,
+		which is what a right click asks for. A step is one of a shape rather than a parameter of
+		its own, so the shape goes back whole.
+
+		@param envelope The envelope being edited.
+		@param px Where the press was, across.
+		@param py Where it was, down.
+		@return Whether the press was taken.
+	**/
+	function restores(envelope:Envelope, px:Float, py:Float):Bool {
+		final source = preset();
+		final held = source == null ? null : source.envelope;
+
+		if (held == null) {
+			session.says(Locale.SAID_NO_PRESET);
+			return true;
+		}
+
+		final turned = dialAt(px, py);
+
+		if (turned >= 0) {
+			session.does(new mdd.song.edit.SetEnvelopeDial(envelope, turned, dialOf(held, turned)));
+			session.says(Locale.SAID_PRESET_AGAIN, translate(DIAL_NAMES[turned]), source.name);
+
+			invalidate();
+			return true;
+		}
+
+		if (py < dialsTop()) return false;
+
+		final steps:Array<Int> = [];
+		for (value in held.steps) steps.push(value);
+
+		session.does(new mdd.song.edit.DrawEnvelope(envelope, steps));
+		session.says(Locale.SAID_PRESET_AGAIN, translate(Locale.PSG_STEPS), source.name);
+
+		invalidate();
+		return true;
+	}
+
 	public function dialAt(px:Float, py:Float):Int {
 		final root = root();
 		if (root == null) return -1;
@@ -216,6 +266,7 @@ final class PsgEditor extends Widget {
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				if (event.button == Pointer.Right) return restores(envelope, event.x, event.y);
 				if (event.button != Pointer.Left) return false;
 
 				final turned = dialAt(event.x, event.y);

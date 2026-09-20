@@ -167,6 +167,26 @@ final class Instrument {
 	/**
 		@return A new instrument with its own copy of whatever it carries.
 	**/
+	/**
+		Takes everything another preset holds, which is what loading one into a channel does and
+		what putting a channel back to the preset it came from does. The recording is left alone,
+		because a channel plays the one the song already holds rather than a copy of it.
+
+		@param other The preset to take from.
+	**/
+	public function takes(other:Instrument):Void {
+		name = other.name;
+		icon = other.icon;
+		id = other.id;
+		from = other.id;
+
+		patch = other.patch == null ? null : other.patch.copy();
+		envelope = other.envelope == null ? null : other.envelope.copy();
+
+		tags.resize(0);
+		for (tag in other.tags) tags.push(tag);
+	}
+
 	public function copy():Instrument {
 		final out = new Instrument(name, kind);
 		out.id = id;

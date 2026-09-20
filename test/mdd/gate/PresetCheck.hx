@@ -48,6 +48,7 @@ class PresetCheck {
 		identified();
 		recorded(Gate.root);
 		carriedOver(Gate.root);
+		loaded();
 
 		final where = Gate.root + "/export/gate/presets";
 		mdd.host.Paths.clear(where);
@@ -566,6 +567,67 @@ class PresetCheck {
 			built + " bytes of records against " + text + " of documents, "
 			+ Math.round(100 - built * 100 / text) + " per cent less, read in "
 			+ Math.round(quickest * 100000) / 100 + " ms, best of 7");
+	}
+
+	/**
+		Loading a preset into a channel takes a copy of it, so playing with the channel leaves the
+		preset as it was written and choosing it again puts the channel back. That is what a piece
+		needs to carry its own presets: the copy says which preset it came from, and the preset is
+		in the piece, so neither needs a reader's own folder.
+	**/
+	static function loaded():Void {
+		final song = new Song("loading");
+		final lead = song.instrument(patched("Lead"));
+
+		lead.identifies(null);
+
+		final at = song.instruments.indexOf(lead);
+		final was = song.instruments.length;
+
+		final take = new mdd.song.edit.TakesPreset(Part.Fm1, at);
+		take.apply(song);
+
+		final playing = song.instrumentAt(song.rack[Part.Fm1.index()]);
+		final copied = playing != null && playing != lead && playing.from == lead.id
+			&& song.instruments.length == was + 1;
+
+		says("loading a preset takes a copy of it", copied,
+			copied ? "the channel plays its own copy, which says it came from " + lead.id.substr(0, 8)
+			: "the channel plays the preset itself");
+
+		if (playing == null || playing.patch == null || lead.patch == null) return;
+
+		final feedback = lead.patch.feedback;
+
+		playing.patch.feedback = feedback == 7 ? 1 : 7;
+		playing.name = "Lead I Changed";
+		playing.identifies(null);
+
+		says("and playing with the channel leaves the preset alone",
+			lead.patch.feedback == feedback && lead.name == "Lead",
+			"the preset still reads " + lead.name + " at a feedback of " + lead.patch.feedback);
+
+		final grew = song.instruments.length;
+
+		final again = new mdd.song.edit.TakesPreset(Part.Fm1, at);
+		again.apply(song);
+
+		final back = song.instrumentAt(song.rack[Part.Fm1.index()]);
+
+		says("and choosing it again puts the channel back", back != null
+			&& back.patch.feedback == feedback && back.name == "Lead"
+			&& song.instruments.length == grew,
+			"the channel reads " + (back == null ? "nothing" : back.name + " at a feedback of "
+			+ back.patch.feedback) + ", and no second copy was made");
+
+		again.revert(song);
+
+		final edited = song.instrumentAt(song.rack[Part.Fm1.index()]);
+
+		says("and undo brings back what was played with", edited != null
+			&& edited.patch.feedback != feedback && edited.name == "Lead I Changed",
+			"undone, the channel reads " + (edited == null ? "nothing" : edited.name
+			+ " at a feedback of " + edited.patch.feedback));
 	}
 
 	/**

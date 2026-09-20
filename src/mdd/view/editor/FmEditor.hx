@@ -168,6 +168,46 @@ final class FmEditor extends Widget {
 		@param py A point, down.
 		@return Which dial is there, or -1.
 	**/
+	/**
+		@return The preset this channel was loaded from, which the piece carries its own copy of, or
+			null where the channel came from none.
+	**/
+	function preset():Null<mdd.song.Instrument> {
+		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		return held == null ? null : session.song.identified(held.from);
+	}
+
+	/**
+		Puts one parameter back to what the preset the channel was loaded from holds, which is what
+		a right click on it asks for. A channel that came from no preset is left alone and says so.
+
+		@param patch The patch being edited.
+		@param dial Which dial, or -1 where a field is wanted instead.
+		@param slot Which operator, for a field.
+		@param row Which field of it.
+		@return Whether the press was taken.
+	**/
+	function restores(patch:Patch, dial:Int, slot:Int, row:Int):Bool {
+		final source = preset();
+		final held = source == null ? null : source.patch;
+
+		if (held == null) {
+			session.says(Locale.SAID_NO_PRESET);
+			return true;
+		}
+
+		if (dial >= 0) {
+			session.does(new mdd.song.edit.SetDial(patch, dial, held.dial(dial)));
+			session.says(Locale.SAID_PRESET_AGAIN, Patch.DIAL_NAMES[dial], source.name);
+		} else {
+			session.does(new mdd.song.edit.SetOperator(patch, slot, row, held.reads(slot, row)));
+			session.says(Locale.SAID_PRESET_AGAIN, Patch.NAMES[row] + " " + (slot + 1), source.name);
+		}
+
+		invalidate();
+		return true;
+	}
+
 	public function dialAt(px:Float, py:Float):Int {
 		final top = dialsTop();
 		final tall = dialTall();
@@ -442,6 +482,16 @@ final class FmEditor extends Widget {
 
 		switch (event.kind) {
 			case Kind.PointerDown:
+				if (event.button == Pointer.Right) {
+					final turned = dialAt(event.x, event.y);
+					if (turned >= 0) return restores(patch, turned, -1, -1);
+
+					final field = fieldAt(event.x, event.y);
+					if (field < 0) return false;
+
+					return restores(patch, -1, Std.int(field / NAMES.length), field % NAMES.length);
+				}
+
 				if (event.button != Pointer.Left) return false;
 
 				final turned = dialAt(event.x, event.y);

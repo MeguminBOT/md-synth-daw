@@ -166,7 +166,7 @@ final class Presets extends Widget {
 
 		final part = wanted(instrument);
 
-		session.does(new mdd.song.edit.SetInstrument(part, which));
+		session.does(new mdd.song.edit.TakesPreset(part, which));
 		session.says(Locale.SAID_INSTRUMENT_LOADED,
 			Kits.named(session.song, part, which), part.name());
 	}
