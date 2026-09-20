@@ -386,6 +386,7 @@
   "presence.waiting": "Discord n'est pas lancé",
   "preset.already": "ces presets font déjà partie du projet",
   "preset.byBank": "Banque",
+  "preset.byLikeness": "Similaires",
   "preset.byName": "Nom",
   "preset.byTag": "Étiquette",
   "preset.collapseAll": "Tout replier",

@@ -187,6 +187,107 @@ final class Instrument {
 		for (tag in other.tags) tags.push(tag);
 	}
 
+	/**
+		The attenuation a step holds when it is silent, which is what a shorter envelope is read
+		as holding past its end.
+	**/
+	static inline final QUIET = 15;
+
+	/**
+		How far apart on average counts as nothing in common, as a fraction of one over that
+		distance. Two is half a range.
+	**/
+	static inline final SPREAD = 2.0;
+
+	/**
+		How alike two presets are, as a fraction of one.
+
+		Every parameter counts once, and each is worth how far apart the two are over how far
+		apart they could be, so a total level of 20 against 24 costs a thirty second of one field
+		rather than the whole of it. The wiring is the exception: two patches on different
+		algorithms are wired differently however close their operators read, so it counts as a
+		whole field either way.
+
+		Half a range apart on average scores nought rather than a half, because two patches drawn
+		at random sit a third of a range apart on every field and would otherwise all read as two
+		thirds alike. The number is shown as a percentage, so the range it uses has to be the one
+		a reader can tell things apart in.
+
+		A preset for another kind of part scores nought. What either is called, what it is tagged
+		with and what it draws are no part of it: this is what the two sound like, not what they
+		are filed as.
+
+		@param other The preset to compare against.
+		@return Nought where nothing matches, one where every parameter does.
+	**/
+	public function likeness(other:Instrument):Float {
+		if (!kind.fm() && !kind.square() && !kind.noise() && !kind.sampled()) return 0;
+		if (kind.fm() != other.kind.fm()) return 0;
+		if (kind.square() != other.kind.square()) return 0;
+		if (kind.noise() != other.kind.noise()) return 0;
+
+		var apart = 0.0;
+		var counted = 0;
+
+		final patch = this.patch;
+		final theirs = other.patch;
+
+		if (patch != null && theirs != null) {
+			apart += patch.algorithm == theirs.algorithm ? 0 : 1;
+			counted++;
+
+			for (which in 1...Patch.DIALS) {
+				final most = Patch.mostDial(which);
+				if (most <= 0) continue;
+
+				apart += Math.abs(patch.dial(which) - theirs.dial(which)) / most;
+				counted++;
+			}
+
+			for (slot in 0...Patch.SLOTS) {
+				for (row in 0...Patch.ROWS) {
+					final most = Patch.mostOf(row);
+					if (most <= 0) continue;
+
+					apart += Math.abs(patch.reads(slot, row) - theirs.reads(slot, row)) / most;
+					counted++;
+				}
+
+				apart += patch.tremolo[slot] == theirs.tremolo[slot] ? 0 : 1;
+				counted++;
+			}
+		}
+
+		final envelope = this.envelope;
+		final shape = other.envelope;
+
+		if (envelope != null && shape != null) {
+			final steps = envelope.steps.length;
+			final held = shape.steps.length;
+			final most = steps > held ? steps : held;
+
+			for (step in 0...most) {
+				final one = step < steps ? envelope.steps[step] : QUIET;
+				final two = step < held ? shape.steps[step] : QUIET;
+
+				apart += Math.abs(one - two) / QUIET;
+				counted++;
+			}
+
+			apart += envelope.loop == shape.loop ? 0 : 1;
+			apart += envelope.noise == shape.noise ? 0 : 1;
+			apart += Math.abs(envelope.speed - shape.speed)
+				/ Envelope.mostDial(Envelope.SPEED);
+			counted += 3;
+		}
+
+		if (counted == 0) return sample >= 0 && other.sample >= 0 && sample == other.sample
+			? 1 : 0;
+
+		final out = 1 - apart / counted * SPREAD;
+		return out < 0 ? 0 : (out > 1 ? 1 : out);
+	}
+
 	public function copy():Instrument {
 		final out = new Instrument(name, kind);
 		out.id = id;

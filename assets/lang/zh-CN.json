@@ -386,6 +386,7 @@
   "presence.waiting": "Discord 未运行",
   "preset.already": "这些预设已经是项目的一部分",
   "preset.byBank": "音色库",
+  "preset.byLikeness": "相似度",
   "preset.byName": "名称",
   "preset.byTag": "标签",
   "preset.collapseAll": "全部折叠",

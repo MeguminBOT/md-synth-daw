@@ -266,18 +266,26 @@ A VGM this application wrote therefore imports with its drums where they were.
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
-- **The bank every piece opens with is 97 presets**, twenty five built in and seventy two lifted
-  out of the finished pieces this program was written alongside: leads, basses, pads, plucks,
-  bells, organs and guitars for the FM channels, and hats, crashes, rides, sweeps and shakers for
-  the square and noise ones. Each is tagged with the piece it came out of, so a search finds
-  everything one track reached for.
-- Seven drum kits ship for the converter. One is thirteen hits synthesised rather than recorded:
-  a kick, a snare, three toms, closed, pedal and open hats, a clap, a rim, a crash, a ride and a
-  cowbell. One is ten hits in the manner of a TR-808. The other five came out of finished pieces:
-  a Fairy kit of three, a Frost kit of four, Trap and Sub kits of five, a Gabber kit of seven and
-  a Hardcore kit of fourteen that carries vocal stabs as well as drums. Every hit in the first two
-  sits on the note general MIDI puts that drum on, so a drum track imported from a MIDI lands on
-  the right hit with nothing to move.
+- **The bank every piece opens with is 64 presets**, lifted out of the finished pieces this
+  program was written alongside: 35 FM patches, 14 square envelopes and 15 noise ones. Leads,
+  basses, pads, plucks, bells, organs, guitars, brass and strings for the FM channels; hats,
+  crashes, rides, sweeps and shakers for the square and noise ones. Each is named for what it is
+  for and tagged with what it is good for, `Bass`, `Pad`, `Bright`, `Hard`, so a search on a use
+  finds everything that serves it.
+- Seven drum kits ship for the converter, named for the music they suit. One is thirteen hits
+  synthesised rather than recorded: a kick, a snare, three toms, closed, pedal and open hats, a
+  clap, a rim, a crash, a ride and a cowbell. **808** is ten hits in the manner of that machine.
+  **Ambient**, **Pop**, **Trap**, **Dubstep**, **Gabber** and **Hardcore** came out of finished
+  pieces, from three hits to fourteen, the last of them carrying vocal stabs as well as drums.
+  Every hit in the first two sits on the note general MIDI puts that drum on, so a drum track
+  imported from a MIDI lands on the right hit with nothing to move.
+- **Sort by how alike they are.** The browser's order button has a setting that puts the presets
+  closest to what the chosen channel is playing first, with how alike each one is beside it as a
+  percentage. Every parameter counts once and each is worth how far apart the two are over how far
+  apart they could be, so a total level four steps away costs almost nothing and another algorithm
+  costs a whole field. Half a range apart on average reads as nothing in common, because two
+  patches picked at random sit a third of a range apart and would otherwise all read as two thirds
+  alike.
 - **A kit is a bank, and that is why each one is separate.** A drum note picks its hit by note out
   of the bank the sample channel's own preset sits in, so two kicks on the same key cannot share a
   bank: whichever came first would be the only one you ever heard. That is the one thing banks

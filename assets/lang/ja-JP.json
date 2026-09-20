@@ -386,6 +386,7 @@
   "presence.waiting": "Discordが起動していません",
   "preset.already": "これらのプリセットはすでにプロジェクトに含まれています",
   "preset.byBank": "バンク",
+  "preset.byLikeness": "似ている順",
   "preset.byName": "名前",
   "preset.byTag": "タグ",
   "preset.collapseAll": "すべて折りたたむ",

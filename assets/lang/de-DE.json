@@ -386,6 +386,7 @@
   "presence.waiting": "Discord läuft nicht",
   "preset.already": "diese Presets gehören bereits zum Projekt",
   "preset.byBank": "Bank",
+  "preset.byLikeness": "Ähnlich",
   "preset.byName": "Name",
   "preset.byTag": "Schlagwort",
   "preset.collapseAll": "Alle einklappen",

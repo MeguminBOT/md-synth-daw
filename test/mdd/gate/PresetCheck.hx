@@ -65,6 +65,8 @@ class PresetCheck {
 		moved(where);
 		written(where);
 		poured(where);
+		opened();
+		likened();
 		echoed(where);
 		raised(where);
 		fitted(where);
@@ -348,6 +350,95 @@ class PresetCheck {
 		@param library A library.
 		@return The name of the first bank in it holding a converter preset with a sample.
 	**/
+	/**
+		A new piece opens with the bank that ships and every channel playing something out of it.
+	**/
+	static function opened():Void {
+		final song = mdd.app.Session.empty(Library.embedded());
+		final shown:Array<String> = [];
+
+		var silent = 0;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			final held = song.instrumentAt(song.rack[index]);
+
+			if (held == null) {
+				silent++;
+				continue;
+			}
+
+			if (!Library.kin(held.kind, part)) silent++;
+			if (index < 3 || part.noise()) shown.push(part.name() + " " + held.name);
+		}
+
+		says("a new piece opens with a channel playing on each part", silent == 0,
+			silent + " parts with nothing to play; " + shown.join(", "));
+
+		final bank = listed(song, Library.STARTERS).split(", ");
+
+		says("and the bank it opens with is the one that ships", bank.length == 64
+			&& bank.indexOf("Lead guitar") >= 0 && bank.indexOf("Bounce bass") < 0,
+			bank.length + " presets in " + Library.STARTERS
+			+ ", named for what they are for");
+	}
+
+	/**
+		How alike two presets are is what the browser sorts by and shows a percentage of, so one
+		parameter moved has to cost one parameter's worth rather than the whole score.
+	**/
+	static function likened():Void {
+		final one = patched("Lead");
+		final same = patched("Lead");
+
+		says("a preset is wholly like itself", one.likeness(same) == 1,
+			"a copy scores " + Math.round(one.likeness(same) * 100) + " per cent");
+
+		final nudged = patched("Lead");
+		nudged.patch.totalLevel[0] += 4;
+
+		final turned = patched("Lead");
+		turned.patch.algorithm = turned.patch.algorithm == 0 ? 1 : 0;
+
+		final nearly = Math.round(one.likeness(nudged) * 1000) / 10;
+		final wired = Math.round(one.likeness(turned) * 1000) / 10;
+
+		says("and one field moved costs one field", nearly > 99 && nearly < 100
+			&& wired < nearly && wired > 90,
+			"a total level four steps away scores " + nearly
+			+ " per cent and another algorithm " + wired);
+
+		final other = patched("Lead");
+
+		for (slot in 0...mdd.song.Patch.SLOTS) {
+			for (row in 0...mdd.song.Patch.ROWS) {
+				other.patch.writes(slot, row, mdd.song.Patch.mostOf(row)
+					- one.patch.reads(slot, row));
+			}
+		}
+
+		final apart = Math.round(one.likeness(other) * 100);
+
+		says("and a patch turned inside out scores low", apart < 40,
+			"every operator field at the far end of its range scores " + apart + " per cent");
+
+		final square = enveloped("Blip", Part.Psg1);
+
+		says("and another kind of part scores nought", one.likeness(square) == 0
+			&& square.likeness(one) == 0,
+			"an FM patch against a square envelope scores 0 per cent either way");
+
+		final other = enveloped("Blip", Part.Psg1);
+		other.envelope.steps[0] = 15 - other.envelope.steps[0];
+
+		final near = Math.round(square.likeness(other) * 1000) / 10;
+
+		says("and an envelope counts a step as a step", near > 80 && near < 95,
+			"one step of fifteen moved the whole way scores " + near + " per cent");
+
+		mdd.host.Paths.clear(Gate.root + "/export/gate/likened");
+	}
+
 	/**
 		A folder holding one patch under several names offers it once, and lifting a piece's
 		patches writes none the library already has.

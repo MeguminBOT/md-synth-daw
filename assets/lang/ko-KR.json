@@ -386,6 +386,7 @@
   "presence.waiting": "Discord가 실행 중이 아닙니다",
   "preset.already": "이 프리셋들은 이미 프로젝트에 있습니다",
   "preset.byBank": "뱅크",
+  "preset.byLikeness": "비슷한 순",
   "preset.byName": "이름",
   "preset.byTag": "태그",
   "preset.collapseAll": "모두 접기",

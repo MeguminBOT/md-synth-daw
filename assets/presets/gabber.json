@@ -1,21 +1,23 @@
 {
-  "name": "Gabber Kit",
+  "name": "Gabber",
   "presets": [
     {
-      "name": "Gabber kick",
+      "name": "Kick",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 36,
       "pcm": "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KykmJCEfHhwaGRcWFRQTEhEQEA8PDg0NDQwMDAsLCwoKCgoKCgoJCQkJCQkJCQkJCQkJCQkJCgoKCgoKCgsLCwwMDA0NDQ4ODxAQERITFBUWFxgaGx0fICIlJyksLzI1OTxAREhNUVZbYGVqcHV7gIaLkZaboKWqr7O3vMDDx8rN0NPV2Nrc3uDi4+Xm5+nq6+zs7e7v7/Dw8fHy8vPz8/P09PT09PX19fX19fX19fX19fX19fX19fT09PT08/Pz8/Ly8fHw8O/v7u3t7Ovq6ejn5eTi4d/d29nX1dLQzcrHw8C8uLSwrKejnpmUj4qFgHt2cWxnYl5ZVVBMSEVBPjo3NDIvLSooJiQiIR8eHBsaGRgXFhUUFBMTEhERERAQDw8PDw4ODg4ODQ0NDQ0NDQ0NDQ0NDQ0ODg4ODg8PDw8QEBERERISExQUFRYXGBkaGxwdHyAiIyUnKSstMDI1ODs+QURITE9TV1xgZGltcnd7gIWJjpKXm6CkqKywtLe7vsHEx8rMz9HT1dfZ29ze3+Hi4+Tl5ufo6enq6+vs7O3t7u7u7+/v7/Dw8PDw8PDw8PDw8PDw8PDw8O/v7+/u7u7t7ezs6+vq6uno5+fm5eTi4eDf3dza2NfV09HOzMnHxMG+u7i0sa2qpqKempaRjYmFgHx4c29rZ2NfW1dUUE1JRkNAPTs4NjMxLy0rKigmJSMiISAfHh0cGxoZGRgYFxcWFhUVFRQUFBMTExMTExMTExMTExMTExMTExQUFBQVFRYWFhcXGBkZGhscHB0eHyAiIyQmJykqLC4wMjQ2ODs9QENGSUxPUlZZXWFkaGxwdHh8gISIjJCTl5ufoqaprLCztrm8vsHDxsjKzM7Q0tTV19jZ29zd3t/g4eLj4+Tl5ebm5+fo6Ojp6enp6urq6urq6urq6urq6urp6enp6Ojo5+fm5uXl5OTj4uHg4N/e3Nva2dfW1dPR0M7MysjGw8G+vLm2tLGuqqekoZ2alpOPi4iEgH15dXJua2dkYF1aV1RRTktIRkNBPzw6ODY0MzEvLiwrKignJiUkIyIiISAfHx4eHR0cHBsbGxsaGhoaGhoaGhoaGhoaGhoaGxsbGxwcHR0dHh8fICEhIiMkJSYnKCkqLC0uMDEzNTc5Oj0/QUNGSEtNUFNWWFtfYmVoa29ydXl8gIOGio2QlJeanaCjpqmsr7G0trm7vb/Bw8XHycrMzs/Q0tPU1dbX2Nna29zc3d7e397f39/g4ODh4eHh4ODh4eHh4N/f39/f3t3d3dzc29rZ2djY19XU1NPS0c/OzczKycjGxcPAv727ube1tLKwrauopqShn52al5WSkI2LiIaDgX57eXd0cnBua2lnZmRiYF5dXFpZWFZVVFNSUlFQT05OTk1MTExMS0tLS0tLS0tLTEtMTExMTE1NTU5OT09QUFFRUVJSU1NUVVVWV1dXWFlaWltcXF1eX19gYWJiY2RlZWZnaGlqamtsbW5vcHFxcnN0dXZ2d3h5ent7fH19fn9/gICBgoKDg4OEhIWFhYWGhoaGh4eHh4eHh4eHh4eHh4eHh4eHhoaGhoaGhoWFhYWFhYWEhISEhISDg4ODg4OCgoKCgoKCgoGBgYGBgYGBgYGBgICAgICAgICAgICAgICAgA=="
     },
     {
-      "name": "Harsh snare",
+      "name": "Snare",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 38,
@@ -25,7 +27,8 @@
       "name": "Kick E",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 40,
@@ -35,7 +38,8 @@
       "name": "Kick F",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 41,
@@ -45,7 +49,8 @@
       "name": "Kick G",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 43,
@@ -55,7 +60,8 @@
       "name": "Kick A",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 45,
@@ -65,7 +71,8 @@
       "name": "Kick B",
       "icon": "drumkit",
       "tags": [
-        "Overclock Zone"
+        "Drums",
+        "Gabber"
       ],
       "rate": 16000,
       "root": 47,

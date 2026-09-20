@@ -328,8 +328,6 @@ final class Transcription {
 		close(last);
 		parted();
 		session();
-		mdd.song.Shipped.into(song);
-
 		settle();
 	}
 

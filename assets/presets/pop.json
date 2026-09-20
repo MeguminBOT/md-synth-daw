@@ -1,21 +1,23 @@
 {
-  "name": "Frost Kit",
+  "name": "Pop",
   "presets": [
     {
-      "name": "Frost kick",
+      "name": "Kick",
       "icon": "drumkit",
       "tags": [
-        "Scarlet Frost Zone"
+        "Drums",
+        "Pop"
       ],
       "rate": 16000,
       "root": 36,
       "pcm": "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RkRDQkFAPz49PDs6OTg4NzY1NTQzMzIyMTExMDAvLy8vLi4uLi4uLS0tLS0tLS4uLi4uLi8vLy8wMDAxMTIyMzM0NDU2Njc4OTk6Ozw9Pj9AQUJDREZHSElLTE1PUFJTVVZYWltdX2BiZGZoaWttb3FzdXd5e31+gIKEhoiKjI6QkpOVl5mbnJ6goaOlpqipq6yur7Cys7S1t7i5uru8vb6/wMHCwsPExcXGx8fIyMnJysrLy8vMzMzNzc3Nzc3Ozs7Ozs7Ozs7Nzc3Nzc3MzMzLy8vKysnJyMjHx8bFxcTDw8LBwL++vby7urm4t7a1tLOxsK+trKupqKalo6Kgn52bmpiWlZORkI6MiomHhYOBgH58enl3dXNycG5ta2loZmVjYWBeXVxaWVdWVVRSUVBPTkxLSklIR0ZGRURDQkJBQD8/Pj49PTw8Ozs6Ojo5OTk4ODg4ODc3Nzc3Nzc3Nzc3ODg4ODg5OTk5Ojo7Ozs8PD09Pj8/QEBBQkNDREVGR0hJSkpMTU5PUFFSU1VWV1haW1xeX2FiY2VmaGlrbG5wcXN0dnh5e3x+gIGDhYaIiYuNjpCRk5SWl5manJ2eoKGipKWmp6mqq6ytrq+wsbKztLW2t7e4ubq6u7y8vb6+v7/AwMDBwcLCwsLDw8PDxMTExMTExMTExMTExMTDw8PDw8LCwsHBwcDAv7++vr29vLu7urm5uLe2trW0s7KxsK+urayrqqmopqWko6Ggn56cm5qYl5WUk5GQjo2LioiHhoSDgYB+fXt6eHd1dHJxcG5ta2ppZ2ZlZGJhYF9dXFtaWVhXVlVUU1JRUE9PTk1MTEtKSklISEdHRkZFRURERENDQ0JCQkJBQUFBQUFBQUFBQUFBQUFBQUFCQkJCQ0NDRERFRUVGRkdHSElJSkpLTExNTk9QUFFSU1RVVldYWVpbXF1eX2BiY2RlZmhpamttbm9xcnN1dnd5ent9foCBgoSFhoiJioyNjo+RkpOVlpeYmZucnZ6foKGio6Slpqeoqaqrq6ytrq+vsLGxsrOztLS1tba2t7e4uLi5ubm5urq6urq7u7u7u7u7u7u7u7u6urq6urq5ubm4uLi3t7e2trW1tLSzs7KxsbCvr66trayrqqmoqKempaSjoqGgn56dnJuZmJeWlZSTkZCPjo2LiomIhoWEg4GAf358e3p5d3Z1dHNxcG9ubWxramhnZmVkY2JhYF9eXl1cW1pZWFhXVlZVVFNTUlJRUVBPT09OTk1NTExMTEtLS0tKSkpKSkpKSUlJSUlJSUpKSkpKSkpLS0tLTExMTU1NTk5PT1BQUVFSUlNUVFVWVldYWVlaW1xdXV5fYGFiY2RlZmdoaWprbG1ub3Bxc3R1dnd4eXp8fX5/gIGChIWGh4iJiouMjo+QkZKTlJWWl5iZmpucnJ2en6ChoqKjpKWlpqenqKmpqqqrq6ysra2urq+vr7CwsLGxsbGysrKysrKysrOzs7Ozs7KysrKysrKysbGxsbCwsK+vr66ura2srKurqqqpqainp6ampaSjo6KhoKCfnp2cm5uamZiXlpWUk5KRkI+OjYyLiomIh4aFhIOCgYB/fn17enl4d3Z1dHNycXBvb25tbGtqaWhnZ2ZlZGNjYmFgYF9eXl1cXFtaWllZWFhXV1ZWVlVVVVRUVFNTU1NSUlJSUlJSUVFRUVFRUVFRUVJSUlJSUlJTU1NTVFRUVVVVVlZXV1hYWFlZWltbXFxdXl5fYGBhYmJjZGVlZmdoaWlqa2xtbm9wcHFyc3R1dnd4eXp7fH1+f4CAgYKDhIWGh4iJiouMjY6Oj5CRkpOUlJWWl5iYmZqbm5ydnZ6fn6CgoaKio6OkpKWlpqamp6enqKioqampqqqqqqqqq6urq6urq6urq6urq6urq6uqqqqqqqqpqamoqKiop6empqalpaSko6OioqGhoKCfnp6dnJybmpqZmJiXlpWVlJOSkZGQj46NjIyLiomIh4aGhYSDgoGAf39+fXx7enl4eHd2dXRzc3JxcG9vbm1sbGtqamloaGdmZmVkZGNjYmJhYWBgX19eXl1dXVxcXFtbW1paWlpaWVlZWVlZWFhYWFhYWFhYWFhYWVlZWVlZWVpaWlpaW1tbXFxcXV1dXl5fX2BgYGFhYmNjZGRlZWZnZ2hoaWpqa2xtbW5vb3BxcnJzdHV1dnd4eXl6e3x9fX5/gIGBgoOEhYWGh4iJiYqLjIyNjo+PkJGRkpOTlJWVlpeXmJiZmZqbm5ycnZ2dnp6fn6CgoKGhoaKioqKjo6Ojo6SkpKSkpKSkpaWlpaWlpaWlpKSkpKSkpKSjo6Ojo6KioqGhoaCgoJ+fn56enZ2cnJybm5qZmZiYl5eWlpWUlJOSkpGQkI+Ojo2MjIuKiomIh4eGhYSEg4KBgYB/f359fHx7enl5eHd3dnV1dHNzcnFxcG9vbm5tbGxra2pqaWloaGdnZmZlZWRkZGNjY2JiYmFhYWFgYGBgX19fX19fX19eXl5eXl5eXl5eXl5fX19fX19fX2BgYGBhYWFhYmJiY2NjZGRkZWVlZmZnZ2hoaWlqamtrbGxtbW5vb3BwcXJyc3R0dXV2d3d4eXl6e3t8fX1+f3+AgYGCg4OEhYWGh4eIiYmKi4uMjI2Ojo+PkJCRkpKTk5SUlZWWlpeXl5iYmZmZmpqam5ubnJycnJ2dnZ2enp6enp6en5+fn5+fn5+fn5+fn5+fn5+fnp6enp6enp2dnZ2cnJycm5ubmpqamZmZmJiXl5eWlpWVlJSTk5KSkZGQkI+Pjo6NjYyLi4qKiYiIh4eGhYWEhIOCgoGAgH9/fn19fHx7enp5eXh3d3Z2dXV0c3NycnFxcHBvb25ubW1tbGxra2pqamlpaWhoaGdnZ2dmZmZmZWVlZWVkZGRkZGRkZGRkZGRjY2NjZGRkZGRkZGRkZGRlZWVlZWVmZmZmZ2dnZ2hoaGlpaWpqa2trbGxsbW1ubm9vcHBxcXJyc3N0dHV1dnZ3d3h4eXl6e3t8fH19fn9/gICBgYKDg4SEhYWGhoeHiImJioqLi4yMjY2Ojo6Pj5CQkZGSkpKTk5OUlJSVlZWWlpaXl5eXmJiYmJiZmZmZmZmampqampqampqampqampqampqampqampmZmZmZmZmYmJiYl5eXl5aWlpaVlZWUlJSTk5OSkpGRkZCQj4+Pjo2NjIuLioqJiYmIiIiHh4aGhYWEhIODgoKBgYCAf39+fn19fX18fHt7enp5eXh4eHh3d3Z2dnZ2dXV0dHR0dHRzc3Jyc3JycnJxcnJxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFycnJycnJycnJzc3Nzc3R0dHR0dHR1dXV1dXZ2dnZ2d3d3d3h4eHh5eXl5eXp6enp6e3t7e3x8fHx8fH19fX19fn5+fn5+f39/f39/gICAgICAgICAgICBgYGBgYGBgYGBgYGBgYGBgYGBgYKBgYKBgYKBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=="
     },
     {
-      "name": "Frost snare",
+      "name": "Snare",
       "icon": "drumkit",
       "tags": [
-        "Scarlet Frost Zone"
+        "Drums",
+        "Pop"
       ],
       "rate": 16000,
       "root": 38,
@@ -25,7 +27,8 @@
       "name": "Low tom",
       "icon": "drumkit",
       "tags": [
-        "Scarlet Frost Zone"
+        "Drums",
+        "Pop"
       ],
       "rate": 16000,
       "root": 41,
@@ -35,7 +38,8 @@
       "name": "High tom",
       "icon": "drumkit",
       "tags": [
-        "Scarlet Frost Zone"
+        "Drums",
+        "Pop"
       ],
       "rate": 16000,
       "root": 45,

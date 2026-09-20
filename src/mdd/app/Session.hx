@@ -294,7 +294,15 @@ final class Session {
 
 	static inline final TRACKS = 8;
 
-	static final DEFAULTS:Array<Int> = [0, 1, 4, 5, 8, 2, 16, 17, 18, 22];
+	/**
+		What a new piece starts each part playing, by name, taken out of the bank every piece
+		opens with. A name nothing there answers to falls back to the first preset the part can
+		play, so a bank edited before a build never leaves a channel silent.
+	**/
+	static final DEFAULTS:Array<String> = [
+		"Lead guitar", "Soft piano", "Punch bass", "Wide pad", "Bright brass", "Soft strings",
+		"Square stab", "Power square", "Echo pluck", "Closed hat"
+	];
 
 	/**
 		Builds a session over a new empty piece with the shipped instruments in it.
@@ -321,16 +329,13 @@ final class Session {
 	public static function empty(library:mdd.song.Library):Song {
 		final song = new Song("untitled", 96, 120);
 
-		mdd.song.Shipped.into(song);
-
 		library.into(song);
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			if (part.sampled()) continue;
 
-			final want = DEFAULTS[index];
-			song.rack[index] = want < song.instruments.length ? want : 0;
+			song.rack[index] = played(song, part, index < DEFAULTS.length ? DEFAULTS[index] : "");
 		}
 
 		final kit = song.instrument(new mdd.song.Instrument("Kick", Part.Dac));
@@ -359,6 +364,27 @@ final class Session {
 		for (index in 0...TRACKS) song.track(new mdd.song.Track("track " + (index + 1)));
 
 		return song;
+	}
+
+	/**
+		@param song The piece.
+		@param part The part to find a preset for.
+		@param want What it should play, by name.
+		@return That preset, by index, or the first one the part can play where the piece carries
+			nothing of that name.
+	**/
+	static function played(song:Song, part:Part, want:String):Int {
+		var first = -1;
+
+		for (index in 0...song.instruments.length) {
+			final held = song.instruments[index];
+			if (!mdd.song.Library.kin(held.kind, part)) continue;
+
+			if (held.name == want) return index;
+			if (first < 0) first = index;
+		}
+
+		return first < 0 ? 0 : first;
 	}
 
 	/**

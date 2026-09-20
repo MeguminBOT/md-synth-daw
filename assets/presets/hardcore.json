@@ -1,11 +1,12 @@
 {
-  "name": "Hardcore Kit",
+  "name": "Hardcore",
   "presets": [
     {
-      "name": "Hardcore kick",
+      "name": "Kick",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 35,
@@ -15,7 +16,8 @@
       "name": "Kick and clap",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 34,
@@ -25,7 +27,8 @@
       "name": "Gabber kick",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 36,
@@ -35,7 +38,8 @@
       "name": "French punch",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 40,
@@ -45,17 +49,19 @@
       "name": "French punch and clap",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 41,
       "pcm": "////////s+CyoaIBAQFBLikpOwQkMQEeATHS//3v2sL///LU///c4c6bnzkONQEBGCYBGQwBAQEBJAEXJnKYy+D/9f/9+P/////////////0/86yb4QoHyIaDAEBEgkCEAEBAhMWCwEBAQEGEwMBFyBIe6Cku9rc4+fz/PL/9v/8//vy+v37/Pf9////+fL58vfs6unn2ci1n4xpVDwtGxQRFw4QEhILCQEEBAECAgEfAQFKGEEBHD9TAR4BATABEylJSDcBAS4zVHZZZUFFR1eKnpy5ztzg//Lj///////0/+T/2dj//9b9///k+//4+vP+5v////Dn79j/9tr12vzp7OfT6trbyrO2p42DjImAiXNeYUhPREU3NCoVCBkEDhoFCBYgIQYRAQEBAQ4KCAEUGBQMDAgBEQ8OBAEGChAVGhIWGQ4OEA8SDhogJSUmMTc3ND9GUFZWYGdxeXd8hVFKYHfu+///9rGFw//N47Gp/8bz/83/5NzFwNH////////kvcj0//za5cHK/+f/+NDL6vf//+r/8Nnu7Pnfxsrtyrm7t7K5z9OijpGQgHh8iKOObmWChXdwTV1gOT9BKCoqLSQqHSEuOD8kHQ8bJCoXFSkWFiMeFg8fDg4WEg8RUW0jLwEZARcBRjsjOlddMUcaXR4BKQ00TkAILS5VNIJLgVo8ZH+Yvci/bnZrmMFirIHPfXiboLPzsdywobrs/8j1z+WcwP///9byr9O2nJzI///TqbT/r7H///+r+rjip9a7//2r9rCWvNuextvcw6239ZO8l5LLrcyzvWeboaCKV5NZM3SVapGfToIfJCxQh4WDVEYeYSAQL1YHS29uKhABATUJASRTWTEXTl9GR0syAQEBJDM4Qy9JcT1BJQJgEwsBJUFCiUlhTFmTc5OdPEB+Xoyrk0pFL0mme1yQbGjG1eDEel6picrOwdO3g3rSuJ+ajIPJk5e7lbee2f36/8n7/+Tb5ZKomNfQlJaVubXnrMLPrczTw/OpyO/Rm5HXgbKYkMrBa1Kdp4+00Mlpo7R2VUBEQJ27bp1wan46NHdGOX6InUpWWng8HG5WV3gdPT8ZSBgdcWM4Ziw/QG9UGURadzM9TzhlI0sjD1pCUnw+YXeKV2h/ZVh2d4mbQWcvVGuVfT8zQoqIr5CDcm2rw8BpeIB7UWe2r420vZ6lrXi7psd5cml3uMnf1pxwqoKAxZC7nn2LouDq08TK4u6jfp7SvHh5tbSTfaSFgNHWnrd6tb2FZbO8tX+Rp2atpMKwuFiDp2NJkJZUgG97ZTQ6UUlLgVSHllt5lnx4lGM3LCNbXXd+RWMzQihaVDJZO3VJP3yUoaNojZF9ZUIrSChWUoJSPytvQ4eliHRdj0VGaT8zNjV0c3BaVWmjkoxmuMeqxXadjrKwcFeZo56Er4qqmpSZoJiQa6alfmOhsbt8n660xaZ+tq13aXyYwaKnpaGPnHVofWucrsTWvp3Kx86+gVpRjmJmnax1uYFobIl2l2xzo7GuaamgbHdhd15KlHpliadwiVNETHiXsKCPTXt5mXBLL05xjnN6QHxAT0RFOj5Cal9ncI6mclaMjF1Wc3lLh5eWUYuFlXJ0eXFAc19gXnibhVtDVFNESl5ysYm3gWGka4GjprGIj6N2WY95iYRnlprAx8t8g62oY1pRfmaWmoJranSRtc3Sp6yfhK3IpWtGSlxYgqatqJmMl7FtWJJ6j3p3X4aMsJp+cpCJfJyglZxWYIBeTENdb36DenGIgZyreIios7ZrT3SKZ0xXeWx3lW+ObHBfj32Re2qvl4JkV1eeop17r72NqLGysqVUhUpIX4d9mXRXlIZ9f1N9ipWajnp9g4Ghqp50TlNQkIZcYZSwf4Cak5RbU2l+k2+CfpiafZymqWVKf4iMmYieXENsnZh2VEiAZ46osXmCl3RclmZ8nXeelquUiHiQYUt2mmVuZW1eVWefsXObiHlkkHWUpoxalG6NoaeRWlBjgoyGi42oZ1FpVJNvkK+VrrBrgm1ii5txVGtyWVRVbZ+coXSMqoCben58k6VsZ3uKf2VghXBeVZSueGl7Z6aGboelnY11ZnKAem2LdJ6TbI2uuLKCg5tvbHVul6Shf4VrZE1gU497iI5fi3iZp4x4jYl8folafXpmX4WBbVyUqambfJRyd4l0kneQaWp4kWeCcn2Kn25cdXJ+oqOZlKCQkYJyaWWRlIV6VXlhUWpwl4uhalp4YHGEe2mlo4mqonyghG5wf394cWWEYZKel5NzcJGWg3BhV3CPhKCNZYCjbGlmhpujpG+RlIpfZF5peW2coY+mhXh4hYeTg2NngJZ0j598l4SQiHFVSltwkYF3iZuocW6Fmm5vXGqPfIWCoIiacV2Sb5OFcH1jXnWJlKyUo4tslp+laVFhWXKcjY5xW4yNjoaJhXGTh4iWdnJ5hZl9dX6PeXyWa2KPiJqjdWiEiIKAjYqWeYuHcX5zi45pT2p8mHxpiolubHSJfnKIc3lueZCXo36GlWRYV1xnfKWEbpKjpod1iWaEcoqEkJWFk5N2foZxbF5xfmdonI2hjJSTfJSZboRiY3SAcnybgZeXhmKFi5pteIKDiG5qYYqgdnSNk5mjiGiJb4FjeYCboHtncZN9alVYY4preGiZj3Jke3ugoKV1m6GVlp2MmXpweoVwdVl5hX1wimWHipJqkJ97kJaXcV92YGt8cYVph52neF9abXZxiaOflY5wfX1rhoeFbXyUfG6Tm6GekoRxVWl8lGyOZFpga4qEnopokJx9bpZ6eoeZn4pmaWJkXGRmkKGBoZhxlnqNdZSViHOBd3RwjIaViZWAaoJ0i3N1aY9xa4dslZegdn+QgmZucoGUdmp1d4RtfGp6jHZ1gZmon32Yi5R2kX2SenRqj4Voh4eOeGVhX3Z4gJCPmqN2fmtgfmtugnd/eGyHeIKGpKqsnYCAZGR8lIWTjJV8cZBwYGRpk4eJdXp+fJp7iXZykZGFdI50j5GaboSVmYiRhH1mgI1vcGRkYXp3cmyRiZimgY2YgHBuf2eEgX51bGFhgoRxg5WYmaKHgox5iYSRe41tjZGHZ4d3d4B7ZoqJm5uPj3JgZ4tybXhwjXCSdHFzi3qTi3JjhndqlJudnHprbWFegZ6Th518lYGAgpWViIqKioWHiHZdX2hujo95aYd1eo+RdX6Kco6Ji2mMb4eDdYF2bnOIim1si5+jpJqBblp1fHZpa3uUh3J4lotukZh2jIyLb2ZzgHR1aG2SfWyJkHaMdnZ+enh3mXyKiYx5dWqFeo94i596cot+jZh/gXmJiHeKcG1tcn50gYuBk6GLgZSAfXCNj3p5fIqPd2x4cnpqdI97a35xkZCeeX+UmXJwcWt/kJyJfm2IlX6Hf3yGipePbmpranuJkpuKiH1senBqhnOQlYN5hYV5f42GgYiLhXCFcYlvg5JxdGl2bmmLh4pxhHSTnHt9fnR6e3uQhomTd4+Sk5OHZ2x6dYeSiHaAdn9vgJRye3CFlXduiXyKkn5semtuj3NqfHR3gZWRiH2WeHFziJORfoR4eXN4i5ePhHJ7bn+PlZGSlHh0b3yHdIKNiHxuhXSAiHp4e3aGiIp8f5B0fYGQfHptboaWhoxweGmLlI+VdIuGf4lucIBqcYWUh3hocWqCfIWQk4p8jZabmXNwenZnbn2Hknx+bIuLend0aWaOenuUe4OFc3yAiIx/fJWXkZWJgY1uaoGLe2plZ4ySl4CHeYGSl4OGjo14c2JxfGyGe2tqhIaHi3drhHqUkHlwhIx8gJWXdW2BgXR3gHF5hHNvg5GfmY+Ih4p9dImKhn+FhXltZHSFkIiHg4uDgXuAi4yNf4OGaWtpcXWIfnpxaoKBiX6Din+NdYCHeXJ6dY+BeG9zh36DeHuNjpacmoaLhXt2g3F4eG58gnV7hH2LfYOLi4F/iIiLeXp6dIZ+fHl+eoOKjI2NdXqCeXODe4qBeXV2eH52gnt7fHuDhH16eXqIf4qSjYh9ioF3hYl7dYKCjIiMeoN6f32Df3Z6doB6eXiHfn+DhYGJhomHiYeHhX5+e3V2fX58gIOBg4eDfXt3goaFh4WGgHp7gYB6eXl7g4SDhYB8f3yAgX9/gIB+g3+CgYJ/g4SDgH2Agn+CgYKBgIGBgICAfn18fX6BgoKBgH+Af36AgYF/gIF/gYGAgICAgIB/gICAf4CAgIGBgICAgH+AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA="
     },
     {
-      "name": "Hard snare",
+      "name": "Snare",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 37,
@@ -65,7 +71,8 @@
       "name": "Kick F sharp",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 42,
@@ -75,7 +82,8 @@
       "name": "Kick G",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 43,
@@ -85,7 +93,8 @@
       "name": "Kick A",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 45,
@@ -95,7 +104,8 @@
       "name": "Kick B",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Drums",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 47,
@@ -105,7 +115,8 @@
       "name": "Ah",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Vocal",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 60,
@@ -115,7 +126,8 @@
       "name": "Ee",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Vocal",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 61,
@@ -125,7 +137,8 @@
       "name": "Oh",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Vocal",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 62,
@@ -135,7 +148,8 @@
       "name": "Ah high",
       "icon": "drumkit",
       "tags": [
-        "Glitch Candy Zone"
+        "Vocal",
+        "Hardcore"
       ],
       "rate": 16000,
       "root": 63,

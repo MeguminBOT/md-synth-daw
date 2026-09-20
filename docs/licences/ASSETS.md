@@ -198,9 +198,9 @@ MIDI lands on the right hit with nothing to move.
 
 ## The 808 kit
 
-`assets/presets/retribution.json` is this repository's author's own work rather than anybody
-else's: ten hits built in the manner of a TR-808 and converted here, so it is covered by this
-repository's own licence like every other file in it. Mono, eight bit unsigned, 11025 Hz, the
+`assets/presets/808.json` is this repository's author's own work rather than anybody else's: ten
+hits built in the manner of a TR-808 and converted here, so it is covered by this repository's own
+licence like every other file in it. Mono, eight bit unsigned, 11025 Hz, the
 same shape the synthesised kit uses, and each hit sits where general MIDI puts that drum.
 
 | what | root | bytes |
@@ -225,21 +225,23 @@ already ships, and writes it as a bank document. A preset that was already in th
 presets folder was left out, because a folder is where anything that arrived from elsewhere
 arrives, and what ships has to be what was made here.
 
-`default.json` adds seventy two presets to the twenty five the application builds in code, so the
-bank every piece opens with holds ninety seven. Thirty seven are FM patches, sixteen are square
-envelopes and nineteen are noise envelopes. None of them is a recording.
+`default.json` is the whole of the bank every piece opens with: sixty four presets, thirty five
+FM patches, fourteen square envelopes and fifteen noise envelopes. None of them is a recording.
+Each is named for what it is for rather than for the piece it came out of, and tagged with what it
+is good for. Nothing is built in code any more.
 
 The five kits are recordings, mono, eight bit unsigned, at the rate each was converted at. Each
-sits in a bank of its own because a drum note picks its hit by note out of one bank.
+sits in a bank of its own because a drum note picks its hit by note out of one bank, and each is
+named for the music it suits.
 
 | kit | hits | bytes | roots |
 | --- | --- | --- | --- |
-| Fairy Kit | 3 | 12483 | 36, 41, 45 |
-| Trap Kit | 5 | 16161 | 36 to 40 |
-| Frost Kit | 4 | 16965 | 36, 38, 41, 45 |
-| Gabber Kit | 7 | 20172 | 36, 38, 40, 41, 43, 45, 47 |
-| Sub Kit | 5 | 36804 | 35 to 39 |
-| Hardcore Kit | 14 | 36825 | 34 to 47, and 60 to 63 for four vocal stabs |
+| Ambient | 3 | 12483 | 36, 41, 45 |
+| Trap | 5 | 16161 | 36 to 40 |
+| Pop | 4 | 16965 | 36, 38, 41, 45 |
+| Gabber | 7 | 20172 | 36, 38, 40, 41, 43, 45, 47 |
+| Dubstep | 5 | 36804 | 35 to 39 |
+| Hardcore | 14 | 36825 | 34 to 47, and 60 to 63 for four vocal stabs |
 
 Together 139410 bytes, and the largest of them 36825, which is 14.0 per cent of the 262144 the
 Mega Drive profile allows for samples. None of it is spent until a note reaches for a hit.

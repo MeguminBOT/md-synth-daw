@@ -1,11 +1,12 @@
 {
-  "name": "Trap Kit",
+  "name": "Trap",
   "presets": [
     {
-      "name": "Trap kick",
+      "name": "Kick",
       "icon": "drumkit",
       "tags": [
-        "Night Drive"
+        "Drums",
+        "Trap"
       ],
       "rate": 16000,
       "root": 36,
@@ -15,17 +16,19 @@
       "name": "Rim",
       "icon": "drumkit",
       "tags": [
-        "Night Drive"
+        "Drums",
+        "Trap"
       ],
       "rate": 16000,
       "root": 37,
       "pcm": "u9T1X1wKRW+I8v/ElFABSHTC4OpgOQEejqzh9H42PwdVh9ztyVlBRVRaytqnkVxBOHW1x7vBZ0A0V4m51c2HYStQcq26xph3PSpqjLXFt5JOLTtwpL7Ajmo/M1iTvLuvhUg9XHusxLyBZ0w9a6O9splxREVVe6PBs4lVQFFvpLK8lWdLTGqLsryielROU36iuKuUZ1JMapSyrJd8WktgfJ6xq4hgUVZzkqyvl3JXU2GIpLCghWBSWXWWqKSOb1lUbYihqJp6Y1hhfZqnoYprWF1ykKOnk3lfV2WDm6SbhmpaYXeSo6CPdWBebIScpJh/aV9mepKhn4tyYWFxiJufk3xoYGp/lZ+ah3FiZHWLm52OeGhjbYOWnZaCbWNoeo6amot3Z2VyhpebkX9tZWx9kJqWh3VoaXWIlpmNfG1ob4CRmJODc2lreYqWlop6bGlygpGXkIFyam58i5WTiHhtbHWFkZWNfnFscX6MlJGFdm1ueIeRk4p8cW10gY2TjoJ1bnB7iJGRh3pxb3aDjpGMgHRvc32JkI6FeXFxeYSOkIl+dHB1f4qPjIN4cXN7ho2Oh310cneBi46KgXdydH2HjY2Fe3RzeYOLjYmAd3N2foiNi4N6dHR7hIuMh352dHiAiIyJgnl1dnyFi4uFfXZ1eYGIi4iAeXV3foaKiYR8d3Z7gomKhn95dnl/hoqIgnt3d3yDiImFfnh3eoCGiYeBe3d4foSIiIR9eHh7gYeIhoB6eHp/hYiHgn15eXyCh4iFf3p4e4CFiIaBfHl5fYOHh4R+enl8gYWHhYF8eXp+g4aGg356en2BhYaEgHt6e3+EhoWCfXp6fYKFhoN/e3p8gISGhYF9ent+goWFg357e32BhIWEgH17fH+DhYWCfnt7foGEhYOAfHt8gIOFhIF+e3x+goSEgn98e32Ag4SDgX18fH+ChISCf3x8foGDhIOAfXx9f4KEg4F+fHx+gYOEgoB9fH2AgoSDgX59fX+Bg4OCf319foCDg4OAfn19f4KDg4F/fX1+gYODgoB+fX6AgoODgX99fX+Bg4OCgH59foCCg4KAfn1+f4GDg4F/fn1+gIKDgoB+fX5/gYKCgX9+fn+BgoKCgH5+foCBgoKBf35+f4GCgoGAfn5/gIKCgoB/fn5/gYKCgX9+fn+AgoKBgH9+foCBgoKBf35+f4GCgoGAf35/gIGCgYB/fn5/gYKCgYB/fn+AgYKBgH9+f4CBgoGBf39+f4CBgoGAf35/gIGBgYB/f39/gIGBgYB/f3+A"
     },
     {
-      "name": "Clap snare",
+      "name": "Snare",
       "icon": "drumkit",
       "tags": [
-        "Night Drive"
+        "Drums",
+        "Trap"
       ],
       "rate": 16000,
       "root": 38,
@@ -35,7 +38,8 @@
       "name": "Clap",
       "icon": "drumkit",
       "tags": [
-        "Night Drive"
+        "Drums",
+        "Trap"
       ],
       "rate": 16000,
       "root": 39,
@@ -45,7 +49,8 @@
       "name": "Snap",
       "icon": "drumkit",
       "tags": [
-        "Night Drive"
+        "Drums",
+        "Trap"
       ],
       "rate": 16000,
       "root": 40,

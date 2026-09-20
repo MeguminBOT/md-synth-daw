@@ -1,11 +1,12 @@
 {
-  "name": "Fairy Kit",
+  "name": "Ambient",
   "presets": [
     {
-      "name": "Fairy kick",
+      "name": "Kick",
       "icon": "drumkit",
       "tags": [
-        "Ice Fairy"
+        "Drums",
+        "Ambient"
       ],
       "rate": 16000,
       "root": 36,
@@ -15,7 +16,8 @@
       "name": "Low tom",
       "icon": "drumkit",
       "tags": [
-        "Ice Fairy"
+        "Drums",
+        "Ambient"
       ],
       "rate": 16000,
       "root": 41,
@@ -25,7 +27,8 @@
       "name": "High tom",
       "icon": "drumkit",
       "tags": [
-        "Ice Fairy"
+        "Drums",
+        "Ambient"
       ],
       "rate": 16000,
       "root": 45,

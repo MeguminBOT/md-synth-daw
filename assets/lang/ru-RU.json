@@ -386,6 +386,7 @@
   "presence.waiting": "Discord не запущен",
   "preset.already": "эти пресеты уже входят в проект",
   "preset.byBank": "Банк",
+  "preset.byLikeness": "Похожие",
   "preset.byName": "Имя",
   "preset.byTag": "Метка",
   "preset.collapseAll": "Свернуть всё",

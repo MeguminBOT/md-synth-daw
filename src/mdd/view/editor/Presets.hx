@@ -58,12 +58,18 @@ final class Presets extends Widget {
 	public static inline final BY_FAVOURITE = 3;
 
 	/**
+		Order: how alike each preset is to the one the chosen part is playing, closest first,
+		with how alike beside each row.
+	**/
+	public static inline final BY_LIKENESS = 4;
+
+	/**
 		How many orders there are.
 	**/
-	public static inline final ORDERS = 4;
+	public static inline final ORDERS = 5;
 
 	static final ORDER_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
-		Locale.PRESET_BY_TAG, Locale.PRESET_FAVOURITES];
+		Locale.PRESET_BY_TAG, Locale.PRESET_FAVOURITES, Locale.PRESET_BY_LIKENESS];
 
 	/**
 		Which order is chosen.
@@ -651,6 +657,18 @@ final class Presets extends Widget {
 		return true;
 	}
 
+	/**
+		@param index A preset, by index into the piece.
+		@return How alike it is to what the chosen part is playing, as a fraction of one, or
+			nought where the part plays nothing.
+	**/
+	function likeness(index:Int):Float {
+		final playing = session.song.instrumentAt(session.song.rack[session.part.index()]);
+		final held = session.song.instrumentAt(index);
+
+		return playing == null || held == null ? 0 : held.likeness(playing);
+	}
+
 	function tagged(index:Int):String {
 		final held = session.song.instrumentAt(index);
 		if (held == null || held.tags.length == 0) return "~";
@@ -665,6 +683,22 @@ final class Presets extends Widget {
 
 	function ordered(inside:Array<Int>):Void {
 		if (order == BY_BANK) return;
+
+		if (order == BY_LIKENESS) {
+			inside.sort(function(one:Int, two:Int):Int {
+				final first = likeness(one);
+				final second = likeness(two);
+
+				if (first != second) return first > second ? -1 : 1;
+
+				final held = called(one);
+				final other = called(two);
+
+				return held < other ? -1 : (held > other ? 1 : 0);
+			});
+
+			return;
+		}
 
 		if (order == BY_NAME || order == BY_FAVOURITE) {
 			inside.sort(function(one:Int, two:Int):Int {
@@ -785,7 +819,9 @@ final class Presets extends Widget {
 					child.icon = instrument.icon;
 					child.mark = starring != null && starring.favours(instrument.id)
 						? Icon.STAR : -1;
-					child.note = briefly(instrument.tags);
+					child.note = order == BY_LIKENESS
+						? Math.round(likeness(index) * 100) + " %"
+						: briefly(instrument.tags);
 					child.says = instrument.tags.length == 0 ? ""
 						: instrument.tags.join(", ");
 
