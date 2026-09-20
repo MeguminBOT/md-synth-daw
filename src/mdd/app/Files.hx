@@ -1638,8 +1638,12 @@ final class Files {
 	}
 
 	/**
-		Writes every patch the piece carries into the presets folder as a patch file,
-		skipping any already there, and puts each one in the library.
+		Writes every patch the piece carries into the presets folder, skipping any already there,
+		and puts each one in the library.
+
+		Each one is written the way a preset saved from the browser is, so the name, the icon, the
+		tags and the two LFO depths come with it: a patch file carries none of those, and a lift
+		that wrote one would be handing back less than it took.
 
 		@return How many were written.
 	**/
@@ -1651,56 +1655,74 @@ final class Files {
 
 		for (index in 0...song.instruments.length) {
 			final held = song.instruments[index];
-
 			final patch = held.patch;
+
 			if (patch == null || held.sample >= 0) continue;
-
-			final named = where + "/" + safely(held.name) + ".tfi";
-			if (FileSystem.exists(named) && sameTfi(named, patch)) continue;
-
-			if (FileSystem.exists(named)) {
-				var at = 2;
-				var tried = where + "/" + safely(held.name) + " " + at + ".tfi";
-
-				while (FileSystem.exists(tried) && !sameTfi(tried, patch)) {
-					at++;
-					tried = where + "/" + safely(held.name) + " " + at + ".tfi";
-				}
-
-				if (FileSystem.exists(tried)) continue;
-				sys.io.File.saveBytes(tried, mdd.format.Tfi.write(patch));
-				lifted(held, tried);
-			} else {
-				sys.io.File.saveBytes(named, mdd.format.Tfi.write(patch));
-				lifted(held, named);
-			}
-
-			many++;
+			if (lifts(where, held, patch)) many++;
 		}
 
 		return many;
 	}
 
 	/**
-		Puts a patch just written into the presets folder in the library, under the name
-		its file was given.
+		Writes one patch out into a file nothing else in the folder is called, and puts it in the
+		library. The preset keeps its own name whatever the file is called, because a record
+		carries the name and a file name is only where it sits, so lifting the same piece twice
+		finds what it wrote the first time and writes nothing.
 
+		@param where The folder to write into.
 		@param held The instrument it came from.
-		@param where The file.
+		@param patch Its patch.
+		@return Whether anything was written.
 	**/
-	function lifted(held:mdd.song.Instrument, where:String):Void {
-		if (library == null || savedInto == "") return;
+	function lifts(where:String, held:mdd.song.Instrument, patch:mdd.song.Patch):Bool {
+		final made = new mdd.song.Instrument(held.name, mdd.song.Part.Fm1);
 
-		final made = new mdd.song.Instrument(bare(where), mdd.song.Part.Fm1);
-		final patch = held.patch;
-
-		made.patch = patch == null ? null : patch.copy();
+		made.patch = patch.copy();
 		made.icon = held.icon;
-		made.identifies(null);
 
 		for (tag in held.tags) made.tags.push(tag);
 
-		library.adds(savedInto, made, null, true);
+		made.identifies(null);
+
+		final base = where + "/" + safely(made.name);
+
+		var named = base + mdd.song.Library.RECORDS;
+		var at = 2;
+
+		while (FileSystem.exists(named)) {
+			if (samePreset(named, made)) return false;
+
+			named = base + " " + at + mdd.song.Library.RECORDS;
+			at++;
+		}
+
+		try {
+			Paths.make(where);
+			sys.io.File.saveBytes(named, mdd.format.Preset.write("", [made], [null]));
+		} catch (e:Dynamic) {
+			return false;
+		}
+
+		if (library != null && savedInto != "") library.adds(savedInto, made, null, true);
+
+		return true;
+	}
+
+	/**
+		@param where A preset file.
+		@param made A preset.
+		@return Whether the file already holds exactly that preset, whatever it calls the file.
+	**/
+	static function samePreset(where:String, made:mdd.song.Instrument):Bool {
+		try {
+			final held = mdd.format.Preset.read(sys.io.File.getBytes(where));
+			if (held == null) return false;
+
+			for (one in held.presets) if (one.identifies(null) == made.id) return true;
+		} catch (e:Dynamic) {}
+
+		return false;
 	}
 
 	/**

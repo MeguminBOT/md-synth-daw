@@ -65,6 +65,7 @@ class PresetCheck {
 		moved(where);
 		written(where);
 		poured(where);
+		raised(where);
 		keptBack(where);
 		familied(where);
 		sortedIn(where);
@@ -1028,6 +1029,56 @@ class PresetCheck {
 		says("and it is the same preset it was written from", home != null
 			&& home.name == "Glass Lead" && mdd.format.Tfi.same(lead.patch, home.patch),
 			"identity " + lead.id + " on both sides");
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		Lifting a piece's patches into the presets folder keeps everything a patch file cannot,
+		and lifting the same piece again writes nothing.
+	**/
+	static function raised(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final song = new Song();
+		final files = new mdd.app.Files(new mdd.app.Session(song));
+		final library = new Library();
+
+		files.presetsAt = where;
+		files.savedInto = SAVED;
+		files.library = library;
+
+		final one = patched("Glass Lead");
+		final two = patched("Glass Lead");
+		two.patch.feedback = 1;
+
+		song.instrument(one);
+		song.instrument(two);
+
+		final first = files.liftsPatches();
+		final again = files.liftsPatches();
+
+		final fresh = new Library();
+		fresh.within(where, SAVED);
+
+		final at = fresh.names.indexOf(SAVED);
+		final held:Array<Instrument> = at < 0 ? [] : fresh.instruments[at];
+		final shown:Array<String> = [];
+
+		for (kept in held) {
+			shown.push(kept.name + " " + kept.patch.feedback + " " + kept.patch.ams + "/"
+				+ kept.patch.pms + " " + kept.tags.join("+"));
+		}
+
+		says("lifting keeps what a patch file cannot", first == 2 && shown.join(", ")
+			== "Glass Lead 1 2/5 Lead+Bright, Glass Lead 5 2/5 Lead+Bright"
+			&& held.length == 2 && held[0].icon == one.icon,
+			first + " written, read back as " + shown.join(", ") + ", both with icon "
+			+ (held.length == 0 ? -1 : held[0].icon));
+
+		says("and lifting the same piece again writes nothing", again == 0,
+			again + " written the second time");
 
 		mdd.host.Paths.clear(where);
 	}
