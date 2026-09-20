@@ -145,6 +145,7 @@ class Gate {
 			case "declick": DeclickCheck.run(args);
 			case "project": ProjectCheck.run(args);
 			case "bank": Lifted.run(args);
+			case "tidy": Tidied.run(args);
 			case "weigh": WeighCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "swap": SwapCheck.run(args);
