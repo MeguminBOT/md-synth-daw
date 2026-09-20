@@ -971,6 +971,28 @@ class Run {
 		@param root The repository.
 		@param project What the build file says.
 	**/
+	/**
+		@param from The folder the documents are in.
+		@param into The folder the records are in.
+		@param suffix What a record file is called.
+		@return The records whose document is gone, which would otherwise keep shipping after the
+			document that made them was deleted.
+	**/
+	static function swept(from:String, into:String, suffix:String):Array<String> {
+		final out:Array<String> = [];
+
+		if (!FileSystem.exists(into)) return out;
+
+		for (name in FileSystem.readDirectory(into)) {
+			if (!StringTools.endsWith(name.toLowerCase(), suffix)) continue;
+
+			final said = name.substr(0, name.length - suffix.length) + ".json";
+			if (!FileSystem.exists(from + "/" + said)) out.push(name);
+		}
+
+		return out;
+	}
+
 	static function banked(root:String, project:Project):Void {
 		final from = root + "/assets/presets";
 		final into = root + "/export/banks";
@@ -993,6 +1015,11 @@ class Run {
 					break;
 				}
 			}
+		}
+
+		for (name in swept(from, into, suffix)) {
+			stale = true;
+			FileSystem.deleteFile(into + "/" + name);
 		}
 
 		if (!stale) return;
