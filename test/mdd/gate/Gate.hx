@@ -1,7 +1,7 @@
 package mdd.gate;
 
 class Gate {
-	static final PROGRAMS:Array<String> = ["window", "paint", "lang", "ui", "psg", "chip", "audio", "stream", "spine", "automation", "fuzz", "check", "vgm", "xgm", "mix", "arrange", "tier", "midi", "console", "flac", "json", "type", "busy", "stems", "mangle", "presence", "shell", "update", "carry", "keys", "scope", "video", "mute", "notation", "presets", "declick"];
+	static final PROGRAMS:Array<String> = ["window", "paint", "lang", "ui", "psg", "chip", "audio", "stream", "spine", "automation", "fuzz", "check", "vgm", "xgm", "mix", "arrange", "tier", "midi", "console", "flac", "json", "type", "busy", "stems", "mangle", "presence", "shell", "update", "carry", "keys", "scope", "video", "mute", "notation", "presets", "declick", "project"];
 
 	public static var root(default, null):String = ".";
 
@@ -143,6 +143,7 @@ class Gate {
 			case "notation": NotationCheck.run(args);
 			case "presets": PresetCheck.run(args);
 			case "declick": DeclickCheck.run(args);
+			case "project": ProjectCheck.run(args);
 			case "weigh": WeighCheck.run(args);
 			case "shot": ShotCheck.run(args);
 			case "swap": SwapCheck.run(args);

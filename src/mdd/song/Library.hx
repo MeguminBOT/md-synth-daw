@@ -330,6 +330,21 @@ final class Library {
 	}
 
 	/**
+		@param instrument A preset.
+		@return Whether this library holds one of that name for that kind of part, which is what
+			says it can be given back to a piece that leaves it out.
+	**/
+	public function knows(instrument:Instrument):Bool {
+		for (bank in instruments) {
+			for (held in bank) {
+				if (held.name == instrument.name && kin(held.kind, instrument.kind)) return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 		@param one A preset.
 		@param two Another.
 		@return Whether they are the same preset rather than two that read alike: their identities
@@ -413,6 +428,10 @@ final class Library {
 		have a preset of that name for, so what was saved while another piece was open
 		reaches this one too.
 
+		A bank made here is the library's rather than the piece's, so a file written afterwards
+		leaves it out and the library puts it back at the next opening. One the piece already had
+		is left as the piece had it, which is what keeps a bank the reader asked to keep.
+
 		@param song The song to copy into.
 		@return How many instruments were added.
 	**/
@@ -423,7 +442,7 @@ final class Library {
 			final carried = carries(song, names[at]);
 			if (carried && !owned[at]) continue;
 
-			final bank = song.banked(names[at]);
+			final bank = song.banked(names[at], false);
 			final held = instruments[at];
 
 			for (which in 0...held.length) {
@@ -446,8 +465,6 @@ final class Library {
 
 				many++;
 			}
-
-			bank.kept = true;
 		}
 
 		return many;
@@ -458,6 +475,56 @@ final class Library {
 		every new piece begins with.
 	**/
 	public static inline final STARTERS = "Default";
+
+	/**
+		What a kit is called where nothing else names it.
+	**/
+	public static inline final KIT = "Kit";
+
+	/**
+		@param song The piece.
+		@param library The library to ask, which is this one or the starting set.
+		@param hits A kit, by index into the piece.
+		@return The bank that offers the whole kit, or an empty string where it offers none of it
+			or only part of it. A kit is a unit: filing one into a bank that holds a different kit
+			puts two hits on the same key, and the one that sounds is whichever comes first.
+	**/
+	static function whole(song:Song, library:Library, hits:Array<Int>):String {
+		var named = "";
+
+		for (index in hits) {
+			final held = song.instrumentAt(index);
+			if (held == null) continue;
+
+			final want = library.offering(song, held);
+			if (want == "") return "";
+
+			if (named == "") named = want;
+			else if (named != want) return "";
+		}
+
+		return named;
+	}
+
+	/**
+		Works out what to call a kit no library offers.
+
+		A kit cannot share a bank with anything else, because a drum note picks its hit by note
+		out of the bank the rack's converter preset sits in: put a stray hit in there and it
+		sounds on whatever key it was recorded at, on a piece that never had it. So the one bank
+		a kit may not go in is the one everything the library does not recognise goes in.
+
+		@param song The piece.
+		@param held What the file called the bank the kit is in.
+		@param named The bank everything else the library does not recognise goes in.
+		@return What to call the kit.
+	**/
+	static function alone(song:Song, held:String, named:String):String {
+		if (held != "" && held != named) return held;
+		if (song.name != "" && song.name != named) return song.name;
+
+		return KIT;
+	}
 
 	/**
 		Files every preset a piece carries under the bank it belongs in, which is what a piece read
@@ -483,7 +550,7 @@ final class Library {
 	**/
 	public function files(song:Song, named:String):Int {
 		final starting = starters();
-		final home = song.banked(named);
+		final home = song.banked(named, false);
 		final hits:Array<Int> = [];
 
 		var kitted = "";
@@ -497,9 +564,9 @@ final class Library {
 			if (held != null) {
 				for (one in song.banks[at].instruments) hits.push(one);
 
-				kitted = starting.offering(song, held);
-				if (kitted == "") kitted = offering(song, held);
-				if (kitted == "") kitted = named;
+				kitted = whole(song, starting, hits);
+				if (kitted == "") kitted = whole(song, this, hits);
+				if (kitted == "") kitted = alone(song, song.banks[at].name, named);
 			}
 		}
 
@@ -513,16 +580,17 @@ final class Library {
 			if (want == "") want = offering(song, held);
 			if (want == "") want = named;
 
-			if (hits.indexOf(index) >= 0) want = kitted;
+			final kit = hits.indexOf(index) >= 0;
+			if (kit) want = kitted;
 
-			final bank = want == named ? home : song.banked(want);
+			final bank = want == named ? home : song.banked(want, false);
 			var changed = false;
 
 			for (one in song.banks) {
 				if (one != bank && one.remove(index)) changed = true;
 			}
 
-			final twin = twinned(song, bank, held, index);
+			final twin = kit ? -1 : twinned(song, bank, held, index);
 
 			if (twin >= 0) {
 				if (bank.remove(index)) changed = true;

@@ -307,8 +307,8 @@ final class Files {
 			changed since, which is what decides whether a save on its own has anything to do.
 	**/
 	public function marked():Int {
-		final said = haxe.io.Bytes.ofString(Project.text(session.song));
-		final bulk = Project.bulk(session.song);
+		final said = haxe.io.Bytes.ofString(Project.text(session.song, library));
+		final bulk = Project.bulk(session.song, library);
 
 		return haxe.crypto.Crc32.make(said) ^ haxe.crypto.Crc32.make(bulk);
 	}
@@ -326,7 +326,7 @@ final class Files {
 		final where = path != "" ? path : recovery();
 
 		try {
-			Project.save(session.song, where);
+			Project.save(session.song, where, library);
 		} catch (e:Dynamic) {
 			session.says(Locale.SAID_SAVE_FAILED, "" + e);
 			return true;
@@ -668,14 +668,13 @@ final class Files {
 	**/
 	public function load(where:String):Void {
 		final song = Project.open(where);
-
+		final many = song.instruments.length;
 
 		path = where;
 		if (onLoad != null) onLoad(song);
 		forget();
 
-		session.says(Locale.SAID_OPENED, name(where), "" + song.patterns.length,
-			"" + song.instruments.length);
+		session.says(Locale.SAID_OPENED, name(where), "" + song.patterns.length, "" + many);
 	}
 
 	/**
@@ -851,13 +850,13 @@ final class Files {
 
 		if (instead) {
 			final song = Midi.taken(bytes, midiName, strands);
+			final many = song.instruments.length;
 
 			path = "";
 			if (onLoad != null) onLoad(song);
 			forget();
 
-			session.says(Locale.SAID_READ_SONG, midiName, "" + song.patterns.length,
-				"" + song.instruments.length);
+			session.says(Locale.SAID_READ_SONG, midiName, "" + song.patterns.length, "" + many);
 			return;
 		}
 
@@ -904,7 +903,7 @@ final class Files {
 	public function save(where:String):String {
 		final named = suffixed(where, mdd.Config.SUFFIX);
 
-		Project.save(session.song, named);
+		Project.save(session.song, named, library);
 		path = named;
 		forget();
 

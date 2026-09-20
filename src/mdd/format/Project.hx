@@ -28,7 +28,15 @@ import sys.io.File;
 	so.
 **/
 class Project {
-	public static inline final VERSION = 1;
+	public static inline final VERSION = 2;
+
+	/**
+		The version a file was written by before a piece carried what it plays rather than
+		everything the preset browser was offering while it was open. Every bank in one of those
+		is marked as the piece's own, because the library marked them so, and reading them that
+		way would write the whole library out again.
+	**/
+	public static inline final WHOLE_LIBRARY = 1;
 	static inline final STRUCTURE = "project.json";
 	static inline final BULK = "chunks/bulk.mdc";
 	public static inline final SAMPLES = "samples";
@@ -82,7 +90,18 @@ class Project {
 		@param song The song to write.
 		@return The document.
 	**/
-	public static function text(song:Song):String {
+	public static function text(song:Song, ?library:mdd.song.Library):String {
+		return written(song, Needed.of(song, library));
+	}
+
+	/**
+		Writes the song as JSON, carrying what a file has to carry.
+
+		@param song The song to write.
+		@param needed What it carries and where each preset and recording goes.
+		@return The document.
+	**/
+	public static function written(song:Song, needed:Needed):String {
 		final out = new Json();
 
 		out.open();
@@ -145,7 +164,7 @@ class Project {
 
 		out.key("rack");
 		out.list();
-		for (i in 0...Part.COUNT) out.whole(song.rack[i]);
+		for (i in 0...Part.COUNT) out.whole(needed.instrument(song.rack[i]));
 		out.ends();
 
 		out.key("muted");
@@ -165,20 +184,31 @@ class Project {
 
 		out.key("instruments");
 		out.list();
-		for (instrument in song.instruments) wroteInstrument(out, instrument);
+		for (instrument in needed.instruments) wroteInstrument(out, instrument, needed);
 		out.ends();
 
 		out.key("banks");
 		out.list();
 
+		final holding:Array<Int> = [];
+
 		for (bank in song.banks) {
+			holding.resize(0);
+
+			for (index in bank.instruments) {
+				final at = needed.instrument(index);
+				if (at >= 0) holding.push(at);
+			}
+
+			if (holding.length == 0) continue;
+
 			out.open();
 			out.key("name");
 			out.text(bank.name);
 			out.key("kept");
 			out.flag(bank.kept);
 			out.key("instruments");
-			out.wholes(bank.instruments);
+			out.wholes(holding);
 			out.close();
 		}
 
@@ -187,7 +217,7 @@ class Project {
 		out.key("samples");
 		out.list();
 
-		for (sample in song.samples) {
+		for (sample in needed.samples) {
 			out.open();
 			out.key("name");
 			out.text(sample.name);
@@ -206,7 +236,7 @@ class Project {
 
 		out.key("patterns");
 		out.list();
-		for (pattern in song.patterns) wrotePattern(out, pattern);
+		for (pattern in song.patterns) wrotePattern(out, pattern, needed);
 		out.ends();
 
 		out.key("tracks");
@@ -241,6 +271,8 @@ class Project {
 				final line = clip.line;
 
 				if (clip.kind != Clip.PATTERN && line != null) {
+					final swaps = line.target == Automation.INSTRUMENT;
+
 					out.key("drives");
 					out.whole(clip.part);
 					out.key("target");
@@ -250,7 +282,7 @@ class Project {
 					out.key("points");
 					out.list();
 
-					for (point in line.points) written(out, point);
+					for (point in line.points) wrotePoint(out, point, swaps ? needed : null);
 
 					out.ends();
 				}
@@ -274,7 +306,8 @@ class Project {
 		@param out Where it goes.
 		@param instrument The instrument.
 	**/
-	public static function wroteInstrument(out:Json, instrument:Instrument):Void {
+	public static function wroteInstrument(out:Json, instrument:Instrument,
+			?needed:Needed):Void {
 		out.open();
 
 		out.key("name");
@@ -289,7 +322,7 @@ class Project {
 		}
 
 		out.key("sample");
-		out.whole(instrument.sample);
+		out.whole(needed == null ? instrument.sample : needed.sample(instrument.sample));
 
 		out.key("icon");
 		out.whole(instrument.icon);
@@ -375,7 +408,7 @@ class Project {
 		@param out Where it goes.
 		@param pattern The pattern.
 	**/
-	static function wrotePattern(out:Json, pattern:Pattern):Void {
+	static function wrotePattern(out:Json, pattern:Pattern, needed:Needed):Void {
 		out.open();
 
 		out.key("name");
@@ -409,7 +442,7 @@ class Project {
 				out.key("velocity");
 				out.whole(note.velocity);
 				out.key("instrument");
-				out.whole(note.instrument);
+				out.whole(needed.instrument(note.instrument));
 
 				if (note.tied) {
 					out.key("tied");
@@ -424,6 +457,8 @@ class Project {
 			out.list();
 
 			for (line in lane.automation) {
+				final swaps = line.target == Automation.INSTRUMENT;
+
 				out.open();
 				out.key("target");
 				out.whole(line.target);
@@ -432,7 +467,7 @@ class Project {
 				out.key("points");
 				out.list();
 
-				for (point in line.points) written(out, point);
+				for (point in line.points) wrotePoint(out, point, swaps ? needed : null);
 
 				out.ends();
 				out.close();
@@ -511,10 +546,12 @@ class Project {
 		if (banks.length() > 0) {
 			song.banks.resize(0);
 
+			final whole = node.get("version").whole(VERSION) <= WHOLE_LIBRARY;
+
 			for (i in 0...banks.length()) {
 				final held = banks.at(i);
 				final bank = song.banked(held.get("name").saying(""),
-					held.get("kept").truth(true));
+					!whole && held.get("kept").truth(true));
 
 				final named = held.get("instruments");
 				for (at in 0...named.length()) bank.add(named.at(at).whole(0));
@@ -660,13 +697,15 @@ class Project {
 
 		@param out Where it goes.
 		@param point The point.
+		@param needed Where each preset goes in the file, for a point on a preset lane, whose
+			value is a preset rather than a number. Null for every other lane.
 	**/
-	static function written(out:Json, point:Point):Void {
+	static function wrotePoint(out:Json, point:Point, needed:Null<Needed>):Void {
 		out.open();
 		out.key("at");
 		out.whole(point.at);
 		out.key("value");
-		out.whole(point.value);
+		out.whole(needed == null ? point.value : needed.instrument(point.value));
 
 		if (point.shape != Automation.HOLD) {
 			out.key("shape");
@@ -761,11 +800,21 @@ class Project {
 		@param song The song.
 		@return The block.
 	**/
-	public static function bulk(song:Song):Bytes {
+	public static function bulk(song:Song, ?library:mdd.song.Library):Bytes {
+		return bulked(Needed.of(song, library));
+	}
+
+	/**
+		Writes the block of samples a file carries.
+
+		@param needed What the file carries and where each recording goes in it.
+		@return The block.
+	**/
+	public static function bulked(needed:Needed):Bytes {
 		final chunks = new Chunks();
 
-		for (index in 0...song.samples.length) {
-			final sample = song.samples[index];
+		for (index in 0...needed.samples.length) {
+			final sample = needed.samples[index];
 			final body = Bytes.alloc(4 + sample.length());
 
 			body.setInt32(0, index);
@@ -820,20 +869,22 @@ class Project {
 		@param song The song to write.
 		@param into The folder to write into.
 	**/
-	public static function saveFolder(song:Song, into:String):Void {
+	public static function saveFolder(song:Song, into:String, ?library:mdd.song.Library):Void {
+		final needed = Needed.of(song, library);
+
 		tree(into);
 		tree(into + "/" + SAMPLES);
 
-		for (index in 0...song.samples.length) {
+		for (index in 0...needed.samples.length) {
 			File.saveBytes(into + "/" + SAMPLES + "/" + index + ".pcm",
-				sampleBytes(song.samples[index]));
+				sampleBytes(needed.samples[index]));
 		}
 
-		sweeps(into + "/" + SAMPLES, song.samples.length);
+		sweeps(into + "/" + SAMPLES, needed.samples.length);
 
 		final aside = into + "/" + STRUCTURE + PARTIAL;
 
-		File.saveContent(aside, text(song));
+		File.saveContent(aside, written(song, needed));
 		swaps(aside, into + "/" + STRUCTURE);
 	}
 
@@ -902,13 +953,15 @@ class Project {
 		@param song The song to write.
 		@param into The file to write.
 	**/
-	public static function savePacked(song:Song, into:String):Void {
+	public static function savePacked(song:Song, into:String, ?library:mdd.song.Library):Void {
+		final needed = Needed.of(song, library);
 		final entries = new List<haxe.zip.Entry>();
 
-		entries.add(entry(STRUCTURE, Bytes.ofString(text(song))));
+		entries.add(entry(STRUCTURE, Bytes.ofString(written(song, needed))));
 
-		for (index in 0...song.samples.length) {
-			entries.add(entry(SAMPLES + "/" + index + ".pcm", sampleBytes(song.samples[index])));
+		for (index in 0...needed.samples.length) {
+			entries.add(entry(SAMPLES + "/" + index + ".pcm",
+				sampleBytes(needed.samples[index])));
 		}
 
 		final aside = into + PARTIAL;
@@ -1014,11 +1067,11 @@ class Project {
 		@param song The song to write.
 		@param into Where to write it.
 	**/
-	public static function save(song:Song, into:String):Void {
+	public static function save(song:Song, into:String, ?library:mdd.song.Library):Void {
 		if (StringTools.endsWith(into.toLowerCase(), "." + mdd.Config.SUFFIX)) {
-			savePacked(song, into);
+			savePacked(song, into, library);
 		} else {
-			saveFolder(song, into);
+			saveFolder(song, into, library);
 		}
 	}
 

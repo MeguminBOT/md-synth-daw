@@ -264,6 +264,7 @@ class PresetCheck {
 			+ " and the rack still names " + rack);
 
 		kitted();
+		shared();
 	}
 
 	/**
@@ -335,6 +336,82 @@ class PresetCheck {
 		@param library A library.
 		@return The name of the first bank in it holding a converter preset with a sample.
 	**/
+	/**
+		A kit that sits in a bank named after a library bank keeps its own hits.
+
+		Filing put the kit into whichever library bank offered the rack's own hit, so the piece's
+		kit and the library's ended up in one bank, and the duplicate check then took the piece's
+		copies back out again, the rack's own among them. The kit went silent on the second
+		opening of a file that had sounded on the first.
+	**/
+	static function shared():Void {
+		final library = Library.embedded();
+		final named = shippedKit(library);
+
+		if (named == "") {
+			says("a kit keeps its own hits", false, "no shipped kit to share a name with");
+			return;
+		}
+
+		final song = new Song("shared");
+		library.into(song);
+
+		final at = library.names.indexOf(named);
+		final borrowed:Array<Instrument> = library.instruments[at];
+		final bank = song.banked(named);
+		final roots:Array<Int> = [];
+
+		for (index in 0...borrowed.length) {
+			final held = library.samples[at][index];
+			if (held == null) continue;
+
+			final made = borrowed[index].copy();
+			final sample = held.copy();
+
+			if (roots.length > 0) sample.bytes[0] = (sample.bytes[0] + 7) & 0xFF;
+
+			song.sample(sample);
+			made.sample = song.samples.length - 1;
+			made.id = "";
+			made.identifies(sample);
+
+			song.instrument(made);
+
+			final one = song.instruments.length - 1;
+
+			song.bank(0).remove(one);
+			bank.add(one);
+
+			if (roots.indexOf(sample.root) < 0) roots.push(sample.root);
+			if (roots.length >= 6) break;
+		}
+
+		song.rack[Part.Dac.index()] = song.instruments.length - roots.length;
+		song.drums = true;
+
+		final was:Array<String> = [];
+
+		for (root in roots) {
+			final one = song.instrumentAt(song.drumAt(root));
+			was.push(root + ":" + (one == null ? "-" : "" + one.sample));
+		}
+
+		library.files(song, FROM_FILE);
+		library.into(song);
+
+		final now:Array<String> = [];
+
+		for (root in roots) {
+			final one = song.instrumentAt(song.drumAt(root));
+			now.push(root + ":" + (one == null ? "-" : "" + one.sample));
+		}
+
+		says("a kit keeps its own hits", was.join(",") == now.join(",") && roots.length > 1,
+			roots.length + " keys sound the piece's own hits out of a bank called " + named
+			+ ", and " + (was.join(",") == now.join(",") ? "the same after filing"
+			: "AFTER FILING " + now.join(" ")));
+	}
+
 	static function shippedKit(library:Library):String {
 		for (at in 0...library.names.length) {
 			for (which in 0...library.instruments[at].length) {
