@@ -525,16 +525,16 @@ final class Files {
 			case READ_WAV: Dialog.open(window, "wav", "wav", where);
 			case READ_XGM: Dialog.open(window, "xgm", "xgm", where);
 			case TFI: Dialog.save(window, "tfi", "tfi", where);
-			case PRESET_TFI: Dialog.save(window, "tfi", "tfi", where);
-			case PRESET_WAV: Dialog.save(window, "wav", "wav", where);
+			case PRESET_TFI: Dialog.save(window, "tfi", "tfi", within("presets"));
+			case PRESET_WAV: Dialog.save(window, "wav", "wav", within("presets"));
 
 			case PRESET_BANK:
-				Dialog.save(window, mdd.Config.BANK_FORMAT, mdd.Config.BANK, where);
+				Dialog.save(window, mdd.Config.BANK_FORMAT, mdd.Config.BANK, within("presets"));
 			case READ_TFI: Dialog.open(window, "tfi", "tfi", where);
 
 			case READ_PRESETS:
 				Dialog.open(window, mdd.Config.PRESET_FORMAT,
-					mdd.Config.PRESET + ";" + mdd.Config.BANK, where);
+					mdd.Config.PRESET + ";" + mdd.Config.BANK, within("presets"));
 			case READ_KIT: Dialog.folder(window, where);
 			case READ_HIT: Dialog.open(window, "wav", "wav", where);
 			case _: null;
