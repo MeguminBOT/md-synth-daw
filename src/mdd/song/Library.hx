@@ -425,8 +425,13 @@ final class Library {
 		rather than listed twice, so a project carrying the presets folder twice, as one written
 		before the folder had a name of its own does, lists each preset once.
 
-		Bank membership is what the preset browser groups by and nothing else. No instrument is
-		added, removed or renumbered here, so nothing a note, a rack or a preset lane names moves.
+		A kit is the one thing bank membership decides rather than only shows: a converter note
+		sounds the hit in the bank the rack's own converter preset sits in, and the roll draws its
+		rows from the same bank. The presets in that bank are therefore filed together, wherever
+		the rack's own preset belongs, so a kit gathered from several places stays one kit.
+
+		Nothing else moves. No instrument is added, removed or renumbered here, so everything a
+		note, a rack or a preset lane names is still what it was.
 
 		@param song The piece.
 		@param named The bank for a preset neither this library nor the starting set offers.
@@ -435,6 +440,25 @@ final class Library {
 	public function files(song:Song, named:String):Int {
 		final starting = starters();
 		final home = song.banked(named);
+		final hits:Array<Int> = [];
+
+		var kitted = "";
+
+		final rack = song.rack[Part.Dac.index()];
+		final at = rack < 0 ? -1 : song.bankOf(rack);
+
+		if (at >= 0 && at < song.banks.length && song.banks[at].holds(rack)) {
+			final held = song.instrumentAt(rack);
+
+			if (held != null) {
+				for (one in song.banks[at].instruments) hits.push(one);
+
+				kitted = starting.offering(song, held);
+				if (kitted == "") kitted = offering(song, held);
+				if (kitted == "") kitted = named;
+			}
+		}
+
 		var moved = 0;
 
 		for (index in 0...song.instruments.length) {
@@ -444,6 +468,8 @@ final class Library {
 			var want = starting.offering(song, held);
 			if (want == "") want = offering(song, held);
 			if (want == "") want = named;
+
+			if (hits.indexOf(index) >= 0) want = kitted;
 
 			final bank = want == named ? home : song.banked(want);
 			var changed = false;

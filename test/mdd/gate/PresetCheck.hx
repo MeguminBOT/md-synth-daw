@@ -247,6 +247,107 @@ class PresetCheck {
 			&& song.rack[0] == rack,
 			song.instruments.length + " instruments before and after, " + added + " added by the library afterwards,"
 			+ " and the rack still names " + rack);
+
+		kitted();
+	}
+
+	/**
+		A kit is the one thing a bank decides rather than only shows: a converter note sounds the
+		hit in the bank the rack's converter preset sits in. A kit gathered from a reader's own
+		hits and one borrowed out of a shipped kit is therefore still one kit after filing, and
+		every key it was written across still sounds.
+	**/
+	static function kitted():Void {
+		final library = Library.embedded();
+		final song = new Song("kitted");
+
+		mdd.song.Shipped.into(song);
+		library.into(song);
+
+		final borrowed = bankOf(song, library.names.length == 0 ? "" : shippedKit(library));
+		if (borrowed < 0) {
+			says("a kit gathered from several places stays one kit", false, "no shipped kit to borrow from");
+			return;
+		}
+
+		final taken = song.instrumentAt(borrowed);
+		final played = song.sampleAt(taken.sample);
+
+		final own = song.banked("my piece");
+		final roots:Array<Int> = [];
+
+		for (index in 0...3) {
+			final made = new Instrument("Hit " + index, Part.Dac);
+			final sample = sampled("Hit " + index);
+
+			sample.root = 40 + index;
+			song.sample(sample);
+
+			made.sample = song.samples.length - 1;
+			song.instrument(made);
+
+			final held = song.instruments.length - 1;
+
+			song.bank(0).remove(held);
+			own.add(held);
+			roots.push(sample.root);
+		}
+
+		for (bank in song.banks) bank.remove(borrowed);
+		own.add(borrowed);
+
+		song.rack[Part.Dac.index()] = song.instruments.length - 1;
+		song.drums = true;
+
+		if (played != null) roots.push(played.root);
+
+		var before = 0;
+		for (root in roots) if (song.drumAt(root) >= 0) before++;
+
+		library.files(song, FROM_FILE);
+		library.into(song);
+
+		var after = 0;
+		for (root in roots) if (song.drumAt(root) >= 0) after++;
+
+		says("a kit gathered from several places stays one kit", before == roots.length
+			&& after == roots.length,
+			after + " of " + roots.length + " keys still sound after filing, against " + before + " before, on a kit"
+			+ " of a reader's own hits and one taken out of " + FROM_FILE);
+	}
+
+	/**
+		@param library A library.
+		@return The name of the first bank in it holding a converter preset with a sample.
+	**/
+	static function shippedKit(library:Library):String {
+		for (at in 0...library.names.length) {
+			for (which in 0...library.instruments[at].length) {
+				if (library.samples[at][which] != null) return library.names[at];
+			}
+		}
+
+		return "";
+	}
+
+	/**
+		@param song A song.
+		@param bank A bank's name.
+		@return The first converter preset in it, by index into the song, or -1.
+	**/
+	static function bankOf(song:Song, bank:String):Int {
+		if (bank == "") return -1;
+
+		for (held in song.banks) {
+			if (held.name != bank) continue;
+
+			for (index in held.instruments) {
+				final one = song.instrumentAt(index);
+				if (one != null && one.kind.sampled() && one.sample >= 0) return index;
+			}
+		}
+
+		return -1;
 	}
 
 	/**
