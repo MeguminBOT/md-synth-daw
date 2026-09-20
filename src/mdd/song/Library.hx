@@ -257,21 +257,50 @@ final class Library {
 		Puts a preset into a bank, unless the bank already has one of the same name for
 		the same kind of part.
 
+		A patch or an envelope out of the presets folder is put in only where nothing here already
+		makes that sound, whatever either is called. Lifting a piece's patches used to write every
+		preset the piece carried into the folder, and a piece carried the whole library, so a
+		folder fills up with the shipped banks under names like `Bass 7 2` that say nothing about
+		what they play. A shipped bank is added as it is, because the same patch turning up in two
+		soundtracks is what those banks are for.
+
+		A converter preset is never held back that way. A kit is picked by note out of one bank,
+		so a hit left out because another bank has the same recording is a key that stops
+		sounding.
+
 		@param bank The bank's name. It is made where there is none.
 		@param instrument The preset. The library keeps it rather than a copy.
 		@param sample The sample it plays, or null.
 		@param owned Whether it came out of the presets folder.
-		@return False where the bank already had one of that name.
+		@return False where the bank already had one of that name, or where a preset out of the
+			folder makes a sound this library already offers.
 	**/
 	public function adds(bank:String, instrument:Instrument, sample:Null<Sample>,
 			owned:Bool):Bool {
 		final at = banked(bank, owned);
 		if (holding(at, instrument) >= 0) return false;
+		if (owned && sample == null && echoes(instrument)) return false;
 
 		instruments[at].push(instrument);
 		samples[at].push(sample);
 
 		return true;
+	}
+
+	/**
+		@param instrument A preset that plays no recording, about to be put in.
+		@return Whether this library already offers that sound, in any bank.
+	**/
+	function echoes(instrument:Instrument):Bool {
+		for (at in 0...names.length) {
+			final held = instruments[at];
+
+			for (which in 0...held.length) {
+				if (samples[at][which] == null && sounds(held[which], instrument)) return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -378,6 +407,20 @@ final class Library {
 	**/
 	public static function alike(one:Instrument, two:Instrument):Bool {
 		if (!same(one, two) || one.name != two.name) return false;
+
+		return sounds(one, two);
+	}
+
+	/**
+		@param one A preset.
+		@param two Another.
+		@return Whether the two make the same sound: the same kind of part, the same patch, the
+			same envelope. What either is called is no part of it, because a reader's folder fills
+			with one patch under several names and the browser should offer it once. A recording
+			is compared by `carriesSample` rather than here.
+	**/
+	public static function sounds(one:Instrument, two:Instrument):Bool {
+		if (!kin(one.kind, two.kind)) return false;
 
 		final patch = one.patch;
 		final other = two.patch;
@@ -1034,7 +1077,7 @@ final class Library {
 		if (!sys.FileSystem.isDirectory(where)) return 0;
 
 		final held = sys.FileSystem.readDirectory(where);
-		held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
+		held.sort(function(one:String, two:String):Int return byStem(one, two));
 
 		var many = 0;
 		final below:Array<String> = [];
@@ -1080,6 +1123,25 @@ final class Library {
 		}
 
 		return many;
+	}
+
+	/**
+		Orders two file names by what they are called rather than by the bytes of the name, so
+		`Bass 7` is read before `Bass 7 2`. A space sorts before a dot, so the plain name comes
+		last of its family otherwise, and where several files hold the same patch the one that
+		arrives first is the one whose name is kept.
+
+		@param one A file name.
+		@param two Another.
+		@return Which comes first.
+	**/
+	static function byStem(one:String, two:String):Int {
+		final first = stem(one);
+		final second = stem(two);
+
+		if (first != second) return first < second ? -1 : 1;
+
+		return one < two ? -1 : (one > two ? 1 : 0);
 	}
 
 	/**

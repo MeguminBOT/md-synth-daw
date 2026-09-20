@@ -86,7 +86,8 @@ class Lifted {
 		@param where The project file.
 		@param kit What to call the kit it brings, or an empty string to name it after the file.
 		@param known What already ships and what arrived from somewhere else.
-		@param keys What each gathered preset holds, as an identity with no tag in it.
+		@param keys What each gathered preset holds, as an identity with neither its name nor its
+			tags in it, so two pieces that named one sound differently still bring it once.
 		@param presets The gathered presets.
 		@param played What each one plays, or null.
 		@param sources Which pieces each one came out of.
@@ -125,8 +126,15 @@ class Lifted {
 			copy.tags.resize(0);
 			copy.id = "";
 
+			final called = copy.name;
+
+			copy.name = "";
+
 			final key = copy.identifies(sample);
 			final at = keys.indexOf(key);
+
+			copy.name = called;
+			copy.id = "";
 
 			if (at >= 0) {
 				if (sources[at].indexOf(title) < 0) sources[at].push(title);

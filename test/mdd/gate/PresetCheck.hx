@@ -65,6 +65,7 @@ class PresetCheck {
 		moved(where);
 		written(where);
 		poured(where);
+		echoed(where);
 		raised(where);
 		fitted(where);
 		keptBack(where);
@@ -347,6 +348,79 @@ class PresetCheck {
 		@param library A library.
 		@return The name of the first bank in it holding a converter preset with a sample.
 	**/
+	/**
+		A folder holding one patch under several names offers it once, and lifting a piece's
+		patches writes none the library already has.
+
+		Lifting wrote every preset a piece carried, and a piece carried the whole library, so a
+		reader's folder filled with the shipped banks under names like `Bass 7 2` that say nothing
+		about what they play. Reading it back listed each of them beside the patch it was a copy
+		of.
+	**/
+	static function echoed(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final made = patched("Lead");
+		final folder = where + "/presets";
+
+		mdd.host.Paths.make(folder + "/FM");
+
+		for (name in ["Lead", "Lead 2", "Lead 3", "Lead 4"]) {
+			sys.io.File.saveBytes(folder + "/FM/" + name + Library.PATCH,
+				mdd.format.Tfi.write(made.patch));
+		}
+
+		final other = patched("Other");
+		other.patch.feedback = 1;
+
+		sys.io.File.saveBytes(folder + "/FM/Other" + Library.PATCH,
+			mdd.format.Tfi.write(other.patch));
+
+		final library = new Library();
+		final read = library.within(folder, SAVED);
+
+		final at = library.names.indexOf(SAVED);
+		final shown:Array<String> = [];
+
+		for (one in (at < 0 ? [] : library.instruments[at])) shown.push(one.name);
+
+		says("one patch under several names is offered once", read == 2
+			&& shown.join(", ") == "Lead, Other",
+			"five files holding two patches read as " + read + ": " + shown.join(", ")
+			+ ", so the name a reader gave it first is the one that stays");
+
+		final song = new Song();
+		final files = new mdd.app.Files(new mdd.app.Session(song));
+
+		files.presetsAt = folder;
+		files.savedInto = SAVED;
+		files.library = library;
+
+		final mine = patched("Lead");
+		final theirs = other.copy();
+
+		mine.name = "Lead Of Mine";
+		theirs.name = "Theirs Renamed";
+
+		for (one in [mine, theirs]) {
+			one.patch.ams = 0;
+			one.patch.pms = 0;
+
+			for (slot in 0...mdd.song.Patch.SLOTS) one.patch.tremolo[slot] = false;
+		}
+
+		song.instrument(mine);
+		song.instrument(theirs);
+
+		final lifted = files.liftsPatches();
+
+		says("and lifting writes none the library has", lifted == 0,
+			lifted + " written out of two patches the library already offers");
+
+		mdd.host.Paths.clear(where);
+	}
+
 	/**
 		A kit that sits in a bank named after a library bank keeps its own hits.
 
@@ -1227,7 +1301,7 @@ class PresetCheck {
 		}
 
 		says("lifting keeps what a patch file cannot", first == 2 && shown.join(", ")
-			== "Glass Lead 1 2/5 Lead+Bright, Glass Lead 5 2/5 Lead+Bright"
+			== "Glass Lead 5 2/5 Lead+Bright, Glass Lead 1 2/5 Lead+Bright"
 			&& held.length == 2 && held[0].icon == one.icon,
 			first + " written, read back as " + shown.join(", ") + ", both with icon "
 			+ (held.length == 0 ? -1 : held[0].icon));
@@ -1253,12 +1327,17 @@ class PresetCheck {
 		final folder = where + "/presets";
 		final many = 368;
 
+		if (many > 512) throw "a fixture that cannot give every preset its own sound";
+
 		mdd.host.Paths.make(folder + "/FM/Leads");
 		mdd.host.Paths.make(folder + "/DAC");
 
 		for (index in 0...many) {
 			final one = patched("Patch " + index);
+
 			one.patch.feedback = index & 7;
+			one.patch.totalLevel[0] = index & 127;
+			one.patch.keyScale[2] = (index >> 7) & 3;
 
 			sys.io.File.saveBytes(folder + "/FM/Leads/Patch " + index + Library.PATCH,
 				mdd.format.Tfi.write(one.patch));
@@ -1391,6 +1470,17 @@ class PresetCheck {
 			patch.tremolo[slot] = slot == 1;
 		}
 
+		var seed = 0;
+
+		for (index in 0...name.length) {
+			final code = name.charCodeAt(index);
+			if (code != null) seed = seed * 31 + code;
+		}
+
+		patch.detune[3] = seed & 7;
+		patch.multiple[3] = (seed >> 3) & 15;
+		patch.keyScale[3] = (seed >> 7) & 3;
+
 		out.icon = mdd.Icon.NAMES.indexOf("synthesizer");
 		out.tags.push("Lead");
 		out.tags.push("Bright");
@@ -1408,6 +1498,8 @@ class PresetCheck {
 		final envelope = out.envelope;
 
 		for (step in 0...12) envelope.steps.push(15 - step);
+
+		envelope.steps.push(name.length & 15);
 
 		envelope.turns(Envelope.LOOP, 4);
 		envelope.turns(Envelope.SPEED, 3);

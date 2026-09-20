@@ -1652,6 +1652,10 @@ final class Files {
 		tags and the two LFO depths come with it: a patch file carries none of those, and a lift
 		that wrote one would be handing back less than it took.
 
+		A patch the library already offers is not written. A piece carries the presets it plays and
+		every bank the browser is showing, so lifting without that check wrote the whole library
+		into the folder, under a numbered name wherever two banks used the same one.
+
 		@return How many were written.
 	**/
 	public function liftsPatches():Int {
@@ -1665,10 +1669,28 @@ final class Files {
 			final patch = held.patch;
 
 			if (patch == null || held.sample >= 0) continue;
+			if (offered(held)) continue;
 			if (lifts(where, held, patch)) many++;
 		}
 
 		return many;
+	}
+
+	/**
+		@param held A preset the piece carries.
+		@return Whether the library already offers that sound, whatever either is called.
+	**/
+	function offered(held:mdd.song.Instrument):Bool {
+		final known = library;
+		if (known == null) return false;
+
+		for (at in 0...known.names.length) {
+			for (one in known.instruments[at]) {
+				if (mdd.song.Library.sounds(one, held)) return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
