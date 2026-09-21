@@ -17,7 +17,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 3,
               "totalLevel": 12,
               "keyScale": 3,
@@ -30,7 +30,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 6,
               "totalLevel": 19,
               "keyScale": 0,
@@ -43,7 +43,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 0,
               "totalLevel": 15,
               "keyScale": 0,
@@ -56,7 +56,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 6,
               "keyScale": 0,
@@ -88,7 +88,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 15,
               "keyScale": 0,
@@ -101,7 +101,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 11,
               "keyScale": 0,
@@ -114,7 +114,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 0,
               "totalLevel": 15,
               "keyScale": 0,
@@ -127,7 +127,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -159,7 +159,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 30,
               "keyScale": 3,
@@ -172,7 +172,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 19,
               "keyScale": 0,
@@ -185,7 +185,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 32,
               "keyScale": 0,
@@ -198,7 +198,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 0,
               "totalLevel": 0,
               "keyScale": 0,
@@ -230,7 +230,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 33,
               "keyScale": 1,
@@ -243,7 +243,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 3,
               "keyScale": 1,
@@ -256,7 +256,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 10,
               "keyScale": 2,
@@ -269,7 +269,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 3,
               "totalLevel": 3,
               "keyScale": 1,
@@ -301,7 +301,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 19,
               "keyScale": 0,
@@ -314,7 +314,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 0,
@@ -327,7 +327,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 15,
               "keyScale": 0,
@@ -340,7 +340,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 0,
               "keyScale": 0,
@@ -372,7 +372,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 7,
               "keyScale": 0,
@@ -385,7 +385,7 @@
               "tremolo": true
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -398,7 +398,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -411,7 +411,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -443,7 +443,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 24,
               "keyScale": 0,
@@ -456,7 +456,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -469,7 +469,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -482,7 +482,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -514,7 +514,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 2,
               "totalLevel": 17,
               "keyScale": 1,
@@ -527,7 +527,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 17,
               "keyScale": 1,
@@ -540,7 +540,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 2,
               "totalLevel": 7,
               "keyScale": 0,
@@ -553,7 +553,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -585,7 +585,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 3,
               "totalLevel": 34,
               "keyScale": 0,
@@ -598,7 +598,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 21,
               "keyScale": 0,
@@ -611,7 +611,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 38,
               "keyScale": 0,
@@ -624,7 +624,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 10,
               "keyScale": 0,
@@ -656,7 +656,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 1,
               "totalLevel": 26,
               "keyScale": 1,
@@ -669,7 +669,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 1,
@@ -682,7 +682,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 24,
               "keyScale": 1,
@@ -695,7 +695,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 1,
               "totalLevel": 3,
               "keyScale": 1,
@@ -728,7 +728,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 9,
               "totalLevel": 11,
               "keyScale": 2,
@@ -741,7 +741,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -754,7 +754,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 2,
@@ -767,7 +767,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -800,7 +800,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 11,
               "totalLevel": 35,
               "keyScale": 2,
@@ -813,7 +813,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 13,
               "totalLevel": 33,
               "keyScale": 1,
@@ -826,7 +826,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 10,
               "keyScale": 2,
@@ -839,7 +839,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 17,
               "keyScale": 0,
@@ -872,7 +872,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 13,
               "totalLevel": 34,
               "keyScale": 0,
@@ -885,7 +885,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 4,
               "keyScale": 3,
@@ -898,7 +898,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 7,
               "totalLevel": 19,
               "keyScale": 2,
@@ -911,7 +911,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 2,
               "totalLevel": 10,
               "keyScale": 1,
@@ -944,7 +944,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 4,
               "totalLevel": 21,
               "keyScale": 2,
@@ -957,7 +957,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 6,
               "totalLevel": 16,
               "keyScale": 2,
@@ -970,7 +970,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 9,
               "totalLevel": 7,
               "keyScale": 1,
@@ -983,7 +983,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 11,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1016,7 +1016,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 9,
               "totalLevel": 22,
               "keyScale": 3,
@@ -1029,7 +1029,7 @@
               "tremolo": true
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 16,
               "keyScale": 2,
@@ -1042,7 +1042,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 11,
               "totalLevel": 0,
               "keyScale": 1,
@@ -1055,7 +1055,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 9,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1088,7 +1088,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 11,
               "totalLevel": 35,
               "keyScale": 2,
@@ -1101,7 +1101,7 @@
               "tremolo": false
             },
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 13,
               "totalLevel": 33,
               "keyScale": 1,
@@ -1114,7 +1114,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 10,
               "keyScale": 2,
@@ -1127,7 +1127,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 17,
               "keyScale": 0,
@@ -1160,7 +1160,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 0,
               "totalLevel": 16,
               "keyScale": 0,
@@ -1173,7 +1173,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 7,
               "totalLevel": 27,
               "keyScale": 1,
@@ -1186,7 +1186,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 0,
               "totalLevel": 4,
               "keyScale": 0,
@@ -1199,7 +1199,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 10,
               "keyScale": 1,
@@ -1232,7 +1232,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 0,
               "totalLevel": 25,
               "keyScale": 3,
@@ -1245,7 +1245,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 18,
               "keyScale": 1,
@@ -1258,7 +1258,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 25,
               "keyScale": 2,
@@ -1271,7 +1271,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 1,
               "keyScale": 0,
@@ -1304,7 +1304,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 1,
               "totalLevel": 31,
               "keyScale": 1,
@@ -1317,7 +1317,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 1,
               "totalLevel": 41,
               "keyScale": 1,
@@ -1330,7 +1330,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 14,
               "keyScale": 1,
@@ -1343,7 +1343,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 1,
               "keyScale": 1,
@@ -1376,7 +1376,7 @@
           "pms": 6,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 13,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1389,7 +1389,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 7,
               "totalLevel": 15,
               "keyScale": 3,
@@ -1402,7 +1402,7 @@
               "tremolo": true
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 6,
               "totalLevel": 32,
               "keyScale": 0,
@@ -1415,7 +1415,7 @@
               "tremolo": true
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 7,
               "totalLevel": 0,
               "keyScale": 3,
@@ -1447,7 +1447,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 3,
               "totalLevel": 33,
               "keyScale": 2,
@@ -1460,7 +1460,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 37,
               "keyScale": 2,
@@ -1473,7 +1473,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 3,
               "totalLevel": 34,
               "keyScale": 2,
@@ -1486,7 +1486,7 @@
               "tremolo": true
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 1,
@@ -1518,7 +1518,7 @@
           "pms": 3,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 4,
               "totalLevel": 30,
               "keyScale": 1,
@@ -1531,7 +1531,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 4,
               "totalLevel": 19,
               "keyScale": 0,
@@ -1544,7 +1544,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 4,
               "totalLevel": 40,
               "keyScale": 0,
@@ -1557,7 +1557,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 2,
               "totalLevel": 10,
               "keyScale": 0,
@@ -1589,7 +1589,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 12,
               "totalLevel": 44,
               "keyScale": 2,
@@ -1602,7 +1602,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 1,
@@ -1615,7 +1615,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 3,
               "totalLevel": 16,
               "keyScale": 1,
@@ -1628,7 +1628,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 10,
               "keyScale": 1,
@@ -1660,7 +1660,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 0,
               "totalLevel": 19,
               "keyScale": 3,
@@ -1673,7 +1673,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 3,
               "totalLevel": 12,
               "keyScale": 1,
@@ -1686,7 +1686,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 5,
               "totalLevel": 16,
               "keyScale": 1,
@@ -1699,7 +1699,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 7,
               "keyScale": 1,
@@ -1731,7 +1731,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 15,
               "totalLevel": 10,
               "keyScale": 3,
@@ -1744,7 +1744,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 0,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1757,7 +1757,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1770,7 +1770,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -1802,7 +1802,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 15,
               "totalLevel": 41,
               "keyScale": 1,
@@ -1815,7 +1815,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 3,
               "totalLevel": 12,
               "keyScale": 1,
@@ -1828,7 +1828,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 5,
               "totalLevel": 16,
               "keyScale": 1,
@@ -1841,7 +1841,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 7,
               "keyScale": 1,
@@ -1873,7 +1873,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 8,
               "totalLevel": 31,
               "keyScale": 0,
@@ -1886,7 +1886,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 19,
               "keyScale": 3,
@@ -1899,7 +1899,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 3,
               "totalLevel": 24,
               "keyScale": 0,
@@ -1912,7 +1912,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 4,
               "keyScale": 0,
@@ -1944,7 +1944,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 15,
               "totalLevel": 25,
               "keyScale": 3,
@@ -1957,7 +1957,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 16,
               "keyScale": 0,
@@ -1970,7 +1970,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 10,
               "keyScale": 0,
@@ -1983,7 +1983,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 0,
               "totalLevel": 0,
               "keyScale": 0,
@@ -2016,7 +2016,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 14,
               "totalLevel": 27,
               "keyScale": 0,
@@ -2029,7 +2029,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 11,
               "totalLevel": 27,
               "keyScale": 0,
@@ -2042,7 +2042,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 10,
               "keyScale": 0,
@@ -2055,7 +2055,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 18,
               "keyScale": 0,
@@ -2088,7 +2088,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 43,
               "keyScale": 0,
@@ -2101,7 +2101,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 3,
               "keyScale": 1,
@@ -2114,7 +2114,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -2127,7 +2127,7 @@
               "tremolo": true
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 0,
               "keyScale": 0,
@@ -2160,7 +2160,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 0,
               "totalLevel": 39,
               "keyScale": 0,
@@ -2173,7 +2173,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 14,
               "keyScale": 1,
@@ -2186,7 +2186,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -2199,7 +2199,7 @@
               "tremolo": true
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 0,
               "keyScale": 0,
@@ -2232,7 +2232,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 9,
               "keyScale": 0,
@@ -2245,7 +2245,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 4,
               "totalLevel": 12,
               "keyScale": 0,
@@ -2258,7 +2258,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 8,
               "totalLevel": 22,
               "keyScale": 0,
@@ -2271,7 +2271,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 7,
               "keyScale": 0,
@@ -2303,7 +2303,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 7,
               "totalLevel": 32,
               "keyScale": 0,
@@ -2316,7 +2316,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 3,
               "totalLevel": 34,
               "keyScale": 0,
@@ -2329,7 +2329,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 5,
               "totalLevel": 28,
               "keyScale": 0,
@@ -2342,7 +2342,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 7,
               "keyScale": 0,
@@ -2374,7 +2374,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 10,
               "totalLevel": 35,
               "keyScale": 2,
@@ -2387,7 +2387,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 38,
               "keyScale": 2,
@@ -2400,7 +2400,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 40,
               "keyScale": 2,
@@ -2413,7 +2413,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 6,
               "keyScale": 2,
@@ -2445,7 +2445,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 16,
               "keyScale": 1,
@@ -2458,7 +2458,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 2,
               "totalLevel": 19,
               "keyScale": 1,
@@ -2471,7 +2471,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 10,
               "keyScale": 1,
@@ -2484,7 +2484,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 6,
               "keyScale": 1,
@@ -2516,7 +2516,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 15,
               "totalLevel": 35,
               "keyScale": 0,
@@ -2529,7 +2529,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 49,
               "keyScale": 0,
@@ -2542,7 +2542,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 3,
               "totalLevel": 23,
               "keyScale": 0,
@@ -2555,7 +2555,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 0,
@@ -2587,7 +2587,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 10,
               "totalLevel": 22,
               "keyScale": 0,
@@ -2600,7 +2600,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 5,
               "totalLevel": 32,
               "keyScale": 0,
@@ -2613,7 +2613,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 2,
               "totalLevel": 21,
               "keyScale": 0,
@@ -2626,7 +2626,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 0,
@@ -2658,7 +2658,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 0,
               "totalLevel": 38,
               "keyScale": 0,
@@ -2671,7 +2671,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 5,
               "totalLevel": 38,
               "keyScale": 2,
@@ -2684,7 +2684,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 15,
               "totalLevel": 22,
               "keyScale": 3,
@@ -2697,7 +2697,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 1,
               "keyScale": 2,
@@ -2729,7 +2729,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 14,
               "totalLevel": 32,
               "keyScale": 0,
@@ -2742,7 +2742,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 54,
               "keyScale": 0,
@@ -2755,7 +2755,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 23,
               "keyScale": 0,
@@ -2768,7 +2768,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 12,
               "keyScale": 0,
@@ -2800,7 +2800,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 4,
               "totalLevel": 40,
               "keyScale": 2,
@@ -2813,7 +2813,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 47,
               "keyScale": 2,
@@ -2826,7 +2826,7 @@
               "tremolo": false
             },
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 41,
               "keyScale": 2,
@@ -2839,7 +2839,7 @@
               "tremolo": false
             },
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 6,
               "keyScale": 2,
@@ -2871,7 +2871,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 4,
               "totalLevel": 33,
               "keyScale": 1,
@@ -2884,7 +2884,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 3,
               "totalLevel": 48,
               "keyScale": 1,
@@ -2897,7 +2897,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 5,
               "totalLevel": 46,
               "keyScale": 1,
@@ -2910,7 +2910,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 7,
               "keyScale": 1,
@@ -2942,7 +2942,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 19,
               "keyScale": 2,
@@ -2955,7 +2955,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 7,
               "totalLevel": 50,
               "keyScale": 2,
@@ -2968,7 +2968,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 43,
               "keyScale": 2,
@@ -2981,7 +2981,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 6,
               "keyScale": 2,
@@ -3013,7 +3013,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 7,
+              "detune": 3,
               "multiple": 15,
               "totalLevel": 45,
               "keyScale": 1,
@@ -3026,7 +3026,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 7,
               "totalLevel": 16,
               "keyScale": 1,
@@ -3039,7 +3039,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 19,
               "keyScale": 1,
@@ -3052,7 +3052,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 1,
@@ -3084,7 +3084,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 15,
               "totalLevel": 37,
               "keyScale": 1,
@@ -3097,7 +3097,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 10,
               "totalLevel": 21,
               "keyScale": 1,
@@ -3110,7 +3110,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 25,
               "keyScale": 1,
@@ -3123,7 +3123,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 4,
               "keyScale": 1,
@@ -3155,7 +3155,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 0,
               "totalLevel": 22,
               "keyScale": 2,
@@ -3168,7 +3168,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 5,
               "totalLevel": 35,
               "keyScale": 3,
@@ -3181,7 +3181,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 3,
               "totalLevel": 16,
               "keyScale": 2,
@@ -3194,7 +3194,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 4,
               "keyScale": 3,
@@ -3226,7 +3226,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 0,
               "totalLevel": 27,
               "keyScale": 0,
@@ -3239,7 +3239,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 3,
               "totalLevel": 52,
               "keyScale": 2,
@@ -3252,7 +3252,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 5,
               "totalLevel": 58,
               "keyScale": 1,
@@ -3265,7 +3265,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 3,
               "keyScale": 3,
@@ -3298,7 +3298,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 13,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3311,7 +3311,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 34,
               "keyScale": 0,
@@ -3324,7 +3324,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 6,
               "totalLevel": 22,
               "keyScale": 0,
@@ -3337,7 +3337,7 @@
               "tremolo": true
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 1,
@@ -3370,7 +3370,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 13,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3383,7 +3383,7 @@
               "tremolo": false
             },
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 4,
               "totalLevel": 40,
               "keyScale": 2,
@@ -3396,7 +3396,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 4,
               "totalLevel": 20,
               "keyScale": 0,
@@ -3409,7 +3409,7 @@
               "tremolo": true
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3442,7 +3442,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 8,
               "totalLevel": 34,
               "keyScale": 0,
@@ -3455,7 +3455,7 @@
               "tremolo": false
             },
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 2,
               "totalLevel": 27,
               "keyScale": 0,
@@ -3468,7 +3468,7 @@
               "tremolo": true
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 8,
               "totalLevel": 41,
               "keyScale": 0,
@@ -3481,7 +3481,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 1,
@@ -3514,7 +3514,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 5,
+              "detune": 2,
               "multiple": 2,
               "totalLevel": 18,
               "keyScale": 0,
@@ -3527,7 +3527,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 18,
               "keyScale": 0,
@@ -3540,7 +3540,7 @@
               "tremolo": false
             },
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 2,
               "totalLevel": 22,
               "keyScale": 0,
@@ -3553,7 +3553,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3586,7 +3586,7 @@
           "pms": 1,
           "slots": [
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 4,
               "totalLevel": 44,
               "keyScale": 0,
@@ -3599,7 +3599,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 49,
               "keyScale": 0,
@@ -3612,7 +3612,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 44,
               "keyScale": 0,
@@ -3625,7 +3625,7 @@
               "tremolo": true
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3657,7 +3657,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 2,
               "totalLevel": 27,
               "keyScale": 1,
@@ -3670,7 +3670,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 43,
               "keyScale": 0,
@@ -3683,7 +3683,7 @@
               "tremolo": true
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 42,
               "keyScale": 1,
@@ -3696,7 +3696,7 @@
               "tremolo": true
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 6,
               "keyScale": 2,
@@ -3728,7 +3728,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 0,
+              "detune": 7,
               "multiple": 3,
               "totalLevel": 21,
               "keyScale": 3,
@@ -3741,7 +3741,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 40,
               "keyScale": 3,
@@ -3754,7 +3754,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 32,
               "keyScale": 3,
@@ -3767,7 +3767,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 2,
@@ -3799,7 +3799,7 @@
           "pms": 2,
           "slots": [
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 0,
               "totalLevel": 43,
               "keyScale": 0,
@@ -3812,7 +3812,7 @@
               "tremolo": false
             },
             {
-              "detune": 6,
+              "detune": 3,
               "multiple": 4,
               "totalLevel": 44,
               "keyScale": 0,
@@ -3825,7 +3825,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 3,
               "totalLevel": 18,
               "keyScale": 0,
@@ -3838,7 +3838,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 14,
               "keyScale": 0,
@@ -3870,7 +3870,7 @@
           "pms": 2,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 16,
               "keyScale": 0,
@@ -3883,7 +3883,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 2,
               "totalLevel": 30,
               "keyScale": 0,
@@ -3896,7 +3896,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 4,
               "totalLevel": 21,
               "keyScale": 0,
@@ -3909,7 +3909,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -3941,7 +3941,7 @@
           "pms": 2,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 1,
               "totalLevel": 31,
               "keyScale": 0,
@@ -3954,7 +3954,7 @@
               "tremolo": false
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 2,
               "totalLevel": 38,
               "keyScale": 0,
@@ -3967,7 +3967,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 4,
               "totalLevel": 21,
               "keyScale": 0,
@@ -3980,7 +3980,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 1,
               "totalLevel": 4,
               "keyScale": 0,
@@ -4012,7 +4012,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4025,7 +4025,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4038,7 +4038,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4051,7 +4051,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4083,7 +4083,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 35,
               "keyScale": 0,
@@ -4096,7 +4096,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4109,7 +4109,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4122,7 +4122,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4154,7 +4154,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 36,
               "keyScale": 0,
@@ -4167,7 +4167,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4180,7 +4180,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4193,7 +4193,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4225,7 +4225,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 42,
               "keyScale": 0,
@@ -4238,7 +4238,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4251,7 +4251,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4264,7 +4264,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 127,
               "keyScale": 0,
@@ -4296,7 +4296,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 35,
               "keyScale": 0,
@@ -4309,7 +4309,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 28,
               "keyScale": 0,
@@ -4322,7 +4322,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4335,7 +4335,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4367,7 +4367,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 7,
               "totalLevel": 29,
               "keyScale": 0,
@@ -4380,7 +4380,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 38,
               "keyScale": 0,
@@ -4393,7 +4393,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 29,
               "keyScale": 0,
@@ -4406,7 +4406,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4438,7 +4438,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 36,
               "keyScale": 0,
@@ -4451,7 +4451,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 7,
               "totalLevel": 51,
               "keyScale": 0,
@@ -4464,7 +4464,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4477,7 +4477,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 31,
               "keyScale": 0,
@@ -4509,7 +4509,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 1,
+              "detune": 6,
               "multiple": 1,
               "totalLevel": 40,
               "keyScale": 0,
@@ -4522,7 +4522,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 11,
               "totalLevel": 46,
               "keyScale": 3,
@@ -4535,7 +4535,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 4,
               "keyScale": 2,
@@ -4548,7 +4548,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 7,
               "totalLevel": 9,
               "keyScale": 0,
@@ -4580,7 +4580,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 2,
               "totalLevel": 16,
               "keyScale": 0,
@@ -4593,7 +4593,7 @@
               "tremolo": true
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 12,
               "keyScale": 1,
@@ -4606,7 +4606,7 @@
               "tremolo": true
             },
             {
-              "detune": 4,
+              "detune": 1,
               "multiple": 3,
               "totalLevel": 22,
               "keyScale": 0,
@@ -4619,7 +4619,7 @@
               "tremolo": false
             },
             {
-              "detune": 2,
+              "detune": 5,
               "multiple": 2,
               "totalLevel": 15,
               "keyScale": 0,
@@ -4651,7 +4651,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 15,
               "totalLevel": 9,
               "keyScale": 1,
@@ -4664,7 +4664,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 3,
               "keyScale": 0,
@@ -4677,7 +4677,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 7,
               "keyScale": 0,
@@ -4690,7 +4690,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 1,
               "totalLevel": 0,
               "keyScale": 0,
@@ -4722,7 +4722,7 @@
           "pms": 0,
           "slots": [
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 3,
               "totalLevel": 10,
               "keyScale": 2,
@@ -4735,7 +4735,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 5,
               "totalLevel": 0,
               "keyScale": 2,
@@ -4748,7 +4748,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 2,
               "totalLevel": 0,
               "keyScale": 1,
@@ -4761,7 +4761,7 @@
               "tremolo": false
             },
             {
-              "detune": 3,
+              "detune": 0,
               "multiple": 4,
               "totalLevel": 0,
               "keyScale": 2,

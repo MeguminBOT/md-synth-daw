@@ -834,6 +834,11 @@ final class Stream {
 	/**
 		Writes every part back to silence, which is what a stop and a seek both need.
 
+		The SSG envelope goes off with the rest. An operator left with it on repeats its envelope
+		for as long as the key is down and does not fall silent at a release of fifteen, so a
+		channel that played a patch using it would go on sounding after everything else had
+		stopped.
+
 		@param tick When the write happens, in output samples from the start of the span.
 	**/
 	public function reset(tick:Int):Void {
@@ -846,7 +851,12 @@ final class Stream {
 			final half = halfOf(part);
 			final channel = channelOf(part);
 
-			for (group in 0...4) ym(tick, half, 0x80 + group * 4 + channel, 0x0F);
+			for (group in 0...4) {
+				final at = group * 4 + channel;
+
+				ym(tick, half, 0x80 + at, 0x0F);
+				ym(tick, half, 0x90 + at, 0);
+			}
 
 			keyOff(tick, part);
 			ym(tick, half, 0xB4 + channel, 0xC0);
