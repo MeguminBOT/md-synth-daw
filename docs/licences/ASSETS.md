@@ -108,9 +108,11 @@ They are read from disk only when a codepoint first misses, so a session that ne
 never loads them.
 
 These three are pinned to a commit each in `mdd.xml`, with the SHA-256 of the file there. The
-Windows installer can leave any of them out, and the application downloads a missing one when its
-language is picked, from that commit and checked against that hash, so the downloaded face is the
-face a full install ships, unmodified. The family's `OFL.txt` is copied from the install beside the
+Windows installer can leave any of them out, the portable archive leaves all three out, and the
+application downloads a missing one when its language is picked, from that commit and checked
+against that hash, so the downloaded face is the face a full install ships, unmodified. Every
+family's `OFL.txt` ships whether its face does or not, because a downloaded face is given the one
+beside the program. The family's `OFL.txt` is copied from the install beside the
 downloaded face, which keeps the licence travelling with it.
 
 **The bundling reading of OFL 1.1.** The licence permits a font to be bundled with software and

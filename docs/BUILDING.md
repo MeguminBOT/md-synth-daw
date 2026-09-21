@@ -50,6 +50,12 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ./mdd clean              # delete export/
 ```
 
+**A package takes what it names and nothing else.** From beside the binary that is the application,
+the libraries `<ship>` lists and the one `<carry>` finds; anything else that lands in `export/bin`,
+a check program or an archive left over from something else, stays behind. The pictures the Linux
+install script gives the desktop's icon theme are copied by that package alone, because nothing
+else reads them: the window icon and the program's own are built into the binary.
+
 ## Toolchains
 
 A build picks its compiler, preferring LLVM wherever LLVM is installed. Pass a name to override it.
@@ -190,7 +196,7 @@ the reference is missing: the summary names it, so a check that did not run is v
 silent.
 
 With those in place a Debian container runs the whole thing, `gate passed, vgm and xgm not run`,
-and packages a 30 MB `mdd-0.1.0-linux-portable.tar.gz`.
+and packages the Linux portable archive.
 
 **What macOS a package reaches back to is set by Homebrew, not by the build.** hxcpp aims at macOS
 10.9 unless told otherwise, and clang raises that to 11.0 on arm64 because nothing older runs there,

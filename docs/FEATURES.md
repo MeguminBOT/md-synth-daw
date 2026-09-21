@@ -585,7 +585,10 @@ importing one reads those back.
 
 - **Portable mode.** A `portable.txt` beside the executable, which the portable archive ships,
   keeps settings, projects and presets in a `userdata` folder next to the program rather than in
-  your account directory.
+  your account directory. The archive holds the program, SDL, the fonts and the icons and nothing
+  else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
+  it on their own, and the program downloads the one a language needs when that language is
+  picked, pinned to the same file the installer ships.
 - **It saves on its own** every five or ten minutes, or never, and only once something has changed.
   A song that was never saved by hand goes to a recovery file rather than nowhere.
 - **Backups**, kept for as long as you set.

@@ -542,8 +542,7 @@ class Run {
 		@return A description, or an empty string where hxcpp is not installed.
 	**/
 	static function hxcppAt():String {
-		final where = StringTools.trim(reads("haxelib", ["path", "hxcpp"]).split("
-")[0]);
+		final where = StringTools.trim(reads("haxelib", ["path", "hxcpp"]).split("\n")[0]);
 		if (where == "" || !FileSystem.exists(where)) return "";
 
 		final here = Sys.getCwd();
@@ -568,8 +567,7 @@ class Run {
 
 		final flags = new StringBuf();
 		for (flag in project.compileFlags) {
-			flags.add("		<compilerflag value=\"" + flag + "\" />
-");
+			flags.add("\t\t<compilerflag value=\"" + flag + "\" />\n");
 		}
 
 		for (path in project.includes) {
@@ -1261,6 +1259,8 @@ class Run {
 			}
 		}
 
+		if (target == project.targets[0].id) besideFonts(root, project, into);
+
 		Sys.println("  " + pad(target) + shipped.substr(root.length + 1));
 		return shipped;
 	}
@@ -1351,7 +1351,112 @@ class Run {
 		Sys.println("");
 	}
 
-	static function staged(root:String, project:Project, into:String):String {
+	/**
+		@param project What the build file declares.
+		@param name A file beside the built binary.
+		@return Whether it goes into a package: the application's own binary, a library the build
+			file ships, or the one it carries from the system. Anything else that lands beside the
+			binary stays behind, which is what keeps a stale archive or a check program out of what
+			a reader downloads.
+	**/
+	static function packs(project:Project, name:String):Bool {
+		final lower = name.toLowerCase();
+		final binary = project.targets[0].id + (windows() ? ".exe" : "");
+
+		if (lower == binary.toLowerCase()) return true;
+
+		for (one in project.ships) {
+			if (haxe.io.Path.withoutDirectory(one).toLowerCase() == lower) return true;
+		}
+
+		return !windows() && project.carry != "" && name.indexOf(project.carry) >= 0;
+	}
+
+	/**
+		@param face A face the build file declares.
+		@return Whether the application fetches it for itself when the language it serves is
+			picked, which it can only do for a face pinned to a commit and a hash. The installer
+			offers a face like that as a choice, and a portable folder leaves it out.
+	**/
+	static function fetched(face:Project.Face):Bool {
+		return face.language != "" && face.commit != "" && face.sha256 != "";
+	}
+
+	/**
+		@param project What the build file declares.
+		@param name A file in the fonts folder.
+		@param whole Whether the faces the application can fetch for itself go in too.
+		@return Whether it goes beside the binary: a face, unless it is one of those and they are
+			being left out, and every licence text, which is small and which a fetched face needs
+			as much as one that ships.
+	**/
+	static function faced(project:Project, name:String, whole:Bool):Bool {
+		final lower = name.toLowerCase();
+
+		if (StringTools.endsWith(lower, ".txt") || name == "LICENSE") return true;
+		if (!StringTools.endsWith(lower, ".ttf")) return false;
+		if (whole) return true;
+
+		for (face in project.faces) if (face.name == name && fetched(face)) return false;
+
+		return true;
+	}
+
+	/**
+		Puts the faces a portable folder holds beside the built binary, so that running it from
+		`export/bin` finds its fonts where a reader's copy does. The application looks nowhere
+		else, and that is what stops a fonts folder missing from a download being covered by the
+		one in this repository.
+
+		A face is copied only where it is missing or older than its source, and one that no longer
+		belongs there is removed.
+
+		@param root The repository.
+		@param project What the build file declares.
+		@param into The folder the binary is in.
+	**/
+	static function besideFonts(root:String, project:Project, into:String):Void {
+		final from = root + "/" + project.pathOf("FONTPATH");
+		final to = into + "/fonts";
+
+		if (!FileSystem.exists(from)) return;
+
+		tree(to);
+
+		final wanted:Array<String> = [];
+
+		for (entry in FileSystem.readDirectory(from)) {
+			if (!faced(project, entry, false)) continue;
+
+			wanted.push(entry);
+
+			final source = from + "/" + entry;
+			final target = to + "/" + entry;
+
+			if (FileSystem.exists(target) && FileSystem.stat(target).mtime.getTime()
+					>= FileSystem.stat(source).mtime.getTime()) {
+				continue;
+			}
+
+			copyFile(source, target);
+		}
+
+		for (entry in FileSystem.readDirectory(to)) {
+			if (wanted.indexOf(entry) < 0) FileSystem.deleteFile(to + "/" + entry);
+		}
+	}
+
+	/**
+		Gathers everything a package holds into one folder.
+
+		@param root The repository.
+		@param project What the build file declares.
+		@param into The folder to gather into.
+		@param whole Whether the faces the application can fetch for itself go in too, which an
+			installer offers as a choice and a portable folder leaves out.
+		@return The folder.
+	**/
+	static function staged(root:String, project:Project, into:String, whole:Bool):String {
 		if (FileSystem.exists(into)) remove(into);
 		tree(into);
 
@@ -1360,38 +1465,11 @@ class Run {
 		for (entry in FileSystem.readDirectory(bin)) {
 			final from = bin + "/" + entry;
 			if (FileSystem.isDirectory(from)) continue;
-
-			final held = entry.toLowerCase();
-			if (StringTools.endsWith(held, ".pdb") || StringTools.endsWith(held, ".ilk")) continue;
-			if (StringTools.startsWith(held, "gate")) continue;
-			if (StringTools.startsWith(held, "opn2")) continue;
-
-			if (held == "portable.txt") continue;
-			if (StringTools.endsWith(held, "setup.exe")) continue;
-
-			if (windows()) {
-				if (held == project.short) continue;
-			} else if (StringTools.endsWith(held, ".exe")
-					|| StringTools.endsWith(held, ".dll")) {
-				continue;
-			}
+			if (!packs(project, entry)) continue;
 
 			copyFile(from, into + "/" + entry);
 		}
 
-		final appIcon = root + "/" + project.appIcon;
-
-		if (FileSystem.exists(appIcon)) {
-			tree(into + "/appicon");
-
-			for (entry in FileSystem.readDirectory(appIcon)) {
-				if (entry == "sheet.png") continue;
-				if (!StringTools.endsWith(entry, ".png") && !StringTools.endsWith(entry, ".ico"))
-					continue;
-
-				copyFile(appIcon + "/" + entry, into + "/appicon/" + entry);
-			}
-		}
 
 		final atlases = bin + "/icons";
 
@@ -1410,12 +1488,7 @@ class Run {
 		tree(into + "/fonts");
 
 		for (entry in FileSystem.readDirectory(fonts)) {
-			final held = entry.toLowerCase();
-
-			if (!StringTools.endsWith(held, ".ttf") && !StringTools.endsWith(held, ".txt")
-				&& entry != "LICENSE") {
-				continue;
-			}
+			if (!faced(project, entry, whole)) continue;
 
 			copyFile(fonts + "/" + entry, into + "/fonts/" + entry);
 		}
@@ -1452,7 +1525,7 @@ class Run {
 		final name = stamp(project) + "-portable";
 		final into = root + "/" + project.output + "/package/" + name;
 
-		staged(root, project, into);
+		staged(root, project, into, false);
 
 		File.saveContent(into + "/portable.txt",
 			"This file keeps " + project.title + " portable: settings, projects and presets go\n"
@@ -1618,7 +1691,7 @@ class Run {
 	**/
 	static function inno(root:String, project:Project):Void {
 		final into = root + "/" + project.output + "/package/windows";
-		staged(root, project, into);
+		staged(root, project, into, true);
 
 		final script = root + "/" + project.output + "/package/" + project.short + ".iss";
 		final out = new StringBuf();
@@ -1678,8 +1751,7 @@ class Run {
 			+ " font it needs; picking it later in " + project.title
 			+ " downloads the font again.\n\n");
 
-		final optional = [for (face in project.faces) if (face.language != "" && face.commit != ""
-			&& face.sha256 != "") face];
+		final optional = [for (face in project.faces) if (fetched(face)) face];
 
 		out.add("[Types]\n");
 		out.add("Name: \"full\"; Description: \"Every language\"\n");
@@ -1987,7 +2059,7 @@ class Run {
 		tree(inside + "/MacOS");
 		tree(inside + "/Resources");
 
-		staged(root, project, inside + "/MacOS");
+		staged(root, project, inside + "/MacOS", true);
 
 		final out = new StringBuf();
 		out.add("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -2050,11 +2122,38 @@ class Run {
 			? image.substr(root.length + 1) : "hdiutil would not make a dmg"));
 	}
 
+	/**
+		The sizes a desktop's icon theme is given, each as its own picture.
+	**/
+	static final THEMED:Array<Int> = [16, 24, 32, 48, 64, 128, 256, 512];
+
+	/**
+		Puts the pictures the install script gives the desktop's icon theme beside it, and only
+		those. Nothing else reads them: the window icon and the program's own are built into the
+		binary, and a file association points at the program.
+
+		@param root The repository.
+		@param project What the build file declares.
+		@param into The package folder.
+	**/
+	static function themed(root:String, project:Project, into:String):Void {
+		final from = root + "/" + project.appIcon;
+		if (!FileSystem.exists(from)) return;
+
+		tree(into + "/appicon");
+
+		for (size in THEMED) {
+			final name = project.short + "-" + size + ".png";
+			if (FileSystem.exists(from + "/" + name)) copyFile(from + "/" + name, into + "/appicon/" + name);
+		}
+	}
+
 	static function desktop(root:String, project:Project):Void {
 		final into = root + "/" + project.output + "/package/"
 			+ stamp(project) + "-installer";
 
-		staged(root, project, into);
+		staged(root, project, into, true);
+		themed(root, project, into);
 
 		final out = new StringBuf();
 		out.add("[Desktop Entry]\n");
@@ -2093,7 +2192,7 @@ class Run {
 			+ "\" \"$PREFIX/bin/" + project.short + "\"\n");
 		out2.add("cp \"$HERE/" + project.short + ".desktop\" "
 			+ "\"$PREFIX/share/applications/\"\n");
-		for (size in [16, 24, 32, 48, 64, 128, 256, 512]) {
+		for (size in THEMED) {
 			final where = "$PREFIX/share/icons/hicolor/" + size + "x" + size + "/apps";
 			out2.add("mkdir -p \"" + where + "\"\n");
 			out2.add("cp \"$HERE/appicon/" + project.short + "-" + size + ".png\" "
