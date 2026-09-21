@@ -50,6 +50,13 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ./mdd clean              # delete export/
 ```
 
+**`export/bin` is laid out the way a download is.** A build puts the fonts and the icon atlases
+beside the binary it makes, and the application reads them from beside itself and nowhere else. It
+used to fall back to `vendor/fonts` and `export/icons` in this repository, which meant a copy with
+its fonts folder missing ran perfectly here and closed on a reader's machine without a word. The
+fonts beside the binary are the ones the portable archive holds, which leaves out the three a
+language downloads on demand, so a copy run from here asks for those exactly as a reader's does.
+
 **A package takes what it names and nothing else.** From beside the binary that is the application,
 the libraries `<ship>` lists and the one `<carry>` finds; anything else that lands in `export/bin`,
 a check program or an archive left over from something else, stays behind. The pictures the Linux

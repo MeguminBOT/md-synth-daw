@@ -140,7 +140,9 @@ Download the latest build from the [Releases page][releases-url], then either
 - unzip the **portable archive** anywhere and run `mdd`.
 
 Nothing else is needed. The portable archive keeps its settings beside itself rather than in your
-account directory, so it will happily live on a USB stick with your preferences intact. It leaves out the Japanese, Chinese and Korean
+account directory, so it will happily live on a USB stick with your preferences intact. Keep the
+folder whole: the program reads its fonts and icons from the folders beside it, and says so in a box
+if they are missing rather than failing to open. It leaves out the Japanese, Chinese and Korean
 fonts, which are most of the size, and downloads the one a language needs when you pick it.
 
 > **Heads up:** no release is published yet. Until the first one, build it from source. It is three

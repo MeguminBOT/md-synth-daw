@@ -589,6 +589,9 @@ importing one reads those back.
   else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
   it on their own, and the program downloads the one a language needs when that language is
   picked, pinned to the same file the installer ships.
+- **A start that fails says why.** A window that will not open, drawing that will not start, and
+  fonts that are missing or will not read each raise a box saying what went wrong and what to do,
+  rather than the program closing with nothing on screen.
 - **It saves on its own** every five or ten minutes, or never, and only once something has changed.
   A song that was never saved by hand goes to a recovery file rather than nowhere.
 - **Backups**, kept for as long as you set.

@@ -38,6 +38,13 @@ final class Stage {
 	public var window:cpp.Star<Window> = null;
 
 	/**
+		Why the window would not open, said the way a reader who has only the program can act
+		on, or an empty string where it opened. Nothing is on screen by then to say it in, so it
+		is left for whoever started the program to show in a box of its own.
+	**/
+	public var failure(default, null):String = "";
+
+	/**
 		The renderer.
 	**/
 	public var renderer:cpp.Star<Canvas> = null;
@@ -145,8 +152,7 @@ final class Stage {
 			Config.RESIZABLE ? 1 : 0, Config.HIGH_DPI ? 1 : 0);
 
 		if (window == null) {
-			Sys.println("mdd: no window: " + Sdl.error());
-			return false;
+			return failed(Config.TITLE + " could not open a window.\n\n" + Sdl.error());
 		}
 
 		Sdl.setWindowMinimumSize(window, Config.LEAST_WIDTH, Config.LEAST_HEIGHT);
@@ -155,9 +161,11 @@ final class Stage {
 
 		renderer = Sdl.createRenderer(window, Config.VSYNC ? 1 : 0, driver);
 		if (renderer == null) {
-			Sys.println("mdd: no renderer: " + Sdl.error());
 			Sdl.destroyWindow(window);
-			return false;
+
+			return failed(Config.TITLE + " could not start drawing, with the graphics driver or"
+				+ " without it.\n\nStarting it with --renderer=software draws without"
+				+ " the graphics card.\n\n" + Sdl.error());
 		}
 
 		scale = Sdl.windowDisplayScale(window);
@@ -210,15 +218,14 @@ final class Stage {
 	}
 
 	/**
-		@return Which icon atlas to load, from the density the window opened at.
+		@return The folder the icon atlases are in, which is the one beside the program and no
+			other, or an empty string where there is none. A build puts the atlases beside the
+			binary it makes, so a copy run from the repository looks where a reader's copy looks.
 	**/
 	function atlases():String {
-		for (where in [Paths.beside() + "/icons", Sys.getCwd() + "/export/icons",
-				Paths.beside() + "/../../icons"]) {
-			if (sys.FileSystem.exists(where)) return haxe.io.Path.normalize(where);
-		}
+		final where = haxe.io.Path.normalize(Paths.beside() + "/icons");
 
-		return "";
+		return sys.FileSystem.exists(where) ? where : "";
 	}
 
 	/**
@@ -286,16 +293,29 @@ final class Stage {
 	}
 
 	/**
-		@return The folder the faces are in.
+		Records why the window would not open, and prints it for whoever started the program from a
+		terminal.
+
+		@param said What went wrong and what to do about it.
+		@return False, so a failure can be returned as it is recorded.
+	**/
+	function failed(said:String):Bool {
+		failure = said;
+		Sys.println("mdd: " + StringTools.replace(said, "\n\n", " "));
+
+		return false;
+	}
+
+	/**
+		@return The folder the faces are in, which is the one beside the program and no other, or
+			an empty string where it holds no face to start with. A build puts the same faces
+			beside the binary it makes, so a copy run from the repository looks where a reader's
+			copy looks, and a download missing its fonts cannot be covered by the ones here.
 	**/
 	public function fonts():String {
-		for (where in [Paths.beside() + "/fonts", Sys.getCwd() + "/vendor/fonts",
-				Paths.beside() + "/../../vendor/fonts"]) {
-			if (sys.FileSystem.exists(where + "/Go-Regular.ttf")) {
-				return haxe.io.Path.normalize(where);
-			}
-		}
-		return "";
+		final where = haxe.io.Path.normalize(Paths.beside() + "/fonts");
+
+		return sys.FileSystem.exists(where + "/" + Typeface.SANS[0]) ? where : "";
 	}
 
 	/**
@@ -321,8 +341,10 @@ final class Stage {
 		final where = fonts();
 
 		if (where == "") {
-			Sys.println("mdd: no fonts found. Run: mdd setup");
-			return false;
+			return failed(Config.TITLE + " could not find its fonts.\n\nIt reads them from"
+				+ " the fonts folder beside the program, so the folder it came in has to be kept"
+				+ " whole: extract everything from the download, not the program on its own.\n\nIt"
+				+ " looked in " + haxe.io.Path.normalize(Paths.beside() + "/fonts") + ".");
 		}
 
 		shed();
@@ -335,8 +357,9 @@ final class Stage {
 		}
 
 		if (!baked(metrics, where, scale * textScale)) {
-			Sys.println("mdd: the fonts would not bake");
-			return false;
+			return failed(Config.TITLE + " found its fonts but could not read them. One of them"
+				+ " may be damaged: extracting the download again replaces them.\n\nThey are"
+				+ " in " + where + ".");
 		}
 
 		body = metrics.body;

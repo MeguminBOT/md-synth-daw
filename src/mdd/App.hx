@@ -152,6 +152,9 @@ class App {
 		final app = new App();
 
 		if (!app.open()) {
+			final said = app.stage.failure;
+			if (said != "") Sdl.fault(Config.TITLE, said);
+
 			Instance.release();
 			Sdl.quit();
 			Sys.exit(1);
