@@ -42,6 +42,7 @@ class ProjectCheck {
 		kitted(where);
 		heard(where);
 		older(where);
+		packed(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -176,6 +177,53 @@ class ProjectCheck {
 			&& playing < song.instruments.length && alike(before, after) == -2,
 			song.instruments.length + " presets in the file as it ships, " + back.instruments.length
 			+ " once saved again, and " + before.count + " register writes the same either way");
+	}
+
+	/**
+		A project is a zip packed with Deflate, which any zip reader opens, and it is still the same
+		bytes every time it is saved and the same piece every time it is opened.
+	**/
+	static function packed(where:String):Void {
+		final from = Gate.root + "/assets/example-projects/console-tricks.mdsyn";
+
+		if (!sys.FileSystem.exists(from)) {
+			says("a project is packed", false, "no example project to open");
+			return;
+		}
+
+		final song = Project.open(from);
+		final one = where + "/packed.mdsyn";
+		final two = where + "/packed again.mdsyn";
+
+		Project.save(song, one);
+		Project.save(song, two);
+
+		final first = sys.io.File.getBytes(one);
+		final second = sys.io.File.getBytes(two);
+		final entries = haxe.zip.Reader.readZip(new haxe.io.BytesInput(first));
+
+		var packedEntries = 0;
+		var stored = 0;
+		var whole = 0;
+
+		for (entry in entries) {
+			whole += entry.fileSize;
+			if (entry.compressed) packedEntries++;
+			else stored++;
+		}
+
+		final before = new Stream(262144);
+		new Sequencer(song).emit(before, 0, SPAN);
+
+		final back = Project.open(one);
+		final after = new Stream(262144);
+		new Sequencer(back).emit(after, 0, SPAN);
+
+		says("a project is packed with Deflate", packedEntries > 0 && first.length < whole
+			&& first.compare(second) == 0 && alike(before, after) == -2,
+			first.length + " bytes on disk for " + whole + " unpacked, " + packedEntries + " of "
+			+ (packedEntries + stored) + " entries deflated, the same bytes twice over, and "
+			+ before.count + " register writes the same once it is opened");
 	}
 
 	/**

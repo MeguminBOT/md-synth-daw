@@ -19,7 +19,7 @@ import sys.FileSystem;
 import sys.io.File;
 
 /**
-	The project file: the song as JSON, with the samples beside it.
+	The project file: the song as JSON, with the samples beside it, in a zip packed with Deflate.
 
 	It is written to be byte identical between two saves of the same song, which is
 	why the key order is decided here rather than by a map, and why a packed project
@@ -57,6 +57,17 @@ class Project {
 		samples.
 	**/
 	static inline final UNPACKED = 512 * 1024 * 1024;
+
+	/**
+		The most a byte of Deflate can stand for, which is a little over what the format allows.
+
+		An entry is unpacked into a buffer as long as its header says it unpacks to, and a header
+		is a number a file can make up: a damaged one asking for gigabytes is an allocation the
+		process does not survive, since hxcpp stops rather than throwing when it cannot have the
+		memory. So the length is checked against what the packed bytes could possibly hold, and
+		against what is left of `UNPACKED`, before anything is allocated.
+	**/
+	static inline final DEFLATED = 1100;
 
 	/**
 		Keeps an index the document names inside the range the model has room for.
@@ -1003,15 +1014,26 @@ class Project {
 	}
 
 	/**
+		How hard an entry is packed: zlib's own default, which packs a project nearly as small as
+		the hardest setting does in a fraction of the time.
+	**/
+	static inline final LEVEL = 6;
+
+	/**
 		Builds one zip entry with a fixed date, so two saves of the same song give the
 		same bytes.
+
+		Every entry is packed with Deflate, the method every zip reader takes, 7-Zip and the file
+		managers of every desktop among them, and each still carries the CRC32 of what it unpacks
+		to, so a damaged file says so rather than opening wrong. An entry Deflate would not make
+		smaller is stored as it is.
 
 		@param name The name inside the archive.
 		@param body Its contents.
 		@return The entry.
 	**/
 	static function entry(name:String, body:Bytes):haxe.zip.Entry {
-		return {
+		final out:haxe.zip.Entry = {
 			fileName: name,
 			fileSize: body.length,
 			fileTime: EPOCH,
@@ -1021,6 +1043,16 @@ class Project {
 			crc32: haxe.crypto.Crc32.make(body),
 			extraFields: null
 		};
+
+		haxe.zip.Tools.compress(out, LEVEL);
+
+		if (out.dataSize < body.length) return out;
+
+		out.compressed = false;
+		out.data = body;
+		out.dataSize = body.length;
+
+		return out;
 	}
 
 	/**
@@ -1030,7 +1062,7 @@ class Project {
 		@return The song.
 	**/
 	public static function openPacked(from:String):Song {
-		final entries = haxe.zip.Reader.readZip(new haxe.io.BytesInput(File.getBytes(from)));
+		final entries = listed(File.getBytes(from));
 
 		var said = "";
 		var unpacked = 0;
@@ -1038,7 +1070,13 @@ class Project {
 		final held:Map<String, Bytes> = new Map();
 
 		for (entry in entries) {
-			final body = haxe.zip.Reader.unzip(entry);
+			if (entry.compressed && (entry.fileSize < 0 || entry.fileSize > UNPACKED - unpacked
+					|| entry.fileSize > entry.dataSize * DEFLATED + 64)) {
+				throw "not a project worth opening: " + entry.fileName + " claims to unpack to "
+					+ entry.fileSize + " bytes out of " + entry.dataSize;
+			}
+
+			final body = unpacks(entry);
 
 			unpacked += body.length;
 
@@ -1069,6 +1107,124 @@ class Project {
 		identified(song, true);
 
 		return song;
+	}
+
+	/**
+		Unpacks one entry, closing the stream it unpacks through on every path.
+
+		The standard library's own unzip leaves the stream open when the data is damaged, and
+		hxcpp closes a stream left open from its finaliser, in the middle of a collection, which
+		takes the process down at whatever point the next collection happens to come: a crash
+		somewhere else entirely, some while after the damaged file.
+
+		@param entry An entry, holding its bytes as they are packed.
+		@return What it unpacks to.
+	**/
+	static function unpacks(entry:haxe.zip.Entry):Bytes {
+		if (!entry.compressed) return entry.data;
+
+		final out = Bytes.alloc(entry.fileSize);
+		final stream = new haxe.zip.Uncompress(-15);
+
+		var done = false;
+		var read = 0;
+		var written = 0;
+
+		try {
+			final result = stream.execute(entry.data, 0, out, 0);
+
+			done = result.done;
+			read = result.read;
+			written = result.write;
+		} catch (e:Dynamic) {}
+
+		stream.close();
+
+		if (!done || read != entry.data.length || written != entry.fileSize) {
+			throw "not a project: " + entry.fileName + " is damaged";
+		}
+
+		return out;
+	}
+
+	/**
+		Lists what a zip holds from its central directory, which is where every zip writer puts
+		each entry's sizes, 7-Zip and the file managers of every desktop among them, however the
+		entry itself was written.
+
+		Every size is a number the file makes up, so each is checked against how long the file
+		really is before anything is taken out of it: a damaged size asking for gigabytes is an
+		allocation the process does not survive, since hxcpp stops rather than throwing when it
+		cannot have the memory.
+
+		@param bytes The zip.
+		@return Its entries, each holding its bytes as they are packed.
+	**/
+	static function listed(bytes:Bytes):Array<haxe.zip.Entry> {
+		final length = bytes.length;
+		var end = -1;
+		var at = length - 22;
+		final least = length - 22 - 65535;
+
+		while (at >= 0 && at >= least) {
+			if (bytes.getInt32(at) == 0x06054B50) {
+				end = at;
+				break;
+			}
+
+			at--;
+		}
+
+		if (end < 0) throw "not a project: no zip directory in it";
+
+		final many = bytes.getUInt16(end + 10);
+		var header = bytes.getInt32(end + 16);
+		final out:Array<haxe.zip.Entry> = [];
+
+		for (index in 0...many) {
+			if (header < 0 || header + 46 > length || bytes.getInt32(header) != 0x02014B50) {
+				throw "not a project: a damaged zip directory";
+			}
+
+			final method = bytes.getUInt16(header + 10);
+			final crc = bytes.getInt32(header + 16);
+			final packed = bytes.getInt32(header + 20);
+			final size = bytes.getInt32(header + 24);
+			final named = bytes.getUInt16(header + 28);
+			final extra = bytes.getUInt16(header + 30);
+			final comment = bytes.getUInt16(header + 32);
+			final local = bytes.getInt32(header + 42);
+
+			if (header + 46 + named > length) throw "not a project: a damaged zip directory";
+
+			final name = bytes.getString(header + 46, named);
+
+			if (method != 0 && method != 8) throw "not a project this reads: " + name + " is packed another way";
+			if (local < 0 || local + 30 > length || bytes.getInt32(local) != 0x04034B50) {
+				throw "not a project: " + name + " is damaged";
+			}
+
+			final data = local + 30 + bytes.getUInt16(local + 26) + bytes.getUInt16(local + 28);
+
+			if (packed < 0 || size < 0 || data < 0 || data + packed > length) {
+				throw "not a project: " + name + " is damaged";
+			}
+
+			out.push({
+				fileName: name,
+				fileSize: size,
+				fileTime: EPOCH,
+				compressed: method == 8,
+				dataSize: packed,
+				data: bytes.sub(data, packed),
+				crc32: crc,
+				extraFields: null
+			});
+
+			header += 46 + named + extra + comment;
+		}
+
+		return out;
 	}
 
 	/**

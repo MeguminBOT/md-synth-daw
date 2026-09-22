@@ -614,16 +614,21 @@ and Opus are both compiled in, so there is nothing else to install.
 
 ### The project
 
-A zip or a folder, byte identical between runs. A zip's date field cannot hold anything before
-1980, so the written date is fixed at 1980 rather than being a real timestamp that would make two
-saves of the same song differ.
+A zip packed with Deflate, or a folder, byte identical between runs. A zip's date field cannot
+hold anything before 1980, so the written date is fixed at 1980 rather than being a real timestamp
+that would make two saves of the same song differ.
 
 ---
 
 ## The project file
 
-`.mdsyn`, a zip of JSON documents plus the samples. The suffix can be registered with the desktop
-so a double click opens it, and unregistered again from preferences. The JSON reader and writer are
+`.mdsyn`, a zip of JSON documents plus the samples. Every part of it is packed with Deflate, the
+method every zip reader takes, so 7-Zip and the file manager of any desktop open it, and each part
+carries the CRC32 of what it unpacks to, so a damaged file says so rather than opening wrong.
+Packing takes a few milliseconds and loses nothing: the example project that ships is 265566
+bytes unpacked and 26129 on disk, and one piece here went from 1119874 bytes to 55676 once it
+also shed the presets it did not play. The suffix can be registered with the desktop so a double
+click opens it, and unregistered again from preferences. The JSON reader and writer are
 this repository's own, because a `Map` insertion order is preserved on some Haxe targets and not on
 hxcpp, and a project that reorders itself between saves is not byte identical.
 
