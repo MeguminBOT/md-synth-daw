@@ -551,8 +551,11 @@ final class Stage {
 				final held = onFocus;
 				if (held != null && event.windowID == windowID) held();
 
+			case Sdl.EVENT_WINDOW_FOCUS_LOST:
+				if (event.windowID == windowID) root.lets();
+
 			case Sdl.EVENT_MOUSE_MOVE:
-				root.moved(event.x, event.y, event.mods);
+				root.moved(event.x, event.y, event.mods, event.code);
 
 			case Sdl.EVENT_MOUSE_DOWN:
 				root.pressed(event.x, event.y, event.code, event.mods, event.value);

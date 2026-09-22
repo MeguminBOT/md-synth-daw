@@ -1708,10 +1708,10 @@ class Run {
 		an earlier install left, so clearing one is what makes the install smaller rather
 		than only what stops it growing.
 
-		A face the application fetched for itself goes with it, licence notice and all,
-		because that copy is read in place of an installed one and a language whose face is
-		still there was not cleared in any sense the reader can see. Inno's own warning says
-		the opposite, so the message is written again to say what the entries below do.
+		A face the application fetched for itself under the userdata folder goes with it,
+		licence notice and all, since that copy is read in place of an installed one. Inno's
+		own warning for a cleared component says nothing is uninstalled, so the message is
+		given the text these entries earn.
 
 		@param root The repository root.
 		@param project What the build file declares.

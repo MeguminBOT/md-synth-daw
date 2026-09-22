@@ -111,6 +111,7 @@ class UiCheck {
 		routing();
 		focusOrder();
 		capture();
+		stuck();
 		asked();
 		used();
 		editing();
@@ -519,6 +520,35 @@ class UiCheck {
 		final let = root.capture == null;
 
 		says("capture", took && held && let, "held across a drag that left the widget");
+	}
+
+	static function stuck():Void {
+		final root = shaped();
+		root.resize(400, 300);
+
+		final field = new Field("drag");
+		root.top.add(field);
+		root.top.arrange(0, 0, 400, 300);
+		field.arrange(0, 0, 100, 30);
+
+		final leftHeld = 1;
+
+		root.pressed(20, 10, Pointer.Left, Mod.None);
+		root.moved(60, 10, Mod.None, leftHeld);
+		final going = root.capture == field;
+
+		root.moved(80, 10, Mod.None, 0);
+		final ended = root.capture == null;
+
+		root.pressed(20, 10, Pointer.Left, Mod.None);
+		root.moved(60, 10, Mod.None, Root.UNKNOWN_BUTTONS);
+		final again = root.capture == field;
+
+		root.lets();
+		final let = root.capture == null;
+
+		says("a release that never arrives", going && ended && again && let,
+			"a move with no button held ends the drag, and so does losing the focus");
 	}
 
 	static function used():Void {

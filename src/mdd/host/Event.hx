@@ -22,7 +22,8 @@ extern class Event {
 	public var windowID:Int;
 
 	/**
-		The key, the button or the window field, by event.
+		The key, the button or the window field, by event. A move carries a mask of the
+		buttons held instead, which is nought where the pointer is moving on its own.
 	**/
 	public var code:Int;
 

@@ -73,6 +73,12 @@ final class Root {
 	public var capture(default, null):Null<Widget> = null;
 
 	/**
+		The mask `moved` takes from a caller that cannot tell which buttons are held. A
+		drag going at the time is left alone.
+	**/
+	public static inline final UNKNOWN_BUTTONS = -1;
+
+	/**
 		What the pointer is over.
 	**/
 	public var over(default, null):Null<Widget> = null;
@@ -769,15 +775,22 @@ final class Root {
 	/**
 		Takes a pointer move, keeping it with whatever captured the pointer.
 
+		A move carrying no held button ends a drag the capture is still holding, at the
+		pointer, before the move is passed on.
+
 		@param x Where, across.
 		@param y Where, down.
 		@param mods Which modifier keys are held.
+		@param buttons Which buttons are held, as a mask, or `UNKNOWN_BUTTONS` where the
+			caller has no way to tell.
 	**/
-	public function moved(x:Float, y:Float, mods:Mod):Void {
+	public function moved(x:Float, y:Float, mods:Mod, buttons:Int = UNKNOWN_BUTTONS):Void {
 		if (x != pointerX || y != pointerY) {
 			still = 0;
 			blocked = false;
 		}
+
+		if (capture != null && buttons == 0) released(x, y, Pointer.Left, mods);
 
 		pointerX = x;
 		pointerY = y;
@@ -906,6 +919,16 @@ final class Root {
 		}
 
 		hover(pick(x, y));
+	}
+
+	/**
+		Ends a drag the capture is holding, where the pointer last was, and does nothing
+		where no drag is going. The widget hears an ordinary release.
+	**/
+	public function lets():Void {
+		if (capture == null) return;
+
+		released(pointerX, pointerY, Pointer.Left, mods);
 	}
 
 	/**

@@ -65,6 +65,7 @@ extern "C" int mdd_poll_event(MddEvent *out) {
 			case SDL_EVENT_MOUSE_MOTION:
 				out->type = MDD_EVENT_MOUSE_MOVE;
 				out->windowID = event.motion.windowID;
+				out->code = static_cast<int>(event.motion.state);
 				out->mods = foldMods(SDL_GetModState());
 				out->x = event.motion.x;
 				out->y = event.motion.y;
