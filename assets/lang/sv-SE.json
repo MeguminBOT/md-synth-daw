@@ -243,7 +243,7 @@
   "language.download": "{0}, ladda ner {1} MB",
   "language.machine": "Det här språket är översatt av en AI och har inte lästs av någon som talar det.",
   "language.person": "Det här språket är skrivet av en människa.",
-  "language.written": "person",
+  "language.written": "machine",
   "languageName.jaJP": "Japanska",
   "languageName.koKR": "Koreanska",
   "languageName.zhCN": "Kinesiska (förenklad)",
