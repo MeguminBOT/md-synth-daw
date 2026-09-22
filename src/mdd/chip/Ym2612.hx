@@ -140,9 +140,10 @@ final class Ym2612 {
 	public final registers:Vector<Int> = new Vector<Int>(512);
 
 	/**
-		The six channels.
+		The six channels, in an array made at its size and never grown. A `Vector` of objects
+		casts through a virtual call on every read, and this is read on every slot.
 	**/
-	public final channels:Vector<Channel> = new Vector<Channel>(6);
+	public final channels:Array<Channel> = cpp.NativeArray.create(6);
 
 	/**
 		How many writes the part has taken since it was made. Checks compare this against

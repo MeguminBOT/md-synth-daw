@@ -67,9 +67,10 @@ final class Channel {
 	]);
 
 	/**
-		The four operators, in the order the part slots them.
+		The four operators, in the order the part slots them, in an array made at its size and
+		never grown for the same reason as `Ym2612.channels`.
 	**/
-	public final operators:Vector<Operator> = new Vector<Operator>(4);
+	public final operators:Array<Operator> = cpp.NativeArray.create(4);
 
 	/**
 		Which of the eight operator wirings this channel uses.

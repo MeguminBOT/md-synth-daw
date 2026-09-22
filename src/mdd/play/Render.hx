@@ -41,10 +41,10 @@ import mdd.song.Tempo;
 	them, and the device the result is served to.
 
 	Everything reachable from `serve` runs on the audio thread, and it allocates
-	nothing: `haxe.ds.Vector` for all state, no closures, no `Dynamic`, no array
-	growth, no string building. A pause here is heard. It reaches a collector safe
-	point once per block rather than declaring itself outside the collector, which
-	frees what only this thread is holding.
+	nothing: fixed-size state only, no closures, no `Dynamic`, no array growth, no
+	string building. A pause here is heard. It reaches a collector safe point once
+	per block rather than declaring itself outside the collector, which frees what
+	only this thread is holding.
 
 	The same class does the offline render an export needs, which is what makes an
 	export the same sound as playback rather than a second path that could drift.
