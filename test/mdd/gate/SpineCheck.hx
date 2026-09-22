@@ -1921,7 +1921,8 @@ class SpineCheck {
 			"draw took Ctrl+Alt+B and undo was left with nothing rather than a second owner");
 
 		says("and a tag survives a project", tagsKeep(session),
-			"written and read back with " + held.tags.length + " tags");
+			"written and read back with all " + held.tags.length + " of its tags, "
+			+ held.tags.join(", "));
 
 		var lifted = 0;
 		for (one in session.song.instruments) if (one.tags.length > 0) lifted++;
@@ -1940,13 +1941,25 @@ class SpineCheck {
 			+ " of them answer to Green Hill Zone");
 	}
 
+	/**
+		@param session The session whose first preset was given the tags brass and lead.
+		@return Whether that preset reads back from a written project with every tag it was written
+			with, the two it was given among them. A shipped preset arrives with tags of its own, so
+			the two given are added to them rather than being the only ones.
+	**/
 	static function tagsKeep(session:mdd.app.Session):Bool {
+		final held = session.song.instrumentAt(0);
 		final back = mdd.format.Project.read(mdd.format.Project.text(session.song));
 
-		if (back == null || back.instruments.length == 0) return false;
+		if (held == null || back == null) return false;
 
-		final one = back.instruments[0];
-		return one.tags.length == 2 && one.tags[0] == "brass" && one.tags[1] == "lead";
+		for (one in back.instruments) {
+			if (one.name != held.name || one.tags.join(",") != held.tags.join(",")) continue;
+
+			return one.tags.indexOf("brass") >= 0 && one.tags.indexOf("lead") >= 0;
+		}
+
+		return false;
 	}
 
 	/**
