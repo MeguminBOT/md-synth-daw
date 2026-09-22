@@ -360,6 +360,8 @@ final class Tree extends Scroll {
 
 					pen += dot + metrics.unit * 2;
 				}
+			} else if (item.branch()) {
+				pen += metrics.unit * 2;
 			}
 
 			final ink = item == chosen || header ? theme.ink : theme.dim;

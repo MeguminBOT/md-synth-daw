@@ -141,8 +141,43 @@ final class Presets extends Widget {
 	final grouped:Array<Int> = [];
 	final kitLead:Array<Int> = [];
 
+	/**
+		The families a reader has folded, which start open.
+	**/
 	final shut:Array<String> = [];
+
+	/**
+		The banks a reader has opened, which start folded.
+	**/
 	final opened:Array<String> = [];
+
+	/**
+		The toolbar button that steps through the orders.
+	**/
+	static inline final ORDER_CHIP = 0;
+
+	/**
+		The toolbar button that opens the presets folder.
+	**/
+	static inline final FOLDER_CHIP = 1;
+
+	/**
+		How many buttons the toolbar holds.
+	**/
+	static inline final CHIPS = 2;
+
+	final chipLeft:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(CHIPS);
+	final chipWide:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(CHIPS);
+
+	/**
+		Where the toolbar row starts, down.
+	**/
+	var barTop:Float = 0;
+
+	/**
+		How tall the toolbar row is.
+	**/
+	var barTall:Float = 0;
 
 	var sighted:Int = -2;
 	var sought:String = "";
@@ -192,11 +227,11 @@ final class Presets extends Widget {
 		if (group >= 0 && kitLead[group] >= 0) loads(kitLead[group]);
 	}
 
-	function loads(which:Int):Void {
+	function loads(which:Int, ?into:Part):Void {
 		final instrument = session.song.instrumentAt(which);
 		if (instrument == null) return;
 
-		final part = wanted(instrument);
+		final part = into == null ? wanted(instrument) : into;
 
 		session.does(new mdd.song.edit.TakesPreset(part, which));
 		session.says(Locale.SAID_INSTRUMENT_LOADED,
@@ -260,15 +295,34 @@ final class Presets extends Widget {
 		final key = keyOf(item);
 		if (key == "") return;
 
-		final group = groups.indexOf(item);
-		final kit = group >= 0 && kitLead[group] >= 0;
-		final list = kit ? opened : shut;
+		final bank = groups.indexOf(item) >= 0;
+		final list = bank ? opened : shut;
 		final at = list.indexOf(key);
 
-		if (item.open == kit) {
+		if (item.open == bank) {
 			if (at < 0) list.push(key);
 		} else if (at >= 0) {
 			list.splice(at, 1);
+		}
+	}
+
+	/**
+		Opens every family and every bank, or folds every bank and leaves the families open, and
+		remembers it the way a reader's own folding is remembered.
+
+		@param open Whether they should be open.
+	**/
+	public function opensAll(open:Bool):Void {
+		if (open) {
+			for (item in kinds) {
+				tree.fold(item, true);
+				folded(item);
+			}
+		}
+
+		for (item in groups) {
+			tree.fold(item, open);
+			folded(item);
 		}
 	}
 
@@ -283,8 +337,7 @@ final class Presets extends Widget {
 
 		menu = new Menu();
 
-		fires(menu.offer(new Choice(translate(Locale.PRESET_LOAD) + " "
-			+ session.part.name())), function():Void picked(item));
+		menu.offer(new Choice(translate(Locale.PRESET_LOAD))).submenu = into(item, instrument);
 
 		if (suits(instrument, session.part) && !session.part.sampled()) {
 			fires(menu.offer(new Choice(filled(Locale.PRESET_SWITCH, [session.part.name()]))),
@@ -333,6 +386,32 @@ final class Presets extends Widget {
 			dropped(which));
 
 		root.pop(menu, px, py, this);
+	}
+
+	/**
+		@param item The preset's row.
+		@param instrument The preset.
+		@return A menu of every channel the preset plays on, each with what it plays now beside
+			it. A converter preset in a kit loads the kit.
+	**/
+	function into(item:Item, instrument:Instrument):Menu {
+		final out = new Menu();
+		final at = held.indexOf(item);
+		final owner = at < 0 ? -1 : groups.indexOf(item.parent);
+		final which = owner >= 0 && kitLead[owner] >= 0 ? kitLead[owner] : named[at];
+		final song = session.song;
+
+		for (index in 0...Part.COUNT) {
+			final part:Part = index;
+			if (!mdd.song.Library.kin(instrument.kind, part)) continue;
+
+			final playing = song.instrumentAt(song.rack[index]);
+
+			fires(out.offer(new Choice(part.name(), playing == null ? ""
+				: Kits.named(song, part, song.rack[index]))), function():Void loads(which, part));
+		}
+
+		return out;
 	}
 
 	function icons(which:Int):Menu {
@@ -517,18 +596,11 @@ final class Presets extends Widget {
 	}
 
 	function folding(into:Menu):Void {
-		fires(into.offer(new Choice(translate(Locale.PRESET_EXPAND_ALL))), function():Void {
-			shut.resize(0);
-			for (item in kinds) tree.fold(item, true);
-			for (item in groups) tree.fold(item, true);
-		});
+		fires(into.offer(new Choice(translate(Locale.PRESET_EXPAND_ALL))), function():Void
+			opensAll(true));
 
-		fires(into.offer(new Choice(translate(Locale.PRESET_COLLAPSE_ALL))), function():Void {
-			for (item in groups) {
-				tree.fold(item, false);
-				folded(item);
-			}
-		});
+		fires(into.offer(new Choice(translate(Locale.PRESET_COLLAPSE_ALL))), function():Void
+			opensAll(false));
 	}
 
 	/**
@@ -557,7 +629,7 @@ final class Presets extends Widget {
 		session.say(translate(ORDER_NAMES[order]));
 		session.changed();
 
-		invalidate();
+		relayout();
 	}
 
 	/**
@@ -570,23 +642,22 @@ final class Presets extends Widget {
 	/**
 		@return How wide the order button is.
 	**/
-	public function orderWide():Float {
-		final root = root();
-		return root == null ? 62 : root.metrics.whole(62);
+	public inline function orderWide():Float {
+		return chipWide[ORDER_CHIP];
 	}
 
 	/**
 		@return Where it sits, across.
 	**/
-	public function orderLeft():Float {
-		final root = root();
-		if (root == null) return x;
+	public inline function orderLeft():Float {
+		return chipLeft[ORDER_CHIP];
+	}
 
-		final metrics = root.metrics;
-		final font = metrics.small == null ? metrics.body : metrics.small;
-
-		return x + width - metrics.inset - font.measure(listed + " / " + banks)
-			- metrics.gap - orderWide();
+	/**
+		@return Where the toolbar row the buttons sit in starts, down.
+	**/
+	public inline function toolbarTop():Float {
+		return barTop;
 	}
 
 	/**
@@ -594,67 +665,79 @@ final class Presets extends Widget {
 		@param py A point, down.
 		@return Whether the point is on the order button.
 	**/
-	public function onOrder(px:Float, py:Float):Bool {
-		final root = root();
-		if (root == null) return false;
-
-		final left = orderLeft();
-
-		return py >= y && py < y + root.metrics.head && px >= left
-			&& px < left + orderWide();
-	}
-
-	/**
-		@return How wide the folder button is.
-	**/
-	public function folderWide():Float {
-		final root = root();
-		if (root == null) return 80;
-
-		final metrics = root.metrics;
-		final font = metrics.small == null ? metrics.body : metrics.small;
-		if (font == null) return metrics.whole(80);
-
-		return font.measure(translate(Locale.PRESET_FOLDER)) + metrics.gap * 2;
-	}
-
-	/**
-		@return Where it sits, across: just left of the order button.
-	**/
-	public function folderLeft():Float {
-		final root = root();
-		final gap = root == null ? 8 : root.metrics.gap;
-
-		return orderLeft() - gap * 0.5 - folderWide();
+	public inline function onOrder(px:Float, py:Float):Bool {
+		return chipAt(px, py) == ORDER_CHIP;
 	}
 
 	/**
 		@param px A point, across.
 		@param py A point, down.
-		@return Whether the point is on the folder button.
+		@return Which toolbar button the point is on, or -1 for none.
 	**/
-	public function onFolderButton(px:Float, py:Float):Bool {
+	function chipAt(px:Float, py:Float):Int {
+		if (py < barTop || py >= barTop + barTall) return -1;
+
+		for (which in 0...CHIPS) {
+			if (px >= chipLeft[which] && px < chipLeft[which] + chipWide[which]) return which;
+		}
+
+		return -1;
+	}
+
+	/**
+		@param which A toolbar button.
+		@return What it says.
+	**/
+	function chipLabel(which:Int):String {
+		return which == ORDER_CHIP ? translate(ORDER_NAMES[order]) : translate(Locale.PRESET_FOLDER);
+	}
+
+	/**
+		Lays the toolbar out along its row: the order at the start and the folder at the end, each
+		as wide as its label, both squeezed evenly where the row is narrower than the two.
+
+		@param left Where the row starts, across.
+		@param room How wide it is.
+	**/
+	function lays(left:Float, room:Float):Void {
 		final root = root();
-		if (root == null) return false;
+		final metrics = root == null ? null : root.metrics;
+		final font = metrics == null ? null : (metrics.small == null ? metrics.body : metrics.small);
+		final pad = metrics == null ? 8 : metrics.gap;
+		final gap = pad * 0.5;
 
-		final left = folderLeft();
+		var total = gap;
 
-		return py >= y && py < y + root.metrics.head && px >= left
-			&& px < left + folderWide();
+		for (which in 0...CHIPS) {
+			chipWide[which] = (font == null ? 60 : font.measure(chipLabel(which))) + pad * 2;
+			total += chipWide[which];
+		}
+
+		if (total > room) {
+			final scale = (room - gap) / (total - gap);
+			for (which in 0...CHIPS) chipWide[which] = Math.max(0, chipWide[which] * scale);
+		}
+
+		chipLeft[ORDER_CHIP] = left;
+		chipLeft[FOLDER_CHIP] = left + room - chipWide[FOLDER_CHIP];
 	}
 
 	override function took(event:mdd.ui.Input):Bool {
 		if (event.kind != mdd.ui.Kind.PointerDown) return false;
 
-		if (onFolderButton(event.x, event.y)) {
-			if (onFolder != null) onFolder();
-			return true;
+		switch (chipAt(event.x, event.y)) {
+			case FOLDER_CHIP:
+				if (onFolder != null) onFolder();
+				return true;
+
+			case ORDER_CHIP:
+				turns();
+				return true;
+
+			case _:
 		}
 
-		if (!onOrder(event.x, event.y)) return false;
-
-		turns();
-		return true;
+		return false;
 	}
 
 	/**
@@ -747,14 +830,11 @@ final class Presets extends Widget {
 
 		final hunting = seeking() != "" || order == BY_FAVOURITE;
 		final starring = favourites;
-		final root = root();
-		final warned = root == null ? -1 : (root.theme.warn : Int);
 
 		for (kind in KINDS) {
 			final kitting = kind.sampled();
 			final places:Array<Int> = [];
 			var total = 0;
-			var loose = false;
 
 			for (at in 0...song.banks.length) {
 				var has = 0;
@@ -770,13 +850,12 @@ final class Presets extends Widget {
 
 				total += kitting ? 1 : has;
 				places.push(at);
-				if (!song.banks[at].kept) loose = true;
 			}
 
 			if (total == 0) continue;
 
 			final family = kind.family();
-			final head = new Item(family + "   " + total, loose ? warned : -1);
+			final head = new Item(family + "   " + total);
 			head.open = hunting || shut.indexOf(family) < 0;
 
 			kinds.push(head);
@@ -798,13 +877,12 @@ final class Presets extends Widget {
 				ordered(inside);
 
 				final group = head.add(new Item(bank.name + "   " + inside.length,
-					kitting ? Theme.PARTS[kind.index()] : (bank.kept ? -1 : warned)));
+					kitting ? Theme.PARTS[kind.index()] : -1));
 
 				final key = family + "/" + bank.name;
 
 				group.icon = kitting ? Icon.DRUMKIT : -1;
-				group.open = hunting
-					|| (kitting ? opened.indexOf(key) >= 0 : shut.indexOf(key) < 0);
+				group.open = hunting || opened.indexOf(key) >= 0;
 
 				groups.push(group);
 				groupKeys.push(key);
@@ -881,6 +959,14 @@ final class Presets extends Widget {
 		return root == null ? 28 : root.metrics.whole(28);
 	}
 
+	/**
+		@return How tall a preset row is, a little under the tree's own so more of a bank fits.
+	**/
+	function rowTall():Float {
+		final root = root();
+		return root == null ? 22 : root.metrics.whole(22);
+	}
+
 	override function layout():Void {
 		if (seeking() != sought) {
 			sought = seeking();
@@ -892,13 +978,18 @@ final class Presets extends Widget {
 		final deep = searchTall();
 
 		final metrics = root == null ? null : root.metrics;
-		final inset = metrics == null ? 12 : metrics.inset;
 		final gap = metrics == null ? 8 : metrics.gap;
 
 		search.arrange(x + gap, y + top + gap * 0.5, width - gap * 2, deep);
 
-		final under = top + deep + gap;
+		barTop = y + top + gap * 0.5 + deep + gap * 0.5;
+		barTall = metrics == null ? 22 : metrics.whole(22);
 
+		lays(x + gap, width - gap * 2);
+
+		final under = barTop - y + barTall + gap * 0.5;
+
+		tree.rowHeight = rowTall();
 		tree.arrange(x, y + under, width, height - under);
 		reveals();
 	}
@@ -927,8 +1018,10 @@ final class Presets extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		if (font == null) return;
 
-		final deep = metrics.whole(17);
-		final at = y + (metrics.head - deep) * 0.5;
+		final deep = metrics.whole(18);
+		final at = barTop + (barTall - deep) * 0.5;
+
+		if (chip < metrics.whole(8)) return;
 
 		paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.raise2, 0.9);
 		paint.outline(left, at, chip, deep, theme.frame, metrics.whole(1), 0.7,
@@ -962,12 +1055,11 @@ final class Presets extends Widget {
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
-		chipped(paint, translate(Locale.PRESET_FOLDER), folderLeft(), folderWide());
-		chipped(paint, translate(ORDER_NAMES[order]), orderLeft(), orderWide());
+		for (which in 0...CHIPS) chipped(paint, chipLabel(which), chipLeft[which], chipWide[which]);
 
 		if (listed == 0) {
 			paint.text(translate(Locale.PANEL_NO_PRESETS), x + metrics.inset,
-				y + top + metrics.gap + font.ascent, theme.dim, 0.6);
+				tree.y + metrics.gap + font.ascent, theme.dim, 0.6);
 			return;
 		}
 

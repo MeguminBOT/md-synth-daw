@@ -59,6 +59,7 @@ class ShotCheck {
 		var backend = mdd.App.PINNED;
 		var frames = 1;
 		var sweep = "";
+		var side = 0;
 
 		var at = 0;
 
@@ -96,6 +97,7 @@ class ShotCheck {
 				case "--renderer": backend = held; at++;
 				case "--frames": frames = whole(held, frames); at++;
 				case "--sweep": sweep = held; at++;
+				case "--side": side = whole(held, side); at++;
 				case _:
 			}
 
@@ -273,6 +275,8 @@ class ShotCheck {
 
 		centre.show(centreTab);
 		editor.show(inspectorTab);
+
+		if (side > 0) sided(tree, shell, side);
 
 		if (dockTab > 0) centre.show(mdd.view.Centre.WARNINGS);
 		dock.said = "ready";
@@ -510,6 +514,31 @@ class ShotCheck {
 		Sdl.quit();
 
 		return 0;
+	}
+
+	/**
+		Drags the seam beside the inspector the way a reader does, so the shot shows the inspector at
+		that width after a resize rather than at the width it was built at.
+
+		@param tree The interface.
+		@param shell The shell holding the inspector.
+		@param side How wide the inspector should end up, in pixels.
+	**/
+	static function sided(tree:Root, shell:Shell, side:Int):Void {
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final seam = shell.divider(Shell.INSPECTOR);
+		final inspector = shell.zone(Shell.INSPECTOR);
+		final down = inspector.y + inspector.height * 0.5;
+		final to = seam - (side - inspector.width);
+
+		tree.moved(seam, down, mdd.ui.Mod.None);
+		tree.pressed(seam, down, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(to, down, mdd.ui.Mod.None);
+		tree.released(to, down, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.advance(1);
 	}
 
 	/**

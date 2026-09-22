@@ -246,6 +246,12 @@ A VGM this application wrote therefore imports with its drums where they were.
 ## Presets and banks
 
 - Search by name or by tag.
+- The browser opens with every bank folded, so the first thing you see is the list of banks
+  rather than the first one's presets. Its buttons sit on a row of their own under the search,
+  and follow the sidebar however narrow you drag it.
+- **Load into**, on a preset's right-click menu, lists every channel the preset plays on, each
+  with what that channel plays now beside it, so you can load into a channel you have not
+  selected.
 - **Switch at playhead**, on a preset's right-click menu, puts it in the channel's preset lane
   where the playhead is, so one channel can change instrument part way through a pattern.
 - Any patch in a song can be lifted into the library.
@@ -306,7 +312,7 @@ A VGM this application wrote therefore imports with its drums where they were.
   bank, including projects made before it. It keeps everything the channel has: the whole patch
   with its LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the
   same name replaces it.
-- **Open folder**, at the top of the preset browser, opens the presets folder in your file
+- **Open folder**, on the preset browser's toolbar, opens the presets folder in your file
   manager. It holds a folder for each family of part, `FM`, `PSG`, `NOISE` and `DAC`, and a
   preset you save goes into the one its part belongs to. Those four are not banks themselves: a
   preset sitting loose in one is a saved preset, while a subfolder you make inside one is a bank

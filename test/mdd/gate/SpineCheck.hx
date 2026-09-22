@@ -389,6 +389,7 @@ class SpineCheck {
 		}
 
 		typed(tree, browser, "");
+		browser.opensAll(true);
 		final allRows = browser.tree.rows();
 
 		typed(tree, browser, word);
@@ -1837,6 +1838,8 @@ class SpineCheck {
 		var said = "";
 		var tags = 0;
 
+		presets.opensAll(true);
+
 		var down = presets.tree.y + 2;
 
 		while (down < presets.tree.y + presets.tree.height) {
@@ -1874,6 +1877,7 @@ class SpineCheck {
 		final none = mdd.view.editor.Presets.briefly([]);
 
 		sorted(tree, presets, session);
+		browsed(tree, presets, session);
 
 		says("a game preset shows its zones and nothing else",
 			zones == "GHZ SBZ" && plain == "Boss, Credits  +1" && none == "",
@@ -3163,12 +3167,125 @@ class SpineCheck {
 
 		says("and the order is a chip in the header",
 			presets.onOrder(presets.orderLeft() + presets.orderWide() * 0.5,
-				presets.y + 4)
-			&& !presets.onOrder(presets.x + 4, presets.y + 4),
-			"the chip answers to a press on itself and not to the panel's title");
+				presets.toolbarTop() + 4)
+			&& !presets.onOrder(presets.orderLeft() + presets.orderWide() * 0.5, presets.y + 4)
+			&& presets.orderLeft() >= presets.x && presets.orderLeft() + presets.orderWide()
+				<= presets.x + presets.width,
+			"the chip answers to a press on itself in the toolbar and not to the panel's title,"
+			+ " and sits inside the panel");
 
 		presets.sorts(mdd.view.editor.Presets.BY_BANK);
 		laid(tree);
+	}
+
+	/**
+		The browser opens with its banks folded and nothing marked, keeps its toolbar inside the
+		panel however narrow the sidebar is dragged, and offers every channel a preset plays on
+		rather than only the one that is chosen.
+
+		@param tree The shell.
+		@param presets The browser the shell holds.
+		@param session The piece.
+	**/
+	static function browsed(tree:Root, presets:mdd.view.editor.Presets,
+			session:mdd.app.Session):Void {
+		final fresh = new mdd.view.editor.Presets(session);
+		fresh.fit();
+
+		var families = 0;
+		var open = 0;
+		var banks = 0;
+		var marked = 0;
+
+		for (top in fresh.tree.roots) {
+			families++;
+			if (top.tint >= 0) marked++;
+
+			for (group in top.children) {
+				banks++;
+				if (group.open) open++;
+				if (group.tint >= 0 && group.icon != mdd.Icon.DRUMKIT) marked++;
+			}
+		}
+
+		says("banks start folded", families > 0 && banks > 0 && open == 0,
+			open + " of " + banks + " banks open across " + families + " families");
+
+		says("and no heading carries a dot", marked == 0,
+			marked + " family or bank rows tinted, a kit's drum icon aside");
+
+		final wasX = presets.x;
+		final wasY = presets.y;
+		final wasWide = presets.width;
+		final wasTall = presets.height;
+		final metrics = tree.metrics;
+
+		var inside = true;
+		var clear = true;
+
+		for (wide in [140, 200, 332, 600]) {
+			presets.arrange(wasX, wasY, metrics.whole(wide), wasTall);
+
+			final left = presets.orderLeft();
+			if (left < presets.x || left + presets.orderWide() > presets.x + presets.width) inside = false;
+			if (presets.toolbarTop() < presets.y + metrics.head) clear = false;
+		}
+
+		presets.arrange(wasX, wasY, wasWide, wasTall);
+
+		says("the toolbar follows the sidebar", inside && clear,
+			"at 140, 200, 332 and 600 wide the buttons sit inside the panel and below its title");
+
+		says("and a preset row is shorter than a tree's", presets.tree.rowHeight > 0
+			&& presets.tree.rowHeight < metrics.whole(26),
+			Math.round(presets.tree.rowHeight) + " pixels against " + Math.round(metrics.whole(26)));
+
+		presets.opensAll(true);
+
+		var row:Null<mdd.ui.Item> = null;
+
+		for (at in 0...presets.tree.rows()) {
+			final item = presets.tree.shownAt(at);
+			if (item == null || item.branch()) continue;
+
+			final which = presets.instrumentOf(item);
+			final held = session.song.instrumentAt(which);
+
+			if (held != null && held.kind.fm()) {
+				row = item;
+				break;
+			}
+		}
+
+		var channels = 0;
+
+		if (row != null) {
+			final shown = presets.tree.rows();
+			final at = presets.tree.y + 2;
+
+			presets.tree.select(row);
+			presets.tree.reveal();
+
+			var down = at;
+
+			while (down < presets.tree.y + presets.tree.height) {
+				final index = presets.tree.rowAt(down);
+				if (index >= 0 && presets.tree.shownAt(index) == row) break;
+				down += 2;
+			}
+
+			if (popUnder(tree, presets.tree, presets.tree.x + 20, down) > 0 && shown > 0) {
+				final menu = tree.popups[0];
+				final load = menu.choices.length == 0 ? null : menu.choices[0].submenu;
+
+				channels = load == null ? 0 : load.choices.length;
+			}
+
+			tree.dismiss();
+		}
+
+		says("loading offers every FM channel", channels == 6,
+			"an FM preset's Load into lists " + channels + " channels");
 	}
 
 	static function spelt(presets:mdd.view.editor.Presets):Array<String> {
