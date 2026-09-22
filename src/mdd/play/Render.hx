@@ -336,20 +336,37 @@ final class Render {
 	static inline final PHASES = 32;
 
 	/**
-		Taps per phase of the resampler kernel.
+		Taps per phase of the FM resampler kernel. A multiple of four, because the kernel is
+		summed in four runs, one tap of each at a time.
 	**/
 	static inline final WEIGHTS = 512;
 
+	/**
+		Taps per phase of the square part's kernel, a multiple of four for the same reason.
+	**/
 	static inline final SQUARES = 384;
 
 	final weights:Vector<Float> = new Vector<Float>(WEIGHTS * PHASES);
-	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS);
-	final pastRight:Vector<Float> = new Vector<Float>(WEIGHTS);
+
+	/**
+		The last `WEIGHTS` FM samples on the left, each held twice, `WEIGHTS` apart, so the
+		kernel reads them newest first as one unbroken run down from `pastAt + WEIGHTS`.
+	**/
+	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS * 2);
+
+	/**
+		The same on the right.
+	**/
+	final pastRight:Vector<Float> = new Vector<Float>(WEIGHTS * 2);
 
 	var pastAt:Int = 0;
 
 	final squareWeights:Vector<Float> = new Vector<Float>(SQUARES * PHASES);
-	final squarePast:Vector<Float> = new Vector<Float>(SQUARES);
+
+	/**
+		The last `SQUARES` square part samples, held twice in the same way.
+	**/
+	final squarePast:Vector<Float> = new Vector<Float>(SQUARES * 2);
 
 	var squareAt:Int = 0;
 
@@ -409,7 +426,7 @@ final class Render {
 			for (index in 0...WEIGHTS) weights[base + index] /= total;
 		}
 
-		for (index in 0...WEIGHTS) {
+		for (index in 0...WEIGHTS * 2) {
 			pastLeft[index] = 0;
 			pastRight[index] = 0;
 		}
@@ -442,7 +459,7 @@ final class Render {
 			for (index in 0...SQUARES) squareWeights[base + index] /= whole;
 		}
 
-		for (index in 0...SQUARES) squarePast[index] = 0;
+		for (index in 0...SQUARES * 2) squarePast[index] = 0;
 	}
 
 	/**
@@ -458,12 +475,12 @@ final class Render {
 		pastAt = 0;
 		squareAt = 0;
 
-		for (index in 0...WEIGHTS) {
+		for (index in 0...WEIGHTS * 2) {
 			pastLeft[index] = 0;
 			pastRight[index] = 0;
 		}
 
-		for (index in 0...SQUARES) squarePast[index] = 0;
+		for (index in 0...SQUARES * 2) squarePast[index] = 0;
 		fmLeft = 0;
 		fmRight = 0;
 		wentLeft = 0;
@@ -556,29 +573,50 @@ final class Render {
 				if (pastAt >= WEIGHTS) pastAt = 0;
 
 				pastLeft[pastAt] = ym.left;
+				pastLeft[pastAt + WEIGHTS] = ym.left;
 				pastRight[pastAt] = ym.right;
+				pastRight[pastAt + WEIGHTS] = ym.right;
 			}
-
-			var gotLeft = 0.0;
-			var gotRight = 0.0;
-			var at = pastAt;
 
 			var phase = Std.int(fmAt * PHASES);
 			if (phase < 0) phase = 0;
 			if (phase >= PHASES) phase = PHASES - 1;
 
 			final base = phase * WEIGHTS;
+			final newest = pastAt + WEIGHTS;
 
-			for (index in 0...WEIGHTS) {
-				gotLeft += pastLeft[at] * weights[base + index];
-				gotRight += pastRight[at] * weights[base + index];
+			var leftOne = 0.0;
+			var leftTwo = 0.0;
+			var leftThree = 0.0;
+			var leftFour = 0.0;
+			var rightOne = 0.0;
+			var rightTwo = 0.0;
+			var rightThree = 0.0;
+			var rightFour = 0.0;
+			var reach = 0;
 
-				at--;
-				if (at < 0) at = WEIGHTS - 1;
+			while (reach < WEIGHTS) {
+				final weightOne = weights[base + reach];
+				final weightTwo = weights[base + reach + 1];
+				final weightThree = weights[base + reach + 2];
+				final weightFour = weights[base + reach + 3];
+				final at = newest - reach;
+
+				leftOne += pastLeft[at] * weightOne;
+				leftTwo += pastLeft[at - 1] * weightTwo;
+				leftThree += pastLeft[at - 2] * weightThree;
+				leftFour += pastLeft[at - 3] * weightFour;
+
+				rightOne += pastRight[at] * weightOne;
+				rightTwo += pastRight[at - 1] * weightTwo;
+				rightThree += pastRight[at - 2] * weightThree;
+				rightFour += pastRight[at - 3] * weightFour;
+
+				reach += 4;
 			}
 
-			fmLeft = gotLeft;
-			fmRight = gotRight;
+			fmLeft = (leftOne + leftTwo) + (leftThree + leftFour);
+			fmRight = (rightOne + rightTwo) + (rightThree + rightFour);
 
 			psgAt += psgStep;
 
@@ -588,24 +626,36 @@ final class Render {
 				squareAt++;
 				if (squareAt >= SQUARES) squareAt = 0;
 
-				squarePast[squareAt] = psg.sample();
+				final level:Float = psg.sample();
+				squarePast[squareAt] = level;
+				squarePast[squareAt + SQUARES] = level;
 			}
-
-			var other = 0.0;
-			var square = squareAt;
 
 			var turn = Std.int(psgAt * PHASES);
 			if (turn < 0) turn = 0;
 			if (turn >= PHASES) turn = PHASES - 1;
 
 			final tap = turn * SQUARES;
+			final newestSquare = squareAt + SQUARES;
 
-			for (index in 0...SQUARES) {
-				other += squarePast[square] * squareWeights[tap + index];
+			var squareOne = 0.0;
+			var squareTwo = 0.0;
+			var squareThree = 0.0;
+			var squareFour = 0.0;
+			var squareReach = 0;
 
-				square--;
-				if (square < 0) square = SQUARES - 1;
+			while (squareReach < SQUARES) {
+				final at = newestSquare - squareReach;
+
+				squareOne += squarePast[at] * squareWeights[tap + squareReach];
+				squareTwo += squarePast[at - 1] * squareWeights[tap + squareReach + 1];
+				squareThree += squarePast[at - 2] * squareWeights[tap + squareReach + 2];
+				squareFour += squarePast[at - 3] * squareWeights[tap + squareReach + 3];
+
+				squareReach += 4;
 			}
+
+			final other = (squareOne + squareTwo) + (squareThree + squareFour);
 
 			final left = fmLeft + other;
 			final right = fmRight + other;
