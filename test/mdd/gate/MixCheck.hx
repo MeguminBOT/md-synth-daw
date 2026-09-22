@@ -943,37 +943,36 @@ class MixCheck {
 
 	static function furnished():Void {
 		final library = mdd.song.Library.embedded();
-
 		final song = new Song("import", 96, 120);
 
-		final first = library.into(song);
-		final banks = song.banks.length;
-		final again = library.into(song);
+		final loaded = song.adopts(library.instruments[0][0], library.samples[0][0]);
 
-		says("the shipped banks are built in and land on any song",
-			library.count() > 0 && first == library.count() && again == 0,
+		says("the shipped banks are built in and a piece takes only what it loads",
+			library.count() > 0 && library.names.length > 1 && song.instruments.length == 1
+			&& song.instruments[loaded].from == library.instruments[0][0].id,
 			library.count() + " presets embedded in the binary across " + library.names.length
-			+ " banks, " + first + " of them added to a song read from a file and " + again
-			+ " added a second time");
+			+ " banks, and a piece that loads one of them carries " + song.instruments.length);
 
 		var noises = 0;
 		var longest = 0;
 		var white = 0;
 
-		for (instrument in song.instruments) {
-			final envelope = instrument.envelope;
+		for (bank in library.instruments) {
+			for (instrument in bank) {
+				final envelope = instrument.envelope;
 
-			if (envelope == null || !instrument.kind.noise()) continue;
-			if (envelope.steps.length == 0) continue;
+				if (envelope == null || !instrument.kind.noise()) continue;
+				if (envelope.steps.length == 0) continue;
 
-			noises++;
-			if (envelope.steps.length > longest) longest = envelope.steps.length;
-			if (envelope.noise == 7) white++;
+				noises++;
+				if (envelope.steps.length > longest) longest = envelope.steps.length;
+				if (envelope.noise == 7) white++;
+			}
 		}
 
-		says("and the drums a bank carries reach the noise channel",
+		says("and the drums a bank carries are for the noise channel",
 			noises >= 10 && white > 0 && longest > 1,
-			noises + " noise envelopes landed on the noise part, " + white
+			noises + " noise envelopes are offered for the noise part, " + white
 			+ " of them clocked from the tone channel and " + (noises - white)
 			+ " from the chip's own divider, the longest " + longest + " steps");
 	}
@@ -993,17 +992,15 @@ class MixCheck {
 		final library = new mdd.song.Library();
 		final many = library.reads(said);
 
-		final song = new Song("kit", 96, 120);
-		library.into(song);
-
-		final one = song.samples.length == 0 ? null : song.samples[0];
+		final held = library.samples.length == 0 ? [] : library.samples[0];
+		final one = held.length == 0 ? null : held[0];
 
 		var same = one != null && one.length() == bytes.length;
 		if (same) for (at in 0...bytes.length) if (one.bytes[at] != bytes.get(at)) same = false;
 
-		says("a kit reads back as samples", many == 2 && song.samples.length == 2 && same
+		says("a kit reads back as samples", many == 2 && held.length == 2 && same
 			&& one.rate == 16000,
-			many + " presets read, " + song.samples.length + " samples, the first "
+			many + " presets read, " + held.length + " samples, the first "
 			+ (one == null ? 0 : one.length()) + " bytes at "
 			+ (one == null ? 0 : one.rate) + " Hz, "
 			+ (same ? "byte for byte" : "and the bytes do not match"));

@@ -40,6 +40,32 @@ final class Session {
 	public var part:Part = Part.Fm1;
 
 	/**
+		Every preset installed, which the browser offers beside the piece's own and a channel's
+		origin is looked up in first. Null where nothing installed is being offered, as in a check
+		that builds a session over a piece alone.
+	**/
+	public var library:Null<mdd.song.Library> = null;
+
+	/**
+		@param held A preset the piece carries, usually a channel's.
+		@return The preset it was loaded from, found by identity among the installed presets first
+			and then among the piece's others, or null where it came from none or neither holds it.
+	**/
+	public function loadedFrom(held:mdd.song.Instrument):Null<mdd.song.Instrument> {
+		if (held.from == "") return null;
+
+		final known = library;
+
+		if (known != null) {
+			for (bank in known.instruments) for (one in bank) if (one.id == held.from) return one;
+		}
+
+		for (one in song.instruments) if (one != held && one.id == held.from) return one;
+
+		return null;
+	}
+
+	/**
 		Tool: choose and move.
 	**/
 	public static inline final SELECT = 0;
@@ -311,7 +337,10 @@ final class Session {
 		@return The session.
 	**/
 	public static function started(library:mdd.song.Library):Session {
-		return new Session(empty(library));
+		final out = new Session(empty(library));
+		out.library = library;
+
+		return out;
 	}
 
 	/**
@@ -321,7 +350,10 @@ final class Session {
 	public static inline final KICK = 36;
 
 	/**
-		Builds a new piece with a track and an instrument for each part.
+		Builds a new piece with a track and an instrument for each part, and nothing else: each
+		channel's preset is copied out of the library the way loading one copies it, so a new piece
+		carries eleven presets rather than everything installed. The sample channel plays a kick
+		made here, in a kit of its own, until a kit is loaded.
 
 		@param library The preset library to take instruments from.
 		@return The piece.
@@ -329,13 +361,17 @@ final class Session {
 	public static function empty(library:mdd.song.Library):Song {
 		final song = new Song("untitled", 96, 120);
 
-		library.into(song);
-
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
 			if (part.sampled()) continue;
 
-			song.rack[index] = played(song, part, index < DEFAULTS.length ? DEFAULTS[index] : "");
+			final at = played(library, part, index < DEFAULTS.length ? DEFAULTS[index] : "");
+			if (at < 0) continue;
+
+			final bank = at >> 16;
+			final which = at & 0xFFFF;
+
+			song.rack[index] = song.adopts(library.instruments[bank][which], library.samples[bank][which]);
 		}
 
 		final kit = song.instrument(new mdd.song.Instrument("Kick", Part.Dac));
@@ -356,8 +392,14 @@ final class Session {
 		}
 
 		sample.hold(bytes);
-		kit.sample = 0;
-		song.rack[Part.Dac.index()] = song.instruments.length - 1;
+		kit.sample = song.samples.length - 1;
+		kit.identifies(sample);
+
+		final at = song.instruments.length - 1;
+
+		song.rack[Part.Dac.index()] = at;
+		for (bank in song.banks) bank.remove(at);
+		song.banked(kit.name).add(at);
 
 		song.add(new Pattern("Pattern 1", 384));
 
@@ -367,24 +409,33 @@ final class Session {
 	}
 
 	/**
-		@param song The piece.
-		@param part The part to find a preset for.
-		@param want What it should play, by name.
-		@return That preset, by index, or the first one the part can play where the piece carries
-			nothing of that name.
+		@param library The preset library.
+		@param part A part.
+		@param want The name of the preset it should play.
+		@return Where that preset sits, as its bank shifted up sixteen bits over its place in the
+			bank, looking in the starting bank first, then for the first preset the part can play
+			in the starting bank, then anywhere; or -1 where nothing installed plays on the part.
 	**/
-	static function played(song:Song, part:Part, want:String):Int {
+	static function played(library:mdd.song.Library, part:Part, want:String):Int {
 		var first = -1;
+		var anywhere = -1;
 
-		for (index in 0...song.instruments.length) {
-			final held = song.instruments[index];
-			if (!mdd.song.Library.kin(held.kind, part)) continue;
+		for (bank in 0...library.names.length) {
+			final starting = library.names[bank] == mdd.song.Library.STARTERS;
+			final held = library.instruments[bank];
 
-			if (held.name == want) return index;
-			if (first < 0) first = index;
+			for (which in 0...held.length) {
+				if (!mdd.song.Library.kin(held[which].kind, part)) continue;
+
+				final at = (bank << 16) | which;
+
+				if (starting && held[which].name == want) return at;
+				if (starting && first < 0) first = at;
+				if (anywhere < 0) anywhere = at;
+			}
 		}
 
-		return first < 0 ? 0 : first;
+		return first >= 0 ? first : anywhere;
 	}
 
 	/**

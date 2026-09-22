@@ -398,18 +398,19 @@ class App {
 		};
 		panels.onImportSample = function():Void files.ask(stage.window, Files.READ_WAV);
 
-		panels.onWritePatch = function(which:Int):Void {
-			files.chosen = which;
+		panels.onWritePatch = function(preset:mdd.song.Instrument, sample:Null<mdd.song.Sample>):Void {
+			files.chooses("", [preset], [sample]);
 			files.ask(stage.window, Files.PRESET_TFI);
 		};
 
-		panels.onWriteSample = function(which:Int):Void {
-			files.chosen = which;
+		panels.onWriteSample = function(preset:mdd.song.Instrument, sample:Null<mdd.song.Sample>):Void {
+			files.chooses("", [preset], [sample]);
 			files.ask(stage.window, Files.PRESET_WAV);
 		};
 
-		panels.onWriteBank = function(which:Int):Void {
-			files.chosen = which;
+		panels.onWriteBank = function(name:String, presets:Array<mdd.song.Instrument>,
+				samples:Array<Null<mdd.song.Sample>>):Void {
+			files.chooses(name, presets, samples);
 			files.ask(stage.window, Files.PRESET_BANK);
 		};
 
@@ -975,10 +976,9 @@ class App {
 		sound.stop();
 
 		mdd.app.Formerly.origins(song, library);
-		library.files(song, stage.root.translate(Locale.PRESET_FROM_FILE));
-		library.into(song);
 
 		session = new Session(song);
+		session.library = library;
 		presence.follows(session);
 		session.onChange = function(held:Session):Void changed();
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -1636,18 +1636,15 @@ class App {
 		if (files == null || session == null) return;
 		if (files.presetsStamp() == presetsStamp) return;
 
-		rescanned(true);
+		rescanned();
 	}
 
 	/**
-		Reads the presets folder from nothing and gives the piece what it gained.
-
-		@param prunes Whether a preset the folder no longer holds where it did leaves the
-			piece's banks as well, which is right when the same folder was changed and
-			wrong when another folder was chosen.
+		Reads the presets folder from nothing, from the cache where the folder has not changed
+		since it was written, and has the browser offer what it holds. Nothing is copied into the
+		piece: a preset reaches it when it is loaded.
 	**/
-	function rescanned(prunes:Bool):Void {
-		final before = library.sheds();
+	function rescanned():Void {
 		final folder = new mdd.song.Library();
 		final where = files.within("presets");
 		final stamp = files.presetsStamp();
@@ -1658,15 +1655,11 @@ class App {
 			folder.caches(cache, stamp);
 		}
 
+		library.forgets();
 		library.takes(folder);
 		presetsStamp = stamp;
 
-		session.holds();
-		final added = library.into(session.song);
-		final gone = prunes ? library.prunes(session.song, before) : 0;
-		session.frees();
-
-		if (added > 0 || gone > 0) session.changed();
+		session.changed();
 	}
 
 	/**
@@ -1689,7 +1682,7 @@ class App {
 				files.presetsAt = where;
 				panels.preferences.presetsAt = where;
 				settings.put("presets", where);
-				rescanned(false);
+				rescanned();
 			}
 
 			settings.save();
@@ -1750,7 +1743,7 @@ class App {
 			if (moved > 0) session.says(Locale.SAID_PRESETS_SORTED, "" + moved);
 		}
 
-		rescanned(false);
+		rescanned();
 
 		if (!settings.asFlag("starsBySound", false)) {
 			mdd.app.Formerly.stars(favourites, library);

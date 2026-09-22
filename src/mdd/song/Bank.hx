@@ -4,7 +4,8 @@ package mdd.song;
 	A named group of instruments, by index into the song's own list.
 
 	A bank holds indices rather than instruments so two banks can offer the same
-	instrument without either owning it.
+	instrument without either owning it. What a piece's banks decide is its kits: a drum
+	note picks its hit out of the bank the converter preset in the rack sits in.
 **/
 @:unreflective
 final class Bank {
@@ -12,11 +13,6 @@ final class Bank {
 		What the bank is called.
 	**/
 	public var name:String;
-
-	/**
-		Whether it is saved with the song. A bank built from the shipped library is not.
-	**/
-	public var kept:Bool;
 
 	/**
 		Which instruments are in it, by index into the song.
@@ -27,11 +23,9 @@ final class Bank {
 		Builds an empty bank.
 
 		@param name What to call it.
-		@param kept Whether it is saved with the song.
 	**/
-	public function new(name:String, kept:Bool = true) {
+	public function new(name:String) {
 		this.name = name;
-		this.kept = kept;
 	}
 
 	/**

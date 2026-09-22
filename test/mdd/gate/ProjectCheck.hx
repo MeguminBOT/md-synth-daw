@@ -12,13 +12,10 @@ import mdd.song.Song;
 @:unreflective
 
 /**
-	A file carries the piece, not the presets library that was open beside it.
+	A file carries the piece, not the presets that were tried in it or offered beside it.
 
-	A piece open in the application holds every bank the browser shows, which on a machine with a
-	filled presets folder is hundreds of presets the piece never plays. Writing them put a copy of
-	the library into every file, made a piece of twenty presets report a thousand, and grew with
-	the folder rather than with the music. What a file has to carry is what the piece plays, and
-	the proof that the right thing was left out is that the register stream is the same afterwards.
+	What a file has to carry is what the piece plays, and the proof that the right thing was left
+	out is that the register stream is the same afterwards.
 **/
 class ProjectCheck {
 	static var failed:Int = 0;
@@ -43,9 +40,8 @@ class ProjectCheck {
 
 		carried(where);
 		kitted(where);
-		kept(where);
 		heard(where);
-		older();
+		older(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -56,15 +52,31 @@ class ProjectCheck {
 	}
 
 	/**
-		A piece with the whole library beside it is written as the piece, and it sounds the same
-		when it is read back.
+		A piece that has had preset after preset loaded into a channel is written as what it plays,
+		and it sounds the same when it is read back.
+
+		Each load copies a preset into the piece, so browsing leaves a copy behind for every preset
+		tried. Writing those put a piece of twenty presets on disk as three hundred, and nothing in
+		the music asked for any of them.
 	**/
 	static function carried(where:String):Void {
 		final song = StreamCheck.written();
 		final library = stocked();
+		final shelf = library.names.indexOf("Shipped");
 
 		final own = song.instruments.length;
-		final added = library.into(song);
+		final part = Part.Fm2;
+		var last:Null<Instrument> = null;
+
+		for (index in 0...library.instruments[shelf].length) {
+			final take = mdd.song.edit.TakesPreset.adopting(part, library.instruments[shelf][index], null);
+
+			take.apply(song);
+			last = song.instrumentAt(song.rack[part.index()]);
+			take.revert(song);
+		}
+
+		final tried = song.instruments.length - own;
 
 		final before = new Stream(262144);
 		new Sequencer(song).emit(before, 0, SPAN);
@@ -73,11 +85,15 @@ class ProjectCheck {
 		Project.save(song, named);
 
 		final back = Project.open(named);
+		final playing = Needed.of(song).instruments.length;
 
-		says("a file carries the piece rather than the library",
-			back.instruments.length < own + added && back.instruments.length >= own,
-			song.instruments.length + " presets open, " + added + " of them the library's, "
-			+ back.instruments.length + " written");
+		var left = 0;
+		for (held in back.instruments) if (last != null && held.name == last.name) left++;
+
+		says("a file carries what the piece plays", back.instruments.length == playing
+			&& playing <= own && tried == library.instruments[shelf].length && left == 0,
+			song.instruments.length + " presets open, " + tried + " of them tried in a channel and"
+			+ " let go, " + back.instruments.length + " written");
 
 		var reaches = 0;
 
@@ -86,7 +102,7 @@ class ProjectCheck {
 			if (back.sampleAt(held.sample) != null) reaches++;
 		}
 
-		says("and no recording it does not play", back.samples.length < song.samples.length
+		says("and no recording it does not play", back.samples.length <= song.samples.length
 			&& reaches > 0 && orphans(back) == 0,
 			back.samples.length + " recordings written of " + song.samples.length
 			+ ", every one of them played by " + reaches + " presets");
@@ -98,25 +114,19 @@ class ProjectCheck {
 			before.count + " register writes over " + SPAN + " samples, and the file reads back "
 			+ after.count + ", " + (alike(before, after) == -2 ? "every one the same"
 			: "differing at " + alike(before, after)));
-
-		final held = library.into(back);
-
-		says("and the library puts back what was left out", held == added,
-			held + " presets came back against " + added + " left out");
 	}
 
 	/**
 		The kit behind a converter preset is written whole, because a hit is picked by note out of
-		a bank rather than named by the note.
+		a bank rather than named by the note, and a kit taken out of the library arrives whole.
 	**/
 	static function kitted(where:String):Void {
 		final song = StreamCheck.written();
 		final library = stocked();
+		final shelf = library.names.indexOf("Spare Kit");
 
-		library.into(song);
-
-		final spare = song.banked("Spare Kit");
-		song.rack[Part.Dac.index()] = spare.instruments[0];
+		mdd.song.edit.TakesPreset.kitting(Part.Dac, "Spare Kit", library.instruments[shelf],
+			library.samples[shelf], 0).apply(song);
 
 		final rack = song.rack[Part.Dac.index()];
 		final bank = song.banks[song.bankOf(rack)];
@@ -132,61 +142,40 @@ class ProjectCheck {
 
 		for (pitch in 0...128) if (back.drumAt(pitch) >= 0) again.push(pitch);
 
-		says("a kit is written whole", again.join(",") == hits.join(",") && hits.length > 1,
+		says("a kit is written whole", again.join(",") == hits.join(",") && hits.length == 12,
 			hits.length + " keys sound out of a bank of " + bank.instruments.length
-			+ " the piece never names, and " + again.length + " after the file is read back");
+			+ " the piece never names one by one, and " + again.length + " after the file is read back");
 	}
 
 	/**
-		A bank the reader asked to keep is written whole, even where nothing plays it.
+		A file written before a piece carried only what it plays still opens as it was, and the
+		next save leaves out what nothing in it plays. The example project that ships is one.
 	**/
-	static function kept(where:String):Void {
-		final song = StreamCheck.written();
-		final library = stocked();
+	static function older(where:String):Void {
+		final from = Gate.root + "/assets/example-projects/console-tricks.mdsyn";
 
-		library.into(song);
+		if (!sys.FileSystem.exists(from)) {
+			says("an older file sheds what it does not play", false, "no example project to open");
+			return;
+		}
 
-		final wanted = song.banked("Shipped");
-		final many = wanted.instruments.length;
+		final song = Project.open(from);
+		final playing = Needed.of(song).instruments.length;
 
-		says("a library bank is the library's", !wanted.kept && many > 0,
-			many + " presets in a bank the piece did not ask for");
+		final before = new Stream(262144);
+		new Sequencer(song).emit(before, 0, SPAN);
 
-		final loose = Project.open(keeping(where, song, "loose"));
+		final named = where + "/older.mdsyn";
+		Project.save(song, named);
 
-		wanted.kept = true;
+		final back = Project.open(named);
+		final after = new Stream(262144);
+		new Sequencer(back).emit(after, 0, SPAN);
 
-		final whole = Project.open(keeping(where, song, "whole"));
-
-		says("and keeping it writes it whole", whole.instruments.length
-			== loose.instruments.length + many,
-			loose.instruments.length + " presets written while it was the library's, "
-			+ whole.instruments.length + " once it was kept");
-	}
-
-	/**
-		A file written before a piece carried what it plays says every bank is the piece's own,
-		because the library said so, so it is read as saying none of them is.
-	**/
-	static function older():Void {
-		final song = StreamCheck.written();
-		stocked().into(song);
-
-		final said = Project.text(song);
-		final older = StringTools.replace(said, "\"version\": " + Project.VERSION,
-			"\"version\": " + Project.WHOLE_LIBRARY);
-
-		says("a file says which version wrote it", older != said,
-			"written as version " + Project.VERSION);
-
-		final back = Project.read(older);
-		var owned = 0;
-
-		for (bank in back.banks) if (bank.kept) owned++;
-
-		says("and one written before this is read as the library's", owned == 0,
-			back.banks.length + " banks read back, " + owned + " of them the piece's own, so the"
-			+ " next save leaves the library out");
+		says("an older file sheds what it does not play", back.instruments.length == playing
+			&& playing < song.instruments.length && alike(before, after) == -2,
+			song.instruments.length + " presets in the file as it ships, " + back.instruments.length
+			+ " once saved again, and " + before.count + " register writes the same either way");
 	}
 
 	/**
@@ -222,19 +211,6 @@ class ProjectCheck {
 				got == meant && again == meant,
 				"written as " + meant + ", read back as " + (got == "" ? "nothing" : got));
 		}
-	}
-
-	/**
-		@param where The folder to write into.
-		@param song The piece.
-		@param called What to call the file.
-		@return Where it was written.
-	**/
-	static function keeping(where:String, song:Song, called:String):String {
-		final named = where + "/" + called + ".mdsyn";
-		Project.save(song, named);
-
-		return named;
 	}
 
 	/**

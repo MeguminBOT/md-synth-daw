@@ -314,10 +314,10 @@ A VGM this application wrote therefore imports with its drums where they were.
   and whatever you set aside for a cartridge. It starts at a quarter of a one megabyte cartridge,
   which is a convention rather than a limit of the machine, and you can set it to your own.
 - **A saved preset reaches every project.** Saving a channel as a preset writes it into your
-  presets folder as a file of its own, and every project you open afterwards finds it in its saved
-  bank, including projects made before it. It keeps everything the channel has: the whole patch
-  with its LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the
-  same name replaces it.
+  presets folder as a file of its own, and the browser offers it in every project from then on,
+  including projects made before it. It keeps everything the channel has: the whole patch with its
+  LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the same
+  name replaces it.
 - **Open folder**, on the preset browser's toolbar, opens the presets folder in your file
   manager. It holds a folder for each family of part, `FM`, `PSG`, `NOISE` and `DAC`, and a
   preset you save goes into the one its part belongs to. Those four are not banks themselves: a
@@ -331,33 +331,32 @@ A VGM this application wrote therefore imports with its drums where they were.
   right-click menu on a preset or on a bank heading. Both are the same format: the parameters as
   numbers rather than as text, every recording a converter preset plays included, so a kit travels
   whole. Both suffixes register with the desktop, so a double click opens one, and dropping one on
-  the window or **Import presets** in the file menu reads it into the piece you have open without
-  replacing it. A copy goes into your presets folder at the same time, so every project afterwards
-  offers it too.
+  the window or **Import presets** in the file menu adds it to your presets: a copy goes into your
+  presets folder and the browser offers it in every project. The piece you have open is left as it
+  is until you load one of them.
 - **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
   at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
   back in.
 - Your own presets load beside the shipped ones rather than replacing them.
 - **A project file is the piece, not your preset folder.** It carries what the piece plays: the
-  presets on its channels, the ones its notes and preset lanes name, the whole of the kit behind
-  its sample channel, any bank you asked to keep, and anything your library could not hand back.
-  Everything else is offered again by the library when you open it, so a file does not grow as
-  your folder does. It still opens the same on a machine that has none of your presets, because
-  everything it plays is in it. Opening an older project rewrites it this way the first time you
-  save: one piece here went from 1231 presets and 92 recordings to 29 and 4, and from 2954 KB to
-  655, sounding register for register the same.
+  eleven presets on its channels, the ones its notes and preset lanes name, and the whole of the
+  kit behind its sample channel. Nothing else goes in. A preset is copied into a piece when you
+  load it, not before, so the browser's banks are never part of a piece, and a preset you tried in
+  a channel and moved on from is left out when you save. A file therefore does not grow as your
+  folder does, and it still opens the same on a machine that has none of your presets, because
+  everything it plays is in it. A new piece carries eleven presets.
+
+  An older project opens as it was and sheds what it does not play the first time you save it.
+  One piece here went from 289 presets and 52 recordings to 31 and 10, and the example project
+  that ships from 67 to 41, sounding register for register the same.
 - **The folder is read once and remembered.** A folder of hundreds of patch files is hundreds of
   opens at every start, so what was read is kept beside your settings as one file and read back
   from there: 369 presets read in 0.9 ms rather than 27.6. Add, remove or change anything in the
   folder and it is read properly again, so nothing you do in the file manager is missed.
-- **What a file brought is one bank.** Opening a project, or importing a VGM, VGZ or XGM, files
-  every preset it carries by where it belongs rather than by how the file had it grouped: a
-  shipped bank or one of your own folders where the preset lives there, the starting set where it
-  is one of those, and **From Project File** for everything the file itself brought, which is the
-  presets its channels play and the ones its preset lanes swap in. The bank is the same one
-  whatever the file was called, so it does not multiply as you open pieces, and a preset a file
-  carries twice is listed once. Only the grouping moves: no preset is added, removed or
-  renumbered, so nothing a note or a preset lane names changes.
+- **From project** is where the browser lists what the open piece plays, beside the banks you
+  have installed: its channels, what its notes and preset lanes name, and its kit. Open another
+  piece, or start a new one, and it lists that piece's instead. A preset there is the piece's own
+  copy, so renaming it or giving it an icon or tags changes the piece and nothing in your folder.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
 channel volume apart from the voice and adds it in at every key on. Loading one therefore
@@ -449,7 +448,7 @@ and the checks compare the live stream against the offline one on every run.
 | **MIDI** | Notes and tempo. A file is looked through before any of it arrives, so you pick which of its tracks and channels to take and which part each one plays, and take it either as a piece of its own or as one more track in the piece you have open |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
 | **TFI** | A single FM patch |
-| **MD Synth Preset File** and **MD Synth Preset Bank** | One preset or a whole bank, with every recording they play. They are added to the piece you have open rather than replacing it |
+| **MD Synth Preset File** and **MD Synth Preset Bank** | One preset or a whole bank, with every recording they play. They are added to your presets, and the piece you have open is left as it is |
 
 The VGM importer also analyses what it read: how many writes of each class the file makes, which
 channels are used, and where the driver writes registers a note model cannot hold.

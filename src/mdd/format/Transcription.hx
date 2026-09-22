@@ -1949,7 +1949,7 @@ final class Transcription {
 	function session():Void {
 		if (song.instruments.length == 0) return;
 
-		final bank = song.banked("from the import", false);
+		final bank = song.banked("from the import");
 
 		for (index in 0...song.instruments.length) {
 			final held = song.instrumentAt(index);

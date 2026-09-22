@@ -1929,7 +1929,11 @@ class SpineCheck {
 			+ held.tags.join(", "));
 
 		var lifted = 0;
-		for (one in session.song.instruments) if (one.tags.length > 0) lifted++;
+		final library = session.library;
+
+		if (library != null) {
+			for (bank in library.instruments) for (one in bank) if (one.tags.length > 0) lifted++;
+		}
 
 		presets.search.set("Green Hill Zone");
 		laid(tree);

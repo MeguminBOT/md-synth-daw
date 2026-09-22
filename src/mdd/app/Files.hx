@@ -132,15 +132,35 @@ final class Files {
 	public static inline final PRESET_BANK = 18;
 
 	/**
-		Dialog: reading a preset file or a bank file into the piece.
+		Dialog: reading a preset file or a bank file into the library.
 	**/
 	public static inline final READ_PRESETS = 19;
 
 	/**
-		Which preset the next preset dialog is about, by index into the song, or which bank for a
-		bank dialog. It is set before the dialog is asked for and read when it answers.
+		What the next preset dialog is about: the presets it writes, what each plays, and the bank
+		they are written as, which is an empty name for a single preset. It is set by `chooses`
+		before the dialog is asked for and read when it answers, and it holds the presets
+		themselves rather than copies, since writing one out changes nothing.
 	**/
-	public var chosen:Int = -1;
+	public final chosen:mdd.format.Banked = new mdd.format.Banked();
+
+	/**
+		Says what the next preset dialog is about.
+
+		@param name The bank's name, or an empty string for a single preset.
+		@param presets The presets.
+		@param samples What each plays, by the same index.
+	**/
+	public function chooses(name:String, presets:Array<mdd.song.Instrument>,
+			samples:Array<Null<mdd.song.Sample>>):Void {
+		chosen.name = name;
+		chosen.presets.resize(0);
+		chosen.samples.resize(0);
+
+		for (index in 0...presets.length) {
+			chosen.add(presets[index], index < samples.length ? samples[index] : null);
+		}
+	}
 
 	/**
 		The rate an import is measured at.
@@ -307,8 +327,8 @@ final class Files {
 			changed since, which is what decides whether a save on its own has anything to do.
 	**/
 	public function marked():Int {
-		final said = haxe.io.Bytes.ofString(Project.text(session.song, library));
-		final bulk = Project.bulk(session.song, library);
+		final said = haxe.io.Bytes.ofString(Project.text(session.song));
+		final bulk = Project.bulk(session.song);
 
 		return haxe.crypto.Crc32.make(said) ^ haxe.crypto.Crc32.make(bulk);
 	}
@@ -326,7 +346,7 @@ final class Files {
 		final where = path != "" ? path : recovery();
 
 		try {
-			Project.save(session.song, where, library);
+			Project.save(session.song, where);
 		} catch (e:Dynamic) {
 			session.says(Locale.SAID_SAVE_FAILED, "" + e);
 			return true;
@@ -776,7 +796,7 @@ final class Files {
 
 	/**
 		Writes a kit into the presets folder and reads it straight back into the
-		library, so it is there to play without restarting.
+		library, so the browser offers it without restarting.
 
 		@param kit The kit to write.
 		@return Where it was written, or an empty string where nothing was.
@@ -792,13 +812,6 @@ final class Files {
 		final bytes = mdd.format.Preset.write(made.name, made.presets, made.samples);
 
 		sys.io.File.saveBytes(named, bytes);
-
-		final held = new mdd.song.Library();
-		held.holds(bytes, true);
-
-		session.holds();
-		held.into(session.song);
-		session.frees();
 
 		if (library != null) library.holds(bytes, true, "", true);
 
@@ -903,7 +916,7 @@ final class Files {
 	public function save(where:String):String {
 		final named = suffixed(where, mdd.Config.SUFFIX);
 
-		Project.save(session.song, named, library);
+		Project.save(session.song, named);
 		path = named;
 		forget();
 
@@ -1166,7 +1179,8 @@ final class Files {
 	}
 
 	/**
-		Imports a patch file into the library.
+		Imports a patch file into the library, and loads it into the chosen part where that part
+		plays FM, as one step on the undo stack.
 
 		@param where The file to read.
 	**/
@@ -1182,19 +1196,9 @@ final class Files {
 
 		made.patch = held;
 		made.icon = mdd.Icon.NAMES.indexOf("synthesizer");
+		made.identifies(null);
 
-		session.holds();
-		session.song.instrument(made);
-
-		final index = session.song.instruments.length - 1;
-		session.song.rack[session.part.index()] = index;
-
-		if (savedInto != "") {
-			session.song.bank(0).remove(index);
-			session.song.banked(savedInto).add(index);
-		}
-
-		session.frees();
+		if (session.part.fm()) session.does(mdd.song.edit.TakesPreset.adopting(session.part, made, null));
 
 		final into = familied(mdd.song.Part.Fm1);
 		final named = into + "/" + safely(bare(where)) + ".tfi";
@@ -1212,9 +1216,9 @@ final class Files {
 	}
 
 	/**
-		Reads a preset file or a bank file into the piece that is open, and keeps a copy of it in
-		the presets folder so every other piece offers it too. The piece is not replaced: a bank
-		is presets, and opening one adds them.
+		Reads a preset file or a bank file into the library, keeping a copy of it in the presets
+		folder so every piece offers it. The open piece is left as it is: a preset reaches a piece
+		when it is loaded into a channel.
 
 		A file that names its own bank is that bank. One that names none is the file itself, so a
 		single preset saved out and read back in sits under its own name rather than joining
@@ -1230,39 +1234,12 @@ final class Files {
 			return;
 		}
 
-		final song = session.song;
 		final named = held.name == "" ? bare(where) : held.name;
-		final bank = song.banked(named);
-
-		session.holds();
-
-		var many = 0;
-
-		for (index in 0...held.presets.length) {
-			final made = held.presets[index].copy();
-			final sample = held.samples[index];
-
-			if (sample != null) {
-				song.sample(sample.copy());
-				made.sample = song.samples.length - 1;
-			}
-
-			song.instrument(made);
-
-			final at = song.instruments.length - 1;
-
-			song.bank(0).remove(at);
-			bank.add(at);
-
-			many++;
-		}
-
-		bank.kept = true;
-		session.frees();
 
 		keepsPresets(where, held, named);
 
-		session.says(Locale.SAID_PRESETS_READ, "" + many, named);
+		session.says(Locale.SAID_PRESETS_READ, "" + held.presets.length, named);
+		session.changed();
 	}
 
 	/**
@@ -1565,7 +1542,7 @@ final class Files {
 		@return What was written, or an empty string where the preset carries no patch.
 	**/
 	public function writesPresetTfi(where:String):String {
-		final held = session.song.instrumentAt(chosen);
+		final held = chosen.presets.length == 0 ? null : chosen.presets[0];
 		final patch = held == null ? null : held.patch;
 
 		if (patch == null) {
@@ -1588,8 +1565,7 @@ final class Files {
 		@return What was written, or an empty string where the preset plays nothing.
 	**/
 	public function writesPresetWav(where:String):String {
-		final held = session.song.instrumentAt(chosen);
-		final sample = held == null || held.sample < 0 ? null : session.song.sampleAt(held.sample);
+		final sample = chosen.samples.length == 0 ? null : chosen.samples[0];
 
 		if (sample == null || sample.length() == 0) {
 			session.says(Locale.SAID_NO_SAMPLE);
@@ -1616,31 +1592,16 @@ final class Files {
 		@return What was written, or an empty string where the bank holds nothing.
 	**/
 	public function writesBank(where:String):String {
-		final song = session.song;
-
-		if (chosen < 0 || chosen >= song.banks.length) return "";
-
-		final bank = song.banks[chosen];
-		final presets:Array<mdd.song.Instrument> = [];
-		final samples:Array<Null<mdd.song.Sample>> = [];
-
-		for (index in bank.instruments) {
-			final held = song.instrumentAt(index);
-			if (held == null) continue;
-
-			presets.push(held);
-			samples.push(held.sample < 0 ? null : song.sampleAt(held.sample));
-		}
-
-		if (presets.length == 0) {
+		if (chosen.presets.length == 0) {
 			session.says(Locale.SAID_NO_PRESETS);
 			return "";
 		}
 
 		final named = suffixed(where, mdd.Config.BANK);
-		sys.io.File.saveBytes(named, mdd.format.Preset.write(bank.name, presets, samples));
+		sys.io.File.saveBytes(named, mdd.format.Preset.write(chosen.name, chosen.presets,
+			chosen.samples));
 
-		session.says(Locale.SAID_BANK_WRITTEN, name(named), "" + presets.length);
+		session.says(Locale.SAID_BANK_WRITTEN, name(named), "" + chosen.presets.length);
 		return named;
 	}
 

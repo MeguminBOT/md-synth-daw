@@ -318,6 +318,34 @@ final class Song {
 	}
 
 	/**
+		Copies a preset into the song, in no bank, carrying the identity of the preset it was
+		copied from. This is how a preset the library offers comes to be played: the library is
+		never copied in wholesale, so the piece holds what it plays.
+
+		@param preset The preset. It is left as it is.
+		@param sample The recording it plays, which is copied in beside it, or null.
+		@return The copy, by index.
+	**/
+	public function adopts(preset:Instrument, sample:Null<Sample>):Int {
+		final copy = preset.copy();
+
+		copy.from = preset.id;
+		copy.sample = -1;
+
+		if (sample != null) {
+			samples.push(sample.copy());
+			copy.sample = samples.length - 1;
+		}
+
+		instrument(copy);
+
+		final at = instruments.length - 1;
+		bank(0).remove(at);
+
+		return at;
+	}
+
+	/**
 		@param index Which bank.
 		@return That bank, or the first one where the index is out of range.
 	**/
@@ -333,13 +361,12 @@ final class Song {
 		Finds a bank by name, creating it where there is none.
 
 		@param name What it is called.
-		@param kept Whether a bank created here is saved with the song.
 		@return The bank.
 	**/
-	public function banked(name:String, kept:Bool = true):Bank {
+	public function banked(name:String):Bank {
 		for (held in banks) if (held.name == name) return held;
 
-		final made = new Bank(name, kept);
+		final made = new Bank(name);
 		banks.push(made);
 
 		return made;
@@ -386,20 +413,6 @@ final class Song {
 		@param index Which instrument.
 		@return That instrument, or null where the index is out of range.
 	**/
-	/**
-		@param id A preset's identity.
-		@return The preset this piece carries with that identity, or null where it carries none.
-			This is what a channel came from: the piece keeps its own copy of it, so putting a
-			channel back to the preset it started as needs nothing but the piece.
-	**/
-	public function identified(id:String):Null<Instrument> {
-		if (id == "") return null;
-
-		for (instrument in instruments) if (instrument.id == id) return instrument;
-
-		return null;
-	}
-
 	public function instrumentAt(index:Int):Null<Instrument> {
 		return index < 0 || index >= instruments.length ? null : instruments[index];
 	}
@@ -527,7 +540,7 @@ final class Song {
 		out.banks.resize(0);
 
 		for (held in banks) {
-			final made = out.banked(held.name, held.kept);
+			final made = out.banked(held.name);
 			for (index in held.instruments) made.add(index);
 		}
 

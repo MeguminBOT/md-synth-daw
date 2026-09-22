@@ -2013,7 +2013,15 @@ class VgmCheck {
 		changes only now and then leaves gaps long enough to look like a pause.
 	**/
 	static function drummed():Void {
-		final song = mdd.app.Session.started(mdd.song.Library.embedded()).song;
+		final library = mdd.song.Library.embedded();
+		final song = mdd.app.Session.started(library).song;
+		final shelf = library.names.indexOf("Drum Kit");
+
+		if (shelf >= 0) {
+			mdd.song.edit.TakesPreset.kitting(mdd.song.Part.Dac, "Drum Kit", library.instruments[shelf],
+				library.samples[shelf], 0).apply(song);
+		}
+
 		var kit:Null<mdd.song.Bank> = null;
 
 		for (bank in song.banks) if (bank.name == "Drum Kit") kit = bank;

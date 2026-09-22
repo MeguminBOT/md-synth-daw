@@ -113,7 +113,9 @@ class Lifted {
 			final one = song.instruments[index];
 			final sample = one.sample < 0 ? null : song.sampleAt(one.sample);
 
-			if (known.offering(song, one) != "" || starting.offering(song, one) != ""
+			one.identifies(sample);
+
+			if (known.offering(one) != "" || starting.offering(one) != ""
 					|| sounded(known, one, sample)) {
 				shared++;
 				continue;

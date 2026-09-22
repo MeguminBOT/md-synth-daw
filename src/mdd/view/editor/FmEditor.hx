@@ -169,17 +169,18 @@ final class FmEditor extends Widget {
 		@return Which dial is there, or -1.
 	**/
 	/**
-		@return The preset this channel was loaded from, which the piece carries its own copy of, or
-			null where the channel came from none.
+		@return The preset this channel was loaded from, or null where it came from none or where
+			that preset is neither installed nor carried by the piece.
 	**/
 	function preset():Null<mdd.song.Instrument> {
 		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		return held == null ? null : session.song.identified(held.from);
+		return held == null ? null : session.loadedFrom(held);
 	}
 
 	/**
 		Puts one parameter back to what the preset the channel was loaded from holds, which is what
-		a right click on it asks for. A channel that came from no preset is left alone and says so.
+		a right click on it asks for. A channel that came from no preset is left alone and says so, and a
+		parameter already where the preset has it puts nothing on the undo stack.
 
 		@param patch The patch being edited.
 		@param dial Which dial, or -1 where a field is wanted instead.
@@ -197,10 +198,12 @@ final class FmEditor extends Widget {
 		}
 
 		if (dial >= 0) {
-			session.does(new mdd.song.edit.SetDial(patch, dial, held.dial(dial)));
+			final want = held.dial(dial);
+			if (patch.dial(dial) != want) session.does(new mdd.song.edit.SetDial(patch, dial, want));
 			session.says(Locale.SAID_PRESET_AGAIN, Patch.DIAL_NAMES[dial], source.name);
 		} else {
-			session.does(new mdd.song.edit.SetOperator(patch, slot, row, held.reads(slot, row)));
+			final want = held.reads(slot, row);
+			if (patch.reads(slot, row) != want) session.does(new mdd.song.edit.SetOperator(patch, slot, row, want));
 			session.says(Locale.SAID_PRESET_AGAIN, Patch.NAMES[row] + " " + (slot + 1), source.name);
 		}
 

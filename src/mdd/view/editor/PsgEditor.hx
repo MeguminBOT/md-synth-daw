@@ -127,12 +127,12 @@ final class PsgEditor extends Widget {
 		@return Which dial is there, or -1.
 	**/
 	/**
-		@return The preset this channel was loaded from, which the piece carries its own copy of, or
-			null where the channel came from none.
+		@return The preset this channel was loaded from, or null where it came from none or where
+			that preset is neither installed nor carried by the piece.
 	**/
 	function preset():Null<mdd.song.Instrument> {
 		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		return held == null ? null : session.song.identified(held.from);
+		return held == null ? null : session.loadedFrom(held);
 	}
 
 	/**

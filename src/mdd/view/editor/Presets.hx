@@ -4,6 +4,7 @@ import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Instrument;
 import mdd.song.Part;
+import mdd.song.Sample;
 import mdd.Icon;
 import mdd.ui.Item;
 import mdd.ui.Paint;
@@ -18,8 +19,12 @@ import mdd.view.Kits;
 @:unreflective
 
 /**
-	The preset browser: every instrument the piece carries, searchable by name or by
-	tag, and orderable by bank, by name or by tag.
+	The preset browser: every preset installed, bank by bank, and the ones the open piece carries
+	because it plays them, under the four families of part. Searchable by name or by tag, and
+	orderable by bank, by name, by tag or by how alike each is to what the chosen part plays.
+
+	Nothing it offers is in the piece until it is loaded: loading one copies it into the piece,
+	so the piece carries what it plays rather than everything it was offered.
 **/
 final class Presets extends Widget {
 	/**
@@ -77,22 +82,22 @@ final class Presets extends Widget {
 	public var order(default, null):Int = BY_BANK;
 
 	/**
-		How many instruments are shown.
+		How many presets are shown, a kit counting once.
 	**/
 	public var listed(default, null):Int = 0;
 
 	/**
-		How many groups they are in.
+		How many families they are in.
 	**/
 	public var banks(default, null):Int = 0;
 
 	/**
-		Called to rename a preset.
+		Called to rename a preset the piece carries, by index into the piece.
 	**/
 	public var onRename:Null<Int -> Void> = null;
 
 	/**
-		Called to edit its tags.
+		Called to edit the tags of a preset the piece carries, by index into the piece.
 	**/
 	public var onTags:Null<Int -> Void> = null;
 
@@ -108,19 +113,19 @@ final class Presets extends Widget {
 	public var onFolder:Null<Void -> Void> = null;
 
 	/**
-		Called to write one preset out as a patch file, by index into the piece.
+		Called to write one preset out as a patch file.
 	**/
-	public var onWritePatch:Null<Int -> Void> = null;
+	public var onWritePatch:Null<(Instrument, Null<Sample>) -> Void> = null;
 
 	/**
-		Called to write what one preset plays out as a wave file, by index into the piece.
+		Called to write what one preset plays out as a wave file.
 	**/
-	public var onWriteSample:Null<Int -> Void> = null;
+	public var onWriteSample:Null<(Instrument, Null<Sample>) -> Void> = null;
 
 	/**
-		Called to write a whole bank out as one file, by index into the piece's banks.
+		Called to write a whole bank out as one file: its name, its presets and what each plays.
 	**/
-	public var onWriteBank:Null<Int -> Void> = null;
+	public var onWriteBank:Null<(String, Array<Instrument>, Array<Null<Sample>>) -> Void> = null;
 
 	/**
 		The presets the reader has starred, or null where none are kept. A star is on the preset
@@ -130,16 +135,42 @@ final class Presets extends Widget {
 
 	var menu:Null<Menu> = null;
 
-	final named:Array<Int> = [];
+	/**
+		Every preset on offer this build, drawn from the pool.
+	**/
+	final offers:Array<Offer> = [];
+
+	/**
+		The offers built so far, reused from one build to the next.
+	**/
+	final pool:Array<Offer> = [];
+
+	/**
+		The preset rows, and the offer each stands for, by the same index.
+	**/
 	final held:Array<Item> = [];
+	final shown:Array<Offer> = [];
 
 	final kinds:Array<Item> = [];
 	final kindKeys:Array<String> = [];
 
+	/**
+		The bank rows, what each is keyed by for folding, and whether each is a kit.
+	**/
 	final groups:Array<Item> = [];
 	final groupKeys:Array<String> = [];
-	final grouped:Array<Int> = [];
-	final kitLead:Array<Int> = [];
+	final kits:Array<Bool> = [];
+
+	/**
+		The first offer under each bank row, which is what choosing a kit's row loads.
+	**/
+	final leads:Array<Offer> = [];
+
+	/**
+		The banks one family lists and the offers one bank lists, kept between builds.
+	**/
+	final bankNames:Array<String> = [];
+	final within:Array<Offer> = [];
 
 	/**
 		The families a reader has folded, which start open.
@@ -215,40 +246,94 @@ final class Presets extends Widget {
 		final at = held.indexOf(item);
 
 		if (at >= 0) {
-			final owner = groups.indexOf(item.parent);
-
-			if (owner >= 0 && kitLead[owner] >= 0) loads(kitLead[owner]);
-			else loads(named[at]);
-
+			loads(shown[at]);
 			return;
 		}
 
 		final group = groups.indexOf(item);
-		if (group >= 0 && kitLead[group] >= 0) loads(kitLead[group]);
+		if (group >= 0 && kits[group]) loads(leads[group]);
 	}
 
-	function loads(which:Int, ?into:Part):Void {
-		final instrument = session.song.instrumentAt(which);
-		if (instrument == null) return;
+	/**
+		Loads a preset into a part: one the piece carries by pointing at it, one the library holds
+		by copying it in, and a converter preset out of the library by copying in the whole kit it
+		sits in, since a drum note picks its hit out of one bank.
 
+		@param offer The preset.
+		@param into The part, or null for the chosen one where it can play the preset and the first
+			that can otherwise.
+	**/
+	function loads(offer:Offer, ?into:Part):Void {
+		final instrument = offer.preset;
 		final part = into == null ? wanted(instrument) : into;
+		final song = session.song;
 
-		session.does(new mdd.song.edit.TakesPreset(part, which));
+		if (offer.owned()) {
+			session.does(new mdd.song.edit.TakesPreset(part, offer.index));
+		} else if (part.sampled()) {
+			session.does(kitOf(offer, part));
+		} else {
+			session.does(mdd.song.edit.TakesPreset.adopting(part, instrument, offer.sample));
+		}
+
 		session.says(Locale.SAID_INSTRUMENT_LOADED,
-			Kits.named(session.song, part, which), part.name());
+			part.sampled() && !offer.owned() ? offer.bank : Kits.named(song, part, song.rack[part.index()]),
+			part.name());
+	}
+
+	/**
+		@param offer A converter preset out of the library.
+		@param part The part it loads into.
+		@return The step that copies in the kit it sits in, with that hit as the one the part points
+			at.
+	**/
+	function kitOf(offer:Offer, part:Part):mdd.song.edit.TakesPreset {
+		final hits:Array<Instrument> = [];
+		final played:Array<Null<Sample>> = [];
+		var lead = 0;
+
+		final library = session.library;
+
+		if (library != null && offer.shelf >= 0 && offer.shelf < library.names.length) {
+			final shelf = library.instruments[offer.shelf];
+
+			for (which in 0...shelf.length) {
+				if (!shelf[which].kind.sampled()) continue;
+				if (shelf[which] == offer.preset) lead = hits.length;
+
+				hits.push(shelf[which]);
+				played.push(library.samples[offer.shelf][which]);
+			}
+		}
+
+		if (hits.length == 0) {
+			hits.push(offer.preset);
+			played.push(offer.sample);
+		}
+
+		return mdd.song.edit.TakesPreset.kitting(part, offer.bank, hits, played, lead);
 	}
 
 	/**
 		Switches the chosen part to a preset from the playhead on, by putting it in the part's
 		preset lane in the chosen pattern. A point already at that tick takes the new preset
-		rather than a second point being laid over it, so one undo puts it back.
+		rather than a second point being laid over it, so one undo puts it back. A preset out of
+		the library is copied into the piece first, since a lane names a preset the piece carries.
 
-		@param which Which instrument.
+		@param offer The preset.
 	**/
-	function switched(which:Int):Void {
-		final instrument = session.song.instrumentAt(which);
+	function switched(offer:Offer):Void {
 		final pattern = session.current();
-		if (instrument == null || pattern == null) return;
+		if (pattern == null) return;
+
+		final song = session.song;
+		var which = offer.index;
+
+		if (!offer.owned()) {
+			session.holds();
+			which = song.adopts(offer.preset, offer.sample);
+			session.frees();
+		}
 
 		final part = session.part;
 		final begun = session.begins(session.transport.tick());
@@ -268,16 +353,15 @@ final class Presets extends Widget {
 				mdd.song.Automation.INSTRUMENT, 0, new mdd.song.Point(at, which)));
 		}
 
-		session.says(Locale.SAID_PRESET_SWITCHED, Kits.named(session.song, part, which),
-			part.name());
+		session.says(Locale.SAID_PRESET_SWITCHED, Kits.named(song, part, which), part.name());
 	}
 
 	function wanted(instrument:Instrument):Part {
-		if (suits(instrument, session.part)) return session.part;
+		if (mdd.song.Library.kin(instrument.kind, session.part)) return session.part;
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			if (suits(instrument, part)) return part;
+			if (mdd.song.Library.kin(instrument.kind, part)) return part;
 		}
 
 		return session.part;
@@ -331,84 +415,76 @@ final class Presets extends Widget {
 		final at = held.indexOf(item);
 		if (root == null || at < 0) return;
 
-		final which = named[at];
-		final instrument = session.song.instrumentAt(which);
-		if (instrument == null) return;
+		final offer = shown[at];
+		final instrument = offer.preset;
+		final which = offer.index;
 
 		menu = new Menu();
 
-		menu.offer(new Choice(translate(Locale.PRESET_LOAD))).submenu = into(item, instrument);
+		menu.offer(new Choice(translate(Locale.PRESET_LOAD))).submenu = into(offer);
 
-		if (suits(instrument, session.part) && !session.part.sampled()) {
+		if (mdd.song.Library.kin(instrument.kind, session.part) && !session.part.sampled()) {
 			fires(menu.offer(new Choice(filled(Locale.PRESET_SWITCH, [session.part.name()]))),
-				function():Void switched(which));
+				function():Void switched(offer));
 		}
 
 		menu.divide();
 
-		fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void {
-			if (onRename != null) onRename(which);
-		});
+		if (offer.owned()) {
+			fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void {
+				if (onRename != null) onRename(which);
+			});
 
-		menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(which);
+			menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(which);
 
-		final tagging = menu.offer(new Choice(translate(Locale.PRESET_TAGS),
-			instrument.tags.length == 0 ? "" : "" + instrument.tags.length));
+			final tagging = menu.offer(new Choice(translate(Locale.PRESET_TAGS),
+				instrument.tags.length == 0 ? "" : "" + instrument.tags.length));
 
-		fires(tagging, function():Void if (onTags != null) onTags(which));
-
-		fires(menu.offer(new Choice(translate(Locale.PRESET_DUPLICATE))), function():Void
-			duplicated(which));
+			fires(tagging, function():Void if (onTags != null) onTags(which));
+		}
 
 		final starring = favourites;
 
 		if (starring != null && instrument.id != "") {
 			fires(menu.offer(new Choice(translate(starring.favours(instrument.id)
 				? Locale.PRESET_UNFAVOURITE : Locale.PRESET_FAVOURITE))), function():Void
-				stars(which));
+				stars(instrument));
 		}
 
-		if (instrument.patch != null || instrument.sample >= 0) menu.divide();
+		final sample = offer.sample;
+
+		if (instrument.patch != null || sample != null) menu.divide();
 
 		if (instrument.patch != null) {
 			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_PATCH))), function():Void
-				if (onWritePatch != null) onWritePatch(which));
+				if (onWritePatch != null) onWritePatch(instrument, sample));
 		}
 
-		if (instrument.sample >= 0) {
+		if (sample != null) {
 			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_SAMPLE))), function():Void
-				if (onWriteSample != null) onWriteSample(which));
+				if (onWriteSample != null) onWriteSample(instrument, sample));
 		}
-
-		menu.divide();
-
-		fires(menu.offer(new Choice(translate(Locale.PRESET_DELETE))), function():Void
-			dropped(which));
 
 		root.pop(menu, px, py, this);
 	}
 
 	/**
-		@param item The preset's row.
-		@param instrument The preset.
+		@param offer A preset.
 		@return A menu of every channel the preset plays on, each with what it plays now beside
-			it. A converter preset in a kit loads the kit.
+			it. A converter preset loads the kit it sits in.
 	**/
-	function into(item:Item, instrument:Instrument):Menu {
+	function into(offer:Offer):Menu {
 		final out = new Menu();
-		final at = held.indexOf(item);
-		final owner = at < 0 ? -1 : groups.indexOf(item.parent);
-		final which = owner >= 0 && kitLead[owner] >= 0 ? kitLead[owner] : named[at];
 		final song = session.song;
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;
-			if (!mdd.song.Library.kin(instrument.kind, part)) continue;
+			if (!mdd.song.Library.kin(offer.preset.kind, part)) continue;
 
 			final playing = song.instrumentAt(song.rack[index]);
 
 			fires(out.offer(new Choice(part.name(), playing == null ? ""
-				: Kits.named(song, part, song.rack[index]))), function():Void loads(which, part));
+				: Kits.named(song, part, song.rack[index]))), function():Void loads(offer, part));
 		}
 
 		return out;
@@ -463,33 +539,15 @@ final class Presets extends Widget {
 		session.changed();
 	}
 
-	function duplicated(which:Int):Void {
-		final from = session.song.instrumentAt(which);
-		if (from == null) return;
-
-		final made = from.copy();
-		made.name = from.name + " 2";
-
-		session.holds();
-		session.song.instrument(made);
-
-		final index = session.song.instruments.length - 1;
-		for (bank in session.song.banks) if (bank.holds(which)) bank.add(index);
-
-		session.frees();
-		session.changed();
-	}
-
 	/**
 		Stars one preset, or takes the star off it, and says which it did.
 
-		@param which The preset, by index into the piece.
+		@param held The preset.
 	**/
-	function stars(which:Int):Void {
+	function stars(held:Instrument):Void {
 		final starring = favourites;
-		final held = session.song.instrumentAt(which);
 
-		if (starring == null || held == null || held.id == "") return;
+		if (starring == null || held.id == "") return;
 
 		final on = starring.toggles(held.id);
 
@@ -498,14 +556,6 @@ final class Presets extends Widget {
 
 		fit();
 		invalidate();
-	}
-
-	function dropped(which:Int):Void {
-		session.holds();
-		for (bank in session.song.banks) bank.remove(which);
-		session.frees();
-
-		session.changed();
 	}
 
 	static inline final SHOWN = 4;
@@ -560,12 +610,9 @@ final class Presets extends Widget {
 			return;
 		}
 
-		final bank = session.song.banks[grouped[at]];
-		if (bank == null) return;
-
 		menu = new Menu();
 
-		if (kitLead[at] >= 0) {
+		if (kits[at]) {
 			fires(menu.offer(new Choice(translate(Locale.PRESET_KIT))), function():Void
 				picked(item));
 			menu.divide();
@@ -574,23 +621,19 @@ final class Presets extends Widget {
 		folding(menu);
 		menu.divide();
 
-		final which = grouped[at];
+		final name = leads[at].bank;
+		final presets:Array<Instrument> = [];
+		final samples:Array<Null<Sample>> = [];
+
+		for (index in 0...held.length) {
+			if (held[index].parent != item) continue;
+
+			presets.push(shown[index].preset);
+			samples.push(shown[index].sample);
+		}
 
 		fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_BANK))), function():Void
-			if (onWriteBank != null) onWriteBank(which));
-
-		final keep = menu.offer(new Choice(translate(Locale.PRESET_KEEP)));
-
-		if (bank.kept) {
-			keep.enabled = false;
-			keep.reason = translate(Locale.PRESET_ALREADY);
-		} else {
-			keep.onFire = function(from:Choice):Void {
-				bank.kept = true;
-				session.say(translate(Locale.PRESET_KEPT) + " " + bank.name);
-				session.changed();
-			};
-		}
+			if (onWriteBank != null) onWriteBank(name, presets, samples));
 
 		root.pop(menu, px, py, this);
 	}
@@ -605,11 +648,21 @@ final class Presets extends Widget {
 
 	/**
 		@param item A row.
-		@return Which instrument it is, by index, or -1 for a group heading.
+		@return Which preset it stands for, or null for a heading.
+	**/
+	public function presetOf(item:Item):Null<Instrument> {
+		final at = held.indexOf(item);
+		return at < 0 ? null : shown[at].preset;
+	}
+
+	/**
+		@param item A row.
+		@return Which preset the piece carries it stands for, by index into the piece, or -1 for a
+			heading or a preset only the library holds.
 	**/
 	public function instrumentOf(item:Item):Int {
 		final at = held.indexOf(item);
-		return at < 0 ? -1 : named[at];
+		return at < 0 ? -1 : shown[at].index;
 	}
 
 	static final KINDS:Array<Part> = [Part.Fm1, Part.Psg1, Part.Noise, Part.Dac];
@@ -741,34 +794,29 @@ final class Presets extends Widget {
 	}
 
 	/**
-		@param index A preset, by index into the piece.
+		@param offer A preset on offer.
 		@return How alike it is to what the chosen part is playing, as a fraction of one, or
 			nought where the part plays nothing.
 	**/
-	function likeness(index:Int):Float {
+	function likeness(offer:Offer):Float {
 		final playing = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		final held = session.song.instrumentAt(index);
-
-		return playing == null || held == null ? 0 : held.likeness(playing);
+		return playing == null ? 0 : offer.preset.likeness(playing);
 	}
 
-	function tagged(index:Int):String {
-		final held = session.song.instrumentAt(index);
-		if (held == null || held.tags.length == 0) return "~";
-
-		return held.tags[0].toLowerCase();
+	static function tagged(offer:Offer):String {
+		final held = offer.preset;
+		return held.tags.length == 0 ? "~" : held.tags[0].toLowerCase();
 	}
 
-	function called(index:Int):String {
-		final held = session.song.instrumentAt(index);
-		return held == null ? "" : held.name.toLowerCase();
+	static inline function called(offer:Offer):String {
+		return offer.preset.name.toLowerCase();
 	}
 
-	function ordered(inside:Array<Int>):Void {
+	function ordered(inside:Array<Offer>):Void {
 		if (order == BY_BANK) return;
 
 		if (order == BY_LIKENESS) {
-			inside.sort(function(one:Int, two:Int):Int {
+			inside.sort(function(one:Offer, two:Offer):Int {
 				final first = likeness(one);
 				final second = likeness(two);
 
@@ -784,7 +832,7 @@ final class Presets extends Widget {
 		}
 
 		if (order == BY_NAME || order == BY_FAVOURITE) {
-			inside.sort(function(one:Int, two:Int):Int {
+			inside.sort(function(one:Offer, two:Offer):Int {
 				final first = called(one);
 				final second = called(two);
 
@@ -794,7 +842,7 @@ final class Presets extends Widget {
 			return;
 		}
 
-		inside.sort(function(one:Int, two:Int):Int {
+		inside.sort(function(one:Offer, two:Offer):Int {
 			final first = tagged(one);
 			final second = tagged(two);
 
@@ -808,48 +856,118 @@ final class Presets extends Widget {
 	}
 
 	/**
-		Builds the rows again from the piece and whatever is typed in the search.
+		Takes an offer out of the pool and fills it in.
+
+		@param preset The preset.
+		@param sample What it plays, or null.
+		@param bank The bank it is listed under.
+		@param source Where it comes from.
+		@param index Its index into the piece, or -1.
+		@param shelf Its bank's position in the library, or -1.
+	**/
+	function offered(preset:Instrument, sample:Null<Sample>, bank:String, source:Int, index:Int,
+			shelf:Int):Void {
+		if (offers.length == pool.length) pool.push(new Offer(preset));
+
+		final out = pool[offers.length];
+
+		out.holds(preset, sample, bank, source, index, shelf);
+		offers.push(out);
+	}
+
+	/**
+		Gathers everything on offer: the starting bank first, then the presets the piece carries
+		because it plays them, then every other bank the library holds.
+	**/
+	function gathers():Void {
+		offers.resize(0);
+
+		shelves(true);
+		project();
+		shelves(false);
+	}
+
+	/**
+		Gathers the library's banks.
+
+		@param starting Whether to gather the starting bank alone, or every bank but it.
+	**/
+	function shelves(starting:Bool):Void {
+		final library = session.library;
+		if (library == null) return;
+
+		for (at in 0...library.names.length) {
+			final name = library.names[at];
+			if ((name == mdd.song.Library.STARTERS) != starting) continue;
+
+			final source = library.owned[at] ? Offer.MINE : (starting ? Offer.DEFAULT : Offer.SHIPPED);
+			final held = library.instruments[at];
+
+			for (which in 0...held.length) {
+				offered(held[which], library.samples[at][which], name, source, -1, at);
+			}
+		}
+	}
+
+	/**
+		Gathers the presets the piece carries because it plays them, under one bank of their own.
+	**/
+	function project():Void {
+		final song = session.song;
+		final needed = mdd.format.Needed.of(song);
+		final named = translate(Locale.PRESET_FROM_PROJECT);
+
+		for (index in 0...song.instruments.length) {
+			if (needed.instrument(index) < 0) continue;
+
+			final held = song.instruments[index];
+			offered(held, song.sampleAt(held.sample), named, Offer.PROJECT, index, -1);
+		}
+	}
+
+	/**
+		Builds the rows again from the library, the piece and whatever is typed in the search.
 	**/
 	public function fit():Void {
 		tree.clear();
 
-		named.resize(0);
 		held.resize(0);
+		shown.resize(0);
 		kinds.resize(0);
 		kindKeys.resize(0);
 		groups.resize(0);
 		groupKeys.resize(0);
-		grouped.resize(0);
-		kitLead.resize(0);
+		kits.resize(0);
+		leads.resize(0);
 
 		listed = 0;
 		banks = 0;
+
+		gathers();
 
 		final song = session.song;
 		final chosen = song.rack[session.part.index()];
 
 		final hunting = seeking() != "" || order == BY_FAVOURITE;
 		final starring = favourites;
+		final names = bankNames;
+		final inside = within;
 
 		for (kind in KINDS) {
 			final kitting = kind.sampled();
-			final places:Array<Int> = [];
+
+			names.resize(0);
 			var total = 0;
 
-			for (at in 0...song.banks.length) {
-				var has = 0;
+			for (offer in offers) {
+				if (!suits(offer.preset, kind)) continue;
 
-				for (index in song.banks[at].instruments) {
-					final instrument = song.instrumentAt(index);
-					if (instrument == null || !suits(instrument, kind)) continue;
-
-					has++;
+				if (names.indexOf(offer.bank) < 0) {
+					names.push(offer.bank);
+					if (kitting) total++;
 				}
 
-				if (has == 0) continue;
-
-				total += kitting ? 1 : has;
-				places.push(at);
+				if (!kitting) total++;
 			}
 
 			if (total == 0) continue;
@@ -861,36 +979,31 @@ final class Presets extends Widget {
 			kinds.push(head);
 			kindKeys.push(family);
 
-			for (at in places) {
-				final bank = song.banks[at];
-				final inside:Array<Int> = [];
+			for (name in names) {
+				inside.resize(0);
 
-				for (index in bank.instruments) {
-					final instrument = song.instrumentAt(index);
-					if (instrument == null || !suits(instrument, kind)) continue;
-					if (inside.indexOf(index) >= 0) continue;
-
-					inside.push(index);
+				for (offer in offers) {
+					if (offer.bank == name && suits(offer.preset, kind)) inside.push(offer);
 				}
 
 				if (inside.length == 0) continue;
 				ordered(inside);
 
-				final group = head.add(new Item(bank.name + "   " + inside.length,
+				final group = head.add(new Item(name + "   " + inside.length,
 					kitting ? Theme.PARTS[kind.index()] : -1));
 
-				final key = family + "/" + bank.name;
+				final key = family + "/" + name;
 
 				group.icon = kitting ? Icon.DRUMKIT : -1;
 				group.open = hunting || opened.indexOf(key) >= 0;
 
 				groups.push(group);
 				groupKeys.push(key);
-				grouped.push(at);
-				kitLead.push(kind.sampled() ? inside[0] : -1);
+				kits.push(kitting);
+				leads.push(inside[0]);
 
-				for (index in inside) {
-					final instrument = song.instruments[index];
+				for (offer in inside) {
+					final instrument = offer.preset;
 					final child = group.add(new Item(instrument.name,
 						Theme.PARTS[kind.index()]));
 
@@ -898,12 +1011,12 @@ final class Presets extends Widget {
 					child.mark = starring != null && starring.favours(instrument.id)
 						? Icon.STAR : -1;
 					child.note = order == BY_LIKENESS
-						? Math.round(likeness(index) * 100) + " %"
+						? Math.round(likeness(offer) * 100) + " %"
 						: briefly(instrument.tags);
 					child.says = instrument.tags.length == 0 ? ""
 						: instrument.tags.join(", ");
 
-					named.push(index);
+					shown.push(offer);
 					held.push(child);
 					if (!kitting) listed++;
 				}
@@ -915,7 +1028,14 @@ final class Presets extends Widget {
 			banks++;
 		}
 
-		final at = named.indexOf(chosen);
+		var at = -1;
+
+		for (index in 0...shown.length) {
+			if (shown[index].owned() && shown[index].index == chosen) {
+				at = index;
+				break;
+			}
+		}
 
 		if (at >= 0) {
 			final row = held[at];
@@ -939,7 +1059,16 @@ final class Presets extends Widget {
 		pending = false;
 	}
 
+	/**
+		@param instrument A preset.
+		@param part A part.
+		@return Whether the preset is listed under the part's family: it plays on the part, it
+			answers to what is typed in the search, and it is starred where only the starred are
+			listed.
+	**/
 	function suits(instrument:Instrument, part:Part):Bool {
+		if (!mdd.song.Library.kin(instrument.kind, part)) return false;
+
 		final want = seeking();
 		if (want != "" && !instrument.tagged(want)) return false;
 
@@ -948,10 +1077,7 @@ final class Presets extends Widget {
 			if (starring == null || !starring.favours(instrument.id)) return false;
 		}
 
-		if (part.fm()) return instrument.kind.fm();
-		if (part.square()) return instrument.kind.square();
-		if (part.noise()) return instrument.kind.noise();
-		return instrument.kind.sampled();
+		return true;
 	}
 
 	function searchTall():Float {

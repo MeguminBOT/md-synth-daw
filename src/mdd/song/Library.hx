@@ -7,10 +7,11 @@ import mdd.format.Tfi;
 	The preset banks: what ships inside the binary, and what a reader has put in their
 	own presets folder.
 
-	A library is copied into a song, so a song never depends on a bank being installed
-	to open. The shipped banks are read once; the folder is read at startup and again
-	whenever it may have changed, and every preset saved from the browser is written
-	into it, so a preset saved in one piece is offered in every other.
+	A library is what is installed, and a piece is never copied from it wholesale: the browser
+	offers what the library holds, and a preset loaded into a channel is copied into the piece
+	then, so a piece carries what it plays and nothing else. The shipped banks are read once; the
+	folder is read at startup and again whenever it may have changed, and every preset saved from
+	the browser is written into it, so a preset saved in one piece is offered in every other.
 **/
 @:unreflective
 final class Library {
@@ -30,9 +31,8 @@ final class Library {
 	public final samples:Array<Array<Null<Sample>>> = [];
 
 	/**
-		Whether each bank came out of the presets folder rather than the binary. A song
-		that already carries a bank of that name is given whatever the folder has gained
-		since; a shipped bank it carries is left as it is.
+		Whether each bank came out of the presets folder rather than the binary, which is what
+		reading the folder again replaces.
 	**/
 	public final owned:Array<Bool> = [];
 
@@ -359,21 +359,6 @@ final class Library {
 	}
 
 	/**
-		@param instrument A preset.
-		@return Whether this library holds one of that name for that kind of part, which is what
-			says it can be given back to a piece that leaves it out.
-	**/
-	public function knows(instrument:Instrument):Bool {
-		for (bank in instruments) {
-			for (held in bank) {
-				if (held.name == instrument.name && kin(held.kind, instrument.kind)) return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 		@param one A preset.
 		@param two Another.
 		@return Whether they are the same preset rather than two that read alike: their identities
@@ -463,333 +448,31 @@ final class Library {
 	}
 
 	/**
-		Copies every bank into a song, with its own instruments and samples, so nothing
-		is shared with the library afterwards.
-
-		A shipped bank the song already carries is left as it is. A bank out of the
-		presets folder that the song already carries is given each preset it does not
-		have a preset of that name for, so what was saved while another piece was open
-		reaches this one too.
-
-		The set every piece begins with is the exception, because every piece carries it before
-		anything is read: it is built in code so that a new piece has something to play, and what
-		ships beside it is added to it rather than passed over.
-
-		A bank made here is the library's rather than the piece's, so a file written afterwards
-		leaves it out and the library puts it back at the next opening. One the piece already had
-		is left as the piece had it, which is what keeps a bank the reader asked to keep.
-
-		@param song The song to copy into.
-		@return How many instruments were added.
-	**/
-	public function into(song:Song):Int {
-		var many = 0;
-
-		for (at in 0...names.length) {
-			final carried = carries(song, names[at]);
-			if (carried && !owned[at] && names[at] != STARTERS) continue;
-
-			final bank = song.banked(names[at], false);
-			final held = instruments[at];
-
-			for (which in 0...held.length) {
-				if (carried && offers(song, bank, held[which]) >= 0) continue;
-
-				final made = held[which].copy();
-				final sample = samples[at][which];
-
-				if (sample != null) {
-					song.sample(sample.copy());
-					made.sample = song.samples.length - 1;
-				}
-
-				song.instrument(made);
-
-				final index = song.instruments.length - 1;
-
-				song.bank(0).remove(index);
-				bank.add(index);
-
-				many++;
-			}
-		}
-
-		return many;
-	}
-
-	/**
-		The bank a piece's starting presets sit in, which is where the application puts the set
-		every new piece begins with.
+		The bank of presets the application is built with, which is the one bank a reader cannot
+		delete and the one a new piece takes its channels from.
 	**/
 	public static inline final STARTERS = "Default";
 
 	/**
-		What a kit is called where nothing else names it.
-	**/
-	public static inline final KIT = "Kit";
-
-	/**
-		@param song The piece.
-		@param library The library to ask, which is this one or the starting set.
-		@param hits A kit, by index into the piece.
-		@return The bank that offers the whole kit, or an empty string where it offers none of it
-			or only part of it. A kit is a unit: filing one into a bank that holds a different kit
-			puts two hits on the same key, and the one that sounds is whichever comes first.
-	**/
-	static function whole(song:Song, library:Library, hits:Array<Int>):String {
-		var named = "";
-
-		for (index in hits) {
-			final held = song.instrumentAt(index);
-			if (held == null) continue;
-
-			final want = library.offering(song, held);
-			if (want == "") return "";
-
-			if (named == "") named = want;
-			else if (named != want) return "";
-		}
-
-		return named;
-	}
-
-	/**
-		Works out what to call a kit no library offers.
-
-		A kit cannot share a bank with anything else, because a drum note picks its hit by note
-		out of the bank the rack's converter preset sits in: put a stray hit in there and it
-		sounds on whatever key it was recorded at, on a piece that never had it. So the one bank
-		a kit may not go in is the one everything the library does not recognise goes in.
-
-		@param song The piece.
-		@param held What the file called the bank the kit is in.
-		@param named The bank everything else the library does not recognise goes in.
-		@return What to call the kit.
-	**/
-	static function alone(song:Song, held:String, named:String):String {
-		if (held != "" && held != named) return held;
-		if (song.name != "" && song.name != named) return song.name;
-
-		return KIT;
-	}
-
-	/**
-		Files every preset a piece carries under the bank it belongs in, which is what a piece read
-		from a file needs: `STARTERS` where it is one of the set every piece begins with, one of
-		this library's banks where the library offers the same preset, and `named` for the rest,
-		which is what the file itself brought. The starting set is asked first, so the bank a piece
-		opens with holds what it always holds rather than scattering into the shipped banks that
-		some of it also sits in. A preset the bank already holds is left out of every bank
-		rather than listed twice, so a project carrying the presets folder twice, as one written
-		before the folder had a name of its own does, lists each preset once.
-
-		A kit is the one thing bank membership decides rather than only shows: a converter note
-		sounds the hit in the bank the rack's own converter preset sits in, and the roll draws its
-		rows from the same bank. The presets in that bank are therefore filed together, wherever
-		the rack's own preset belongs, so a kit gathered from several places stays one kit.
-
-		Nothing else moves. No instrument is added, removed or renumbered here, so everything a
-		note, a rack or a preset lane names is still what it was.
-
-		@param song The piece.
-		@param named The bank for a preset neither this library nor the starting set offers.
-		@return How many presets changed bank.
-	**/
-	public function files(song:Song, named:String):Int {
-		final starting = starters();
-		final home = song.banked(named, false);
-		final hits:Array<Int> = [];
-
-		var kitted = "";
-
-		final rack = song.rack[Part.Dac.index()];
-		final at = rack < 0 ? -1 : song.bankOf(rack);
-
-		if (at >= 0 && at < song.banks.length && song.banks[at].holds(rack)) {
-			final held = song.instrumentAt(rack);
-
-			if (held != null) {
-				for (one in song.banks[at].instruments) hits.push(one);
-
-				kitted = whole(song, starting, hits);
-				if (kitted == "") kitted = whole(song, this, hits);
-				if (kitted == "") kitted = alone(song, song.banks[at].name, named);
-			}
-		}
-
-		var moved = 0;
-
-		for (index in 0...song.instruments.length) {
-			final held = song.instrumentAt(index);
-			if (held == null) continue;
-
-			var want = starting.offering(song, held);
-			if (want == "") want = offering(song, held);
-			if (want == "") want = named;
-
-			final kit = hits.indexOf(index) >= 0;
-			if (kit) want = kitted;
-
-			final bank = want == named ? home : song.banked(want, false);
-			var changed = false;
-
-			for (one in song.banks) {
-				if (one != bank && one.remove(index)) changed = true;
-			}
-
-			final twin = kit ? -1 : twinned(song, bank, held, index);
-
-			if (twin >= 0) {
-				if (bank.remove(index)) changed = true;
-			} else if (!bank.holds(index)) {
-				bank.add(index);
-				changed = true;
-			}
-
-			if (changed) moved++;
-		}
-
-		return moved;
-	}
-
-	/**
-		@param song The piece the preset belongs to, for the sample a converter preset plays.
-		@param instrument A preset.
-		@return The name of the bank here that offers the same preset, or an empty string where
+		@param instrument A preset, its identity worked out.
+		@return The name of the first bank here holding the same preset, or an empty string where
 			none does.
 	**/
-	public function offering(song:Song, instrument:Instrument):String {
-		for (at in 0...names.length) {
-			final which = holding(at, instrument);
-			if (which < 0 || !alike(instruments[at][which], instrument)) continue;
-			if (!carriesSample(song, instrument, samples[at][which])) continue;
+	public function offering(instrument:Instrument):String {
+		if (instrument.id == "") return "";
 
-			return names[at];
+		for (at in 0...names.length) {
+			for (held in instruments[at]) if (held.id == instrument.id) return names[at];
 		}
 
 		return "";
 	}
 
 	/**
-		@param song A song.
-		@param bank One of its banks.
-		@param instrument A preset in it, by value.
-		@param index That preset, by index into the song.
-		@return Another preset already in that bank that is the same one, by index into the song,
-			or -1 where the bank holds no other copy of it.
+		Takes every bank that came out of the presets folder out of the library, so the folder can
+		be read again from nothing. What ships is left.
 	**/
-	static function twinned(song:Song, bank:Bank, instrument:Instrument, index:Int):Int {
-		for (at in bank.instruments) {
-			if (at == index) continue;
-
-			final held = song.instrumentAt(at);
-			if (held == null || !same(held, instrument) || !alike(held, instrument)) continue;
-			if (!sameHit(song, held, instrument)) continue;
-
-			return at;
-		}
-
-		return -1;
-	}
-
-	/**
-		A converter preset is only the same preset as another where it plays the same recording.
-		`alike` answers on the name, the kind and the patch or envelope alone, which two hits named
-		`Kick` in different kits both pass.
-
-		@param song The piece both belong to.
-		@param one A preset.
-		@param two Another.
-		@return Whether they play the same bytes at the same rate, or neither is a converter preset.
-	**/
-	static function sameHit(song:Song, one:Instrument, two:Instrument):Bool {
-		if (!one.kind.sampled() || !two.kind.sampled()) return true;
-
-		return heard(song.sampleAt(one.sample), song.sampleAt(two.sample));
-	}
-
-	/**
-		@param song The piece the preset belongs to.
-		@param instrument A preset.
-		@param sample What a bank here has it playing, or null.
-		@return Whether the preset plays that recording, or is not a converter preset at all.
-	**/
-	static function carriesSample(song:Song, instrument:Instrument, sample:Null<Sample>):Bool {
-		if (!instrument.kind.sampled()) return true;
-
-		return heard(song.sampleAt(instrument.sample), sample);
-	}
-
-	/**
-		@param one A recording, or null.
-		@param two Another, or null.
-		@return Whether both are missing, or both hold the same bytes at the same rate.
-	**/
-	static function heard(one:Null<Sample>, two:Null<Sample>):Bool {
-		if (one == null || two == null) return one == null && two == null;
-		if (one.rate != two.rate || one.length() != two.length()) return false;
-
-		for (index in 0...one.length()) {
-			if (one.bytes[index] != two.bytes[index]) return false;
-		}
-
-		return true;
-	}
-
-	/**
-		@return A library of the presets every new piece begins with, in one bank named `STARTERS`.
-	**/
-	static function starters():Library {
-		final out = new Library();
-		final song = new Song("starters");
-
-		mdd.song.Shipped.into(song);
-
-		for (index in 0...song.instruments.length) {
-			final held = song.instrumentAt(index);
-			if (held != null) out.adds(STARTERS, held, null, false);
-		}
-
-		return out;
-	}
-
-	/**
-		@param song A song.
-		@param name A bank's name.
-		@return Whether the song has a bank of that name with anything in it.
-	**/
-	static function carries(song:Song, name:String):Bool {
-		for (bank in song.banks) {
-			if (bank.name == name && bank.instruments.length > 0) return true;
-		}
-
-		return false;
-	}
-
-	/**
-		@param song A song.
-		@param bank One of its banks.
-		@param instrument A preset.
-		@return The song's instrument in that bank with the preset's name, for the same
-			kind of part, by index into the song, or -1 where there is none.
-	**/
-	static function offers(song:Song, bank:Bank, instrument:Instrument):Int {
-		for (index in bank.instruments) {
-			final held = song.instrumentAt(index);
-			if (held != null && same(held, instrument)) return index;
-		}
-
-		return -1;
-	}
-
-	/**
-		Takes every bank that came out of the presets folder out of the library, so the
-		folder can be read again from nothing.
-
-		@return A library holding what was taken out, which `prunes` compares against.
-	**/
-	public function sheds():Library {
-		final out = new Library();
+	public function forgets():Void {
 		var at = 0;
 
 		while (at < names.length) {
@@ -798,58 +481,11 @@ final class Library {
 				continue;
 			}
 
-			out.names.push(names[at]);
-			out.instruments.push(instruments[at]);
-			out.samples.push(samples[at]);
-			out.owned.push(true);
-
 			names.splice(at, 1);
 			instruments.splice(at, 1);
 			samples.splice(at, 1);
 			owned.splice(at, 1);
 		}
-
-		return out;
-	}
-
-	/**
-		Takes out of a song's banks each preset the presets folder held before it was
-		read again and no longer holds in that bank, so a preset moved into a subfolder
-		or deleted in the file manager leaves the bank it was in. Only a preset still
-		exactly as the folder had it is taken out: one edited in the song, or one the
-		song brought with it, stays. Nothing leaves the song itself, so whatever plays
-		it still does.
-
-		@param song The song.
-		@param before What `sheds` took out before the folder was read again.
-		@return How many presets left a bank.
-	**/
-	public function prunes(song:Song, before:Library):Int {
-		var many = 0;
-
-		for (at in 0...before.names.length) {
-			final name = before.names[at];
-			final now = names.indexOf(name);
-
-			for (bank in song.banks) {
-				if (bank.name != name) continue;
-
-				for (instrument in before.instruments[at]) {
-					if (now >= 0 && holding(now, instrument) >= 0) continue;
-
-					final index = offers(song, bank, instrument);
-					if (index < 0) continue;
-
-					final held = song.instrumentAt(index);
-					if (held == null || !alike(held, instrument)) continue;
-
-					bank.remove(index);
-					many++;
-				}
-			}
-		}
-
-		return many;
 	}
 
 	/**

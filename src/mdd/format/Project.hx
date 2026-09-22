@@ -29,14 +29,6 @@ import sys.io.File;
 **/
 class Project {
 	public static inline final VERSION = 2;
-
-	/**
-		The version a file was written by before a piece carried what it plays rather than
-		everything the preset browser was offering while it was open. Every bank in one of those
-		is marked as the piece's own, because the library marked them so, and reading them that
-		way would write the whole library out again.
-	**/
-	public static inline final WHOLE_LIBRARY = 1;
 	static inline final STRUCTURE = "project.json";
 	static inline final BULK = "chunks/bulk.mdc";
 	public static inline final SAMPLES = "samples";
@@ -90,8 +82,8 @@ class Project {
 		@param song The song to write.
 		@return The document.
 	**/
-	public static function text(song:Song, ?library:mdd.song.Library):String {
-		return written(song, Needed.of(song, library));
+	public static function text(song:Song):String {
+		return written(song, Needed.of(song));
 	}
 
 	/**
@@ -205,8 +197,6 @@ class Project {
 			out.open();
 			out.key("name");
 			out.text(bank.name);
-			out.key("kept");
-			out.flag(bank.kept);
 			out.key("instruments");
 			out.wholes(holding);
 			out.close();
@@ -546,12 +536,9 @@ class Project {
 		if (banks.length() > 0) {
 			song.banks.resize(0);
 
-			final whole = node.get("version").whole(VERSION) <= WHOLE_LIBRARY;
-
 			for (i in 0...banks.length()) {
 				final held = banks.at(i);
-				final bank = song.banked(held.get("name").saying(""),
-					!whole && held.get("kept").truth(true));
+				final bank = song.banked(held.get("name").saying(""));
 
 				final named = held.get("instruments");
 				for (at in 0...named.length()) bank.add(named.at(at).whole(0));
@@ -819,8 +806,8 @@ class Project {
 		@param song The song.
 		@return The block.
 	**/
-	public static function bulk(song:Song, ?library:mdd.song.Library):Bytes {
-		return bulked(Needed.of(song, library));
+	public static function bulk(song:Song):Bytes {
+		return bulked(Needed.of(song));
 	}
 
 	/**
@@ -888,8 +875,8 @@ class Project {
 		@param song The song to write.
 		@param into The folder to write into.
 	**/
-	public static function saveFolder(song:Song, into:String, ?library:mdd.song.Library):Void {
-		final needed = Needed.of(song, library);
+	public static function saveFolder(song:Song, into:String):Void {
+		final needed = Needed.of(song);
 
 		tree(into);
 		tree(into + "/" + SAMPLES);
@@ -974,8 +961,8 @@ class Project {
 		@param song The song to write.
 		@param into The file to write.
 	**/
-	public static function savePacked(song:Song, into:String, ?library:mdd.song.Library):Void {
-		final needed = Needed.of(song, library);
+	public static function savePacked(song:Song, into:String):Void {
+		final needed = Needed.of(song);
 		final entries = new List<haxe.zip.Entry>();
 
 		entries.add(entry(STRUCTURE, Bytes.ofString(written(song, needed))));
@@ -1090,11 +1077,11 @@ class Project {
 		@param song The song to write.
 		@param into Where to write it.
 	**/
-	public static function save(song:Song, into:String, ?library:mdd.song.Library):Void {
+	public static function save(song:Song, into:String):Void {
 		if (StringTools.endsWith(into.toLowerCase(), "." + mdd.Config.SUFFIX)) {
-			savePacked(song, into, library);
+			savePacked(song, into);
 		} else {
-			saveFolder(song, into, library);
+			saveFolder(song, into);
 		}
 	}
 

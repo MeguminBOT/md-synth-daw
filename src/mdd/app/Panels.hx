@@ -164,22 +164,21 @@ final class Panels {
 	public var onPresetFolder:Null<Void -> Void> = null;
 
 	/**
-		Called when the browser asks for one preset to be written out as a patch file, by index
-		into the piece.
+		Called when the browser asks for one preset to be written out as a patch file.
 	**/
-	public var onWritePatch:Null<Int -> Void> = null;
+	public var onWritePatch:Null<(mdd.song.Instrument, Null<mdd.song.Sample>) -> Void> = null;
 
 	/**
-		Called when the browser asks for what one preset plays to be written out as a wave file,
-		by index into the piece.
+		Called when the browser asks for what one preset plays to be written out as a wave file.
 	**/
-	public var onWriteSample:Null<Int -> Void> = null;
+	public var onWriteSample:Null<(mdd.song.Instrument, Null<mdd.song.Sample>) -> Void> = null;
 
 	/**
-		Called when the browser asks for a whole bank to be written out as one file, by index into
-		the piece's banks.
+		Called when the browser asks for a whole bank to be written out as one file: its name, its
+		presets and what each plays.
 	**/
-	public var onWriteBank:Null<Int -> Void> = null;
+	public var onWriteBank:Null<(String, Array<mdd.song.Instrument>, Array<Null<mdd.song.Sample>>)
+		-> Void> = null;
 
 	/**
 		The presets the reader has starred, which the browser marks and can list on its own. It is
@@ -254,12 +253,15 @@ final class Panels {
 		inspector.presets.onSave = function():Void savedPreset();
 		inspector.presets.onFolder = function():Void
 			if (onPresetFolder != null) onPresetFolder();
-		inspector.presets.onWritePatch = function(which:Int):Void
-			if (onWritePatch != null) onWritePatch(which);
-		inspector.presets.onWriteSample = function(which:Int):Void
-			if (onWriteSample != null) onWriteSample(which);
-		inspector.presets.onWriteBank = function(which:Int):Void
-			if (onWriteBank != null) onWriteBank(which);
+		inspector.presets.onWritePatch = function(preset:mdd.song.Instrument,
+				sample:Null<mdd.song.Sample>):Void
+			if (onWritePatch != null) onWritePatch(preset, sample);
+		inspector.presets.onWriteSample = function(preset:mdd.song.Instrument,
+				sample:Null<mdd.song.Sample>):Void
+			if (onWriteSample != null) onWriteSample(preset, sample);
+		inspector.presets.onWriteBank = function(name:String, presets:Array<mdd.song.Instrument>,
+				samples:Array<Null<mdd.song.Sample>>):Void
+			if (onWriteBank != null) onWriteBank(name, presets, samples);
 		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
 		bar.onPatterns = function(which:Int):Void commanded(which);
@@ -443,9 +445,10 @@ final class Panels {
 	}
 
 	/**
-		Saves the chosen part's preset under a name the reader is asked for: into the
-		piece's saved bank, taking the place there of one with the same name, and out to
-		the presets folder through `onPreset`, so every other piece offers it too.
+		Saves the chosen part's preset under a name the reader is asked for, out to the presets
+		folder through `onPreset`, so every piece offers it. The channel keeps playing what it
+		plays, now named for the preset it was saved as and counting that preset as where it came
+		from.
 	**/
 	public function savedPreset():Void {
 		if (naming == null) return;
@@ -457,34 +460,17 @@ final class Panels {
 		naming.ask(stage.root.translate(Locale.PRESET_NAME), from.name);
 		naming.onName = function(said:String):Void {
 			final song = session.song;
+			final sample = song.sampleAt(from.sample);
 			final made = from.copy();
+
 			made.name = said;
+			made.from = "";
+			made.identifies(sample);
 
-			final bank = song.banked(stage.root.translate(Locale.PRESET_SAVED));
+			from.name = said;
+			from.from = made.id;
 
-			session.holds();
-
-			for (index in bank.instruments.copy()) {
-				final held = song.instrumentAt(index);
-
-				if (held != null && held.name == said
-						&& mdd.song.Library.kin(held.kind, made.kind)) {
-					bank.remove(index);
-				}
-			}
-
-			song.instrument(made);
-
-			final index = song.instruments.length - 1;
-
-			song.rack[part.index()] = index;
-			song.bank(0).remove(index);
-			bank.add(index);
-			bank.kept = true;
-
-			session.frees();
-
-			if (onPreset != null) onPreset(made, song.sampleAt(made.sample));
+			if (onPreset != null) onPreset(made, sample);
 
 			session.say(said);
 			session.changed();

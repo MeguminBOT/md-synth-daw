@@ -14,10 +14,9 @@ import mdd.song.Song;
 	what the browser shows.
 
 	Each kind of preset is written the way the browser saves one and read back through the library,
-	and nothing a patch or an envelope holds may be lost on the way. A piece that already carries
-	the saved bank is given what was saved after it, once. A folder with subfolders reads as one
-	bank per subfolder, and a preset moved into a subfolder in the file manager leaves the bank it
-	was in, while one edited in the piece stays.
+	and nothing a patch or an envelope holds may be lost on the way. A piece holds a preset once it
+	is loaded and not before. A folder with subfolders reads as one bank per subfolder, and a preset
+	moved into a subfolder in the file manager moves to that bank.
 **/
 class PresetCheck {
 	static var failed:Int = 0;
@@ -29,12 +28,6 @@ class PresetCheck {
 		How many times a read is timed, the best of which is what is reported.
 	**/
 	static inline final ROUNDS = 7;
-
-	/**
-		What the bank of presets a piece was read from is called, in the reader's language. The
-		application passes the translation; this is what it reads in English.
-	**/
-	static inline final FROM_FILE = "From Project File";
 
 	/**
 		@param args The gate's arguments, unused.
@@ -49,7 +42,6 @@ class PresetCheck {
 		carried();
 		reached();
 		shipped();
-		filed();
 		identified();
 		recorded(Gate.root);
 		carriedOver(Gate.root);
@@ -140,221 +132,83 @@ class PresetCheck {
 	}
 
 	/**
-		A piece opened after a preset was saved is offered it, and a second opening does not
-		offer it twice.
+		A preset saved while one piece is open is offered to every piece from then on, and saving
+		one of the same name again takes its place rather than listing it twice.
 	**/
 	static function reached():Void {
 		final library = new Library();
 		library.reads(Library.saved(patched("Old Bass"), null), true, SAVED);
 
-		final older = new Song();
-		library.into(older);
-
+		library.keeps(SAVED, patched("New Lead"), null);
 		library.keeps(SAVED, patched("New Lead"), null);
 
-		final first = library.into(older);
-		final second = library.into(older);
-
-		final bank = older.banked(SAVED);
+		final at = library.names.indexOf(SAVED);
 		final names:Array<String> = [];
 
-		for (index in bank.instruments) {
-			final held = older.instrumentAt(index);
-			if (held != null) names.push(held.name);
-		}
+		for (held in (at < 0 ? [] : library.instruments[at])) names.push(held.name);
 
-		says("a piece opened later is offered it", first == 1 && second == 0
-			&& names.join(",") == "Old Bass,New Lead",
-			first + " added, then " + second + ", bank holds " + names.join(", "));
+		says("a saved preset is offered from then on", names.join(",") == "Old Bass,New Lead",
+			SAVED + " offers " + names.join(", ") + " after New Lead was saved twice");
 	}
 
 	/**
-		A shipped bank a piece carries is left as the piece has it, so a preset taken out of it
-		does not come back.
-
-		The set every piece begins with is the one bank this is not true of, because every piece
-		carries it before anything is read, so what ships beside it is added to it. It is left out
-		here for that reason.
+		A preset or a kit reaches a piece when it is loaded and not before. Loading copies it in,
+		a kit whole, and loading the same kit again finds the copy already there.
 	**/
 	static function shipped():Void {
 		final library = Library.embedded();
 		final song = new Song();
-		library.into(song);
+		final kit = shippedKit(library);
+		final at = library.names.indexOf(kit);
 
-		var at = "";
-
-		for (name in library.names) {
-			if (name == Library.STARTERS) continue;
-
-			at = name;
-			break;
-		}
-		var bank:Null<mdd.song.Bank> = null;
-
-		for (held in song.banks) if (held.name == at) bank = held;
-
-		if (bank == null || bank.instruments.length < 2) {
-			says("a shipped bank is left as it is", false, "no shipped bank to try");
+		if (at < 0) {
+			says("a kit arrives whole, once", false, "no shipped kit to load");
 			return;
 		}
 
-		final before = bank.instruments.length;
-		bank.remove(bank.instruments[0]);
+		final before = song.instruments.length;
+		final hits = library.instruments[at];
+		final played = library.samples[at];
 
-		final added = library.into(song);
+		mdd.song.edit.TakesPreset.kitting(Part.Dac, kit, hits, played, 0).apply(song);
+		final once = song.instruments.length;
 
-		says("a shipped bank is left as it is", added == 0 && bank.instruments.length == before - 1,
-			added + " added back into '" + at + "', which holds " + bank.instruments.length);
+		mdd.song.edit.TakesPreset.kitting(Part.Dac, kit, hits, played, 1).apply(song);
+		final twice = song.instruments.length;
+
+		var sounding = 0;
+		for (pitch in 0...128) if (song.drumAt(pitch) >= 0) sounding++;
+
+		says("a piece holds nothing it has not loaded", before == 0,
+			"a new song holds " + before + " presets with " + library.count() + " installed");
+
+		says("and a kit arrives whole, once", once == hits.length && twice == once && sounding > 1,
+			kit + " copied in as " + once + " presets, " + twice + " after loading it again, and "
+			+ sounding + " keys sound");
+
+		final lead = library.instruments[0][0];
+		final take = mdd.song.edit.TakesPreset.adopting(Part.Fm1, lead, null);
+
+		take.apply(song);
+		final copied = song.instruments.length;
+
+		take.revert(song);
+		take.apply(song);
+
+		says("and a preset loaded twice is one copy", copied == once + 1
+			&& song.instruments.length == copied
+			&& song.instrumentAt(song.rack[Part.Fm1.index()]).from == lead.id,
+			"loading " + lead.name + ", undoing it and doing it again leaves " + song.instruments.length
+			+ " presets, the last of them naming it as where it came from");
 	}
 
 	/**
-		A piece read from a file has its presets filed by where they came from: the library's own
-		banks for what the library offers, the starting bank for the set every piece begins with,
-		and one bank for what the file itself brought, however the file had them grouped. A piece
-		carrying the same preset twice, as one written before the presets folder had a name of its
-		own does, lists it once.
-	**/
-	static function filed():Void {
-		final library = Library.embedded();
-		library.keeps(SAVED, patched("My Own Lead"), null);
-
-		final song = new Song("my piece");
-		mdd.song.Shipped.into(song);
-
-		final shippedBank = library.names.length == 0 ? "" : library.names[0];
-		final fromShipped = library.instruments[0][0].name;
-
-		library.into(song);
-
-		final starter = listed(song, Library.STARTERS);
-		final mine = song.instrument(patched("Bass Of Mine"));
-		final swapped = song.instrument(enveloped("Square Of Mine", Part.Psg1));
-		final imported = song.instrument(patched("Lead Of Mine"));
-
-		final named = song.banked("my piece");
-		final blank = song.banked("");
-		final importing = song.banked("from the import");
-
-		song.bank(0).remove(song.instruments.length - 1);
-		song.bank(0).remove(song.instruments.length - 2);
-		song.bank(0).remove(song.instruments.length - 3);
-
-		named.add(song.instruments.indexOf(mine));
-		named.add(song.instruments.indexOf(swapped));
-		importing.add(song.instruments.indexOf(imported));
-
-		for (index in song.banked(shippedBank).instruments) named.add(index);
-		for (index in song.banked(SAVED).instruments) blank.add(index);
-
-		final twin = song.instrument(patched("My Own Lead"));
-		song.bank(0).remove(song.instruments.indexOf(twin));
-		blank.add(song.instruments.indexOf(twin));
-
-		final was = song.instruments.length;
-		final rack = song.rack[0];
-
-		library.files(song, FROM_FILE);
-		final added = library.into(song);
-
-		says("what the file brought is one bank", listed(song, FROM_FILE)
-			== "Bass Of Mine, Square Of Mine, Lead Of Mine",
-			"'" + FROM_FILE + "' holds " + listed(song, FROM_FILE) + ", from a bank named after the piece and one"
-			+ " named for an import");
-
-		says("a shipped preset goes back to its bank", listed(song, shippedBank).indexOf(fromShipped) >= 0
-			&& listed(song, "my piece") == "" && listed(song, "") == "",
-			"'" + fromShipped + "' is in '" + shippedBank + "' again, and the banks named after the piece and after"
-			+ " nothing are empty");
-
-		says("a preset carried twice is listed once", listed(song, SAVED) == "My Own Lead",
-			"'" + SAVED + "' holds " + listed(song, SAVED) + " for a piece carrying it twice");
-
-		says("the starting presets stay where they are", listed(song, Library.STARTERS) == starter,
-			Library.STARTERS + " holds the same " + song.banked(Library.STARTERS).instruments.length + " presets");
-
-		says("nothing a note names moves", song.instruments.length == was && added == 0
-			&& song.rack[0] == rack,
-			song.instruments.length + " instruments before and after, " + added + " added by the library afterwards,"
-			+ " and the rack still names " + rack);
-
-		kitted();
-		shared();
-	}
-
-	/**
-		A kit is the one thing a bank decides rather than only shows: a converter note sounds the
-		hit in the bank the rack's converter preset sits in. A kit gathered from a reader's own
-		hits and one borrowed out of a shipped kit is therefore still one kit after filing, and
-		every key it was written across still sounds.
-	**/
-	static function kitted():Void {
-		final library = Library.embedded();
-		final song = new Song("kitted");
-
-		mdd.song.Shipped.into(song);
-		library.into(song);
-
-		final borrowed = bankOf(song, library.names.length == 0 ? "" : shippedKit(library));
-		if (borrowed < 0) {
-			says("a kit gathered from several places stays one kit", false, "no shipped kit to borrow from");
-			return;
-		}
-
-		final taken = song.instrumentAt(borrowed);
-		final played = song.sampleAt(taken.sample);
-
-		final own = song.banked("my piece");
-		final roots:Array<Int> = [];
-
-		for (index in 0...3) {
-			final made = new Instrument("Hit " + index, Part.Dac);
-			final sample = sampled("Hit " + index);
-
-			sample.root = 40 + index;
-			song.sample(sample);
-
-			made.sample = song.samples.length - 1;
-			song.instrument(made);
-
-			final held = song.instruments.length - 1;
-
-			song.bank(0).remove(held);
-			own.add(held);
-			roots.push(sample.root);
-		}
-
-		for (bank in song.banks) bank.remove(borrowed);
-		own.add(borrowed);
-
-		song.rack[Part.Dac.index()] = song.instruments.length - 1;
-		song.drums = true;
-
-		if (played != null) roots.push(played.root);
-
-		var before = 0;
-		for (root in roots) if (song.drumAt(root) >= 0) before++;
-
-		library.files(song, FROM_FILE);
-		library.into(song);
-
-		var after = 0;
-		for (root in roots) if (song.drumAt(root) >= 0) after++;
-
-		says("a kit gathered from several places stays one kit", before == roots.length
-			&& after == roots.length,
-			after + " of " + roots.length + " keys still sound after filing, against " + before + " before, on a kit"
-			+ " of a reader's own hits and one taken out of " + FROM_FILE);
-	}
-
-	/**
-		@param library A library.
-		@return The name of the first bank in it holding a converter preset with a sample.
-	**/
-	/**
-		A new piece opens with the bank that ships and every channel playing something out of it.
+		A new piece opens with every channel playing something out of the bank that ships, and
+		carries those eleven presets and nothing else.
 	**/
 	static function opened():Void {
-		final song = mdd.app.Session.empty(Library.embedded());
+		final library = Library.embedded();
+		final song = mdd.app.Session.empty(library);
 		final shown:Array<String> = [];
 
 		var silent = 0;
@@ -375,12 +229,19 @@ class PresetCheck {
 		says("a new piece opens with a channel playing on each part", silent == 0,
 			silent + " parts with nothing to play; " + shown.join(", "));
 
-		final bank = listed(song, Library.STARTERS).split(", ");
+		final at = library.names.indexOf(Library.STARTERS);
+		final bank:Array<String> = [];
+
+		for (held in (at < 0 ? [] : library.instruments[at])) bank.push(held.name);
 
 		says("and the bank it opens with is the one that ships", bank.length == 64
 			&& bank.indexOf("Lead guitar") >= 0 && bank.indexOf("Bounce bass") < 0,
 			bank.length + " presets in " + Library.STARTERS
 			+ ", named for what they are for");
+
+		says("and it carries one preset for each part", song.instruments.length == Part.COUNT
+			&& mdd.format.Needed.of(song).instruments.length == Part.COUNT,
+			song.instruments.length + " presets in a new piece with " + library.count() + " installed");
 	}
 
 	/**
@@ -513,81 +374,9 @@ class PresetCheck {
 	}
 
 	/**
-		A kit that sits in a bank named after a library bank keeps its own hits.
-
-		Filing put the kit into whichever library bank offered the rack's own hit, so the piece's
-		kit and the library's ended up in one bank, and the duplicate check then took the piece's
-		copies back out again, the rack's own among them. The kit went silent on the second
-		opening of a file that had sounded on the first.
+		@param library A library.
+		@return The name of the first bank in it holding a converter preset with a sample.
 	**/
-	static function shared():Void {
-		final library = Library.embedded();
-		final named = shippedKit(library);
-
-		if (named == "") {
-			says("a kit keeps its own hits", false, "no shipped kit to share a name with");
-			return;
-		}
-
-		final song = new Song("shared");
-		library.into(song);
-
-		final at = library.names.indexOf(named);
-		final borrowed:Array<Instrument> = library.instruments[at];
-		final bank = song.banked(named);
-		final roots:Array<Int> = [];
-
-		for (index in 0...borrowed.length) {
-			final held = library.samples[at][index];
-			if (held == null) continue;
-
-			final made = borrowed[index].copy();
-			final sample = held.copy();
-
-			if (roots.length > 0) sample.bytes[0] = (sample.bytes[0] + 7) & 0xFF;
-
-			song.sample(sample);
-			made.sample = song.samples.length - 1;
-			made.id = "";
-			made.identifies(sample);
-
-			song.instrument(made);
-
-			final one = song.instruments.length - 1;
-
-			song.bank(0).remove(one);
-			bank.add(one);
-
-			if (roots.indexOf(sample.root) < 0) roots.push(sample.root);
-			if (roots.length >= 6) break;
-		}
-
-		song.rack[Part.Dac.index()] = song.instruments.length - roots.length;
-		song.drums = true;
-
-		final was:Array<String> = [];
-
-		for (root in roots) {
-			final one = song.instrumentAt(song.drumAt(root));
-			was.push(root + ":" + (one == null ? "-" : "" + one.sample));
-		}
-
-		library.files(song, FROM_FILE);
-		library.into(song);
-
-		final now:Array<String> = [];
-
-		for (root in roots) {
-			final one = song.instrumentAt(song.drumAt(root));
-			now.push(root + ":" + (one == null ? "-" : "" + one.sample));
-		}
-
-		says("a kit keeps its own hits", was.join(",") == now.join(",") && roots.length > 1,
-			roots.length + " keys sound the piece's own hits out of a bank called " + named
-			+ ", and " + (was.join(",") == now.join(",") ? "the same after filing"
-			: "AFTER FILING " + now.join(" ")));
-	}
-
 	static function shippedKit(library:Library):String {
 		for (at in 0...library.names.length) {
 			for (which in 0...library.instruments[at].length) {
@@ -596,26 +385,6 @@ class PresetCheck {
 		}
 
 		return "";
-	}
-
-	/**
-		@param song A song.
-		@param bank A bank's name.
-		@return The first converter preset in it, by index into the song, or -1.
-	**/
-	static function bankOf(song:Song, bank:String):Int {
-		if (bank == "") return -1;
-
-		for (held in song.banks) {
-			if (held.name != bank) continue;
-
-			for (index in held.instruments) {
-				final one = song.instrumentAt(index);
-				if (one != null && one.kind.sampled() && one.sample >= 0) return index;
-			}
-		}
-
-		return -1;
 	}
 
 	/**
@@ -722,27 +491,28 @@ class PresetCheck {
 			&& stepped != sped && struck != heard,
 			"a step, a speed and one byte of a recording each answer something else");
 
-		final song = new Song("carrying");
-		final own = song.instrument(patched("Bass"));
-
-		own.patch.feedback = 6;
-		own.identifies(null);
-		own.from = one.id;
-
-		song.bank(0).remove(song.instruments.length - 1);
-		song.banked(FROM_FILE).add(song.instruments.length - 1);
-
 		final library = new Library();
 		library.reads(Library.saved(patched("Bass"), null), true, SAVED);
 
-		final added = library.into(song);
-		final kept = song.instrumentAt(song.instruments.indexOf(own));
+		final song = new Song("carrying");
+		final session = new mdd.app.Session(song);
 
-		says("a piece keeps its own against a reader's", kept != null && kept.patch.feedback == 6
-			&& listed(song, FROM_FILE) == "Bass" && added == 1 && kept.from == one.id,
-			"the piece still plays its own Bass at a feedback of " + (kept == null ? -1 : kept.patch.feedback)
-			+ ", the folder's arrived beside it as " + added + " more, and the piece's still says it came"
-			+ " from " + one.id.substr(0, 8));
+		session.library = library;
+		mdd.song.edit.TakesPreset.adopting(Part.Fm1, library.instruments[0][0], null).apply(song);
+
+		final own = song.instrumentAt(song.rack[Part.Fm1.index()]);
+		final second = song.instrument(patched("Bass"));
+
+		own.patch.feedback = 6;
+		second.from = one.id;
+
+		final origin = session.loadedFrom(own);
+
+		says("a channel goes back to the installed preset", origin == library.instruments[0][0]
+			&& origin.patch.feedback == 5 && own.from == one.id,
+			"a channel edited to a feedback of 6 names " + own.from.substr(0, 8) + " as where it came"
+			+ " from, and that is the library's own at " + (origin == null ? -1 : origin.patch.feedback)
+			+ " rather than another copy the piece carries");
 	}
 
 	/**
@@ -1083,46 +853,62 @@ class PresetCheck {
 	}
 
 	/**
-		A preset moved into a subfolder leaves the bank it was in, in the piece that is open, and
-		one edited in the piece stays where it is.
+		A preset moved into a subfolder moves to that bank once the folder is read again, and a
+		piece that plays it goes on playing it: the piece holds its own copy, and still knows it by
+		identity where it now sits.
 	**/
 	static function moved(where:String):Void {
 		mdd.host.Paths.clear(where);
 		mdd.host.Paths.make(where);
 
+		final keys = patched("Keys");
+		keys.patch.feedback = 2;
+
 		sys.io.File.saveContent(where + "/Lead.json", Library.saved(patched("Lead"), null));
-		sys.io.File.saveContent(where + "/Keys.json", Library.saved(patched("Keys"), null));
+		sys.io.File.saveContent(where + "/Keys.json", Library.saved(keys, null));
 
 		final library = new Library();
 		library.within(where, SAVED);
 
 		final song = new Song();
-		library.into(song);
+		var lead = library.instruments[0][0];
 
-		for (held in song.instruments) {
-			if (held.name == "Keys" && held.patch != null) held.patch.feedback = 2;
-		}
+		for (held in library.instruments[0]) if (held.name == "Lead") lead = held;
+
+		mdd.song.edit.TakesPreset.adopting(Part.Fm1, lead, null).apply(song);
 
 		sys.FileSystem.createDirectory(where + "/Leads");
 		sys.FileSystem.rename(where + "/Lead.json", where + "/Leads/Lead.json");
 		sys.FileSystem.createDirectory(where + "/Keys");
 		sys.FileSystem.rename(where + "/Keys.json", where + "/Keys/Keys.json");
 
-		final count = song.instruments.length;
-		final before = library.sheds();
-
+		library.forgets();
 		library.within(where, SAVED);
 
-		final added = library.into(song);
-		final gone = library.prunes(song, before);
+		final saved = shelved(library, SAVED);
+		final leads = shelved(library, "Leads");
+		final keyed = shelved(library, "Keys");
+		final playing = song.instrumentAt(song.rack[Part.Fm1.index()]);
 
-		final saved = listed(song, SAVED);
-		final leads = listed(song, "Leads");
+		says("a preset moved into a subfolder moves", leads == "Lead" && keyed == "Keys"
+			&& saved == "" && playing != null && library.offering(lead) == "Leads"
+			&& playing.from == lead.id,
+			SAVED + " holds '" + saved + "', Leads holds " + leads + ", Keys holds " + keyed
+			+ ", and the piece still plays its copy of Lead, found by identity in " + library.offering(lead));
+	}
 
-		says("a preset moved into a subfolder moves", gone == 1 && leads == "Lead"
-			&& saved == "Keys" && song.instruments.length == count + added,
-			added + " added, " + gone + " left; " + SAVED + " holds " + saved + ", Leads holds "
-			+ leads);
+	/**
+		@param library A library.
+		@param name One of its banks.
+		@return The names of the presets in it, in order.
+	**/
+	static function shelved(library:Library, name:String):String {
+		final at = library.names.indexOf(name);
+		final out:Array<String> = [];
+
+		for (held in (at < 0 ? [] : library.instruments[at])) out.push(held.name);
+
+		return out.join(", ");
 	}
 
 	/**
@@ -1278,33 +1064,17 @@ class PresetCheck {
 		final lead = patched("Glass Lead");
 		final hit = enveloped("Blip", Part.Psg1);
 		final drum = new Instrument("Kick", Part.Dac);
+		final kick = sampled("kick");
 
 		lead.identifies(null);
 
-		song.sample(sampled("kick"));
-		drum.sample = song.samples.length - 1;
-
-		song.instrument(lead);
-		final leadAt = song.instruments.length - 1;
-
-		song.instrument(hit);
-		song.instrument(drum);
-		final drumAt = song.instruments.length - 1;
-
-		final bank = song.banked("Kit");
-
-		for (index in [leadAt, leadAt + 1, drumAt]) {
-			song.bank(0).remove(index);
-			bank.add(index);
-		}
-
-		files.chosen = leadAt;
+		files.chooses("", [lead], [null]);
 		final wrotePatch = files.writesPresetTfi(where + "/Glass Lead");
 
-		files.chosen = drumAt;
+		files.chooses("", [drum], [kick]);
 		final wroteWave = files.writesPresetWav(where + "/Kick");
 
-		files.chosen = song.banks.indexOf(bank);
+		files.chooses("Kit", [lead, hit, drum], [null, null, kick]);
 		final wroteBank = files.writesBank(where + "/Kit");
 
 		final patch = mdd.format.Tfi.read(sys.io.File.getBytes(wrotePatch));
@@ -1322,16 +1092,26 @@ class PresetCheck {
 
 		final other = new Song();
 		final reading = new mdd.app.Files(new mdd.app.Session(other));
+		final installed = new Library();
 
 		reading.presetsAt = where + "/read";
 		reading.savedInto = SAVED;
+		reading.library = installed;
 		reading.readPresets(wroteBank);
 
-		says("and a bank reads back into a piece with none of it",
-			listed(other, "Kit") == "Glass Lead, Blip, Kick" && other.samples.length == 1,
-			listed(other, "Kit") + "; " + other.samples.length + " recording");
+		final at = installed.names.indexOf("Kit");
+		final recordings = at < 0 ? 0 : installed.samples[at].filter(function(one:Null<Sample>):Bool
+			return one != null).length;
 
-		final home = other.identified(lead.id);
+		says("and a bank reads back into the library, not the piece",
+			shelved(installed, "Kit") == "Glass Lead, Blip, Kick" && recordings == 1
+			&& other.instruments.length == 0,
+			shelved(installed, "Kit") + "; " + recordings + " recording; the open piece holds "
+			+ other.instruments.length);
+
+		var home:Null<Instrument> = null;
+
+		for (held in (at < 0 ? [] : installed.instruments[at])) if (held.id == lead.id) home = held;
 
 		says("and it is the same preset it was written from", home != null
 			&& home.name == "Glass Lead" && mdd.format.Tfi.same(lead.patch, home.patch),
@@ -1390,9 +1170,9 @@ class PresetCheck {
 			mdd.app.Files.name(named) + " under " + under + ", holding " + shown.join(", ")
 			+ ", each of " + (hit == null ? 0 : hit.length()) + " bytes");
 
-		says("and the piece is given it straight away",
-			listed(song, "Metal") == "Kick, Snare, Hat" && song.samples.length == 3,
-			listed(song, "Metal") + "; " + song.samples.length + " recordings");
+		says("and the library offers it straight away",
+			shelved(library, "Metal") == "Kick, Snare, Hat" && song.instruments.length == 0,
+			shelved(library, "Metal") + "; the open piece holds " + song.instruments.length);
 
 		mdd.host.Paths.clear(where);
 	}
