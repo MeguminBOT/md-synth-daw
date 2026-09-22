@@ -31,6 +31,12 @@ class Choice {
 	public var enabled:Bool = true;
 
 	/**
+		Whether it is on, for an entry that turns something on or picks one of several. A tick is
+		drawn beside it in a menu that is `ticking`.
+	**/
+	public var ticked:Bool = false;
+
+	/**
 		What opens from it, where anything does.
 	**/
 	public var submenu:Null<Menu> = null;

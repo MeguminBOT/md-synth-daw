@@ -60,6 +60,12 @@ final class Menu extends Widget {
 	public var anchorY(default, null):Float = 0;
 
 	/**
+		Whether its entries are options that are on or off, which gives every entry a column for a
+		tick before its label, so the ticked and the unticked line up.
+	**/
+	public var ticking:Bool = false;
+
+	/**
 		How far it has faded in.
 	**/
 	public final fade:Motion;
@@ -246,7 +252,7 @@ final class Menu extends Widget {
 			tall += rowHeight(metrics, choice);
 			if (choice.divides) continue;
 
-			var wide = font.measure(choice.label);
+			var wide = font.measure(choice.label) + (ticking ? tickWide(metrics) : 0);
 			if (choice.shortcut != "") wide += metrics.whole(28) + font.measure(choice.shortcut);
 			if (choice.opens()) wide += metrics.whole(18);
 			if (!choice.enabled && choice.reason != "") {
@@ -537,7 +543,14 @@ final class Menu extends Widget {
 			final line = top + (metrics.row - font.height) * 0.5 + font.ascent;
 			final shade = choice.enabled ? alpha : alpha * 0.55;
 
-			paint.text(choice.label, x + metrics.inset, line, ink, shade);
+			var pen = x + metrics.inset;
+
+			if (ticking) {
+				if (choice.ticked) ticks(paint, metrics, pen, top, ink, shade);
+				pen += tickWide(metrics);
+			}
+
+			paint.text(choice.label, pen, line, ink, shade);
 
 			if (choice.shortcut != "") {
 				paint.textRight(choice.shortcut,
@@ -558,6 +571,34 @@ final class Menu extends Widget {
 
 		paint.popClip();
 		paint.popTransform();
+	}
+
+	/**
+		@param metrics The sizes to draw at.
+		@return How wide the column a tick sits in is.
+	**/
+	static inline function tickWide(metrics:Metrics):Float {
+		return metrics.whole(18);
+	}
+
+	/**
+		Draws the tick beside an entry that is on.
+
+		@param paint What to draw with.
+		@param metrics The sizes to draw at.
+		@param left Where the tick's column starts, across.
+		@param top Where the entry sits, down.
+		@param ink The colour to draw it in.
+		@param alpha How opaque to draw it.
+	**/
+	function ticks(paint:Paint, metrics:Metrics, left:Float, top:Float, ink:Colour, alpha:Float):Void {
+		final middle = top + metrics.row * 0.5;
+		final size = metrics.whole(4);
+		final weight = metrics.whole(2);
+
+		paint.line(left, middle, left + size, middle + size, weight, ink, alpha);
+		paint.line(left + size, middle + size, left + size * 2.5, middle - size * 1.2, weight, ink,
+			alpha);
 	}
 
 	/**

@@ -62,6 +62,27 @@ final class Offer {
 	public var shelf:Int = -1;
 
 	/**
+		Where it was gathered, which is the order its bank lists it in.
+	**/
+	public var order:Int = 0;
+
+	/**
+		When it was added, in seconds since 1970, or nought for one that ships.
+	**/
+	public var time:Float = 0;
+
+	/**
+		How alike it is to what the chosen part plays, as a fraction of one, worked out once a build
+		rather than once a comparison.
+	**/
+	public var alike:Float = 0;
+
+	/**
+		Whether this build has counted it already, since a preset can sit in several groups.
+	**/
+	public var counted:Bool = false;
+
+	/**
 		Builds one.
 
 		@param preset The preset.
@@ -88,6 +109,11 @@ final class Offer {
 		this.source = source;
 		this.index = index;
 		this.shelf = shelf;
+
+		order = 0;
+		time = 0;
+		alike = 0;
+		counted = false;
 	}
 
 	/**

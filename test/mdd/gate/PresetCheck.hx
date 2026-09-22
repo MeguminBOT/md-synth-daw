@@ -65,6 +65,7 @@ class PresetCheck {
 		keptBack(where);
 		familied(where);
 		sortedIn(where);
+		dated(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -1323,6 +1324,54 @@ class PresetCheck {
 
 		says("and one more file throws the cache away", answer < 0 && stale.count() == 0,
 			"the cache answers " + answer + ", so the folder is read again");
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		A preset read out of the presets folder is dated by its file the first time it is seen, and
+		keeps that date through a rename, new tags and a move to another folder, because the date is
+		kept by what it sounds like. The dates read back as they were written.
+	**/
+	static function dated(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where + "/FM");
+
+		final made = patched("Dated");
+		final path = where + "/FM/Dated" + Library.RECORDS;
+
+		sys.io.File.saveBytes(path, mdd.format.Preset.write("", [made], [null]));
+
+		final written = sys.FileSystem.stat(path).mtime.getTime() / 1000;
+		final library = new Library();
+		library.within(where, SAVED);
+
+		final added = new mdd.app.Added();
+		final first = added.sees(library, written + 1000000);
+		final id = library.instruments[0][0].id;
+
+		sys.FileSystem.deleteFile(path);
+		mdd.host.Paths.make(where + "/FM/Moved");
+
+		final renamed = made.copy();
+		renamed.name = "Renamed";
+		renamed.tags.push("Moved");
+
+		sys.io.File.saveBytes(where + "/FM/Moved/Renamed" + Library.RECORDS,
+			mdd.format.Preset.write("", [renamed], [null]));
+
+		library.forgets();
+		library.within(where, SAVED);
+
+		final again = added.sees(library, written + 2000000);
+		final back = new mdd.app.Added();
+		back.reads(added.spelt());
+
+		says("a preset is dated by its file, once", first == 1 && again == 0
+			&& Math.abs(added.when(id) - written) < 2 && library.instruments[0][0].id == id
+			&& back.when(id) == added.when(id),
+			"dated " + Math.round(added.when(id)) + " against a file written at " + Math.round(written)
+			+ ", and still after a rename, a tag and a move, which gave " + again + " new dates");
 
 		mdd.host.Paths.clear(where);
 	}

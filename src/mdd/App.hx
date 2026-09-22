@@ -57,6 +57,12 @@ class App {
 	final library:mdd.song.Library = mdd.song.Library.embedded();
 	final keyboard:Keyboard = new Keyboard();
 	final favourites:Favourites = new Favourites();
+
+	/**
+		When each installed preset was added, kept in the cache folder and filled in as the presets
+		folder is read.
+	**/
+	final added:mdd.app.Added = new mdd.app.Added();
 	final sound:Sound = new Sound();
 
 	var panels:Null<Panels> = null;
@@ -378,6 +384,7 @@ class App {
 
 		panels = new Panels(stage);
 		panels.favourites = favourites;
+		panels.added = added;
 		panels.dress(session);
 
 		files = new Files(session);
@@ -1659,6 +1666,7 @@ class App {
 		library.takes(folder);
 		presetsStamp = stamp;
 
+		added.sees(library, Date.now().getTime() / 1000);
 		session.changed();
 	}
 
@@ -1733,6 +1741,30 @@ class App {
 
 		favourites.onChange = function():Void {
 			settings.put("favourites", favourites.spelt());
+			settings.save();
+		};
+
+		final dated = files.cache("added");
+
+		try {
+			if (sys.FileSystem.exists(dated)) added.reads(sys.io.File.getContent(dated));
+		} catch (e:Dynamic) {}
+
+		added.onChange = function():Void {
+			try {
+				sys.io.File.saveContent(dated, added.spelt());
+			} catch (e:Dynamic) {}
+		};
+
+		panels.presetView = settings.of("presetView", "");
+
+		if (panels.inspector != null) {
+			panels.inspector.presets.reads(panels.presetView);
+			panels.inspector.presets.fit();
+		}
+
+		panels.onPresetView = function(said:String):Void {
+			settings.put("presetView", said);
 			settings.save();
 		};
 

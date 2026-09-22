@@ -69,7 +69,7 @@ final class Kit {
 		if (!sys.FileSystem.exists(where) || !sys.FileSystem.isDirectory(where)) return 0;
 
 		final held = sys.FileSystem.readDirectory(where);
-		held.sort(function(one:String, two:String):Int return inOrder(one, two));
+		held.sort(function(one:String, two:String):Int return mdd.Names.inOrder(one, two));
 
 		var many = 0;
 
@@ -161,7 +161,7 @@ final class Kit {
 
 		slots.sort(function(one:Slot, two:Slot):Int {
 			if (one.root != two.root) return one.root - two.root;
-			return inOrder(one.name, two.name);
+			return mdd.Names.inOrder(one.name, two.name);
 		});
 
 		return many;
@@ -212,7 +212,7 @@ final class Kit {
 		@return How many were placed.
 	**/
 	static function laid(rest:Array<Slot>, held:Array<Int>):Int {
-		rest.sort(function(one:Slot, two:Slot):Int return inOrder(one.name, two.name));
+		rest.sort(function(one:Slot, two:Slot):Int return mdd.Names.inOrder(one.name, two.name));
 
 		final drawn = mdd.Icon.NAMES.indexOf("wave-saw");
 		var at = BASE;
@@ -447,7 +447,7 @@ final class Kit {
 	}
 
 	static function byNamed(one:Slot, two:Slot):Int {
-		return inOrder(one.name, two.name);
+		return mdd.Names.inOrder(one.name, two.name);
 	}
 
 	/**
@@ -486,77 +486,6 @@ final class Kit {
 		}
 
 		return found;
-	}
-
-	/**
-		Compares two names the way a person reads them, so `Hit 2` comes before `Hit 10`.
-
-		A run of digits is compared as the number it spells and everything else letter by
-		letter regardless of case. Names that differ only in case or in leading noughts are
-		told apart afterwards, so no two different names ever compare equal.
-
-		@param one A name.
-		@param two Another.
-		@return Below nought where the first comes first, above nought where the second does.
-	**/
-	public static function inOrder(one:String, two:String):Int {
-		final left = one.toLowerCase();
-		final right = two.toLowerCase();
-
-		var atLeft = 0;
-		var atRight = 0;
-
-		while (atLeft < left.length && atRight < right.length) {
-			final codeLeft = StringTools.fastCodeAt(left, atLeft);
-			final codeRight = StringTools.fastCodeAt(right, atRight);
-
-			if (!digit(codeLeft) || !digit(codeRight)) {
-				if (codeLeft != codeRight) return codeLeft - codeRight;
-
-				atLeft++;
-				atRight++;
-				continue;
-			}
-
-			var endLeft = atLeft;
-			while (endLeft < left.length && digit(StringTools.fastCodeAt(left, endLeft))) endLeft++;
-
-			var endRight = atRight;
-			while (endRight < right.length && digit(StringTools.fastCodeAt(right, endRight))) {
-				endRight++;
-			}
-
-			while (atLeft < endLeft - 1 && StringTools.fastCodeAt(left, atLeft) == "0".code) atLeft++;
-			while (atRight < endRight - 1 && StringTools.fastCodeAt(right, atRight) == "0".code) {
-				atRight++;
-			}
-
-			final wideLeft = endLeft - atLeft;
-			final wideRight = endRight - atRight;
-
-			if (wideLeft != wideRight) return wideLeft - wideRight;
-
-			for (step in 0...wideLeft) {
-				final apart = StringTools.fastCodeAt(left, atLeft + step)
-					- StringTools.fastCodeAt(right, atRight + step);
-
-				if (apart != 0) return apart;
-			}
-
-			atLeft = endLeft;
-			atRight = endRight;
-		}
-
-		final restLeft = left.length - atLeft;
-		final restRight = right.length - atRight;
-
-		if (restLeft != restRight) return restLeft - restRight;
-
-		return one < two ? -1 : (one > two ? 1 : 0);
-	}
-
-	static inline function digit(code:Int):Bool {
-		return code >= "0".code && code <= "9".code;
 	}
 
 	/**

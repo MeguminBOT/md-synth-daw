@@ -19,9 +19,15 @@ import mdd.view.Kits;
 @:unreflective
 
 /**
-	The preset browser: every preset installed, bank by bank, and the ones the open piece carries
-	because it plays them, under the four families of part. Searchable by name or by tag, and
-	orderable by bank, by name, by tag or by how alike each is to what the chosen part plays.
+	The preset browser: every preset installed and the ones the open piece carries because it plays
+	them, under the four families of part, which stay the top of the tree whatever else is chosen.
+
+	Inside a family the presets are grouped by bank, by tag, by when they were added, by where they
+	come from, or not at all, and sorted by name, by date, by how alike each is to what the chosen
+	part plays, or as their bank lists them. The starting bank is always the first group. What is
+	shown can be narrowed by the filter menu and by words typed into the search, which filter the
+	same way: `tag:` and `bank:` look at one thing only, a leading `-` leaves out what matches,
+	`fav` keeps the starred and `used` keeps what the piece plays.
 
 	Nothing it offers is in the piece until it is loaded: loading one copies it into the piece,
 	so the piece carries what it plays rather than everything it was offered.
@@ -43,43 +49,136 @@ final class Presets extends Widget {
 	public final search:mdd.ui.control.Field;
 
 	/**
-		Order: grouped by the bank they came from.
+		Grouping: by the bank each is in.
 	**/
-	public static inline final BY_BANK = 0;
+	public static inline final GROUP_BANK = 0;
 
 	/**
-		Order: by name.
+		Grouping: by tag, a preset listed under every tag it carries.
 	**/
-	public static inline final BY_NAME = 1;
+	public static inline final GROUP_TAG = 1;
 
 	/**
-		Order: grouped by tag.
+		Grouping: by when each was added, newest first.
 	**/
-	public static inline final BY_TAG = 2;
+	public static inline final GROUP_ADDED = 2;
 
 	/**
-		Order: only the presets the reader has starred, by name.
+		Grouping: by where each comes from.
 	**/
-	public static inline final BY_FAVOURITE = 3;
+	public static inline final GROUP_SOURCE = 3;
 
 	/**
-		Order: how alike each preset is to the one the chosen part is playing, closest first,
-		with how alike beside each row.
+		Grouping: none, every preset of a family in one list.
 	**/
-	public static inline final BY_LIKENESS = 4;
+	public static inline final GROUP_NONE = 4;
 
 	/**
-		How many orders there are.
+		How many groupings there are.
 	**/
-	public static inline final ORDERS = 5;
+	public static inline final GROUPINGS = 5;
 
-	static final ORDER_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_NAME,
-		Locale.PRESET_BY_TAG, Locale.PRESET_FAVOURITES, Locale.PRESET_BY_LIKENESS];
+	static final GROUP_NAMES:Array<Locale> = [Locale.PRESET_BY_BANK, Locale.PRESET_BY_TAG,
+		Locale.PRESET_BY_ADDED, Locale.PRESET_BY_SOURCE, Locale.PRESET_BY_NONE];
 
 	/**
-		Which order is chosen.
+		Sorting: by name, the way a person reads one, so 2 comes before 10.
 	**/
-	public var order(default, null):Int = BY_BANK;
+	public static inline final SORT_NAME = 0;
+
+	/**
+		Sorting: newest first.
+	**/
+	public static inline final SORT_ADDED = 1;
+
+	/**
+		Sorting: how alike each is to what the chosen part is playing, closest first, with how
+		alike beside each row.
+	**/
+	public static inline final SORT_LIKENESS = 2;
+
+	/**
+		Sorting: as each bank lists them.
+	**/
+	public static inline final SORT_LISTED = 3;
+
+	/**
+		How many sortings there are.
+	**/
+	public static inline final SORTS = 4;
+
+	static final SORT_NAMES:Array<Locale> = [Locale.PRESET_BY_NAME, Locale.PRESET_BY_ADDED,
+		Locale.PRESET_BY_LIKENESS, Locale.PRESET_BY_LISTED];
+
+	/**
+		What each source is called in the filter menu and as a group, by `Offer.DEFAULT` to
+		`Offer.PROJECT`.
+	**/
+	static final SOURCE_NAMES:Array<Locale> = [Locale.PRESET_SOURCE_DEFAULT,
+		Locale.PRESET_SOURCE_SHIPPED, Locale.PRESET_SOURCE_MINE, Locale.PRESET_FROM_PROJECT];
+
+	/**
+		The order sources are listed in as groups.
+	**/
+	static final SOURCE_ORDER:Array<Int> = [Offer.DEFAULT, Offer.PROJECT, Offer.SHIPPED, Offer.MINE];
+
+	/**
+		The spans a date added falls into, newest first, by the seconds each reaches back.
+	**/
+	static final AGES:Array<Float> = [86400, 7 * 86400, 31 * 86400, 366 * 86400];
+
+	static final AGE_NAMES:Array<Locale> = [Locale.PRESET_ADDED_TODAY, Locale.PRESET_ADDED_WEEK,
+		Locale.PRESET_ADDED_MONTH, Locale.PRESET_ADDED_YEAR, Locale.PRESET_ADDED_EARLIER];
+
+	/**
+		How many tags the filter menu offers, the most used first.
+	**/
+	static inline final TAGS_OFFERED = 30;
+
+	/**
+		Which grouping is chosen.
+	**/
+	public var grouping(default, null):Int = GROUP_BANK;
+
+	/**
+		Which sorting is chosen.
+	**/
+	public var sorting(default, null):Int = SORT_NAME;
+
+	/**
+		Whether the sorting runs the other way.
+	**/
+	public var reversed(default, null):Bool = false;
+
+	/**
+		Whether only the starred are shown.
+	**/
+	public var starredOnly(default, null):Bool = false;
+
+	/**
+		Whether only what the open piece plays, or was loaded from, is shown.
+	**/
+	public var usedOnly(default, null):Bool = false;
+
+	/**
+		Whether a sound in several banks is shown once, where it is first listed.
+	**/
+	public var single(default, null):Bool = false;
+
+	/**
+		Which sources are hidden, by `Offer.DEFAULT` to `Offer.PROJECT`.
+	**/
+	final hiddenSources:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(4);
+
+	/**
+		The tags a preset must carry every one of to be shown.
+	**/
+	final wantedTags:Array<String> = [];
+
+	/**
+		The banks hidden by name.
+	**/
+	final hiddenBanks:Array<String> = [];
 
 	/**
 		How many presets are shown, a kit counting once.
@@ -128,10 +227,20 @@ final class Presets extends Widget {
 	public var onWriteBank:Null<(String, Array<Instrument>, Array<Null<Sample>>) -> Void> = null;
 
 	/**
+		Called whenever the grouping, the sorting or a filter changes, so it can be kept.
+	**/
+	public var onView:Null<Void -> Void> = null;
+
+	/**
 		The presets the reader has starred, or null where none are kept. A star is on the preset
 		rather than on the row, so it follows the preset into every piece that carries it.
 	**/
 	public var favourites:Null<mdd.app.Favourites> = null;
+
+	/**
+		When each installed preset was added, or null where no dates are kept.
+	**/
+	public var added:Null<mdd.app.Added> = null;
 
 	var menu:Null<Menu> = null;
 
@@ -155,22 +264,54 @@ final class Presets extends Widget {
 	final kindKeys:Array<String> = [];
 
 	/**
-		The bank rows, what each is keyed by for folding, and whether each is a kit.
+		The group rows, what each is keyed by for folding, and whether each is a kit.
 	**/
 	final groups:Array<Item> = [];
 	final groupKeys:Array<String> = [];
 	final kits:Array<Bool> = [];
 
 	/**
-		The first offer under each bank row, which is what choosing a kit's row loads.
+		The first offer under each group row, which is what choosing a kit's row loads.
 	**/
 	final leads:Array<Offer> = [];
 
 	/**
-		The banks one family lists and the offers one bank lists, kept between builds.
+		What one family lists, the groups it lists them in, and what one group lists, kept between
+		builds.
 	**/
-	final bankNames:Array<String> = [];
 	final within:Array<Offer> = [];
+	final groupNames:Array<String> = [];
+	final inside:Array<Offer> = [];
+
+	/**
+		The identities the piece plays or was loaded from, and the ones already listed, rebuilt
+		each time.
+	**/
+	final used:haxe.ds.StringMap<Bool> = new haxe.ds.StringMap<Bool>();
+	final seen:haxe.ds.StringMap<Bool> = new haxe.ds.StringMap<Bool>();
+
+	/**
+		What the search holds, taken apart: words a name or a tag must hold, words neither may,
+		words a tag must or may not hold, and words the bank's name must or may not hold.
+	**/
+	final words:Array<String> = [];
+	final notWords:Array<String> = [];
+	final tagWords:Array<String> = [];
+	final notTagWords:Array<String> = [];
+	final bankWords:Array<String> = [];
+	final notBankWords:Array<String> = [];
+
+	/**
+		Whether the search asks for the starred, or for what the piece plays.
+	**/
+	var wantsStarred:Bool = false;
+	var wantsUsed:Bool = false;
+
+	/**
+		What time it was when the rows were last built, in seconds since 1970, which every date
+		added is measured against.
+	**/
+	var clock:Float = 0;
 
 	/**
 		The families a reader has folded, which start open.
@@ -178,24 +319,34 @@ final class Presets extends Widget {
 	final shut:Array<String> = [];
 
 	/**
-		The banks a reader has opened, which start folded.
+		The groups a reader has opened, which start folded.
 	**/
 	final opened:Array<String> = [];
 
 	/**
-		The toolbar button that steps through the orders.
+		The toolbar button that picks the grouping.
 	**/
-	static inline final ORDER_CHIP = 0;
+	static inline final GROUP_CHIP = 0;
+
+	/**
+		The toolbar button that picks the sorting.
+	**/
+	static inline final SORT_CHIP = 1;
+
+	/**
+		The toolbar button that opens the filters.
+	**/
+	static inline final FILTER_CHIP = 2;
 
 	/**
 		The toolbar button that opens the presets folder.
 	**/
-	static inline final FOLDER_CHIP = 1;
+	static inline final FOLDER_CHIP = 3;
 
 	/**
 		How many buttons the toolbar holds.
 	**/
-	static inline final CHIPS = 2;
+	static inline final CHIPS = 4;
 
 	final chipLeft:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(CHIPS);
 	final chipWide:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(CHIPS);
@@ -209,6 +360,12 @@ final class Presets extends Widget {
 		How tall the toolbar row is.
 	**/
 	var barTall:Float = 0;
+
+	/**
+		Whether the toolbar is too narrow for its buttons to say what they are for as well as what
+		they are set to, so they say only the second.
+	**/
+	var terse:Bool = false;
 
 	var sighted:Int = -2;
 	var sought:String = "";
@@ -224,6 +381,8 @@ final class Presets extends Widget {
 		this.session = session;
 
 		opaque = true;
+
+		for (at in 0...hiddenSources.length) hiddenSources[at] = false;
 
 		tree = new Tree();
 		add(tree);
@@ -379,11 +538,11 @@ final class Presets extends Widget {
 		final key = keyOf(item);
 		if (key == "") return;
 
-		final bank = groups.indexOf(item) >= 0;
-		final list = bank ? opened : shut;
+		final group = groups.indexOf(item) >= 0;
+		final list = group ? opened : shut;
 		final at = list.indexOf(key);
 
-		if (item.open == bank) {
+		if (item.open == group) {
 			if (at < 0) list.push(key);
 		} else if (at >= 0) {
 			list.splice(at, 1);
@@ -391,7 +550,7 @@ final class Presets extends Widget {
 	}
 
 	/**
-		Opens every family and every bank, or folds every bank and leaves the families open, and
+		Opens every family and every group, or folds every group and leaves the families open, and
 		remembers it the way a reader's own folding is remembered.
 
 		@param open Whether they should be open.
@@ -621,7 +780,7 @@ final class Presets extends Widget {
 		folding(menu);
 		menu.divide();
 
-		final name = leads[at].bank;
+		final name = grouping == GROUP_BANK ? leads[at].bank : groupNames[at];
 		final presets:Array<Instrument> = [];
 		final samples:Array<Null<Sample>> = [];
 
@@ -634,6 +793,12 @@ final class Presets extends Widget {
 
 		fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_BANK))), function():Void
 			if (onWriteBank != null) onWriteBank(name, presets, samples));
+
+		if (grouping == GROUP_BANK) {
+			final bank = leads[at].bank;
+			fires(menu.offer(new Choice(translate(Locale.PRESET_HIDE_BANK))), function():Void
+				hidesBank(bank, true));
+		}
 
 		root.pop(menu, px, py, this);
 	}
@@ -665,45 +830,253 @@ final class Presets extends Widget {
 		return at < 0 ? -1 : shown[at].index;
 	}
 
+	/**
+		@param item A row.
+		@return The bank the preset it stands for is listed under, or an empty string for a
+			heading.
+	**/
+	public function bankOf(item:Item):String {
+		final at = held.indexOf(item);
+		return at < 0 ? "" : shown[at].bank;
+	}
+
 	static final KINDS:Array<Part> = [Part.Fm1, Part.Psg1, Part.Noise, Part.Dac];
 
 	/**
-		Changes the order and builds the rows again.
+		Changes the grouping and builds the rows again.
 
-		@param which Which order.
+		@param which Which grouping, `GROUP_BANK` to `GROUP_NONE`.
 	**/
-	public function sorts(which:Int):Void {
-		final want = which < 0 ? 0 : (which >= ORDERS ? ORDERS - 1 : which);
-		if (want == order) return;
+	public function groupsBy(which:Int):Void {
+		final want = which < 0 ? 0 : (which >= GROUPINGS ? GROUPINGS - 1 : which);
+		if (want == grouping) return;
 
-		order = want;
+		grouping = want;
+		viewed(translate(GROUP_NAMES[grouping]));
+	}
+
+	/**
+		Changes the sorting and builds the rows again.
+
+		@param which Which sorting, `SORT_NAME` to `SORT_LISTED`.
+	**/
+	public function sortsBy(which:Int):Void {
+		final want = which < 0 ? 0 : (which >= SORTS ? SORTS - 1 : which);
+		if (want == sorting) return;
+
+		sorting = want;
+		viewed(translate(SORT_NAMES[sorting]));
+	}
+
+	/**
+		Runs the sorting the other way, or back.
+
+		@param on Whether it runs the other way.
+	**/
+	public function reverses(on:Bool):Void {
+		if (on == reversed) return;
+
+		reversed = on;
+		viewed(translate(Locale.PRESET_REVERSE));
+	}
+
+	/**
+		Shows or hides every preset from one source.
+
+		@param source Which, `Offer.DEFAULT` to `Offer.PROJECT`.
+		@param hidden Whether it is hidden.
+	**/
+	public function hidesSource(source:Int, hidden:Bool):Void {
+		if (source < 0 || source >= hiddenSources.length || hiddenSources[source] == hidden) return;
+
+		hiddenSources[source] = hidden;
+		viewed(translate(SOURCE_NAMES[source]));
+	}
+
+	/**
+		@param source Which, `Offer.DEFAULT` to `Offer.PROJECT`.
+		@return Whether it is hidden.
+	**/
+	public inline function hides(source:Int):Bool {
+		return source >= 0 && source < hiddenSources.length && hiddenSources[source];
+	}
+
+	/**
+		Shows only the starred, or everything again.
+
+		@param on Whether only the starred are shown.
+	**/
+	public function starsOnly(on:Bool):Void {
+		if (on == starredOnly) return;
+
+		starredOnly = on;
+		viewed(translate(Locale.PRESET_FAVOURITES_ONLY));
+	}
+
+	/**
+		Shows only what the open piece plays or was loaded from, or everything again.
+
+		@param on Whether only those are shown.
+	**/
+	public function usesOnly(on:Bool):Void {
+		if (on == usedOnly) return;
+
+		usedOnly = on;
+		viewed(translate(Locale.PRESET_USED_ONLY));
+	}
+
+	/**
+		Shows a sound that sits in several banks once, or everywhere it sits.
+
+		@param on Whether it is shown once.
+	**/
+	public function hidesDuplicates(on:Bool):Void {
+		if (on == single) return;
+
+		single = on;
+		viewed(translate(Locale.PRESET_HIDE_DUPLICATES));
+	}
+
+	/**
+		Asks for a tag every preset shown must carry, or stops asking for it.
+
+		@param tag The tag.
+		@param on Whether it is asked for.
+	**/
+	public function wantsTag(tag:String, on:Bool):Void {
+		final at = indexIgnoringCase(wantedTags, tag);
+
+		if (on == (at >= 0)) return;
+
+		if (on) wantedTags.push(tag);
+		else wantedTags.splice(at, 1);
+
+		viewed(tag);
+	}
+
+	/**
+		Hides a bank, or shows it again.
+
+		@param name The bank.
+		@param hidden Whether it is hidden.
+	**/
+	public function hidesBank(name:String, hidden:Bool):Void {
+		final at = hiddenBanks.indexOf(name);
+
+		if (hidden == (at >= 0)) return;
+
+		if (hidden) hiddenBanks.push(name);
+		else hiddenBanks.splice(at, 1);
+
+		viewed(name);
+	}
+
+	/**
+		Turns every filter off, the search aside.
+	**/
+	public function clearsFilters():Void {
+		for (at in 0...hiddenSources.length) hiddenSources[at] = false;
+
+		starredOnly = false;
+		usedOnly = false;
+		single = false;
+		wantedTags.resize(0);
+		hiddenBanks.resize(0);
+
+		viewed(translate(Locale.PRESET_CLEAR_FILTERS));
+	}
+
+	/**
+		@return How many filters are on, which the filter button shows.
+	**/
+	public function filtering():Int {
+		var many = wantedTags.length + hiddenBanks.length;
+
+		for (hidden in hiddenSources) if (hidden) many++;
+		if (starredOnly) many++;
+		if (usedOnly) many++;
+		if (single) many++;
+
+		return many;
+	}
+
+	/**
+		Builds the rows again after the view changed, says what changed and asks for it to be kept.
+
+		@param said What to say.
+	**/
+	function viewed(said:String):Void {
 		fit();
 
-		session.say(translate(ORDER_NAMES[order]));
+		session.say(said);
 		session.changed();
+
+		if (onView != null) onView();
 
 		relayout();
 	}
 
 	/**
-		Steps to the next order.
+		@return The grouping, the sorting and every filter as one line, which is how the settings
+			keep them.
 	**/
-	public function turns():Void {
-		sorts((order + 1) % ORDERS);
+	public function spelt():String {
+		var sources = 0;
+		for (at in 0...hiddenSources.length) if (hiddenSources[at]) sources |= 1 << at;
+
+		return grouping + "," + sorting + "," + (reversed ? 1 : 0) + "," + sources + ","
+			+ (starredOnly ? 1 : 0) + "," + (usedOnly ? 1 : 0) + "," + (single ? 1 : 0) + ";"
+			+ coded(wantedTags) + ";" + coded(hiddenBanks);
 	}
 
 	/**
-		@return How wide the order button is.
+		Takes back what `spelt` wrote. Anything that does not read is left as it is.
+
+		@param said The line.
 	**/
-	public inline function orderWide():Float {
-		return chipWide[ORDER_CHIP];
+	public function reads(said:String):Void {
+		final parts = said.split(";");
+		final numbers = parts[0].split(",");
+
+		if (numbers.length >= 7) {
+			final group = Std.parseInt(numbers[0]);
+			final sort = Std.parseInt(numbers[1]);
+			final sources = Std.parseInt(numbers[3]);
+
+			if (group != null && group >= 0 && group < GROUPINGS) grouping = group;
+			if (sort != null && sort >= 0 && sort < SORTS) sorting = sort;
+
+			reversed = numbers[2] == "1";
+			starredOnly = numbers[4] == "1";
+			usedOnly = numbers[5] == "1";
+			single = numbers[6] == "1";
+
+			for (at in 0...hiddenSources.length) {
+				hiddenSources[at] = sources != null && (sources & (1 << at)) != 0;
+			}
+		}
+
+		wantedTags.resize(0);
+		hiddenBanks.resize(0);
+
+		if (parts.length > 1) decoded(parts[1], wantedTags);
+		if (parts.length > 2) decoded(parts[2], hiddenBanks);
 	}
 
-	/**
-		@return Where it sits, across.
-	**/
-	public inline function orderLeft():Float {
-		return chipLeft[ORDER_CHIP];
+	static function coded(names:Array<String>):String {
+		final out:Array<String> = [];
+		for (name in names) out.push(StringTools.urlEncode(name));
+
+		return out.join(",");
+	}
+
+	static function decoded(said:String, into:Array<String>):Void {
+		for (one in said.split(",")) {
+			if (one == "") continue;
+
+			final name = StringTools.urlDecode(one);
+			if (name != "" && into.indexOf(name) < 0) into.push(name);
+		}
 	}
 
 	/**
@@ -714,12 +1087,26 @@ final class Presets extends Widget {
 	}
 
 	/**
-		@param px A point, across.
-		@param py A point, down.
-		@return Whether the point is on the order button.
+		@param which A toolbar button, from the grouping at nought to the folder at three.
+		@return Where it sits, across.
 	**/
-	public inline function onOrder(px:Float, py:Float):Bool {
-		return chipAt(px, py) == ORDER_CHIP;
+	public inline function chipLeftOf(which:Int):Float {
+		return chipLeft[which];
+	}
+
+	/**
+		@param which A toolbar button.
+		@return How wide it is.
+	**/
+	public inline function chipWideOf(which:Int):Float {
+		return chipWide[which];
+	}
+
+	/**
+		@return How many buttons the toolbar holds.
+	**/
+	public inline function chips():Int {
+		return CHIPS;
 	}
 
 	/**
@@ -727,7 +1114,7 @@ final class Presets extends Widget {
 		@param py A point, down.
 		@return Which toolbar button the point is on, or -1 for none.
 	**/
-	function chipAt(px:Float, py:Float):Int {
+	public function chipAt(px:Float, py:Float):Int {
 		if (py < barTop || py >= barTop + barTall) return -1;
 
 		for (which in 0...CHIPS) {
@@ -742,12 +1129,27 @@ final class Presets extends Widget {
 		@return What it says.
 	**/
 	function chipLabel(which:Int):String {
-		return which == ORDER_CHIP ? translate(ORDER_NAMES[order]) : translate(Locale.PRESET_FOLDER);
+		return switch (which) {
+			case GROUP_CHIP:
+				(terse ? "" : translate(Locale.PRESET_GROUP) + ": ") + translate(GROUP_NAMES[grouping]);
+
+			case SORT_CHIP:
+				(terse ? "" : translate(Locale.PRESET_SORT) + ": ") + translate(SORT_NAMES[sorting])
+					+ (reversed ? " ↑" : "");
+
+			case FILTER_CHIP:
+				final many = filtering();
+				translate(Locale.PRESET_FILTER) + (many > 0 ? " " + many : "");
+
+			case _: translate(Locale.PRESET_FOLDER);
+		}
 	}
 
 	/**
-		Lays the toolbar out along its row: the order at the start and the folder at the end, each
-		as wide as its label, both squeezed evenly where the row is narrower than the two.
+		Lays the toolbar out along its row: the grouping, the sorting and the filters at the start
+		and the folder at the end, each as wide as its label. Where the row is narrower than they
+		are, the grouping and the sorting say only what they are set to, and where it is narrower
+		still they are all squeezed evenly.
 
 		@param left Where the row starts, across.
 		@param room How wide it is.
@@ -759,35 +1161,364 @@ final class Presets extends Widget {
 		final pad = metrics == null ? 8 : metrics.gap;
 		final gap = pad * 0.5;
 
-		var total = gap;
+		var total = 0.0;
 
-		for (which in 0...CHIPS) {
-			chipWide[which] = (font == null ? 60 : font.measure(chipLabel(which))) + pad * 2;
-			total += chipWide[which];
+		for (pass in 0...2) {
+			terse = pass == 1;
+			total = gap * (CHIPS - 1);
+
+			for (which in 0...CHIPS) {
+				chipWide[which] = (font == null ? 60 : font.measure(chipLabel(which))) + pad * 2;
+				total += chipWide[which];
+			}
+
+			if (total <= room) break;
 		}
 
 		if (total > room) {
-			final scale = (room - gap) / (total - gap);
+			final gaps = gap * (CHIPS - 1);
+			final scale = room > gaps ? (room - gaps) / (total - gaps) : 0;
+
 			for (which in 0...CHIPS) chipWide[which] = Math.max(0, chipWide[which] * scale);
 		}
 
-		chipLeft[ORDER_CHIP] = left;
+		var pen = left;
+
+		for (which in 0...FOLDER_CHIP) {
+			chipLeft[which] = pen;
+			pen += chipWide[which] + gap;
+		}
+
 		chipLeft[FOLDER_CHIP] = left + room - chipWide[FOLDER_CHIP];
 	}
 
 	override function took(event:mdd.ui.Input):Bool {
 		if (event.kind != mdd.ui.Kind.PointerDown) return false;
 
-		switch (chipAt(event.x, event.y)) {
-			case FOLDER_CHIP:
-				if (onFolder != null) onFolder();
-				return true;
+		final which = chipAt(event.x, event.y);
+		if (which < 0) return false;
 
-			case ORDER_CHIP:
-				turns();
-				return true;
+		if (which == FOLDER_CHIP) {
+			if (onFolder != null) onFolder();
+			return true;
+		}
 
-			case _:
+		final root = root();
+		if (root == null) return true;
+
+		menu = switch (which) {
+			case GROUP_CHIP: groupMenu();
+			case SORT_CHIP: sortMenu();
+			case _: filterMenu();
+		}
+
+		root.pop(menu, chipLeft[which], barTop + barTall, this);
+		return true;
+	}
+
+	/**
+		@return The menu of groupings, the chosen one ticked.
+	**/
+	public function groupMenu():Menu {
+		final out = new Menu();
+		out.ticking = true;
+
+		for (which in 0...GROUPINGS) {
+			final pick = which;
+			final choice = out.offer(new Choice(translate(GROUP_NAMES[pick])));
+			choice.ticked = pick == grouping;
+
+			fires(choice, function():Void groupsBy(pick));
+		}
+
+		return out;
+	}
+
+	/**
+		@return The menu of sortings, the chosen one ticked, and the way they run.
+	**/
+	public function sortMenu():Menu {
+		final out = new Menu();
+		out.ticking = true;
+
+		for (which in 0...SORTS) {
+			final pick = which;
+			final choice = out.offer(new Choice(translate(SORT_NAMES[pick])));
+			choice.ticked = pick == sorting;
+
+			fires(choice, function():Void sortsBy(pick));
+		}
+
+		out.divide();
+
+		final turning = out.offer(new Choice(translate(Locale.PRESET_REVERSE)));
+		turning.ticked = reversed;
+
+		fires(turning, function():Void reverses(!reversed));
+
+		return out;
+	}
+
+	/**
+		@return The menu of filters: the sources, the starred, what the piece plays, duplicates,
+			the tags most used, the hidden banks, and a way to turn them all off.
+	**/
+	public function filterMenu():Menu {
+		final out = new Menu();
+		out.ticking = true;
+
+		final sources = new Menu();
+		sources.ticking = true;
+
+		for (source in SOURCE_ORDER) {
+			final pick = source;
+			final choice = sources.offer(new Choice(translate(SOURCE_NAMES[pick])));
+			choice.ticked = !hiddenSources[pick];
+
+			fires(choice, function():Void hidesSource(pick, !hiddenSources[pick]));
+		}
+
+		out.offer(new Choice(translate(Locale.PRESET_BY_SOURCE))).submenu = sources;
+		out.divide();
+
+		final starring = out.offer(new Choice(translate(Locale.PRESET_FAVOURITES_ONLY)));
+		starring.ticked = starredOnly;
+		fires(starring, function():Void starsOnly(!starredOnly));
+
+		final playing = out.offer(new Choice(translate(Locale.PRESET_USED_ONLY)));
+		playing.ticked = usedOnly;
+		fires(playing, function():Void usesOnly(!usedOnly));
+
+		final once = out.offer(new Choice(translate(Locale.PRESET_HIDE_DUPLICATES)));
+		once.ticked = single;
+		fires(once, function():Void hidesDuplicates(!single));
+
+		final tags = new Menu();
+		tags.ticking = true;
+
+		for (tag in offeredTags()) {
+			final pick = tag;
+			final choice = tags.offer(new Choice(pick));
+			choice.ticked = indexIgnoringCase(wantedTags, pick) >= 0;
+
+			fires(choice, function():Void wantsTag(pick, indexIgnoringCase(wantedTags, pick) < 0));
+		}
+
+		final tagging = out.offer(new Choice(translate(Locale.PRESET_TAGS)));
+		if (tags.choices.length > 0) tagging.submenu = tags;
+		else tagging.enabled = false;
+
+		final hidden = new Menu();
+		hidden.ticking = true;
+
+		for (bank in hiddenBanks) {
+			final pick = bank;
+			fires(hidden.offer(new Choice(pick)), function():Void hidesBank(pick, false));
+		}
+
+		final hiding = out.offer(new Choice(translate(Locale.PRESET_HIDDEN_BANKS),
+			hiddenBanks.length == 0 ? "" : "" + hiddenBanks.length));
+
+		if (hidden.choices.length > 0) hiding.submenu = hidden;
+		else hiding.enabled = false;
+
+		out.divide();
+
+		final clearing = out.offer(new Choice(translate(Locale.PRESET_CLEAR_FILTERS)));
+		clearing.enabled = filtering() > 0;
+		fires(clearing, function():Void clearsFilters());
+
+		return out;
+	}
+
+	/**
+		@return The tags the filter menu offers: those asked for already, and then the most used
+			among everything on offer, in the order a person reads them.
+	**/
+	function offeredTags():Array<String> {
+		final counts = new haxe.ds.StringMap<Int>();
+		final spelled = new haxe.ds.StringMap<String>();
+		final keys:Array<String> = [];
+
+		for (offer in offers) {
+			for (tag in offer.preset.tags) {
+				final key = tag.toLowerCase();
+				final many = counts.get(key);
+
+				if (many == null) {
+					counts.set(key, 1);
+					spelled.set(key, tag);
+					keys.push(key);
+				} else {
+					counts.set(key, many + 1);
+				}
+			}
+		}
+
+		keys.sort(function(one:String, two:String):Int {
+			final apart = counts.get(two) - counts.get(one);
+			return apart != 0 ? apart : mdd.Names.inOrder(one, two);
+		});
+
+		final out:Array<String> = [];
+
+		for (tag in wantedTags) out.push(tag);
+
+		for (key in keys) {
+			if (out.length >= TAGS_OFFERED + wantedTags.length) break;
+
+			final tag = spelled.get(key);
+			if (indexIgnoringCase(out, tag) < 0) out.push(tag);
+		}
+
+		out.sort(function(one:String, two:String):Int return mdd.Names.inOrder(one, two));
+
+		return out;
+	}
+
+	/**
+		@param names Some names.
+		@param name A name.
+		@return Where the name is among them, ignoring case, or -1.
+	**/
+	static function indexIgnoringCase(names:Array<String>, name:String):Int {
+		final want = name.toLowerCase();
+
+		for (at in 0...names.length) if (names[at].toLowerCase() == want) return at;
+
+		return -1;
+	}
+
+	/**
+		Takes the search apart into the words it asks for.
+
+		@param said What is typed.
+	**/
+	function parses(said:String):Void {
+		words.resize(0);
+		notWords.resize(0);
+		tagWords.resize(0);
+		notTagWords.resize(0);
+		bankWords.resize(0);
+		notBankWords.resize(0);
+
+		wantsStarred = false;
+		wantsUsed = false;
+
+		final text = said.toLowerCase();
+		var at = 0;
+
+		while (at < text.length) {
+			while (at < text.length && StringTools.isSpace(text, at)) at++;
+			if (at >= text.length) break;
+
+			var negated = false;
+
+			if (StringTools.fastCodeAt(text, at) == "-".code && at + 1 < text.length
+					&& !StringTools.isSpace(text, at + 1)) {
+				negated = true;
+				at++;
+			}
+
+			var field = "";
+			final colon = text.indexOf(":", at);
+			final space = spaceAfter(text, at);
+
+			if (colon > at && colon < space) {
+				field = text.substring(at, colon);
+				at = colon + 1;
+			}
+
+			var word = "";
+
+			if (at < text.length && StringTools.fastCodeAt(text, at) == "\"".code) {
+				final close = text.indexOf("\"", at + 1);
+				final end = close < 0 ? text.length : close;
+
+				word = text.substring(at + 1, end);
+				at = end + 1;
+			} else {
+				final end = spaceAfter(text, at);
+
+				word = text.substring(at, end);
+				at = end;
+			}
+
+			if (word == "") continue;
+
+			switch (field) {
+				case "tag": (negated ? notTagWords : tagWords).push(word);
+				case "bank": (negated ? notBankWords : bankWords).push(word);
+
+				case "is":
+					if (word == "fav" && !negated) wantsStarred = true;
+					if (word == "used" && !negated) wantsUsed = true;
+
+				case _:
+					if (field == "" && !negated && word == "fav") wantsStarred = true;
+					else if (field == "" && !negated && word == "used") wantsUsed = true;
+					else (negated ? notWords : words).push(field == "" ? word : field + ":" + word);
+			}
+		}
+	}
+
+	/**
+		@param text Some text.
+		@param from Where to start.
+		@return Where the next space is, or the end.
+	**/
+	static function spaceAfter(text:String, from:Int):Int {
+		var at = from;
+		while (at < text.length && !StringTools.isSpace(text, at)) at++;
+
+		return at;
+	}
+
+	/**
+		@param offer A preset on offer.
+		@return Whether it passes every filter and every word in the search. The family is not
+			asked about here.
+	**/
+	function passes(offer:Offer):Bool {
+		if (hides(offer.source)) return false;
+		if (hiddenBanks.indexOf(offer.bank) >= 0) return false;
+
+		final instrument = offer.preset;
+
+		if (starredOnly || wantsStarred) {
+			final starring = favourites;
+			if (starring == null || !starring.favours(instrument.id)) return false;
+		}
+
+		if ((usedOnly || wantsUsed) && !offer.owned() && !used.exists(instrument.id)) return false;
+
+		for (tag in wantedTags) if (!carries(instrument, tag.toLowerCase(), true)) return false;
+
+		for (word in words) if (!instrument.tagged(word)) return false;
+		for (word in notWords) if (instrument.tagged(word)) return false;
+		for (word in tagWords) if (!carries(instrument, word, false)) return false;
+		for (word in notTagWords) if (carries(instrument, word, false)) return false;
+
+		if (bankWords.length > 0 || notBankWords.length > 0) {
+			final bank = offer.bank.toLowerCase();
+
+			for (word in bankWords) if (bank.indexOf(word) < 0) return false;
+			for (word in notBankWords) if (bank.indexOf(word) >= 0) return false;
+		}
+
+		return true;
+	}
+
+	/**
+		@param instrument A preset.
+		@param word A word in lower case.
+		@param whole Whether a tag has to be the word rather than hold it.
+		@return Whether one of its tags answers to the word.
+	**/
+	static function carries(instrument:Instrument, word:String, whole:Bool):Bool {
+		for (tag in instrument.tags) {
+			final lower = tag.toLowerCase();
+			if (whole ? lower == word : lower.indexOf(word) >= 0) return true;
 		}
 
 		return false;
@@ -803,55 +1534,27 @@ final class Presets extends Widget {
 		return playing == null ? 0 : offer.preset.likeness(playing);
 	}
 
-	static function tagged(offer:Offer):String {
-		final held = offer.preset;
-		return held.tags.length == 0 ? "~" : held.tags[0].toLowerCase();
-	}
+	/**
+		Orders the presets of one group by the chosen sorting, with the name deciding a tie.
 
-	static inline function called(offer:Offer):String {
-		return offer.preset.name.toLowerCase();
-	}
+		@param list The presets.
+	**/
+	function ordered(list:Array<Offer>):Void {
+		final by = sorting;
+		final flip = reversed ? -1 : 1;
 
-	function ordered(inside:Array<Offer>):Void {
-		if (order == BY_BANK) return;
+		list.sort(function(one:Offer, two:Offer):Int {
+			var apart = switch (by) {
+				case SORT_ADDED: two.time < one.time ? -1 : (two.time > one.time ? 1 : 0);
+				case SORT_LIKENESS: two.alike < one.alike ? -1 : (two.alike > one.alike ? 1 : 0);
+				case SORT_LISTED: one.order - two.order;
+				case _: 0;
+			}
 
-		if (order == BY_LIKENESS) {
-			inside.sort(function(one:Offer, two:Offer):Int {
-				final first = likeness(one);
-				final second = likeness(two);
+			if (apart == 0) apart = mdd.Names.inOrder(one.preset.name, two.preset.name);
+			if (apart == 0) apart = one.order - two.order;
 
-				if (first != second) return first > second ? -1 : 1;
-
-				final held = called(one);
-				final other = called(two);
-
-				return held < other ? -1 : (held > other ? 1 : 0);
-			});
-
-			return;
-		}
-
-		if (order == BY_NAME || order == BY_FAVOURITE) {
-			inside.sort(function(one:Offer, two:Offer):Int {
-				final first = called(one);
-				final second = called(two);
-
-				return first < second ? -1 : (first > second ? 1 : 0);
-			});
-
-			return;
-		}
-
-		inside.sort(function(one:Offer, two:Offer):Int {
-			final first = tagged(one);
-			final second = tagged(two);
-
-			if (first != second) return first < second ? -1 : 1;
-
-			final held = called(one);
-			final other = called(two);
-
-			return held < other ? -1 : (held > other ? 1 : 0);
+			return apart * flip;
 		});
 	}
 
@@ -872,6 +1575,11 @@ final class Presets extends Widget {
 		final out = pool[offers.length];
 
 		out.holds(preset, sample, bank, source, index, shelf);
+		out.order = offers.length;
+
+		final dates = added;
+		if (dates != null && source == Offer.MINE) out.time = dates.when(preset.id);
+
 		offers.push(out);
 	}
 
@@ -910,23 +1618,157 @@ final class Presets extends Widget {
 	}
 
 	/**
-		Gathers the presets the piece carries because it plays them, under one bank of their own.
+		Gathers the presets the piece carries because it plays them, under one bank of their own,
+		and notes every identity they carry or came from.
 	**/
 	function project():Void {
 		final song = session.song;
 		final needed = mdd.format.Needed.of(song);
 		final named = translate(Locale.PRESET_FROM_PROJECT);
 
+		used.clear();
+
 		for (index in 0...song.instruments.length) {
 			if (needed.instrument(index) < 0) continue;
 
 			final held = song.instruments[index];
+
+			if (held.id != "") used.set(held.id, true);
+			if (held.from != "") used.set(held.from, true);
+
 			offered(held, song.sampleAt(held.sample), named, Offer.PROJECT, index, -1);
 		}
 	}
 
 	/**
-		Builds the rows again from the library, the piece and whatever is typed in the search.
+		Adds the groups a preset is listed in under the chosen grouping to a list of them, each
+		once.
+
+		@param offer A preset on offer.
+		@param into The groups found so far.
+	**/
+	function grouped(offer:Offer, into:Array<String>):Void {
+		switch (grouping) {
+			case GROUP_TAG:
+				if (offer.preset.tags.length == 0) {
+					final none = translate(Locale.PRESET_NO_TAG);
+					if (into.indexOf(none) < 0) into.push(none);
+					return;
+				}
+
+				for (tag in offer.preset.tags) if (indexIgnoringCase(into, tag) < 0) into.push(tag);
+
+			case GROUP_ADDED:
+				final name = translate(AGE_NAMES[ageOf(offer)]);
+				if (into.indexOf(name) < 0) into.push(name);
+
+			case GROUP_SOURCE:
+				final name = translate(SOURCE_NAMES[offer.source]);
+				if (into.indexOf(name) < 0) into.push(name);
+
+			case GROUP_NONE:
+
+			case _:
+				if (into.indexOf(offer.bank) < 0) into.push(offer.bank);
+		}
+	}
+
+	/**
+		@param offer A preset on offer.
+		@param group A group's name.
+		@return Whether it is listed in that group under the chosen grouping.
+	**/
+	function belongs(offer:Offer, group:String):Bool {
+		return switch (grouping) {
+			case GROUP_TAG:
+				offer.preset.tags.length == 0 ? group == translate(Locale.PRESET_NO_TAG)
+					: carries(offer.preset, group.toLowerCase(), true);
+
+			case GROUP_ADDED: group == translate(AGE_NAMES[ageOf(offer)]);
+			case GROUP_SOURCE: group == translate(SOURCE_NAMES[offer.source]);
+			case GROUP_NONE: true;
+			case _: offer.bank == group;
+		}
+	}
+
+	/**
+		@param offer A preset on offer.
+		@return Which span its date added falls in, as an index into `AGE_NAMES`.
+	**/
+	function ageOf(offer:Offer):Int {
+		if (offer.time <= 0) return AGE_NAMES.length - 1;
+
+		final apart = clock - offer.time;
+
+		for (at in 0...AGES.length) if (apart < AGES[at]) return at;
+
+		return AGE_NAMES.length - 1;
+	}
+
+	/**
+		Puts the groups of one family in their order: the starting bank and then the piece's own
+		first where the grouping is by bank, the spans newest first, the sources in their order,
+		and anything else in the order a person reads it, with no tag last.
+
+		@param names The groups.
+	**/
+	function arranged(names:Array<String>):Void {
+		final starting = mdd.song.Library.STARTERS;
+		final own = translate(Locale.PRESET_FROM_PROJECT);
+		final none = translate(Locale.PRESET_NO_TAG);
+
+		switch (grouping) {
+			case GROUP_ADDED:
+				names.sort(function(one:String, two:String):Int return spanOf(one) - spanOf(two));
+
+			case GROUP_SOURCE:
+				names.sort(function(one:String, two:String):Int return sourceRank(one) - sourceRank(two));
+
+			case _:
+				names.sort(function(one:String, two:String):Int {
+					final first = pinned(one, starting, own, none);
+					final second = pinned(two, starting, own, none);
+
+					if (first != second) return first - second;
+
+					return mdd.Names.inOrder(one, two);
+				});
+		}
+	}
+
+	/**
+		@param name A group's name.
+		@param starting The starting bank's name.
+		@param own What the piece's own are listed as.
+		@param none What an untagged preset is listed as.
+		@return Where a group is pinned: nought for the starting bank, one for the piece's own, two
+			for anything else and three for no tag.
+	**/
+	function pinned(name:String, starting:String, own:String, none:String):Int {
+		if (grouping == GROUP_BANK && name == starting) return 0;
+		if (grouping == GROUP_BANK && name == own) return 1;
+		if (grouping == GROUP_TAG && name == none) return 3;
+
+		return 2;
+	}
+
+	function spanOf(name:String):Int {
+		for (at in 0...AGE_NAMES.length) if (translate(AGE_NAMES[at]) == name) return at;
+
+		return AGE_NAMES.length;
+	}
+
+	function sourceRank(name:String):Int {
+		for (at in 0...SOURCE_ORDER.length) {
+			if (translate(SOURCE_NAMES[SOURCE_ORDER[at]]) == name) return at;
+		}
+
+		return SOURCE_ORDER.length;
+	}
+
+	/**
+		Builds the rows again from the library, the piece, the view and whatever is typed in the
+		search.
 	**/
 	public function fit():Void {
 		tree.clear();
@@ -943,86 +1785,89 @@ final class Presets extends Widget {
 		listed = 0;
 		banks = 0;
 
+		clock = Date.now().getTime() / 1000;
+
 		gathers();
+		parses(seeking());
 
 		final song = session.song;
 		final chosen = song.rack[session.part.index()];
+		final playing = song.instrumentAt(chosen);
 
-		final hunting = seeking() != "" || order == BY_FAVOURITE;
+		final hunting = seeking() != "" || filtering() > 0;
 		final starring = favourites;
-		final names = bankNames;
-		final inside = within;
+		final alike = sorting == SORT_LIKENESS;
+
+		seen.clear();
+
+		for (offer in offers) {
+			if (alike && playing != null) offer.alike = offer.preset.likeness(playing);
+		}
 
 		for (kind in KINDS) {
 			final kitting = kind.sampled();
+			final family = kind.family();
 
-			names.resize(0);
-			var total = 0;
+			within.resize(0);
 
 			for (offer in offers) {
-				if (!suits(offer.preset, kind)) continue;
+				if (!mdd.song.Library.kin(offer.preset.kind, kind) || !passes(offer)) continue;
 
-				if (names.indexOf(offer.bank) < 0) {
-					names.push(offer.bank);
-					if (kitting) total++;
+				if (single && offer.preset.id != "") {
+					if (seen.exists(offer.preset.id)) continue;
+					seen.set(offer.preset.id, true);
 				}
 
-				if (!kitting) total++;
+				within.push(offer);
 			}
 
-			if (total == 0) continue;
+			if (within.length == 0) continue;
 
-			final family = kind.family();
-			final head = new Item(family + "   " + total);
+			groupNames.resize(0);
+			for (offer in within) grouped(offer, groupNames);
+			arranged(groupNames);
+
+			final head = new Item(family);
 			head.open = hunting || shut.indexOf(family) < 0;
 
 			kinds.push(head);
 			kindKeys.push(family);
 
-			for (name in names) {
+			var total = 0;
+
+			if (grouping == GROUP_NONE) {
 				inside.resize(0);
+				for (offer in within) inside.push(offer);
 
-				for (offer in offers) {
-					if (offer.bank == name && suits(offer.preset, kind)) inside.push(offer);
-				}
-
-				if (inside.length == 0) continue;
 				ordered(inside);
+				total += rows(head, inside, kind, alike, starring, false);
+			} else {
+				for (name in groupNames) {
+					inside.resize(0);
+					for (offer in within) if (belongs(offer, name)) inside.push(offer);
 
-				final group = head.add(new Item(name + "   " + inside.length,
-					kitting ? Theme.PARTS[kind.index()] : -1));
+					if (inside.length == 0) continue;
+					ordered(inside);
 
-				final key = family + "/" + name;
+					final kit = kitting && grouping == GROUP_BANK;
+					final group = head.add(new Item(name + "   " + inside.length,
+						kit ? Theme.PARTS[kind.index()] : -1));
 
-				group.icon = kitting ? Icon.DRUMKIT : -1;
-				group.open = hunting || opened.indexOf(key) >= 0;
+					final key = family + "/" + grouping + "/" + name;
 
-				groups.push(group);
-				groupKeys.push(key);
-				kits.push(kitting);
-				leads.push(inside[0]);
+					group.icon = kit ? Icon.DRUMKIT : -1;
+					group.open = hunting || opened.indexOf(key) >= 0;
 
-				for (offer in inside) {
-					final instrument = offer.preset;
-					final child = group.add(new Item(instrument.name,
-						Theme.PARTS[kind.index()]));
+					groups.push(group);
+					groupKeys.push(key);
+					kits.push(kit);
+					leads.push(inside[0]);
 
-					child.icon = instrument.icon;
-					child.mark = starring != null && starring.favours(instrument.id)
-						? Icon.STAR : -1;
-					child.note = order == BY_LIKENESS
-						? Math.round(likeness(offer) * 100) + " %"
-						: briefly(instrument.tags);
-					child.says = instrument.tags.length == 0 ? ""
-						: instrument.tags.join(", ");
-
-					shown.push(offer);
-					held.push(child);
-					if (!kitting) listed++;
+					total += rows(group, inside, kind, alike, starring, kit);
 				}
-
-				if (kitting) listed++;
 			}
+
+			head.label = family + "   " + total;
 
 			tree.plant(head);
 			banks++;
@@ -1052,32 +1897,47 @@ final class Presets extends Widget {
 		invalidate();
 	}
 
+	/**
+		Hangs a row for each preset under a heading.
+
+		@param under The heading.
+		@param list The presets, in order.
+		@param kind The family they are listed under.
+		@param alike Whether each shows how alike it is rather than its tags.
+		@param starring The stars, or null.
+		@param kit Whether the heading is a kit, which counts once.
+		@return How many presets were counted for the family, a kit counting once and a preset
+			already counted under another heading not at all.
+	**/
+	function rows(under:Item, list:Array<Offer>, kind:Part, alike:Bool,
+			starring:Null<mdd.app.Favourites>, kit:Bool):Int {
+		var many = kit ? 1 : 0;
+
+		for (offer in list) {
+			final instrument = offer.preset;
+			final child = under.add(new Item(instrument.name, Theme.PARTS[kind.index()]));
+
+			child.icon = instrument.icon;
+			child.mark = starring != null && starring.favours(instrument.id) ? Icon.STAR : -1;
+			child.note = alike ? Math.round(offer.alike * 100) + " %" : briefly(instrument.tags);
+			child.says = instrument.tags.length == 0 ? "" : instrument.tags.join(", ");
+
+			shown.push(offer);
+			held.push(child);
+
+			if (!kit && !offer.counted) many++;
+			offer.counted = true;
+		}
+
+		listed += many;
+		return many;
+	}
+
 	function reveals():Void {
 		if (!pending || tree.height <= 0) return;
 
 		tree.reveal();
 		pending = false;
-	}
-
-	/**
-		@param instrument A preset.
-		@param part A part.
-		@return Whether the preset is listed under the part's family: it plays on the part, it
-			answers to what is typed in the search, and it is starred where only the starred are
-			listed.
-	**/
-	function suits(instrument:Instrument, part:Part):Bool {
-		if (!mdd.song.Library.kin(instrument.kind, part)) return false;
-
-		final want = seeking();
-		if (want != "" && !instrument.tagged(want)) return false;
-
-		if (order == BY_FAVOURITE) {
-			final starring = favourites;
-			if (starring == null || !starring.favours(instrument.id)) return false;
-		}
-
-		return true;
 	}
 
 	function searchTall():Float {
@@ -1128,14 +1988,15 @@ final class Presets extends Widget {
 	}
 
 	/**
-		Draws one of the buttons in the title strip.
+		Draws one of the buttons in the toolbar.
 
 		@param paint Where to draw.
 		@param label What it says.
 		@param left Where it sits, across.
 		@param chip How wide it is.
+		@param lit Whether it stands for something that is on.
 	**/
-	function chipped(paint:Paint, label:String, left:Float, chip:Float):Void {
+	function chipped(paint:Paint, label:String, left:Float, chip:Float, lit:Bool):Void {
 		final root = root();
 		if (root == null) return;
 
@@ -1150,7 +2011,9 @@ final class Presets extends Widget {
 		if (chip < metrics.whole(8)) return;
 
 		paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.raise2, 0.9);
-		paint.outline(left, at, chip, deep, theme.frame, metrics.whole(1), 0.7,
+		if (lit) paint.roundedRect(left, at, chip, deep, metrics.radiusSmall, theme.accent, Theme.SELECT);
+
+		paint.outline(left, at, chip, deep, lit ? theme.accent : theme.frame, metrics.whole(1), 0.7,
 			metrics.radiusSmall);
 
 		paint.reface(font);
@@ -1181,7 +2044,10 @@ final class Presets extends Widget {
 		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
-		for (which in 0...CHIPS) chipped(paint, chipLabel(which), chipLeft[which], chipWide[which]);
+		for (which in 0...CHIPS) {
+			chipped(paint, chipLabel(which), chipLeft[which], chipWide[which],
+				which == FILTER_CHIP && filtering() > 0);
+		}
 
 		if (listed == 0) {
 			paint.text(translate(Locale.PANEL_NO_PRESETS), x + metrics.inset,

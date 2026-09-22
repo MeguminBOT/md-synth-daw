@@ -36,6 +36,13 @@ final class Library {
 	**/
 	public final owned:Array<Bool> = [];
 
+	/**
+		When the file each preset was read from was last written, in seconds since 1970, by the
+		same index as the instruments, or nought for a preset that ships or was read back from the
+		cache. It is what dates a preset the first time it is seen.
+	**/
+	public final times:Array<Array<Float>> = [];
+
 	public function new() {}
 
 	/**
@@ -75,8 +82,8 @@ final class Library {
 			a single saved preset is written. Empty to pass such a document over.
 		@return How many instruments it added.
 	**/
-	public function reads(said:String, owned:Bool = false, loose:String = ""):Int {
-		return taken(said, owned, loose, false);
+	public function reads(said:String, owned:Bool = false, loose:String = "", time:Float = 0):Int {
+		return taken(said, owned, loose, false, time);
 	}
 
 	/**
@@ -88,7 +95,7 @@ final class Library {
 		@return How many instruments it carried.
 	**/
 	public function replaces(said:String, loose:String = ""):Int {
-		return taken(said, true, loose, true);
+		return taken(said, true, loose, true, 0);
 	}
 
 	/**
@@ -96,9 +103,10 @@ final class Library {
 		@param owned Whether it came out of the presets folder.
 		@param loose The bank a document with no name of its own goes into.
 		@param over Whether a preset replaces one of the same name.
+		@param time When the document was last written, in seconds since 1970, or nought.
 		@return How many instruments it added or replaced.
 	**/
-	function taken(said:String, owned:Bool, loose:String, over:Bool):Int {
+	function taken(said:String, owned:Bool, loose:String, over:Bool, time:Float):Int {
 		final node = Json.parse(said);
 		if (node == null) return 0;
 
@@ -125,7 +133,7 @@ final class Library {
 			if (over) {
 				keeps(named, instrument, sample);
 				many++;
-			} else if (adds(named, instrument, sample, owned)) {
+			} else if (adds(named, instrument, sample, owned, time)) {
 				many++;
 			}
 		}
@@ -243,6 +251,7 @@ final class Library {
 			names.push(name);
 			instruments.push([]);
 			samples.push([]);
+			times.push([]);
 			this.owned.push(owned);
 
 			at = names.length - 1;
@@ -272,17 +281,19 @@ final class Library {
 		@param instrument The preset. The library keeps it rather than a copy.
 		@param sample The sample it plays, or null.
 		@param owned Whether it came out of the presets folder.
+		@param time When its file was last written, in seconds since 1970, or nought.
 		@return False where the bank already had one of that name, or where a preset out of the
 			folder makes a sound this library already offers.
 	**/
 	public function adds(bank:String, instrument:Instrument, sample:Null<Sample>,
-			owned:Bool):Bool {
+			owned:Bool, time:Float = 0):Bool {
 		final at = banked(bank, owned);
 		if (holding(at, instrument) >= 0) return false;
 		if (owned && sample == null && echoes(instrument)) return false;
 
 		instruments[at].push(instrument);
 		samples[at].push(sample);
+		times[at].push(time);
 
 		return true;
 	}
@@ -318,6 +329,7 @@ final class Library {
 		if (held < 0) {
 			instruments[at].push(instrument);
 			samples[at].push(sample);
+			times[at].push(0);
 			return;
 		}
 
@@ -484,6 +496,7 @@ final class Library {
 			names.splice(at, 1);
 			instruments.splice(at, 1);
 			samples.splice(at, 1);
+			times.splice(at, 1);
 			owned.splice(at, 1);
 		}
 	}
@@ -517,10 +530,11 @@ final class Library {
 		@param over Whether a preset takes the place of one of the same name rather than being
 			passed over, which is right for a file the application has just written and wrong for
 			one it is reading for the first time.
+		@param time When the file was last written, in seconds since 1970, or nought.
 		@return How many presets it carried.
 	**/
 	public function holds(bytes:Null<haxe.io.Bytes>, owned:Bool = false, loose:String = "",
-			over:Bool = false):Int {
+			over:Bool = false, time:Float = 0):Int {
 		final held = mdd.format.Preset.read(bytes);
 		if (held == null) return 0;
 
@@ -533,7 +547,7 @@ final class Library {
 			if (over) {
 				keeps(named, held.presets[index], held.samples[index]);
 				many++;
-			} else if (adds(named, held.presets[index], held.samples[index], owned)) {
+			} else if (adds(named, held.presets[index], held.samples[index], owned, time)) {
 				many++;
 			}
 		}
@@ -588,7 +602,7 @@ final class Library {
 	/**
 		What a cache of a read folder opens with.
 	**/
-	static inline final CACHED = "MDL1";
+	static inline final CACHED = "MDL2";
 
 	/**
 		Writes what this library holds as one file, with the listing of the folder it was read
@@ -664,10 +678,12 @@ final class Library {
 				final into = banked(held.name, kept);
 				final holding = instruments[into];
 				final playing = samples[into];
+				final dated = times[into];
 
 				for (index in 0...held.presets.length) {
 					holding.push(held.presets[index]);
 					playing.push(held.samples[index]);
+					dated.push(0);
 
 					many++;
 				}
@@ -693,9 +709,10 @@ final class Library {
 		for (at in 0...other.names.length) {
 			final held = other.instruments[at];
 			final sampled = other.samples[at];
+			final dated = other.times[at];
 
 			for (index in 0...held.length) {
-				if (adds(other.names[at], held[index], sampled[index], other.owned[at])) many++;
+				if (adds(other.names[at], held[index], sampled[index], other.owned[at], dated[index])) many++;
 			}
 		}
 
@@ -728,11 +745,12 @@ final class Library {
 				}
 
 				final lower = name.toLowerCase();
+				final time = sys.FileSystem.stat(path).mtime.getTime() / 1000;
 
 				if (StringTools.endsWith(lower, RECORDS) || StringTools.endsWith(lower, BANK)) {
-					many += holds(sys.io.File.getBytes(path), true, loose);
+					many += holds(sys.io.File.getBytes(path), true, loose, false, time);
 				} else if (StringTools.endsWith(lower, SUFFIX)) {
-					many += reads(sys.io.File.getContent(path), true, loose);
+					many += reads(sys.io.File.getContent(path), true, loose, time);
 				} else if (StringTools.endsWith(lower, PATCH)) {
 					final patch = Tfi.read(sys.io.File.getBytes(path));
 					if (patch == null) continue;
@@ -742,7 +760,7 @@ final class Library {
 					one.patch = patch;
 					one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
 
-					if (adds(loose, one, null, true)) many++;
+					if (adds(loose, one, null, true, time)) many++;
 				}
 			} catch (e:Dynamic) {}
 		}

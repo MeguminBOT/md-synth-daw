@@ -188,6 +188,23 @@ final class Panels {
 	public var favourites:Null<mdd.app.Favourites> = null;
 
 	/**
+		When each installed preset was added, which the browser sorts and groups by. Set before
+		`dress` and kept for the life of the application.
+	**/
+	public var added:Null<mdd.app.Added> = null;
+
+	/**
+		How the browser groups, sorts and filters, as its `spelt` line, which outlives the
+		browser: loading a piece builds a new one and hands it this.
+	**/
+	public var presetView:String = "";
+
+	/**
+		Called with the browser's view whenever it changes, so it can be kept in the settings.
+	**/
+	public var onPresetView:Null<String -> Void> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -248,6 +265,12 @@ final class Panels {
 		inspector.samples.onImport = function():Void if (onImportSample != null) onImportSample();
 		inspector.samples.budget = budget;
 		inspector.presets.favourites = favourites;
+		inspector.presets.added = added;
+		inspector.presets.reads(presetView);
+		inspector.presets.onView = function():Void {
+			presetView = inspector.presets.spelt();
+			if (onPresetView != null) onPresetView(presetView);
+		};
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onTags = function(which:Int):Void taggedPreset(which);
 		inspector.presets.onSave = function():Void savedPreset();

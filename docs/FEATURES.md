@@ -245,10 +245,29 @@ A VGM this application wrote therefore imports with its drums where they were.
 
 ## Presets and banks
 
-- Search by name or by tag.
+- Search by name or by tag. The search also takes words that narrow it: `tag:bass` keeps presets
+  with a tag holding bass, `bank:sonic` keeps the banks whose name holds sonic, a `-` in front of
+  any word leaves out what it matches, a phrase in quotes is taken whole, `fav` keeps your
+  favourites and `used` keeps what the open piece plays.
 - The browser opens with every bank folded, so the first thing you see is the list of banks
   rather than the first one's presets. Its buttons sit on a row of their own under the search,
   and follow the sidebar however narrow you drag it.
+- **Group** lists the presets of each family by bank, by tag, by when they were added, by where
+  they come from, which is the Default bank, the banks that ship, your own or the open piece, or
+  in one list with no groups at all. The four families, FM, PSG, NOISE and DAC, stay at the top
+  whatever you pick, and the Default bank is always the first group in them.
+- **Sort** puts them in order by name, by date added, by how alike they are to what the chosen
+  channel plays, or as their bank lists them, and **Reverse** runs it the other way. A number in
+  a name is read as a number, so `Patch 2` comes before `Patch 10`.
+- **Filter** shows or hides each source, keeps only your favourites or what the open piece uses,
+  shows a sound that sits in several banks only once, and keeps only the presets carrying the tags
+  you tick. **Hide bank**, on a bank's right-click menu, takes a bank out of the list until you
+  bring it back from the same menu. The button counts the filters that are on, and **Clear
+  filters** turns them all off. The grouping, the sorting and the filters are kept between
+  sessions.
+- A preset's date added is when its file first appeared in your presets folder. It stays with the
+  preset through a rename, new tags or a move to another folder, because it is kept by what the
+  preset sounds like.
 - **Load into**, on a preset's right-click menu, lists every channel the preset plays on, each
   with what that channel plays now beside it, so you can load into a channel you have not
   selected.
@@ -271,8 +290,8 @@ A VGM this application wrote therefore imports with its drums where they were.
   gets the same answer.
 - **A star is on the preset, not on the row.** Favourite one from its right-click menu and the
   browser marks it wherever it appears, in this piece and in every other, and under whatever
-  name. The browser's order button has a fourth setting, **Favourites**, which lists the starred
-  on their own. A preset you edit into something else is a different preset and keeps no star.
+  name. **Favourites only** in the filter menu, or `fav` in the search, lists the starred on
+  their own. A preset you edit into something else is a different preset and keeps no star.
 - **67 more FM patches ship as Instruments**, by ulalume under CC0 and credited in the README:
   pianos, guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads,
   each tagged with the family it belongs to.
@@ -294,10 +313,10 @@ A VGM this application wrote therefore imports with its drums where they were.
   pieces, from three hits to fourteen, the last of them carrying vocal stabs as well as drums.
   Every hit in the first two sits on the note general MIDI puts that drum on, so a drum track
   imported from a MIDI lands on the right hit with nothing to move.
-- **Sort by how alike they are.** The browser's order button has a setting that puts the presets
-  closest to what the chosen channel is playing first, with how alike each one is beside it as a
-  percentage. Every parameter counts once and each is worth how far apart the two are over how far
-  apart they could be, so a total level four steps away costs almost nothing and another algorithm
+- **Sort by how alike they are.** **Similar**, under **Sort**, puts the presets closest to what
+  the chosen channel is playing first, with how alike each one is beside it as a percentage.
+  Every parameter counts once and each is worth how far apart the two are over how far apart
+  they could be, so a total level four steps away costs almost nothing and another algorithm
   costs a whole field. Half a range apart on average reads as nothing in common, because two
   patches picked at random sit a third of a range apart and would otherwise all read as two thirds
   alike.

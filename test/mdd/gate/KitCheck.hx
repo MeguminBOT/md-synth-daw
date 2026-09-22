@@ -70,7 +70,7 @@ class KitCheck {
 	**/
 	static function sorted():Void {
 		final names = ["Hit 10", "Hit 2", "Hit 1", "Hit 20", "Hit 11", "Hit", "hit 3"];
-		names.sort(function(one:String, two:String):Int return Kit.inOrder(one, two));
+		names.sort(function(one:String, two:String):Int return mdd.Names.inOrder(one, two));
 
 		final said = names.join(", ");
 

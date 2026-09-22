@@ -23,6 +23,7 @@ import mdd.view.editor.ChannelRack;
 import mdd.view.Status;
 import mdd.view.Inspector;
 import mdd.view.editor.PianoRoll;
+import mdd.view.editor.Presets;
 import mdd.app.Session;
 import mdd.view.editor.Tracker;
 import mdd.view.TransportBar;
@@ -3138,48 +3139,159 @@ class SpineCheck {
 
 	static function sorted(tree:Root, presets:mdd.view.editor.Presets,
 			session:mdd.app.Session):Void {
-		presets.sorts(mdd.view.editor.Presets.BY_BANK);
+		presets.sortsBy(Presets.SORT_LISTED);
 		laid(tree);
 
-		final banked = spelt(presets);
+		final listed = spelt(presets);
 
-		presets.sorts(mdd.view.editor.Presets.BY_NAME);
+		presets.sortsBy(Presets.SORT_NAME);
 		laid(tree);
 
 		final named = spelt(presets);
 		var rising = true;
 
 		for (index in 1...named.length) {
-			if (named[index].toLowerCase() < named[index - 1].toLowerCase()) rising = false;
+			if (mdd.Names.inOrder(named[index], named[index - 1]) < 0) rising = false;
 		}
 
 		says("presets sort by name", rising && named.length > 4
-			&& named.join(",") != banked.join(","),
+			&& named.join(",") != listed.join(","),
 			named.length + " presets in a bank read " + named[0] + " to "
-			+ named[named.length - 1] + " in order, where the bank had them as "
-			+ banked[0] + " to " + banked[banked.length - 1]);
+			+ named[named.length - 1] + " in order, where the bank lists them as "
+			+ listed[0] + " to " + listed[listed.length - 1]);
 
-		presets.sorts(mdd.view.editor.Presets.BY_TAG);
+		final numbers = ["Patch 10", "Patch 2", "Patch 1", "Patch 11", "patch 3", "Patch 20"];
+		numbers.sort(function(one:String, two:String):Int return mdd.Names.inOrder(one, two));
+
+		says("and a number in a name counts as a number", numbers.join(", ")
+			== "Patch 1, Patch 2, patch 3, Patch 10, Patch 11, Patch 20", numbers.join(", "));
+
+		presets.reverses(true);
 		laid(tree);
 
-		final tagged = spelt(presets);
+		final backwards = spelt(presets);
+		final first = groupOf(presets, 0);
 
-		says("and by tag", tagged.length == named.length
-			&& tagged.join(",") != named.join(","),
-			tagged.length + " presets read " + tagged[0] + " first by tag against "
-			+ named[0] + " by name");
-
-		says("and the order is a chip in the header",
-			presets.onOrder(presets.orderLeft() + presets.orderWide() * 0.5,
-				presets.toolbarTop() + 4)
-			&& !presets.onOrder(presets.orderLeft() + presets.orderWide() * 0.5, presets.y + 4)
-			&& presets.orderLeft() >= presets.x && presets.orderLeft() + presets.orderWide()
-				<= presets.x + presets.width,
-			"the chip answers to a press on itself in the toolbar and not to the panel's title,"
-			+ " and sits inside the panel");
-
-		presets.sorts(mdd.view.editor.Presets.BY_BANK);
+		presets.reverses(false);
 		laid(tree);
+
+		says("and runs the other way, the starting bank still first", backwards.length == named.length
+			&& backwards[0] == named[named.length - 1] && StringTools.startsWith(first,
+			mdd.song.Library.STARTERS),
+			"reversed it reads " + backwards[0] + " first, and the first group is " + first);
+
+		presets.groupsBy(Presets.GROUP_TAG);
+		laid(tree);
+
+		final tag = groupOf(presets, 0);
+
+		presets.groupsBy(Presets.GROUP_SOURCE);
+		laid(tree);
+
+		final source = groupOf(presets, 0);
+
+		presets.groupsBy(Presets.GROUP_NONE);
+		laid(tree);
+
+		var loose = 0;
+		for (top in presets.tree.roots) for (child in top.children) if (!child.branch()) loose++;
+
+		final flat = presets.listed;
+
+		presets.groupsBy(Presets.GROUP_BANK);
+		laid(tree);
+
+		says("presets group by tag, by source and not at all", tag != "" && source != ""
+			&& tag != first && loose == flat && flat >= presets.listed,
+			"the first FM group reads '" + tag + "' by tag and '" + source + "' by source, and with no"
+			+ " grouping " + loose + " presets hang straight under their families");
+
+		final whole = presets.listed;
+
+		presets.search.set("tag:bass -tag:soft");
+		laid(tree);
+
+		final bass = presets.listed;
+		var wrong = 0;
+
+		for (row in rows(presets)) {
+			final held = presets.presetOf(row);
+			if (held == null) continue;
+
+			final said = held.tags.join(" ").toLowerCase();
+			if (said.indexOf("bass") < 0 || said.indexOf("soft") >= 0) wrong++;
+		}
+
+		presets.search.set("bank:\"" + mdd.song.Library.STARTERS + "\"");
+		laid(tree);
+
+		final starting = presets.listed;
+
+		presets.search.set("");
+		laid(tree);
+
+		says("the search takes words for tags and banks", bass > 0 && bass < whole && wrong == 0
+			&& starting > 0 && starting < whole,
+			"'tag:bass -tag:soft' leaves " + bass + " of " + whole + ", none of them soft, and a bank's"
+			+ " name leaves " + starting);
+
+		presets.hidesSource(mdd.view.editor.Offer.DEFAULT, true);
+		laid(tree);
+
+		final without = presets.listed;
+		final filters = presets.filtering();
+		final kept = presets.spelt();
+
+		presets.clearsFilters();
+		laid(tree);
+
+		final other = new mdd.view.editor.Presets(session);
+		other.reads(kept);
+
+		says("and the filters leave out a source and come back", without < whole && filters == 1
+			&& presets.listed == whole && other.hides(mdd.view.editor.Offer.DEFAULT)
+			&& other.filtering() == 1,
+			"hiding the starting bank leaves " + without + " of " + whole + ", and the view read back"
+			+ " from '" + kept + "' hides it too");
+
+		final menu = presets.filterMenu();
+		var ticked = 0;
+
+		for (choice in presets.groupMenu().choices) if (choice.ticked) ticked++;
+
+		says("and the menus tick what is chosen", ticked == 1 && menu.ticking
+			&& menu.choices.length > 5,
+			ticked + " grouping ticked of " + Presets.GROUPINGS + ", and a filter menu of "
+			+ menu.choices.length + " entries");
+	}
+
+	/**
+		@param presets The browser.
+		@param at Which group under the first family.
+		@return That group's label, or an empty string.
+	**/
+	static function groupOf(presets:mdd.view.editor.Presets, at:Int):String {
+		if (presets.tree.roots.length == 0) return "";
+
+		final top = presets.tree.roots[0];
+		return at < top.children.length ? top.children[at].label : "";
+	}
+
+	/**
+		@param presets The browser.
+		@return Every preset row it holds, shown or folded.
+	**/
+	static function rows(presets:mdd.view.editor.Presets):Array<mdd.ui.Item> {
+		final out:Array<mdd.ui.Item> = [];
+
+		for (top in presets.tree.roots) {
+			for (child in top.children) {
+				if (!child.branch()) out.push(child);
+				for (row in child.children) out.push(row);
+			}
+		}
+
+		return out;
 	}
 
 	/**
@@ -3230,15 +3342,24 @@ class SpineCheck {
 		for (wide in [140, 200, 332, 600]) {
 			presets.arrange(wasX, wasY, metrics.whole(wide), wasTall);
 
-			final left = presets.orderLeft();
-			if (left < presets.x || left + presets.orderWide() > presets.x + presets.width) inside = false;
+			for (chip in 0...presets.chips()) {
+				final left = presets.chipLeftOf(chip);
+				final right = left + presets.chipWideOf(chip);
+
+				if (left < presets.x || right > presets.x + presets.width) inside = false;
+				if (chip > 0 && left < presets.chipLeftOf(chip - 1) + presets.chipWideOf(chip - 1)) {
+					inside = false;
+				}
+			}
+
 			if (presets.toolbarTop() < presets.y + metrics.head) clear = false;
 		}
 
 		presets.arrange(wasX, wasY, wasWide, wasTall);
 
 		says("the toolbar follows the sidebar", inside && clear,
-			"at 140, 200, 332 and 600 wide the buttons sit inside the panel and below its title");
+			"at 140, 200, 332 and 600 wide the four buttons sit inside the panel, apart, and below its"
+			+ " title");
 
 		says("and a preset row is shorter than a tree's", presets.tree.rowHeight > 0
 			&& presets.tree.rowHeight < metrics.whole(26),
