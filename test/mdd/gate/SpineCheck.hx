@@ -1800,10 +1800,61 @@ class SpineCheck {
 			"the lane is back to " + (after == null ? "no line at all"
 			: after.points.length + " points"));
 
+		shed(session, stack);
+
 		stack.hide(0);
 
 		tree.reshape();
 		tree.top.arrange(0, 0, tree.width, tree.height);
+	}
+
+	/**
+		Shedding a lane takes its points out of the song rather than only off the screen,
+		and the step it leaves undoes.
+
+		@param session The session the lane belongs to.
+		@param stack The lane strip, with one row holding one point.
+	**/
+	static function shed(session:mdd.app.Session, stack:mdd.view.editor.Lanes):Void {
+		final target = stack.targetOf(0);
+		final slot = stack.slotOf(0);
+
+		session.does(new mdd.song.edit.AddPoint(session.pattern, session.part, target, slot,
+			new mdd.song.Point(session.song.tempo.ppqn * 2, -5)));
+
+		final put = carried(session, target, slot);
+
+		stack.sheds(0);
+
+		final left = carried(session, target, slot);
+		final rows = stack.rows();
+
+		session.undo();
+		final back = carried(session, target, slot);
+
+		says("shedding a lane takes its points with it", put > 0 && left == 0 && rows == 0
+			&& back == put,
+			"a lane of " + put + " point left " + left + " behind and " + rows
+			+ " rows, and undo put " + back + " back");
+
+		session.redo();
+	}
+
+	/**
+		@param session The session to look in.
+		@param target Which lane, from `Automation`.
+		@param slot Which operator.
+		@return How many points the chosen part's lane holds in the chosen pattern.
+	**/
+	static function carried(session:mdd.app.Session, target:Int, slot:Int):Int {
+		final pattern = session.current();
+		if (pattern == null) return 0;
+
+		for (line in pattern.lane(session.part).automation) {
+			if (line.held(target, slot)) return line.points.length;
+		}
+
+		return 0;
 	}
 
 	static function tagged(tree:Root, presets:mdd.view.editor.Presets,

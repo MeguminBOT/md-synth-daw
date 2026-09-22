@@ -651,7 +651,35 @@ final class Lanes extends Widget {
 	}
 
 	/**
-		Takes a row away.
+		Takes a row away and removes the points it shows, as one step on the undo stack.
+		A row showing a lane that carries nothing is taken away on its own.
+
+		@param row Which lane row.
+	**/
+	public function sheds(row:Int):Void {
+		if (row < 0 || row >= targets.length) return;
+
+		final line = lineOf(row);
+		final held = parameterOf(row);
+
+		if (line != null && line.points.length > 0) {
+			final going = line.points.copy();
+			final group = new mdd.song.edit.Together("remove "
+				+ (held == null ? "a lane" : held.titled(slotted(row))));
+
+			for (point in going) {
+				group.also(new RemovePoint(session.pattern, drivenPart(), targeted(row),
+					slotted(row), point, driven()));
+			}
+
+			session.does(group);
+		}
+
+		hide(row);
+	}
+
+	/**
+		Takes a row away, leaving whatever it shows in the song.
 
 		@param row Which lane row.
 	**/
@@ -1499,7 +1527,7 @@ final class Lanes extends Widget {
 
 		if (event.y < rowTop(row) + headTall()) {
 			if (onShed(row, event.x)) {
-				hide(row);
+				sheds(row);
 				return true;
 			}
 
