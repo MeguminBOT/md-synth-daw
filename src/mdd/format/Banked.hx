@@ -18,6 +18,11 @@ final class Banked {
 	public var name:String = "";
 
 	/**
+		The bank's own tags, which every preset in it answers to as well.
+	**/
+	public final tags:Array<String> = [];
+
+	/**
 		The presets it holds.
 	**/
 	public final presets:Array<Instrument> = [];

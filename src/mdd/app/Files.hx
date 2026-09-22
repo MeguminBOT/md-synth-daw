@@ -258,6 +258,12 @@ final class Files {
 	public var savedInto:String = "";
 
 	/**
+		The category a single preset imported from a file goes into, inside its family's folder,
+		named in the reader's language.
+	**/
+	public var importedInto:String = "Imported";
+
+	/**
 		The preset library, where a preset written into the presets folder is put as
 		well, so every piece opened afterwards offers it. Null in a check that has none.
 	**/
@@ -416,7 +422,8 @@ final class Files {
 	}
 
 	/**
-		Removes the backups that are too old or that push the folder past its room.
+		Removes the backups that are too old or that push the folder past its room, and the presets
+		deleted from the browser that are older than a backup is kept.
 
 		@return How many were removed.
 	**/
@@ -474,6 +481,19 @@ final class Files {
 				FileSystem.deleteFile(where + "/" + names[index]);
 				gone++;
 			} catch (e:Dynamic) {}
+		}
+
+		final binned = where + "/presets";
+
+		if (oldest > 0 && FileSystem.exists(binned)) {
+			for (name in FileSystem.readDirectory(binned)) {
+				try {
+					if (FileSystem.stat(binned + "/" + name).mtime.getTime() >= oldest) continue;
+
+					Paths.clear(binned + "/" + name);
+					gone++;
+				} catch (e:Dynamic) {}
+			}
 		}
 
 		return gone;
@@ -813,7 +833,7 @@ final class Files {
 
 		sys.io.File.saveBytes(named, bytes);
 
-		if (library != null) library.holds(bytes, true, "", true);
+		if (library != null) library.holds(bytes, true, "", true, 0, named);
 
 		session.says(Locale.SAID_KIT, kit.name, "" + kit.taken(), "" + kit.bytes());
 		session.changed();
@@ -1216,13 +1236,14 @@ final class Files {
 	}
 
 	/**
-		Reads a preset file or a bank file into the library, keeping a copy of it in the presets
-		folder so every piece offers it. The open piece is left as it is: a preset reaches a piece
-		when it is loaded into a channel.
+		Imports a preset file or a bank file into the presets folder, so every piece offers what it
+		holds. The open piece is left as it is: a preset reaches a piece when it is loaded into a
+		channel.
 
-		A file that names its own bank is that bank. One that names none is the file itself, so a
-		single preset saved out and read back in sits under its own name rather than joining
-		whatever was last saved.
+		A file naming a bank of its own is that bank. One naming none goes into the Imported
+		category of its family, beside whatever was imported before it. Where the library already
+		holds some of what the file does, `onDuplicates` is asked first, and nothing is written until
+		`imports` is called with the answer; with no one to ask, everything is imported.
 
 		@param where The file to read.
 	**/
@@ -1234,63 +1255,193 @@ final class Files {
 			return;
 		}
 
-		final named = held.name == "" ? bare(where) : held.name;
+		final twins = duplicates(held);
+		final asking = onDuplicates;
 
-		keepsPresets(where, held, named);
+		if (twins > 0 && asking != null) {
+			asking(where, held, twins);
+			return;
+		}
 
-		session.says(Locale.SAID_PRESETS_READ, "" + held.presets.length, named);
-		session.changed();
+		imports(where, held, IMPORT_ALL);
 	}
 
 	/**
-		Copies a preset file just read into the presets folder, under the family its presets share
-		where they share one, and puts what it holds in the library. A file already there is left
-		as it is.
-
-		@param where The file that was read.
-		@param held What it carried.
-		@param named The bank it was read under.
+		Import: every preset in the file, including those the library already holds.
 	**/
-	function keepsPresets(where:String, held:mdd.format.Banked, named:String):Void {
-		final into = within("presets");
-		if (into == "") return;
+	public static inline final IMPORT_ALL = 0;
 
-		var family = "";
+	/**
+		Import: only the presets the library does not hold yet.
+	**/
+	public static inline final SKIP_DUPLICATES = 1;
 
-		for (preset in held.presets) {
-			final one = preset.kind.family();
+	/**
+		Import: every preset, and where the library already holds one, both it and the one arriving
+		carry the tags of the two.
+	**/
+	public static inline final COMBINE_TAGS = 2;
 
-			if (family == "") family = one;
-			else if (family != one) family = "-";
+	/**
+		Called when a file being imported holds presets the library already holds, with the file,
+		what it holds and how many of those there are, so a reader can say what to do about them.
+		Nothing has been written by the time this is called, and `imports` is what acts on the
+		answer.
+	**/
+	public var onDuplicates:Null<(String, mdd.format.Banked, Int) -> Void> = null;
+
+	/**
+		Called once an import has written into the presets folder, so it is read again and every
+		category it made is offered.
+	**/
+	public var onShelved:Null<Void -> Void> = null;
+
+	/**
+		@param held What a file holds.
+		@return How many of its presets the library already holds, by what they sound like.
+	**/
+	public function duplicates(held:mdd.format.Banked):Int {
+		final known = library;
+		if (known == null) return 0;
+
+		var many = 0;
+
+		for (index in 0...held.presets.length) {
+			if (known.placeOf(held.presets[index].identifies(held.samples[index])) >= 0) many++;
 		}
 
-		final folder = family == "" || family == "-" ? into : into + "/" + family;
-		final at = folder + "/" + safely(bare(where)) + suffixOf(where);
+		return many;
+	}
 
-		if (!FileSystem.exists(at)) {
-			Paths.make(folder);
+	/**
+		Writes what a preset file or bank file holds into the presets folder and the library.
 
-			try {
-				sys.io.File.copy(where, at);
-			} catch (e:Dynamic) {
-				return;
+		@param where The file it came from, which names a nameless file's copy.
+		@param held What it holds. It is changed where duplicates are left out or combined.
+		@param how `IMPORT_ALL`, `SKIP_DUPLICATES` or `COMBINE_TAGS`.
+		@return Where it was written, or an empty string where nothing was.
+	**/
+	public function imports(where:String, held:mdd.format.Banked, how:Int):String {
+		final into = within("presets");
+		if (into == "" || held.presets.length == 0) return "";
+
+		final known = library;
+		final named = held.name == "" ? bare(where) : held.name;
+
+		if (known != null && how != IMPORT_ALL) {
+			var index = 0;
+
+			while (index < held.presets.length) {
+				final one = held.presets[index];
+				final place = known.placeOf(one.identifies(held.samples[index]));
+
+				if (place < 0) {
+					index++;
+					continue;
+				}
+
+				if (how == SKIP_DUPLICATES) {
+					held.presets.splice(index, 1);
+					held.samples.splice(index, 1);
+					continue;
+				}
+
+				combines(known, one);
+				index++;
 			}
 		}
 
-		if (library == null) return;
+		if (held.presets.length == 0) {
+			session.says(Locale.SAID_NOTHING_NEW, named);
+			return "";
+		}
 
-		for (index in 0...held.presets.length) {
-			library.adds(named, held.presets[index].copy(), held.samples[index], true);
+		final family = held.presets[0].kind.family();
+		final alone = held.name == "";
+		final imported = importedInto;
+		final folder = alone ? into + "/" + family + "/" + safely(imported) : shelfFor(into, held);
+		final end = alone && held.presets.length == 1 ? mdd.song.Library.RECORDS : mdd.song.Library.BANK;
+
+		var at = folder + "/" + safely(named) + end;
+		var number = 2;
+
+		while (FileSystem.exists(at)) {
+			at = folder + "/" + safely(named) + " " + number + end;
+			number++;
+		}
+
+		final bytes = mdd.format.Preset.write(held.name, held.presets, held.samples, held.tags);
+
+		try {
+			Paths.make(folder);
+			sys.io.File.saveBytes(at, bytes);
+		} catch (e:Dynamic) {
+			session.says(Locale.SAID_PRESET_UNWRITTEN, folder);
+			return "";
+		}
+
+		if (known != null) known.holds(bytes, true, alone ? imported : "", false, Date.now().getTime() / 1000, at);
+
+		if (alone && held.presets.length == 1) session.says(Locale.SAID_PRESET_IMPORTED, held.presets[0].name);
+		else session.says(Locale.SAID_BANK_IMPORTED, named, "" + held.presets.length);
+
+		if (onShelved != null) onShelved();
+
+		session.changed();
+		return at;
+	}
+
+	/**
+		@param into The presets folder.
+		@param held A bank about to be written.
+		@return The folder it goes in: its family's where every preset in it is of one family, and
+			the presets folder itself where they are not, since no one family's folder is its place.
+	**/
+	static function shelfFor(into:String, held:mdd.format.Banked):String {
+		final family = held.presets[0].kind.family();
+
+		for (one in held.presets) if (one.kind.family() != family) return into;
+
+		return into + "/" + family;
+	}
+
+	/**
+		Gives a preset arriving the tags of every copy of it the library holds, and gives each copy
+		that lives in the reader's folder the tags of the one arriving, so both carry both.
+
+		@param known The library.
+		@param one The preset arriving.
+	**/
+	function combines(known:mdd.song.Library, one:mdd.song.Instrument):Void {
+		final keeper = presetFolder();
+
+		for (at in 0...known.names.length) {
+			final held = known.instruments[at];
+
+			for (which in 0...held.length) {
+				if (held[which].id != one.id) continue;
+
+				final both:Array<String> = [];
+
+				for (tag in held[which].tags) if (both.indexOf(tag) < 0) both.push(tag);
+				for (tag in one.tags) if (both.indexOf(tag) < 0) both.push(tag);
+
+				if (known.owned[at] && both.length > held[which].tags.length) {
+					keeper.retags(known, at, which, both);
+				}
+
+				one.tags.resize(0);
+				for (tag in both) one.tags.push(tag);
+			}
 		}
 	}
 
 	/**
-		@param where A path.
-		@return Its suffix with the dot, in lower case, or an empty string where it has none.
+		@return The presets folder, as the browser changes presets and categories in it, with what is
+			deleted going into the backups.
 	**/
-	static function suffixOf(where:String):String {
-		final held = haxe.io.Path.extension(where);
-		return held == "" ? "" : "." + held.toLowerCase();
+	public function presetFolder():mdd.app.PresetFolder {
+		return new mdd.app.PresetFolder(within("presets"), backups() + "/presets");
 	}
 
 	/**
@@ -1432,7 +1583,7 @@ final class Files {
 		}
 
 		if (library != null && savedInto != "") {
-			library.keeps(savedInto, made.copy(), sample == null ? null : sample.copy());
+			library.keeps(savedInto, made.copy(), sample == null ? null : sample.copy(), named);
 		}
 
 		return named;
@@ -1733,7 +1884,7 @@ final class Files {
 		@param said A name.
 		@return It with anything a file name cannot carry taken out.
 	**/
-	static function safely(said:String):String {
+	public static function safely(said:String):String {
 		var out = "";
 
 		for (index in 0...said.length) {

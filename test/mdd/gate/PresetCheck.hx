@@ -66,6 +66,8 @@ class PresetCheck {
 		familied(where);
 		sortedIn(where);
 		dated(where);
+		organised(where);
+		imported(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -1374,6 +1376,217 @@ class PresetCheck {
 			+ ", and still after a rename, a tag and a move, which gave " + again + " new dates");
 
 		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		A preset in the reader's folder is renamed, retagged, moved and deleted by changing its
+		file, a patch file that has to carry a tag becoming a preset file, and a category is made,
+		tagged and deleted as a folder. Nothing deleted is erased: it is in the backups.
+	**/
+	static function organised(where:String):Void {
+		mdd.host.Paths.clear(where);
+
+		final root = where + "/presets";
+		final bin = where + "/bin";
+
+		mdd.host.Paths.make(root + "/FM/Leads");
+		mdd.host.Paths.make(root + "/FM/Empty");
+
+		final pads = patched("Warm");
+		final wide = patched("Wide");
+		wide.patch.feedback = 2;
+
+		sys.io.File.saveBytes(root + "/FM/Lead" + Library.RECORDS,
+			mdd.format.Preset.write("", [patched("Lead")], [null]));
+		sys.io.File.saveBytes(root + "/FM/Slap" + Library.PATCH, mdd.format.Tfi.write(patched("Slap").patch));
+		sys.io.File.saveBytes(root + "/FM/Pads" + Library.BANK,
+			mdd.format.Preset.write("Pads", [pads, wide], [null, null], ["Soft"]));
+		sys.io.File.saveBytes(root + "/FM/Leads/Saw" + Library.RECORDS,
+			mdd.format.Preset.write("", [patched("Saw")], [null]));
+		sys.io.File.saveContent(root + "/FM/Leads/" + Library.TAGS, "Bright\nLead\n");
+
+		final library = new Library();
+		library.within(root, SAVED);
+
+		final empty = library.folderOf("FM", "Empty");
+		final leads = library.names.indexOf("Leads");
+		final banked = library.names.indexOf("Pads");
+
+		says("an empty folder is a category, and a folder and a bank carry tags", empty != ""
+			&& leads >= 0 && library.tagsOf(leads).join(",") == "Bright,Lead" && banked >= 0
+			&& library.tagsOf(banked).join(",") == "Soft",
+			"Empty is read from '" + mdd.app.Files.name(empty) + "', Leads carries "
+			+ (leads < 0 ? "" : library.tagsOf(leads).join(", ")) + " and Pads carries "
+			+ (banked < 0 ? "" : library.tagsOf(banked).join(", ")));
+
+		final folder = new mdd.app.PresetFolder(root, bin);
+
+		final lead = placed(library, patched("Lead"));
+		final renamed = folder.renames(library, lead >> 16, lead & 0xFFFF, "Lead Two");
+
+		var slap = -1;
+
+		for (at in 0...library.names.length) {
+			for (which in 0...library.instruments[at].length) {
+				if (library.instruments[at][which].name == "Slap") slap = (at << 16) | which;
+			}
+		}
+
+		final tagged = folder.retags(library, slap >> 16, slap & 0xFFFF, ["Slap", "Funk"]);
+
+		final warm = placed(library, pads);
+		final dropped = folder.deletes(library, warm >> 16, warm & 0xFFFF);
+
+		library.forgets();
+		library.within(root, SAVED);
+
+		final spread = placed(library, wide);
+		final moved = folder.moves(library, spread >> 16, spread & 0xFFFF, empty);
+
+		final keys = folder.makes("FM", "Keys");
+		final kept = keys != "" && folder.tagsCategory(keys, ["Keys", "Soft"]);
+		final gone = folder.deletesCategory(keys);
+
+		library.forgets();
+		library.within(root, SAVED);
+
+		final binned = sys.FileSystem.exists(bin) ? sys.FileSystem.readDirectory(bin).length : 0;
+		final slapped = library.instruments[library.names.indexOf(SAVED)].filter(function(one:Instrument):Bool
+			return one.name == "Slap");
+
+		says("a preset in the folder is changed through its file", renamed && tagged && dropped
+			&& moved && sys.FileSystem.exists(root + "/FM/Lead Two" + Library.RECORDS)
+			&& !sys.FileSystem.exists(root + "/FM/Lead" + Library.RECORDS)
+			&& sys.FileSystem.exists(root + "/FM/Slap" + Library.RECORDS)
+			&& !sys.FileSystem.exists(root + "/FM/Slap" + Library.PATCH)
+			&& slapped.length == 1 && slapped[0].tags.join(",") == "Slap,Funk"
+			&& shelved(library, "Empty") == "Wide" && !sys.FileSystem.exists(root + "/FM/Pads" + Library.BANK),
+			"renamed to Lead Two, a patch file retagged into a preset file, Warm deleted and Wide moved"
+			+ " into Empty, which left Pads empty and moved it out" + (renamed && tagged && dropped && moved ? ""
+			: " (renamed " + renamed + ", tagged " + tagged + ", dropped " + dropped + ", moved " + moved + ")")
+			+ "; Empty holds '" + shelved(library, "Empty") + "', Slap carries "
+			+ (slapped.length == 0 ? "nothing" : slapped[0].tags.join(",")));
+
+		says("and a category is made, tagged and deleted", keys != "" && kept && gone
+			&& !sys.FileSystem.exists(keys) && binned == 3,
+			"Keys made and tagged, then deleted, and the backups hold " + binned + ": the patch file,"
+			+ " Pads once it was empty, and Keys");
+
+		final cache = where + "/presets.cache";
+		library.caches(cache, "stamp");
+
+		final back = new Library();
+		back.cached(cache, "stamp");
+
+		final at = back.names.indexOf("Leads");
+		final first = back.paths.length > 0 && back.paths[0].length > 0 ? back.paths[0][0] : "";
+
+		says("and the cache keeps where each one lives", at >= 0 && back.tagsOf(at).join(",") == "Bright,Lead"
+			&& back.folders.join("|") == library.folders.join("|")
+			&& first == library.paths[0][0] && first != "",
+			back.folders.length + " folders and every preset's file read back, Leads still tagged "
+			+ (at < 0 ? "" : back.tagsOf(at).join(", ")));
+
+		final old = mdd.format.Preset.write("Old", [patched("Old")], [null]);
+		final written = haxe.io.Bytes.alloc(old.length - 1);
+
+		written.blit(0, haxe.io.Bytes.ofString(mdd.format.Preset.UNTAGGED), 0, 4);
+		written.blit(4, old, 4, 5);
+		written.blit(9, old, 10, old.length - 10);
+
+		final read = mdd.format.Preset.read(written);
+
+		says("and a bank file written before banks had tags still reads", read != null
+			&& read.name == "Old" && read.presets.length == 1 && read.tags.length == 0,
+			"an " + mdd.format.Preset.UNTAGGED + " file reads as " + (read == null ? "nothing"
+			: read.presets.length + " preset in " + read.name));
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		A preset file imported on its own goes into the Imported category of its family, and a bank
+		holding presets the library already holds asks, then skips them or combines their tags.
+	**/
+	static function imported(where:String):Void {
+		mdd.host.Paths.clear(where);
+
+		final root = where + "/presets";
+		mdd.host.Paths.make(root + "/FM");
+
+		final known = patched("Known");
+		known.tags.resize(0);
+		known.tags.push("Mine");
+
+		sys.io.File.saveBytes(root + "/FM/Known" + Library.RECORDS,
+			mdd.format.Preset.write("", [known], [null]));
+
+		final files = new mdd.app.Files(new mdd.app.Session(new Song()));
+		final library = new Library();
+
+		files.presetsAt = root;
+		files.savedInto = SAVED;
+		files.importedInto = "Imported";
+		files.library = library;
+
+		library.within(root, SAVED);
+
+		final single = where + "/Single" + Library.RECORDS;
+		sys.io.File.saveBytes(single, mdd.format.Preset.write("", [patched("Single")], [null]));
+		files.readPresets(single);
+
+		final arriving = patched("Known");
+		arriving.tags.resize(0);
+		arriving.tags.push("Theirs");
+
+		final bank = where + "/Theirs" + Library.BANK;
+		sys.io.File.saveBytes(bank, mdd.format.Preset.write("Theirs", [arriving, patched("New")], [null, null]));
+
+		var asked = -1;
+		files.onDuplicates = function(from:String, held:mdd.format.Banked, twins:Int):Void asked = twins;
+		files.readPresets(bank);
+
+		final skipped = files.imports(bank, mdd.format.Preset.read(sys.io.File.getBytes(bank)),
+			mdd.app.Files.SKIP_DUPLICATES);
+		final skippedHeld = mdd.format.Preset.read(sys.io.File.getBytes(skipped));
+
+		final combined = files.imports(bank, mdd.format.Preset.read(sys.io.File.getBytes(bank)),
+			mdd.app.Files.COMBINE_TAGS);
+		final combinedHeld = mdd.format.Preset.read(sys.io.File.getBytes(combined));
+		final mine = mdd.format.Preset.read(sys.io.File.getBytes(root + "/FM/Known" + Library.RECORDS));
+
+		says("a preset imported alone goes into Imported", sys.FileSystem.exists(root + "/FM/Imported/Single"
+			+ Library.RECORDS) && shelved(library, "Imported") == "Single",
+			"Single landed in FM/Imported and the library offers it there");
+
+		says("and a bank with presets already held asks first", asked == 1 && skippedHeld != null
+			&& skippedHeld.presets.length == 1 && skippedHeld.presets[0].name == "New",
+			asked + " already held, and skipping them wrote " + (skippedHeld == null ? 0
+			: skippedHeld.presets.length) + " preset");
+
+		says("and combining gives both copies both tags", combinedHeld != null && mine != null
+			&& both(combinedHeld.presets[0].tags) && both(mine.presets[0].tags),
+			"the arriving copy carries " + (combinedHeld == null ? "" : combinedHeld.presets[0].tags.join(", "))
+			+ " and the one already there " + (mine == null ? "" : mine.presets[0].tags.join(", ")));
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		@param tags Some tags.
+		@return Whether they are Mine and Theirs, in either order.
+	**/
+	static function both(tags:Array<String>):Bool {
+		return tags.length == 2 && tags.indexOf("Mine") >= 0 && tags.indexOf("Theirs") >= 0;
+	}
+
+	/**
+		@param library A library.
+		@param preset A preset, whose identity is worked out here.
+		@return Where the library holds it, as `Library.placeOf` answers.
+	**/
+	static function placed(library:Library, preset:Instrument):Int {
+		return library.placeOf(preset.copy().identifies(null));
 	}
 
 	/**

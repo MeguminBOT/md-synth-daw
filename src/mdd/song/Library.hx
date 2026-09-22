@@ -43,6 +43,33 @@ final class Library {
 	**/
 	public final times:Array<Array<Float>> = [];
 
+	/**
+		The file each preset was read from, by the same index as the instruments, or an empty
+		string for one that ships. A preset in the reader's folder is changed by changing this file.
+	**/
+	public final paths:Array<Array<String>> = [];
+
+	/**
+		Each bank's own tags, which every preset in it answers to as well. A folder keeps its tags
+		in a `.tags` file inside it and a bank file in its own first bytes.
+	**/
+	public final bankTags:Array<Array<String>> = [];
+
+	/**
+		Every folder the presets folder was read from: where it is, the family folder it sits
+		under or an empty string above them, and the bank what is loose in it goes into, by the
+		same index. A folder with nothing in it is listed too, which is what lets a category made
+		in the application be seen before anything is put in it.
+	**/
+	public final folders:Array<String> = [];
+	public final folderFamilies:Array<String> = [];
+	public final folderBanks:Array<String> = [];
+
+	/**
+		The file being read, which every preset read out of it records.
+	**/
+	var reading:String = "";
+
 	public function new() {}
 
 	/**
@@ -131,7 +158,7 @@ final class Library {
 			instrument.identifies(sample);
 
 			if (over) {
-				keeps(named, instrument, sample);
+				keeps(named, instrument, sample, reading);
 				many++;
 			} else if (adds(named, instrument, sample, owned, time)) {
 				many++;
@@ -252,6 +279,8 @@ final class Library {
 			instruments.push([]);
 			samples.push([]);
 			times.push([]);
+			paths.push([]);
+			bankTags.push([]);
 			this.owned.push(owned);
 
 			at = names.length - 1;
@@ -263,55 +292,54 @@ final class Library {
 	}
 
 	/**
-		Puts a preset into a bank, unless the bank already has one of the same name for
-		the same kind of part.
-
-		A patch or an envelope out of the presets folder is put in only where nothing here already
-		makes that sound, whatever either is called. Lifting a piece's patches used to write every
-		preset the piece carried into the folder, and a piece carried the whole library, so a
-		folder fills up with the shipped banks under names like `Bass 7 2` that say nothing about
-		what they play. A shipped bank is added as it is, because the same patch turning up in two
-		soundtracks is what those banks are for.
-
-		A converter preset is never held back that way. A kit is picked by note out of one bank,
-		so a hit left out because another bank has the same recording is a key that stops
-		sounding.
+		Puts a preset into a bank, unless the bank already holds the same preset: the same sound,
+		or where either has no identity yet, the same name for the same kind of part. The same sound
+		in two banks is listed in both, which is what a bank imported alongside another asked for.
 
 		@param bank The bank's name. It is made where there is none.
 		@param instrument The preset. The library keeps it rather than a copy.
 		@param sample The sample it plays, or null.
 		@param owned Whether it came out of the presets folder.
 		@param time When its file was last written, in seconds since 1970, or nought.
-		@return False where the bank already had one of that name, or where a preset out of the
-			folder makes a sound this library already offers.
+		@return False where the bank already holds it.
 	**/
 	public function adds(bank:String, instrument:Instrument, sample:Null<Sample>,
 			owned:Bool, time:Float = 0):Bool {
 		final at = banked(bank, owned);
 		if (holding(at, instrument) >= 0) return false;
-		if (owned && sample == null && echoes(instrument)) return false;
 
 		instruments[at].push(instrument);
 		samples[at].push(sample);
 		times[at].push(time);
+		paths[at].push(reading);
 
 		return true;
 	}
 
 	/**
-		@param instrument A preset that plays no recording, about to be put in.
-		@return Whether this library already offers that sound, in any bank.
+		Adds tags to a bank's own, each once whatever its case.
+
+		@param at The bank, by position.
+		@param tags The tags.
 	**/
-	function echoes(instrument:Instrument):Bool {
-		for (at in 0...names.length) {
-			final held = instruments[at];
+	function tagsBank(at:Int, tags:Array<String>):Void {
+		final held = bankTags[at];
 
-			for (which in 0...held.length) {
-				if (samples[at][which] == null && sounds(held[which], instrument)) return true;
-			}
+		for (tag in tags) {
+			final lower = tag.toLowerCase();
+			var found = false;
+
+			for (one in held) if (one.toLowerCase() == lower) found = true;
+			if (!found && StringTools.trim(tag) != "") held.push(StringTools.trim(tag));
 		}
+	}
 
-		return false;
+	/**
+		@param at A bank, by position.
+		@return Its own tags, as they are kept.
+	**/
+	public inline function tagsOf(at:Int):Array<String> {
+		return bankTags[at];
 	}
 
 	/**
@@ -321,8 +349,10 @@ final class Library {
 		@param bank The bank's name. It is made where there is none.
 		@param instrument The preset. The library keeps it rather than a copy.
 		@param sample The sample it plays, or null.
+		@param path The file it was written to, or an empty string where it has none.
 	**/
-	public function keeps(bank:String, instrument:Instrument, sample:Null<Sample>):Void {
+	public function keeps(bank:String, instrument:Instrument, sample:Null<Sample>,
+			path:String = ""):Void {
 		final at = banked(bank, true);
 		final held = called(at, instrument);
 
@@ -330,11 +360,13 @@ final class Library {
 			instruments[at].push(instrument);
 			samples[at].push(sample);
 			times[at].push(0);
+			paths[at].push(path);
 			return;
 		}
 
 		instruments[at][held] = instrument;
 		samples[at][held] = sample;
+		paths[at][held] = path;
 	}
 
 	/**
@@ -497,8 +529,14 @@ final class Library {
 			instruments.splice(at, 1);
 			samples.splice(at, 1);
 			times.splice(at, 1);
+			paths.splice(at, 1);
+			bankTags.splice(at, 1);
 			owned.splice(at, 1);
 		}
+
+		folders.resize(0);
+		folderFamilies.resize(0);
+		folderBanks.resize(0);
 	}
 
 	/**
@@ -531,27 +569,35 @@ final class Library {
 			passed over, which is right for a file the application has just written and wrong for
 			one it is reading for the first time.
 		@param time When the file was last written, in seconds since 1970, or nought.
+		@param path Where the file is, which every preset in it records, or an empty string to
+			keep whatever file is being read.
 		@return How many presets it carried.
 	**/
 	public function holds(bytes:Null<haxe.io.Bytes>, owned:Bool = false, loose:String = "",
-			over:Bool = false, time:Float = 0):Int {
+			over:Bool = false, time:Float = 0, path:String = ""):Int {
 		final held = mdd.format.Preset.read(bytes);
 		if (held == null) return 0;
 
 		final named = held.name == "" ? loose : held.name;
 		if (named == "") return 0;
 
+		final was = reading;
+		if (path != "") reading = path;
+
+		if (held.tags.length > 0) tagsBank(banked(named, owned), held.tags);
+
 		var many = 0;
 
 		for (index in 0...held.presets.length) {
 			if (over) {
-				keeps(named, held.presets[index], held.samples[index]);
+				keeps(named, held.presets[index], held.samples[index], reading);
 				many++;
 			} else if (adds(named, held.presets[index], held.samples[index], owned, time)) {
 				many++;
 			}
 		}
 
+		reading = was;
 		return many;
 	}
 
@@ -596,13 +642,67 @@ final class Library {
 		@return How many instruments were read.
 	**/
 	public function within(where:String, saved:String):Int {
-		return gathered(where, saved, 0);
+		return gathered(where, saved, 0, "");
+	}
+
+	/**
+		What a folder's own tags are kept in, inside it.
+	**/
+	public static inline final TAGS = ".tags";
+
+	/**
+		@param said What a tags file holds.
+		@return The tags in it, one a line or split by commas, with the blanks left out.
+	**/
+	public static function tagsIn(said:String):Array<String> {
+		final out:Array<String> = [];
+
+		for (line in said.split("\n")) {
+			for (one in line.split(",")) {
+				final tag = StringTools.trim(one);
+				if (tag != "" && out.indexOf(tag) < 0) out.push(tag);
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		@param family A family folder's name, as `Part.family` names it, or an empty string.
+		@param bank A bank's name.
+		@return The folder that bank's loose presets were read out of under that family, or an
+			empty string where none was.
+	**/
+	public function folderOf(family:String, bank:String):String {
+		for (at in 0...folders.length) {
+			if (folderBanks[at] == bank && folderFamilies[at].toLowerCase() == family.toLowerCase()) {
+				return folders[at];
+			}
+		}
+
+		return "";
+	}
+
+	/**
+		@param id A preset's identity.
+		@return Where the first preset with it sits, as its bank shifted up sixteen bits over its
+			place in the bank, or -1 where none has it.
+	**/
+	public function placeOf(id:String):Int {
+		if (id == "") return -1;
+
+		for (at in 0...names.length) {
+			final held = instruments[at];
+			for (which in 0...held.length) if (held[which].id == id) return (at << 16) | which;
+		}
+
+		return -1;
 	}
 
 	/**
 		What a cache of a read folder opens with.
 	**/
-	static inline final CACHED = "MDL2";
+	static inline final CACHED = "MDL3";
 
 	/**
 		Writes what this library holds as one file, with the listing of the folder it was read
@@ -626,11 +726,22 @@ final class Library {
 		out.writeInt32(names.length);
 
 		for (at in 0...names.length) {
-			final bytes = mdd.format.Preset.write(names[at], instruments[at], samples[at]);
+			final bytes = mdd.format.Preset.write(names[at], instruments[at], samples[at],
+				bankTags[at]);
 
 			out.writeByte(owned[at] ? 1 : 0);
 			out.writeInt32(bytes.length);
 			out.write(bytes);
+
+			for (one in paths[at]) spelt(out, one);
+		}
+
+		out.writeInt32(folders.length);
+
+		for (at in 0...folders.length) {
+			spelt(out, folders[at]);
+			spelt(out, folderFamilies[at]);
+			spelt(out, folderBanks[at]);
 		}
 
 		try {
@@ -679,14 +790,26 @@ final class Library {
 				final holding = instruments[into];
 				final playing = samples[into];
 				final dated = times[into];
+				final filed = paths[into];
+
+				tagsBank(into, held.tags);
 
 				for (index in 0...held.presets.length) {
 					holding.push(held.presets[index]);
 					playing.push(held.samples[index]);
 					dated.push(0);
+					filed.push(spoken(from));
 
 					many++;
 				}
+			}
+
+			final count = from.readInt32();
+
+			for (at in 0...count) {
+				folders.push(spoken(from));
+				folderFamilies.push(spoken(from));
+				folderBanks.push(spoken(from));
 			}
 
 			return many;
@@ -710,10 +833,22 @@ final class Library {
 			final held = other.instruments[at];
 			final sampled = other.samples[at];
 			final dated = other.times[at];
+			final filed = other.paths[at];
+
+			tagsBank(banked(other.names[at], other.owned[at]), other.bankTags[at]);
 
 			for (index in 0...held.length) {
+				reading = filed[index];
 				if (adds(other.names[at], held[index], sampled[index], other.owned[at], dated[index])) many++;
 			}
+
+			reading = "";
+		}
+
+		for (at in 0...other.folders.length) {
+			folders.push(other.folders[at]);
+			folderFamilies.push(other.folderFamilies[at]);
+			folderBanks.push(other.folderBanks[at]);
 		}
 
 		return many;
@@ -723,14 +858,19 @@ final class Library {
 		@param where The folder to read.
 		@param loose The bank loose presets in it go into.
 		@param depth How many folders down from the top it is.
+		@param family The family folder it sits under, or an empty string above them.
 		@return How many instruments were read.
 	**/
-	function gathered(where:String, loose:String, depth:Int):Int {
+	function gathered(where:String, loose:String, depth:Int, family:String):Int {
 		if (where == "" || !sys.FileSystem.exists(where)) return 0;
 		if (!sys.FileSystem.isDirectory(where)) return 0;
 
 		final held = sys.FileSystem.readDirectory(where);
 		held.sort(function(one:String, two:String):Int return byStem(one, two));
+
+		folders.push(where);
+		folderFamilies.push(family);
+		folderBanks.push(loose);
 
 		var many = 0;
 		final below:Array<String> = [];
@@ -745,7 +885,14 @@ final class Library {
 				}
 
 				final lower = name.toLowerCase();
+
+				if (lower == TAGS) {
+					tagsBank(banked(loose, true), tagsIn(sys.io.File.getContent(path)));
+					continue;
+				}
+
 				final time = sys.FileSystem.stat(path).mtime.getTime() / 1000;
+				reading = path;
 
 				if (StringTools.endsWith(lower, RECORDS) || StringTools.endsWith(lower, BANK)) {
 					many += holds(sys.io.File.getBytes(path), true, loose, false, time);
@@ -759,10 +906,13 @@ final class Library {
 
 					one.patch = patch;
 					one.icon = mdd.Icon.NAMES.indexOf("synthesizer");
+					one.identifies(null);
 
 					if (adds(loose, one, null, true, time)) many++;
 				}
 			} catch (e:Dynamic) {}
+
+			reading = "";
 		}
 
 		if (depth >= DEPTH) return many;
@@ -770,10 +920,11 @@ final class Library {
 		for (name in below) {
 			if (StringTools.startsWith(name, ".")) continue;
 
-			final family = depth == 0 && familied(name);
-			final into = family ? loose : (depth == 0 ? name : loose + " / " + name);
+			final stands = depth == 0 && family == "" && familied(name);
+			final into = stands ? loose : (depth == 0 ? name : loose + " / " + name);
 
-			many += gathered(where + "/" + name, into, family ? 0 : depth + 1);
+			many += gathered(where + "/" + name, into, stands ? 0 : depth + 1,
+				stands ? name.toUpperCase() : family);
 		}
 
 		return many;
@@ -805,6 +956,28 @@ final class Library {
 	static function stem(name:String):String {
 		final dot = name.lastIndexOf(".");
 		return dot > 0 ? name.substring(0, dot) : name;
+	}
+
+	/**
+		Writes text as its length and then its characters, which is how the cache keeps a path.
+
+		@param out Where it goes.
+		@param value The text.
+	**/
+	static function spelt(out:haxe.io.BytesOutput, value:String):Void {
+		final bytes = haxe.io.Bytes.ofString(value);
+
+		out.writeInt32(bytes.length);
+		out.write(bytes);
+	}
+
+	/**
+		@param from Where to read.
+		@return Text `spelt` wrote.
+	**/
+	static function spoken(from:haxe.io.BytesInput):String {
+		final length = from.readInt32();
+		return length <= 0 ? "" : from.read(length).toString();
 	}
 
 	/**

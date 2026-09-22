@@ -44,7 +44,13 @@ final class Preset {
 		The four bytes a preset file opens with, which say both what it is and which version of it
 		this is.
 	**/
-	public static inline final MAGIC = "MDP1";
+	public static inline final MAGIC = "MDP2";
+
+	/**
+		The four bytes a preset file written before a bank carried tags of its own opens with. One
+		still reads, as a bank with no tags.
+	**/
+	public static inline final UNTAGGED = "MDP1";
 
 	/**
 		A record carrying an FM patch.
@@ -73,14 +79,20 @@ final class Preset {
 			the folder names instead.
 		@param presets The presets.
 		@param samples What each of them plays, by the same index, or null.
+		@param tags The bank's own tags, which every preset in it answers to as well, or null.
 		@return The file.
 	**/
 	public static function write(bank:String, presets:Array<Instrument>,
-			samples:Array<Null<Sample>>):Bytes {
+			samples:Array<Null<Sample>>, ?tags:Array<String>):Bytes {
 		final out = new BytesBuffer();
+		final many = tags == null ? 0 : (tags.length > 255 ? 255 : tags.length);
 
 		out.addString(MAGIC);
 		said(out, bank);
+
+		out.addByte(many);
+		for (at in 0...many) said(out, tags[at]);
+
 		whole(out, presets.length, 2);
 
 		for (index in 0...presets.length) {
@@ -178,7 +190,9 @@ final class Preset {
 	**/
 	public static function read(bytes:Null<Bytes>):Null<Banked> {
 		if (bytes == null || bytes.length < MAGIC.length + 4) return null;
-		if (bytes.getString(0, MAGIC.length) != MAGIC) return null;
+
+		final opening = bytes.getString(0, MAGIC.length);
+		if (opening != MAGIC && opening != UNTAGGED) return null;
 
 		final from = new BytesInput(bytes, MAGIC.length, bytes.length - MAGIC.length);
 		from.bigEndian = false;
@@ -187,6 +201,12 @@ final class Preset {
 
 		try {
 			out.name = spoken(from);
+
+			if (opening == MAGIC) {
+				final tags = from.readByte();
+				for (at in 0...tags) out.tags.push(spoken(from));
+			}
+
 			final many = from.readUInt16();
 
 			for (index in 0...many) {

@@ -339,20 +339,33 @@ A VGM this application wrote therefore imports with its drums where they were.
   name replaces it.
 - **Open folder**, on the preset browser's toolbar, opens the presets folder in your file
   manager. It holds a folder for each family of part, `FM`, `PSG`, `NOISE` and `DAC`, and a
-  preset you save goes into the one its part belongs to. Those four are not banks themselves: a
-  preset sitting loose in one is a saved preset, while a subfolder you make inside one is a bank
-  of its own, named for the folder. A preset moved from one folder to another moves to that bank
-  as soon as you come back to the window. Patch files and bank documents work in any folder, and
-  a folder filled before this layout is sorted into it once, the first time you open the program
-  after the change.
+  preset you save goes into the one its part belongs to. Those four are not categories
+  themselves: a preset sitting loose in one is a saved preset, while a subfolder you make inside
+  one is a category of its own, named for the folder, and shows in the browser even while it is
+  empty. A preset moved from one folder to another moves to that category as soon as you come back
+  to the window. Patch files and bank documents work in any folder, and a folder filled before
+  this layout is sorted into it once, the first time you open the program after the change.
+- **Organise it from the browser.** A preset in your folder can be renamed, retagged, given an
+  icon, moved or copied into another category, or deleted from its right-click menu, and every
+  change is made to its file, so the folder and the browser always agree. A patch file given a
+  name or tags it has no room for becomes a preset file. **Copy to** also works on a preset that
+  ships, which is how you get a copy of one to change. **New category**, on a family's right-click
+  menu, makes a folder for one, and a category's own menu renames it, tags it or deletes it.
+  Nothing is erased: a deleted preset or category is moved into a `presets` folder inside your
+  backups, and kept there as long as a backup is.
+- **A category has tags of its own**, and every preset in it answers to them in the search, the
+  filters and grouping by tag. A folder keeps its tags in a `.tags` file inside it, so they move
+  with it, and a bank file keeps them inside itself.
 - **A preset is a file you can hand to somebody.** One writes out as `.mdpreset`, a
   **MD Synth Preset File**, and a whole bank as `.mdbank`, a **MD Synth Preset Bank**, from the
   right-click menu on a preset or on a bank heading. Both are the same format: the parameters as
   numbers rather than as text, every recording a converter preset plays included, so a kit travels
   whole. Both suffixes register with the desktop, so a double click opens one, and dropping one on
-  the window or **Import presets** in the file menu adds it to your presets: a copy goes into your
-  presets folder and the browser offers it in every project. The piece you have open is left as it
-  is until you load one of them.
+  the window or **Import presets** in the file menu adds it to your presets: a single preset goes
+  into the **Imported** category of its family, a bank keeps its own name, and the browser offers
+  them in every project. Where a bank holds presets you already have, you are asked first whether
+  to import them anyway, skip them, or combine their tags so that each copy carries both sets. The
+  piece you have open is left as it is until you load one of them.
 - **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
   at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
   back in.

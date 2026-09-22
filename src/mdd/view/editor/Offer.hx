@@ -62,6 +62,11 @@ final class Offer {
 	public var shelf:Int = -1;
 
 	/**
+		Where it sits in its bank in the library, for one the library holds, or -1.
+	**/
+	public var place:Int = -1;
+
+	/**
 		Where it was gathered, which is the order its bank lists it in.
 	**/
 	public var order:Int = 0;
@@ -110,6 +115,7 @@ final class Offer {
 		this.index = index;
 		this.shelf = shelf;
 
+		place = -1;
 		order = 0;
 		time = 0;
 		alike = 0;
@@ -121,5 +127,13 @@ final class Offer {
 	**/
 	public inline function owned():Bool {
 		return source == PROJECT;
+	}
+
+	/**
+		@return Whether it lives in a file in the reader's presets folder, which an edit to it
+			changes.
+	**/
+	public inline function filed():Bool {
+		return source == MINE && shelf >= 0 && place >= 0;
 	}
 }

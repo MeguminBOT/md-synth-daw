@@ -63,6 +63,12 @@ class App {
 		folder is read.
 	**/
 	final added:mdd.app.Added = new mdd.app.Added();
+
+	/**
+		The presets folder as the browser changes it, pointed at the folder once the settings are
+		read and again whenever another is chosen.
+	**/
+	final presetFolder:mdd.app.PresetFolder = new mdd.app.PresetFolder("", "");
 	final sound:Sound = new Sound();
 
 	var panels:Null<Panels> = null;
@@ -385,6 +391,8 @@ class App {
 		panels = new Panels(stage);
 		panels.favourites = favourites;
 		panels.added = added;
+		panels.presetFolder = presetFolder;
+		panels.onPresetsChanged = function():Void rescanned();
 		panels.dress(session);
 
 		files = new Files(session);
@@ -1671,6 +1679,56 @@ class App {
 	}
 
 	/**
+		Points the browser's presets folder at the one chosen, with what is deleted going into the
+		backups.
+	**/
+	function shelves():Void {
+		final keeper = files.presetFolder();
+
+		presetFolder.root = keeper.root;
+		presetFolder.bin = keeper.bin;
+	}
+
+	/**
+		Asks what to do about a file being imported that holds presets the library already holds,
+		and imports it the way the answer says.
+
+		@param where The file.
+		@param held What it holds.
+		@param twins How many of those the library already holds.
+	**/
+	function duplicated(where:String, held:mdd.format.Banked, twins:Int):Void {
+		final sheet = panels.asking;
+
+		if (sheet == null) {
+			files.imports(where, held, Files.IMPORT_ALL);
+			return;
+		}
+
+		stage.root.raise(sheet);
+
+		sheet.ask(sheet.translate(Locale.PRESET_DUPLICATES),
+			sheet.filled(Locale.PRESET_DUPLICATES_SAID, ["" + twins, "" + held.presets.length,
+				held.name == "" ? Files.name(where) : held.name]),
+			[sheet.translate(Locale.PRESET_IMPORT_ANYWAY), sheet.translate(Locale.PRESET_SKIP_DUPLICATES),
+				sheet.translate(Locale.PRESET_COMBINE_TAGS), sheet.translate(Locale.EXPORT_CANCEL)]);
+
+		sheet.onAnswer = function(which:Int):Void {
+			final how = switch (which) {
+				case 0: Files.IMPORT_ALL;
+				case 1: Files.SKIP_DUPLICATES;
+				case 2: Files.COMBINE_TAGS;
+				case _: -1;
+			}
+
+			if (how < 0) return;
+
+			files.imports(where, held, how);
+			changed();
+		};
+	}
+
+	/**
 		Takes the folder a dialog answered with.
 	**/
 	function folded():Void {
@@ -1690,6 +1748,7 @@ class App {
 				files.presetsAt = where;
 				panels.preferences.presetsAt = where;
 				settings.put("presets", where);
+				shelves();
 				rescanned();
 			}
 
@@ -1736,6 +1795,12 @@ class App {
 		files.projectsAt = settings.of("projects", "");
 		files.presetsAt = settings.of("presets", "");
 		files.savedInto = stage.root.translate(Locale.PRESET_SAVED);
+		files.importedInto = stage.root.translate(Locale.PRESET_IMPORTED);
+		shelves();
+
+		files.onDuplicates = function(where:String, held:mdd.format.Banked, twins:Int):Void
+			duplicated(where, held, twins);
+		files.onShelved = function():Void rereads();
 
 		favourites.reads(settings.of("favourites", ""));
 

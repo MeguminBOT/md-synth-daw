@@ -232,6 +232,29 @@ final class Presets extends Widget {
 	public var onView:Null<Void -> Void> = null;
 
 	/**
+		Called once files in the presets folder have changed, so the library is read again.
+	**/
+	public var onShelved:Null<Void -> Void> = null;
+
+	/**
+		Called to ask for a line of text: what is asked, what the field starts with, and what to do
+		with the answer.
+	**/
+	public var onAsk:Null<(Locale, String, String -> Void) -> Void> = null;
+
+	/**
+		Called to ask whether to go ahead: the question, what the answer that goes ahead says, and
+		what going ahead does.
+	**/
+	public var onConfirm:Null<(String, String, Void -> Void) -> Void> = null;
+
+	/**
+		The presets folder, which a preset or a category in it is changed through, or null where
+		nothing in it may be changed from here.
+	**/
+	public var folder:Null<mdd.app.PresetFolder> = null;
+
+	/**
 		The presets the reader has starred, or null where none are kept. A star is on the preset
 		rather than on the row, so it follows the preset into every piece that carries it.
 	**/
@@ -271,9 +294,16 @@ final class Presets extends Widget {
 	final kits:Array<Bool> = [];
 
 	/**
-		The first offer under each group row, which is what choosing a kit's row loads.
+		What each group row is called without its count, and the family it is listed under.
 	**/
-	final leads:Array<Offer> = [];
+	final groupTitles:Array<String> = [];
+	final groupFamilies:Array<String> = [];
+
+	/**
+		The first offer under each group row, which is what choosing a kit's row loads, or null for
+		a category with nothing in it.
+	**/
+	final leads:Array<Null<Offer>> = [];
 
 	/**
 		What one family lists, the groups it lists them in, and what one group lists, kept between
@@ -410,7 +440,10 @@ final class Presets extends Widget {
 		}
 
 		final group = groups.indexOf(item);
-		if (group >= 0 && kits[group]) loads(leads[group]);
+		if (group < 0 || !kits[group]) return;
+
+		final lead = leads[group];
+		if (lead != null) loads(lead);
 	}
 
 	/**
@@ -577,6 +610,7 @@ final class Presets extends Widget {
 		final offer = shown[at];
 		final instrument = offer.preset;
 		final which = offer.index;
+		final keeper = folder;
 
 		menu = new Menu();
 
@@ -593,13 +627,26 @@ final class Presets extends Widget {
 			fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void {
 				if (onRename != null) onRename(which);
 			});
+		} else if (offer.filed() && keeper != null) {
+			fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void
+				asks(Locale.PRESET_NAME, instrument.name, function(said:String):Void
+					shelved(keeper.renames(session.library, offer.shelf, offer.place, said), said)));
+		}
 
-			menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(which);
+		if (offer.owned() || (offer.filed() && keeper != null)) {
+			menu.offer(new Choice(translate(Locale.ICON_PICK))).submenu = icons(offer);
 
 			final tagging = menu.offer(new Choice(translate(Locale.PRESET_TAGS),
 				instrument.tags.length == 0 ? "" : "" + instrument.tags.length));
 
-			fires(tagging, function():Void if (onTags != null) onTags(which));
+			if (offer.owned()) {
+				fires(tagging, function():Void if (onTags != null) onTags(which));
+			} else {
+				fires(tagging, function():Void
+					asks(Locale.PRESET_TAGS, instrument.tags.join(", "), function(said:String):Void
+						shelved(keeper.retags(session.library, offer.shelf, offer.place,
+							said.split(",")), instrument.name)));
+			}
 		}
 
 		final starring = favourites;
@@ -608,6 +655,16 @@ final class Presets extends Widget {
 			fires(menu.offer(new Choice(translate(starring.favours(instrument.id)
 				? Locale.PRESET_UNFAVOURITE : Locale.PRESET_FAVOURITE))), function():Void
 				stars(instrument));
+		}
+
+		if (keeper != null) {
+			menu.divide();
+
+			if (offer.filed()) {
+				menu.offer(new Choice(translate(Locale.PRESET_MOVE_TO))).submenu = placing(offer, true);
+			}
+
+			menu.offer(new Choice(translate(Locale.PRESET_COPY_TO))).submenu = placing(offer, false);
 		}
 
 		final sample = offer.sample;
@@ -622,6 +679,15 @@ final class Presets extends Widget {
 		if (sample != null) {
 			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_SAMPLE))), function():Void
 				if (onWriteSample != null) onWriteSample(instrument, sample));
+		}
+
+		if (offer.filed() && keeper != null) {
+			menu.divide();
+
+			fires(menu.offer(new Choice(translate(Locale.PRESET_DELETE))), function():Void
+				confirms(filled(Locale.PRESET_DELETE_ASKED, [instrument.name]),
+					translate(Locale.PRESET_DELETE), function():Void
+					shelved(keeper.deletes(session.library, offer.shelf, offer.place), instrument.name)));
 		}
 
 		root.pop(menu, px, py, this);
@@ -649,11 +715,122 @@ final class Presets extends Widget {
 		return out;
 	}
 
-	function icons(which:Int):Menu {
+	/**
+		@param offer A preset.
+		@param moving Whether it is moved rather than copied.
+		@return A menu of every category of the preset's family in the presets folder, the one it
+			is in left out of a move, and a new one.
+	**/
+	function placing(offer:Offer, moving:Bool):Menu {
+		final out = new Menu();
+		final library = session.library;
+		final family = offer.preset.kind.family();
+
+		if (library != null) {
+			for (at in 0...library.folders.length) {
+				if (library.folderFamilies[at] != family) continue;
+				if (moving && library.folderBanks[at] == offer.bank) continue;
+
+				final where = library.folders[at];
+				fires(out.offer(new Choice(library.folderBanks[at])), function():Void
+					places(offer, where, moving));
+			}
+		}
+
+		if (out.choices.length > 0) out.divide();
+
+		fires(out.offer(new Choice(translate(Locale.PRESET_NEW_CATEGORY))), function():Void
+			founds(family, function(where:String):Void places(offer, where, moving)));
+
+		return out;
+	}
+
+	/**
+		Copies or moves a preset into a folder.
+
+		@param offer The preset.
+		@param where The folder.
+		@param moving Whether it is moved rather than copied.
+	**/
+	function places(offer:Offer, where:String, moving:Bool):Void {
+		final keeper = folder;
+		if (keeper == null) return;
+
+		final done = moving && offer.filed()
+			? keeper.moves(session.library, offer.shelf, offer.place, where)
+			: keeper.copies(offer.preset, offer.sample, where) != "";
+
+		shelved(done, offer.preset.name);
+	}
+
+	/**
+		Asks for a category's name and makes it under a family's folder.
+
+		@param family The family's folder name.
+		@param then What to do with the folder once it is made, or null.
+	**/
+	function founds(family:String, ?then:String -> Void):Void {
+		final keeper = folder;
+		if (keeper == null) return;
+
+		asks(Locale.PRESET_CATEGORY_NAME, "", function(said:String):Void {
+			final made = keeper.makes(family, said);
+
+			if (made == "") {
+				session.says(Locale.SAID_CATEGORY_UNMADE, said);
+				return;
+			}
+
+			if (then != null) then(made);
+			shelved(true, said);
+		});
+	}
+
+	/**
+		Asks for a line of text through whoever can, and hands the answer on where one came.
+
+		@param asking What is asked.
+		@param said What the field starts with.
+		@param then What to do with the answer.
+	**/
+	function asks(asking:Locale, said:String, then:String -> Void):Void {
+		if (onAsk != null) onAsk(asking, said, then);
+	}
+
+	/**
+		Asks whether to go ahead, through whoever can.
+
+		@param question What is asked.
+		@param going What the answer that goes ahead says.
+		@param then What going ahead does.
+	**/
+	function confirms(question:String, going:String, then:Void -> Void):Void {
+		if (onConfirm != null) onConfirm(question, going, then);
+	}
+
+	/**
+		Says what a change to the presets folder came to and has the library read again.
+
+		@param done Whether the change was made.
+		@param name What it was made to.
+	**/
+	function shelved(done:Bool, name:String):Void {
+		if (!done) {
+			session.says(Locale.SAID_PRESETS_UNCHANGED, name);
+			return;
+		}
+
+		if (onShelved != null) onShelved();
+
+		session.say(name);
+		session.changed();
+	}
+
+	function icons(offer:Offer):Menu {
 		final out = new Menu();
 
 		fires(out.offer(new Choice(translate(Locale.ICON_NONE))), function():Void
-			iconed(which, -1));
+			iconed(offer, -1));
 
 		out.divide();
 
@@ -662,7 +839,7 @@ final class Presets extends Widget {
 		for (group in Icon.GROUPS) if (seen.indexOf(group) < 0) seen.push(group);
 
 		for (group in seen) {
-			out.offer(new Choice(titled(group))).submenu = drawn(which, group);
+			out.offer(new Choice(titled(group))).submenu = drawn(offer, group);
 		}
 
 		return out;
@@ -677,25 +854,41 @@ final class Presets extends Widget {
 		}
 	}
 
-	function drawn(which:Int, group:String):Menu {
+	function drawn(offer:Offer, group:String):Menu {
 		final out = new Menu();
 
 		for (index in 0...Icon.COUNT) {
 			if (Icon.GROUPS[index] != group) continue;
 
 			final want = index;
-			fires(out.offer(new Choice(Icon.NAMES[want])), function():Void iconed(which, want));
+			fires(out.offer(new Choice(Icon.NAMES[want])), function():Void iconed(offer, want));
 		}
 
 		return out;
 	}
 
-	function iconed(which:Int, icon:Int):Void {
-		final instrument = session.song.instrumentAt(which);
-		if (instrument == null) return;
+	/**
+		Gives a preset another icon: the piece's own copy of one it carries, and the file of one in
+		the presets folder.
 
-		instrument.icon = icon;
-		session.changed();
+		@param offer The preset.
+		@param icon The icon, or -1 for none.
+	**/
+	function iconed(offer:Offer, icon:Int):Void {
+		if (offer.owned()) {
+			final instrument = session.song.instrumentAt(offer.index);
+			if (instrument == null) return;
+
+			instrument.icon = icon;
+			session.changed();
+
+			return;
+		}
+
+		final keeper = folder;
+		if (keeper == null || !offer.filed()) return;
+
+		shelved(keeper.reicons(session.library, offer.shelf, offer.place, icon), offer.preset.name);
 	}
 
 	/**
@@ -755,9 +948,22 @@ final class Presets extends Widget {
 		final root = root();
 		if (root == null) return;
 
-		if (kinds.indexOf(item) >= 0) {
+		final kind = kinds.indexOf(item);
+
+		if (kind >= 0) {
 			menu = new Menu();
 			folding(menu);
+
+			final keeper = folder;
+
+			if (keeper != null) {
+				final family = kindKeys[kind];
+
+				menu.divide();
+				fires(menu.offer(new Choice(translate(Locale.PRESET_NEW_CATEGORY))), function():Void
+					founds(family));
+			}
+
 			root.pop(menu, px, py, this);
 			return;
 		}
@@ -780,7 +986,7 @@ final class Presets extends Widget {
 		folding(menu);
 		menu.divide();
 
-		final name = grouping == GROUP_BANK ? leads[at].bank : groupNames[at];
+		final name = groupTitles[at];
 		final presets:Array<Instrument> = [];
 		final samples:Array<Null<Sample>> = [];
 
@@ -791,16 +997,78 @@ final class Presets extends Widget {
 			samples.push(shown[index].sample);
 		}
 
-		fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_BANK))), function():Void
-			if (onWriteBank != null) onWriteBank(name, presets, samples));
+		if (presets.length > 0) {
+			fires(menu.offer(new Choice(translate(Locale.PRESET_SAVE_BANK))), function():Void
+				if (onWriteBank != null) onWriteBank(name, presets, samples));
+		}
 
-		if (grouping == GROUP_BANK) {
-			final bank = leads[at].bank;
-			fires(menu.offer(new Choice(translate(Locale.PRESET_HIDE_BANK))), function():Void
-				hidesBank(bank, true));
+		if (grouping != GROUP_BANK) {
+			root.pop(menu, px, py, this);
+			return;
+		}
+
+		fires(menu.offer(new Choice(translate(Locale.PRESET_HIDE_BANK))), function():Void
+			hidesBank(name, true));
+
+		final keeper = folder;
+		final home = homeOf(groupFamilies[at], name);
+
+		if (keeper != null && home != "") {
+			final library = session.library;
+			final shelf = library == null ? -1 : library.names.indexOf(name);
+			final tags = shelf < 0 ? [] : library.tagsOf(shelf);
+			final bankFile = !sys.FileSystem.isDirectory(home);
+
+			menu.divide();
+
+			fires(menu.offer(new Choice(translate(Locale.PRESET_RENAME))), function():Void
+				asks(Locale.PRESET_CATEGORY_NAME, name, function(said:String):Void
+					shelved(bankFile ? keeper.renamesBank(home, said)
+						: keeper.renamesFolder(home, said) != "", said)));
+
+			fires(menu.offer(new Choice(translate(Locale.PRESET_TAGS), tags.length == 0 ? ""
+				: "" + tags.length)), function():Void
+				asks(Locale.PRESET_TAGS, tags.join(", "), function(said:String):Void
+					shelved(keeper.tagsCategory(home, said.split(",")), name)));
+
+			fires(menu.offer(new Choice(translate(Locale.PRESET_DELETE))), function():Void
+				confirms(filled(Locale.PRESET_DELETE_ASKED, [name]), translate(Locale.PRESET_DELETE),
+					function():Void shelved(keeper.deletesCategory(home), name)));
 		}
 
 		root.pop(menu, px, py, this);
+	}
+
+	/**
+		@param family A family's folder name.
+		@param bank A bank listed under it.
+		@return What the bank is on disk under that family, the folder its presets sit loose in or
+			the one bank file that holds them all, or an empty string where it is neither, as for a
+			bank that ships, the piece's own, or the presets sitting loose in the family's folder,
+			which is no category of its own.
+	**/
+	function homeOf(family:String, bank:String):String {
+		final library = session.library;
+		if (library == null || bank == translate(Locale.PRESET_SAVED)) return "";
+
+		final folder = library.folderOf(family, bank);
+		if (folder != "") return folder;
+
+		final at = library.names.indexOf(bank);
+		if (at < 0 || !library.owned[at]) return "";
+
+		var file = "";
+
+		for (which in 0...library.paths[at].length) {
+			if (library.instruments[at][which].kind.family() != family) continue;
+
+			final path = library.paths[at][which];
+
+			if (path == "" || (file != "" && file != path)) return "";
+			file = path;
+		}
+
+		return StringTools.endsWith(file.toLowerCase(), mdd.song.Library.BANK) ? file : "";
 	}
 
 	function folding(into:Menu):Void {
@@ -1492,12 +1760,12 @@ final class Presets extends Widget {
 
 		if ((usedOnly || wantsUsed) && !offer.owned() && !used.exists(instrument.id)) return false;
 
-		for (tag in wantedTags) if (!carries(instrument, tag.toLowerCase(), true)) return false;
+		for (tag in wantedTags) if (!answers(offer, tag.toLowerCase(), true)) return false;
 
-		for (word in words) if (!instrument.tagged(word)) return false;
-		for (word in notWords) if (instrument.tagged(word)) return false;
-		for (word in tagWords) if (!carries(instrument, word, false)) return false;
-		for (word in notTagWords) if (carries(instrument, word, false)) return false;
+		for (word in words) if (!instrument.tagged(word) && !answers(offer, word, false)) return false;
+		for (word in notWords) if (instrument.tagged(word) || answers(offer, word, false)) return false;
+		for (word in tagWords) if (!answers(offer, word, false)) return false;
+		for (word in notTagWords) if (answers(offer, word, false)) return false;
 
 		if (bankWords.length > 0 || notBankWords.length > 0) {
 			final bank = offer.bank.toLowerCase();
@@ -1508,6 +1776,37 @@ final class Presets extends Widget {
 
 		return true;
 	}
+
+	/**
+		@param offer A preset on offer.
+		@param word A word in lower case.
+		@param whole Whether a tag has to be the word rather than hold it.
+		@return Whether one of its tags, or of its bank's own, answers to the word.
+	**/
+	function answers(offer:Offer, word:String, whole:Bool):Bool {
+		if (carries(offer.preset, word, whole)) return true;
+
+		for (tag in bankTagsOf(offer)) {
+			final lower = tag.toLowerCase();
+			if (whole ? lower == word : lower.indexOf(word) >= 0) return true;
+		}
+
+		return false;
+	}
+
+	/**
+		@param offer A preset on offer.
+		@return Its bank's own tags, which it answers to as well, or none for one the piece
+			carries.
+	**/
+	function bankTagsOf(offer:Offer):Array<String> {
+		final library = session.library;
+		if (library == null || offer.shelf < 0 || offer.shelf >= library.bankTags.length) return NONE;
+
+		return library.bankTags[offer.shelf];
+	}
+
+	static final NONE:Array<String> = [];
 
 	/**
 		@param instrument A preset.
@@ -1613,6 +1912,7 @@ final class Presets extends Widget {
 
 			for (which in 0...held.length) {
 				offered(held[which], library.samples[at][which], name, source, -1, at);
+				offers[offers.length - 1].place = which;
 			}
 		}
 	}
@@ -1650,13 +1950,16 @@ final class Presets extends Widget {
 	function grouped(offer:Offer, into:Array<String>):Void {
 		switch (grouping) {
 			case GROUP_TAG:
-				if (offer.preset.tags.length == 0) {
+				final own = bankTagsOf(offer);
+
+				if (offer.preset.tags.length == 0 && own.length == 0) {
 					final none = translate(Locale.PRESET_NO_TAG);
 					if (into.indexOf(none) < 0) into.push(none);
 					return;
 				}
 
 				for (tag in offer.preset.tags) if (indexIgnoringCase(into, tag) < 0) into.push(tag);
+				for (tag in own) if (indexIgnoringCase(into, tag) < 0) into.push(tag);
 
 			case GROUP_ADDED:
 				final name = translate(AGE_NAMES[ageOf(offer)]);
@@ -1681,8 +1984,8 @@ final class Presets extends Widget {
 	function belongs(offer:Offer, group:String):Bool {
 		return switch (grouping) {
 			case GROUP_TAG:
-				offer.preset.tags.length == 0 ? group == translate(Locale.PRESET_NO_TAG)
-					: carries(offer.preset, group.toLowerCase(), true);
+				offer.preset.tags.length == 0 && bankTagsOf(offer).length == 0
+					? group == translate(Locale.PRESET_NO_TAG) : answers(offer, group.toLowerCase(), true);
 
 			case GROUP_ADDED: group == translate(AGE_NAMES[ageOf(offer)]);
 			case GROUP_SOURCE: group == translate(SOURCE_NAMES[offer.source]);
@@ -1781,6 +2084,8 @@ final class Presets extends Widget {
 		groupKeys.resize(0);
 		kits.resize(0);
 		leads.resize(0);
+		groupTitles.resize(0);
+		groupFamilies.resize(0);
 
 		listed = 0;
 		banks = 0;
@@ -1821,10 +2126,12 @@ final class Presets extends Widget {
 				within.push(offer);
 			}
 
-			if (within.length == 0) continue;
+			final empty = grouping == GROUP_BANK && !hunting ? categories(family) : 0;
+			if (within.length == 0 && empty == 0) continue;
 
 			groupNames.resize(0);
 			for (offer in within) grouped(offer, groupNames);
+			if (empty > 0) for (name in unfilled) if (groupNames.indexOf(name) < 0) groupNames.push(name);
 			arranged(groupNames);
 
 			final head = new Item(family);
@@ -1846,7 +2153,21 @@ final class Presets extends Widget {
 					inside.resize(0);
 					for (offer in within) if (belongs(offer, name)) inside.push(offer);
 
-					if (inside.length == 0) continue;
+					if (inside.length == 0) {
+						if (unfilled.indexOf(name) < 0) continue;
+
+						final bare = head.add(new Item(name + "   0"));
+
+						groups.push(bare);
+						groupKeys.push(family + "/" + grouping + "/" + name);
+						kits.push(false);
+						leads.push(null);
+						groupTitles.push(name);
+						groupFamilies.push(family);
+
+						continue;
+					}
+
 					ordered(inside);
 
 					final kit = kitting && grouping == GROUP_BANK;
@@ -1862,6 +2183,8 @@ final class Presets extends Widget {
 					groupKeys.push(key);
 					kits.push(kit);
 					leads.push(inside[0]);
+					groupTitles.push(name);
+					groupFamilies.push(family);
 
 					total += rows(group, inside, kind, alike, starring, kit);
 				}
@@ -1895,6 +2218,48 @@ final class Presets extends Widget {
 		tree.reflow();
 		reveals();
 		invalidate();
+	}
+
+	/**
+		The categories of one family in the presets folder with nothing in them, which
+		`categories` gathers.
+	**/
+	final unfilled:Array<String> = [];
+
+	/**
+		Gathers the categories of a family in the presets folder that hold nothing, so one just
+		made shows before anything is put in it.
+
+		@param family The family's folder name.
+		@return How many there are.
+	**/
+	function categories(family:String):Int {
+		unfilled.resize(0);
+
+		final library = session.library;
+		if (library == null) return 0;
+
+		final saved = translate(Locale.PRESET_SAVED);
+
+		for (at in 0...library.folders.length) {
+			if (library.folderFamilies[at] != family) continue;
+
+			final bank = library.folderBanks[at];
+			if (bank == saved || hiddenBanks.indexOf(bank) >= 0 || unfilled.indexOf(bank) >= 0) continue;
+
+			var held = false;
+
+			for (offer in within) {
+				if (offer.bank == bank) {
+					held = true;
+					break;
+				}
+			}
+
+			if (!held) unfilled.push(bank);
+		}
+
+		return unfilled.length;
 	}
 
 	/**

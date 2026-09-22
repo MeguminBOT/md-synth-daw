@@ -205,6 +205,17 @@ final class Panels {
 	public var onPresetView:Null<String -> Void> = null;
 
 	/**
+		The presets folder, which the browser changes a preset or a category in through this. Set
+		before `dress`.
+	**/
+	public var presetFolder:Null<mdd.app.PresetFolder> = null;
+
+	/**
+		Called once the browser has changed files in the presets folder, so it is read again.
+	**/
+	public var onPresetsChanged:Null<Void -> Void> = null;
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -270,6 +281,27 @@ final class Panels {
 		inspector.presets.onView = function():Void {
 			presetView = inspector.presets.spelt();
 			if (onPresetView != null) onPresetView(presetView);
+		};
+
+		inspector.presets.folder = presetFolder;
+		inspector.presets.onShelved = function():Void if (onPresetsChanged != null) onPresetsChanged();
+
+		inspector.presets.onAsk = function(asked:Locale, said:String, then:String -> Void):Void {
+			final sheet = naming;
+			if (sheet == null) return;
+
+			sheet.ask(stage.root.translate(asked), said);
+			sheet.onName = function(answer:String):Void then(answer);
+			stage.root.raise(sheet);
+		};
+
+		inspector.presets.onConfirm = function(question:String, going:String, then:Void -> Void):Void {
+			final sheet = asking;
+			if (sheet == null) return;
+
+			stage.root.raise(sheet);
+			sheet.ask(going, question, [going, sheet.translate(Locale.EXPORT_CANCEL)]);
+			sheet.onAnswer = function(which:Int):Void if (which == 0) then();
 		};
 		inspector.presets.onRename = function(which:Int):Void renamedPreset(which);
 		inspector.presets.onTags = function(which:Int):Void taggedPreset(which);

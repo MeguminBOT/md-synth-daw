@@ -11,9 +11,14 @@ that many bytes of UTF-8, at most 4096.
 
 | bytes | what |
 | --- | --- |
-| 4 | `MDP1` |
+| 4 | `MDP2` |
 | text | the bank's name, empty for a single preset |
+| 1 | how many tags the bank carries, at most 255 |
+| text each | the bank's tags, which every preset in it answers to as well |
 | 2 | how many presets follow |
+
+A file opening with `MDP1` is the same layout without the bank's tags, and still reads as a bank
+with none.
 
 Each preset is:
 
