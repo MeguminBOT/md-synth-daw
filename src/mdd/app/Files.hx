@@ -1297,6 +1297,13 @@ final class Files {
 	public var onShelved:Null<Void -> Void> = null;
 
 	/**
+		Called once an import is over, with what it was called, how many presets it wrote, and
+		whether it was a single preset rather than a bank, so the reader can be told. Nought
+		written means nothing in it was new, and -1 means it could not be written.
+	**/
+	public var onImported:Null<(String, Int, Bool) -> Void> = null;
+
+	/**
 		@param held What a file holds.
 		@return How many of its presets the library already holds, by what they sound like.
 	**/
@@ -1353,6 +1360,8 @@ final class Files {
 
 		if (held.presets.length == 0) {
 			session.says(Locale.SAID_NOTHING_NEW, named);
+			if (onImported != null) onImported(named, 0, held.name == "");
+
 			return "";
 		}
 
@@ -1377,15 +1386,20 @@ final class Files {
 			sys.io.File.saveBytes(at, bytes);
 		} catch (e:Dynamic) {
 			session.says(Locale.SAID_PRESET_UNWRITTEN, folder);
+			if (onImported != null) onImported(named, -1, alone);
+
 			return "";
 		}
 
 		if (known != null) known.holds(bytes, true, alone ? imported : "", false, Date.now().getTime() / 1000, at);
 
-		if (alone && held.presets.length == 1) session.says(Locale.SAID_PRESET_IMPORTED, held.presets[0].name);
+		final single = alone && held.presets.length == 1;
+
+		if (single) session.says(Locale.SAID_PRESET_IMPORTED, held.presets[0].name);
 		else session.says(Locale.SAID_BANK_IMPORTED, named, "" + held.presets.length);
 
 		if (onShelved != null) onShelved();
+		if (onImported != null) onImported(single ? held.presets[0].name : named, held.presets.length, single);
 
 		session.changed();
 		return at;

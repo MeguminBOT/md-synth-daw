@@ -1637,6 +1637,10 @@ class PresetCheck {
 		files.onDuplicates = function(from:String, held:mdd.format.Banked, twins:Int):Void asked = twins;
 		files.readPresets(bank);
 
+		final outcomes:Array<String> = [];
+		files.onImported = function(named:String, many:Int, single:Bool):Void
+			outcomes.push(named + " " + many + " " + single);
+
 		final skipped = files.imports(bank, mdd.format.Preset.read(sys.io.File.getBytes(bank)),
 			mdd.app.Files.SKIP_DUPLICATES);
 		final skippedHeld = mdd.format.Preset.read(sys.io.File.getBytes(skipped));
@@ -1654,6 +1658,20 @@ class PresetCheck {
 			&& skippedHeld.presets.length == 1 && skippedHeld.presets[0].name == "New",
 			asked + " already held, and skipping them wrote " + (skippedHeld == null ? 0
 			: skippedHeld.presets.length) + " preset");
+
+		final english = new mdd.ui.Translation();
+		mdd.app.Languages.speak(english, "en-GB");
+
+		final said = mdd.app.PresetImport.told(english, "Theirs", 2, false, root);
+		final none = mdd.app.PresetImport.told(english, "Theirs", 0, false, root);
+		final taken = mdd.app.PresetImport.argument(["--quiet", bank]);
+		final exporting = mdd.app.PresetImport.argument(["--export=" + where + "/a.wav", bank]);
+
+		says("and says what came of it, in a window or out of one", outcomes.join(", ")
+			== "Theirs 1 false, Theirs 2 false" && said == "Bank Theirs was imported with 2 presets."
+			&& StringTools.startsWith(none, "Nothing in Theirs was new") && taken == bank && exporting == "",
+			"'" + said + "', and a bank file among the arguments is imported before a window opens"
+			+ " unless an export was asked for");
 
 		says("and combining gives both copies both tags", combinedHeld != null && mine != null
 			&& both(combinedHeld.presets[0].tags) && both(mine.presets[0].tags),

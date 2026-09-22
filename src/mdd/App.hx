@@ -136,6 +136,12 @@ class App {
 	var last:Float = 0;
 
 	/**
+		A preset or bank file the application was started with and has imported already, before
+		its window opened, so opening the file again at start is passed over.
+	**/
+	var importedAtStart:String = "";
+
+	/**
 		Private: the application is started by `main`.
 	**/
 	function new() {}
@@ -161,7 +167,16 @@ class App {
 			Sys.exit(0);
 		}
 
+		final preset = mdd.app.PresetImport.argument(mdd.host.Arguments.all());
+
+		if (preset != "" && !mdd.app.PresetImport.runs(preset)) {
+			Instance.release();
+			Sdl.quit();
+			Sys.exit(0);
+		}
+
 		final app = new App();
+		app.importedAtStart = preset;
 
 		if (!app.open()) {
 			final said = app.stage.failure;
@@ -718,7 +733,7 @@ class App {
 	function handed():Void {
 		for (arg in mdd.host.Arguments.all()) {
 			if (StringTools.startsWith(arg, "-")) continue;
-			if (!sys.FileSystem.exists(arg)) continue;
+			if (!sys.FileSystem.exists(arg) || arg == importedAtStart) continue;
 
 			opens(arg);
 			return;
@@ -1701,6 +1716,25 @@ class App {
 	}
 
 	/**
+		Says what came of importing a preset or bank file, in a sheet the reader closes.
+
+		@param named What was imported.
+		@param many How many presets were written, nought for nothing new and -1 where nothing
+			could be written.
+		@param single Whether it was one preset rather than a bank.
+	**/
+	function tellsImported(named:String, many:Int, single:Bool):Void {
+		final sheet = panels.asking;
+		if (sheet == null) return;
+
+		stage.root.raise(sheet);
+		sheet.ask(stage.root.translate(Locale.FILE_READ_PRESETS),
+			mdd.app.PresetImport.told(stage.root.translation, named, many, single, files.within("presets")),
+			[stage.root.translate(Locale.PRESET_OK)]);
+		sheet.onAnswer = function(which:Int):Void {};
+	}
+
+	/**
 		Asks what to do about a file being imported that holds presets the library already holds,
 		and imports it the way the answer says.
 
@@ -1812,6 +1846,8 @@ class App {
 		files.onDuplicates = function(where:String, held:mdd.format.Banked, twins:Int):Void
 			duplicated(where, held, twins);
 		files.onShelved = function():Void rereads();
+		files.onImported = function(named:String, many:Int, single:Bool):Void
+			tellsImported(named, many, single);
 
 		favourites.reads(settings.of("favourites", ""));
 

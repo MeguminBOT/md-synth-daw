@@ -277,6 +277,23 @@ int mdd_reduce_motion(void);
 void mdd_message(const char *title, const char *said);
 
 /**
+ * Puts up a system message box with up to four answers, laid out left to right. The first
+ * answer is what the return key gives and the last is what escape gives. An empty or null
+ * answer is left out. It blocks until it is answered, and it works before SDL has a window.
+ *
+ * @param title The box title.
+ * @param said What it says.
+ * @param first The first answer.
+ * @param second The second answer, or an empty string.
+ * @param third The third answer, or an empty string.
+ * @param fourth The fourth answer, or an empty string.
+ * @param fault Nonzero to mark the box as a fault rather than as something ordinary.
+ * @return Which answer was chosen, from nought, or -1 where the box could not be shown.
+ */
+int mdd_ask(const char *title, const char *said, const char *first, const char *second,
+	const char *third, const char *fourth, int fault);
+
+/**
  * The same box, marked as a fault rather than as something ordinary. It blocks
  * until it is dismissed.
  *

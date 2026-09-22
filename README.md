@@ -201,8 +201,9 @@ application does, and an honest list of what it does not do and why.
   that curve into the next point.
 - **An FM operator editor** with the algorithm drawn as separate wires rather than one line through
   every box, and a square editor beside it.
-- **Preset banks** you can search by name or by tag, and any patch in a song can be lifted into the
-  library.
+- **Preset banks** you can search, group, sort and filter, and organise into categories from the
+  browser itself. A project carries only the presets it plays, and any patch in a song can be
+  lifted into the library.
 - **Undo and redo on everything**, drags included, which land as one step rather than one a frame.
 
 ### Watching The Hardware

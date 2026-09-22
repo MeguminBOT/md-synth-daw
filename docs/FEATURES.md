@@ -367,12 +367,16 @@ A VGM this application wrote therefore imports with its drums where they were.
   **MD Synth Preset File**, and a whole bank as `.mdbank`, a **MD Synth Preset Bank**, from the
   right-click menu on a preset or on a bank heading. Both are the same format: the parameters as
   numbers rather than as text, every recording a converter preset plays included, so a kit travels
-  whole. Both suffixes register with the desktop, so a double click opens one, and dropping one on
-  the window or **Import presets** in the file menu adds it to your presets: a single preset goes
-  into the **Imported** category of its family, a bank keeps its own name, and the browser offers
-  them in every project. Where a bank holds presets you already have, you are asked first whether
-  to import them anyway, skip them, or combine their tags so that each copy carries both sets. The
-  piece you have open is left as it is until you load one of them.
+  whole. Dropping one on the window or **Import presets** in the file menu adds it to your
+  presets: a single preset goes into the **Imported** category of its family, a bank keeps its own
+  name, and the browser offers them in every project. Where a bank holds presets you already have,
+  you are asked first whether to import them anyway, skip them, or combine their tags so that each
+  copy carries both sets. The piece you have open is left as it is until you load one of them.
+- **Double click a preset or a bank on the desktop** and it is imported the same way, since both
+  suffixes register with the desktop. With the program closed, it does not open a window: a small
+  box asks about duplicates where there are any, then says what was imported, or what went wrong,
+  and offers to open the program. With the program running, the file goes to it, and a sheet says
+  what was imported.
 - **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
   at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
   back in.

@@ -342,6 +342,25 @@ extern class Sdl {
 	public static function fault(title:cpp.ConstCharStar, said:cpp.ConstCharStar):Void;
 
 	/**
+		Puts up a system message box with up to four answers, the first what the return key gives
+		and the last what escape gives. An empty answer is left out. It works before there is a
+		window.
+
+		@param title The box title.
+		@param said What it says.
+		@param first The first answer.
+		@param second The second, or an empty string.
+		@param third The third, or an empty string.
+		@param fourth The fourth, or an empty string.
+		@param fault Nonzero to mark it as a fault.
+		@return Which answer was chosen, from nought, or -1 where the box could not be shown.
+	**/
+	@:native("mdd_ask")
+	public static function ask(title:cpp.ConstCharStar, said:cpp.ConstCharStar,
+		first:cpp.ConstCharStar, second:cpp.ConstCharStar, third:cpp.ConstCharStar,
+		fourth:cpp.ConstCharStar, fault:Int):Int;
+
+	/**
 		Seconds since SDL started, at full precision rather than rounded to milliseconds.
 	**/
 	@:native("mdd_ticks")

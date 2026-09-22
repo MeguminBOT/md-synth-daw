@@ -347,6 +347,39 @@ extern "C" void mdd_fault(const char *title, const char *said) {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, said, NULL);
 }
 
+extern "C" int mdd_ask(const char *title, const char *said, const char *first, const char *second,
+	const char *third, const char *fourth, int fault) {
+	const char *names[4] = {first, second, third, fourth};
+	SDL_MessageBoxButtonData buttons[4];
+	int count = 0;
+
+	for (int at = 0; at < 4; at++) {
+		if (names[at] == NULL || names[at][0] == 0) continue;
+
+		buttons[count].flags = count == 0 ? SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT : 0;
+		buttons[count].buttonID = at;
+		buttons[count].text = names[at];
+		count++;
+	}
+
+	if (count > 0) buttons[count - 1].flags |= SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+
+	SDL_MessageBoxData data;
+	SDL_zero(data);
+
+	data.flags = (fault != 0 ? SDL_MESSAGEBOX_ERROR : SDL_MESSAGEBOX_INFORMATION)
+		| SDL_MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT;
+	data.title = title;
+	data.message = said;
+	data.numbuttons = count;
+	data.buttons = buttons;
+
+	int chosen = -1;
+	if (!SDL_ShowMessageBox(&data, &chosen)) return -1;
+
+	return chosen;
+}
+
 extern "C" void mdd_window_icon(SDL_Window *window, const unsigned char *pixels, int width,
 	int height) {
 	if (window == NULL || pixels == NULL) return;
