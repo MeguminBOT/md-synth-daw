@@ -1708,6 +1708,11 @@ class Run {
 		an earlier install left, so clearing one is what makes the install smaller rather
 		than only what stops it growing.
 
+		A face the application fetched for itself goes with it, licence notice and all,
+		because that copy is read in place of an installed one and a language whose face is
+		still there was not cleared in any sense the reader can see. Inno's own warning says
+		the opposite, so the message is written again to say what the entries below do.
+
 		@param root The repository root.
 		@param project What the build file declares.
 	**/
@@ -1771,7 +1776,11 @@ class Run {
 		out.add("LicenseNotAccepted=I &do not accept the terms\n");
 		out.add("SelectComponentsLabel2=Every language is included. Clear one to leave out the"
 			+ " font it needs; picking it later in " + project.title
-			+ " downloads the font again.\n\n");
+			+ " downloads the font again.\n");
+		out.add("NoUninstallWarning=These languages already have the font they need:%n%n%1%n"
+			+ "Clearing one deletes that font, and any copy " + project.title
+			+ " downloaded for it. Picking the language again downloads it once more.%n%n"
+			+ "Would you like to continue anyway?\n\n");
 
 		final optional = [for (face in project.faces) if (fetched(face)) face];
 
@@ -1811,11 +1820,16 @@ class Run {
 		out.add("\n");
 
 		if (optional.length > 0) {
+			final fetched = "{userdocs}\\" + project.title + "\\fonts\\";
+
 			out.add("[InstallDelete]\n");
 
 			for (face in optional) {
-				out.add("Type: files; Name: \"{app}\\fonts\\" + face.name + "\"; Components: not "
-					+ component(face.language) + "\n");
+				final unwanted = "\"; Components: not " + component(face.language) + "\n";
+
+				out.add("Type: files; Name: \"{app}\\fonts\\" + face.name + unwanted);
+				out.add("Type: files; Name: \"" + fetched + face.name + unwanted);
+				out.add("Type: files; Name: \"" + fetched + Icons.noticed(face) + unwanted);
 			}
 
 			out.add("\n");

@@ -675,8 +675,9 @@ importing one reads those back.
   the installer makes a folder of its own inside it and tells you.
 - **You choose which fonts it installs.** Japanese, Simplified Chinese and Korean each need a font
   of their own, 36 MB together, so the installer lists them as options, all three ticked. Clear one
-  and its font is left out, and running the installer again without it deletes the copy an earlier
-  install left. English and every other language need no extra font and are always installed.
+  and its font is left out, and running the installer again without it deletes the font an earlier
+  install left, along with any copy MD Synth DAW downloaded for that language since. English and
+  every other language need no extra font and are always installed.
 - **A language whose font is missing still shows up.** The first run sheet and the preferences list
   it with the size of its font. Picking it downloads the font from the commit the build pins,
   checks the SHA-256 before the file is used, and switches language once it lands. A download that

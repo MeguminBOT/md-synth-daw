@@ -250,10 +250,13 @@ class Icons {
 	}
 
 	/**
+		The installer removes a fetched face under this name along with the face itself, so
+		the two callers name it the same way.
+
 		@param face A pinned face.
 		@return The name the licence fetched beside it is saved under.
 	**/
-	static function noticed(face:Project.Face):String {
+	public static function noticed(face:Project.Face):String {
 		final at = face.from.indexOf(":");
 		final tail = at < 0 ? face.from : face.from.substr(at + 1);
 
