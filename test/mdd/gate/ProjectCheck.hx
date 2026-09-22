@@ -44,6 +44,7 @@ class ProjectCheck {
 		carried(where);
 		kitted(where);
 		kept(where);
+		heard(where);
 		older();
 
 		mdd.host.Paths.clear(where);
@@ -186,6 +187,41 @@ class ProjectCheck {
 		says("and one written before this is read as the library's", owned == 0,
 			back.banks.length + " banks read back, " + owned + " of them the piece's own, so the"
 			+ " next save leaves the library out");
+	}
+
+	/**
+		A converter preset read back from a file has the identity of what it plays.
+
+		A file's recordings arrive after its document, so an identity taken while the document is
+		read hashes a buffer of the right length with nothing in it. Every hit then reads as a
+		different preset from the same hit anywhere else, and a library that ships it never
+		recognises it in a piece.
+	**/
+	static function heard(where:String):Void {
+		final song = StreamCheck.written();
+		var at = -1;
+
+		for (index in 0...song.instruments.length) if (song.instruments[index].sample >= 0) at = index;
+
+		final made = song.instruments[at];
+		final meant = made.identifies(song.sampleAt(made.sample));
+
+		for (form in ["heard.mdsyn", "heard folder"]) {
+			final named = where + "/" + form;
+			Project.save(song, named);
+
+			final back = Project.open(named);
+			var held:Null<Instrument> = null;
+
+			for (one in back.instruments) if (one.sample >= 0 && one.name == made.name) held = one;
+
+			final got = held == null ? "" : held.id;
+			final again = held == null ? "" : held.copy().identifies(back.sampleAt(held.sample));
+
+			says("a hit read back is what it plays" + (form == "heard.mdsyn" ? "" : ", from a folder"),
+				got == meant && again == meant,
+				"written as " + meant + ", read back as " + (got == "" ? "nothing" : got));
+		}
 	}
 
 	/**

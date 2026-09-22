@@ -614,11 +614,30 @@ class Project {
 			song.track(track);
 		}
 
-		for (instrument in song.instruments) {
-			instrument.identifies(instrument.sample < 0 ? null : song.sampleAt(instrument.sample));
-		}
+		identified(song, false);
 
 		return song;
+	}
+
+	/**
+		Works out the identity of every preset in a song of one kind: those that play a recording, or
+		those that play none.
+
+		A converter preset's identity reaches every byte it plays, and a file's recordings arrive
+		after its document, so the two are taken apart. Taken while the document is read, it hashed a
+		buffer of the right length with nothing in it, and every hit read back as a different preset
+		from the same hit anywhere else. A document read on its own leaves those presets without one,
+		which `Library.same` reads as matching by name and kind.
+
+		@param song The song.
+		@param sampled Whether the presets that play a recording are the ones to do.
+	**/
+	static function identified(song:Song, sampled:Bool):Void {
+		for (instrument in song.instruments) {
+			if ((instrument.sample >= 0) != sampled) continue;
+
+			instrument.identifies(sampled ? song.sampleAt(instrument.sample) : null);
+		}
 	}
 
 	/**
@@ -944,6 +963,8 @@ class Project {
 			song.samples[index].hold(held);
 		}
 
+		identified(song, true);
+
 		return song;
 	}
 
@@ -1057,6 +1078,8 @@ class Project {
 
 			song.samples[index].hold(hold);
 		}
+
+		identified(song, true);
 
 		return song;
 	}
