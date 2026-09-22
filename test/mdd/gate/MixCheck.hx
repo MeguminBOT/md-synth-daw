@@ -942,7 +942,7 @@ class MixCheck {
 	}
 
 	static function furnished():Void {
-		final library = mdd.song.Library.embedded();
+		final library = Gate.library();
 		final song = new Song("import", 96, 120);
 
 		final loaded = song.adopts(library.instruments[0][0], library.samples[0][0]);

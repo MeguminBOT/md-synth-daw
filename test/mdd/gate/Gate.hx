@@ -34,6 +34,21 @@ class Gate {
 
 	public static inline final SKIPPED = 2;
 
+	/**
+		@return Every preset a reader who has changed nothing is offered: the bank compiled into the
+			application, and the banks that ship beside it, read out of the folder the build copies
+			them into.
+	**/
+	public static function library():mdd.song.Library {
+		final out = mdd.song.Library.embedded();
+		final shipped = new mdd.song.Library();
+
+		shipped.within(root + "/export/bin/presets", "Saved presets");
+		out.takes(shipped);
+
+		return out;
+	}
+
 	static function all():Int {
 		var failed = 0;
 		final held:Array<String> = [];

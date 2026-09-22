@@ -217,12 +217,14 @@ Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profi
 samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
 costs the machine nothing.
 
-## The Instruments bank
+## The Instruments patches
 
 `assets/presets/instruments.json` is 67 FM patches by ulalume, from
 <https://github.com/ulalume/ym2612-patches>, under CC0 1.0 Universal, which waives every right the
 licence can waive and asks for nothing back. Licence checked at the source on 2026-09-21. They are
-credited in `README.md` because it is right to, not because CC0 requires it.
+credited in `README.md` because it is right to, not because CC0 requires it. The document names
+its bank Default, so they ship inside the program as part of the Default bank, and they are kept
+in a document of their own so that where they came from stays plain.
 
 They arrived as DefleMask preset files, one per patch, in folders naming the family each belongs to.
 Each was read against the format specification at <https://www.deflemask.com/DMP_SPECS.txt> and

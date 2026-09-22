@@ -17,7 +17,8 @@ final class Offer {
 	public static inline final DEFAULT = 0;
 
 	/**
-		Where it comes from: a bank that ships beside the application.
+		Where it comes from: a bank that ships with the application, written into the reader's
+		presets folder.
 	**/
 	public static inline final SHIPPED = 1;
 
@@ -65,6 +66,12 @@ final class Offer {
 		Where it sits in its bank in the library, for one the library holds, or -1.
 	**/
 	public var place:Int = -1;
+
+	/**
+		Whether it lives in a file in the reader's presets folder, which an edit to it changes. A
+		bank that shipped beside the application and was written into the folder is one.
+	**/
+	public var kept:Bool = false;
 
 	/**
 		Where it was gathered, which is the order its bank lists it in.
@@ -116,6 +123,7 @@ final class Offer {
 		this.shelf = shelf;
 
 		place = -1;
+		kept = false;
 		order = 0;
 		time = 0;
 		alike = 0;
@@ -134,6 +142,6 @@ final class Offer {
 			changes.
 	**/
 	public inline function filed():Bool {
-		return source == MINE && shelf >= 0 && place >= 0;
+		return kept && shelf >= 0 && place >= 0;
 	}
 }

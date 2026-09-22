@@ -216,6 +216,12 @@ final class Panels {
 	public var onPresetsChanged:Null<Void -> Void> = null;
 
 	/**
+		Every file in the presets folder written from a shipped bank, which the browser lists as
+		shipped.
+	**/
+	public var planted:Array<String> = [];
+
+	/**
 		The window these panels are in.
 	**/
 	public final stage:Stage;
@@ -284,6 +290,7 @@ final class Panels {
 		};
 
 		inspector.presets.folder = presetFolder;
+		inspector.presets.planted = planted;
 		inspector.presets.onShelved = function():Void if (onPresetsChanged != null) onPresetsChanged();
 
 		inspector.presets.onAsk = function(asked:Locale, said:String, then:String -> Void):Void {

@@ -281,7 +281,7 @@ class XgmCheck {
 		does.
 	**/
 	static function kitted():Void {
-		final library = mdd.song.Library.embedded();
+		final library = Gate.library();
 		final song = mdd.app.Session.started(library).song;
 		final shelf = library.names.indexOf("Drum Kit");
 

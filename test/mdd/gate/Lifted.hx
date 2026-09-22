@@ -50,7 +50,7 @@ class Lifted {
 		}
 
 		final folder = args[0];
-		final known = Library.embedded();
+		final known = Gate.library();
 
 		if (args[1] != "-") known.within(args[1], Library.STARTERS);
 

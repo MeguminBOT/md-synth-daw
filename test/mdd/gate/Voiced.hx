@@ -59,7 +59,7 @@ class Voiced {
 
 		mdd.host.Paths.make(folder);
 
-		final library = Library.embedded();
+		final library = Gate.library();
 		final at = library.names.indexOf(want);
 
 		if (at < 0) {

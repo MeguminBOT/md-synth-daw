@@ -255,6 +255,12 @@ final class Presets extends Widget {
 	public var folder:Null<mdd.app.PresetFolder> = null;
 
 	/**
+		Every file in the presets folder that was written from a bank shipped with the application,
+		which is listed as shipped rather than as the reader's own.
+	**/
+	public var planted:Array<String> = [];
+
+	/**
 		The presets the reader has starred, or null where none are kept. A star is on the preset
 		rather than on the row, so it follows the preset into every piece that carries it.
 	**/
@@ -1907,12 +1913,20 @@ final class Presets extends Widget {
 			final name = library.names[at];
 			if ((name == mdd.song.Library.STARTERS) != starting) continue;
 
-			final source = library.owned[at] ? Offer.MINE : (starting ? Offer.DEFAULT : Offer.SHIPPED);
+			final owned = library.owned[at];
 			final held = library.instruments[at];
 
 			for (which in 0...held.length) {
+				final path = library.paths[at][which];
+				final source = !owned ? (starting ? Offer.DEFAULT : Offer.SHIPPED)
+					: (planted.indexOf(path) >= 0 ? Offer.SHIPPED : Offer.MINE);
+
 				offered(held[which], library.samples[at][which], name, source, -1, at);
-				offers[offers.length - 1].place = which;
+
+				final offer = offers[offers.length - 1];
+
+				offer.place = which;
+				offer.kept = owned && path != "";
 			}
 		}
 	}

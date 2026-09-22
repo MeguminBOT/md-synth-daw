@@ -397,7 +397,7 @@ has no reason to carry, `wave-saw` and `wave-noise`, are drawn in this repositor
 
 ### The shipped preset banks
 
-The **Instruments** bank is 67 FM patches by **[ulalume][ulalume-url]**, from
+67 of the **Default** bank's FM patches are by **[ulalume][ulalume-url]**, from
 [ym2612-patches][ym2612-patches-url], released under CC0 1.0 and included here with thanks. Pianos,
 guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads, each kept
 under the name and the family its author gave it. CC0 asks for nothing in return, so this credit is

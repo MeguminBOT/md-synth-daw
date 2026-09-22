@@ -292,7 +292,13 @@ A VGM this application wrote therefore imports with its drums where they were.
   browser marks it wherever it appears, in this piece and in every other, and under whatever
   name. **Favourites only** in the filter menu, or `fav` in the search, lists the starred on
   their own. A preset you edit into something else is a different preset and keeps no star.
-- **67 more FM patches ship as Instruments**, by ulalume under CC0 and credited in the README:
+- **The Default bank is built into the program**, and it is the one bank that is. Everything
+  else that ships, the game banks and the drum kits, is written into your presets folder as files
+  the first time you start the program, under the family folders like anything of your own, so
+  you can rename, change or delete any of it. A bank you delete stays deleted. When a newer version
+  ships a bank that changed, it replaces your copy only where you left that copy exactly as it
+  was written.
+- **67 of the Default bank's FM patches are by ulalume**, under CC0 and credited in the README:
   pianos, guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads,
   each tagged with the family it belongs to.
 - Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks
@@ -300,8 +306,9 @@ A VGM this application wrote therefore imports with its drums where they were.
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
-- **The bank every piece opens with is 64 presets**, lifted out of the finished pieces this
-  program was written alongside: 35 FM patches, 14 square envelopes and 15 noise ones. Leads,
+- **The bank every piece opens with is Default**, 131 presets: ulalume's 67 and 64 lifted out of
+  the finished pieces this program was written alongside, 35 FM patches, 14 square envelopes and
+  15 noise ones. Leads,
   basses, pads, plucks, bells, organs, guitars, brass and strings for the FM channels; hats,
   crashes, rides, sweeps and shakers for the square and noise ones. Each is named for what it is
   for and tagged with what it is good for, `Bass`, `Pad`, `Bright`, `Hard`, so a search on a use
@@ -628,8 +635,8 @@ importing one reads those back.
 
 - **Portable mode.** A `portable.txt` beside the executable, which the portable archive ships,
   keeps settings, projects and presets in a `userdata` folder next to the program rather than in
-  your account directory. The archive holds the program, SDL, the fonts and the icons and nothing
-  else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
+  your account directory. The archive holds the program, SDL, the fonts, the icons and the banks
+  that ship beside the program, and nothing else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
   it on their own, and the program downloads the one a language needs when that language is
   picked, pinned to the same file the installer ships.
 - **A start that fails says why.** A window that will not open, drawing that will not start, and

@@ -151,23 +151,22 @@ class ShotCheck {
 		metrics.dress(body, small, mono, mono, condensed);
 
 		final session = project != "" ? new Session(mdd.format.Project.open(project))
-			: (vgm == "" ? Session.started(mdd.song.Library.embedded()) : imported(root, vgm));
+			: (vgm == "" ? Session.started(Gate.library()) : imported(root, vgm));
 
 		if (drums) {
 			final song = session.song;
+			final library = session.library;
+
 			song.drums = true;
 
-			for (at in 0...song.banks.length) {
-				final bank = song.banks[at];
-				if (bank.instruments.length < 2) continue;
+			if (library != null) {
+				for (at in 0...library.names.length) {
+					if (library.samples[at].length < 2 || library.samples[at][0] == null) continue;
 
-				final first = bank.instruments[0];
-				final held = song.instrumentAt(first);
-
-				if (held == null || !held.kind.sampled()) continue;
-
-				song.rack[mdd.song.Part.Dac.index()] = first;
-				break;
+					mdd.song.edit.TakesPreset.kitting(mdd.song.Part.Dac, library.names[at],
+						library.instruments[at], library.samples[at], 0).apply(song);
+					break;
+				}
 			}
 		}
 
@@ -699,7 +698,7 @@ class ShotCheck {
 
 	static function imported(root:String, name:String):Session {
 		final held = Fixtures.found(name);
-		if (held == "") return Session.started(mdd.song.Library.embedded());
+		if (held == "") return Session.started(Gate.library());
 
 		final stream = new mdd.play.Stream(1 << 22);
 		final vgm = mdd.format.Vgm.read(sys.io.File.getBytes(held), stream);

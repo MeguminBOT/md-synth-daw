@@ -60,7 +60,7 @@ class SpineCheck {
 	}
 
 	static function snapping():Void {
-		final session = Session.started(mdd.song.Library.embedded());
+		final session = Session.started(Gate.library());
 		final song = session.song;
 
 		session.snapping = Session.SIXTEENTH;
@@ -3312,6 +3312,7 @@ class SpineCheck {
 		var open = 0;
 		var banks = 0;
 		var marked = 0;
+		final opened:Array<String> = [];
 
 		for (top in fresh.tree.roots) {
 			families++;
@@ -3319,13 +3320,18 @@ class SpineCheck {
 
 			for (group in top.children) {
 				banks++;
-				if (group.open) open++;
+
+				if (group.open && group.branch()) {
+					open++;
+					opened.push(group.label);
+				}
 				if (group.tint >= 0 && group.icon != mdd.Icon.DRUMKIT) marked++;
 			}
 		}
 
 		says("banks start folded", families > 0 && banks > 0 && open == 0,
-			open + " of " + banks + " banks open across " + families + " families");
+			open + " of " + banks + " banks open across " + families + " families"
+			+ (open == 0 ? "" : ": " + opened.join(", ")));
 
 		says("and no heading carries a dot", marked == 0,
 			marked + " family or bank rows tinted, a kit's drum icon aside");
@@ -4159,7 +4165,7 @@ class SpineCheck {
 		final metrics = new Metrics(1);
 		metrics.dress(body, small, mono, mono, small);
 
-		final session = Session.started(mdd.song.Library.embedded());
+		final session = Session.started(Gate.library());
 
 		session.song.tracks[0].add(new mdd.song.Clip(0, 0, 384));
 

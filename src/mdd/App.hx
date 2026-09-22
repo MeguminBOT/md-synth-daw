@@ -1687,6 +1687,17 @@ class App {
 
 		presetFolder.root = keeper.root;
 		presetFolder.bin = keeper.bin;
+
+		final record = mdd.app.ShippedBanks.plants(mdd.host.Paths.beside() + "/presets", keeper.root,
+			settings.of("presetsShipped", ""));
+
+		settings.put("presetsShipped", record);
+		settings.save();
+
+		final planted = mdd.app.ShippedBanks.planted(record, keeper.root);
+
+		panels.planted = planted;
+		if (panels.inspector != null) panels.inspector.presets.planted = planted;
 	}
 
 	/**

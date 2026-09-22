@@ -38,7 +38,7 @@ class Tidied {
 			return 1;
 		}
 
-		final known = Library.embedded();
+		final known = Gate.library();
 		final held = new Song("starters");
 
 		mdd.song.Shipped.into(held);

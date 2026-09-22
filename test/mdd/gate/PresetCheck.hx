@@ -68,6 +68,7 @@ class PresetCheck {
 		dated(where);
 		organised(where);
 		imported(where);
+		planted(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -159,7 +160,7 @@ class PresetCheck {
 		a kit whole, and loading the same kit again finds the copy already there.
 	**/
 	static function shipped():Void {
-		final library = Library.embedded();
+		final library = Gate.library();
 		final song = new Song();
 		final kit = shippedKit(library);
 		final at = library.names.indexOf(kit);
@@ -237,7 +238,7 @@ class PresetCheck {
 
 		for (held in (at < 0 ? [] : library.instruments[at])) bank.push(held.name);
 
-		says("and the bank it opens with is the one that ships", bank.length == 64
+		says("and the bank it opens with is the one that ships", bank.length == 131
 			&& bank.indexOf("Lead guitar") >= 0 && bank.indexOf("Bounce bass") < 0,
 			bank.length + " presets in " + Library.STARTERS
 			+ ", named for what they are for");
@@ -601,7 +602,7 @@ class PresetCheck {
 			documents.reads(sys.io.File.getContent(where + "/" + name));
 		}
 
-		final records = Library.embedded();
+		final records = Gate.library();
 		var carried = 0;
 		var missing = "";
 
@@ -624,15 +625,29 @@ class PresetCheck {
 		}
 
 		var built = 0;
+		var inside = 0;
+		var banks = 0;
 
 		for (name in haxe.Resource.listNames()) {
-			if (name.length > 5 && name.substr(0, 5) == "bank.") built += haxe.Resource.getBytes(name).length;
+			if (name.length <= 5 || name.substr(0, 5) != "bank.") continue;
+
+			inside += haxe.Resource.getBytes(name).length;
+			banks++;
 		}
+
+		built = inside + shippedBytes(root + "/export/bin/presets");
+
+		final compiled = Library.embedded();
 
 		says("every shipped preset comes across", carried == documents.count()
 			&& documents.count() > 0 && missing == "",
 			carried + " of " + documents.count() + " presets are the same preset as records"
 			+ (missing == "" ? "" : ", missing " + missing));
+
+		says("and only the starting bank is compiled in", compiled.names.length == 1
+			&& compiled.names[0] == Library.STARTERS && compiled.count() == 131,
+			compiled.count() + " presets in " + compiled.names.join(", ") + " inside the program, "
+			+ inside + " bytes, and every other bank beside it");
 
 		var quickest = 1000.0;
 
@@ -648,6 +663,82 @@ class PresetCheck {
 			built + " bytes of records against " + text + " of documents, "
 			+ Math.round(100 - built * 100 / text) + " per cent less, read in "
 			+ Math.round(quickest * 100000) / 100 + " ms, best of 7");
+	}
+
+	/**
+		@param where A folder.
+		@return How many bytes the files in it and every folder below it hold.
+	**/
+	static function shippedBytes(where:String):Int {
+		if (!sys.FileSystem.exists(where)) return 0;
+
+		var many = 0;
+
+		for (name in sys.FileSystem.readDirectory(where)) {
+			final path = where + "/" + name;
+			many += sys.FileSystem.isDirectory(path) ? shippedBytes(path) : sys.FileSystem.stat(path).size;
+		}
+
+		return many;
+	}
+
+	/**
+		The banks that ship beside the application are written into a presets folder once: a bank
+		deleted there stays deleted, a newer build's bank replaces a copy nobody changed, and one a
+		reader changed is left as it is.
+	**/
+	static function planted(where:String):Void {
+		mdd.host.Paths.clear(where);
+
+		final from = where + "/shipped";
+		final into = where + "/presets";
+
+		mdd.host.Paths.make(from + "/FM");
+		mdd.host.Paths.make(from + "/DAC");
+
+		sys.io.File.saveBytes(from + "/FM/Game" + Library.BANK,
+			mdd.format.Preset.write("Game", [patched("Game")], [null]));
+		sys.io.File.saveBytes(from + "/FM/Other" + Library.BANK,
+			mdd.format.Preset.write("Other", [patched("Other")], [null]));
+		sys.io.File.saveBytes(from + "/DAC/Kit" + Library.BANK,
+			mdd.format.Preset.write("Kit", [new Instrument("Kick", Part.Dac)], [sampled("Kick")]));
+
+		final first = mdd.app.ShippedBanks.plants(from, into, "");
+		final planted = mdd.app.ShippedBanks.planted(first, into);
+
+		final written = sys.FileSystem.exists(into + "/FM/Game" + Library.BANK)
+			&& sys.FileSystem.exists(into + "/DAC/Kit" + Library.BANK) && planted.length == 3;
+
+		sys.FileSystem.deleteFile(into + "/FM/Game" + Library.BANK);
+		sys.io.File.saveBytes(into + "/FM/Other" + Library.BANK,
+			mdd.format.Preset.write("Other", [patched("Other")], [null], ["Mine"]));
+
+		final changed = patched("Kick");
+		sys.io.File.saveBytes(from + "/FM/Other" + Library.BANK,
+			mdd.format.Preset.write("Other", [patched("Other"), changed], [null, null]));
+
+		final hit = new Instrument("Snare", Part.Dac);
+		sys.io.File.saveBytes(from + "/DAC/Kit" + Library.BANK,
+			mdd.format.Preset.write("Kit", [new Instrument("Kick", Part.Dac), hit],
+			[sampled("Kick"), sampled("Snare")]));
+
+		final second = mdd.app.ShippedBanks.plants(from, into, first);
+
+		final other = mdd.format.Preset.read(sys.io.File.getBytes(into + "/FM/Other" + Library.BANK));
+		final kit = mdd.format.Preset.read(sys.io.File.getBytes(into + "/DAC/Kit" + Library.BANK));
+
+		final third = mdd.app.ShippedBanks.plants(from, where + "/elsewhere", second);
+
+		says("the banks that ship are written into the presets folder once", written
+			&& !sys.FileSystem.exists(into + "/FM/Game" + Library.BANK)
+			&& other != null && other.presets.length == 1 && other.tags.join(",") == "Mine"
+			&& kit != null && kit.presets.length == 2
+			&& sys.FileSystem.exists(where + "/elsewhere/FM/Game" + Library.BANK),
+			"3 written; a deleted one stayed deleted, one the reader tagged kept its tag over a newer"
+			+ " build's, the kit nobody changed took the newer build's " + (kit == null ? 0
+			: kit.presets.length) + " hits, and another presets folder was given all three");
+
+		mdd.host.Paths.clear(where);
 	}
 
 	/**

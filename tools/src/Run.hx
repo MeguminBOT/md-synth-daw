@@ -962,79 +962,99 @@ class Run {
 	}
 
 	/**
-		Writes the banks the application ships out as records, where a document has changed since
-		the records were last written. The documents are what anyone improving a name or a tag
-		edits, and what a build carries is what the application reads.
+		Writes the banks the application ships out as records, where a document has changed or gone
+		since they were last written: the starting bank into the folder compiled into the
+		application, and every other bank, a file for each family it has presets for, into a folder
+		copied beside the built binary. A package takes that folder from there, and the application
+		writes what is in it into a reader's presets folder once, where it can be deleted. The
+		documents are what anyone improving a name or a tag edits, and what a build carries is what
+		the application reads.
 
 		@param root The repository.
 		@param project What the build file says.
 	**/
-	/**
-		@param from The folder the documents are in.
-		@param into The folder the records are in.
-		@param suffix What a record file is called.
-		@return The records whose document is gone, which would otherwise keep shipping after the
-			document that made them was deleted.
-	**/
-	static function swept(from:String, into:String, suffix:String):Array<String> {
-		final out:Array<String> = [];
-
-		if (!FileSystem.exists(into)) return out;
-
-		for (name in FileSystem.readDirectory(into)) {
-			if (!StringTools.endsWith(name.toLowerCase(), suffix)) continue;
-
-			final said = name.substr(0, name.length - suffix.length) + ".json";
-			if (!FileSystem.exists(from + "/" + said)) out.push(name);
-		}
-
-		return out;
-	}
-
 	static function banked(root:String, project:Project):Void {
 		final from = root + "/assets/presets";
 		final into = root + "/export/banks";
+		final beside = root + "/export/shipped";
+		final bin = root + "/" + project.output + "/bin/presets";
 
 		if (!FileSystem.exists(from)) return;
 
-		final suffix = "." + project.bankSuffix;
+		final stamp = into + "/written";
+		final listing = listed(from);
 
-		var stale = !FileSystem.exists(into);
+		var stale = !FileSystem.exists(stamp) || !FileSystem.exists(beside)
+			|| File.getContent(stamp) != listing;
 
 		if (!stale) {
+			final written = FileSystem.stat(stamp).mtime.getTime();
+
 			for (name in FileSystem.readDirectory(from)) {
-				if (!StringTools.endsWith(name.toLowerCase(), ".json")) continue;
-
-				final made = into + "/" + name.substr(0, name.length - 5) + suffix;
-
-				if (!FileSystem.exists(made) || FileSystem.stat(made).mtime.getTime()
-						< FileSystem.stat(from + "/" + name).mtime.getTime()) {
-					stale = true;
-					break;
-				}
+				if (FileSystem.stat(from + "/" + name).mtime.getTime() > written) stale = true;
 			}
 		}
 
-		for (name in swept(from, into, suffix)) {
-			stale = true;
-			FileSystem.deleteFile(into + "/" + name);
+		if (stale) {
+			Sys.println("  " + pad("banks") + "writing the shipped banks as records");
+
+			if (FileSystem.exists(into)) remove(into);
+			if (FileSystem.exists(beside)) remove(beside);
+
+			tree(into);
+
+			final here = Sys.getCwd();
+			Sys.setCwd(root);
+
+			final code = Sys.command("haxe", ["-cp", "src", "-cp", project.generated, "-cp", "tools/src",
+				"--run", "Banker", from, into, beside]);
+
+			Sys.setCwd(here);
+
+			if (code != 0) {
+				Sys.println("mdd: the shipped banks could not be written");
+				Sys.exit(code);
+			}
+
+			File.saveContent(stamp, listing);
 		}
 
-		if (!stale) return;
+		if (stale || !FileSystem.exists(bin)) {
+			if (FileSystem.exists(bin)) remove(bin);
+			mirrored(beside, bin);
+		}
+	}
 
-		Sys.println("  " + pad("banks") + "writing the shipped banks as records");
+	/**
+		@param from The folder the bank documents are in.
+		@return Every document in it, one a line in order, which is what says one was added or
+			taken away since the banks were last written.
+	**/
+	static function listed(from:String):String {
+		final held = FileSystem.readDirectory(from).filter(function(name:String):Bool
+			return StringTools.endsWith(name.toLowerCase(), ".json"));
 
-		final here = Sys.getCwd();
-		Sys.setCwd(root);
+		held.sort(function(one:String, two:String):Int return one < two ? -1 : 1);
 
-		final code = Sys.command("haxe", ["-cp", "src", "-cp", project.generated, "-cp", "tools/src",
-			"--run", "Banker", from, into]);
+		return held.join("\n");
+	}
 
-		Sys.setCwd(here);
+	/**
+		Copies a folder and everything in it.
 
-		if (code != 0) {
-			Sys.println("mdd: the shipped banks could not be written");
-			Sys.exit(code);
+		@param from The folder.
+		@param to Where the copy goes, made where it is not there.
+	**/
+	static function mirrored(from:String, to:String):Void {
+		if (!FileSystem.exists(from)) return;
+
+		tree(to);
+
+		for (name in FileSystem.readDirectory(from)) {
+			final path = from + "/" + name;
+
+			if (FileSystem.isDirectory(path)) mirrored(path, to + "/" + name);
+			else copyFile(path, to + "/" + name);
 		}
 	}
 
@@ -1483,6 +1503,8 @@ class Run {
 
 		final notice = root + "/vendor/qlementine/LICENSE";
 		if (FileSystem.exists(notice)) copyFile(notice, into + "/icons/LICENSE");
+
+		mirrored(bin + "/presets", into + "/presets");
 
 		final fonts = root + "/" + project.pathOf("FONTPATH");
 		tree(into + "/fonts");
