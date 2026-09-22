@@ -43,10 +43,11 @@ final class Instrument {
 	public final tags:Array<String> = [];
 
 	/**
-		What this preset is: thirty two hexadecimal characters over everything it holds, which
-		`identifies` works out. Two presets that differ anywhere differ here, and two that are the
-		same in every field are the same preset, whatever folder each sits in and whichever of them
-		a project carries. It is what the library matches on, so a name is only a label.
+		What this preset is: thirty two hexadecimal characters over what it sounds like, which
+		`identifies` works out. Two presets that sound different differ here, and two that sound the
+		same are the same preset whatever each is called, however each is tagged, whatever folder
+		each sits in and whichever of them a project carries. It is what the library matches on, so
+		a name is only a label.
 
 		It is a cache of the data rather than a mark on it: `identifies` is called wherever a preset
 		is built, read or written, and nothing reads it off a file, so a file cannot claim to be a
@@ -63,77 +64,13 @@ final class Instrument {
 	public var from:String = "";
 
 	/**
-		Works out what this preset is from everything it holds, and keeps the answer in `id`.
+		Works out what this preset is from what it sounds like, and keeps the answer in `id`.
 
 		@param sample The recording it plays, for a converter preset, or null.
-		@return The identity.
+		@return The identity, as `mdd.format.Preset.identity` gives it.
 	**/
 	public function identifies(sample:Null<Sample>):String {
-		var one = mdd.Hash.seeded(0x9E3779B9, 0x7F4A7C15);
-		var two = mdd.Hash.seeded(0xC2B2AE3D, 0x27D4EB4F);
-
-		one = mdd.Hash.said(one, name);
-		two = mdd.Hash.said(two, name);
-		one = mdd.Hash.whole(one, kind.index());
-		two = mdd.Hash.whole(two, kind.index());
-		one = mdd.Hash.whole(one, icon);
-		two = mdd.Hash.whole(two, icon);
-
-		for (tag in tags) {
-			one = mdd.Hash.said(one, tag);
-			two = mdd.Hash.said(two, tag);
-		}
-
-		final held = patch;
-
-		if (held != null) {
-			for (which in 0...Patch.DIALS) {
-				one = mdd.Hash.whole(one, held.dial(which));
-				two = mdd.Hash.whole(two, held.dial(which));
-			}
-
-			for (slot in 0...Patch.SLOTS) {
-				for (row in 0...Patch.ROWS) {
-					one = mdd.Hash.whole(one, held.reads(slot, row));
-					two = mdd.Hash.whole(two, held.reads(slot, row));
-				}
-
-				one = mdd.Hash.whole(one, held.tremolo[slot] ? 1 : 0);
-				two = mdd.Hash.whole(two, held.tremolo[slot] ? 1 : 0);
-			}
-		}
-
-		final shape = envelope;
-
-		if (shape != null) {
-			for (step in shape.steps) {
-				one = mdd.Hash.whole(one, step);
-				two = mdd.Hash.whole(two, step);
-			}
-
-			one = mdd.Hash.whole(one, shape.loop);
-			two = mdd.Hash.whole(two, shape.loop);
-			one = mdd.Hash.whole(one, shape.speed);
-			two = mdd.Hash.whole(two, shape.speed);
-			one = mdd.Hash.whole(one, shape.noise);
-			two = mdd.Hash.whole(two, shape.noise);
-		}
-
-		if (sample != null) {
-			one = mdd.Hash.whole(one, sample.rate);
-			two = mdd.Hash.whole(two, sample.rate);
-			one = mdd.Hash.whole(one, sample.root);
-			two = mdd.Hash.whole(two, sample.root);
-			one = mdd.Hash.whole(one, sample.loop);
-			two = mdd.Hash.whole(two, sample.loop);
-
-			for (at in 0...sample.length()) {
-				one = mdd.Hash.whole(one, sample.bytes[at]);
-				two = mdd.Hash.whole(two, sample.bytes[at]);
-			}
-		}
-
-		id = mdd.Hash.spelt(mdd.Hash.settled(one)) + mdd.Hash.spelt(mdd.Hash.settled(two));
+		id = mdd.format.Preset.identity(this, sample);
 		return id;
 	}
 

@@ -263,10 +263,16 @@ A VGM this application wrote therefore imports with its drums where they were.
   field goes back to what it held when you loaded it, in one undo step. Right-click a single dial
   in the synthesizer, or a step of a square or noise envelope, to put that one parameter back and
   leave the rest as you have it.
+- **A preset is what it sounds like.** What makes one preset that preset is its patch, its
+  envelope or its recording, and nothing else: not its name, its tags, its icon or the folder it
+  sits in. Rename one, retag it or move it to another folder and it is still the same preset,
+  and the same sound saved twice under two names is one preset. That identity is an MD5 over the
+  sound laid out byte by byte in `docs/notes/presets.md`, so anything that writes the same bytes
+  gets the same answer.
 - **A star is on the preset, not on the row.** Favourite one from its right-click menu and the
-  browser marks it wherever it appears, in this piece and in every other. The browser's order
-  button has a fourth setting, **Favourites**, which lists the starred on their own. A preset you
-  edit into something else is a different preset and keeps no star.
+  browser marks it wherever it appears, in this piece and in every other, and under whatever
+  name. The browser's order button has a fourth setting, **Favourites**, which lists the starred
+  on their own. A preset you edit into something else is a different preset and keeps no star.
 - **67 more FM patches ship as Instruments**, by ulalume under CC0 and credited in the README:
   pianos, guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads,
   each tagged with the family it belongs to.

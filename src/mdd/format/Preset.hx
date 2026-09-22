@@ -94,35 +94,80 @@ final class Preset {
 			out.addByte(held.tags.length > 255 ? 255 : held.tags.length);
 			for (at in 0...(held.tags.length > 255 ? 255 : held.tags.length)) said(out, held.tags[at]);
 
-			final patch = held.patch;
-			final envelope = held.envelope;
-
-			if (held.kind.sampled() && sample != null) {
-				out.addByte(SAMPLE);
-				whole(out, sample.rate, 4);
-				out.addByte(sample.root & 0xFF);
-				whole(out, sample.loop + 1, 4);
-				whole(out, sample.length(), 4);
-
-				for (at in 0...sample.length()) out.addByte(sample.bytes[at] & 0xFF);
-			} else if (envelope != null && !held.kind.fm()) {
-				out.addByte(ENVELOPE);
-				out.addByte(envelope.steps.length > 255 ? 255 : envelope.steps.length);
-
-				for (at in 0...(envelope.steps.length > 255 ? 255 : envelope.steps.length)) {
-					out.addByte(envelope.steps[at] & 0xFF);
-				}
-
-				whole(out, envelope.loop + 1, 2);
-				out.addByte(envelope.speed & 0xFF);
-				out.addByte(envelope.noise & 0xFF);
-			} else {
-				out.addByte(PATCH);
-				patched(out, patch == null ? new Patch() : patch);
-			}
+			sounded(out, held, sample);
 		}
 
 		return out.getBytes();
+	}
+
+	/**
+		Writes what a preset sounds like and nothing else: which of the three records it is, then
+		the patch, the envelope or the recording. This is the tail of every preset in a file, and
+		what a preset's identity is worked out over.
+
+		@param out Where it goes.
+		@param held The preset.
+		@param sample The recording it plays, or null.
+	**/
+	static function sounded(out:BytesBuffer, held:Instrument, sample:Null<Sample>):Void {
+		final patch = held.patch;
+		final envelope = held.envelope;
+
+		if (held.kind.sampled() && sample != null) {
+			out.addByte(SAMPLE);
+			whole(out, sample.rate, 4);
+			out.addByte(sample.root & 0xFF);
+			whole(out, sample.loop + 1, 4);
+			whole(out, sample.length(), 4);
+
+			for (at in 0...sample.length()) out.addByte(sample.bytes[at] & 0xFF);
+		} else if (envelope != null && !held.kind.fm()) {
+			out.addByte(ENVELOPE);
+			out.addByte(envelope.steps.length > 255 ? 255 : envelope.steps.length);
+
+			for (at in 0...(envelope.steps.length > 255 ? 255 : envelope.steps.length)) {
+				out.addByte(envelope.steps[at] & 0xFF);
+			}
+
+			whole(out, envelope.loop + 1, 2);
+			out.addByte(envelope.speed & 0xFF);
+			out.addByte(envelope.noise & 0xFF);
+		} else {
+			out.addByte(PATCH);
+			patched(out, patch == null ? new Patch() : patch);
+		}
+	}
+
+	/**
+		@param kind A part.
+		@return The byte its family is written as at the head of an identity: 0 for FM, 1 for a
+			square, 2 for the noise channel and 3 for the converter.
+	**/
+	static inline function family(kind:Part):Int {
+		return kind.fm() ? 0 : (kind.square() ? 1 : (kind.noise() ? 2 : 3));
+	}
+
+	/**
+		What a preset is, worked out from what it sounds like alone: the MD5 of its family byte
+		followed by its sound record, as `sounded` writes it, in lower case hexadecimal.
+
+		Nothing a reader chose goes into it, so the same sound saved under another name, with other
+		tags or another icon, in another folder or another file, is the same preset. The layout is
+		fixed and written down in `docs/notes/presets.md`, so anything that writes the same bytes
+		gets the same answer, the way a FLAC signature is the MD5 of the samples whatever encoded
+		them.
+
+		@param held The preset.
+		@param sample The recording it plays, for a converter preset, or null.
+		@return Thirty two hexadecimal characters.
+	**/
+	public static function identity(held:Instrument, sample:Null<Sample>):String {
+		final out = new BytesBuffer();
+
+		out.addByte(family(held.kind));
+		sounded(out, held, sample);
+
+		return haxe.crypto.Md5.make(out.getBytes()).toHex();
 	}
 
 	/**

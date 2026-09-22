@@ -3,11 +3,11 @@ package mdd.app;
 /**
 	The presets a reader has starred, by identity.
 
-	A preset is what its parameters are, and its identity is a hash of every one of them, so a star
-	follows a preset from one piece to the next and from one machine to the next, and a preset
-	edited into something else is no longer the one that was starred. The list is a reader's own
-	rather than a piece's, so it is kept beside the settings and never written into a file a piece
-	carries.
+	A preset is what it sounds like, and its identity is a hash of that, so a star follows a preset
+	from one piece to the next, from one machine to the next, and through a rename or a move to
+	another folder, and a preset edited into something else is no longer the one that was starred.
+	The list is a reader's own rather than a piece's, so it is kept beside the settings and never
+	written into a file a piece carries.
 **/
 @:unreflective
 final class Favourites {

@@ -619,10 +619,10 @@ class PresetCheck {
 	}
 
 	/**
-		A preset is what everything in it says rather than what it is called. Two presets differing
-		anywhere differ in identity, two the same in every field are the same preset wherever each
-		sits, and a channel edited in a piece is no longer the preset it started as, which is what
-		lets a project carry its own and a reader keep theirs.
+		A preset is what it sounds like rather than what it is called. Two presets differing in their
+		sound differ in identity, two sounding the same are the same preset whatever each is called,
+		tagged, drawn as or loaded on, and a channel edited in a piece is no longer the preset it
+		started as, which is what lets a project carry its own and a reader keep theirs.
 	**/
 	static function identified():Void {
 		final one = patched("Bass");
@@ -640,19 +640,63 @@ class PresetCheck {
 		two.name = "Bass 2";
 		final named = two.identifies(null);
 
-		two.name = "Bass";
 		two.tags.push("soft");
 		final tagged = two.identifies(null);
 
-		two.tags.pop();
 		two.icon = one.icon + 1;
 		final iconed = two.identifies(null);
 
-		says("an identity is everything the preset holds", alike && level != one.id
-			&& named != one.id && tagged != one.id && iconed != one.id
-			&& level != named && named != tagged && tagged != iconed,
-			"two presets written the same way answer " + one.id.substr(0, 8) + ", and a total level, a"
-			+ " name, a tag and an icon each answer something else");
+		two.kind = Part.Fm4;
+		final moved = two.identifies(null);
+
+		says("an identity is what the preset sounds like", alike && level != one.id
+			&& named == one.id && tagged == one.id && iconed == one.id && moved == one.id,
+			"two presets written the same way answer " + one.id.substr(0, 8) + ", a total level answers "
+			+ level.substr(0, 8) + ", and a name, a tag, an icon and another FM channel answer the same");
+
+		final pulse = new Instrument("Pulse", Part.Psg2);
+		for (step in [15, 9, 4, 0]) pulse.envelope.steps.push(step);
+
+		pulse.envelope.loop = 2;
+		pulse.envelope.speed = 3;
+		pulse.envelope.noise = 5;
+
+		final written = new haxe.io.BytesBuffer();
+		for (byte in [1, 1, 4, 15, 9, 4, 0, 3, 0, 3, 5]) written.addByte(byte);
+
+		final expected = haxe.crypto.Md5.make(written.getBytes()).toHex();
+		final worked = pulse.identifies(null);
+
+		says("and it is the MD5 of the bytes the notes lay out", worked == expected,
+			"a square envelope of four steps answers " + worked + ", the MD5 of its eleven bytes");
+
+		final stars = new mdd.app.Favourites();
+		final installed = new Library();
+		final kept = patched("Kept");
+
+		installed.adds(SAVED, kept, null, false);
+		kept.identifies(null);
+
+		final former = mdd.app.Formerly.identity(kept, null);
+		stars.favour(former, true);
+
+		final carried = mdd.app.Formerly.stars(stars, installed);
+
+		says("and a star on a former identity moves across", carried == 1 && stars.favours(kept.id)
+			&& !stars.favours(former) && stars.count() == 1,
+			carried + " star moved from " + former.substr(0, 8) + " to " + kept.id.substr(0, 8));
+
+		final piece = new Song("formerly");
+		final channel = piece.instrument(patched("Kept"));
+
+		channel.patch.feedback = 1;
+		channel.identifies(null);
+		channel.from = former;
+
+		final pointed = mdd.app.Formerly.origins(piece, installed);
+
+		says("and so does where a channel came from", pointed == 1 && channel.from == kept.id,
+			pointed + " channel now names " + channel.from.substr(0, 8) + " as where it came from");
 
 		final held = enveloped("Pulse", Part.Psg1);
 		held.identifies(null);
@@ -1601,14 +1645,18 @@ class PresetCheck {
 	}
 
 	/**
-		@param name What to call it.
+		@param name What to call it, which also decides its bytes, so two hits of different names
+			are two sounds rather than one recording under two names.
 		@return A short sample with a loop point.
 	**/
 	static function sampled(name:String):Sample {
 		final out = new Sample(name, 13000, 38);
 		final bytes = new haxe.ds.Vector<Int>(700);
 
-		for (at in 0...bytes.length) bytes[at] = (at * 13 + 5) & 0xFF;
+		var seed = 0;
+		for (at in 0...name.length) seed += StringTools.fastCodeAt(name, at);
+
+		for (at in 0...bytes.length) bytes[at] = (at * 13 + 5 + seed) & 0xFF;
 
 		out.hold(bytes);
 		out.loop = 120;

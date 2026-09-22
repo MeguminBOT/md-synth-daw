@@ -974,6 +974,7 @@ class App {
 
 		sound.stop();
 
+		mdd.app.Formerly.origins(song, library);
 		library.files(song, stage.root.translate(Locale.PRESET_FROM_FILE));
 		library.into(song);
 
@@ -1750,6 +1751,11 @@ class App {
 		}
 
 		rescanned(false);
+
+		if (!settings.asFlag("starsBySound", false)) {
+			mdd.app.Formerly.stars(favourites, library);
+			settings.flag("starsBySound", true);
+		}
 
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
 			if (session != null) session.transport.auditions(session.part, pitch, velocity, true);
