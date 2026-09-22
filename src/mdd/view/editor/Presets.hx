@@ -1405,11 +1405,12 @@ final class Presets extends Widget {
 	function chipLabel(which:Int):String {
 		return switch (which) {
 			case GROUP_CHIP:
-				(terse ? "" : translate(Locale.PRESET_GROUP) + ": ") + translate(GROUP_NAMES[grouping]);
+				final name = translate(GROUP_NAMES[grouping]);
+				terse ? name : filled(Locale.PRESET_GROUP, [name]);
 
 			case SORT_CHIP:
-				(terse ? "" : translate(Locale.PRESET_SORT) + ": ") + translate(SORT_NAMES[sorting])
-					+ (reversed ? " ↑" : "");
+				final name = translate(SORT_NAMES[sorting]);
+				(terse ? name : filled(Locale.PRESET_SORT, [name])) + (reversed ? " ↑" : "");
 
 			case FILTER_CHIP:
 				final many = filtering();
