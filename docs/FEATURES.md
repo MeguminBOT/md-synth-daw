@@ -218,6 +218,11 @@ WAV files import into the sample channel, band limited on the way down so nothin
 half rate folds back into what is kept: measured, a tone the new rate cannot carry leaves 75.6 dB
 below one it can.
 
+**A recording is trimmed on its waveform.** Drag across it to mark the part to keep, then choose
+Trim from the right-click menu, on the waveform or on the recording's row, and it is cut down to
+that as one step you can undo. A loop point inside what you keep stays on the same sound, one
+before it loops the whole of what is left, and one after it leaves the recording playing once.
+
 **A kit is made in a sheet of its own.** It opens empty and you fill it, a file or a whole folder
 at a time, because a kit is as often gathered from several places as it is found sitting in one. Name
 it, tag it, and every WAV you add becomes a hit: the offset comes out, the silence before and the

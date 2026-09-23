@@ -4431,16 +4431,28 @@ class SpineCheck {
 		Sdl.renderPresent(renderer);
 
 		final columns = editor.samples.painted;
-		final was = session.song.samples[0].length();
+		final trimmed = session.song.samples[0];
+		final was = trimmed.length();
+		final looping = trimmed.loop;
 
-		editor.samples.start = 100;
-		editor.samples.ends = 400;
+		trimmed.loop = 250;
+		editor.samples.start = 400;
+		editor.samples.ends = 100;
 		editor.samples.trim();
 
-		says("a sample is drawn and trimmed", columns > 100
-			&& session.song.samples[0].length() == 300,
-			columns + " columns of waveform, and trimming " + was + " bytes to the markers left "
-			+ session.song.samples[0].length());
+		final cut = trimmed.length();
+		final moved = trimmed.loop;
+
+		says("a sample is drawn and trimmed", columns > 100 && cut == 300 && moved == 150,
+			columns + " columns of waveform, and trimming " + was + " bytes to markers dragged past"
+			+ " each other left " + cut + ", looping from byte " + moved + " where it looped from 250");
+
+		session.undo();
+
+		says("and undo puts all of it back", trimmed.length() == was && trimmed.loop == 250,
+			"undone, it holds " + trimmed.length() + " bytes again and loops from " + trimmed.loop);
+
+		trimmed.loop = looping;
 
 		session.choose(Part.Fm1);
 		editor.show(Inspector.CHANNEL);

@@ -6,6 +6,7 @@ import mdd.app.Session;
 import mdd.song.Sample;
 import mdd.song.edit.LoudenSample;
 import mdd.song.edit.RemoveSample;
+import mdd.song.edit.TrimSample;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
@@ -149,15 +150,25 @@ final class Samples extends Widget {
 		menu.divide();
 
 		final held = session.song.samples[slot];
+		final cut = menu.offer(new Choice(translate(Locale.SAMPLE_TRIM)));
 		final loud = menu.offer(new Choice(translate(Locale.SAMPLE_NORMALISE)));
 		final drop = menu.offer(new Choice(translate(Locale.SAMPLE_CLEAR)));
 
 		if (held == null) {
+			cut.enabled = false;
 			loud.enabled = false;
 			drop.enabled = false;
 			loud.reason = translate(Locale.SAMPLE_EMPTY);
+			cut.reason = loud.reason;
 			drop.reason = loud.reason;
 		} else {
+			if (slot == chosen && trims()) {
+				fires(cut, function():Void trim());
+			} else {
+				cut.enabled = false;
+				cut.reason = translate(Locale.SAMPLE_TRIM_NONE);
+			}
+
 			fires(loud, function():Void normalised(slot));
 			fires(drop, function():Void cleared(slot));
 		}
@@ -209,12 +220,18 @@ final class Samples extends Widget {
 		return many == 0 ? x : x + width * index / many;
 	}
 
+	/**
+		@param px A point, across the waveform.
+		@param sample The recording drawn there.
+		@return The byte boundary nearest the point, from nought to the recording's length, so an
+			end marker can be put past the last byte.
+	**/
 	function byteAt(px:Float, sample:Sample):Int {
 		final many = sample.length();
 		if (many == 0) return 0;
 
 		final at = Math.round((px - x) * many / width);
-		return at < 0 ? 0 : (at >= many ? many - 1 : at);
+		return at < 0 ? 0 : (at > many ? many : at);
 	}
 
 	override function took(event:Input):Bool {
@@ -225,9 +242,12 @@ final class Samples extends Widget {
 				final slot = slotAt(event.y);
 
 				if (slot >= 0) {
-					chosen = slot;
-					start = 0;
-					ends = -1;
+					if (slot != chosen) {
+						chosen = slot;
+						start = 0;
+						ends = -1;
+					}
+
 					invalidate();
 
 					if (event.button == Pointer.Right) popped(slot, event.x, event.y);
@@ -235,6 +255,11 @@ final class Samples extends Widget {
 				}
 
 				if (sample == null || event.y < wave()) return false;
+
+				if (event.button == Pointer.Right) {
+					popped(chosen, event.x, event.y);
+					return true;
+				}
 
 				final at = byteAt(event.x, sample);
 				final near = Math.abs(at - start) < Math.abs(at - (ends < 0 ? sample.length() : ends));
@@ -249,8 +274,12 @@ final class Samples extends Widget {
 			case Kind.PointerMove:
 				final slot = slotAt(event.y);
 
-				tip = slot < 0 ? "" : session.song.samples[slot].name;
-				detail = slot < 0 ? "" : translate(Locale.TIP_MORE);
+				final over = slot < 0 && sample != null && event.y >= wave();
+
+				tip = slot >= 0 ? session.song.samples[slot].name
+					: (over ? translate(Locale.SAMPLE_WAVE_TIP) : "");
+				detail = slot >= 0 ? translate(Locale.TIP_MORE)
+					: (over ? translate(Locale.SAMPLE_WAVE_DETAIL) : "");
 
 				if (slot != hoverAt) {
 					hoverAt = slot;
@@ -280,29 +309,44 @@ final class Samples extends Widget {
 	}
 
 	/**
-		Cuts the sample down to what is between the start and the end.
+		Cuts the chosen recording down to what lies between the two markers, whichever way round
+		they were dragged, as one undoable step, and puts the markers back around all of what is
+		left. The loop point moves with the sound, as `TrimSample` says.
 	**/
 	public function trim():Void {
 		final sample = sample();
-		if (sample == null) return;
+		if (sample == null || !trims()) return;
 
-		final from = start < 0 ? 0 : start;
-		final until = ends < 0 || ends > sample.length() ? sample.length() : ends;
-
-		if (until <= from) return;
-
-		final held = new Vector<Int>(until - from);
-		for (i in 0...held.length) held[i] = sample.bytes[from + i];
-
-		session.holds();
-		sample.hold(held);
-		session.frees();
+		session.does(new TrimSample(chosen, kept(sample, true), kept(sample, false)));
 
 		start = 0;
 		ends = -1;
 
-		session.changed();
+		session.say(translate(Locale.SAMPLE_TRIM));
 		invalidate();
+	}
+
+	/**
+		@return Whether the markers leave out any of the chosen recording, so trimming to them
+			would change it.
+	**/
+	public function trims():Bool {
+		final sample = sample();
+		return sample != null && TrimSample.worth(sample, kept(sample, true), kept(sample, false));
+	}
+
+	/**
+		@param sample The chosen recording.
+		@param first Whether to answer where what is kept starts rather than where it ends.
+		@return The first byte the markers keep, or one past the last, whichever way round the
+			markers are.
+	**/
+	function kept(sample:Sample, first:Bool):Int {
+		final many = sample.length();
+		final one = start < 0 ? 0 : (start > many ? many : start);
+		final two = ends < 0 || ends > many ? many : ends;
+
+		return first ? (one < two ? one : two) : (one < two ? two : one);
 	}
 
 	/**
