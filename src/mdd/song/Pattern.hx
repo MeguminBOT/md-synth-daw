@@ -31,9 +31,11 @@ final class Pattern {
 	/**
 		One lane per part, always all eleven, in an array made at its size and never grown: a
 		`Vector` of objects casts through a virtual call on every read, and the sequencer reads
-		this for every part of every pattern it walks.
+		this for every part of every pattern it walks. The build tool reads the model on the
+		interpreter while it writes the shipped banks, and there it is an ordinary array filled in
+		order.
 	**/
-	public final lanes:Array<Lane> = cpp.NativeArray.create(Part.COUNT);
+	public final lanes:Array<Lane> = #if cpp cpp.NativeArray.create(Part.COUNT) #else [] #end;
 
 	/**
 		Builds an empty pattern with a lane for every part.
