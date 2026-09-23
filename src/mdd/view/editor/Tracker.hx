@@ -43,6 +43,12 @@ final class Tracker extends Widget {
 	public var octave:Int = 4;
 
 	/**
+		Which chord runs each of the tracker's own actions. The defaults until the application
+		hands over the reader's.
+	**/
+	public var bindings:mdd.app.Bindings = new mdd.app.Bindings();
+
+	/**
 		Where the cursor is, down.
 	**/
 	public var row(default, null):Int = 0;
@@ -905,7 +911,8 @@ final class Tracker extends Widget {
 
 	function steered(event:Input):Bool {
 		if (entering) return typed(event);
-		if (event.ctrl()) return commanded(event);
+		if (commanded(event)) return true;
+		if (event.ctrl()) return false;
 
 		if (event.code == Key.Return) {
 			opens();
@@ -959,10 +966,6 @@ final class Tracker extends Widget {
 				erase();
 				return true;
 
-			case Key.One:
-				cut();
-				return true;
-
 			case _:
 		}
 
@@ -1003,40 +1006,33 @@ final class Tracker extends Widget {
 		return !event.ctrl();
 	}
 
+	/**
+		Runs the tracker's own action for a chord, where one has it.
+
+		@param event The key.
+		@return Whether an action took it.
+	**/
 	function commanded(event:Input):Bool {
-		switch (event.code) {
-			case Key.PageUp:
+		switch (bindings.actionIn(mdd.app.Bindings.TRACKER, event.code, event.mods)) {
+			case mdd.app.Bindings.TRACKER_OCTAVE_UP:
 				if (octave < 8) octave++;
 				session.say(said(Locale.SAID_OCTAVE) + " " + octave);
 				invalidate();
-				return true;
 
-			case Key.PageDown:
+			case mdd.app.Bindings.TRACKER_OCTAVE_DOWN:
 				if (octave > 0) octave--;
 				session.say(said(Locale.SAID_OCTAVE) + " " + octave);
 				invalidate();
-				return true;
 
-			case Key.Left:
-				divides(-1);
-				return true;
-
-			case Key.Right:
-				divides(1);
-				return true;
-
-			case Key.Up:
-				louder(8);
-				return true;
-
-			case Key.Down:
-				louder(-8);
-				return true;
-
-			case _:
+			case mdd.app.Bindings.TRACKER_COARSER: divides(-1);
+			case mdd.app.Bindings.TRACKER_FINER: divides(1);
+			case mdd.app.Bindings.TRACKER_LOUDER: louder(8);
+			case mdd.app.Bindings.TRACKER_QUIETER: louder(-8);
+			case mdd.app.Bindings.TRACKER_CUT: cut();
+			case _: return false;
 		}
 
-		return false;
+		return true;
 	}
 
 	function louder(by:Int):Void {

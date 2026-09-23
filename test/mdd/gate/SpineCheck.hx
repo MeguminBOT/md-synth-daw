@@ -758,6 +758,23 @@ class SpineCheck {
 			"the velocity went from " + level + " to " + louder + " and back to "
 			+ only.velocity);
 
+		final before = only.pitch;
+
+		roll.bindings.binds(mdd.app.Bindings.TRANSPOSE_UP, mdd.ui.Key.K, mdd.ui.Mod.None);
+		roll.took(chord(mdd.ui.Key.Up, mdd.ui.Mod.None));
+
+		final byArrow = only.pitch;
+		roll.took(chord(mdd.ui.Key.K, mdd.ui.Mod.None));
+
+		final byLetter = only.pitch;
+		roll.bindings.restores(mdd.app.Bindings.TRANSPOSE_UP);
+
+		says("and its shortcut can be changed", byArrow == before
+			&& byLetter == before + 1 && roll.bindings.shortcut(mdd.app.Bindings.TRANSPOSE_UP) == "Up",
+			"with transpose up moved to K, Up left the note at " + byArrow + " and K took it to "
+			+ byLetter + ", and putting it back reads '"
+			+ roll.bindings.shortcut(mdd.app.Bindings.TRANSPOSE_UP) + "'");
+
 		lane.notes.resize(0);
 		roll.picked.clear();
 		session.history.clear();
@@ -1976,6 +1993,30 @@ class SpineCheck {
 				== mdd.app.Bindings.DRAW,
 			"draw took Ctrl+Alt+B and undo was left with nothing rather than a second owner");
 
+		final scoped = new mdd.app.Bindings();
+
+		final inRoll = scoped.actionIn(mdd.app.Bindings.ROLL, mdd.ui.Key.Up, mdd.ui.Mod.None);
+		final inPlaylist = scoped.actionIn(mdd.app.Bindings.PLAYLIST, mdd.ui.Key.Up, mdd.ui.Mod.None);
+		final inTracker = scoped.actionIn(mdd.app.Bindings.TRACKER, mdd.ui.Key.Up, mdd.ui.Mod.Ctrl);
+		final everywhere = scoped.actionFor(mdd.ui.Key.Up, mdd.ui.Mod.None);
+
+		says("an editor's shortcut is heard only there",
+			inRoll == mdd.app.Bindings.TRANSPOSE_UP && inPlaylist == mdd.app.Bindings.TRANSPOSE_UP
+			&& inTracker == mdd.app.Bindings.TRACKER_LOUDER && everywhere == mdd.app.Bindings.NONE,
+			"Up transposes in the piano roll and the playlist, Ctrl+Up raises the velocity in the"
+			+ " tracker, and Up on its own runs nothing outside them");
+
+		scoped.binds(mdd.app.Bindings.TRACKER_CUT, mdd.ui.Key.Left, mdd.ui.Mod.Ctrl);
+
+		final shared = scoped.actionFor(mdd.ui.Key.Left, mdd.ui.Mod.Ctrl);
+		final owned = scoped.actionIn(mdd.app.Bindings.TRACKER, mdd.ui.Key.Left, mdd.ui.Mod.Ctrl);
+
+		says("and may share a chord with everywhere",
+			shared == mdd.app.Bindings.EARLIER && owned == mdd.app.Bindings.TRACKER_CUT
+			&& !scoped.bound(mdd.app.Bindings.TRACKER_COARSER),
+			"the tracker's note cut took Ctrl+Left from its fewer rows a beat, and nudging"
+			+ " everything earlier kept it");
+
 		says("and a tag survives a project", tagsKeep(session),
 			"written and read back with all " + held.tags.length + " of its tags, "
 			+ held.tags.join(", "));
@@ -3119,6 +3160,26 @@ class SpineCheck {
 			&& over.pitch == 62 && over.velocity == 64,
 			"a cell holding " + (over == null ? "nothing" : Tracker.spelt(over.pitch)
 			+ " at a velocity of " + over.velocity) + " came from a copy of D-4 20");
+
+		final octave = tracker.octave;
+		tracker.took(chord(mdd.ui.Key.PageUp, mdd.ui.Mod.Ctrl));
+
+		final raised = tracker.octave;
+
+		tracker.bindings.binds(mdd.app.Bindings.TRACKER_OCTAVE_UP, mdd.ui.Key.K, mdd.ui.Mod.None);
+		tracker.took(chord(mdd.ui.Key.PageUp, mdd.ui.Mod.Ctrl));
+
+		final kept = tracker.octave;
+		tracker.took(chord(mdd.ui.Key.K, mdd.ui.Mod.None));
+
+		final moved = tracker.octave;
+		tracker.bindings.restores(mdd.app.Bindings.TRACKER_OCTAVE_UP);
+		tracker.octave = octave;
+
+		says("a tracker shortcut can be changed", raised == octave + 1 && kept == raised
+			&& moved == raised + 1,
+			"Ctrl+Page Up took the octave from " + octave + " to " + raised + ", and once moved to K,"
+			+ " Ctrl+Page Up left it at " + kept + " and K took it to " + moved);
 
 		lane.notes.resize(0);
 		reined(tree, tracker);

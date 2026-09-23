@@ -2112,9 +2112,11 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
-		Which chord reaches each tool, for the tooltips.
+		Which chord runs each action: the ones the menus show, and the piano roll's own, which
+		move, transpose and lean the selected notes. The defaults until the application hands over
+		the reader's.
 	**/
-	public var bindings:Null<mdd.app.Bindings> = null;
+	public var bindings:mdd.app.Bindings = new mdd.app.Bindings();
 
 	function copies():Bool {
 		final held = held();
@@ -2309,35 +2311,24 @@ final class PianoRoll extends Widget {
 
 		if (picked.count == 0) return false;
 
-		switch (event.code) {
-			case Key.Delete, Key.Backspace:
-				erased();
-				return true;
-
-			case Key.Up:
-				if (event.shift()) leant(LEAN);
-				else nudges(0, event.ctrl() ? 12 : 1);
-
-				return true;
-
-			case Key.Down:
-				if (event.shift()) leant(-LEAN);
-				else nudges(0, event.ctrl() ? -12 : -1);
-
-				return true;
-
-			case Key.Left:
-				nudges(-session.snap, 0);
-				return true;
-
-			case Key.Right:
-				nudges(session.snap, 0);
-				return true;
-
-			case _:
+		if (event.code == Key.Delete || event.code == Key.Backspace) {
+			erased();
+			return true;
 		}
 
-		return false;
+		switch (bindings.actionIn(mdd.app.Bindings.ROLL, event.code, event.mods)) {
+			case mdd.app.Bindings.NOTES_EARLIER: nudges(-session.snap, 0);
+			case mdd.app.Bindings.NOTES_LATER: nudges(session.snap, 0);
+			case mdd.app.Bindings.TRANSPOSE_UP: nudges(0, 1);
+			case mdd.app.Bindings.TRANSPOSE_DOWN: nudges(0, -1);
+			case mdd.app.Bindings.OCTAVE_UP: nudges(0, 12);
+			case mdd.app.Bindings.OCTAVE_DOWN: nudges(0, -12);
+			case mdd.app.Bindings.LOUDER: leant(LEAN);
+			case mdd.app.Bindings.QUIETER: leant(-LEAN);
+			case _: return false;
+		}
+
+		return true;
 	}
 
 	function erased():Void {

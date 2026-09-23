@@ -89,9 +89,10 @@ final class Playlist extends Widget {
 	public var painted(default, null):Int = 0;
 
 	/**
-		Which chord reaches each tool, for the tooltips.
+		Which chord runs each action: the ones the menus show, and the playlist's own, which
+		transpose the selected clips. The defaults until the application hands over the reader's.
 	**/
-	public var bindings:Null<mdd.app.Bindings> = null;
+	public var bindings:mdd.app.Bindings = new mdd.app.Bindings();
 
 	/**
 		Called to rename a track.
@@ -1713,23 +1714,18 @@ final class Playlist extends Widget {
 
 		if (picked.count == 0) return false;
 
-		switch (event.code) {
-			case Key.Delete, Key.Backspace:
-				erased();
-				return true;
-
-			case Key.Up:
-				transposed(1);
-				return true;
-
-			case Key.Down:
-				transposed(-1);
-				return true;
-
-			case _:
+		if (event.code == Key.Delete || event.code == Key.Backspace) {
+			erased();
+			return true;
 		}
 
-		return false;
+		switch (bindings.actionIn(mdd.app.Bindings.PLAYLIST, event.code, event.mods)) {
+			case mdd.app.Bindings.TRANSPOSE_UP: transposed(1);
+			case mdd.app.Bindings.TRANSPOSE_DOWN: transposed(-1);
+			case _: return false;
+		}
+
+		return true;
 	}
 
 	function transposed(by:Int):Void {

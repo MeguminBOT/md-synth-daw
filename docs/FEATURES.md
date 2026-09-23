@@ -745,6 +745,21 @@ importing one reads those back.
 | `Ctrl+E` | export a VGM |
 | `Ctrl+Shift+E` | export audio |
 | `Ctrl+,` | preferences |
+| `Left`, `Right` | nudge the selected notes by the snap |
+| `Up`, `Down` | transpose the selected notes or clips a semitone |
+| `Ctrl+Up`, `Ctrl+Down` | transpose the selected notes an octave |
+| `Shift+Up`, `Shift+Down` | raise or lower the selected notes' velocity |
+| `Ctrl+Up`, `Ctrl+Down` in the tracker | raise or lower the velocity at the cursor |
+| `Ctrl+Page Up`, `Ctrl+Page Down` in the tracker | the octave typed notes land in |
+| `Ctrl+Left`, `Ctrl+Right` in the tracker | fewer or more rows a beat |
+| `1` in the tracker | a note cut |
+
+Every shortcut here, and every other one in the Keyboard preferences, can be changed there, and a
+right click puts one back. A shortcut the piano roll, the playlist or the tracker uses is heard
+only while that editor has the keyboard, so it can share a chord with one that works everywhere:
+in the tracker `Ctrl+Left` means fewer rows a beat, and anywhere else it nudges everything earlier.
+What every application does the same stays as it is: the arrow keys, Home, End, Page Up and Page
+Down moving the tracker's cursor, Delete, Escape, Enter and Tab, and the tracker's note keys.
 
 A chord reaches the session after the focus chain declines it, so stopping playback while renaming
 something works, and typing a space into a field does not start playback.

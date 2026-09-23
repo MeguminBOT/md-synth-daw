@@ -2143,6 +2143,7 @@ class App {
 
 		panels.centre.roll.bindings = bindings;
 		panels.centre.playlist.bindings = bindings;
+		panels.centre.tracker.bindings = bindings;
 	}
 
 	/**
