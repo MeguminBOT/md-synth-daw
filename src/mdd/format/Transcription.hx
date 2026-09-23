@@ -211,6 +211,19 @@ final class Transcription {
 
 	final dacBytes:Array<Int> = [];
 	final dacWhen:Array<Int> = [];
+
+	/**
+		The gaps between converter writes, taken afresh by whatever sorts them and kept between
+		runs so a run does not allocate them again.
+	**/
+	final gaps:Array<Int> = [];
+
+	/**
+		The median gap of the run being cut, worked out once by `spacing` for every step of
+		cutting it to read.
+	**/
+	var spaced:Int = 6;
+
 	final dacTake:Array<Int> = [];
 	final kits:Array<Int> = [];
 	final prints:Array<Vector<Float>> = [];
@@ -817,6 +830,7 @@ final class Transcription {
 		dacHead = -1;
 
 		if (dacBytes.length >= DAC_LEAST && ends > dacWhen[0]) {
+			spaced = spacing();
 			stalled();
 			split();
 		}
@@ -833,12 +847,63 @@ final class Transcription {
 		final many = dacWhen.length;
 		if (many < 2) return 6;
 
-		final gaps:Array<Int> = [];
+		gaps.resize(0);
 		for (index in 1...many) gaps.push(dacWhen[index] - dacWhen[index - 1]);
-		gaps.sort(function(one:Int, two:Int):Int return one - two);
+		ascending(gaps);
 
 		final middle = gaps[gaps.length >> 1];
 		return middle < 1 ? 1 : middle;
+	}
+
+	/**
+		Sorts whole numbers into ascending order in place, without the closure and the boxed
+		numbers `Array.sort` costs on every comparison.
+
+		@param values The numbers.
+	**/
+	static function ascending(values:Array<Int>):Void {
+		final many = values.length;
+		var start = many >> 1;
+
+		while (start > 0) {
+			start--;
+			sink(values, start, many);
+		}
+
+		var ends = many;
+
+		while (ends > 1) {
+			ends--;
+
+			final swap = values[0];
+			values[0] = values[ends];
+			values[ends] = swap;
+
+			sink(values, 0, ends);
+		}
+	}
+
+	/**
+		Moves one value down a heap until neither child below it is larger.
+
+		@param values The heap.
+		@param from Where the value starts.
+		@param until One past the end of the heap.
+	**/
+	static function sink(values:Array<Int>, from:Int, until:Int):Void {
+		var root = from;
+
+		while (root * 2 + 1 < until) {
+			var child = root * 2 + 1;
+			if (child + 1 < until && values[child] < values[child + 1]) child++;
+			if (values[root] >= values[child]) return;
+
+			final swap = values[root];
+			values[root] = values[child];
+			values[child] = swap;
+
+			root = child;
+		}
 	}
 
 	/**
@@ -851,7 +916,7 @@ final class Transcription {
 
 		if (seed < 8 || dacWhen.length < 64) return;
 
-		final middle = spacing();
+		final middle = spaced;
 
 		final at:Array<Int> = [];
 		final much:Array<Int> = [];
@@ -894,9 +959,11 @@ final class Transcription {
 				held[phase] += much[index];
 			}
 
+			var total = 0;
+			for (step in 0...STALL_REACH) total += held[step % wraps];
+
 			for (start in 0...wraps) {
-				var total = 0;
-				for (step in 0...STALL_REACH) total += held[(start + step) % wraps];
+				if (start > 0) total += held[(start + STALL_REACH - 1) % wraps] - held[start - 1];
 
 				if (total <= bestMass) continue;
 
@@ -923,7 +990,7 @@ final class Transcription {
 		@return How well the gaps in the stream fit it.
 	**/
 	function borne(every:Float):Int {
-		final middle = spacing();
+		final middle = spaced;
 		final most = middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8;
 		final each:Array<Float> = [];
 
@@ -967,9 +1034,11 @@ final class Transcription {
 		would drop the tail.
 	**/
 	function split():Void {
-		final middle = spacing();
+		final middle = spaced;
 		final held = dacWhen.length > 1 && !repeats(0, dacWhen.length - 1);
 		final most = held ? DAC_GAP : (middle * 8 < DAC_PAUSE ? DAC_PAUSE : middle * 8);
+
+		for (slot in 0...REMEMBERED) steadyFrom[slot] = -1;
 
 		var head = 0;
 
@@ -995,12 +1064,42 @@ final class Transcription {
 	function shifts(at:Int):Bool {
 		if (at + STEADY >= dacWhen.length) return false;
 
-		final was = steady(at - STEADY, STEADY);
-		final now = steady(at + 1, STEADY);
+		final was = remembered(at - STEADY);
+		final now = remembered(at + 1);
 
 		if (was < 0.5 || now < 0.5) return false;
 
 		return now > was * STEADY_TURN || now * STEADY_TURN < was;
+	}
+
+	/**
+		How many of `steady`'s answers the cut in progress keeps. `shifts` asks about every
+		window twice, once as the one after a write and again, `STEADY` writes on, as the one
+		before, so the answers of the last hundred or so windows are all it needs.
+	**/
+	static inline final REMEMBERED = 128;
+
+	/**
+		Which window each kept answer is for, by its first write, or -1 for none. `split` clears
+		it, because the writes it was worked out from belong to one cut.
+	**/
+	final steadyFrom:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(REMEMBERED);
+
+	final steadyAnswer:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(REMEMBERED);
+
+	/**
+		@param from The first converter write of a window `STEADY` writes long.
+		@return What `steady` answers for it, worked out once however often it is asked.
+	**/
+	function remembered(from:Int):Float {
+		final slot = from & (REMEMBERED - 1);
+		if (steadyFrom[slot] == from) return steadyAnswer[slot];
+
+		final answer = steady(from, STEADY);
+		steadyFrom[slot] = from;
+		steadyAnswer[slot] = answer;
+
+		return answer;
 	}
 
 	final steadied:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(STEADY);
@@ -1058,16 +1157,16 @@ final class Transcription {
 			}
 		}
 
-		final gaps:Array<Int> = [];
+		gaps.resize(0);
 
 		for (index in head + 1...last + 1) {
 			final apart = dacWhen[index] - dacWhen[index - 1];
 			if (apart >= 0 && apart <= DAC_GAP) gaps.push(apart);
 		}
 
-		if (gaps.length < 4) return Std.int(Tempo.TICKS / spacing());
+		if (gaps.length < 4) return Std.int(Tempo.TICKS / spaced);
 
-		gaps.sort(function(one:Int, two:Int):Int return one - two);
+		ascending(gaps);
 
 		final middle = gaps[gaps.length >> 1];
 		final most = (middle < 1 ? 1 : middle) * 4;
@@ -1082,7 +1181,7 @@ final class Transcription {
 			counted++;
 		}
 
-		if (counted < 1 || total < 1) return Std.int(Tempo.TICKS / spacing());
+		if (counted < 1 || total < 1) return Std.int(Tempo.TICKS / spaced);
 
 		final rate = Math.round(counted * (Tempo.TICKS / total));
 		return rate < 2000 ? 2000 : (rate > Tempo.TICKS ? Tempo.TICKS : rate);
@@ -1229,7 +1328,7 @@ final class Transcription {
 			half as long again as the middle one, which leaves out every gap a held byte made.
 	**/
 	function stepOf(head:Int, last:Int):Float {
-		final gaps:Array<Int> = [];
+		gaps.resize(0);
 
 		for (index in head + 1...last + 1) {
 			final apart = dacWhen[index] - dacWhen[index - 1];
@@ -1238,7 +1337,7 @@ final class Transcription {
 
 		if (gaps.length == 0) return 1;
 
-		gaps.sort(function(one:Int, two:Int):Int return one - two);
+		ascending(gaps);
 
 		final most = gaps[gaps.length >> 1] * 1.5;
 
