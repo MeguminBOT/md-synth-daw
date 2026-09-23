@@ -411,6 +411,12 @@ final class Scope extends Widget {
 				session.choose(part);
 				return true;
 
+			case Kind.PointerMove:
+				final part = switchAt(event.x, event.y) >= 0 ? -1 : laneAt(event.x, event.y);
+
+				tip = part < 0 ? "" : nameOf(part);
+				detail = part < 0 ? "" : translate(Locale.SCOPE_LANE_DETAIL);
+
 			case _:
 		}
 

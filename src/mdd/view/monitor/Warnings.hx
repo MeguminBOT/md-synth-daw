@@ -103,6 +103,8 @@ final class Warnings extends Scroll {
 
 			case Kind.PointerMove:
 				final at = rowAt(event.y);
+				tip = at < 0 ? "" : translate(Locale.WARNINGS_SHOW);
+
 				if (at == hoverAt) return false;
 
 				hoverAt = at;

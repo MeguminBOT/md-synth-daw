@@ -169,6 +169,10 @@ final class Registers extends Scroll {
 				invalidate();
 				return true;
 
+			case Kind.PointerMove:
+				tip = translate(following ? Locale.REGISTERS_HOLD : Locale.REGISTERS_FOLLOW);
+				detail = translate(Locale.TIP_MORE);
+
 			case _:
 		}
 
