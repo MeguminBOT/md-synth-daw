@@ -148,7 +148,7 @@ final class Voices {
 
 		final head = from - lane.reach;
 
-		var first = seek(notes, head < 0 ? 0 : head);
+		var first = lane.seek(head < 0 ? 0 : head);
 		var back = 0;
 
 		while (first > 0 && first < many && back < CHAIN
@@ -157,32 +157,13 @@ final class Voices {
 			back++;
 		}
 
-		final last = seek(notes, until);
+		final last = lane.seek(until);
 
 		return switch (policy) {
 			case Polyphony.Strict: strict(notes, first, last);
 			case Polyphony.Stealing: stealing(notes, first, last);
 			case _: arpeggiate(notes, first, last, from, until);
 		}
-	}
-
-	/**
-		@param notes The notes of a lane, in order.
-		@param tick The tick to find.
-		@return The index of the first note starting at or after that tick.
-	**/
-	static function seek(notes:Array<Note>, tick:Int):Int {
-		var low = 0;
-		var high = notes.length;
-
-		while (low < high) {
-			final middle = (low + high) >> 1;
-
-			if (notes[middle].at < tick) low = middle + 1;
-			else high = middle;
-		}
-
-		return low;
 	}
 
 	/**

@@ -673,11 +673,10 @@ final class Sequencer {
 				if (pattern == null) continue;
 
 				final local = tick - clip.origin();
+				final lane = pattern.lane(part);
+				final found = lane.seek(local);
 
-				for (note in pattern.lane(part).notes) {
-					if (note.at > local) break;
-					if (note.at == local) return true;
-				}
+				if (found < lane.notes.length && lane.notes[found].at == local) return true;
 			}
 		}
 
@@ -794,15 +793,16 @@ final class Sequencer {
 				if (pattern == null) continue;
 
 				final local = tick - clip.origin();
+				final lane = pattern.lane(part);
+				final last = lane.seek(local + 1) - 1;
+				if (last < 0) continue;
 
-				for (note in pattern.lane(part).notes) {
-					if (note.at > local) break;
+				final note = lane.notes[last];
 
-					found = note;
-					ended = note.ends() <= local;
-					underTranspose = clip.transpose;
-					underLane = pattern.lane(part);
-				}
+				found = note;
+				ended = note.ends() <= local;
+				underTranspose = clip.transpose;
+				underLane = lane;
 			}
 		}
 
@@ -1534,8 +1534,10 @@ final class Sequencer {
 		var under:Null<mdd.song.Note> = null;
 
 		if (lane != null) {
-			for (note in lane.notes) {
-				if (note.at > local) break;
+			final last = lane.seek(local + 1) - 1;
+
+			if (last >= 0) {
+				final note = lane.notes[last];
 
 				named = note.instrument;
 				under = note;
@@ -1835,17 +1837,9 @@ final class Sequencer {
 	**/
 	function tiedFrom(lane:mdd.song.Lane, at:Int):Null<mdd.song.Note> {
 		final notes = lane.notes;
-		var index = -1;
+		var index = lane.seek(at);
 
-		for (which in 0...notes.length) {
-			if (notes[which].at > at) break;
-			if (notes[which].at == at) {
-				index = which;
-				break;
-			}
-		}
-
-		if (index < 0) return null;
+		if (index >= notes.length || notes[index].at != at) return null;
 
 		while (index > 0 && notes[index].tied && notes[index - 1].ends() >= notes[index].at) index--;
 

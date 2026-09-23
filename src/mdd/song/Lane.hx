@@ -112,6 +112,29 @@ final class Lane {
 	}
 
 	/**
+		Finds a note by search rather than by walking every one, so a long lane costs no
+		more to read than a short one. It relies on the notes being in tick order.
+
+		@param tick A tick.
+		@return The index of the first note starting at or after it, which is the note count
+			where none does. The last note starting at or before a tick is one before
+			`seek(tick + 1)`.
+	**/
+	public function seek(tick:Int):Int {
+		var low = 0;
+		var high = notes.length;
+
+		while (low < high) {
+			final middle = (low + high) >> 1;
+
+			if (notes[middle].at < tick) low = middle + 1;
+			else high = middle;
+		}
+
+		return low;
+	}
+
+	/**
 		@return The tick the last note finishes on.
 	**/
 	public function longest():Int {
