@@ -2,6 +2,7 @@ package mdd.app;
 
 import haxe.ds.Vector;
 import mdd.format.Midi;
+import mdd.format.Needed;
 import mdd.format.Project;
 import mdd.format.Strand;
 import mdd.format.Transcription;
@@ -329,12 +330,15 @@ final class Files {
 	}
 
 	/**
-		@return A stamp over the piece and its samples. Two calls agreeing means nothing has
-			changed since, which is what decides whether a save on its own has anything to do.
+		@return A stamp over what a save on its own would write: the piece, its samples and the
+			presets it still keeps. Two calls agreeing means nothing has changed since, which is
+			what decides whether a save on its own has anything to do.
 	**/
 	public function marked():Int {
-		final said = haxe.io.Bytes.ofString(Project.text(session.song));
-		final bulk = Project.bulk(session.song);
+		final song = session.song;
+		final kept = session.spares(Needed.of(song), true);
+		final said = haxe.io.Bytes.ofString(Project.text(song, kept));
+		final bulk = Project.bulk(song, kept);
 
 		return haxe.crypto.Crc32.make(said) ^ haxe.crypto.Crc32.make(bulk);
 	}
@@ -350,9 +354,10 @@ final class Files {
 		if (now == stamp) return false;
 
 		final where = path != "" ? path : recovery();
+		final song = session.song;
 
 		try {
-			Project.save(session.song, where);
+			Project.save(song, where, session.spares(Needed.of(song), true));
 		} catch (e:Dynamic) {
 			session.says(Locale.SAID_SAVE_FAILED, "" + e);
 			return true;
@@ -937,6 +942,8 @@ final class Files {
 		final named = suffixed(where, mdd.Config.SUFFIX);
 
 		Project.save(session.song, named);
+		session.sheds(Needed.of(session.song));
+
 		path = named;
 		forget();
 

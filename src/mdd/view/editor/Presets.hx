@@ -1947,23 +1947,26 @@ final class Presets extends Widget {
 	}
 
 	/**
-		Gathers the presets the piece carries because it plays them, under one bank of their own,
-		and notes every identity they carry or came from.
+		Gathers the presets the piece carries because it plays them, and the ones it still keeps
+		though nothing plays them any more, under one bank of their own, and notes every identity
+		the played ones carry or came from.
 	**/
 	function project():Void {
 		final song = session.song;
 		final needed = mdd.format.Needed.of(song);
+		final kept = session.spares(needed, false);
 		final named = translate(Locale.PRESET_FROM_PROJECT);
 
 		used.clear();
 
 		for (index in 0...song.instruments.length) {
-			if (needed.instrument(index) < 0) continue;
+			final plays = needed.instrument(index) >= 0;
+			if (!plays && !kept[index]) continue;
 
 			final held = song.instruments[index];
 
-			if (held.id != "") used.set(held.id, true);
-			if (held.from != "") used.set(held.from, true);
+			if (plays && held.id != "") used.set(held.id, true);
+			if (plays && held.from != "") used.set(held.from, true);
 
 			offered(held, song.sampleAt(held.sample), named, Offer.PROJECT, index, -1);
 		}

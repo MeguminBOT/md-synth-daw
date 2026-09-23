@@ -13,14 +13,17 @@ import mdd.song.Song;
 	A file is the piece, and the piece is what it plays: its rack, every preset a note or a preset
 	lane names, whether the lane sits in a pattern or in an automation clip, and the whole of the
 	bank the converter preset in the rack sits in, because a kit is picked by note out of a bank
-	rather than by index. Nothing else is written. A preset loaded into a channel and then swapped
-	for another is left behind, and so is whatever the browser was offering, because the library
-	offers it again on any machine that has it and nothing in the piece plays it.
+	rather than by index. Nothing else is written unless the caller names it. A preset loaded into
+	a channel and then swapped for another is left behind by a save by hand, and whatever the
+	browser was offering is never written, because the library offers it again on any machine that
+	has it and nothing in the piece plays it. A save on its own names the presets the session still
+	keeps, so a channel can go back to one until the piece is saved by hand and closed.
 
 	A recording is carried where a preset that is carried plays it, and one nothing names at all is
 	carried too, because nothing else says it was wanted.
 
-	The same list is what the preset browser shows as the piece's own.
+	The same list, with what the session keeps, is what the preset browser shows as the piece's
+	own.
 **/
 @:unreflective
 final class Needed {
@@ -46,9 +49,11 @@ final class Needed {
 		Works out what a piece has to carry.
 
 		@param song The piece.
+		@param kept Presets to carry although nothing plays them, by index into the piece, or null
+			for none.
 		@return What to write, and where each preset and recording goes.
 	**/
-	public static function of(song:Song):Needed {
+	public static function of(song:Song, kept:Null<Vector<Bool>> = null):Needed {
 		final many = song.instruments.length;
 		final held = song.samples.length;
 
@@ -76,6 +81,11 @@ final class Needed {
 				final line = clip.line;
 				if (clip.automates() && line != null) swaps(song, want, line);
 			}
+		}
+
+		if (kept != null) {
+			final most = kept.length < many ? kept.length : many;
+			for (index in 0...most) if (kept[index]) want[index] = true;
 		}
 
 		final playing = new Vector<Bool>(held);

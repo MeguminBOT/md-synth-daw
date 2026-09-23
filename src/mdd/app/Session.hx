@@ -47,6 +47,18 @@ final class Session {
 	public var library:Null<mdd.song.Library> = null;
 
 	/**
+		The presets the piece held when this session began: what its file carried, or what a new
+		piece starts with.
+	**/
+	final carried:Array<mdd.song.Instrument> = [];
+
+	/**
+		The presets a save by hand has left out of the file because nothing played them. They are
+		still offered as the piece's own, and a save on its own does not write them back.
+	**/
+	final shed:Array<mdd.song.Instrument> = [];
+
+	/**
 		@param held A preset the piece carries, usually a channel's.
 		@return The preset it was loaded from, found by identity among the installed presets first
 			and then among the piece's others, or null where it came from none or neither holds it.
@@ -316,6 +328,78 @@ final class Session {
 	public function new(song:Song) {
 		this.song = song;
 		transport = new Transport(song, 65536);
+
+		for (held in song.instruments) carried.push(held);
+	}
+
+	/**
+		Works out which presets the piece still keeps although nothing in it plays them any more.
+
+		A preset swapped out of a channel stays the piece's own until a save by hand has left it
+		out of the file and the piece has been closed, so a channel can always go back to what it
+		played. That holds for everything the piece opened with and for any copy that was played
+		with. A copy of an installed preset left exactly as it was is not kept, because the library
+		still offers it, and a sound something else already makes is kept once.
+
+		It works out the sound of every preset the piece holds, recordings included, so it belongs
+		on a save or on rebuilding the browser rather than on a frame.
+
+		@param played What the piece plays, as `mdd.format.Needed.of` gives it.
+		@param saving Whether it is for a save on its own, which leaves out what a save by hand has
+			already let go of.
+		@return Whether each preset is kept, by index into the piece.
+	**/
+	public function spares(played:mdd.format.Needed, saving:Bool):haxe.ds.Vector<Bool> {
+		final instruments = song.instruments;
+		final many = instruments.length;
+		final out = new haxe.ds.Vector<Bool>(many);
+		final heard = new haxe.ds.StringMap<Bool>();
+
+		for (index in 0...many) {
+			out[index] = false;
+			if (played.instrument(index) >= 0) heard.set(sounded(instruments[index]), true);
+		}
+
+		for (index in 0...many) {
+			if (played.instrument(index) >= 0) continue;
+
+			final held = instruments[index];
+			if (saving && shed.indexOf(held) >= 0) continue;
+
+			final sound = sounded(held);
+			if (heard.exists(sound)) continue;
+			if (held.from == sound && carried.indexOf(held) < 0) continue;
+
+			heard.set(sound, true);
+			out[index] = true;
+		}
+
+		return out;
+	}
+
+	/**
+		Lets go of every preset nothing plays, which a save by hand does: the file it wrote leaves
+		them out, and a save on its own after it does not write them back. `spares` still offers
+		them until the piece is closed.
+
+		@param played What the piece plays, as `mdd.format.Needed.of` gives it.
+	**/
+	public function sheds(played:mdd.format.Needed):Void {
+		final instruments = song.instruments;
+
+		for (index in 0...instruments.length) {
+			final held = instruments[index];
+			if (played.instrument(index) < 0 && shed.indexOf(held) < 0) shed.push(held);
+		}
+	}
+
+	/**
+		@param held A preset the piece holds.
+		@return What it sounds like, as `mdd.format.Preset.identity` gives it, worked out now rather
+			than read from the identity it last carried, which an edit leaves behind.
+	**/
+	function sounded(held:mdd.song.Instrument):String {
+		return mdd.format.Preset.identity(held, held.kind.sampled() ? song.sampleAt(held.sample) : null);
 	}
 
 	static inline final TRACKS = 8;

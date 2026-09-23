@@ -400,6 +400,11 @@ A VGM this application wrote therefore imports with its drums where they were.
   have installed: its channels, what its notes and preset lanes name, and its kit. Open another
   piece, or start a new one, and it lists that piece's instead. A preset there is the piece's own
   copy, so renaming it or giving it an icon or tags changes the piece and nothing in your folder.
+- **A preset you swap out of a channel stays in From project**, so you can always go back to it:
+  everything the piece opened with, and any preset you changed while it played. One you only
+  tried and left as it was goes back to being offered by its bank alone. Saving on its own keeps
+  them in the file. Saving by hand leaves them out, and they stay listed until you close the
+  piece, so a piece you saved by hand and closed carries only what it plays.
 
 A preset arrives as a timbre with no loudness attached to it, because a driver keeps its
 channel volume apart from the voice and adds it in at every key on. Loading one therefore

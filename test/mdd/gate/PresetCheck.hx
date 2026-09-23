@@ -1,5 +1,6 @@
 package mdd.gate;
 
+import mdd.format.Project;
 import mdd.song.Envelope;
 import mdd.song.Instrument;
 import mdd.song.Library;
@@ -69,6 +70,7 @@ class PresetCheck {
 		organised(where);
 		imported(where);
 		planted(where);
+		spared(where);
 
 		mdd.host.Paths.clear(where);
 
@@ -800,6 +802,140 @@ class PresetCheck {
 			&& edited.patch.feedback != feedback && edited.name == "Lead I Changed",
 			"undone, the channel reads " + (edited == null ? "nothing" : edited.name
 			+ " at a feedback of " + edited.patch.feedback));
+	}
+
+	/**
+		A preset swapped out of a channel stays the piece's own until the piece is saved by hand and
+		closed. The browser keeps offering it and a save on its own keeps writing it; a save by hand
+		leaves it out of the file but it is still offered until the piece closes. A copy of an
+		installed preset that was never played with is not kept, because the library still has it,
+		and one that was played with is.
+	**/
+	static function spared(where:String):Void {
+		mdd.host.Paths.clear(where);
+		mdd.host.Paths.make(where);
+
+		final song = new Song("spared");
+		final own = song.instrument(patched("Own"));
+		final other = song.instrument(patched("Other"));
+
+		song.rack[Part.Fm1.index()] = song.instruments.indexOf(own);
+		song.rack[Part.Fm2.index()] = song.instruments.indexOf(other);
+
+		final session = new mdd.app.Session(song);
+		final files = new mdd.app.Files(session);
+		final named = where + "/spared." + mdd.Config.SUFFIX;
+
+		files.backupRoom = 0;
+		files.save(named);
+
+		final plain = patched("Tried plain");
+		final edited = patched("Tried edited");
+		final last = patched("Tried last");
+		final after = patched("Tried after");
+
+		for (one in [plain, edited, last, after]) one.identifies(null);
+
+		mdd.song.edit.TakesPreset.adopting(Part.Fm1, plain, null).apply(song);
+		final tried = song.instrumentAt(song.rack[Part.Fm1.index()]);
+
+		says("a preset swapped out of a channel stays", offers(session, own),
+			"Fm1 plays " + (tried == null ? "nothing" : tried.name) + " and the piece still offers "
+			+ own.name + " as its own");
+
+		mdd.song.edit.TakesPreset.adopting(Part.Fm1, edited, null).apply(song);
+		final played = song.instrumentAt(song.rack[Part.Fm1.index()]);
+
+		says("and a copy nobody played with does not", tried != null && !offers(session, tried),
+			"swapped out as it was loaded, " + plain.name + " is left to the library");
+
+		if (tried == null || played == null || played.patch == null) return;
+
+		played.patch.feedback = played.patch.feedback == 7 ? 1 : 7;
+		mdd.song.edit.TakesPreset.adopting(Part.Fm1, last, null).apply(song);
+
+		says("and one that was played with does", offers(session, played),
+			"swapped out at a feedback of " + played.patch.feedback + ", " + played.name
+			+ " is still offered");
+
+		final kept = files.keep();
+		final autosaved = names(named);
+
+		says("and a save on its own writes them", kept && autosaved.indexOf(own.name) >= 0
+			&& autosaved.indexOf(played.name) >= 0 && autosaved.indexOf(plain.name) < 0,
+			"the file carries " + autosaved.join(", "));
+
+		files.save(named);
+		final saved = names(named);
+
+		says("a save by hand leaves them out", saved.indexOf(own.name) < 0
+			&& saved.indexOf(played.name) < 0 && offers(session, own) && offers(session, played),
+			"the file carries " + saved.join(", ") + ", and the open piece still offers "
+			+ own.name + " and " + played.name);
+
+		mdd.song.edit.TakesPreset.adopting(Part.Fm2, after, null).apply(song);
+
+		final again = files.keep();
+		final later = names(named);
+
+		says("and later ones do not write them back", again
+			&& later.indexOf(other.name) >= 0 && later.indexOf(own.name) < 0
+			&& later.indexOf(played.name) < 0,
+			"swapping Fm2 out and saving on its own carries " + later.join(", "));
+
+		other.name = "Other renamed";
+
+		final noticed = files.unsaved();
+		final renamed = files.keep() ? names(named) : [];
+
+		says("and renaming one is work to save", noticed && renamed.indexOf(other.name) >= 0,
+			"renamed while nothing plays it, it is unsaved work and reads " + other.name
+			+ " in the file");
+
+		final reopened = Project.open(named);
+		final next = new mdd.app.Session(reopened);
+		final spare = found(reopened, other.name);
+
+		says("and closing the piece lets them go", spare != null && offers(next, spare)
+			&& found(reopened, own.name) == null,
+			"opened again, it offers " + other.name + " from its file and holds no " + own.name);
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		@param session A session.
+		@param held A preset its piece holds.
+		@return Whether the browser offers it as the piece's own: the piece plays it, or keeps it.
+	**/
+	static function offers(session:mdd.app.Session, held:Instrument):Bool {
+		final song = session.song;
+		final played = mdd.format.Needed.of(song);
+		final at = song.instruments.indexOf(held);
+
+		return at >= 0 && (played.instrument(at) >= 0 || session.spares(played, false)[at]);
+	}
+
+	/**
+		@param named A project file.
+		@return The names of the presets it carries, in its order.
+	**/
+	static function names(named:String):Array<String> {
+		final out:Array<String> = [];
+		for (held in Project.open(named).instruments) out.push(held.name);
+
+		return out;
+	}
+
+	/**
+		@param song A piece.
+		@param name A preset's name.
+		@return The first preset of that name it holds, or null.
+	**/
+	static function found(song:Song, name:String):Null<Instrument> {
+		for (held in song.instruments) if (held.name == name) return held;
+
+		return null;
 	}
 
 	/**

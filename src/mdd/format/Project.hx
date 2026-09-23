@@ -91,10 +91,12 @@ class Project {
 		Writes the song as a JSON document, without the sample bytes.
 
 		@param song The song to write.
+		@param kept Presets to carry although nothing plays them, by index into the song, or null
+			for none.
 		@return The document.
 	**/
-	public static function text(song:Song):String {
-		return written(song, Needed.of(song));
+	public static function text(song:Song, kept:Null<Vector<Bool>> = null):String {
+		return written(song, Needed.of(song, kept));
 	}
 
 	/**
@@ -815,10 +817,12 @@ class Project {
 		block rather than the files, so `unbulk` still reads one back.
 
 		@param song The song.
+		@param kept Presets to carry although nothing plays them, by index into the song, or null
+			for none.
 		@return The block.
 	**/
-	public static function bulk(song:Song):Bytes {
-		return bulked(Needed.of(song));
+	public static function bulk(song:Song, kept:Null<Vector<Bool>> = null):Bytes {
+		return bulked(Needed.of(song, kept));
 	}
 
 	/**
@@ -885,9 +889,11 @@ class Project {
 
 		@param song The song to write.
 		@param into The folder to write into.
+		@param kept Presets to carry although nothing plays them, by index into the song, or null
+			for none.
 	**/
-	public static function saveFolder(song:Song, into:String):Void {
-		final needed = Needed.of(song);
+	public static function saveFolder(song:Song, into:String, kept:Null<Vector<Bool>> = null):Void {
+		final needed = Needed.of(song, kept);
 
 		tree(into);
 		tree(into + "/" + SAMPLES);
@@ -971,9 +977,11 @@ class Project {
 
 		@param song The song to write.
 		@param into The file to write.
+		@param kept Presets to carry although nothing plays them, by index into the song, or null
+			for none.
 	**/
-	public static function savePacked(song:Song, into:String):Void {
-		final needed = Needed.of(song);
+	public static function savePacked(song:Song, into:String, kept:Null<Vector<Bool>> = null):Void {
+		final needed = Needed.of(song, kept);
 		final entries = new List<haxe.zip.Entry>();
 
 		entries.add(entry(STRUCTURE, Bytes.ofString(written(song, needed))));
@@ -1232,12 +1240,14 @@ class Project {
 
 		@param song The song to write.
 		@param into Where to write it.
+		@param kept Presets to carry although nothing plays them, by index into the song, or null
+			for none.
 	**/
-	public static function save(song:Song, into:String):Void {
+	public static function save(song:Song, into:String, kept:Null<Vector<Bool>> = null):Void {
 		if (StringTools.endsWith(into.toLowerCase(), "." + mdd.Config.SUFFIX)) {
-			savePacked(song, into);
+			savePacked(song, into, kept);
 		} else {
-			saveFolder(song, into);
+			saveFolder(song, into, kept);
 		}
 	}
 
