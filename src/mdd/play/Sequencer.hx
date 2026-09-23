@@ -1060,20 +1060,24 @@ final class Sequencer {
 				continue;
 			}
 
+			final starting = onSample >= fromSample && onSample < toSample;
 			final ending = tempo.samplesAt(ends);
+			final early = ending - GUARD;
 			final offSample = !held && part.fm() && ending - onSample > GUARD * 2
-				&& struckAt(part, ends, slice, origin) ? ending - GUARD : ending;
+				&& (starting || (ending >= fromSample && early < toSample))
+				&& struckAt(part, ends, slice, origin) ? early : ending;
 			final pitch = voices.pitchAt(slice) + transpose;
 			final velocity = louder(part, voices.velocityAt(slice));
 			final named = chosen(lane, part, voices.instrumentAt(slice), voices.startAt(slice));
 
 			if (part.sampled() && song.drums && song.drumAt(pitch) < 0) continue;
 
-			final bender = driven ? driverOf(part, mdd.song.Automation.TUNE, 0, start) : null;
+			final bender = driven && (starting || part.sampled())
+				? driverOf(part, mdd.song.Automation.TUNE, 0, start) : null;
 			final tuning = bender == null ? bent : bender.line;
 			final tunedAt = bender == null ? local : start - bender.at;
 
-			if (onSample >= fromSample && onSample < toSample) {
+			if (starting) {
 				if (!tied) {
 					push(onSample, part, PATCH, named,
 						tuning != null && part.noise() ? -1 : velocity);
@@ -1731,6 +1735,21 @@ final class Sequencer {
 
 		var index = 0;
 		var playing = false;
+
+		final ahead:Float = fromSample < offSample ? fromSample : offSample;
+
+		while (index < sample.length()) {
+			if (stalls && when >= next) {
+				when += song.stallFor;
+				next += frame;
+				continue;
+			}
+
+			if (when + 0.5 >= ahead) break;
+
+			when += step;
+			index++;
+		}
 
 		while (index < sample.length()) {
 			if (stalls && when >= next) {
