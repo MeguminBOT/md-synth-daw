@@ -81,30 +81,6 @@ final class Ym2612 {
 	static final APART:Vector<Int> = Vector.fromArrayCopy([2, 0, 1]);
 
 	/**
-		The channel visited at each of the twenty four slots.
-	**/
-	static final SPEAKS:Vector<Int> = Vector.fromArrayCopy([
-		0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5,
-		0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5
-	]);
-
-	/**
-		Which pass through the channel each slot is, 0 to 3.
-	**/
-	static final TURNS:Vector<Int> = Vector.fromArrayCopy([
-		0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
-		2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3
-	]);
-
-	/**
-		Which operator each slot runs. The part does not visit them in numeric order.
-	**/
-	static final PLAYS:Vector<Int> = Vector.fromArrayCopy([
-		0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2,
-		1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3
-	]);
-
-	/**
 		One mask per LFO rate, deciding how often the LFO phase moves on.
 	**/
 	static final SWEEP:Vector<Int> = Vector.fromArrayCopy([108, 77, 71, 67, 62, 44, 8, 5]);
@@ -126,12 +102,10 @@ final class Ym2612 {
 	static final TREMOLO:Vector<Int> = Vector.fromArrayCopy([7, 3, 1, 0]);
 
 	/**
-		Which channel finishes its sample at each slot, or -1 where none does.
+		Which channel finishes its sample at every fourth slot, the first, the fifth and so
+		on. No channel finishes at any other.
 	**/
-	static final TAKEN:Vector<Int> = Vector.fromArrayCopy([
-		1, -1, -1, -1, 5, -1, -1, -1, 3, -1, -1, -1,
-		0, -1, -1, -1, 4, -1, -1, -1, 2, -1, -1, -1
-	]);
+	static final TAKEN:Vector<Int> = Vector.fromArrayCopy([1, 5, 3, 0, 4, 2]);
 
 	/**
 		Every register the part holds, both halves, exactly as written. This is what the
@@ -193,7 +167,6 @@ final class Ym2612 {
 	var envelopeDivider:Int = 0;
 	var visible:Int = 0;
 	var ticking:Bool = false;
-	var position:Int = 0;
 	var pendingHalf:Int = 0;
 	var pendingAddress:Int = 0;
 	var pendingValue:Int = 0;
@@ -256,7 +229,6 @@ final class Ym2612 {
 		envelopeDivider = 0;
 		visible = 0;
 		ticking = false;
-		position = 0;
 		pendingHalf = 0;
 		pendingAddress = 0;
 		pendingValue = 0;
@@ -493,33 +465,28 @@ final class Ym2612 {
 	}
 
 	/**
-		One operator slot: land any pending write, run the operator, publish a channel that
-		has finished, and move the envelope counter on every twenty fourth slot.
+		One pass through the six channels, which is six of the twenty four slots: at each
+		one, land any pending write, run the operator the pass runs, and publish a channel
+		that has finished.
+
+		@param turn Which pass, 0 to 3.
+		@param index Which operator the pass runs. The part visits them 1, 3, 2, 4, so the
+			passes run operators 0, 2, 1 and 3.
 	**/
-	function cycle():Void {
-		if (busyFor > 0) busyFor--;
-		if (pendingIn > 0 && --pendingIn == 0) waiting = true;
-		if (waiting && lands(position)) commit();
+	inline function pass(turn:Int, index:Int):Void {
+		for (which in 0...6) {
+			final at = turn * 6 + which;
 
-		final which = SPEAKS[position];
-		channels[which].slot(TURNS[position], PLAYS[position], visible, ticking, swell,
-			csmKeyed && which == 2);
+			if (pendingIn > 0 || waiting) {
+				if (pendingIn > 0 && --pendingIn == 0) waiting = true;
+				if (waiting && lands(at)) commit();
+			}
 
-		final taken = TAKEN[position];
-		if (taken >= 0) channels[taken].capture();
+			final channel = channels[which];
+			channel.slot(turn, index, visible, ticking, swell, csmKeyed && which == 2);
 
-		if (position < 6) channels[which].keyRequest = channels[which].armed;
-
-		if (++position < PER_FRAME) return;
-
-		position = 0;
-
-		ticking = visible != envelopeCounter;
-		visible = envelopeCounter;
-
-		if (++envelopeDivider >= 3) {
-			envelopeDivider = 0;
-			envelopeCounter = (envelopeCounter + 1) & 0xFFF;
+			if ((at & 3) == 0) channels[TAKEN[at >> 2]].capture();
+			if (turn == 0) channel.keyRequest = channel.armed;
 		}
 	}
 
@@ -556,7 +523,21 @@ final class Ym2612 {
 	public function sample():Int {
 		oscillate();
 		countTimers();
-		for (_ in 0...PER_FRAME) cycle();
+
+		busyFor = busyFor > PER_FRAME ? busyFor - PER_FRAME : 0;
+
+		pass(0, 0);
+		pass(1, 2);
+		pass(2, 1);
+		pass(3, 3);
+
+		ticking = visible != envelopeCounter;
+		visible = envelopeCounter;
+
+		if (++envelopeDivider >= 3) {
+			envelopeDivider = 0;
+			envelopeCounter = (envelopeCounter + 1) & 0xFFF;
+		}
 
 		left = 0;
 		right = 0;
