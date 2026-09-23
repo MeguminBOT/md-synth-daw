@@ -33,6 +33,7 @@ import mdd.chip.Sn76489;
 import mdd.chip.Ym2612;
 import mdd.host.Audio;
 import mdd.host.Device;
+import mdd.host.Filter;
 import mdd.host.Sdl;
 import mdd.song.Tempo;
 
@@ -336,21 +337,22 @@ final class Render {
 	static inline final PHASES = 32;
 
 	/**
-		Taps per phase of the FM resampler kernel. A multiple of four, because the kernel is
-		summed in four runs, one tap of each at a time.
+		Taps per phase of the FM resampler kernel. A multiple of eight, because `Filter` sums
+		a kernel eight taps at a time.
 	**/
 	static inline final WEIGHTS = 512;
 
 	/**
-		Taps per phase of the square part's kernel, a multiple of four for the same reason.
+		Taps per phase of the square part's kernel, a multiple of eight for the same reason.
 	**/
 	static inline final SQUARES = 384;
 
 	final weights:Vector<Float> = new Vector<Float>(WEIGHTS * PHASES);
 
 	/**
-		The last `WEIGHTS` FM samples on the left, each held twice, `WEIGHTS` apart, so the
-		kernel reads them newest first as one unbroken run down from `pastAt + WEIGHTS`.
+		The last `WEIGHTS` FM samples on the left, each held twice, `WEIGHTS` apart, and
+		written downwards, so the kernel reads them newest first as one unbroken run up from
+		`pastAt`.
 	**/
 	final pastLeft:Vector<Float> = new Vector<Float>(WEIGHTS * 2);
 
@@ -369,6 +371,11 @@ final class Render {
 	final squarePast:Vector<Float> = new Vector<Float>(SQUARES * 2);
 
 	var squareAt:Int = 0;
+
+	/**
+		What the FM kernel last gave on the left and the right, which `Filter.pair` writes.
+	**/
+	final sides:Vector<Float> = new Vector<Float>(2);
 
 	/**
 		Builds a render and its resampler kernel.
@@ -569,8 +576,8 @@ final class Render {
 				fmAt -= 1;
 				ym.sample();
 
-				pastAt++;
-				if (pastAt >= WEIGHTS) pastAt = 0;
+				pastAt--;
+				if (pastAt < 0) pastAt = WEIGHTS - 1;
 
 				pastLeft[pastAt] = ym.left;
 				pastLeft[pastAt + WEIGHTS] = ym.left;
@@ -582,49 +589,21 @@ final class Render {
 			if (phase < 0) phase = 0;
 			if (phase >= PHASES) phase = PHASES - 1;
 
-			final base = phase * WEIGHTS;
-			final newest = pastAt + WEIGHTS;
+			Filter.pair(cpp.Pointer.arrayElem(pastLeft.toData(), pastAt).constRaw,
+				cpp.Pointer.arrayElem(pastRight.toData(), pastAt).constRaw,
+				cpp.Pointer.arrayElem(weights.toData(), phase * WEIGHTS).constRaw, WEIGHTS,
+				cpp.Pointer.arrayElem(sides.toData(), 0).raw);
 
-			var leftOne = 0.0;
-			var leftTwo = 0.0;
-			var leftThree = 0.0;
-			var leftFour = 0.0;
-			var rightOne = 0.0;
-			var rightTwo = 0.0;
-			var rightThree = 0.0;
-			var rightFour = 0.0;
-			var reach = 0;
-
-			while (reach < WEIGHTS) {
-				final weightOne = weights[base + reach];
-				final weightTwo = weights[base + reach + 1];
-				final weightThree = weights[base + reach + 2];
-				final weightFour = weights[base + reach + 3];
-				final at = newest - reach;
-
-				leftOne += pastLeft[at] * weightOne;
-				leftTwo += pastLeft[at - 1] * weightTwo;
-				leftThree += pastLeft[at - 2] * weightThree;
-				leftFour += pastLeft[at - 3] * weightFour;
-
-				rightOne += pastRight[at] * weightOne;
-				rightTwo += pastRight[at - 1] * weightTwo;
-				rightThree += pastRight[at - 2] * weightThree;
-				rightFour += pastRight[at - 3] * weightFour;
-
-				reach += 4;
-			}
-
-			fmLeft = (leftOne + leftTwo) + (leftThree + leftFour);
-			fmRight = (rightOne + rightTwo) + (rightThree + rightFour);
+			fmLeft = sides[0];
+			fmRight = sides[1];
 
 			psgAt += psgStep;
 
 			while (psgAt >= 1) {
 				psgAt -= 1;
 
-				squareAt++;
-				if (squareAt >= SQUARES) squareAt = 0;
+				squareAt--;
+				if (squareAt < 0) squareAt = SQUARES - 1;
 
 				final level:Float = psg.sample();
 				squarePast[squareAt] = level;
@@ -635,27 +614,8 @@ final class Render {
 			if (turn < 0) turn = 0;
 			if (turn >= PHASES) turn = PHASES - 1;
 
-			final tap = turn * SQUARES;
-			final newestSquare = squareAt + SQUARES;
-
-			var squareOne = 0.0;
-			var squareTwo = 0.0;
-			var squareThree = 0.0;
-			var squareFour = 0.0;
-			var squareReach = 0;
-
-			while (squareReach < SQUARES) {
-				final at = newestSquare - squareReach;
-
-				squareOne += squarePast[at] * squareWeights[tap + squareReach];
-				squareTwo += squarePast[at - 1] * squareWeights[tap + squareReach + 1];
-				squareThree += squarePast[at - 2] * squareWeights[tap + squareReach + 2];
-				squareFour += squarePast[at - 3] * squareWeights[tap + squareReach + 3];
-
-				squareReach += 4;
-			}
-
-			final other = (squareOne + squareTwo) + (squareThree + squareFour);
+			final other = Filter.one(cpp.Pointer.arrayElem(squarePast.toData(), squareAt).constRaw,
+				cpp.Pointer.arrayElem(squareWeights.toData(), turn * SQUARES).constRaw, SQUARES);
 
 			final left = fmLeft + other;
 			final right = fmRight + other;

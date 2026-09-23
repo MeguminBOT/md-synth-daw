@@ -138,6 +138,7 @@
 		<file name="text.cpp" />
 		<file name="vary.cpp" />
 		<file name="audio.cpp" />
+		<file name="filter.cpp" />
 		<file name="dialog.cpp" />
 		<file name="instance.cpp" />
 		<file name="crash.cpp" />
