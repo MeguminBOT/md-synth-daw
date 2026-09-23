@@ -166,12 +166,27 @@ final class Welcome extends Widget {
 	}
 
 	/**
+		@param px A point, across.
 		@param py A point, down.
 		@return Which language is there, or -1.
 	**/
-	public function rowAt(py:Float):Int {
-		final at = Std.int((py - y - head()) / rowTall());
-		return at < 0 || at >= languages.length ? -1 : at;
+	public function rowAt(px:Float, py:Float):Int {
+		final top = y + head();
+		if (py < top || !across(px)) return -1;
+
+		final at = Std.int((py - top) / rowTall());
+		return at >= languages.length ? -1 : at;
+	}
+
+	/**
+		@param px A point, across.
+		@return Whether it is over the rows, which are inset from the sheet's edges.
+	**/
+	function across(px:Float):Bool {
+		final root = root();
+		final inset = root == null ? 0 : root.metrics.inset;
+
+		return px >= x + inset && px < x + width - inset;
 	}
 
 	function wayTall():Float {
@@ -238,9 +253,17 @@ final class Welcome extends Widget {
 		return noteTop() + noteTall() + asking();
 	}
 
-	function wayAt(py:Float):Int {
-		final at = Std.int((py - waysTop()) / wayTall());
-		return at < 0 || at >= WAYS ? -1 : at;
+	/**
+		@param px A point, across.
+		@param py A point, down.
+		@return Which way of writing automation is there, or -1.
+	**/
+	function wayAt(px:Float, py:Float):Int {
+		final top = waysTop();
+		if (py < top || !across(px)) return -1;
+
+		final at = Std.int((py - top) / wayTall());
+		return at >= WAYS ? -1 : at;
 	}
 
 	/**
@@ -283,14 +306,14 @@ final class Welcome extends Widget {
 					return true;
 				}
 
-				final way = wayAt(event.y);
+				final way = wayAt(event.x, event.y);
 
 				if (way >= 0) {
 					picks(way);
 					return true;
 				}
 
-				final at = rowAt(event.y);
+				final at = rowAt(event.x, event.y);
 				if (at < 0) return true;
 
 				chosen = at;
@@ -300,10 +323,11 @@ final class Welcome extends Widget {
 				return true;
 
 			case Kind.PointerMove:
-				final at = rowAt(event.y);
+				final at = rowAt(event.x, event.y);
 				final button = onButton(event.x, event.y);
 
-				tip = !button && (at >= 0 || wayAt(event.y) >= 0) ? translate(Locale.WELCOME_LATER) : "";
+				tip = !button && (at >= 0 || wayAt(event.x, event.y) >= 0)
+					? translate(Locale.WELCOME_LATER) : "";
 
 				if (at == hoverAt && button == hoverStart) return true;
 
