@@ -41,6 +41,7 @@ class AutomationCheck {
 		named();
 		switched();
 		kept();
+		moves();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -51,6 +52,298 @@ class AutomationCheck {
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		What a preset moves on every note: its pitch drops from the key on, its level loops in time
+		with the beat and runs on after the note ends until the part's next note, a seek lands inside
+		both, the stream is the same however the piece is cut into spans, and a pattern's own lane
+		or another clip's note takes the part back.
+	**/
+	static function moves():Void {
+		final plain = moving(120, false, false);
+		final whole = sequenced(plain, 0);
+		final blocks = sequenced(plain, 1024);
+
+		final top = mdd.play.Stream.wordOf(84);
+		final root = mdd.play.Stream.wordOf(60);
+		final dropped = Math.round(60 * mdd.song.Tempo.TICKS / 1000) + 44;
+		final words = worded(whole);
+
+		var falling = true;
+		var steps = 0;
+		var last = -1;
+		var settled = -1;
+
+		var index = 0;
+		while (index < words.length) {
+			final tick = words[index];
+			final word = words[index + 1];
+			index += 2;
+
+			if (tick >= dropped) break;
+			if (last >= 0 && (word & 0x3FFF) >= (last & 0x3FFF) && ((word >> 11) & 7) >= ((last >> 11) & 7)) falling = false;
+
+			last = word;
+			settled = word;
+			steps++;
+		}
+
+		says("a preset's pitch drops per note", words.length > 1 && words[0] == 0 && words[1] == top
+			&& settled == root && steps >= 30 && falling,
+			"a kick two octaves up at its key on writes " + (words.length > 1 ? hex(words[1]) : "nothing")
+			+ " where two octaves above C4 is " + hex(top) + ", then " + steps + " words falling to "
+			+ hex(settled) + " by 60 ms, where C4 is " + hex(root));
+
+		final noteEnds = plain.tempo.samplesAt(96);
+		final next = plain.tempo.samplesAt(SPAN);
+		final pumped = levels(whole, noteEnds + 1, next);
+		final faster = levels(sequenced(moving(240, false, false), 0), noteEnds + 1,
+			moving(240, false, false).tempo.samplesAt(SPAN));
+
+		final slow = spacing(pumped);
+		final quick = spacing(faster);
+
+		says("and its level loops past the note", pumped.length >= 20 && slow > 5400 && slow < 5620,
+			(pumped.length >> 1) + " writes to FM1's carrier between the key off and the next note,"
+			+ " a quarter beat apart at 120 bpm: " + slow + " samples");
+
+		says("in time with the beat", quick * 2 > slow - 60 && quick * 2 < slow + 60,
+			"the same lane at 240 bpm writes " + quick + " samples apart");
+
+		var same = whole.count == blocks.count;
+
+		if (same) {
+			for (at in 0...whole.count) {
+				if (whole.tickAt(at) != blocks.tickAt(at) || whole.valueAt(at) != blocks.valueAt(at)
+						|| whole.portAt(at) != blocks.portAt(at) || whole.kindAt(at) != blocks.kindAt(at)) {
+					same = false;
+					break;
+				}
+			}
+		}
+
+		says("whole or in blocks it is the same", same,
+			whole.count + " writes sequenced in one span against " + blocks.count
+			+ " sequenced 1024 samples at a time");
+
+		final seeked = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(plain).prime(seeked, Math.round(30 * mdd.song.Tempo.TICKS / 1000));
+
+		final landed = worded(seeked);
+		final octave = mdd.play.Stream.wordOf(72);
+
+		says("a seek lands inside the drop", landed.length >= 2 && landed[landed.length - 1] == octave,
+			"a seek 30 ms into the kick writes " + (landed.length >= 2 ? hex(landed[landed.length - 1]) : "nothing")
+			+ ", half way down its two octaves at " + hex(octave));
+
+		final claimed = levels(sequenced(moving(120, true, false), 0), 1, next);
+		final moved = claimed.length >> 1;
+
+		final taken = levels(sequenced(moving(120, false, true), 0),
+			plain.tempo.samplesAt(192) + 1, next);
+
+		says("a pattern's lane and a clip win", moved == 0 && taken.length == 0,
+			"with the pattern holding the carrier's level the preset writes " + moved
+			+ " levels after the key on, where it pumps " + (pumped.length >> 1) + " without, and "
+			+ (taken.length >> 1) + " once another clip's note keys the part on");
+
+		final square = squared(sequenced(plain, 0), plain.tempo.samplesAt(96));
+
+		says("a square's pitch drops and stops", square[0] >= 20 && square[1] == 0,
+			"PSG1 writes " + square[0] + " periods over its note and " + square[1] + " once it has"
+			+ " ended");
+	}
+
+	/**
+		@param bpm The tempo.
+		@param claim Whether the pattern holds its own level lane on FM1's carrier.
+		@param other Whether a second clip keys FM1 on a second in.
+		@return A song whose FM1 plays a kick that drops two octaves in 60 ms and pumps its carrier
+			every quarter beat, for a beat, and again two seconds later, and whose PSG1 plays a note
+			on a square dropping an octave over a second.
+	**/
+	static function moving(bpm:Float, claim:Bool, other:Bool):Song {
+		final song = new Song("moves", 96, bpm);
+		final pattern = song.add(new Pattern("pattern 1", SPAN * 2));
+		final kick = new mdd.song.Instrument("kick", Part.Fm1);
+		final drop = new Automation(Automation.PITCH, 0);
+		final pump = new Automation(Automation.LEVEL, 3);
+
+		drop.add(new Point(0, 2400)).shape = Automation.LINEAR;
+		drop.add(new Point(60, 0));
+
+		pump.synced = true;
+		pump.add(new Point(0, 0));
+		pump.add(new Point(Std.int(Automation.BEAT / 4), 30));
+		pump.add(new Point(Std.int(Automation.BEAT / 2), 0));
+		pump.loop = 0;
+
+		kick.patch = new mdd.song.Patch();
+		kick.lanes.push(drop);
+		kick.lanes.push(pump);
+		song.instrument(kick);
+
+		final named = song.instruments.length - 1;
+
+		final beep = new mdd.song.Instrument("beep", Part.Psg1);
+		final fall = new Automation(Automation.PITCH, 0);
+
+		fall.add(new Point(0, 0)).shape = Automation.LINEAR;
+		fall.add(new Point(1000, -1200));
+		beep.lanes.push(fall);
+		song.instrument(beep);
+
+		final beeped = song.instruments.length - 1;
+
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(0, 96, 60, 127, named));
+		pattern.lane(Part.Fm1).add(new mdd.song.Note(SPAN, 96, 60, 127, named));
+		pattern.lane(Part.Psg1).add(new mdd.song.Note(0, 96, 72, 127, beeped));
+
+		if (claim) {
+			final held = new Automation(Automation.LEVEL, 3);
+			held.add(new Point(0, 10));
+			pattern.lane(Part.Fm1).automation.push(held);
+		}
+
+		song.track(new mdd.song.Track("one")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		if (other) {
+			final second = song.add(new Pattern("pattern 2", SPAN));
+			second.lane(Part.Fm1).add(new mdd.song.Note(0, 48, 67, 127, wired(song, "plain", 0, 0)));
+			song.track(new mdd.song.Track("two")).add(new mdd.song.Clip(1, 192, SPAN));
+		}
+
+		return song;
+	}
+
+	/**
+		@param song The song.
+		@param block How many samples at a time to sequence it, or nought for one span.
+		@return Its register stream.
+	**/
+	static function sequenced(song:Song, block:Int):mdd.play.Stream {
+		final stream = new mdd.play.Stream(1 << 18);
+		final sequencer = new mdd.play.Sequencer(song);
+		final ends = song.tempo.samplesAt(SPAN * 2);
+
+		if (block <= 0) {
+			sequencer.spanned(stream, 0, ends);
+			return stream;
+		}
+
+		var at = 0;
+		while (at < ends) {
+			final next = at + block > ends ? ends : at + block;
+			sequencer.emit(stream, at, next);
+			at = next;
+		}
+
+		return stream;
+	}
+
+	/**
+		@param stream A register stream.
+		@return Every frequency word written to FM1, as where it was written and the word, in pairs.
+	**/
+	static function worded(stream:mdd.play.Stream):Array<Int> {
+		final out:Array<Int> = [];
+		var address = 0;
+		var high = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM || stream.portAt(index) > 1) continue;
+
+			final value = stream.valueAt(index);
+
+			if ((stream.portAt(index) & 1) == 0) {
+				address = value;
+				continue;
+			}
+
+			if (address == 0xA4) high = value;
+			else if (address == 0xA0) {
+				out.push(stream.tickAt(index));
+				out.push(((high & 0x3F) << 8) | value);
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		@param stream A register stream.
+		@param from The first sample to look at.
+		@param until One past the last.
+		@return Every total level written to FM1's fourth operator between the two, as where and
+			the value, in pairs.
+	**/
+	static function levels(stream:mdd.play.Stream, from:Int, until:Int):Array<Int> {
+		final out:Array<Int> = [];
+		var address = 0;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM || stream.portAt(index) > 1) continue;
+
+			final value = stream.valueAt(index);
+
+			if ((stream.portAt(index) & 1) == 0) {
+				address = value;
+				continue;
+			}
+
+			final tick = stream.tickAt(index);
+
+			if (address == 0x4C && tick >= from && tick < until) {
+				out.push(tick);
+				out.push(value);
+			}
+		}
+
+		return out;
+	}
+
+	/**
+		@param held Writes as `levels` gives them.
+		@return The middle of the gaps between one write and the next, or nought for fewer than two.
+	**/
+	static function spacing(held:Array<Int>):Int {
+		final gaps:Array<Int> = [];
+		var index = 2;
+
+		while (index < held.length) {
+			gaps.push(held[index] - held[index - 2]);
+			index += 2;
+		}
+
+		if (gaps.length == 0) return 0;
+
+		gaps.sort(function(one:Int, two:Int):Int return one - two);
+		return gaps[gaps.length >> 1];
+	}
+
+	/**
+		@param stream A register stream.
+		@param ends Where PSG1's note ends.
+		@return How many periods PSG1 was given while its note sounded, and how many after.
+	**/
+	static function squared(stream:mdd.play.Stream, ends:Int):Array<Int> {
+		final out = [0, 0];
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+			if ((value & 0x80) == 0 || ((value >> 4) & 7) != 0) continue;
+
+			out[stream.tickAt(index) < ends ? 0 : 1]++;
+		}
+
+		return out;
+	}
+
+	static function hex(value:Int):String {
+		return "$" + StringTools.hex(value, 4);
 	}
 
 	/**

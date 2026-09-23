@@ -162,6 +162,18 @@ final class Tempo {
 	}
 
 	/**
+		@param samples A sample position.
+		@return The tick it falls on, with how far it is towards the next one, which is what a lane
+			read between ticks needs.
+	**/
+	public function ticksAt(samples:Float):Float {
+		var which = 0;
+		for (i in 0...at.length) if (base[i] <= samples) which = i;
+
+		return at[which] + (samples - base[which]) / perTick[which];
+	}
+
+	/**
 		@param tick A tick.
 		@return The tempo in force there.
 	**/

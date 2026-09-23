@@ -251,6 +251,59 @@ final class Sequencer {
 	static inline final HELD = 0x7FFFFFFF;
 
 	/**
+		How many output samples apart the lanes a preset carries are read: about a millisecond. A
+		driver frame is a sixtieth of a second, and a kick drops over three of them, so a lane read
+		once a frame would be heard as steps rather than as a sweep. Only a change of value is
+		written, so a lane holding still costs nothing.
+	**/
+	static inline final LANE_STEP = 44;
+
+	/**
+		How long the lanes a preset carries run on past the end of an FM note, in output samples:
+		two seconds, so a lane that loops on the last note of a piece still ends. They stop sooner
+		where the part keys on again.
+	**/
+	static inline final TAIL = 88200;
+
+	/**
+		Whether any preset the song holds moves anything on its notes, worked out at the start of
+		every span. A song whose presets move nothing is sequenced exactly as it was before a
+		preset could.
+	**/
+	var moving:Bool = false;
+
+	/**
+		Where the note a preset's lane is being read for keyed on, which `push` records beside every
+		event it adds while this is at least nought, and -1 otherwise.
+	**/
+	var movingFrom:Int = -1;
+
+	/**
+		Per event, where the note whose preset moved it keyed on, or -1 for an event no preset
+		lane made.
+	**/
+	final origins:Vector<Int>;
+
+	/**
+		Per part, where the note that last keyed it on keyed on, or -1. What a preset's lanes move
+		for an earlier note is played only up to there, so a lane running on through a release
+		stops where another clip's note takes the part.
+	**/
+	final keyedAt:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		The last sample a span was sequenced up to, so a span that starts behind it, which is a loop
+		back to the start or a seek, forgets `keyedAt`.
+	**/
+	var reached:Int = 0;
+
+	/**
+		The voices a lane resolves into from as far back as a preset's lane can run on, kept apart
+		from `voices` so looking back changes nothing a span's own notes do.
+	**/
+	final reaching:Voices = new Voices();
+
+	/**
 		Per part, one past the sample the sounding note's key off is due at, nought where none is
 		owed, or `HELD`. A key off only comes from the note it ends, so a note whose track is muted,
 		or which is deleted with its clip or on its own while it sounds, would sound on forever;
@@ -289,6 +342,9 @@ final class Sequencer {
 		firsts = new Vector<Int>(this.capacity);
 		seconds = new Vector<Int>(this.capacity);
 		order = new Vector<Int>(this.capacity);
+		origins = new Vector<Int>(this.capacity);
+
+		for (index in 0...Part.COUNT) keyedAt[index] = -1;
 	}
 
 	/**
@@ -337,6 +393,12 @@ final class Sequencer {
 		dropped = 0;
 
 		if (toSample <= fromSample) return 0;
+
+		if (fromSample < reached) {
+			for (index in 0...Part.COUNT) keyedAt[index] = -1;
+		}
+
+		reached = toSample;
 
 		if (fromSample <= 0) {
 			lfoSet = lfoOf(song);
@@ -523,6 +585,15 @@ final class Sequencer {
 		Works out which parts the track a track stem is of plays notes on.
 	**/
 	function tracked():Void {
+		moving = false;
+
+		for (instrument in song.instruments) {
+			if (instrument.lanes.length > 0) {
+				moving = true;
+				break;
+			}
+		}
+
 		trackParts = 0;
 		if (onlyTrack < 0 || onlyTrack >= song.tracks.length) return;
 
@@ -988,7 +1059,258 @@ final class Sequencer {
 			voices.resolve(lane, head, high - origin + 1);
 			sound(lane, origin, from, until, transpose, part, fromSample, toSample);
 			if (!fading) tweaked(lane, origin, part, head, high - origin + 1, transpose, fromSample, toSample);
+			if (moving && !fading) moved(lane, origin, from, until, transpose, part, fromSample, toSample);
 		}
+	}
+
+	/**
+		Collects what the presets a lane's notes play move over the span: every lane a preset
+		carries, read from its note's key on until the part's next note, or on an FM part on through
+		the release until the lane ends or `TAIL` has passed. A lane the pattern or a clip driving
+		the part already automates is theirs rather than the preset's, and a tied note goes on
+		reading from where its run of notes keyed on, the way a square's envelope does.
+
+		@param lane The lane to read.
+		@param origin Where the pattern starts on the playlist, in ticks.
+		@param from The first tick of the pattern to read.
+		@param until One past the last.
+		@param transpose Semitones to shift every note by.
+		@param part Which part it plays on.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
+	function moved(lane:mdd.song.Lane, origin:Int, from:Int, until:Int, transpose:Int, part:Part,
+			fromSample:Int, toSample:Int):Void {
+		if (lane.notes.length == 0) return;
+		if (!part.fm() && !part.square() && !part.noise()) return;
+
+		final tempo = song.tempo;
+		final back = part.fm() && fromSample > TAIL ? fromSample - TAIL : (part.fm() ? 0 : fromSample);
+
+		var head = tempo.tickAt(back) - 1 - origin;
+		if (head < from - origin) head = from - origin;
+
+		reaching.policy = voices.policy;
+		reaching.resolve(lane, head, tempo.tickAt(toSample) + 2 - origin);
+
+		final driven = (drivenParts & (1 << part.index())) != 0;
+
+		for (slice in 0...reaching.count) {
+			var start = origin + reaching.startAt(slice);
+			var ends = origin + reaching.endAt(slice);
+
+			if (start < from) start = from;
+			if (ends > until) ends = until;
+			if (ends <= start) continue;
+
+			final named = chosen(lane, part, reaching.instrumentAt(slice), reaching.startAt(slice));
+			final instrument = instrumentOf(named, part);
+			if (instrument == null || instrument.lanes.length == 0) continue;
+
+			final onSample = tempo.samplesAt(start);
+			var stop = part.fm() ? tempo.samplesAt(ends) + TAIL : tempo.samplesAt(ends);
+
+			if (slice + 1 < reaching.count) {
+				final next = tempo.samplesAt(origin + reaching.startAt(slice + 1));
+				if (next < stop) stop = next;
+			}
+
+			if (stop <= fromSample || onSample >= toSample) continue;
+
+			final tied = (part.fm() || part.square()) && reaching.tiedAt(slice);
+			final first = tied ? tiedFrom(lane, reaching.startAt(slice)) : null;
+			final clock = first == null ? onSample : tempo.samplesAt(origin + first.at);
+
+			for (line in instrument.lanes) {
+				if (!movable(part, line) || line.points.length == 0) continue;
+				if (claimed(lane, part, line, start, driven)) continue;
+
+				swept(line, part, clock, onSample, stop,
+					!tied && line.target != mdd.song.Automation.PITCH, transpose,
+					reaching.pitchAt(slice), reaching.velocityAt(slice), named, fromSample, toSample);
+			}
+		}
+	}
+
+	/**
+		Collects one lane a preset carries over part of a note, inside the span: its value where that
+		part starts, where that is a key on, and then every change of value, read every `LANE_STEP`
+		from the key on.
+
+		@param line The lane.
+		@param part Which part it plays on.
+		@param clock Where the note, or the run of tied notes it belongs to, keyed on, which the
+			lane is read from.
+		@param onSample Where this part of the note starts.
+		@param stop Where the lane stops being read.
+		@param opens Whether to write the lane's value where this part starts.
+		@param transpose Semitones to shift every note by.
+		@param pitch The note, before the transpose.
+		@param velocity Its velocity, 0 to 127.
+		@param named Which instrument it plays.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
+	function swept(line:mdd.song.Automation, part:Part, clock:Int, onSample:Int, stop:Int, opens:Bool,
+			transpose:Int, pitch:Int, velocity:Int, named:Int, fromSample:Int, toSample:Int):Void {
+		final reach = line.reach();
+		final lasts = reach < 0 ? stop : sampleOf(line, clock, reach) + LANE_STEP;
+		final ends = stop < toSample ? (stop < lasts ? stop : lasts) : (toSample < lasts ? toSample : lasts);
+
+		movingFrom = clock;
+
+		if (opens && onSample >= fromSample && onSample < toSample) {
+			lined(onSample, part, line, laneAt(line, clock, onSample), transpose, pitch, velocity, named);
+		}
+
+		var step = Std.int((onSample - clock) / LANE_STEP) + 1;
+		final least = fromSample - clock;
+
+		if (step * LANE_STEP < least) step = Std.int((least + LANE_STEP - 1) / LANE_STEP);
+
+		final bends = line.target == mdd.song.Automation.PITCH;
+
+		var when = clock + step * LANE_STEP;
+		var was = laneAt(line, clock, when - LANE_STEP < onSample ? onSample : when - LANE_STEP);
+		var wrote = bends ? pitchWord(part, was, pitch, transpose) : 0;
+
+		while (when < ends) {
+			final value = laneAt(line, clock, when);
+
+			if (value != was) {
+				was = value;
+
+				final word = bends ? pitchWord(part, value, pitch, transpose) : 0;
+
+				if (!bends || word != wrote) {
+					wrote = word;
+					lined(when, part, line, value, transpose, pitch, velocity, named);
+				}
+			}
+
+			when += LANE_STEP;
+		}
+
+		movingFrom = -1;
+	}
+
+	/**
+		@param line A lane a preset carries.
+		@param clock Where its note keyed on.
+		@param when A sample.
+		@return What the lane holds there, following its curves and going round its loop.
+	**/
+	function laneAt(line:mdd.song.Automation, clock:Int, when:Int):Int {
+		final tempo = song.tempo;
+		final elapsed = line.synced
+			? Math.floor((tempo.ticksAt(when) - tempo.ticksAt(clock)) * mdd.song.Automation.BEAT / tempo.ppqn)
+			: Math.floor((when - clock) * 1000.0 / Tempo.TICKS);
+
+		return line.valueAt(line.looped(elapsed));
+	}
+
+	/**
+		@param line A lane a preset carries.
+		@param clock Where its note keyed on.
+		@param at A place on the lane, in its own units.
+		@return The sample that place falls on.
+	**/
+	function sampleOf(line:mdd.song.Automation, clock:Int, at:Int):Int {
+		if (!line.synced) return clock + Math.ceil(at * Tempo.TICKS / 1000.0);
+
+		final tempo = song.tempo;
+		final tick = Math.ceil(tempo.ticksAt(clock) + at * tempo.ppqn / mdd.song.Automation.BEAT);
+
+		return tempo.samplesAt(tick);
+	}
+
+	/**
+		@param part Which part.
+		@param line A lane a preset carries.
+		@return Whether a preset may move that on that part: any FM parameter but the pattern's own
+			pitch and the preset lane, a square's pitch, and the noise channel's mode. A square's and
+			the noise channel's level is its envelope's.
+	**/
+	static inline function movable(part:Part, line:mdd.song.Automation):Bool {
+		final target = line.target;
+
+		if (part.fm()) {
+			return target != mdd.song.Automation.TUNE && target != mdd.song.Automation.INSTRUMENT
+				&& target < mdd.song.Automation.BASES.length;
+		}
+
+		if (part.square()) return target == mdd.song.Automation.PITCH;
+		return part.noise() && target == mdd.song.Automation.TUNE;
+	}
+
+	/**
+		@param lane The lane the note is in.
+		@param part Which part it plays on.
+		@param line A lane a preset carries.
+		@param tick Where the note starts on the playlist.
+		@param driven Whether any automation clip drives the part.
+		@return Whether the pattern or a clip driving the part automates what that lane moves, which
+			then belongs to them: a pitch lane of either takes a preset's pitch.
+	**/
+	function claimed(lane:mdd.song.Lane, part:Part, line:mdd.song.Automation, tick:Int,
+			driven:Bool):Bool {
+		final pitch = line.target == mdd.song.Automation.PITCH;
+		final target = pitch ? mdd.song.Automation.TUNE : line.target;
+		final slot = pitch ? 0 : line.slot;
+
+		for (held in lane.automation) {
+			if (held.held(target, slot) && held.points.length > 0) return true;
+		}
+
+		if (!driven) return false;
+
+		return driverOf(part, target, mdd.song.Automation.operates(target) ? slot : -1, tick) != null;
+	}
+
+	/**
+		@param part Which part.
+		@param named Which instrument a note plays.
+		@return The pitch lane that instrument carries, where it has one the part takes, or null.
+	**/
+	function bendOf(part:Part, named:Int):Null<mdd.song.Automation> {
+		if (!part.fm() && !part.square()) return null;
+
+		final instrument = instrumentOf(named, part);
+		if (instrument == null) return null;
+
+		final line = instrument.lane(mdd.song.Automation.PITCH, 0);
+		return line == null || line.points.length == 0 ? null : line;
+	}
+
+	/**
+		@param part Which part.
+		@param cents How far from the note, in hundredths of a semitone.
+		@param pitch The note, before the transpose.
+		@param transpose Semitones to shift every note by.
+		@return What a preset's pitch lane writes: the FM block and frequency word, or the square
+			period, of the note that far away, laid out the way the note table lays a note out so a
+			key scale and a detune read the same as they do on a note. -1 for no note.
+	**/
+	function pitchWord(part:Part, cents:Int, pitch:Int, transpose:Int):Int {
+		if (pitch < 0) return -1;
+
+		final note = pitched(pitch, transpose);
+		if (cents == 0) return part.fm() ? Stream.wordOf(note) : Stream.periodOf(note);
+
+		var whole = note * 100 + cents;
+		if (whole < 0) whole = 0;
+		if (whole > 12700) whole = 12700;
+
+		final base = Std.int(whole / 100);
+		final left = whole - base * 100;
+
+		if (!part.fm()) {
+			final period = Math.round(Stream.periodOf(base) * Math.pow(2, -left / 1200.0));
+			return period < 1 ? 1 : (period > 0x3FF ? 0x3FF : period);
+		}
+
+		final found = Math.round(Stream.frequencyOf(base) * Math.pow(2, left / 1200.0));
+		return ((Stream.blockOf(base) & 7) << 11) | (found > 0x7FF ? 0x7FF : found);
 	}
 
 	/**
@@ -1105,7 +1427,16 @@ final class Sequencer {
 					}
 				}
 
-				if (tuning == null || !rides(part, tuning)) {
+				final bend = moving && tuning == null ? bendOf(part, named) : null;
+
+				if (bend != null && !claimed(lane, part, bend, start, driven)) {
+					final head = tied ? tiedFrom(lane, voices.startAt(slice)) : null;
+
+					movingFrom = head == null ? onSample : tempo.samplesAt(origin + head.at);
+					lined(onSample, part, bend, laneAt(bend, movingFrom, onSample), transpose,
+						voices.pitchAt(slice), voices.velocityAt(slice), named);
+					movingFrom = -1;
+				} else if (tuning == null || !rides(part, tuning)) {
 					push(onSample, part, TUNE, pitch, 0);
 				} else {
 					final offset = tuning.heldAt(tunedAt);
@@ -1191,6 +1522,16 @@ final class Sequencer {
 	function lined(at:Int, part:Part, line:mdd.song.Automation, value:Int, transpose:Int,
 			pitch:Int, velocity:Int, named:Int):Void {
 		if (line.target == mdd.song.Automation.INSTRUMENT) return;
+
+		if (line.target == mdd.song.Automation.PITCH) {
+			final word = pitchWord(part, value, pitch, transpose);
+			if (word < 0) return;
+
+			if (part.fm()) push(at, part, TUNE, word, 1);
+			else if (part.square()) push(at, part, TUNE, word, 2);
+
+			return;
+		}
 
 		final level = line.target == mdd.song.Automation.LEVEL;
 		final tune = line.target == mdd.song.Automation.TUNE;
@@ -1476,6 +1817,9 @@ final class Sequencer {
 		driver.forget();
 		if (paced != null) paced.forget();
 
+		for (index in 0...Part.COUNT) keyedAt[index] = -1;
+		reached = fromSample;
+
 		tracked();
 
 		lfoSet = lfoOf(song);
@@ -1557,10 +1901,19 @@ final class Sequencer {
 
 		if (part.fm()) {
 			final sider = driverOf(part, mdd.song.Automation.SIDES, -1, tick);
+			final clock = under == null ? -1 : song.tempo.samplesAt(tick - local + under.at);
 
+			movingFrom = clock;
 			push(at, part, PATCH, named, under == null ? 127 : louder(part, under.velocity));
+			movingFrom = -1;
+
 			push(at, part, TWEAK, sider == null ? spread(part, sided, local, named)
 				: spread(part, sider.line, tick - sider.at, named), 1);
+
+			if (moving && under != null) {
+				restoredLanes(at, part, lane, under, clock, song.tempo.samplesAt(tick - local + under.ends()),
+					tick, transpose, named);
+			}
 		}
 
 		final sounded = under != null && (part.fm() || under.ends() > local) ? under : null;
@@ -1592,6 +1945,38 @@ final class Sequencer {
 				restored(at, part, line, tick - clip.at, sounded, transpose, named);
 			}
 		}
+	}
+
+	/**
+		Writes what the lanes a note's preset carries hold at a position being seeked to, where the
+		position is still inside what they move: before the next note, and no more than `TAIL`
+		past the note's end.
+
+		@param at The sample being seeked to.
+		@param part An FM part.
+		@param lane The lane the note is in.
+		@param under The note.
+		@param clock Where it keyed on.
+		@param ending Where it ends.
+		@param tick The tick being seeked to.
+		@param transpose Semitones to shift every note by.
+		@param named Which instrument it plays.
+	**/
+	function restoredLanes(at:Int, part:Part, lane:Null<mdd.song.Lane>, under:mdd.song.Note,
+			clock:Int, ending:Int, tick:Int, transpose:Int, named:Int):Void {
+		final instrument = instrumentOf(named, part);
+		if (instrument == null || instrument.lanes.length == 0 || at >= ending + TAIL) return;
+
+		movingFrom = clock;
+
+		for (line in instrument.lanes) {
+			if (!movable(part, line) || line.points.length == 0) continue;
+			if (lane != null && claimed(lane, part, line, tick, true)) continue;
+
+			lined(at, part, line, laneAt(line, clock, at), transpose, under.pitch, under.velocity, named);
+		}
+
+		movingFrom = -1;
 	}
 
 	/**
@@ -1986,6 +2371,7 @@ final class Sequencer {
 		kinds[count] = kind;
 		firsts[count] = first;
 		seconds[count] = second;
+		origins[count] = movingFrom;
 		order[count] = count;
 		count++;
 	}
@@ -2066,6 +2452,9 @@ final class Sequencer {
 			final part:Part = parts[at];
 			final first = firsts[at];
 			final second = seconds[at];
+			final origin = origins[at];
+
+			if (origin >= 0 && origin < keyedAt[part.index()]) continue;
 
 			switch (kinds[at]) {
 				case OFF:
@@ -2079,6 +2468,8 @@ final class Sequencer {
 					}
 
 				case PATCH:
+					keyedAt[part.index()] = origin >= 0 ? origin : tick;
+
 					final instrument = instrumentOf(first, part);
 					if (instrument != null && instrument.patch != null) {
 						stream.patch(tick, part, instrument.patch, second);
