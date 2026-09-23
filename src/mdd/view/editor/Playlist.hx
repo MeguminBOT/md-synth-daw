@@ -540,6 +540,8 @@ final class Playlist extends Widget {
 					invalidate();
 				}
 
+				described(event.x, event.y);
+
 				if (banding) {
 					bandToX = event.x;
 					bandToY = event.y;
@@ -609,6 +611,50 @@ final class Playlist extends Widget {
 		}
 
 		return false;
+	}
+
+	/**
+		Says in the tooltip what the pointer is over: the ruler, a track's header, its mute
+		button, or the row below the tracks that adds one. The clips and the grid are the music
+		itself and say nothing.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
+	function described(px:Float, py:Float):Void {
+		detail = "";
+
+		if (py < y + ruler()) {
+			if (px < x + names()) {
+				tip = "";
+				return;
+			}
+
+			tip = translate(Locale.EDITOR_RULER);
+			detail = translate(Locale.EDITOR_RULER_DETAIL);
+			return;
+		}
+
+		final which = px < x + names() ? trackAt(py) : -1;
+		final tracks = session.song.tracks;
+
+		if (which < 0) {
+			tip = "";
+			return;
+		}
+
+		if (which >= tracks.length) {
+			tip = translate(Locale.TRACK_ADD);
+			return;
+		}
+
+		if (muteAt(px)) {
+			tip = translate(tracks[which].muted ? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE);
+			return;
+		}
+
+		tip = tracks[which].name;
+		detail = translate(Locale.PLAYLIST_TRACK_DETAIL);
 	}
 
 	/**

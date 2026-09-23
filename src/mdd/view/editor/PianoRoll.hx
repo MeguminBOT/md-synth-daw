@@ -1911,7 +1911,10 @@ final class PianoRoll extends Widget {
 					return true;
 				}
 
-				if (dragging == null) return false;
+				if (dragging == null) {
+					described(event.x, event.y);
+					return false;
+				}
 
 				if (sizing) {
 					if (sizingStart) restarted(dragging, tickAt(event.x), event.alt());
@@ -2806,6 +2809,42 @@ final class PianoRoll extends Widget {
 		note.length = at - note.at;
 		session.does(new AddNote(session.pattern, session.part, rest));
 		invalidate();
+	}
+
+	/**
+		Says in the tooltip what the pointer is over, tested in the order a press is: the ruler,
+		the head of the lanes, the velocity strip and the keys. The notes and the grid are the
+		music itself and say nothing, and the lanes below speak for themselves.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
+	function described(px:Float, py:Float):Void {
+		detail = "";
+
+		if (py < y + ruler()) {
+			tip = px < x + gutter() ? "" : translate(Locale.EDITOR_RULER);
+			if (tip != "") detail = translate(Locale.EDITOR_RULER_DETAIL);
+			return;
+		}
+
+		if (onLaneHead(py)) {
+			tip = translate(Locale.ROLL_LANES);
+			return;
+		}
+
+		if (onVelocity(py)) {
+			tip = px < x + gutter() ? "" : translate(Locale.ROLL_VELOCITY);
+			if (tip != "") detail = translate(Locale.ROLL_VELOCITY_DETAIL);
+			return;
+		}
+
+		if (onStrip(py)) {
+			tip = "";
+			return;
+		}
+
+		tip = px < x + gutter() ? translate(Locale.ROLL_KEYS) : "";
 	}
 
 	inline function onStrip(py:Float):Bool {

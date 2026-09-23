@@ -266,6 +266,12 @@ final class Lanes extends Widget {
 
 		fields = [position, amount, shape, bend, steps];
 
+		position.tipKey = Locale.LANE_POSITION;
+		amount.tipKey = Locale.LANE_AMOUNT;
+		shape.tipKey = Locale.LANE_SHAPE;
+		bend.tipKey = Locale.LANE_BEND;
+		steps.tipKey = Locale.LANE_STEPS;
+
 		for (one in fields) {
 			one.visible = false;
 			add(one);
@@ -1895,6 +1901,9 @@ final class Lanes extends Widget {
 		final widen = row >= 0 && event.y < rowTop(row) + headTall()
 			&& onWiden(row, event.x);
 
+		described(row, name, shed, fold, widen, foot, grip == -1 && !foot
+			? scaleAt(event.x, event.y) : -1);
+
 		if (row == hoverRow && name == hoverName && shed == hoverShed && fold == hoverFold
 			&& widen == hoverWiden && foot == hoverFoot && grip == hoverEdge
 			&& segment == overSegment && row == overSegmentAt) return false;
@@ -1913,6 +1922,35 @@ final class Lanes extends Widget {
 
 		invalidate();
 		return true;
+	}
+
+	/**
+		Says in the tooltip what the pointer is over in a lane's header, on its scale or on the
+		foot that adds one. A plot says nothing, because its points are the music itself.
+
+		@param row The row under the pointer, or -1.
+		@param name Whether the pointer is on the row's name.
+		@param shed Whether it is on the button that takes the row away.
+		@param fold Whether it is on the button that folds the row.
+		@param widen Whether it is on the button that maximizes the row.
+		@param foot Whether it is on the foot.
+		@param scale The row whose scale it is on, or -1.
+	**/
+	function described(row:Int, name:Bool, shed:Bool, fold:Bool, widen:Bool, foot:Bool,
+			scale:Int):Void {
+		detail = "";
+
+		if (foot) tip = translate(Locale.LANE_ADD);
+		else if (scale >= 0) {
+			tip = translate(Locale.LANE_SCALE);
+			detail = translate(Locale.LANE_SCALE_DETAIL);
+		} else if (shed) {
+			tip = translate(Locale.LANE_SHED);
+			detail = translate(Locale.LANE_SHED_DETAIL);
+		} else if (widen) tip = translate(wide(row) ? Locale.LANE_RESTORE : Locale.LANE_WIDEN);
+		else if (fold) tip = translate(folded(row) ? Locale.LANE_UNFOLD : Locale.LANE_FOLD);
+		else if (name) tip = translate(Locale.LANE_CHOOSE);
+		else tip = "";
 	}
 
 	function bent(event:Input):Bool {

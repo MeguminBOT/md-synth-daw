@@ -529,7 +529,28 @@ final class AutomationEditor extends Widget {
 			thick - metrics.whole(4), metrics.whole(2), theme.frame);
 	}
 
+	/**
+		Says in the tooltip what the pointer is over: the ruler, or the corner above the lane
+		names that adds a lane.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
+	function described(px:Float, py:Float):Void {
+		detail = "";
+
+		if (onRuler(px, py)) {
+			tip = translate(Locale.EDITOR_RULER);
+			detail = translate(Locale.EDITOR_RULER_DETAIL);
+			return;
+		}
+
+		tip = py < y + head() + ruler() && px < x + gutter() ? translate(Locale.LANE_ADD) : "";
+	}
+
 	override function took(event:Input):Bool {
+		if (event.kind == Kind.PointerMove && !scrubbing && !dragging) described(event.x, event.y);
+
 		if (event.kind == Kind.PointerMove && scrubbing) {
 			scrubbed(event.x);
 			return true;
