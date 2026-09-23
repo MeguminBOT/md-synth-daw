@@ -1262,6 +1262,49 @@ class SpineCheck {
 			"the background's swatch raised the picker, dragging past its brightest reddest corner"
 			+ " coloured the background #" + StringTools.hex(coloured, 6) + ", and Escape put it away");
 
+		final together = studio.gathered();
+		final cell = new haxe.ds.Vector<Float>(4);
+
+		mdd.view.monitor.Scope.cellOf(together.length, 0, cell);
+
+		final grabX = left + (cell[0] + cell[2] * 0.5) * across;
+		final grabY = top + (cell[1] + cell[3] * 0.5) * down;
+
+		studio.chooses(-1);
+		framed();
+		dragged(grabX, grabY, grabX + 50, grabY);
+
+		var alone = 0;
+		var still = 0;
+
+		for (index in 0...together.length) {
+			final lane = style.lone(together[index]);
+			if (lane == null) continue;
+
+			alone++;
+			mdd.view.monitor.Scope.cellOf(together.length, index, cell);
+
+			final wantX = cell[0] + cell[2] * 0.5 + (index == 0 ? 50 / across : 0);
+			final wantY = cell[1] + cell[3] * 0.5;
+
+			if (Math.abs(lane.x - wantX) < 0.002 && Math.abs(lane.y - wantY) < 0.002
+				&& Math.abs(lane.wide - cell[2]) < 0.002) still++;
+		}
+
+		final moving = style.lone(together[0]);
+		final pickedOne = moving != null && studio.chosenLayer() == moving;
+
+		studio.gathers();
+
+		var remaining = 0;
+		for (layer in style.layers) if (layer.kind == mdd.view.film.Layer.LANE) remaining++;
+
+		says("each lane moves on its own", together.length >= 2 && alone == together.length
+			&& still == together.length && pickedOne && remaining == 0,
+			"dragging the first of " + together.length + " lanes took all " + alone + " out on their"
+			+ " own, " + still + " where they sat but the one moved 50 pixels, and gathering them"
+			+ " left " + remaining + " on their own");
+
 		studio.writes("{bpm} bpm");
 		framed();
 

@@ -139,6 +139,27 @@ final class Style {
 	}
 
 	/**
+		@param part A part.
+		@return The layer that places it on its own, or null where it is laid out with the rest.
+	**/
+	public function lone(part:Int):Null<Layer> {
+		for (layer in layers) if (layer.kind == Layer.LANE && layer.part == part) return layer;
+
+		return null;
+	}
+
+	/**
+		Lists the parts the lanes lay out together: those shown that have no layer of their own.
+
+		@param shown The parts the video shows.
+		@param into Where they go, emptied first.
+	**/
+	public function gathered(shown:Array<Int>, into:Array<Int>):Void {
+		into.resize(0);
+		for (part in shown) if (lone(part) == null) into.push(part);
+	}
+
+	/**
 		Sets a scope up to draw its lanes the way this style says.
 
 		@param scope The scope a video or its preview draws with.
@@ -248,6 +269,11 @@ final class Style {
 			out.key("path");
 			out.text(layer.path);
 
+			if (layer.kind == Layer.LANE) {
+				out.key("part");
+				out.whole(layer.part);
+			}
+
 			if (layer.kind == Layer.TEXT) {
 				out.key("text");
 				out.text(layer.text);
@@ -324,6 +350,7 @@ final class Style {
 			layer.turn = held.get("turn").real(0);
 			layer.alpha = held.get("alpha").real(1);
 			layer.path = held.get("path").saying("");
+			layer.part = held.get("part").whole(0);
 			layer.text = held.get("text").saying("");
 			layer.font = held.get("font").saying("");
 			layer.colour = colourOf(held.get("colour").saying(""), 0xFFFFFF);
@@ -331,6 +358,7 @@ final class Style {
 			layer.borderWidth = held.get("borderWidth").real(0);
 			layer.tidied();
 
+			if (layer.kind == Layer.LANE && out.lone(layer.part) != null) continue;
 			if (layer.kind == Layer.LANES) hasLanes = true;
 			out.layers.push(layer);
 		}

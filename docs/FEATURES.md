@@ -668,9 +668,12 @@ has no timeline: what you set applies to the whole video.
   to move it, a corner to size it, and the knob above it to turn it. A move comes to rest on the
   picture's middle lines, and a turn on a quarter; Shift turns in steps of 15°. The arrow keys
   nudge what is chosen, Delete takes it out, and Ctrl+Z and Ctrl+Y undo and redo in the window.
-- **The lanes** are one thing on the picture like the rest: put them anywhere, at any size and
-  angle. Each part's lane can be given a colour of its own, the part names and the lines between
-  lanes can be left out, and the trace can be drawn thicker.
+- **The lanes** start laid out together, and every part's lane moves on its own: drag any lane
+  and the song's lanes come apart where they sit, so nothing else moves, and the one you took
+  goes where you drag it, at any size and angle. Choose Lanes in the list to move the ones still
+  together as a block, **Gather lanes** to put them all back, and Remove on one lane to put that
+  lane back alone. Each part's lane can be given a colour of its own, the part names and the lines
+  between lanes can be left out, and the trace can be drawn thicker.
 - **The background** is a colour or a gradient at any angle, with a picture over it, PNG or JPEG,
   cropped to fill and as see-through as you like.
 - **Pictures**, such as album art or a logo, go anywhere on top, each with its own size, angle and

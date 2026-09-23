@@ -1,7 +1,8 @@
 package mdd.view.film;
 
 /**
-	One thing placed on a video's picture: the lanes, a picture read from a file, or a line of text.
+	One thing placed on a video's picture: the lanes, one part's lane placed on its own, a picture
+	read from a file, or a line of text.
 
 	Where it sits is measured in the picture rather than in pixels, so a style drawn at 720 and at
 	2160 puts everything in the same place: the centre and the size are fractions of the picture's
@@ -11,7 +12,8 @@ package mdd.view.film;
 @:unreflective
 final class Layer {
 	/**
-		Kind: the scope's lanes. A style has exactly one.
+		Kind: the scope's lanes, laid out together in a grid, every part that has no `LANE` of its
+		own. A style has exactly one.
 	**/
 	public static inline final LANES = 0;
 
@@ -26,9 +28,15 @@ final class Layer {
 	public static inline final TEXT = 2;
 
 	/**
+		Kind: one part's lane, placed on its own rather than with the rest. A style has at most one
+		for each part.
+	**/
+	public static inline final LANE = 3;
+
+	/**
 		How many kinds there are.
 	**/
-	public static inline final KINDS = 3;
+	public static inline final KINDS = 4;
 
 	/**
 		The thickest a text border may be, as a fraction of the text's height.
@@ -86,6 +94,11 @@ final class Layer {
 	public var path:String = "";
 
 	/**
+		The part a `LANE` shows, by index.
+	**/
+	public var part:Int = 0;
+
+	/**
 		What a `TEXT` says, placeholders and all.
 	**/
 	public var text:String = "";
@@ -133,6 +146,7 @@ final class Layer {
 		out.turn = turn;
 		out.alpha = alpha;
 		out.path = path;
+		out.part = part;
 		out.text = text;
 		out.font = font;
 		out.colour = colour;
@@ -144,19 +158,21 @@ final class Layer {
 
 	/**
 		Brings every field into the range it may hold: a size between `LEAST` and `MOST`, an
-		opacity between nought and one, a turn within one revolution, a centre no further off
-		the picture than it could be dragged, and a border no thicker than `THICKEST`.
+		opacity between nought and one, a turn from nought up to one revolution, a centre no
+		further off the picture than it could be dragged, and a border no thicker than
+		`THICKEST`.
 	**/
 	public function tidied():Void {
 		wide = within(wide, LEAST, MOST, 1);
 		tall = within(tall, LEAST, MOST, 1);
 		alpha = within(alpha, 0, 1, 1);
 		borderWidth = within(borderWidth, 0, THICKEST, 0);
+		part = part < 0 || part >= mdd.song.Part.COUNT ? 0 : part;
 		colour &= 0xFFFFFF;
 		border &= 0xFFFFFF;
 		x = within(x, -MOST, MOST + 1, 0.5);
 		y = within(y, -MOST, MOST + 1, 0.5);
-		turn = Math.isFinite(turn) ? turn % 360 : 0;
+		turn = Math.isFinite(turn) ? (turn % 360 + 360) % 360 : 0;
 	}
 
 	static inline function within(value:Float, low:Float, high:Float, fallback:Float):Float {

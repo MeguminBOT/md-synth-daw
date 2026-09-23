@@ -915,6 +915,46 @@ final class Scope extends Widget {
 	}
 
 	/**
+		Draws one part's lane the way a video shows it, filling the scope's box, with a hairline
+		round it where the lanes are drawn with dividers.
+
+		@param paint What to draw with.
+		@param part Which part.
+	**/
+	public function filmsLane(paint:Paint, part:Int):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+
+		final metrics = root.metrics;
+		painted = 0;
+
+		if (filmGrid) paint.outline(x, y, width, height, FILM_GRID, metrics.whole(1), 1, 0);
+
+		videoLane(paint, root.theme, metrics, part, x, y, width, height);
+	}
+
+	/**
+		Works out where one lane sits among the rest when `films` lays them out, as fractions of
+		the box they are laid out in: the left edge, the top edge, the width and the height.
+
+		@param count How many lanes there are.
+		@param index Which of them, in the order they are laid out.
+		@param into Where the four fractions go.
+	**/
+	public static function cellOf(count:Int, index:Int, into:Vector<Float>):Void {
+		final columns = count <= 3 ? 1 : (count <= 8 ? 2 : 3);
+		final rows = Std.int((count + columns - 1) / columns);
+		final column = index % columns;
+		final row = Std.int(index / columns);
+		final across = row == rows - 1 ? count - row * columns : columns;
+
+		into[0] = ((columns - across) * 0.5 + column) / columns;
+		into[1] = row / rows;
+		into[2] = 1 / columns;
+		into[3] = 1 / rows;
+	}
+
+	/**
 		Draws one lane of a video.
 
 		@param paint What to draw with.

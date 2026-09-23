@@ -369,6 +369,84 @@ final class Studio extends Widget {
 	}
 
 	/**
+		@return The parts the lanes lay out together in the song as it is now: those shown that have
+			no lane of their own.
+	**/
+	public function gathered():Array<Int> {
+		final out:Array<Int> = [];
+		style.gathered(parts(), out);
+		return out;
+	}
+
+	/**
+		Takes every lane the lanes lay out together out on its own, each placed exactly where it
+		sat, turned and faded as the lanes were, so nothing on the picture moves, and chooses one of
+		them. It is one step to undo.
+
+		Every lane comes out at once rather than only the one asked for, because the rest would
+		otherwise be laid out again to fill the gap and jump.
+
+		@param part The part to choose.
+		@return The layer that now places that part, or null where the lanes do not show it.
+	**/
+	public function detaches(part:Int):Null<Layer> {
+		final held = style.lone(part);
+		if (held != null) return held;
+
+		final together = gathered();
+		if (together.indexOf(part) < 0) return null;
+
+		final lanes = style.lanes();
+		final at = style.layers.indexOf(lanes);
+		final boxWide = lanes.wide * pictureWide;
+		final boxTall = lanes.tall * pictureTall;
+		final turn = lanes.turn * Math.PI / 180;
+		final cell = new haxe.ds.Vector<Float>(4);
+
+		var wanted:Null<Layer> = null;
+
+		for (index in 0...together.length) {
+			Scope.cellOf(together.length, index, cell);
+
+			final along = (cell[0] + cell[2] * 0.5 - 0.5) * boxWide;
+			final across = (cell[1] + cell[3] * 0.5 - 0.5) * boxTall;
+			final lane = new Layer(Layer.LANE);
+
+			lane.part = together[index];
+			lane.x = lanes.x + (along * Math.cos(turn) - across * Math.sin(turn)) / pictureWide;
+			lane.y = lanes.y + (along * Math.sin(turn) + across * Math.cos(turn)) / pictureTall;
+			lane.wide = cell[2] * lanes.wide;
+			lane.tall = cell[3] * lanes.tall;
+			lane.turn = lanes.turn;
+			lane.alpha = lanes.alpha;
+			lane.tidied();
+
+			style.layers.insert(at + 1 + index, lane);
+			if (lane.part == part) wanted = lane;
+		}
+
+		if (wanted != null) chosen = style.layers.indexOf(wanted);
+
+		changed(true);
+		return wanted;
+	}
+
+	/**
+		Puts every lane placed on its own back with the rest, and chooses the lanes.
+	**/
+	public function gathers():Void {
+		var index = style.layers.length - 1;
+
+		while (index >= 0) {
+			if (style.layers[index].kind == Layer.LANE) style.layers.splice(index, 1);
+			index--;
+		}
+
+		chosen = style.layers.indexOf(style.lanes());
+		changed(true);
+	}
+
+	/**
 		Shows the waveform or the spectrum in the lanes, and says so.
 
 		@param which `Scope.WAVEFORM` or `Scope.SPECTRUM`.

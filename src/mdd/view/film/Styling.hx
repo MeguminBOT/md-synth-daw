@@ -71,6 +71,7 @@ final class Styling extends Widget {
 	final smoothingWidth:Number;
 	final waveform:Button;
 	final spectrum:Button;
+	final gather:Button;
 
 	final swap:Button;
 
@@ -173,6 +174,9 @@ final class Styling extends Widget {
 		waveform.toggle = true;
 		spectrum.toggle = true;
 
+		gather = button(function():Void studio.gathers());
+		gather.tipKey = Locale.FILM_GATHER_TIP;
+
 		words = new Field("");
 		words.onChange = function(said:String):Void chosenDo(function(layer:Layer):Void layer.text = said, false);
 		words.onCommit = function(said:String):Void studio.changed(true);
@@ -212,6 +216,7 @@ final class Styling extends Widget {
 		final style = studio.style;
 		final layer = studio.chosenLayer();
 		final kind = layer == null ? -1 : layer.kind;
+		final laned = kind == Layer.LANES || kind == Layer.LANE;
 
 		following = true;
 
@@ -236,7 +241,7 @@ final class Styling extends Widget {
 			placeY.set(Math.round(layer.y * 100));
 			sizeWide.set(Math.round(layer.wide * 100));
 			sizeTall.set(Math.round(layer.tall * 100));
-			turn.set(Math.round(layer.turn));
+			turn.set(Math.round((layer.turn % 360 + 360) % 360));
 			alpha.set(Math.round(layer.alpha * 100));
 		}
 
@@ -244,23 +249,23 @@ final class Styling extends Widget {
 			final held = colours[part];
 			final own:Part = part;
 
-			held.visible = kind == Layer.LANES;
+			held.visible = laned;
 			held.borrowed = style.colours[part] < 0;
 			held.colour = style.colours[part] < 0 ? partColour(part) : style.colours[part];
 			held.tip = own.name();
 			held.detailKey = Locale.FILM_LANE_TIP;
 		}
 
-		for (control in [names, grid]) control.visible = kind == Layer.LANES;
-		for (control in [weight, smoothingWidth]) control.visible = kind == Layer.LANES;
+		for (control in [names, grid]) control.visible = laned;
+		for (control in [weight, smoothingWidth]) control.visible = laned;
 
-		windowing.visible = kind == Layer.LANES;
-		smoothing.visible = kind == Layer.LANES;
-		waveform.visible = kind == Layer.LANES;
-		spectrum.visible = kind == Layer.LANES;
+		windowing.visible = laned;
+		smoothing.visible = laned;
+		waveform.visible = laned;
+		spectrum.visible = laned;
 		waveform.on = studio.scope.showing == mdd.view.monitor.Scope.WAVEFORM;
 		spectrum.on = studio.scope.showing == mdd.view.monitor.Scope.SPECTRUM;
-		smoothingWidth.visible = kind == Layer.LANES && style.smoothing != Windowing.NONE;
+		smoothingWidth.visible = laned && style.smoothing != Windowing.NONE;
 
 		names.set(style.names);
 		grid.set(style.grid);
@@ -268,6 +273,11 @@ final class Styling extends Widget {
 		smoothingWidth.set(style.smoothingWidth);
 
 		swap.visible = kind == Layer.IMAGE;
+
+		var alone = false;
+		for (held in style.layers) if (held.kind == Layer.LANE) alone = true;
+
+		gather.visible = kind == Layer.LANES && alone;
 
 		words.visible = kind == Layer.TEXT;
 		font.visible = kind == Layer.TEXT;
@@ -281,6 +291,13 @@ final class Styling extends Widget {
 			fill.colour = layer.colour;
 			border.colour = layer.border;
 			borderWidth.set(Math.round(layer.borderWidth * 100));
+		}
+
+		if (layer != null) {
+			final row = style.layers.length - 1 - studio.chosen;
+
+			if (row < listOffset) listOffset = row;
+			if (row >= listOffset + SHOWN) listOffset = row - SHOWN + 1;
 		}
 
 		raiseLayer.enabled = layer != null && studio.chosen < style.layers.length - 1;
@@ -323,6 +340,7 @@ final class Styling extends Widget {
 		grid.label = root.translate(Locale.FILM_GRID);
 		waveform.label = root.translate(Locale.SCOPE_WAVEFORM);
 		spectrum.label = root.translate(Locale.SCOPE_SPECTRUM);
+		gather.label = root.translate(Locale.FILM_GATHER);
 
 		placeX.label = root.translate(Locale.FILM_ACROSS);
 		placeY.label = root.translate(Locale.FILM_DOWN);
@@ -693,6 +711,11 @@ final class Styling extends Widget {
 		labels[1] = top;
 		top += control + gap * 2;
 
+		if (gather.visible) {
+			gather.arrange(left, top, wide, control);
+			top += control + gap;
+		}
+
 		final little = (wide - gap * (Part.COUNT - 1)) / Part.COUNT;
 
 		for (part in 0...Part.COUNT) colours[part].arrange(left + part * (little + gap), top, little, little);
@@ -766,7 +789,7 @@ final class Styling extends Widget {
 		titled(paint, font, translate(Locale.FILM_LAYERS), left, headings[1]);
 
 		if (layer != null) {
-			titled(paint, font, kindName(layer.kind), left, headings[2]);
+			titled(paint, font, kindName(layer), left, headings[2]);
 		}
 
 		if (groundAlpha.visible) {
@@ -786,12 +809,19 @@ final class Styling extends Widget {
 		paint.text(said, left, top + font.ascent, root.theme.ink, 0.95);
 	}
 
-	function kindName(kind:Int):String {
-		return translate(switch (kind) {
+	function kindName(layer:Layer):String {
+		if (layer.kind == Layer.LANE) return partName(layer.part);
+
+		return translate(switch (layer.kind) {
 			case Layer.LANES: Locale.FILM_LANES;
 			case Layer.TEXT: Locale.FILM_TEXT;
 			case _: Locale.FILM_PICTURE;
 		});
+	}
+
+	static function partName(part:Int):String {
+		final held:Part = part;
+		return held.name();
 	}
 
 	/**
@@ -819,6 +849,7 @@ final class Styling extends Widget {
 
 			final said = switch (layer.kind) {
 				case Layer.LANES: translate(Locale.FILM_LANES);
+				case Layer.LANE: partName(layer.part);
 				case Layer.TEXT: translate(Locale.FILM_TEXT) + "  " + layer.text;
 				case _: translate(Locale.FILM_PICTURE) + "  " + haxe.io.Path.withoutDirectory(layer.path);
 			};

@@ -49,6 +49,7 @@ final class Picture {
 
 	final sources:Array<Source> = [];
 	final size:Vector<Int> = new Vector<Int>(2);
+	final gathered:Array<Int> = [];
 
 	final fonts:Array<Font> = [];
 	final fontPaths:Array<String> = [];
@@ -81,10 +82,16 @@ final class Picture {
 	public function draws(style:Style, scope:Scope, parts:Array<Int>, words:Words, wide:Int,
 			tall:Int, into:cpp.Star<Texture>):Void {
 		grounded(style, wide, tall);
+		style.gathered(parts, gathered);
 
 		for (layer in style.layers) {
 			switch (layer.kind) {
-				case Layer.LANES: laned(layer, scope, parts, wide, tall, into);
+				case Layer.LANES:
+					if (gathered.length > 0) laned(layer, scope, gathered, -1, wide, tall, into);
+
+				case Layer.LANE:
+					if (parts.indexOf(layer.part) >= 0) laned(layer, scope, parts, layer.part, wide, tall, into);
+
 				case Layer.TEXT: written(layer, words, wide, tall, into);
 				case _: placed(layer, wide, tall);
 			}
@@ -199,9 +206,18 @@ final class Picture {
 	}
 
 	/**
-		Draws the lanes into their box, turned where the layer is.
+		Draws lanes into a layer's box, turned and faded where the layer is: the lanes laid out
+		together, or one part's lane on its own.
+
+		@param layer The layer.
+		@param scope The scope that draws them.
+		@param parts The parts laid out together, for the lanes.
+		@param single The part a lane on its own shows, or -1 for the lanes laid out together.
+		@param wide How wide the picture is, in pixels.
+		@param tall How tall.
+		@param into The target the picture is being drawn into.
 	**/
-	function laned(layer:Layer, scope:Scope, parts:Array<Int>, wide:Int, tall:Int,
+	function laned(layer:Layer, scope:Scope, parts:Array<Int>, single:Int, wide:Int, tall:Int,
 			into:cpp.Star<Texture>):Void {
 		final boxWide = layer.wide * wide;
 		final boxTall = layer.tall * tall;
@@ -212,7 +228,9 @@ final class Picture {
 
 		if (layer.turn % 360 == 0 && layer.alpha >= 1) {
 			scope.arrange(centreX - boxWide * 0.5, centreY - boxTall * 0.5, boxWide, boxTall);
-			scope.films(paint, parts);
+
+			if (single < 0) scope.films(paint, parts);
+			else scope.filmsLane(paint, single);
 
 			return;
 		}
@@ -227,7 +245,9 @@ final class Picture {
 		paint.clear(0, 0, 0, 0);
 
 		scope.arrange(0, 0, drawnWide, drawnTall);
-		scope.films(paint, parts);
+
+		if (single < 0) scope.films(paint, parts);
+		else scope.filmsLane(paint, single);
 
 		paint.target(into);
 		paint.turnedPart(scratch, drawnWide, drawnTall, centreX, centreY, boxWide, boxTall,

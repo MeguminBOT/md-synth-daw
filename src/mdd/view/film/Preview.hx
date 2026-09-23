@@ -67,6 +67,7 @@ final class Preview extends Widget {
 	var atX:Float = 0;
 	var atY:Float = 0;
 	final corners:Vector<Float> = new Vector<Float>(8);
+	final cell:Vector<Float> = new Vector<Float>(4);
 
 	/**
 		Where the picture sits in the preview, across, in the window's pixels.
@@ -203,6 +204,11 @@ final class Preview extends Widget {
 			else if (inside(layer, px, py)) said = Locale.FILM_MOVE_TIP;
 		}
 
+		if (said == Locale.FILM_PREVIEW_TIP) {
+			final lanes = studio.style.lanes();
+			if (lanes != layer && measured(lanes) && laneAt(lanes, px, py) >= 0) said = Locale.FILM_LANE_MOVE_TIP;
+		}
+
 		tip = translate(said);
 	}
 
@@ -232,6 +238,16 @@ final class Preview extends Widget {
 			final layer = studio.style.layers[index];
 
 			if (measured(layer) && inside(layer, px, py)) {
+				if (layer.kind == Layer.LANES && index != studio.chosen) {
+					final part = laneAt(layer, px, py);
+					final lone = part < 0 ? null : studio.detaches(part);
+
+					if (lone != null && measured(lone)) {
+						starts(MOVE, lone, px, py);
+						return;
+					}
+				}
+
 				studio.chooses(index);
 				starts(MOVE, layer, px, py);
 				return;
@@ -286,7 +302,7 @@ final class Preview extends Widget {
 
 				final wider = startHalfWide <= 0 ? 1 : along / startHalfWide;
 				final taller = startHalfTall <= 0 ? 1 : across / startHalfTall;
-				final kept = layer.kind == Layer.LANES ? shift : !shift;
+				final kept = layer.kind == Layer.LANES || layer.kind == Layer.LANE ? shift : !shift;
 				final even = wider > taller ? wider : taller;
 
 				if (layer.kind == Layer.TEXT) {
@@ -346,6 +362,35 @@ final class Preview extends Widget {
 		final across = -dx * Math.sin(turn) + dy * Math.cos(turn);
 
 		return Math.abs(along) <= held.boundWide * 0.5 && Math.abs(across) <= held.boundTall * 0.5;
+	}
+
+	/**
+		@param lanes The lanes laid out together, measured.
+		@return Which part's lane a point is on among the lanes laid out together, or -1 for none.
+	**/
+	function laneAt(lanes:Layer, px:Float, py:Float):Int {
+		final held = picture;
+		if (held == null || held.boundWide <= 0 || held.boundTall <= 0) return -1;
+
+		final together = studio.gathered();
+		if (together.length == 0) return -1;
+
+		final turn = lanes.turn * Math.PI / 180;
+		final dx = px - (pictureLeft + lanes.x * pictureWide);
+		final dy = py - (pictureTop + lanes.y * pictureTall);
+		final along = (dx * Math.cos(turn) + dy * Math.sin(turn)) / held.boundWide + 0.5;
+		final across = (-dx * Math.sin(turn) + dy * Math.cos(turn)) / held.boundTall + 0.5;
+
+		for (index in 0...together.length) {
+			mdd.view.monitor.Scope.cellOf(together.length, index, cell);
+
+			if (along >= cell[0] && along < cell[0] + cell[2] && across >= cell[1]
+					&& across < cell[1] + cell[3]) {
+				return together[index];
+			}
+		}
+
+		return -1;
 	}
 
 	/**
