@@ -31,6 +31,8 @@ class ScopeCheck {
 		kept();
 		started();
 		held();
+		windowed();
+		smoothed();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -160,6 +162,94 @@ class ScopeCheck {
 
 		says("a stored setting out of range lands on the nearest", read == "4 0 2 0",
 			"speed 99 and -3, accuracy 9 and -1 read back as " + read);
+	}
+
+	/**
+		A tone between two bars leaks across every other bar with no window, and a shaped window
+		holds it to the bars beside it. With no shape every sample weighs one, so the bars are what
+		they were before shapes existed.
+	**/
+	static function windowed():Void {
+		final scope = made();
+
+		scope.rated(48000);
+		scope.refines(2);
+		scope.paces(2);
+
+		final many = scope.window();
+		final hertz = 40 * Math.pow(8000 / 40, 10.5 / (Scope.BARS - 1.0));
+
+		for (step in 0...Scope.SPAN) scope.feed(0, 0.5 * Math.sin(2 * Math.PI * hertz * step / 48000));
+
+		final flat = leaked(scope, mdd.view.monitor.Windowing.NONE, many);
+		final even = @:privateAccess scope.weighed == many;
+
+		scope.windows(mdd.view.monitor.Windowing.HANN);
+		final hann = leaked(scope, mdd.view.monitor.Windowing.HANN, many);
+
+		scope.windows(mdd.view.monitor.Windowing.BLACKMAN);
+		final blackman = leaked(scope, mdd.view.monitor.Windowing.BLACKMAN, many);
+
+		says("a window holds a tone to its bars", even && hann < flat * 0.25
+			&& blackman < flat * 0.25,
+			"a tone between bars 10 and 11 leaks " + round(flat * 100) + " per cent of its peak into"
+			+ " bars four or more away with no window, " + round(hann * 100) + " with Hann and "
+			+ round(blackman * 100) + " with Blackman");
+	}
+
+	/**
+		@param scope A scope holding a tone in its first lane.
+		@param kind The shape it is set to.
+		@param many How many samples its window holds.
+		@return The largest bar four or more bars from the tone, against the largest bar.
+	**/
+	static function leaked(scope:Scope, kind:Int, many:Int):Float {
+		final analysed = many < Scope.ANALYSED ? many : Scope.ANALYSED;
+		final start = (scope.written[0] - analysed + Scope.SPAN) % Scope.SPAN;
+		final most = @:privateAccess scope.bands(0, start, analysed);
+
+		var far = 0.0;
+
+		for (bin in 0...Scope.BARS) {
+			if (bin > 6 && bin < 15) continue;
+
+			final held = @:privateAccess scope.bins[bin];
+			if (held > far) far = held;
+		}
+
+		return most <= 0 ? 1 : far / most;
+	}
+
+	/**
+		A waveform smoothed with a shape keeps a slow tone and loses a fast one laid over it.
+	**/
+	static function smoothed():Void {
+		final scope = made();
+
+		scope.rated(48000);
+		scope.refines(2);
+		scope.paces(2);
+
+		final many = scope.window();
+
+		for (step in 0...Scope.SPAN) {
+			scope.feed(0, 0.5 * Math.sin(2 * Math.PI * 100 * step / 48000)
+				+ (step % 2 == 0 ? 0.4 : -0.4));
+		}
+
+		final start = scope.startOf(0);
+		final rough = @:privateAccess scope.loudest(@:privateAccess scope.traces, 0, start, many);
+
+		scope.smoothsWith(mdd.view.monitor.Windowing.GAUSSIAN, 9);
+		@:privateAccess scope.soften(0, start, many);
+
+		final smooth = @:privateAccess scope.loudest(@:privateAccess scope.smoothed, 0, 0, many);
+
+		says("smoothing keeps the slow tone", rough > 0.85 && smooth > 0.45
+			&& smooth < 0.55,
+			"a 100 Hz tone at 0.5 under a buzz at half the rate peaks at " + round(rough)
+			+ " as it is and " + round(smooth) + " smoothed over "
+			+ scope.smoothingWidth + " samples with a Gaussian");
 	}
 
 	static function round(value:Float):Float {

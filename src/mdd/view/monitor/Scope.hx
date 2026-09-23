@@ -163,12 +163,57 @@ final class Scope extends Widget {
 	**/
 	public var onChange:Null<() -> Void> = null;
 
+	/**
+		The shape a spectrum's samples are weighed by, one of `Windowing`'s. `Windowing.NONE`
+		weighs every sample the same.
+	**/
+	public var windowing(default, null):Int = Windowing.NONE;
+
+	/**
+		The shape a waveform is smoothed with, one of `Windowing`'s. `Windowing.NONE` draws it as
+		it is.
+	**/
+	public var smoothing(default, null):Int = Windowing.NONE;
+
+	/**
+		How many samples a smoothing kernel spans, odd and at most `Windowing.WIDEST`.
+	**/
+	public var smoothingWidth(default, null):Int = 9;
+
+	/**
+		The colour a video draws each part in, by part, or -1 for the part's own.
+	**/
+	public final filmColours:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		Whether a video labels each lane with its part's name.
+	**/
+	public var filmNames:Bool = true;
+
+	/**
+		Whether a video draws a hairline between lanes.
+	**/
+	public var filmGrid:Bool = true;
+
+	/**
+		How thick a video's trace is, in the sizes it is drawn at.
+	**/
+	public var filmWeight:Float = 2;
+
 	var menu:Null<Menu> = null;
 
 	final skipped:Vector<Int> = new Vector<Int>(Part.COUNT);
 	final line:Vector<Float> = new Vector<Float>(SPAN);
 	final bins:Vector<Float> = new Vector<Float>(BARS);
 	final turns:Vector<Float> = new Vector<Float>(BARS * 2);
+
+	final weights:Vector<Float> = new Vector<Float>(ANALYSED);
+	var weighed:Float = 1;
+	var weighedFor:Int = -1;
+	var weighedKind:Int = -1;
+
+	final kernel:Vector<Float> = new Vector<Float>(Windowing.WIDEST);
+	final smoothed:Vector<Float> = new Vector<Float>(SPAN);
 
 	/**
 		Builds the scope.
@@ -188,9 +233,70 @@ final class Scope extends Widget {
 			written[i] = 0;
 			notes[i] = -1;
 			skipped[i] = 0;
+			filmColours[i] = -1;
 		}
 
+		for (i in 0...SPAN) smoothed[i] = 0;
+
 		tuned();
+		smoothsWith(Windowing.NONE, smoothingWidth);
+	}
+
+	/**
+		Weighs a spectrum's samples by a shape from here on.
+
+		@param kind One of `Windowing`'s shapes.
+	**/
+	public function windows(kind:Int):Void {
+		windowing = kind < 0 || kind >= Windowing.KINDS ? Windowing.NONE : kind;
+		invalidate();
+	}
+
+	/**
+		Smooths a waveform with a shape from here on.
+
+		@param kind One of `Windowing`'s shapes, or `Windowing.NONE` to draw it as it is.
+		@param width How many samples the kernel spans, brought to an odd count between three and
+			`Windowing.WIDEST`.
+	**/
+	public function smoothsWith(kind:Int, width:Int):Void {
+		smoothing = kind < 0 || kind >= Windowing.KINDS ? Windowing.NONE : kind;
+		smoothingWidth = Windowing.spanned(width);
+
+		final total = Windowing.fills(smoothing, kernel, smoothingWidth);
+		for (tap in 0...smoothingWidth) kernel[tap] = kernel[tap] / total;
+
+		invalidate();
+	}
+
+	/**
+		Smooths a lane's window into `smoothed`, from its start, with the kernel `smoothsWith`
+		made. Before the window a tap reads the samples the lane holds from before it; past the
+		window's end it reads the last sample again, because what follows may not have arrived.
+
+		@param part Which part.
+		@param start Where the window starts in the lane.
+		@param many How many samples it holds.
+	**/
+	function soften(part:Int, start:Int, many:Int):Void {
+		final base = part * SPAN;
+		final width = smoothingWidth;
+		final half = width >> 1;
+		final last = many - 1;
+
+		for (index in 0...many) {
+			var sum = 0.0;
+
+			for (tap in 0...width) {
+				var away = index + tap - half;
+				if (away > last) away = last;
+
+				final at = (start + away + SPAN) % SPAN;
+				sum += traces[base + at] * kernel[tap];
+			}
+
+			smoothed[index] = sum;
+		}
 	}
 
 	/**
@@ -492,6 +598,12 @@ final class Scope extends Widget {
 		final base = part * SPAN;
 		var most = 0.0;
 
+		if (weighedFor != many || weighedKind != windowing) {
+			weighed = Windowing.fills(windowing, weights, many);
+			weighedFor = many;
+			weighedKind = windowing;
+		}
+
 		for (bin in 0...BARS) {
 			final cosStep = turns[bin * 2];
 			final sinStep = turns[bin * 2 + 1];
@@ -503,7 +615,7 @@ final class Scope extends Widget {
 			var at = start;
 
 			for (step in 0...many) {
-				final value = traces[base + at];
+				final value = traces[base + at] * weights[step];
 
 				at++;
 				if (at >= SPAN) at = 0;
@@ -516,7 +628,7 @@ final class Scope extends Widget {
 				cosNow = held;
 			}
 
-			final power = Math.sqrt(real * real + imaginary * imaginary) / many;
+			final power = Math.sqrt(real * real + imaginary * imaginary) / weighed;
 			bins[bin] = power;
 			if (power > most) most = power;
 		}
@@ -525,18 +637,18 @@ final class Scope extends Widget {
 	}
 
 	/**
-		@param part Which part.
+		@param source The samples: the lanes, or the smoothed window.
+		@param base Where the lane starts in them.
 		@param start Where the run starts in the lane.
 		@param many How long it is.
 		@return The largest sample in the run, ignoring its sign.
 	**/
-	function loudest(part:Int, start:Int, many:Int):Float {
-		final base = part * SPAN;
+	function loudest(source:Vector<Float>, base:Int, start:Int, many:Int):Float {
 		var most = 0.0;
 		var at = start;
 
 		for (step in 0...many) {
-			final held = traces[base + at];
+			final held = source[base + at];
 			final value = held < 0 ? -held : held;
 
 			if (value > most) most = value;
@@ -555,7 +667,8 @@ final class Scope extends Widget {
 		more, each column is drawn as the highest and the lowest sample that falls in it, so a
 		peak narrower than a pixel still shows rather than falling between two points.
 
-		@param base Where the lane starts in the traces.
+		@param source The samples: the lanes, or the smoothed window.
+		@param base Where the lane starts in them.
 		@param start Where the window starts in the lane.
 		@param many How many samples the window holds.
 		@param columns How many pixels across the lane is.
@@ -565,15 +678,15 @@ final class Scope extends Widget {
 		@param gain How far down one unit of sample goes.
 		@return How many points were laid.
 	**/
-	function traced(base:Int, start:Int, many:Int, columns:Int, left:Float, across:Float,
-			middle:Float, gain:Float):Int {
+	function traced(source:Vector<Float>, base:Int, start:Int, many:Int, columns:Int, left:Float,
+			across:Float, middle:Float, gain:Float):Int {
 		if (many <= columns) {
 			final step = many > 1 ? across / (many - 1) : across;
 			var read = start;
 
 			for (i in 0...many) {
 				line[i * 2] = left + i * step;
-				line[i * 2 + 1] = middle - traces[base + read] * gain;
+				line[i * 2 + 1] = middle - source[base + read] * gain;
 
 				read++;
 				if (read >= SPAN) read = 0;
@@ -591,11 +704,11 @@ final class Scope extends Widget {
 		for (column in 0...wide) {
 			final until = Std.int((column + 1) * many / wide);
 
-			var low = traces[base + read];
+			var low = source[base + read];
 			var high = low;
 
 			while (used < until) {
-				final value = traces[base + read];
+				final value = source[base + read];
 
 				if (value < low) low = value;
 				if (value > high) high = value;
@@ -697,14 +810,21 @@ final class Scope extends Widget {
 		}
 
 		final start = startOf(part);
-		final peak = loudest(part, start, many);
+		final soft = smoothing != Windowing.NONE;
+
+		if (soft) soften(part, start, many);
+
+		final source = soft ? smoothed : traces;
+		final base = soft ? 0 : part * SPAN;
+		final first = soft ? 0 : start;
+		final peak = loudest(source, base, first, many);
 
 		if (peak <= 0.0005) return;
 
 		paint.rect(from, middle, across, metrics.whole(1), theme.frame, 0.5);
 
 		final columns = Std.int(across) < 2 ? 2 : Std.int(across);
-		final count = traced(part * SPAN, start, many, columns, from, across, middle,
+		final count = traced(source, base, first, many, columns, from, across, middle,
 			reach / peak);
 
 		painted++;
@@ -735,7 +855,7 @@ final class Scope extends Widget {
 		final analysed = many < ANALYSED ? many : ANALYSED;
 		final start = (written[part] - analysed + SPAN) % SPAN;
 
-		if (loudest(part, start, analysed) <= 0.0005) return false;
+		if (loudest(traces, part * SPAN, start, analysed) <= 0.0005) return false;
 
 		final most = bands(part, start, analysed);
 		if (most <= 0) return false;
@@ -787,8 +907,8 @@ final class Scope extends Widget {
 			final left = x + (columns - across) * wide * 0.5 + column * wide;
 			final top = y + row * tall;
 
-			if (column > 0) paint.rect(left, top, hair, tall, FILM_GRID);
-			if (row > 0) paint.rect(left, top, wide, hair, FILM_GRID);
+			if (filmGrid && column > 0) paint.rect(left, top, hair, tall, FILM_GRID);
+			if (filmGrid && row > 0) paint.rect(left, top, wide, hair, FILM_GRID);
 
 			videoLane(paint, theme, metrics, parts[index], left, top, wide, tall);
 		}
@@ -810,20 +930,22 @@ final class Scope extends Widget {
 			wide:Float, tall:Float):Void {
 		final font = metrics.body;
 		final pad = metrics.whole(12);
-		final weight = metrics.whole(2);
-		final colour = theme.part(part);
+		final weight = metrics.whole(filmWeight);
+		final colour:Colour = filmColours[part] >= 0 ? filmColours[part] : theme.part(part);
 
 		final from = left + pad;
 		final across = wide - pad * 2;
-		final label = pad + font.height;
+		final label = filmNames ? pad + font.height : 0;
 		final middle = top + (tall + label) * 0.5;
 
-		paint.reface(font);
-		paint.text(nameOf(part), from, top + pad + font.ascent, FILM_INK, 0.7);
+		if (filmNames) {
+			paint.reface(font);
+			paint.text(nameOf(part), from, top + pad + font.ascent, FILM_INK, 0.7);
+		}
 
 		if (showing == SPECTRUM) {
 			final floor = top + tall - pad;
-			final reach = tall - pad * 3 - font.height;
+			final reach = tall - pad * 2 - label;
 
 			if (spectrumOf(paint, part, from, across, floor, reach, colour, 1)) painted++;
 			else paint.rect(from, floor - weight, across, weight, colour, 0.35);
@@ -835,7 +957,14 @@ final class Scope extends Widget {
 
 		final many = window();
 		final start = startOf(part);
-		final peak = loudest(part, start, many);
+		final soft = smoothing != Windowing.NONE;
+
+		if (soft) soften(part, start, many);
+
+		final source = soft ? smoothed : traces;
+		final base = soft ? 0 : part * SPAN;
+		final first = soft ? 0 : start;
+		final peak = loudest(source, base, first, many);
 
 		if (peak <= 0.0005) {
 			paint.rect(from, middle - weight * 0.5, across, weight, colour, 0.35);
@@ -844,7 +973,7 @@ final class Scope extends Widget {
 
 		final reach = (tall - label) * 0.5 - pad;
 		final columns = Std.int(across) < 2 ? 2 : Std.int(across);
-		final count = traced(part * SPAN, start, many, columns, from, across, middle, reach / peak);
+		final count = traced(source, base, first, many, columns, from, across, middle, reach / peak);
 
 		painted++;
 		paint.polyline(line, count, weight, colour, 1);
