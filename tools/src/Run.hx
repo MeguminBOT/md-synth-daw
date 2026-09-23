@@ -2499,10 +2499,16 @@ class Run {
 			+ (sha == "" ? "master" : sha);
 
 		if (!download(base + "/stb_truetype.h", into + "/stb_truetype.h")) return false;
+		if (!download(base + "/stb_image.h", into + "/stb_image.h")) return false;
 		download(base + "/LICENSE", into + "/LICENSE");
 
 		if (File.getContent(into + "/stb_truetype.h").indexOf("stbtt_PackFontRange") < 0) {
 			FileSystem.deleteFile(into + "/stb_truetype.h");
+			return false;
+		}
+
+		if (File.getContent(into + "/stb_image.h").indexOf("stbi_load_from_memory") < 0) {
+			FileSystem.deleteFile(into + "/stb_image.h");
 			return false;
 		}
 

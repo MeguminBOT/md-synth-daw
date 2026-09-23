@@ -92,8 +92,8 @@
 	<vendor name="miniaudio"  present="miniaudio/miniaudio.h"              size="1 MB"
 	        about="the audio device, called directly" />
 
-	<vendor name="stb"        present="stb/stb_truetype.h"                 size="1 MB"
-	        about="the glyph rasteriser the font atlas is baked with" />
+	<vendor name="stb"        present="stb/stb_image.h"                    size="1 MB"
+	        about="the glyph rasteriser the font atlas is baked with, and the image decoder a video's pictures are read with" />
 
 	<vendor name="fonts"      present="fonts/Go-Regular.ttf"               size="40 MB"
 	        about="the interface faces, and the CJK faces a glyph is cut from when one has none" />
