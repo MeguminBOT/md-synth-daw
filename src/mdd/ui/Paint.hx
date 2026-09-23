@@ -66,6 +66,21 @@ final class Paint {
 	final corners:Vector<Int> = new Vector<Int>(512);
 
 	/**
+		The most segments any fan is drawn with.
+	**/
+	static inline final MOST_SPOKES = 128;
+
+	/**
+		The direction of every spoke of the fan being drawn, across then down, two numbers a
+		spoke. `spokes` fills it once a fan, for the fill and its feather to share.
+	**/
+	final directions:Vector<Float> = new Vector<Float>((MOST_SPOKES + 1) * 2);
+
+	var spokesFrom:Float = 0;
+	var spokesStep:Float = 0;
+	var spokesCount:Int = -1;
+
+	/**
 		Private: use `on`.
 	**/
 	function new() {}
@@ -531,20 +546,43 @@ final class Paint {
 		if (count < 3) count = 3;
 		if (count > 24) count = 24;
 
-		final step = (ends - starts) * Math.PI / 180 / count;
-		var angle = starts * Math.PI / 180;
+		spokes(starts * Math.PI / 180, (ends - starts) * Math.PI / 180 / count, count);
 
 		final middle = tone(top, bottom, from, span, cy);
 
 		for (index in 0...count) {
-			final ax = cx + Math.cos(angle) * r;
-			final ay = cy + Math.sin(angle) * r;
-			final bx = cx + Math.cos(angle + step) * r;
-			final by = cy + Math.sin(angle + step) * r;
+			final ax = cx + directions[index * 2] * r;
+			final ay = cy + directions[index * 2 + 1] * r;
+			final bx = cx + directions[index * 2 + 2] * r;
+			final by = cy + directions[index * 2 + 3] * r;
 
 			wedge(cx, cy, middle, ax, ay, tone(top, bottom, from, span, ay),
 				bx, by, tone(top, bottom, from, span, by), alpha);
+		}
+	}
 
+	/**
+		Works out the direction of each spoke of a fan into `directions`, stepping the angle
+		the way a fan is walked, so a fill and its feather read the same spokes without either
+		measuring them again. A fan the same as the last one measured costs nothing.
+
+		@param from The angle of the first spoke.
+		@param step The angle between two spokes.
+		@param count How many segments the fan has, one fewer than its spokes, at most
+			`MOST_SPOKES`.
+	**/
+	function spokes(from:Float, step:Float, count:Int):Void {
+		if (count == spokesCount && from == spokesFrom && step == spokesStep) return;
+
+		spokesFrom = from;
+		spokesStep = step;
+		spokesCount = count;
+
+		var angle = from;
+
+		for (index in 0...count + 1) {
+			directions[index * 2] = Math.cos(angle);
+			directions[index * 2 + 1] = Math.sin(angle);
 			angle += step;
 		}
 	}
@@ -581,36 +619,29 @@ final class Paint {
 	}
 
 	/**
-		Draws part of a ring, as a fan of quadrilaterals.
+		Draws part of a ring, as a fan of quadrilaterals along the spokes `spokes` last worked
+		out.
 
 		@param cx The centre, across.
 		@param cy The centre, down.
 		@param inner The inner radius.
 		@param outer The outer radius.
-		@param from The angle it starts at.
-		@param to The angle it ends at.
-		@param count How many segments to use.
+		@param count How many segments to use, the count the spokes were worked out for.
 		@param colour The colour to draw it in.
 		@param alpha How opaque, 0 to 1.
 	**/
-	function band(cx:Float, cy:Float, inner:Float, outer:Float, from:Float, to:Float,
-			count:Int, colour:Colour, alpha:Float):Void {
-		final step = (to - from) / count;
-
-		var angle = from;
-
+	function band(cx:Float, cy:Float, inner:Float, outer:Float, count:Int, colour:Colour,
+			alpha:Float):Void {
 		for (index in 0...count) {
-			final ax = Math.cos(angle);
-			final ay = Math.sin(angle);
-			final bx = Math.cos(angle + step);
-			final by = Math.sin(angle + step);
+			final ax = directions[index * 2];
+			final ay = directions[index * 2 + 1];
+			final bx = directions[index * 2 + 2];
+			final by = directions[index * 2 + 3];
 
 			faded(cx + ax * inner, cy + ay * inner, alpha, cx + ax * outer, cy + ay * outer, 0,
 				cx + bx * outer, cy + by * outer, 0, colour);
 			faded(cx + ax * inner, cy + ay * inner, alpha, cx + bx * outer, cy + by * outer, 0,
 				cx + bx * inner, cy + by * inner, alpha, colour);
-
-			angle += step;
 		}
 	}
 
@@ -767,17 +798,27 @@ final class Paint {
 		final solid = r - FEATHER;
 		final starts = from * Math.PI / 180;
 		final ends = to * Math.PI / 180;
-		final step = (ends - starts) / count;
 
-		band(cx, cy, solid, r + FEATHER, starts, ends, count, colour, alpha);
+		spokes(starts, (ends - starts) / count, count);
+		band(cx, cy, solid, r + FEATHER, count, colour, alpha);
+		fan(cx, cy, solid, count, colour, alpha);
+	}
 
-		var angle = starts;
+	/**
+		Fills the fan `spokes` last worked out, as triangles meeting at the centre.
 
-		for (i in 0...count) {
-			triangle(cx, cy, cx + Math.cos(angle) * solid, cy + Math.sin(angle) * solid,
-				cx + Math.cos(angle + step) * solid, cy + Math.sin(angle + step) * solid,
+		@param cx The centre, across.
+		@param cy The centre, down.
+		@param reach How far the spokes reach.
+		@param count How many segments, the count the spokes were worked out for.
+		@param colour The colour to draw it in.
+		@param alpha How opaque, 0 to 1.
+	**/
+	function fan(cx:Float, cy:Float, reach:Float, count:Int, colour:Colour, alpha:Float):Void {
+		for (index in 0...count) {
+			triangle(cx, cy, cx + directions[index * 2] * reach, cy + directions[index * 2 + 1] * reach,
+				cx + directions[index * 2 + 2] * reach, cy + directions[index * 2 + 3] * reach,
 				colour, alpha);
-			angle += step;
 		}
 	}
 
@@ -799,19 +840,11 @@ final class Paint {
 		if (radius <= 0) return;
 
 		final count = segments(radius);
-		final step = Math.PI * 2 / count;
 		final solid = radius - FEATHER;
 
-		band(cx, cy, solid, radius + FEATHER, 0, Math.PI * 2, count, colour, alpha);
-
-		var angle = 0.0;
-
-		for (i in 0...count) {
-			triangle(cx, cy, cx + Math.cos(angle) * solid, cy + Math.sin(angle) * solid,
-				cx + Math.cos(angle + step) * solid, cy + Math.sin(angle + step) * solid,
-				colour, alpha);
-			angle += step;
-		}
+		spokes(0, Math.PI * 2 / count, count);
+		band(cx, cy, solid, radius + FEATHER, count, colour, alpha);
+		fan(cx, cy, solid, count, colour, alpha);
 	}
 
 	/**
@@ -831,27 +864,24 @@ final class Paint {
 		if (radius <= 0 || weight <= 0) return;
 
 		final count = segments(radius);
-		final step = (to - from) / count;
 
 		final outer = radius - FEATHER;
 		var inner = radius - weight + FEATHER;
 		if (inner > outer) inner = outer;
 
-		band(cx, cy, outer, radius + FEATHER, from, to, count, colour, alpha);
-		band(cx, cy, inner, radius - weight - FEATHER, from, to, count, colour, alpha);
+		spokes(from, (to - from) / count, count);
+		band(cx, cy, outer, radius + FEATHER, count, colour, alpha);
+		band(cx, cy, inner, radius - weight - FEATHER, count, colour, alpha);
 
-		var angle = from;
-
-		for (i in 0...count) {
-			final ax = Math.cos(angle);
-			final ay = Math.sin(angle);
-			final bx = Math.cos(angle + step);
-			final by = Math.sin(angle + step);
+		for (index in 0...count) {
+			final ax = directions[index * 2];
+			final ay = directions[index * 2 + 1];
+			final bx = directions[index * 2 + 2];
+			final by = directions[index * 2 + 3];
 
 			quad(cx + ax * inner, cy + ay * inner, cx + ax * outer, cy + ay * outer,
 				cx + bx * outer, cy + by * outer, cx + bx * inner, cy + by * inner, colour,
 				alpha);
-			angle += step;
 		}
 	}
 
