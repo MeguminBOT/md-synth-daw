@@ -114,11 +114,11 @@ class WeighCheck {
 			final sequencer = new Sequencer(song, null, Sequencer.CHUNK);
 			sequencer.strikes = strikes;
 
-			final lost = sequencer.spanned(made, 0, span);
+			sequencer.spanned(made, 0, span);
 
 			return made.count + " writes"
 				+ (made.dropped > 0 ? ", " + made.dropped + " DROPPED for want of room" : "")
-				+ (lost > 0 ? ", " + lost + " lost" : "");
+				+ (sequencer.lost > 0 ? ", " + sequencer.lost + " events lost for want of room" : "");
 		});
 
 		says("the stream held every write it was given", made.dropped == 0,
