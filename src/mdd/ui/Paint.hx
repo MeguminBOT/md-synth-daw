@@ -101,6 +101,8 @@ final class Paint {
 		return paint;
 	}
 
+	var aimed:cpp.Star<Texture> = null;
+
 	/**
 		Makes a texture that can be drawn into.
 
@@ -120,6 +122,15 @@ final class Paint {
 	public function target(texture:cpp.Star<Texture>):Void {
 		flush();
 		Draw.setTarget(renderer, texture);
+		aimed = texture;
+	}
+
+	/**
+		@return What `target` last set: the texture being drawn into, or null for the window. A
+			widget that draws into a texture of its own hands this back when it is done.
+	**/
+	public inline function targeted():cpp.Star<Texture> {
+		return aimed;
 	}
 
 	/**
@@ -563,6 +574,49 @@ final class Paint {
 		cornered(x, y, cx, cy, across, down, reach, from, to, a);
 		cornered(x + width, y + height, cx, cy, across, down, reach, from, to, a);
 		cornered(x, y + height, cx, cy, across, down, reach, from, to, a);
+	}
+
+	/**
+		Fills a rectangle whose four corners each have a colour of their own, blended between them
+		over two triangles. A blend that has to be even across the whole rectangle, rather than
+		along a straight run, is drawn as several of these side by side.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param topLeft The colour at the top left corner.
+		@param topRight At the top right.
+		@param bottomRight At the bottom right.
+		@param bottomLeft At the bottom left.
+		@param alpha How opaque, 0 to 1.
+	**/
+	public function tinted(x:Float, y:Float, width:Float, height:Float, topLeft:Colour,
+			topRight:Colour, bottomRight:Colour, bottomLeft:Colour, alpha:Float = 1):Void {
+		if (width <= 0 || height <= 0) return;
+
+		binds(font.texture);
+		room(FLOATS * 6);
+
+		final a = alpha * opacity;
+		final u = font.solidU;
+		final v = font.solidV;
+		final left = at(x);
+		final right = at(x + width);
+		final top = down(y);
+		final bottom = down(y + height);
+
+		push(left, top, topLeft.red * CHANNEL, topLeft.green * CHANNEL, topLeft.blue * CHANNEL, a, u, v);
+		push(right, top, topRight.red * CHANNEL, topRight.green * CHANNEL, topRight.blue * CHANNEL, a,
+			u, v);
+		push(right, bottom, bottomRight.red * CHANNEL, bottomRight.green * CHANNEL,
+			bottomRight.blue * CHANNEL, a, u, v);
+
+		push(left, top, topLeft.red * CHANNEL, topLeft.green * CHANNEL, topLeft.blue * CHANNEL, a, u, v);
+		push(right, bottom, bottomRight.red * CHANNEL, bottomRight.green * CHANNEL,
+			bottomRight.blue * CHANNEL, a, u, v);
+		push(left, bottom, bottomLeft.red * CHANNEL, bottomLeft.green * CHANNEL,
+			bottomLeft.blue * CHANNEL, a, u, v);
 	}
 
 	/**
