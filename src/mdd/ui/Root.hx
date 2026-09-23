@@ -838,7 +838,13 @@ final class Root {
 
 		if (over != null) over.hovered(false);
 		over = next;
-		if (over != null) over.hovered(true);
+
+		if (over != null) {
+			if (over.tipKey >= 0) over.tip = translate(over.tipKey);
+			if (over.detailKey >= 0) over.detail = translate(over.detailKey);
+
+			over.hovered(true);
+		}
 
 		if (!tipUp) return;
 

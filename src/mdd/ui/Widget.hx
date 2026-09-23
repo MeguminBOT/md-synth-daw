@@ -57,6 +57,18 @@ class Widget {
 	public var shortcut:String = "";
 
 	/**
+		The string key `tip` is read from as the pointer arrives, in whatever language is worn by
+		then, or -1 where `tip` is written directly. A key follows a change of language with
+		nothing having to ask.
+	**/
+	public var tipKey:Int = -1;
+
+	/**
+		The same for `detail`.
+	**/
+	public var detailKey:Int = -1;
+
+	/**
 		Whether it is drawn and hit at all.
 	**/
 	public var visible:Bool = true;
