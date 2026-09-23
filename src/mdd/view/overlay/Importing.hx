@@ -279,6 +279,10 @@ final class Importing extends Widget {
 
 			case Kind.PointerMove:
 				final at = rowAt(event.y);
+
+				tip = at < 0 ? "" : translate(event.x >= chooserAt(metrics)
+					? Locale.IMPORT_PART_TIP : Locale.IMPORT_TAKE_TIP);
+
 				if (at == hoverAt) return false;
 
 				hoverAt = at;

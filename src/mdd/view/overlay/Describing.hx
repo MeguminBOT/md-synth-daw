@@ -68,6 +68,7 @@ final class Describing extends Widget {
 			final field = new Field("");
 
 			field.onCommit = function(said:String):Void kept();
+			field.tipKey = Locale.INFO_TIP;
 			fields.push(field);
 			add(field);
 		}

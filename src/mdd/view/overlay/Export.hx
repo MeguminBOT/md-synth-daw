@@ -167,6 +167,20 @@ final class Export extends Widget {
 		Locale.EXPORT_SCOPE_VIEW, Locale.EXPORT_SCOPE_SPEED, Locale.EXPORT_SCOPE_ACCURACY,
 		Locale.EXPORT_CHROMA, Locale.EXPORT_DECLICK, Locale.EXPORT_STUCK];
 
+	static final TIPS:Array<Locale> = [Locale.EXPORT_TIP_FORMAT, Locale.EXPORT_TIP_RATE,
+		Locale.EXPORT_TIP_DEPTH, Locale.EXPORT_TIP_SIDES, Locale.EXPORT_TIP_LEAD,
+		Locale.EXPORT_TIP_TAIL, Locale.EXPORT_TIP_FADE, Locale.EXPORT_TIP_CEILING,
+		Locale.EXPORT_TIP_DITHER, Locale.EXPORT_TIP_QUALITY, Locale.EXPORT_TIP_CONSOLE,
+		Locale.EXPORT_TIP_OPUS_MODE, Locale.EXPORT_TIP_OPUS_SPAN, Locale.EXPORT_TIP_OPUS_BITRATE,
+		Locale.EXPORT_TIP_STEMS, Locale.EXPORT_TIP_VIDEO_SIZE, Locale.EXPORT_TIP_FRAME_RATE,
+		Locale.EXPORT_TIP_RATE_CONTROL, Locale.EXPORT_TIP_ENCODER_SPEED,
+		Locale.EXPORT_TIP_KEYFRAMES, Locale.EXPORT_TIP_TUNE, Locale.EXPORT_TIP_SCOPE_VIEW,
+		Locale.EXPORT_TIP_SCOPE_SPEED, Locale.EXPORT_TIP_SCOPE_ACCURACY, Locale.EXPORT_TIP_CHROMA,
+		Locale.EXPORT_TIP_DECLICK, Locale.EXPORT_TIP_STUCK];
+
+	static final TIMING_TIPS:Array<Locale> = [Locale.EXPORT_TIP_LEAD, Locale.EXPORT_TIP_TAIL,
+		Locale.EXPORT_TIP_FADE];
+
 	static final TIMINGS:Array<Locale> = [Locale.EXPORT_LEAD, Locale.EXPORT_TAIL,
 		Locale.EXPORT_FADE];
 
@@ -331,6 +345,7 @@ final class Export extends Widget {
 				final held = new Field("");
 
 				held.onChange = function(said:String):Void kept();
+				held.tipKey = Locale.EXPORT_TIP_TAG;
 				fields.push(held);
 				add(held);
 			}
@@ -342,6 +357,7 @@ final class Export extends Widget {
 			held.derived = function(value:Int):String return spelt(value);
 			held.typed = function(said:String):Null<Int> return seconds(said);
 			held.onChange = function(from:Number):Void timed(index, from.value);
+			held.tipKey = TIMING_TIPS[index];
 
 			timers.push(held);
 			add(held);
@@ -358,6 +374,9 @@ final class Export extends Widget {
 
 			level.typed = function(said:String):Null<Int> return Std.parseInt(StringTools.trim(said));
 			level.onChange = function(from:Number):Void coding(1, from.value);
+
+			bitrate.tipKey = Locale.EXPORT_TIP_VIDEO_BITRATE;
+			level.tipKey = Locale.EXPORT_TIP_QUALITY_LEVEL;
 
 			coded.push(bitrate);
 			coded.push(level);
@@ -1117,6 +1136,8 @@ final class Export extends Widget {
 			case Kind.PointerMove:
 				final row = rowAt(event.y);
 				final which = row < 0 ? -1 : optionAt(row, event.x);
+
+				tip = row < 0 ? "" : translate(TIPS[row]);
 
 				if (row == hoverAt && which == hoverOn) return true;
 

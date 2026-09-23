@@ -705,6 +705,9 @@ importing one reads those back.
 - **The pointer takes a shape over what it is on**: a double arrow on a splitter, on the line
   between two lanes and on either end of a note or a clip, an I-beam in a field, and the four
   pointed arrow with the pan tool in hand.
+- **Every control says what it does** when you hover it: the transport fields, the rulers and
+  track headers, the dials, the monitors, every preference and every export setting. Where a
+  click does more than one thing, a second line says what the right click or the wheel does.
 - **One instance.** Opening a second project hands it to the copy already running, by a double
   click or from a terminal, and that copy comes to the front and opens it, asking first about
   unsaved work the way any open does. Starting a second copy with nothing to open brings the first

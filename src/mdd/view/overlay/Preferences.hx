@@ -183,6 +183,21 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR,
 		Locale.PREFERENCE_RIGHT_CLICK, Locale.PREFERENCE_DECLICK];
 
+	static final TIPS:Array<Locale> = [Locale.PREFERENCE_TIP_THEME, Locale.PREFERENCE_TIP_TYPEFACE,
+		Locale.PREFERENCE_TIP_MOTION, Locale.PREFERENCE_TIP_LANGUAGE, Locale.PREFERENCE_TIP_DENSITY,
+		Locale.PREFERENCE_TIP_KEEPING, Locale.PREFERENCE_TIP_BACKUPS,
+		Locale.PREFERENCE_TIP_BACKUP_AGE, Locale.PREFERENCE_TIP_UPDATES,
+		Locale.PREFERENCE_TIP_PROJECTS, Locale.PREFERENCE_TIP_PRESETS,
+		Locale.PREFERENCE_TIP_AUTOMATING, Locale.PREFERENCE_TIP_TAIL,
+		Locale.PREFERENCE_TIP_MIDI_DEVICE, Locale.PREFERENCE_TIP_MIDI_CHANNEL,
+		Locale.PREFERENCE_TIP_MIDI_VELOCITY, Locale.PREFERENCE_TIP_CONSOLE,
+		Locale.PREFERENCE_TIP_TEMPO, Locale.PREFERENCE_TIP_PRESENCE,
+		Locale.PREFERENCE_TIP_ASSOCIATE, Locale.PREFERENCE_TIP_RENDERER,
+		Locale.PREFERENCE_TIP_AUDIO_DEVICE, Locale.PREFERENCE_TIP_ACCIDENTALS,
+		Locale.PREFERENCE_TIP_NOTE_NAMES, Locale.PREFERENCE_TIP_TEXT_SIZE,
+		Locale.PREFERENCE_TIP_PART_COLOURS, Locale.PREFERENCE_TIP_HOST_MONITOR,
+		Locale.PREFERENCE_TIP_RIGHT_CLICK, Locale.PREFERENCE_TIP_DECLICK];
+
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
 
@@ -1495,6 +1510,8 @@ final class Preferences extends Widget {
 				return true;
 
 			case Kind.PointerMove:
+				described(event.x, event.y);
+
 				final row = event.x < x + sidebar() ? -1
 					: (binding() ? bindAt(event.y) : rowAt(event.y));
 				final button = buttonAt(event.x, event.y);
@@ -1513,6 +1530,37 @@ final class Preferences extends Widget {
 		}
 
 		return true;
+	}
+
+	/**
+		Says what the preference, the chord or the mapping slot under the pointer is for.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
+	function described(px:Float, py:Float):Void {
+		detail = "";
+
+		if (px < x + sidebar() || buttonAt(px, py) >= 0) {
+			tip = "";
+			return;
+		}
+
+		if (binding()) {
+			final bound = bindAt(py) >= 0;
+			tip = bound ? translate(Locale.PREFERENCE_TIP_BIND) : "";
+			if (bound) detail = translate(Locale.PREFERENCE_TIP_BIND_DETAIL);
+			return;
+		}
+
+		if (slotAt(py) >= 0) {
+			tip = translate(Locale.PREFERENCE_TIP_MAP);
+			detail = translate(Locale.PREFERENCE_TIP_MAP_DETAIL);
+			return;
+		}
+
+		final row = rowAt(py);
+		tip = row < 0 ? "" : translate(TIPS[row]);
 	}
 
 	override function hovered(on:Bool):Void {

@@ -303,6 +303,8 @@ final class Welcome extends Widget {
 				final at = rowAt(event.y);
 				final button = onButton(event.x, event.y);
 
+				tip = !button && (at >= 0 || wayAt(event.y) >= 0) ? translate(Locale.WELCOME_LATER) : "";
+
 				if (at == hoverAt && button == hoverStart) return true;
 
 				hoverAt = at;

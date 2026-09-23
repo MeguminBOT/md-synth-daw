@@ -153,6 +153,12 @@ final class Kitting extends Widget {
 
 		drums.toggle = true;
 
+		named.tipKey = Locale.KIT_NAME_TIP;
+		tagged.tipKey = Locale.KIT_TAGS_TIP;
+		rate.tipKey = Locale.KIT_RATE_TIP;
+		drums.tipKey = Locale.KIT_DRUMS_TIP;
+		detect.tipKey = Locale.KIT_DETECT_TIP;
+
 		go = new Button("");
 		stop = new Button("");
 
