@@ -105,6 +105,12 @@ final class Sn76489 {
 	var total:Int = 0;
 	var counted:Int = 0;
 
+	/**
+		The four channels summed as they stand. A write and a step keep it current where they
+		move a channel, so the part is not summed afresh for every step it takes.
+	**/
+	var summed:Int = 0;
+
 	public function new() {
 		for (i in 0...16) {
 			volumes[i] = i == 15 ? 0 : Math.round(LOUDEST * Math.pow(10, -0.1 * i));
@@ -131,6 +137,7 @@ final class Sn76489 {
 		total = 0;
 		counted = 0;
 		writes = 0;
+		tally();
 	}
 
 	/**
@@ -148,7 +155,7 @@ final class Sn76489 {
 			latched = (byte >> 4) & 0x07;
 			final channel = latched >> 1;
 
-			if ((latched & 1) != 0) attenuation[channel] = byte & 0x0F;
+			if ((latched & 1) != 0) attenuate(channel, byte & 0x0F);
 			else if (channel == 3) setNoise(byte & 0x0F);
 			else tone[channel] = (tone[channel] & 0x3F0) | (byte & 0x0F);
 
@@ -156,7 +163,7 @@ final class Sn76489 {
 		}
 
 		final channel = latched >> 1;
-		if ((latched & 1) != 0) attenuation[channel] = byte & 0x0F;
+		if ((latched & 1) != 0) attenuate(channel, byte & 0x0F);
 		else if (channel == 3) setNoise(byte & 0x0F);
 		else tone[channel] = (tone[channel] & 0x000F) | ((byte & 0x3F) << 4);
 	}
@@ -169,6 +176,17 @@ final class Sn76489 {
 	function setNoise(value:Int):Void {
 		noise = value & 0x07;
 		shift = 0x8000;
+	}
+
+	/**
+		Takes one channel's attenuation and sums the part again, since that is heard at once.
+
+		@param channel Which channel, 0 to 3.
+		@param value The attenuation, 0 loudest and 15 silent.
+	**/
+	inline function attenuate(channel:Int, value:Int):Void {
+		attenuation[channel] = value;
+		tally();
 	}
 
 	/**
@@ -190,15 +208,20 @@ final class Sn76489 {
 		then the noise channel, then the sum gathered for `taken`.
 	**/
 	function step():Void {
+		var moved = false;
+
 		for (channel in 0...3) {
 			if (--counter[channel] > 0) continue;
 
 			counter[channel] = tone[channel] < 1 ? 1 : tone[channel];
 			if (tone[channel] >= 1) output[channel] = output[channel] > 0 ? 0 : 1;
 			else output[channel] = 1;
+
+			moved = true;
 		}
 
 		if (--counter[3] > 0) {
+			if (moved) tally();
 			gather();
 			return;
 		}
@@ -211,17 +234,26 @@ final class Sn76489 {
 		}
 
 		final feedback = (noise & 0x04) != 0 ? WHITE : PERIODIC;
-		final parity = countBits(shift & feedback) & 1;
-		shift = ((shift >> 1) | (parity << 15)) & 0xFFFF;
+		shift = ((shift >> 1) | (parity(shift & feedback) << 15)) & 0xFFFF;
 		output[3] = shift & 1;
+		tally();
 		gather();
+	}
+
+	/**
+		Sums the four channels as they stand into `summed`.
+	**/
+	function tally():Void {
+		var sum = 0;
+		for (channel in 0...4) if (output[channel] > 0) sum += volumes[attenuation[channel]];
+		summed = sum;
 	}
 
 	/**
 		Adds the current level to the running mean `taken` will answer with.
 	**/
 	inline function gather():Void {
-		total += level();
+		total += summed;
 		counted++;
 	}
 
@@ -258,29 +290,22 @@ final class Sn76489 {
 	**/
 	public inline function sample():Int {
 		step();
-		return level();
+		return summed;
 	}
 
 	/**
 		@return The four channels summed as they stand, with no averaging.
 	**/
-	public function level():Int {
-		var sum = 0;
-		for (channel in 0...4) if (output[channel] > 0) sum += volumes[attenuation[channel]];
-		return sum;
+	public inline function level():Int {
+		return summed;
 	}
 
 	/**
-		@param value The masked shift register.
-		@return How many bits are set, which is the parity fed back into it.
+		@param value The shift register masked by one of the two tap sets, which hold no bit
+			but 0 and 3.
+		@return The parity of those two bits, which is fed back into the register.
 	**/
-	static inline function countBits(value:Int):Int {
-		var left = value;
-		var count = 0;
-		while (left != 0) {
-			count += left & 1;
-			left >>= 1;
-		}
-		return count;
+	static inline function parity(value:Int):Int {
+		return (value ^ (value >> 3)) & 1;
 	}
 }
