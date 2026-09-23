@@ -409,6 +409,13 @@ final class ChannelRack extends Widget {
 		final muted = session.song.muted[at];
 		final soloed = session.song.soloed[at];
 
+		if (px >= slotAt(metrics, METER)) {
+			tip = translate(Locale.RACK_VOLUME) + " " + part.name();
+			shortcut = "";
+			detail = translate(Locale.RACK_VOLUME_DETAIL);
+			return;
+		}
+
 		if (part.fm() && slotHolds(metrics, PAN, px)) {
 			tip = translate(Locale.RACK_PAN) + " " + part.name();
 			shortcut = "";

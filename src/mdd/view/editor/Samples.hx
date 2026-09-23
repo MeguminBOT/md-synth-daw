@@ -249,6 +249,9 @@ final class Samples extends Widget {
 			case Kind.PointerMove:
 				final slot = slotAt(event.y);
 
+				tip = slot < 0 ? "" : session.song.samples[slot].name;
+				detail = slot < 0 ? "" : translate(Locale.TIP_MORE);
+
 				if (slot != hoverAt) {
 					hoverAt = slot;
 					invalidate();
