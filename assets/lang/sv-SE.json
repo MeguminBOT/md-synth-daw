@@ -269,7 +269,7 @@
   "kit.rateTip": "Takten varje slag konverteras till. 14000 är vad XGM-drivrutinen spelar i",
   "kit.room": "{0} av {1} byte",
   "kit.tagsTip": "Taggar varje slag i kitet får, åtskilda med kommatecken",
-  "lane.add": "Lagg till ett spar",
+  "lane.add": "Nytt spår",
   "lane.amount": "Punktens värde",
   "lane.bend": "Hur hårt kurvan böjer sig",
   "lane.choose": "Välj vad spåret visar",
