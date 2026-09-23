@@ -1522,7 +1522,7 @@ class App {
 		final sizes = baked == null ? stage.root.metrics : baked;
 
 		final held = new Filming(stage.root, stage.paint, sizes, session, session.song,
-			files.mixing, files.style, made, where);
+			files.mixing, files.style, stage.sans(), made, where);
 
 		filming = held;
 		progress.onCancel = function():Void held.stops();

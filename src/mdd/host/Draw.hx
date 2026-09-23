@@ -93,6 +93,15 @@ extern class Draw {
 		y:Single, width:Single, height:Single, degrees:Single, alpha:Single):Void;
 
 	/**
+		Draws a part of a texture, from its top left corner, into a rectangle turned clockwise
+		about its own centre.
+	**/
+	@:native("mdd_render_turned_part")
+	public static function turnedPart(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>,
+		fromWide:Single, fromTall:Single, x:Single, y:Single, width:Single, height:Single,
+		degrees:Single, alpha:Single):Void;
+
+	/**
 		How many draw calls have been made since the last reset.
 	**/
 	@:native("mdd_draw_calls")

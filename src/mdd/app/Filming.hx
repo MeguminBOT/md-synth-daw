@@ -19,6 +19,7 @@ import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.view.film.Picture;
 import mdd.view.film.Style;
+import mdd.view.film.Words;
 import mdd.view.monitor.Scope;
 
 @:unreflective
@@ -84,6 +85,7 @@ final class Filming {
 	final scope:Scope;
 	final style:Style;
 	final picture:Picture;
+	final words:Words;
 	final parts:Array<Int> = [];
 	final pixels:Bytes;
 	final render:Render;
@@ -112,11 +114,12 @@ final class Filming {
 		@param song The piece.
 		@param mixing The export settings, the scope's view, speed and accuracy among them.
 		@param style How the picture looks. It is read once a frame, not copied.
+		@param face The face a line of text is written in where it names none that will read.
 		@param made The finished mix.
 		@param path Where to write the video.
 	**/
 	public function new(root:Root, paint:Paint, sizes:Metrics, session:Session, song:Song,
-			mixing:Mixing, style:Style, made:Mixdown, path:String) {
+			mixing:Mixing, style:Style, face:String, made:Mixdown, path:String) {
 		this.root = root;
 		this.paint = paint;
 		this.sizes = sizes;
@@ -125,6 +128,8 @@ final class Filming {
 		this.path = path;
 
 		picture = new Picture(paint);
+		picture.face = face;
+		words = Words.of(song, Words.key(session.scale, session.notation, root));
 
 		wide = mixing.wide();
 		tall = mixing.tall();
@@ -350,7 +355,7 @@ final class Filming {
 		Sdl.renderClear(renderer, 0, 0, 0, 1);
 
 		paint.reset();
-		picture.draws(style, scope, parts, wide, tall, target);
+		picture.draws(style, scope, parts, words, wide, tall, target);
 		paint.flush();
 
 		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(pixels.getData(), 0).raw);

@@ -1,11 +1,12 @@
 package mdd.view.film;
 
 /**
-	One thing placed on a video's picture: the lanes, or a picture read from a file.
+	One thing placed on a video's picture: the lanes, a picture read from a file, or a line of text.
 
 	Where it sits is measured in the picture rather than in pixels, so a style drawn at 720 and at
 	2160 puts everything in the same place: the centre and the size are fractions of the picture's
-	width and height, and the turn is about the centre.
+	width and height, and the turn is about the centre. A line of text is as tall as `tall` says
+	and as wide as what it says makes it, so its `wide` is not read.
 **/
 @:unreflective
 final class Layer {
@@ -20,9 +21,19 @@ final class Layer {
 	public static inline final IMAGE = 1;
 
 	/**
+		Kind: a line of text, with placeholders `Words` fills in.
+	**/
+	public static inline final TEXT = 2;
+
+	/**
 		How many kinds there are.
 	**/
-	public static inline final KINDS = 2;
+	public static inline final KINDS = 3;
+
+	/**
+		The thickest a text border may be, as a fraction of the text's height.
+	**/
+	public static inline final THICKEST = 0.25;
 
 	/**
 		The smallest a layer may be, as a fraction of the picture, so one can always be grabbed.
@@ -75,9 +86,35 @@ final class Layer {
 	public var path:String = "";
 
 	/**
+		What a `TEXT` says, placeholders and all.
+	**/
+	public var text:String = "";
+
+	/**
+		The font file a `TEXT` is written in, or an empty string for the interface's own face.
+		One that will not read is written in the interface's face too.
+	**/
+	public var font:String = "";
+
+	/**
+		The colour a `TEXT` is filled with, as `0xRRGGBB`.
+	**/
+	public var colour:Int = 0xFFFFFF;
+
+	/**
+		The colour of a `TEXT`'s border, as `0xRRGGBB`.
+	**/
+	public var border:Int = 0x000000;
+
+	/**
+		How thick a `TEXT`'s border is, as a fraction of its height, or nought for none.
+	**/
+	public var borderWidth:Float = 0;
+
+	/**
 		Builds a layer of a kind, centred and filling the picture.
 
-		@param kind `LANES` or `IMAGE`.
+		@param kind `LANES`, `IMAGE` or `TEXT`.
 	**/
 	public function new(kind:Int) {
 		this.kind = kind < 0 || kind >= KINDS ? IMAGE : kind;
@@ -96,19 +133,27 @@ final class Layer {
 		out.turn = turn;
 		out.alpha = alpha;
 		out.path = path;
+		out.text = text;
+		out.font = font;
+		out.colour = colour;
+		out.border = border;
+		out.borderWidth = borderWidth;
 
 		return out;
 	}
 
 	/**
 		Brings every field into the range it may hold: a size between `LEAST` and `MOST`, an
-		opacity between nought and one, a turn within one revolution, and a centre no further off
-		the picture than it could be dragged.
+		opacity between nought and one, a turn within one revolution, a centre no further off
+		the picture than it could be dragged, and a border no thicker than `THICKEST`.
 	**/
 	public function tidied():Void {
 		wide = within(wide, LEAST, MOST, 1);
 		tall = within(tall, LEAST, MOST, 1);
 		alpha = within(alpha, 0, 1, 1);
+		borderWidth = within(borderWidth, 0, THICKEST, 0);
+		colour &= 0xFFFFFF;
+		border &= 0xFFFFFF;
 		x = within(x, -MOST, MOST + 1, 0.5);
 		y = within(y, -MOST, MOST + 1, 0.5);
 		turn = Math.isFinite(turn) ? turn % 360 : 0;

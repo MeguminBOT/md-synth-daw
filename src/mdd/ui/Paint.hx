@@ -170,6 +170,27 @@ final class Paint {
 	}
 
 	/**
+		Draws a part of a texture, from its top left corner, into a rectangle turned about its own
+		centre. This flushes, because it is not a triangle batch.
+
+		@param texture The texture.
+		@param fromWide How much of it to take, across, in its own pixels.
+		@param fromTall How much, down.
+		@param x Where the rectangle's centre is, across.
+		@param y Where its centre is, down.
+		@param width How wide the rectangle is before it is turned.
+		@param height How tall.
+		@param degrees How far it is turned, clockwise.
+		@param alpha How opaque, 0 to 1, on top of any opacity pushed.
+	**/
+	public function turnedPart(texture:cpp.Star<Texture>, fromWide:Float, fromTall:Float, x:Float,
+			y:Float, width:Float, height:Float, degrees:Float, alpha:Float = 1):Void {
+		flush();
+		Draw.turnedPart(renderer, texture, fromWide, fromTall, at(x), down(y), width * scaleX,
+			height * scaleY, degrees, alpha * opacity);
+	}
+
+	/**
 		Multiplies everything drawn until the matching pop by an opacity.
 
 		@param amount How opaque, 0 to 1.

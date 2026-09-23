@@ -247,6 +247,20 @@ final class Style {
 			out.number(layer.alpha);
 			out.key("path");
 			out.text(layer.path);
+
+			if (layer.kind == Layer.TEXT) {
+				out.key("text");
+				out.text(layer.text);
+				out.key("font");
+				out.text(layer.font);
+				out.key("colour");
+				out.text(hex(layer.colour));
+				out.key("border");
+				out.text(hex(layer.border));
+				out.key("borderWidth");
+				out.number(layer.borderWidth);
+			}
+
 			out.close();
 		}
 
@@ -310,6 +324,11 @@ final class Style {
 			layer.turn = held.get("turn").real(0);
 			layer.alpha = held.get("alpha").real(1);
 			layer.path = held.get("path").saying("");
+			layer.text = held.get("text").saying("");
+			layer.font = held.get("font").saying("");
+			layer.colour = colourOf(held.get("colour").saying(""), 0xFFFFFF);
+			layer.border = colourOf(held.get("border").saying(""), 0x000000);
+			layer.borderWidth = held.get("borderWidth").real(0);
 			layer.tidied();
 
 			if (layer.kind == Layer.LANES) hasLanes = true;

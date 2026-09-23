@@ -123,6 +123,24 @@ void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, float x, fl
 	float width, float height, float degrees, float alpha);
 
 /**
+ * Draws a part of a texture into a rectangle turned about its own centre, which is how one
+ * texture kept larger than anything drawn into it is laid over a picture.
+ *
+ * @param renderer The renderer.
+ * @param texture The texture.
+ * @param fromWide How much of the texture to take, across from its left edge.
+ * @param fromTall How much, down from its top edge.
+ * @param x Where the rectangle's centre is, across.
+ * @param y Where its centre is, down.
+ * @param width How wide the rectangle is before it is turned.
+ * @param height How tall.
+ * @param degrees How far it is turned, clockwise.
+ * @param alpha How opaque, 0 to 1, scaling a premultiplied texture's colour as well.
+ */
+void mdd_render_turned_part(SDL_Renderer *renderer, SDL_Texture *texture, float fromWide,
+	float fromTall, float x, float y, float width, float height, float degrees, float alpha);
+
+/**
  * Draws one whole texture into a rectangle.
  *
  * @param renderer The renderer.

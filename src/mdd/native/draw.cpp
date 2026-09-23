@@ -137,6 +137,35 @@ extern "C" void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, 
 	calls++;
 }
 
+extern "C" void mdd_render_turned_part(SDL_Renderer *renderer, SDL_Texture *texture,
+		float fromWide, float fromTall, float x, float y, float width, float height, float degrees,
+		float alpha) {
+	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return;
+	if (fromWide <= 0 || fromTall <= 0) return;
+
+	SDL_FRect from;
+	from.x = 0;
+	from.y = 0;
+	from.w = fromWide;
+	from.h = fromTall;
+
+	SDL_FRect into;
+	into.x = x - width * 0.5f;
+	into.y = y - height * 0.5f;
+	into.w = width;
+	into.h = height;
+
+	SDL_BlendMode mode = SDL_BLENDMODE_BLEND;
+	SDL_GetTextureBlendMode(texture, &mode);
+
+	const float shade = mode == SDL_BLENDMODE_BLEND_PREMULTIPLIED ? alpha : 1.0f;
+
+	SDL_SetTextureColorModFloat(texture, shade, shade, shade);
+	SDL_SetTextureAlphaModFloat(texture, alpha);
+	SDL_RenderTextureRotated(renderer, texture, &from, &into, degrees, nullptr, SDL_FLIP_NONE);
+	calls++;
+}
+
 extern "C" int mdd_draw_calls(void) {
 	return calls;
 }

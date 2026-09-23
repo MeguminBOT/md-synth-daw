@@ -320,6 +320,15 @@ final class Stage {
 	}
 
 	/**
+		@return The file of the sans face the interface is written in, or an empty string where
+			the faces are not there.
+	**/
+	public function sans():String {
+		final where = fonts();
+		return where == "" ? "" : where + "/" + Typeface.SANS[paired(where)];
+	}
+
+	/**
 		@param where The folder the faces are in.
 		@return Which pairing is actually present, falling back where the chosen one is not there.
 	**/

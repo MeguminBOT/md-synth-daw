@@ -868,7 +868,7 @@ class SpineCheck {
 		if (sys.FileSystem.exists(path)) sys.FileSystem.deleteFile(path);
 
 		final film = new mdd.app.Filming(tree, paint, tree.metrics, session, song, mixing,
-			mdd.view.film.Style.plain(), made, path);
+			mdd.view.film.Style.plain(), Gate.root + "/vendor/fonts/Go-Regular.ttf", made, path);
 
 		var rounds = 0;
 		while (film.step(1.0) && rounds < 100000) rounds++;
@@ -938,7 +938,9 @@ class SpineCheck {
 		final scope = new mdd.view.monitor.Scope(session);
 		final parts = [0, 1, 2, 3];
 		final picture = new mdd.view.film.Picture(paint);
+		final words = mdd.view.film.Words.of(session.song, "A minor");
 
+		picture.face = Gate.root + "/vendor/fonts/Go-Regular.ttf";
 		scope.rated(48000);
 		scope.refines(2);
 		scope.paces(2);
@@ -961,7 +963,7 @@ class SpineCheck {
 				scope.films(paint, parts);
 			} else {
 				style.dresses(scope);
-				picture.draws(style, scope, parts, wide, tall, target);
+				picture.draws(style, scope, parts, words, wide, tall, target);
 			}
 
 			paint.flush();
@@ -1079,6 +1081,57 @@ class SpineCheck {
 		says("a picture sits where it is put", shown != 0 && aspect == 1,
 			"the 256 pixel icon drawn at the upper right reads #" + StringTools.hex(shown, 6)
 			+ " at its centre, and it reads square");
+
+		final bpm = Math.round(session.song.tempo.beatsAt(0));
+		final filled = words.filled("{key} at {bpm}, {nothing}");
+
+		says("a line's placeholders fill in", filled == "A minor at " + bpm + ", {nothing}",
+			"'{key} at {bpm}, {nothing}' reads '" + filled + "'");
+
+		final lettered = mdd.view.film.Style.plain();
+		final line = new mdd.view.film.Layer(mdd.view.film.Layer.TEXT);
+
+		lettered.lanes().alpha = 0;
+
+		line.text = "MEGA DRIVE";
+		line.tall = 0.15;
+		line.colour = 0xFFFFFF;
+		line.border = 0xFF0000;
+		line.borderWidth = 0.1;
+		lettered.layers.push(line);
+
+		drawn(lettered);
+
+		var white = 0;
+		var red = 0;
+
+		for (py in 0...tall) {
+			for (px in 0...wide) {
+				final held = pixel(px, py);
+				if (held == 0xFFFFFF) white++;
+				if (held == 0xFF0000) red++;
+			}
+		}
+
+		final flat = extents(pixels, wide, tall);
+
+		line.turn = 90;
+		drawn(lettered);
+
+		final upright = extents(pixels, wide, tall);
+
+		line.turn = 0;
+		line.font = Gate.root + "/vendor/fonts/no such face.ttf";
+		drawn(lettered);
+
+		var fallen = 0;
+		for (index in 0...Std.int(pixels.length / 4)) if (pixels.get(index * 4) > 200) fallen++;
+
+		says("a line is written with a border", white > 200 && red > 200 && flat[0] > flat[1]
+			&& upright[1] > upright[0] && fallen > 200,
+			white + " white and " + red + " red pixels, " + flat[0] + " by " + flat[1] + " flat and "
+			+ upright[0] + " by " + upright[1] + " turned a quarter, and a face that is not there"
+			+ " falls back to the interface's");
 
 		final written = pictured.spelt();
 		final again = mdd.view.film.Style.read(written);

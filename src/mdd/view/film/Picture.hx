@@ -4,31 +4,59 @@ import haxe.ds.Vector;
 import mdd.host.Draw;
 import mdd.host.Image;
 import mdd.host.Texture;
+import mdd.ui.Font;
 import mdd.ui.Paint;
 import mdd.view.monitor.Scope;
 
 /**
-	Draws a style: the ground, then every layer in order, the lanes among them.
+	Draws a style: the ground, then every layer in order, the lanes, the pictures and the lines of
+	text among them.
 
-	It belongs to one renderer, because the pictures it reads are textures of that renderer, and
-	it keeps each picture it has read until `shut`, so a video reads every file once rather than
-	once a frame. A file that will not read is remembered as missing and drawn as nothing.
+	It belongs to one renderer, because the pictures it reads and the faces it bakes belong to
+	that renderer, and it keeps each picture it has read until `shut`, so a video reads every file
+	once rather than once a frame. A file that will not read is remembered as missing and drawn as
+	nothing, and a font that will not read is replaced by `face`.
 
-	Lanes that are not turned are laid out straight into their box, so the plain style draws
-	exactly what a video drew before styles. Turned lanes are drawn into a texture of their own
-	and laid over the picture turned, blended as colour already multiplied by alpha, which is what
-	drawing into a target cleared to nothing leaves.
+	Lanes and text that are neither turned nor faded are drawn straight into the picture, so the
+	plain style draws exactly what a video drew before styles. The rest are drawn into the corner
+	of one texture kept for the purpose, which grows to the largest thing drawn there and never
+	shrinks, and laid over the picture turned and faded as one, blended as colour already
+	multiplied by alpha, which is what drawing into a target cleared to nothing leaves. Fading the
+	whole rather than each stroke keeps a border's overlapping rings from building up. A frame
+	makes no texture once the first has grown it.
 **/
 @:unreflective
 final class Picture {
+	/**
+		The most pixels the texture turned things are drawn into grows to on either side. Anything
+		larger is drawn into it smaller and scaled back up as it is laid down.
+	**/
+	public static inline final SCRATCH = 4096;
+
+	/**
+		How many baked faces are kept at once. A style with more text sizes than this bakes the
+		oldest again when it comes round.
+	**/
+	static inline final FACES = 12;
+
+	/**
+		The face a line of text is written in where it names none, or where the one it names will
+		not read.
+	**/
+	public var face:String = "";
+
 	final paint:Paint;
 
 	final sources:Array<Source> = [];
 	final size:Vector<Int> = new Vector<Int>(2);
 
-	var lanesTexture:cpp.Star<Texture> = null;
-	var lanesWide:Int = 0;
-	var lanesTall:Int = 0;
+	final fonts:Array<Font> = [];
+	final fontPaths:Array<String> = [];
+	final fontPixels:Array<Int> = [];
+
+	var scratch:cpp.Star<Texture> = null;
+	var scratchWide:Int = 0;
+	var scratchTall:Int = 0;
 
 	/**
 		Builds a picture that draws with a paint and reads pictures into its renderer.
@@ -45,33 +73,41 @@ final class Picture {
 		@param style How it looks.
 		@param scope The scope, dressed by the style and fed up to the moment drawn.
 		@param parts Which parts the lanes show, in order.
+		@param words What the placeholders in the text stand for.
 		@param wide How wide the picture is, in pixels.
 		@param tall How tall.
-		@param into The target the picture is being drawn into, which turned lanes return to.
+		@param into The target the picture is being drawn into, which turned things return to.
 	**/
-	public function draws(style:Style, scope:Scope, parts:Array<Int>, wide:Int, tall:Int,
-			into:cpp.Star<Texture>):Void {
+	public function draws(style:Style, scope:Scope, parts:Array<Int>, words:Words, wide:Int,
+			tall:Int, into:cpp.Star<Texture>):Void {
 		grounded(style, wide, tall);
 
 		for (layer in style.layers) {
-			if (layer.kind == Layer.LANES) laned(layer, scope, parts, wide, tall, into);
-			else placed(layer, wide, tall);
+			switch (layer.kind) {
+				case Layer.LANES: laned(layer, scope, parts, wide, tall, into);
+				case Layer.TEXT: written(layer, words, wide, tall, into);
+				case _: placed(layer, wide, tall);
+			}
 		}
 	}
 
 	/**
-		Gives back every texture it read or made.
+		Gives back every texture and face it read, baked or made.
 	**/
 	public function shut():Void {
 		for (held in sources) if (held.texture != null) Draw.destroyTexture(held.texture);
+		for (held in fonts) held.shut();
 
 		sources.resize(0);
+		fonts.resize(0);
+		fontPaths.resize(0);
+		fontPixels.resize(0);
 
-		if (lanesTexture != null) Draw.destroyTexture(lanesTexture);
+		if (scratch != null) Draw.destroyTexture(scratch);
 
-		lanesTexture = null;
-		lanesWide = 0;
-		lanesTall = 0;
+		scratch = null;
+		scratchWide = 0;
+		scratchTall = 0;
 	}
 
 	/**
@@ -99,6 +135,21 @@ final class Picture {
 	public function aspect(path:String):Float {
 		final held = read(path);
 		return held.texture == null || held.tall == 0 ? 0 : held.wide / held.tall;
+	}
+
+	/**
+		@param layer A line of text.
+		@param words What its placeholders stand for.
+		@param tall How tall the picture is, in pixels.
+		@return How wide the line is drawn, in pixels, its border included, or nought where it says
+			nothing or has no face to say it in.
+	**/
+	public function measures(layer:Layer, words:Words, tall:Int):Float {
+		final said = words.filled(layer.text);
+		final pixels = pixelsOf(layer, tall);
+		final font = said == "" ? null : fontOf(layer.font, pixels);
+
+		return font == null ? 0 : font.measure(said) + layer.borderWidth * pixels * 2;
 	}
 
 	/**
@@ -137,51 +188,148 @@ final class Picture {
 
 		if (layer.alpha <= 0 || boxWide < 1 || boxTall < 1) return;
 
-		if (layer.turn % 360 == 0) {
+		if (layer.turn % 360 == 0 && layer.alpha >= 1) {
 			scope.arrange(centreX - boxWide * 0.5, centreY - boxTall * 0.5, boxWide, boxTall);
-
-			paint.pushOpacity(layer.alpha);
 			scope.films(paint, parts);
-			paint.popOpacity();
 
 			return;
 		}
 
-		final needWide = Math.ceil(boxWide);
-		final needTall = Math.ceil(boxTall);
+		final much = shrink(boxWide, boxTall);
+		final drawnWide = boxWide * much;
+		final drawnTall = boxTall * much;
 
-		if (!sized(needWide, needTall)) return;
+		if (!grown(Math.ceil(drawnWide), Math.ceil(drawnTall))) return;
 
-		paint.target(lanesTexture);
+		paint.target(scratch);
 		paint.clear(0, 0, 0, 0);
 
-		scope.arrange(0, 0, boxWide, boxTall);
+		scope.arrange(0, 0, drawnWide, drawnTall);
 		scope.films(paint, parts);
 
 		paint.target(into);
-		paint.turned(lanesTexture, centreX, centreY, lanesWide, lanesTall, layer.turn, layer.alpha);
+		paint.turnedPart(scratch, drawnWide, drawnTall, centreX, centreY, boxWide, boxTall,
+			layer.turn, layer.alpha);
 	}
 
 	/**
-		Makes sure the texture turned lanes are drawn into is a size, making it again only where
-		the size changed.
+		Draws a line of text centred on its layer's centre, its border first and its fill over it,
+		turned where the layer is.
+	**/
+	function written(layer:Layer, words:Words, wide:Int, tall:Int, into:cpp.Star<Texture>):Void {
+		if (layer.alpha <= 0) return;
+
+		final said = words.filled(layer.text);
+		if (said == "") return;
+
+		final pixels = pixelsOf(layer, tall);
+		final font = fontOf(layer.font, pixels);
+		if (font == null) return;
+
+		final border = layer.borderWidth * pixels;
+		final lineWide = font.measure(said) + border * 2;
+		final lineTall = font.height + border * 2;
+		final centreX = layer.x * wide;
+		final centreY = layer.y * tall;
+
+		if (layer.turn % 360 == 0 && layer.alpha >= 1) {
+			lettered(font, said, layer, border, centreX - lineWide * 0.5, centreY - lineTall * 0.5);
+			return;
+		}
+
+		if (lineWide > SCRATCH || lineTall > SCRATCH) return;
+		if (!grown(Math.ceil(lineWide), Math.ceil(lineTall))) return;
+
+		paint.target(scratch);
+		paint.clear(0, 0, 0, 0);
+
+		lettered(font, said, layer, border, 0, 0);
+
+		paint.target(into);
+		paint.turnedPart(scratch, lineWide, lineTall, centreX, centreY, lineWide, lineTall, layer.turn,
+			layer.alpha);
+	}
+
+	/**
+		Writes a line with its top left corner at a place: the border as the line drawn at every
+		point of a ring around where it sits, a ring for every pixel out to the border's width,
+		then the fill over it.
+
+		@param font The face.
+		@param said What it says.
+		@param layer The line's colours.
+		@param border How thick the border is, in pixels.
+		@param left Where the line's box starts, across, border included.
+		@param top Where it starts, down.
+	**/
+	function lettered(font:Font, said:String, layer:Layer, border:Float, left:Float,
+			top:Float):Void {
+		final baseline = top + border + font.ascent;
+		final start = left + border;
+
+		paint.reface(font);
+
+		if (border > 0) {
+			final rings = Math.ceil(border);
+
+			for (ring in 1...rings + 1) {
+				final reach = ring == rings ? border : ring;
+				final points = ring * 8 < 64 ? ring * 8 : 64;
+
+				for (point in 0...points) {
+					final angle = 2 * Math.PI * point / points;
+					paint.text(said, start + Math.cos(angle) * reach, baseline + Math.sin(angle) * reach,
+						layer.border);
+				}
+			}
+		}
+
+		paint.text(said, start, baseline, layer.colour);
+	}
+
+	/**
+		@return How many pixels tall a line of text is drawn at, never less than four.
+	**/
+	static inline function pixelsOf(layer:Layer, tall:Int):Int {
+		final held = Math.round(layer.tall * tall);
+		return held < 4 ? 4 : held;
+	}
+
+	/**
+		@param wide How wide something turned is.
+		@param tall How tall.
+		@return What to scale it by so it fits in `SCRATCH` on both sides, one where it already
+			does.
+	**/
+	static inline function shrink(wide:Float, tall:Float):Float {
+		final across = wide > SCRATCH ? SCRATCH / wide : 1;
+		final down = tall > SCRATCH ? SCRATCH / tall : 1;
+		return across < down ? across : down;
+	}
+
+	/**
+		Makes sure the texture turned things are drawn into is at least a size, making it again
+		larger where it has to grow and never smaller.
 
 		@param needWide How wide it has to be.
 		@param needTall How tall.
 		@return Whether there is one.
 	**/
-	function sized(needWide:Int, needTall:Int):Bool {
-		if (lanesTexture != null && lanesWide == needWide && lanesTall == needTall) return true;
+	function grown(needWide:Int, needTall:Int):Bool {
+		if (scratch != null && scratchWide >= needWide && scratchTall >= needTall) return true;
 
-		if (lanesTexture != null) Draw.destroyTexture(lanesTexture);
+		final makeWide = needWide > scratchWide ? needWide : scratchWide;
+		final makeTall = needTall > scratchTall ? needTall : scratchTall;
 
-		lanesTexture = Draw.createTarget(paint.canvas(), needWide, needTall);
-		lanesWide = lanesTexture == null ? 0 : needWide;
-		lanesTall = lanesTexture == null ? 0 : needTall;
+		if (scratch != null) Draw.destroyTexture(scratch);
 
-		if (lanesTexture != null) Draw.premultiplied(lanesTexture, 1);
+		scratch = Draw.createTarget(paint.canvas(), makeWide, makeTall);
+		scratchWide = scratch == null ? 0 : makeWide;
+		scratchTall = scratch == null ? 0 : makeTall;
 
-		return lanesTexture != null;
+		if (scratch != null) Draw.premultiplied(scratch, 1);
+
+		return scratch != null;
 	}
 
 	/**
@@ -213,5 +361,37 @@ final class Picture {
 
 		sources.push(out);
 		return out;
+	}
+
+	/**
+		@param path A font file, or an empty string for `face`.
+		@param pixels How tall it is drawn.
+		@return The face baked at that size, baking it the first time and falling back to `face`
+			where the file will not read, or null where neither will.
+	**/
+	function fontOf(path:String, pixels:Int):Null<Font> {
+		final wanted = path == "" ? face : path;
+
+		for (index in 0...fonts.length) {
+			if (fontPaths[index] == wanted && fontPixels[index] == pixels) return fonts[index];
+		}
+
+		var made = wanted == "" ? null : Font.bake(paint.canvas(), wanted, pixels);
+		if (made == null && wanted != face && face != "") made = Font.bake(paint.canvas(), face, pixels);
+		if (made == null) return null;
+
+		if (fonts.length >= FACES) {
+			paint.flush();
+			fonts[0].shut();
+			fonts.shift();
+			fontPaths.shift();
+			fontPixels.shift();
+		}
+
+		fonts.push(made);
+		fontPaths.push(wanted);
+		fontPixels.push(pixels);
+
+		return made;
 	}
 }
