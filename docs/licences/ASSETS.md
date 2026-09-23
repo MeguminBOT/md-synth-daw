@@ -17,15 +17,16 @@ is not a permissively licensed asset, however freely it circulates.
 | --- | --- | --- | --- | --- |
 | miniaudio | 9634bed | public domain or MIT-0, at the user's choice | 2026-09-01 | github.com/mackron/miniaudio |
 | stb_truetype | 1.26 | public domain (or MIT, dual) | 2026-09-01 | github.com/nothings/stb |
+| stb_image | 2.30 | public domain (or MIT, dual) | 2026-09-23 | github.com/nothings/stb |
 | libogg | 1.3.5 | BSD three clause | 2026-09-02 | github.com/xiph/ogg |
 | libvorbis | 1.3.7 | BSD three clause | 2026-09-02 | github.com/xiph/vorbis |
 | libopus | 1.5.2 | BSD three clause | 2026-09-02 | github.com/xiph/opus |
 | libvpx | 1.17.0 | BSD three clause, with a patent grant | 2026-09-13 | github.com/webmproject/libvpx |
 | libwebm | 1.0.0.32 | BSD three clause, with a patent grant | 2026-09-13 | github.com/webmproject/libwebm |
 
-The first two are single headers compiled directly into `src/mdd/native/audio.cpp` and `src/mdd/native/text.cpp`.
-Neither carries a distribution condition beyond the notice in its own source, which travels with
-the header.
+The first three are single headers compiled directly into `src/mdd/native/audio.cpp`,
+`src/mdd/native/text.cpp` and `src/mdd/native/image.cpp`. None carries a distribution condition
+beyond the notice in its own source, which travels with the header.
 
 The three Xiph libraries are the audio export: libvorbis writes Ogg Vorbis, libopus writes Opus, and
 libogg carries the pages both of them are framed in. Their sources are compiled from `vendor/` into

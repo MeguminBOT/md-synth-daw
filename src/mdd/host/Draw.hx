@@ -78,6 +78,13 @@ extern class Draw {
 		y:Single, width:Single, height:Single, alpha:Single):Void;
 
 	/**
+		Draws one whole texture into a rectangle turned clockwise about its own centre.
+	**/
+	@:native("mdd_render_turned")
+	public static function turned(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>, x:Single,
+		y:Single, width:Single, height:Single, degrees:Single, alpha:Single):Void;
+
+	/**
 		How many draw calls have been made since the last reset.
 	**/
 	@:native("mdd_draw_calls")

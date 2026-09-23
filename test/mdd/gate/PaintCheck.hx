@@ -85,6 +85,7 @@ class PaintCheck {
 		speckled(paint);
 		joined(paint);
 		poured(paint);
+		pictured(paint, root);
 
 		font.shut();
 		shut();
@@ -700,6 +701,148 @@ class PaintCheck {
 		paint.flush();
 		paint.popTransform();
 		within("transform", read(), 100 * 60, 8);
+	}
+
+	/**
+		A PNG reads into a texture at its own size, and draws turned about its centre and at an
+		opacity. A file that is not a picture and one wider than `Image.SIDE` are refused rather
+		than read.
+	**/
+	static function pictured(paint:Paint, root:String):Void {
+		final where = root + "/export/gate/pictures";
+		mdd.host.Paths.make(where);
+
+		final size = new Vector<Int>(2);
+
+		final icon = mdd.host.Image.load(renderer, root + "/assets/icon/mdd-64.png",
+			cpp.Pointer.arrayElem(size.toData(), 0).raw);
+
+		says("a png reads at its own size", icon != null && size[0] == 64 && size[1] == 64,
+			"the 64 pixel icon read as " + size[0] + " by " + size[1]);
+
+		if (icon != null) Draw.destroyTexture(icon);
+
+		sys.io.File.saveBytes(where + "/halves.png", png(64, 32, function(px:Int, py:Int):Int
+			return px < 32 ? 0xFF0000FF : 0xFFFF0000));
+
+		final halves = mdd.host.Image.load(renderer, where + "/halves.png",
+			cpp.Pointer.arrayElem(size.toData(), 0).raw);
+
+		if (halves == null) {
+			says("a picture written here reads back", false, "it would not read");
+			return;
+		}
+
+		begin();
+		paint.turned(halves, 256, 256, 64, 32, 90);
+		paint.flush();
+		Draw.readPixels(renderer, 0, 0, SIDE, SIDE, cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+
+		final above = (240 * SIDE + 256) * 4;
+		final below = (272 * SIDE + 256) * 4;
+		final aside = (256 * SIDE + 230) * 4;
+
+		says("and draws turned about its centre", pixels[above] > 200 && pixels[above + 2] < 40
+			&& pixels[below + 2] > 200 && pixels[below] < 40 && pixels[aside] < 20,
+			"turned a quarter clockwise, its red left half sits above the centre at " + pixels[above]
+			+ " red and its blue right half below at " + pixels[below + 2] + " blue, with nothing"
+			+ " where its unturned width reached");
+
+		Draw.setTarget(renderer, null);
+
+		begin();
+		paint.turned(halves, 256, 256, 64, 32, 0, 0.5);
+		paint.flush();
+
+		final half = channel(240, 256);
+
+		says("and at an opacity", half > 110 && half < 145,
+			"drawn at half opacity over black, the red half reads " + half);
+
+		Draw.destroyTexture(halves);
+
+		sys.io.File.saveContent(where + "/words.png", "not a picture at all");
+		final words = mdd.host.Image.load(renderer, where + "/words.png",
+			cpp.Pointer.arrayElem(size.toData(), 0).raw);
+
+		sys.io.File.saveBytes(where + "/wide.png", png(mdd.host.Image.SIDE + 8, 1,
+			function(px:Int, py:Int):Int return 0xFFFFFFFF));
+
+		final wide = mdd.host.Image.load(renderer, where + "/wide.png",
+			cpp.Pointer.arrayElem(size.toData(), 0).raw);
+
+		says("a file that is not a picture is refused", words == null && wide == null
+			&& size[0] == 0 && size[1] == 0,
+			"text named .png and a png " + (mdd.host.Image.SIDE + 8) + " pixels wide both read as"
+			+ " nothing");
+
+		if (words != null) Draw.destroyTexture(words);
+		if (wide != null) Draw.destroyTexture(wide);
+
+		mdd.host.Paths.clear(where);
+	}
+
+	/**
+		@param wide How wide.
+		@param tall How tall.
+		@param colour The colour of each pixel, as ABGR so the bytes run red, green, blue, alpha.
+		@return A PNG of it, eight bit RGBA with no filtering.
+	**/
+	static function png(wide:Int, tall:Int, colour:Int -> Int -> Int):haxe.io.Bytes {
+		final rows = new haxe.io.BytesBuffer();
+
+		for (py in 0...tall) {
+			rows.addByte(0);
+
+			for (px in 0...wide) {
+				final value = colour(px, py);
+
+				rows.addByte(value & 0xFF);
+				rows.addByte((value >> 8) & 0xFF);
+				rows.addByte((value >> 16) & 0xFF);
+				rows.addByte((value >>> 24) & 0xFF);
+			}
+		}
+
+		final header = new haxe.io.BytesOutput();
+		header.bigEndian = true;
+		header.writeInt32(wide);
+		header.writeInt32(tall);
+		header.writeByte(8);
+		header.writeByte(6);
+		header.writeByte(0);
+		header.writeByte(0);
+		header.writeByte(0);
+
+		final out = new haxe.io.BytesOutput();
+		out.bigEndian = true;
+
+		for (byte in [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) out.writeByte(byte);
+
+		chunk(out, "IHDR", header.getBytes());
+		chunk(out, "IDAT", haxe.zip.Compress.run(rows.getBytes(), 6));
+		chunk(out, "IEND", haxe.io.Bytes.alloc(0));
+
+		return out.getBytes();
+	}
+
+	/**
+		Writes one PNG chunk: its length, its name, what it holds and the CRC of the last two.
+
+		@param out Where to write it.
+		@param name The four letter name.
+		@param data What it holds.
+	**/
+	static function chunk(out:haxe.io.BytesOutput, name:String, data:haxe.io.Bytes):Void {
+		final named = haxe.io.Bytes.ofString(name);
+		final checked = haxe.io.Bytes.alloc(named.length + data.length);
+
+		checked.blit(0, named, 0, named.length);
+		checked.blit(named.length, data, 0, data.length);
+
+		out.writeInt32(data.length);
+		out.write(checked);
+		out.writeInt32(haxe.crypto.Crc32.make(checked));
 	}
 
 	static function round(value:Float):Float {

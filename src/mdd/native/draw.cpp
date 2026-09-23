@@ -109,6 +109,21 @@ extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture,
 	calls++;
 }
 
+extern "C" void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
+		float width, float height, float degrees, float alpha) {
+	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return;
+
+	SDL_FRect into;
+	into.x = x - width * 0.5f;
+	into.y = y - height * 0.5f;
+	into.w = width;
+	into.h = height;
+
+	SDL_SetTextureAlphaModFloat(texture, alpha);
+	SDL_RenderTextureRotated(renderer, texture, nullptr, &into, degrees, nullptr, SDL_FLIP_NONE);
+	calls++;
+}
+
 extern "C" int mdd_draw_calls(void) {
 	return calls;
 }

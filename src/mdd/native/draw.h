@@ -98,6 +98,21 @@ void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture, const flo
 	int vertexCount);
 
 /**
+ * Draws one whole texture into a rectangle turned about its own centre.
+ *
+ * @param renderer The renderer.
+ * @param texture The texture.
+ * @param x Where the rectangle's centre is, across.
+ * @param y Where its centre is, down.
+ * @param width How wide the rectangle is before it is turned.
+ * @param height How tall.
+ * @param degrees How far it is turned, clockwise.
+ * @param alpha How opaque, 0 to 1.
+ */
+void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
+	float width, float height, float degrees, float alpha);
+
+/**
  * Draws one whole texture into a rectangle.
  *
  * @param renderer The renderer.

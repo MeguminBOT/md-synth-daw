@@ -135,6 +135,7 @@
 		<file name="window.cpp" />
 		<file name="events.cpp" />
 		<file name="draw.cpp" />
+		<file name="image.cpp" />
 		<file name="text.cpp" />
 		<file name="vary.cpp" />
 		<file name="audio.cpp" />

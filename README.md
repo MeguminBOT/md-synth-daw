@@ -370,6 +370,7 @@ a source, that is noted.
 | [SDL3][sdl-url] | zlib | Window, events and rendering. Shipped unaltered |
 | [miniaudio][miniaudio-url] | public domain or MIT-0 | The audio device, called directly |
 | [stb_truetype][stb-url] | public domain or MIT | Glyph rasterising |
+| [stb_image][stb-url] | public domain or MIT | Reading PNG and JPEG pictures |
 | [libogg][ogg-url] | BSD-3-Clause | Ogg framing |
 | [libvorbis][vorbis-url] | BSD-3-Clause | Ogg Vorbis encoding |
 | [libopus][opus-url] | BSD-3-Clause | Opus encoding |
