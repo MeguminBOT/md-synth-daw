@@ -55,13 +55,26 @@ final class Sound {
 	**/
 	public var heard:Int = 0;
 
-	var tookTaps:Int = 0;
+	/**
+		Which scope `poured` fills: the one in the monitor.
+	**/
+	public static inline final MONITOR = 0;
+
+	/**
+		Which scope `poured` fills: the one a video's style is previewed in.
+	**/
+	public static inline final PREVIEW = 1;
+
+	final tookTaps:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(2);
 	var tookMeters:Int = 0;
 
 	/**
 		Builds a sound with no device open.
 	**/
-	public function new() {}
+	public function new() {
+		tookTaps[MONITOR] = 0;
+		tookTaps[PREVIEW] = 0;
+	}
 
 	/**
 		Opens the device, builds a render, primes it and starts it.
@@ -146,17 +159,19 @@ final class Sound {
 	}
 
 	/**
-		Hands the scope the samples it draws, from the render ring.
+		Hands a scope the samples it draws, from the render ring. Each scope it fills keeps its own
+		place in the ring, so both get every sample.
 
 		@param scope The scope to fill.
+		@param which `MONITOR` or `PREVIEW`.
 	**/
-	public function poured(scope:Scope):Void {
+	public function poured(scope:Scope, which:Int = MONITOR):Void {
 		final ear = render.heardAt;
 
 		var now = render.tapped;
 		if (ear > 0 && ear < now) now = ear;
 
-		var from = tookTaps;
+		var from = tookTaps[which];
 
 		if (now - from > Render.TAPS) from = now - Render.TAPS;
 		if (from < 0) from = 0;
@@ -171,7 +186,7 @@ final class Sound {
 			from++;
 		}
 
-		tookTaps = now;
+		tookTaps[which] = now;
 	}
 
 	/**

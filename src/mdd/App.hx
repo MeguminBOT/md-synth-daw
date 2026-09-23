@@ -16,6 +16,7 @@ import mdd.app.Session;
 import mdd.app.Task;
 import mdd.app.Sound;
 import mdd.app.Stage;
+import mdd.app.StyleWindow;
 import mdd.app.Update;
 import mdd.host.Audio;
 import mdd.host.Collector;
@@ -415,6 +416,9 @@ class App {
 		files.library = library;
 		files.onLoad = function(song:Song):Void loaded(song);
 
+		final styled = settings == null ? "" : settings.of("style", "");
+		if (styled != "") files.style = mdd.view.film.Style.read(styled);
+
 		panels.onPreset = function(made:mdd.song.Instrument, sample:Null<mdd.song.Sample>):Void {
 			if (files.keepsPreset(made, sample) == "") {
 				session.says(Locale.SAID_PRESET_UNWRITTEN, files.within("presets"));
@@ -677,6 +681,7 @@ class App {
 		bound();
 
 		menus.onNew = function():Void guards(function():Void fresh());
+		menus.onStyle = function():Void styles();
 		menus.onEdit = function(what:Int):Void edited(what);
 
 		menus.onPart = function(part:Int):Void {
@@ -1440,6 +1445,45 @@ class App {
 
 	var renderingTo:String = "";
 	var filming:Null<Filming> = null;
+
+	/**
+		The video style editor's window, or null while it is closed.
+	**/
+	var styleWindow:Null<StyleWindow> = null;
+
+	/**
+		Opens the video style editor in a window of its own, or brings it forward where it is open
+		already.
+	**/
+	function styles():Void {
+		final open = styleWindow;
+
+		if (open != null) {
+			mdd.host.Sdl.raiseWindow(open.stage.window);
+			return;
+		}
+
+		final video = panels.exportingVideo;
+		if (video == null) return;
+
+		final scope = panels.centre.scope;
+		video.scopes(scope.showing, scope.speed, scope.accuracy);
+
+		styleWindow = StyleWindow.opened(stage, session, files.style, video, settings);
+		if (styleWindow == null) session.says(Locale.SAID_FAILED, mdd.host.Sdl.error());
+	}
+
+	/**
+		Closes the video style editor's window.
+	**/
+	function unstyles():Void {
+		final open = styleWindow;
+		if (open == null) return;
+
+		styleWindow = null;
+		open.shut();
+		stage.root.soil();
+	}
 
 	/**
 		Starts a bounce on a worker thread and puts the progress bar up in the band.
@@ -2266,6 +2310,13 @@ class App {
 
 		while (running) {
 			while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) {
+				final aside = styleWindow;
+
+				if (aside != null && event.windowID != 0 && event.windowID == aside.stage.windowID) {
+					if (!aside.took(event)) unstyles();
+					continue;
+				}
+
 				if (!stage.took(event)) quits();
 			}
 
@@ -2297,7 +2348,10 @@ class App {
 			if (costed()) stage.root.soil();
 			if (received()) stage.root.soil();
 
-			collector.rests(since, stage.draw(), bounce.running());
+			final aside = styleWindow;
+			final asideDrew = aside != null && aside.frame(since, session.transport.playing);
+
+			collector.rests(since, stage.draw(!asideDrew) || asideDrew, bounce.running());
 		}
 	}
 
@@ -2495,6 +2549,9 @@ class App {
 
 		sound.lit(session.transport.stream);
 
+		final aside = styleWindow;
+		if (aside != null) sound.poured(aside.studio.scope, Sound.PREVIEW);
+
 		if (centre.roll.visible) centre.roll.lights(sound.sounding);
 
 		if (centre.registers.visible) {
@@ -2561,6 +2618,7 @@ class App {
 	**/
 	function shut():Void {
 		keeps();
+		unstyles();
 
 		presence.shut();
 

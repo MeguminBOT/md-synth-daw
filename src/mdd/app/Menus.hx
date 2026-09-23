@@ -491,6 +491,11 @@ final class Menus {
 	public var onPart:Null<Int -> Void> = null;
 
 	/**
+		Called to open the video style editor.
+	**/
+	public var onStyle:Null<Void -> Void> = null;
+
+	/**
 		Reads every patch file in the presets folder and says how many were new.
 	**/
 	function kitted():Void {
@@ -521,6 +526,8 @@ final class Menus {
 			function():Void panels.sounded());
 		fired(held.offer(new Choice(said(Locale.EXPORT_VIDEO))), function():Void
 			panels.exportsVideo());
+		fired(held.offer(new Choice(said(Locale.FILM_TITLE))), function():Void
+			if (onStyle != null) onStyle());
 		fired(held.offer(new Choice(said(Locale.FILE_VGM), Bindings.of(bindings, Bindings.WRITE_VGM))), function():Void
 			asks(Files.VGM));
 		fired(held.offer(new Choice(said(Locale.FILE_XGM))), function():Void

@@ -138,18 +138,40 @@ final class Picture {
 	}
 
 	/**
-		@param layer A line of text.
-		@param words What its placeholders stand for.
-		@param tall How tall the picture is, in pixels.
-		@return How wide the line is drawn, in pixels, its border included, or nought where it says
-			nothing or has no face to say it in.
+		How wide the last layer `bounds` measured is drawn, in pixels, before it is turned.
 	**/
-	public function measures(layer:Layer, words:Words, tall:Int):Float {
+	public var boundWide(default, null):Float = 0;
+
+	/**
+		How tall, in pixels.
+	**/
+	public var boundTall(default, null):Float = 0;
+
+	/**
+		Measures the box a layer is drawn in, before it is turned, into `boundWide` and
+		`boundTall`: its own size for the lanes and a picture, and the line with its border for
+		text. A line that says nothing is measured as an empty line of its height, so it can still
+		be found and grabbed.
+
+		@param layer The layer.
+		@param words What text placeholders stand for.
+		@param wide How wide the picture is, in pixels.
+		@param tall How tall.
+	**/
+	public function bounds(layer:Layer, words:Words, wide:Int, tall:Int):Void {
+		if (layer.kind != Layer.TEXT) {
+			boundWide = layer.wide * wide;
+			boundTall = layer.tall * tall;
+			return;
+		}
+
 		final said = words.filled(layer.text);
 		final pixels = pixelsOf(layer, tall);
-		final font = said == "" ? null : fontOf(layer.font, pixels);
+		final font = fontOf(layer.font, pixels);
+		final border = layer.borderWidth * pixels;
 
-		return font == null ? 0 : font.measure(said) + layer.borderWidth * pixels * 2;
+		boundWide = (font == null || said == "" ? pixels : font.measure(said)) + border * 2;
+		boundTall = (font == null ? pixels : font.height) + border * 2;
 	}
 
 	/**

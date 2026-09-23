@@ -1154,6 +1154,152 @@ class SpineCheck {
 	}
 
 	/**
+		The video style editor, driven the way a reader drives it, in a root of its own the way its
+		window has one: the lanes move, size and turn under the pointer, each of those undoes and
+		redoes, a swatch raises the colour picker and the picker colours what raised it, a line of
+		text is added and taken out, the fonts on the machine are named, and a second window opens
+		for it and closes without the first.
+
+		@param tree The shell, whose sizes the editor borrows.
+		@param session The piece.
+		@param paint What the window is drawn with.
+	**/
+	static function studied(tree:Root, session:Session, paint:Paint):Void {
+		final wide = 1280;
+		final tall = 800;
+		final style = mdd.view.film.Style.plain();
+		final studio = new mdd.view.film.Studio(session, style);
+		final root = new Root(studio, tree.metrics, new Theme());
+		final renderer = paint.canvas();
+		final target = Draw.createTarget(renderer, wide, tall);
+
+		studio.face = Gate.root + "/vendor/fonts/Go-Regular.ttf";
+		mdd.app.Languages.speak(root.translation, "en-GB");
+		root.resize(wide, tall);
+
+		final framed = function():Void {
+			paint.target(target);
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			root.frame(paint);
+			paint.target(null);
+		};
+
+		final dragged = function(fromX:Float, fromY:Float, toX:Float, toY:Float):Void {
+			root.moved(fromX, fromY, mdd.ui.Mod.None, 0);
+			root.pressed(fromX, fromY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+			root.moved((fromX + toX) * 0.5, (fromY + toY) * 0.5, mdd.ui.Mod.None, 1);
+			root.moved(toX, toY, mdd.ui.Mod.None, 1);
+			root.released(toX, toY, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+			framed();
+		};
+
+		framed();
+		framed();
+
+		final preview = studio.preview;
+		final left = preview.pictureLeft;
+		final top = preview.pictureTop;
+		final across = preview.pictureWide;
+		final down = preview.pictureTall;
+		dragged(left + across * 0.5, top + down * 0.5, left + across * 0.6, top + down * 0.5);
+
+		final moved = style.lanes().x;
+		final undone = studio.undo() ? style.lanes().x : -1;
+		final redone = studio.redo() ? style.lanes().x : -1;
+
+		says("the style editor moves a layer", across > 300 && Math.abs(moved - 0.6) < 0.01
+			&& undone == 0.5 && Math.abs(redone - 0.6) < 0.01,
+			"a " + across + " by " + down + " preview dragged the lanes to " + round(moved, 3)
+			+ " across, undo took them back to " + undone + " and redo to " + round(redone, 3));
+
+		style.lanes().x = 0.5;
+		studio.changed(true);
+		framed();
+
+		dragged(left + across, top + down, left + across * 0.75, top + down * 0.75);
+
+		final sized = style.lanes().wide;
+		final stalk = tree.metrics.whole(24);
+
+		framed();
+		dragged(left + across * 0.5, top + down * 0.5 - down * style.lanes().tall * 0.5 - stalk,
+			left + across * 0.5 + 200, top + down * 0.5);
+
+		final turned = style.lanes().turn;
+
+		says("and sizes and turns it", Math.abs(sized - 0.5) < 0.02 && Math.abs(turned - 90) < 0.5,
+			"a corner dragged to three quarters left it " + round(sized, 3) + " of the picture wide,"
+			+ " and the knob dragged beside it turned it to " + round(turned, 1) + " degrees");
+
+		style.lanes().turn = 0;
+		style.lanes().wide = 1;
+		style.lanes().tall = 1;
+		studio.changed(true);
+		framed();
+
+		final swatch = @:privateAccess studio.panel.groundFrom;
+
+		root.pressed(swatch.x + 4, swatch.y + 4, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		root.released(swatch.x + 4, swatch.y + 4, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		framed();
+
+		final raised = root.sheet == studio.picker;
+		final picker = studio.picker;
+		final square = @:privateAccess picker.side();
+		final squareTop = @:privateAccess picker.top();
+		final squareLeft = picker.x + @:privateAccess picker.pad();
+
+		root.pressed(squareLeft + square - 2, squareTop + 2, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		root.moved(squareLeft + square + 12, squareTop - 12, mdd.ui.Mod.None, 1);
+		root.released(squareLeft + square + 12, squareTop - 12, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final coloured = style.groundColour;
+
+		root.key(true, mdd.ui.Key.Escape, mdd.ui.Mod.None);
+		framed();
+
+		says("a swatch raises the colour picker", raised && coloured == 0xFF0000 && root.sheet == null,
+			"the background's swatch raised the picker, dragging past its brightest reddest corner"
+			+ " coloured the background #" + StringTools.hex(coloured, 6) + ", and Escape put it away");
+
+		studio.writes("{bpm} bpm");
+		framed();
+
+		final written = style.layers.length == 2 && studio.chosen == 1
+			&& style.layers[1].kind == mdd.view.film.Layer.TEXT;
+
+		studio.removes();
+
+		final installed = mdd.host.Installed.found();
+		final named = mdd.format.Sfnt.named(Gate.root + "/vendor/fonts/Go-Regular.ttf");
+
+		says("text comes and goes in any face", written && style.layers.length == 1
+			&& named == "Go" && installed.names.length > 0,
+			"a line was added over the lanes and taken out again; the bundled face calls itself '"
+			+ named + "' and " + installed.names.length + " fonts are installed here");
+
+		final aside = new mdd.app.Stage();
+		final beside = new mdd.view.film.Studio(session, mdd.view.film.Style.plain());
+		final opened = aside.opensAside(beside, "mdd gate studio", 640, 400);
+		final apart = opened && aside.windowID != 0;
+
+		if (opened) {
+			aside.measured();
+			aside.root.reshape();
+			aside.draw(false);
+			beside.shut();
+			aside.shut();
+		}
+
+		says("and opens in a window of its own", apart,
+			opened ? "a second window opened with its own renderer and faces, drew, and closed"
+			: "it would not open: " + aside.failure);
+
+		studio.shut();
+		Draw.destroyTexture(target);
+	}
+
+	/**
 		@param pixels What was read back, RGBA.
 		@param wide How wide.
 		@param tall How tall.
@@ -5528,6 +5674,7 @@ class SpineCheck {
 		chorded(tree, session, centre);
 		filmed(tree, session, centre, paint);
 		styled(tree, session, paint);
+		studied(tree, session, paint);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);

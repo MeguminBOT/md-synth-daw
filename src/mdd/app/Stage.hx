@@ -16,6 +16,7 @@ import mdd.ui.Paint;
 import mdd.ui.Root;
 import mdd.ui.Shell;
 import mdd.ui.Theme;
+import mdd.ui.Widget;
 
 @:unreflective
 
@@ -60,9 +61,16 @@ final class Stage {
 	public var root:Root;
 
 	/**
-		The zones the interface is laid out in.
+		The zones the interface is laid out in, or null for a window beside the main one, which one
+		widget fills.
 	**/
-	public var shell:Shell;
+	public var shell:Null<Shell> = null;
+
+	/**
+		Whether this is a window beside the main one: its renderer does not wait for the screen,
+		and closing it gives back only what is its own.
+	**/
+	public var aside(default, null):Bool = false;
 
 	/**
 		What every size is multiplied by.
@@ -148,18 +156,56 @@ final class Stage {
 		@return False where any of that would not work.
 	**/
 	public function open():Bool {
-		window = Sdl.createWindow(Config.TITLE, Config.WIDTH, Config.HEIGHT,
-			Config.RESIZABLE ? 1 : 0, Config.HIGH_DPI ? 1 : 0);
+		final held = new Shell();
+		shell = held;
+
+		return opens(held, Config.TITLE, Config.WIDTH, Config.HEIGHT, Config.LEAST_WIDTH,
+			Config.LEAST_HEIGHT, Config.VSYNC);
+	}
+
+	/**
+		Opens a window beside the main one, which one widget fills, with a renderer, faces and
+		icons of its own. Its renderer does not wait for the screen, because two windows each
+		waiting to present would halve how often either is drawn. It is created hidden, like the
+		main one, and `show` puts it up once it has a frame.
+
+		@param top The widget that fills it.
+		@param title What its title bar says.
+		@param wide How wide it opens, before the display's scale.
+		@param tall How tall.
+		@return False where the window, the renderer or the faces would not open.
+	**/
+	public function opensAside(top:Widget, title:String, wide:Int, tall:Int):Bool {
+		aside = true;
+		return opens(top, title, wide, tall, Std.int(wide / 2), Std.int(tall / 2), false);
+	}
+
+	/**
+		Opens a window, its renderer, the faces and the icons, and builds a root over a widget.
+
+		@param top The widget at the top of the tree.
+		@param title What the title bar says.
+		@param wide How wide it opens.
+		@param tall How tall.
+		@param leastWide The narrowest it may be dragged to.
+		@param leastTall The shortest.
+		@param vsync Whether presenting waits for the screen.
+		@return False where any of that would not work.
+	**/
+	function opens(top:Widget, title:String, wide:Int, tall:Int, leastWide:Int, leastTall:Int,
+			vsync:Bool):Bool {
+		window = Sdl.createWindow(title, wide, tall, Config.RESIZABLE ? 1 : 0,
+			Config.HIGH_DPI ? 1 : 0);
 
 		if (window == null) {
 			return failed(Config.TITLE + " could not open a window.\n\n" + Sdl.error());
 		}
 
-		Sdl.setWindowMinimumSize(window, Config.LEAST_WIDTH, Config.LEAST_HEIGHT);
+		Sdl.setWindowMinimumSize(window, leastWide, leastTall);
 		faced();
 		windowID = Sdl.windowID(window);
 
-		renderer = Sdl.createRenderer(window, Config.VSYNC ? 1 : 0, driver);
+		renderer = Sdl.createRenderer(window, vsync ? 1 : 0, driver);
 		if (renderer == null) {
 			Sdl.destroyWindow(window);
 
@@ -171,8 +217,7 @@ final class Stage {
 		scale = Sdl.windowDisplayScale(window);
 
 		final metrics = new Metrics(scale);
-		shell = new Shell();
-		root = new Root(shell, metrics, new Theme());
+		root = new Root(top, metrics, new Theme());
 		root.flow = Sdl.reduceMotion() != 0 ? Flow.Reduced : Flow.Full;
 		root.onWarp = function(x:Float, y:Float):Void Sdl.warp(window, x, y);
 
@@ -478,7 +523,9 @@ final class Stage {
 	**/
 	public function measured():Void {
 		root.resize(Sdl.outputWidth(renderer), Sdl.outputHeight(renderer));
-		shell.fit(root.metrics);
+
+		final held = shell;
+		if (held != null) held.fit(root.metrics);
 	}
 
 	/**
@@ -600,13 +647,15 @@ final class Stage {
 	/**
 		Draws one frame and presents it, and does neither where nothing changed.
 
+		@param rests Whether to sleep a moment where nothing changed, which the loop asks of the
+			last window it draws and only where no other drew.
 		@return Whether a frame was actually drawn.
 	**/
-	public function draw():Bool {
+	public function draw(rests:Bool = true):Bool {
 		if (always) root.soil();
 
 		if (!root.stale()) {
-			Sdl.sleep(IDLE);
+			if (rests) Sdl.sleep(IDLE);
 			return false;
 		}
 
@@ -626,7 +675,7 @@ final class Stage {
 
 		spare.shut();
 		shed();
-		Sdl.freeCursors();
+		if (!aside) Sdl.freeCursors();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
 	}

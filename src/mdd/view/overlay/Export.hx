@@ -875,6 +875,18 @@ final class Export extends Widget {
 	}
 
 	/**
+		Sets whether the video's lanes show the waveform or the spectrum from somewhere other than
+		the sheet, which the sheet keeps from then on rather than following the scope on screen.
+
+		@param view `Scope.WAVEFORM` or `Scope.SPECTRUM`.
+	**/
+	public function viewed(view:Int):Void {
+		mixing.scopeView = view;
+		scoped = true;
+		invalidate();
+	}
+
+	/**
 		Takes a choice on a row, and hides the rows it makes meaningless.
 
 		@param row Which row.

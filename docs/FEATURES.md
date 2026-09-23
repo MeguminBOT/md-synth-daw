@@ -660,6 +660,32 @@ The audio goes through the same render, output stage, fade and normalising an au
 so what a video sounds like is exactly what an audio export with the same settings writes. VP9
 and Opus are both compiled in, so there is nothing else to install.
 
+**Video style** in the export menu opens a window of its own for how a video looks, with a preview
+of the picture on the left that follows the song as it plays. Nothing is rendered for it, and it
+has no timeline: what you set applies to the whole video.
+
+- **Move, size and turn** anything on the picture by dragging it in the preview: drag inside it
+  to move it, a corner to size it, and the knob above it to turn it. A move comes to rest on the
+  picture's middle lines, and a turn on a quarter; Shift turns in steps of 15°. The arrow keys
+  nudge what is chosen, Delete takes it out, and Ctrl+Z and Ctrl+Y undo and redo in the window.
+- **The lanes** are one thing on the picture like the rest: put them anywhere, at any size and
+  angle. Each part's lane can be given a colour of its own, the part names and the lines between
+  lanes can be left out, and the trace can be drawn thicker.
+- **The background** is a colour or a gradient at any angle, with a picture over it, PNG or JPEG,
+  cropped to fill and as see-through as you like.
+- **Pictures**, such as album art or a logo, go anywhere on top, each with its own size, angle and
+  opacity.
+- **Text** goes anywhere too, in any font installed on the machine, with a fill colour and a
+  border. `{title}`, `{artist}`, `{composer}`, `{album}`, `{year}`, `{genre}`, `{track}` and
+  `{comment}` fill in from the project's description, `{bpm}` from the tempo, and `{key}` from
+  the key the piano roll is set to.
+- **Filters** for how the lanes are drawn: the spectrum can weigh its samples by a Hann,
+  Hamming, Blackman or Gaussian window, which keeps a note to its own bars instead of spreading
+  it across the rest, and the waveform can be smoothed with the same shapes.
+- **Styles** can be saved under a name and loaded into any project, and the one you last used is
+  kept between sessions. **Plain** puts back the look a video had before, which draws exactly the
+  same frames.
+
 ### Register and note formats
 
 - **VGM**, which reads back as the same register stream it was written from. A VGM holds the
