@@ -262,6 +262,8 @@
   "film.names": "파트 이름",
   "film.namesTip": "레인마다 파트 이름 표시",
   "film.noneSaved": "저장된 스타일 없음",
+  "film.notes": "음 이름",
+  "film.notesTip": "레인마다 연주 중인 음 이름 표시",
   "film.opacity": "불투명도",
   "film.picture": "그림",
   "film.pictureAdd": "그림 추가",

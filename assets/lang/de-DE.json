@@ -262,6 +262,8 @@
   "film.names": "Kanalnamen",
   "film.namesTip": "Jede Spur mit ihrem Kanal beschriften",
   "film.noneSaved": "Keine gespeicherten Stile",
+  "film.notes": "Noten",
+  "film.notesTip": "Die Note, die jeder Kanal spielt, in seine Spur schreiben",
   "film.opacity": "Deckkraft",
   "film.picture": "Bild",
   "film.pictureAdd": "Bild hinzufügen",

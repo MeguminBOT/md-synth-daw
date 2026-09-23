@@ -673,7 +673,8 @@ has no timeline: what you set applies to the whole video.
   goes where you drag it, at any size and angle. Choose Lanes in the list to move the ones still
   together as a block, **Gather lanes** to put them all back, and Remove on one lane to put that
   lane back alone. Each part's lane can be given a colour of its own, the part names and the lines
-  between lanes can be left out, and the trace can be drawn thicker.
+  between lanes can be left out, the trace can be drawn thicker, and each lane can show the note
+  its part is playing, read from what the chips are sent at that frame.
 - **The background** is a colour or a gradient at any angle, with a picture over it, PNG or JPEG,
   cropped to fill and as see-through as you like.
 - **Pictures**, such as album art or a logo, go anywhere on top, each with its own size, angle and

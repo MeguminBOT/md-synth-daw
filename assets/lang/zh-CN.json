@@ -262,6 +262,8 @@
   "film.names": "声部名称",
   "film.namesTip": "为每条通道标注声部",
   "film.noneSaved": "没有已保存的样式",
+  "film.notes": "音名",
+  "film.notesTip": "在各通道中显示正在演奏的音名",
   "film.opacity": "不透明度",
   "film.picture": "图片",
   "film.pictureAdd": "添加图片",

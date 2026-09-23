@@ -258,6 +258,7 @@ final class Studio extends Widget {
 
 		style.names = next.names;
 		style.grid = next.grid;
+		style.notes = next.notes;
 		style.weight = next.weight;
 		style.windowing = next.windowing;
 		style.smoothing = next.smoothing;

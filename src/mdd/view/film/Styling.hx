@@ -65,6 +65,7 @@ final class Styling extends Widget {
 	final colours:Array<Swatch> = [];
 	final names:Toggle;
 	final grid:Toggle;
+	final notes:Toggle;
 	final weight:Number;
 	final windowing:Button;
 	final smoothing:Button;
@@ -161,6 +162,7 @@ final class Styling extends Widget {
 
 		names = toggle(function(on:Bool):Void studio.style.names = on);
 		grid = toggle(function(on:Bool):Void studio.style.grid = on);
+		notes = toggle(function(on:Bool):Void studio.style.notes = on);
 		weight = number(1, 16, "", function(value:Int):Void studio.style.weight = value);
 		windowing = button(function():Void shaped(true));
 		smoothing = button(function():Void shaped(false));
@@ -198,6 +200,7 @@ final class Styling extends Widget {
 		gradient.toggle = true;
 		names.tipKey = Locale.FILM_NAMES_TIP;
 		grid.tipKey = Locale.FILM_GRID_TIP;
+		notes.tipKey = Locale.FILM_NOTES_TIP;
 		windowing.tipKey = Locale.FILM_WINDOWING_TIP;
 		smoothing.tipKey = Locale.FILM_SMOOTHING_TIP;
 		words.detailKey = Locale.FILM_WORDS_TIP;
@@ -256,7 +259,7 @@ final class Styling extends Widget {
 			held.detailKey = Locale.FILM_LANE_TIP;
 		}
 
-		for (control in [names, grid]) control.visible = laned;
+		for (control in [names, grid, notes]) control.visible = laned;
 		for (control in [weight, smoothingWidth]) control.visible = laned;
 
 		windowing.visible = laned;
@@ -269,6 +272,7 @@ final class Styling extends Widget {
 
 		names.set(style.names);
 		grid.set(style.grid);
+		notes.set(style.notes);
 		weight.set(Math.round(style.weight));
 		smoothingWidth.set(style.smoothingWidth);
 
@@ -338,6 +342,7 @@ final class Styling extends Widget {
 
 		names.label = root.translate(Locale.FILM_NAMES);
 		grid.label = root.translate(Locale.FILM_GRID);
+		notes.label = root.translate(Locale.FILM_NOTES);
 		waveform.label = root.translate(Locale.SCOPE_WAVEFORM);
 		spectrum.label = root.translate(Locale.SCOPE_SPECTRUM);
 		gather.label = root.translate(Locale.FILM_GATHER);
@@ -727,8 +732,9 @@ final class Styling extends Widget {
 			spectrum.arrange(left + half + gap, top, half, control);
 			top += control + gap;
 
-			names.arrange(left, top, half, control);
-			grid.arrange(left + half + gap, top, half, control);
+			names.arrange(left, top, third, control);
+			grid.arrange(left + third + gap, top, third, control);
+			notes.arrange(left + (third + gap) * 2, top, third, control);
 			top += control + gap;
 
 			windowing.arrange(left, top, wide, control);

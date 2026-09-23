@@ -71,6 +71,29 @@ final class Sounding {
 	}
 
 	/**
+		Reads a stream from a place up to a moment and folds it into the state here, which is how
+		a video knows what each part holds at the frame it is drawing.
+
+		@param stream The stream to read, all of it written already.
+		@param from The first write to take.
+		@param until The moment to stop before, in the stream's ticks.
+		@return The first write not taken, to pass back as `from` next time.
+	**/
+	public function takeUntil(stream:Stream, from:Int, until:Int):Int {
+		final many = stream.count;
+		var at = from < 0 ? 0 : from;
+
+		while (at < many && stream.tickAt(at) < until) {
+			if (stream.kindAt(at) == Stream.YM) ym(stream.portAt(at), stream.valueAt(at));
+			else psg(stream.valueAt(at));
+
+			at++;
+		}
+
+		return at;
+	}
+
+	/**
 		@param stream The stream to read.
 		@param from The first write to take.
 		@param to One past the last.

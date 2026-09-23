@@ -262,6 +262,8 @@
   "film.names": "Part names",
   "film.namesTip": "Label each lane with its part",
   "film.noneSaved": "No saved styles",
+  "film.notes": "Notes",
+  "film.notesTip": "Write the note each part is playing in its lane",
   "film.opacity": "Opacity",
   "film.picture": "Picture",
   "film.pictureAdd": "Add a picture",

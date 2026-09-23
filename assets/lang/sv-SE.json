@@ -262,6 +262,8 @@
   "film.names": "Kanalnamn",
   "film.namesTip": "Märk varje bana med sin kanal",
   "film.noneSaved": "Inga sparade stilar",
+  "film.notes": "Toner",
+  "film.notesTip": "Skriv tonen varje kanal spelar i dess bana",
   "film.opacity": "Opacitet",
   "film.picture": "Bild",
   "film.pictureAdd": "Lägg till bild",

@@ -851,6 +851,28 @@ class SpineCheck {
 		track.clips.resize(0);
 		track.add(new mdd.song.Clip(session.pattern, 0, beat * 4));
 
+		final fresh = mdd.app.Session.empty(mdd.song.Library.embedded());
+		final step = fresh.tempo.ppqn;
+		final phrase = fresh.add(new mdd.song.Pattern("notes", step * 4));
+
+		fresh.track(new mdd.song.Track("fm")).add(new mdd.song.Clip(fresh.patterns.length - 1, 0, step * 4));
+		for (at in 1...4) phrase.lane(Part.Fm1).add(new Note(at * step, step, 60 + at * 4, 110));
+
+		final heard = new mdd.play.Stream(1 << 16);
+		final hearing = new mdd.play.Sequencer(fresh);
+
+		hearing.spanned(heard, 0, fresh.tempo.samplesAt(fresh.ends() + step));
+
+		final sounding = new mdd.play.Sounding();
+		final middle = sounding.takeUntil(heard, 0, fresh.tempo.samplesAt(step * 2 + Std.int(step / 2)));
+		final held = sounding.keyed[0] ? sounding.notes[0] : -1;
+
+		sounding.takeUntil(heard, middle, fresh.tempo.samplesAt(step * 4 + Std.int(step / 2)));
+
+		says("a video knows each frame's note", held == 68 && !sounding.keyed[0],
+			"read up to the middle of the second note, FM1 holds " + held + " where it wrote 68, and"
+			+ " nothing once the last note has ended");
+
 		final mixing = new mdd.play.Mixing();
 
 		mixing.kind = mdd.play.Mixing.WEBM;
@@ -987,6 +1009,32 @@ class SpineCheck {
 		says("the plain style draws as before", apart == 0,
 			apart + " of " + pixels.length + " bytes differ from the lanes drawn on black without a"
 			+ " style");
+
+		final noted = mdd.view.film.Style.plain();
+		noted.notes = true;
+		scope.sang(0, 69);
+		drawn(noted);
+
+		var written = 0;
+		var elsewhere = 0;
+
+		for (index in 0...Std.int(pixels.length / 4)) {
+			final px = index % wide;
+			final py = Std.int(index / wide);
+			final near = px >= 200 && px < 320 && py < 48;
+
+			var apart = false;
+			for (channel in 0...3) if (pixels.get(index * 4 + channel) != before.get(index * 4 + channel)) apart = true;
+
+			if (apart && near) written++;
+			if (apart && !near) elsewhere++;
+		}
+
+		scope.sang(0, -1);
+
+		says("a lane can say its note", written > 20 && elsewhere == 0,
+			"FM1 holding A4 changed " + written + " pixels in the top right of its lane and "
+			+ elsewhere + " anywhere else");
 
 		final boxed = mdd.view.film.Style.plain();
 		final lanes = boxed.lanes();

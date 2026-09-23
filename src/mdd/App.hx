@@ -2550,7 +2550,15 @@ class App {
 		sound.lit(session.transport.stream);
 
 		final aside = styleWindow;
-		if (aside != null) sound.poured(aside.studio.scope, Sound.PREVIEW);
+
+		if (aside != null) {
+			final preview = aside.studio.scope;
+			sound.poured(preview, Sound.PREVIEW);
+
+			for (index in 0...Part.COUNT) {
+				preview.sang(index, sound.sounding.keyed[index] ? sound.sounding.notes[index] : -1);
+			}
+		}
 
 		if (centre.roll.visible) centre.roll.lights(sound.sounding);
 

@@ -91,6 +91,11 @@ final class Style {
 	public var grid:Bool = true;
 
 	/**
+		Whether each lane shows the note its part is holding.
+	**/
+	public var notes:Bool = false;
+
+	/**
 		How thick a trace is, in the sizes the picture is drawn at.
 	**/
 	public var weight:Float = 2;
@@ -169,6 +174,7 @@ final class Style {
 
 		scope.filmNames = names;
 		scope.filmGrid = grid;
+		scope.filmNotes = notes;
 		scope.filmWeight = weight;
 		scope.windows(windowing);
 		scope.smoothsWith(smoothing, smoothingWidth);
@@ -193,6 +199,7 @@ final class Style {
 
 		out.names = names;
 		out.grid = grid;
+		out.notes = notes;
 		out.weight = weight;
 		out.windowing = windowing;
 		out.smoothing = smoothing;
@@ -237,6 +244,8 @@ final class Style {
 		out.flag(names);
 		out.key("grid");
 		out.flag(grid);
+		out.key("notes");
+		out.flag(notes);
 		out.key("weight");
 		out.number(weight);
 		out.key("windowing");
@@ -325,6 +334,7 @@ final class Style {
 
 		out.names = lanes.get("names").truth(true);
 		out.grid = lanes.get("grid").truth(true);
+		out.notes = lanes.get("notes").truth(false);
 		out.weight = clamped(lanes.get("weight").real(2), 0.5, 16);
 		out.windowing = kindOf(lanes.get("windowing").whole(Windowing.NONE));
 		out.smoothing = kindOf(lanes.get("smoothing").whole(Windowing.NONE));

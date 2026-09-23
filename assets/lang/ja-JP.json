@@ -262,6 +262,8 @@
   "film.names": "パート名",
   "film.namesTip": "各レーンにパート名を表示",
   "film.noneSaved": "保存したスタイルはありません",
+  "film.notes": "音名",
+  "film.notesTip": "各レーンに鳴っている音名を表示",
   "film.opacity": "不透明度",
   "film.picture": "画像",
   "film.pictureAdd": "画像を追加",

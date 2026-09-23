@@ -200,6 +200,11 @@ final class Scope extends Widget {
 	**/
 	public var filmWeight:Float = 2;
 
+	/**
+		Whether a video writes the note each part is holding in the top right of its lane.
+	**/
+	public var filmNotes:Bool = false;
+
 	var menu:Null<Menu> = null;
 
 	final skipped:Vector<Int> = new Vector<Int>(Part.COUNT);
@@ -975,12 +980,18 @@ final class Scope extends Widget {
 
 		final from = left + pad;
 		final across = wide - pad * 2;
-		final label = filmNames ? pad + font.height : 0;
+		final label = filmNames || filmNotes ? pad + font.height : 0;
 		final middle = top + (tall + label) * 0.5;
 
 		if (filmNames) {
 			paint.reface(font);
 			paint.text(nameOf(part), from, top + pad + font.ascent, FILM_INK, 0.7);
+		}
+
+		if (filmNotes && notes[part] >= 0) {
+			paint.reface(font);
+			paint.textRight(spelt(notes[part], session.notation), from + across, top + pad + font.ascent,
+				colour, 0.9);
 		}
 
 		if (showing == SPECTRUM) {

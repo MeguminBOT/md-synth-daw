@@ -86,6 +86,10 @@ final class Filming {
 	final style:Style;
 	final picture:Picture;
 	final words:Words;
+	final sounding:mdd.play.Sounding = new mdd.play.Sounding();
+	final ends:Int;
+
+	var heard:Int = 0;
 	final parts:Array<Int> = [];
 	final pixels:Bytes;
 	final render:Render;
@@ -140,6 +144,7 @@ final class Filming {
 		pixels = Bytes.alloc(wide * tall * 4);
 
 		final span = song.tempo.samplesAt(song.ends());
+		ends = span;
 
 		for (index in 0...Part.COUNT) if (song.carries(index)) parts.push(index);
 		if (parts.length == 0) for (index in 0...Part.COUNT) parts.push(index);
@@ -295,6 +300,7 @@ final class Filming {
 		}
 
 		poured(until > start ? until : start);
+		noted(until > start ? until : start);
 		drawn();
 
 		if (Video.frame(file, cpp.Pointer.arrayElem(pixels.getData(), 0).constRaw) != 0) {
@@ -340,6 +346,24 @@ final class Filming {
 			}
 
 			fed += took;
+		}
+	}
+
+	/**
+		Tells the scope which note each part holds at a place in the mix, read from the register
+		stream up to that moment, for a style that writes the notes in the lanes. Past the end of
+		the piece nothing is held, whatever the last writes left keyed.
+
+		@param until Where to read up to, counted in samples of the mix.
+	**/
+	function noted(until:Int):Void {
+		if (!style.notes) return;
+
+		final tick = Std.int((until - ahead) * (Tempo.TICKS / made.rate));
+		heard = sounding.takeUntil(stream, heard, tick);
+
+		for (part in 0...Part.COUNT) {
+			scope.sang(part, tick < ends && sounding.keyed[part] ? sounding.notes[part] : -1);
 		}
 	}
 

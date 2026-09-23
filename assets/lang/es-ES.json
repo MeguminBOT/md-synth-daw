@@ -262,6 +262,8 @@
   "film.names": "Nombres de canal",
   "film.namesTip": "Rotular cada carril con su canal",
   "film.noneSaved": "No hay estilos guardados",
+  "film.notes": "Notas",
+  "film.notesTip": "Escribir en cada carril la nota que toca su canal",
   "film.opacity": "Opacidad",
   "film.picture": "Imagen",
   "film.pictureAdd": "Añadir una imagen",

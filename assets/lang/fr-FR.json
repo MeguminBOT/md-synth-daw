@@ -262,6 +262,8 @@
   "film.names": "Noms des voies",
   "film.namesTip": "Étiqueter chaque voie avec son nom",
   "film.noneSaved": "Aucun style enregistré",
+  "film.notes": "Notes",
+  "film.notesTip": "Écrire dans chaque voie la note qu'elle joue",
   "film.opacity": "Opacité",
   "film.picture": "Image",
   "film.pictureAdd": "Ajouter une image",
