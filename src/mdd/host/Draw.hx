@@ -78,6 +78,14 @@ extern class Draw {
 		y:Single, width:Single, height:Single, alpha:Single):Void;
 
 	/**
+		Sets whether a texture's colour is already multiplied by its alpha, which is what drawing
+		into a target cleared to nothing leaves. Laid over anything, such a texture has to be
+		blended as one, or every edge drawn into it comes out darker than it was drawn.
+	**/
+	@:native("mdd_texture_premultiplied")
+	public static function premultiplied(texture:cpp.Star<Texture>, premultiplied:Int):Void;
+
+	/**
 		Draws one whole texture into a rectangle turned clockwise about its own centre.
 	**/
 	@:native("mdd_render_turned")

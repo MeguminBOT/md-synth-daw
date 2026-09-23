@@ -109,6 +109,13 @@ extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture,
 	calls++;
 }
 
+extern "C" void mdd_texture_premultiplied(SDL_Texture *texture, int premultiplied) {
+	if (texture == nullptr) return;
+
+	SDL_SetTextureBlendMode(texture, premultiplied != 0
+		? SDL_BLENDMODE_BLEND_PREMULTIPLIED : SDL_BLENDMODE_BLEND);
+}
+
 extern "C" void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
 		float width, float height, float degrees, float alpha) {
 	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return;
@@ -119,6 +126,12 @@ extern "C" void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, 
 	into.w = width;
 	into.h = height;
 
+	SDL_BlendMode mode = SDL_BLENDMODE_BLEND;
+	SDL_GetTextureBlendMode(texture, &mode);
+
+	const float shade = mode == SDL_BLENDMODE_BLEND_PREMULTIPLIED ? alpha : 1.0f;
+
+	SDL_SetTextureColorModFloat(texture, shade, shade, shade);
 	SDL_SetTextureAlphaModFloat(texture, alpha);
 	SDL_RenderTextureRotated(renderer, texture, nullptr, &into, degrees, nullptr, SDL_FLIP_NONE);
 	calls++;

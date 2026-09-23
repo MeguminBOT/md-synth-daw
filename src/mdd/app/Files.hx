@@ -971,6 +971,11 @@ final class Files {
 	public var mixing:Mixing = new Mixing();
 
 	/**
+		How the next video looks.
+	**/
+	public var style:mdd.view.film.Style = mdd.view.film.Style.plain();
+
+	/**
 		The bounce running now, where one is.
 	**/
 	public var mixdown:Null<Mixdown> = null;

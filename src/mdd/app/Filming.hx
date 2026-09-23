@@ -17,6 +17,8 @@ import mdd.song.Tempo;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
 import mdd.ui.Root;
+import mdd.view.film.Picture;
+import mdd.view.film.Style;
 import mdd.view.monitor.Scope;
 
 @:unreflective
@@ -80,6 +82,8 @@ final class Filming {
 	final paint:Paint;
 	final made:Mixdown;
 	final scope:Scope;
+	final style:Style;
+	final picture:Picture;
 	final parts:Array<Int> = [];
 	final pixels:Bytes;
 	final render:Render;
@@ -107,16 +111,20 @@ final class Filming {
 		@param session The session the scope reads.
 		@param song The piece.
 		@param mixing The export settings, the scope's view, speed and accuracy among them.
+		@param style How the picture looks. It is read once a frame, not copied.
 		@param made The finished mix.
 		@param path Where to write the video.
 	**/
 	public function new(root:Root, paint:Paint, sizes:Metrics, session:Session, song:Song,
-			mixing:Mixing, made:Mixdown, path:String) {
+			mixing:Mixing, style:Style, made:Mixdown, path:String) {
 		this.root = root;
 		this.paint = paint;
 		this.sizes = sizes;
+		this.style = style;
 		this.made = made;
 		this.path = path;
+
+		picture = new Picture(paint);
 
 		wide = mixing.wide();
 		tall = mixing.tall();
@@ -159,6 +167,8 @@ final class Filming {
 		scope.shows(mixing.scopeView);
 		scope.rated(made.rate);
 		scope.visible = false;
+
+		style.dresses(scope);
 
 		root.top.add(scope);
 
@@ -250,6 +260,7 @@ final class Filming {
 			target = null;
 		}
 
+		picture.shut();
 		root.top.remove(scope);
 
 		if (sys.FileSystem.exists(path)) bytes = sys.FileSystem.stat(path).size;
@@ -339,7 +350,7 @@ final class Filming {
 		Sdl.renderClear(renderer, 0, 0, 0, 1);
 
 		paint.reset();
-		scope.films(paint, parts);
+		picture.draws(style, scope, parts, wide, tall, target);
 		paint.flush();
 
 		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(pixels.getData(), 0).raw);

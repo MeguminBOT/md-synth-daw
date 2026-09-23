@@ -98,6 +98,15 @@ void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture, const flo
 	int vertexCount);
 
 /**
+ * Sets how a texture is laid over what is under it: as colour already multiplied by its own
+ * alpha, which is what drawing into a cleared target leaves, or as colour with alpha beside it.
+ *
+ * @param texture The texture.
+ * @param premultiplied Nonzero where its colour is already multiplied by its alpha.
+ */
+void mdd_texture_premultiplied(SDL_Texture *texture, int premultiplied);
+
+/**
  * Draws one whole texture into a rectangle turned about its own centre.
  *
  * @param renderer The renderer.
@@ -107,7 +116,8 @@ void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture, const flo
  * @param width How wide the rectangle is before it is turned.
  * @param height How tall.
  * @param degrees How far it is turned, clockwise.
- * @param alpha How opaque, 0 to 1.
+ * @param alpha How opaque, 0 to 1. A texture blended as premultiplied has its colour scaled by
+ *     it as well, because its colour already carries its alpha.
  */
 void mdd_render_turned(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,
 	float width, float height, float degrees, float alpha);

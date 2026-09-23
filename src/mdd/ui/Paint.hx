@@ -504,6 +504,58 @@ final class Paint {
 		shaded(x, y, width, height, top, bottom, y, height, alpha);
 	}
 
+	/**
+		Fills a rectangle with a gradient running at an angle, from one colour at the edge it
+		starts from to the other at the edge it runs to. It is exact at any angle, because each
+		corner takes the colour the gradient has there and a triangle blends a straight run of
+		colour exactly.
+
+		@param x Where it goes, across.
+		@param y Where it goes, down.
+		@param width How wide.
+		@param height How tall.
+		@param from The colour it starts at.
+		@param to The colour it ends at.
+		@param degrees Which way it runs, clockwise: nought runs left to right, ninety top to
+			bottom.
+		@param alpha How opaque, 0 to 1.
+	**/
+	public function slope(x:Float, y:Float, width:Float, height:Float, from:Colour, to:Colour,
+			degrees:Float, alpha:Float = 1):Void {
+		if (width <= 0 || height <= 0) return;
+
+		binds(font.texture);
+		room(FLOATS * 6);
+
+		final turn = degrees * Math.PI / 180;
+		final across = Math.cos(turn);
+		final down = Math.sin(turn);
+		final reach = (Math.abs(width * across) + Math.abs(height * down)) * 0.5;
+		final cx = x + width * 0.5;
+		final cy = y + height * 0.5;
+		final a = alpha * opacity;
+
+		cornered(x, y, cx, cy, across, down, reach, from, to, a);
+		cornered(x + width, y, cx, cy, across, down, reach, from, to, a);
+		cornered(x + width, y + height, cx, cy, across, down, reach, from, to, a);
+
+		cornered(x, y, cx, cy, across, down, reach, from, to, a);
+		cornered(x + width, y + height, cx, cy, across, down, reach, from, to, a);
+		cornered(x, y + height, cx, cy, across, down, reach, from, to, a);
+	}
+
+	/**
+		Adds one corner of a sloped gradient, in the colour the gradient has there.
+	**/
+	inline function cornered(px:Float, py:Float, cx:Float, cy:Float, across:Float, down:Float,
+			reach:Float, from:Colour, to:Colour, a:Float):Void {
+		final t = reach <= 0 ? 0 : 0.5 + ((px - cx) * across + (py - cy) * down) / (2 * reach);
+		final colour = from.mix(to, t < 0 ? 0 : (t > 1 ? 1 : t));
+
+		push(at(px), this.down(py), colour.red * CHANNEL, colour.green * CHANNEL,
+			colour.blue * CHANNEL, a, font.solidU, font.solidV);
+	}
+
 	inline function tone(top:Colour, bottom:Colour, from:Float, span:Float, y:Float):Colour {
 		if (span <= 0) return top;
 

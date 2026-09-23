@@ -867,8 +867,8 @@ class SpineCheck {
 		final path = where + "/scope.webm";
 		if (sys.FileSystem.exists(path)) sys.FileSystem.deleteFile(path);
 
-		final film = new mdd.app.Filming(tree, paint, tree.metrics, session, song, mixing, made,
-			path);
+		final film = new mdd.app.Filming(tree, paint, tree.metrics, session, song, mixing,
+			mdd.view.film.Style.plain(), made, path);
 
 		var rounds = 0;
 		while (film.step(1.0) && rounds < 100000) rounds++;
@@ -917,6 +917,231 @@ class SpineCheck {
 		track.clips.resize(0);
 		lane.notes.resize(0);
 		session.history.clear();
+	}
+
+	/**
+		A style lays the lanes where it says over the ground it says, turned and faded as it says,
+		with its pictures on top, and the plain style draws exactly what a video drew before
+		styles. A style survives being written and read back, and a damaged one reads as a style
+		with lanes and every field in range.
+
+		@param tree The shell.
+		@param session The piece.
+		@param paint What the window is drawn with.
+	**/
+	static function styled(tree:Root, session:Session, paint:Paint):Void {
+		final wide = 640;
+		final tall = 360;
+		final renderer = paint.canvas();
+		final target = Draw.createTarget(renderer, wide, tall);
+		final pixels = haxe.io.Bytes.alloc(wide * tall * 4);
+		final scope = new mdd.view.monitor.Scope(session);
+		final parts = [0, 1, 2, 3];
+		final picture = new mdd.view.film.Picture(paint);
+
+		scope.rated(48000);
+		scope.refines(2);
+		scope.paces(2);
+		scope.visible = false;
+		tree.top.add(scope);
+
+		for (step in 0...9000) {
+			for (part in 0...4) {
+				scope.feed(part, 0.6 * Math.sin(2 * Math.PI * (220 + part * 110) * step / 48000));
+			}
+		}
+
+		final drawn = function(style:Null<mdd.view.film.Style>):Void {
+			Draw.setTarget(renderer, target);
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			paint.reset();
+
+			if (style == null) {
+				scope.arrange(0, 0, wide, tall);
+				scope.films(paint, parts);
+			} else {
+				style.dresses(scope);
+				picture.draws(style, scope, parts, wide, tall, target);
+			}
+
+			paint.flush();
+			Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(pixels.getData(), 0).raw);
+			Draw.setTarget(renderer, null);
+		};
+
+		final pixel = function(px:Int, py:Int):Int {
+			final at = (py * wide + px) * 4;
+			return (pixels.get(at) << 16) | (pixels.get(at + 1) << 8) | pixels.get(at + 2);
+		};
+
+		drawn(null);
+		final before = pixels.sub(0, pixels.length);
+
+		drawn(mdd.view.film.Style.plain());
+
+		var apart = 0;
+		for (index in 0...pixels.length) if (pixels.get(index) != before.get(index)) apart++;
+
+		says("the plain style draws as before", apart == 0,
+			apart + " of " + pixels.length + " bytes differ from the lanes drawn on black without a"
+			+ " style");
+
+		final boxed = mdd.view.film.Style.plain();
+		final lanes = boxed.lanes();
+
+		boxed.groundColour = 0x204060;
+		lanes.wide = 0.5;
+		lanes.tall = 0.5;
+
+		drawn(boxed);
+
+		var outside = 0;
+		var inside = 0;
+
+		for (py in 0...tall) {
+			for (px in 0...wide) {
+				final within = px >= 160 && px < 480 && py >= 90 && py < 270;
+				final plain = pixel(px, py) == 0x204060;
+
+				if (!within && !plain) outside++;
+				if (within && !plain) inside++;
+			}
+		}
+
+		says("lanes sit in their box", outside == 0 && inside > 500,
+			"half the picture wide and tall in the middle: " + inside + " pixels drawn in the box,"
+			+ " " + outside + " outside it off the ground's #204060");
+
+		final sloped = mdd.view.film.Style.plain();
+
+		sloped.ground = mdd.view.film.Style.GRADIENT;
+		sloped.groundColour = 0x000000;
+		sloped.groundTo = 0xFFFFFF;
+		sloped.groundTurn = 0;
+		sloped.lanes().wide = 0.2;
+		sloped.lanes().tall = 0.2;
+
+		drawn(sloped);
+
+		final left = pixel(0, 20) & 0xFF;
+		final middle = pixel(Std.int(wide / 2), 20) & 0xFF;
+		final right = pixel(wide - 1, 20) & 0xFF;
+
+		says("and a gradient runs across it", left < 4 && right > 251 && middle > 118 && middle < 138,
+			"black to white left to right reads " + left + ", " + middle + " and " + right
+			+ " at the left edge, the middle and the right edge");
+
+		final upright = mdd.view.film.Style.plain();
+
+		upright.lanes().wide = 0.3;
+		upright.lanes().tall = 0.8;
+
+		drawn(upright);
+		final standing = extents(pixels, wide, tall);
+
+		upright.lanes().turn = 90;
+		drawn(upright);
+
+		final lying = extents(pixels, wide, tall);
+		final bright = brightest(pixels);
+
+		upright.lanes().alpha = 0.5;
+		drawn(upright);
+
+		final dim = brightest(pixels);
+
+		says("lanes turn about their centre", standing[1] > standing[0] && lying[0] > lying[1]
+			&& Math.abs(lying[0] - standing[1]) < 24 && Math.abs(lying[1] - standing[0]) < 24,
+			"a box 192 wide and 288 tall draws " + standing[0] + " by " + standing[1]
+			+ " upright and " + lying[0] + " by " + lying[1] + " turned a quarter");
+
+		says("and fade as a whole", dim > bright * 0.4 && dim < bright * 0.6,
+			"turned lanes at half opacity peak at " + dim + " where they peaked at " + bright);
+
+		final pictured = mdd.view.film.Style.plain();
+		final icon = new mdd.view.film.Layer(mdd.view.film.Layer.IMAGE);
+
+		pictured.lanes().wide = 0.2;
+		pictured.lanes().tall = 0.2;
+
+		icon.path = Gate.root + "/assets/icon/mdd-256.png";
+		icon.x = 0.85;
+		icon.y = 0.25;
+		icon.wide = 0.2;
+		icon.tall = 0.2 * wide / tall;
+		pictured.layers.push(icon);
+
+		drawn(pictured);
+
+		final shown = pixel(Std.int(wide * 0.85), Std.int(tall * 0.25));
+		final aspect = picture.aspect(icon.path);
+
+		says("a picture sits where it is put", shown != 0 && aspect == 1,
+			"the 256 pixel icon drawn at the upper right reads #" + StringTools.hex(shown, 6)
+			+ " at its centre, and it reads square");
+
+		final written = pictured.spelt();
+		final again = mdd.view.film.Style.read(written);
+
+		final damaged = mdd.view.film.Style.read("{\"layers\": [{\"kind\": 1, \"wide\": 1e9,"
+			+ " \"alpha\": -3}], \"lanes\": {\"weight\": \"thick\"");
+
+		final kept = damaged.layers.length == 2 && damaged.layers[0].kind == mdd.view.film.Layer.LANES
+			&& damaged.layers[1].wide == mdd.view.film.Layer.MOST && damaged.layers[1].alpha == 0
+			&& damaged.weight == 2;
+
+		says("a style reads back as written", again.spelt() == written && kept,
+			written.length + " characters read back to the same document, and a truncated one"
+			+ " asking for a picture a billion wide at an opacity of -3 reads as lanes under a"
+			+ " picture " + damaged.layers[1].wide + " wide at " + damaged.layers[1].alpha);
+
+		picture.shut();
+		tree.top.remove(scope);
+		Draw.destroyTexture(target);
+	}
+
+	/**
+		@param pixels What was read back, RGBA.
+		@param wide How wide.
+		@param tall How tall.
+		@return How wide and how tall the drawn part is, ignoring black.
+	**/
+	static function extents(pixels:haxe.io.Bytes, wide:Int, tall:Int):Array<Int> {
+		var left = wide;
+		var right = -1;
+		var top = tall;
+		var bottom = -1;
+
+		for (py in 0...tall) {
+			for (px in 0...wide) {
+				final at = (py * wide + px) * 4;
+				if (pixels.get(at) + pixels.get(at + 1) + pixels.get(at + 2) < 24) continue;
+
+				if (px < left) left = px;
+				if (px > right) right = px;
+				if (py < top) top = py;
+				if (py > bottom) bottom = py;
+			}
+		}
+
+		return right < 0 ? [0, 0] : [right - left + 1, bottom - top + 1];
+	}
+
+	/**
+		@param pixels What was read back, RGBA.
+		@return The brightest colour channel anywhere in it.
+	**/
+	static function brightest(pixels:haxe.io.Bytes):Int {
+		var most = 0;
+
+		for (index in 0...Std.int(pixels.length / 4)) {
+			for (channel in 0...3) {
+				final held = pixels.get(index * 4 + channel);
+				if (held > most) most = held;
+			}
+		}
+
+		return most;
 	}
 
 	/**
@@ -5249,6 +5474,7 @@ class SpineCheck {
 		swiped(tree, session, centre);
 		chorded(tree, session, centre);
 		filmed(tree, session, centre, paint);
+		styled(tree, session, paint);
 		shaped(tree, session, centre.roll);
 		racked(tree, session, rack);
 		budgeted(tree, session, budget, centre.roll);
