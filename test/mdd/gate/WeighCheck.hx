@@ -101,7 +101,7 @@ class WeighCheck {
 
 		weighed("reserving the stream", function():String {
 			stream = Stream.reserved(span);
-			return room + " writes of room, " + say(room * 4 * 4 / 1048576)
+			return room + " writes of room, " + say(room * 2 * 4 / 1048576)
 				+ " MB of vectors, growing from there";
 		});
 

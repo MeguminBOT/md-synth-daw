@@ -175,18 +175,22 @@ final class Stream {
 		Whether a full buffer is made larger rather than dropping the write.
 
 		**It is off, and it stays off for anything the render thread reads.** Growing
-		replaces the four vectors, and a reader holding the old ones while the writer swaps
+		replaces both vectors, and a reader holding the old ones while the writer swaps
 		them is a race nothing would report. An offline bounce has one thread writing and
 		nothing reading until it has finished, which is why that is the one place this is
-		turned on: the alternative there is reserving the worst case in one block, half a
-		gigabyte for a quarter of an hour, on a machine that may not have it.
+		turned on: the alternative there is reserving the worst case in one block, a
+		quarter of a gigabyte for a quarter of an hour, on a machine that may not have it.
 	**/
 	public var grows:Bool = false;
 
 	var ticks:Vector<Int>;
-	var kinds:Vector<Int>;
-	var ports:Vector<Int>;
-	var values:Vector<Int>;
+
+	/**
+		Each write's part, port and byte in one number, packed as `Queue.packed` packs them,
+		so a write costs eight bytes here rather than sixteen.
+	**/
+	var packed:Vector<Int>;
+
 	var noised:Int = -1;
 	final settled:Vector<Int> = new Vector<Int>(512);
 
@@ -201,7 +205,7 @@ final class Stream {
 	/**
 		How many register writes a second to reserve at the start. It is a guess at a busy
 		piece rather than the worst case, because a stream that grows costs a copy where it
-		is wrong and half a gigabyte where the worst case is reserved and never used.
+		is wrong and a quarter of a gigabyte where the worst case is reserved and never used.
 	**/
 	public static inline final PER_SECOND = 2048;
 
@@ -244,9 +248,7 @@ final class Stream {
 		this.capacity = capacity < 16 ? 16 : capacity;
 
 		ticks = new Vector<Int>(this.capacity);
-		kinds = new Vector<Int>(this.capacity);
-		ports = new Vector<Int>(this.capacity);
-		values = new Vector<Int>(this.capacity);
+		packed = new Vector<Int>(this.capacity);
 
 		forget();
 	}
@@ -267,9 +269,7 @@ final class Stream {
 		final want = capacity > CEILING >> 1 ? CEILING : capacity * 2;
 
 		ticks = wider(ticks, want, count);
-		kinds = wider(kinds, want, count);
-		ports = wider(ports, want, count);
-		values = wider(values, want, count);
+		packed = wider(packed, want, count);
 
 		capacity = want;
 		return true;
@@ -321,7 +321,7 @@ final class Stream {
 		@return Which part it is for, `YM` or `PSG`.
 	**/
 	public inline function kindAt(index:Int):Int {
-		return kinds[index];
+		return Queue.kindOf(packed[index]);
 	}
 
 	/**
@@ -329,7 +329,7 @@ final class Stream {
 		@return The bus port it goes to.
 	**/
 	public inline function portAt(index:Int):Int {
-		return ports[index];
+		return Queue.portOf(packed[index]);
 	}
 
 	/**
@@ -337,7 +337,7 @@ final class Stream {
 		@return The byte it carries.
 	**/
 	public inline function valueAt(index:Int):Int {
-		return values[index];
+		return Queue.valueOf(packed[index]);
 	}
 
 	/**
@@ -356,9 +356,7 @@ final class Stream {
 		}
 
 		ticks[count] = tick;
-		kinds[count] = kind;
-		ports[count] = port & 3;
-		values[count] = value & 0xFF;
+		packed[count] = Queue.packed(kind, port & 3, value);
 		count++;
 	}
 
