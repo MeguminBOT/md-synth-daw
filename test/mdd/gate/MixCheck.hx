@@ -40,6 +40,7 @@ class MixCheck {
 		furnished();
 		threaded();
 		settled();
+		fadedOut();
 		encoded();
 		offloaded();
 		imported();
@@ -1137,6 +1138,79 @@ class MixCheck {
 		var most = 0.0;
 
 		for (index in 0...made.frames * made.channels) {
+			final value = made.samples[index];
+			final much = value < 0 ? -value : value;
+
+			if (much > most) most = much;
+		}
+
+		return most;
+	}
+
+	/**
+		The fade ends where the piece does and the silence after it comes after the fade, so with a
+		fade the silence is silent, and without one the last release rings on into it. Both are the
+		same piece rendered unnormalised, so the frames before the fade can be compared directly.
+	**/
+	static function fadedOut():Void {
+		final song = bouncing(2);
+		final rate = 44100;
+		final sounding = Std.int(song.tempo.samplesAt(song.ends()) * (rate / mdd.song.Tempo.TICKS));
+		final over = Std.int(rate * 0.5);
+		final pad = rate;
+
+		final faded = fadedBounce(song, 0.5, 1);
+		final whole = fadedBounce(song, 0, 1);
+
+		final last = Std.int(rate * 0.005);
+		final before = Std.int(rate * 0.05);
+
+		final endFaded = peakOver(faded, sounding - last, sounding);
+		final endWhole = peakOver(whole, sounding - last, sounding);
+		final leadFaded = peakOver(faded, sounding - over - before, sounding - over);
+		final leadWhole = peakOver(whole, sounding - over - before, sounding - over);
+
+		says("a fade ends where the piece does", faded.frames == sounding + pad
+			&& endWhole > 0 && endFaded < endWhole * 0.02 && leadFaded == leadWhole,
+			"the last 5 ms of the piece peak at " + round(endFaded, 5) + " faded against "
+			+ round(endWhole, 5) + ", and the 50 ms before the fade starts at " + round(leadFaded, 5)
+			+ " against " + round(leadWhole, 5));
+
+		final padFaded = peakOver(faded, sounding, faded.frames);
+		final padWhole = peakOver(whole, sounding, whole.frames);
+
+		says("and the silence after is silent", padFaded == 0 && padWhole > 0,
+			"the second after the piece peaks at " + padFaded + " with a fade, where without one the"
+			+ " last release rings on to " + round(padWhole, 5));
+	}
+
+	/**
+		@param song The piece.
+		@param fade Seconds of fade.
+		@param pad Seconds of silence after.
+		@return The piece bounced at 44100 in stereo, not normalised.
+	**/
+	static function fadedBounce(song:Song, fade:Float, pad:Float):Mixdown {
+		final mixing = new Mixing();
+
+		mixing.rate = 44100;
+		mixing.normalise = false;
+		mixing.fade = fade;
+		mixing.padEnd = pad;
+
+		return Mixdown.of(song, mixing);
+	}
+
+	/**
+		@param made A bounce.
+		@param from The first frame.
+		@param until One past the last frame.
+		@return The largest magnitude on either side over those frames.
+	**/
+	static function peakOver(made:Mixdown, from:Int, until:Int):Float {
+		var most = 0.0;
+
+		for (index in from * made.channels...until * made.channels) {
 			final value = made.samples[index];
 			final much = value < 0 ? -value : value;
 

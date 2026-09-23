@@ -162,7 +162,7 @@
   "exportTip.stems": "Un archivo por pista o por canal junto a la mezcla, en una carpeta con su nombre",
   "exportTip.stuck": "Suelta lo que nada detiene: una nota cuyo patch no puede soltar y un cuadrado que sigue sonando al final",
   "exportTip.tag": "Se escribe en el archivo como etiqueta. Cambiarlo aquí cambia también la descripción del proyecto",
-  "exportTip.tail": "Segundos de silencio tras la pieza, para que se oiga la última caída",
+  "exportTip.tail": "Segundos de silencio tras la pieza y su fundido. Sin fundido, la última caída suena en ellos",
   "exportTip.tune": "Pantalla se ajusta al fondo liso y las líneas finas del osciloscopio, Predeterminado es el ajuste normal de VP9",
   "exportTip.videoBitrate": "En kbit/s, o en megabits con una m tras el número. Auto toma la cifra de YouTube",
   "exportTip.videoSize": "El tamaño de imagen. Una imagen mayor dibuja los carriles más grandes en vez de dejar espacio",

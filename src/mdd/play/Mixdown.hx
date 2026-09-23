@@ -218,6 +218,10 @@ final class Mixdown {
 		Renders the whole song: sequence it, render it, pad it, fade it and normalise
 		it. This is the worker thread.
 
+		The fade ends where the piece does and the silence after it comes after the fade, so with
+		a fade nothing sounds past the piece. Without one, the last release rings on into that
+		silence.
+
 		@param song The song to render.
 		@param mixing What the export is set to.
 	**/
@@ -269,8 +273,11 @@ final class Mixdown {
 		writes = stream.count;
 		lost = sequencer.lost + stream.dropped;
 
-		poured(stream, ahead, sounding + behind);
-		faded(mixing, ahead);
+		final over = Math.round(mixing.fade * rate);
+		final fading = over < 1 ? 0 : (over > sounding ? sounding : over);
+
+		poured(stream, ahead, fading > 0 ? sounding : sounding + behind);
+		faded(ahead + sounding, fading);
 		levelled(mixing);
 
 		working = null;
@@ -285,7 +292,8 @@ final class Mixdown {
 
 		@param stream The register writes for the span.
 		@param ahead How many samples of silence come before the piece.
-		@param many How many samples this span covers.
+		@param many How many samples this span covers. Nothing is written past it, so a span that
+			stops short of the buffer's end leaves the rest silent.
 	**/
 	function poured(stream:Stream, ahead:Int, many:Int):Void {
 		working = new Render(rate, Render.BLOCK);
@@ -306,6 +314,8 @@ final class Mixdown {
 		var done = 0;
 		var told = 0;
 
+		final ends = ahead + many < frames ? ahead + many : frames;
+
 		while (done < many) {
 			if (stopped()) break;
 
@@ -318,7 +328,7 @@ final class Mixdown {
 
 			for (index in 0...took) {
 				final at = ahead + done + index;
-				if (at >= frames) break;
+				if (at >= ends) break;
 
 				final left = render.block[index * 2];
 				final right = render.block[index * 2 + 1];
@@ -344,18 +354,15 @@ final class Mixdown {
 	}
 
 	/**
-		Applies the fade at the end of the piece.
+		Fades the end of the piece out, ending where the piece does.
 
-		@param mixing What the export is set to.
-		@param ahead How many samples of silence come before the piece.
+		@param ends The first frame past the piece.
+		@param over How many frames the fade takes, or nought for none.
 	**/
-	function faded(mixing:Mixing, ahead:Int):Void {
-		if (mixing.fade <= 0) return;
+	function faded(ends:Int, over:Int):Void {
+		if (over < 1 || over > ends) return;
 
-		final over = Math.round(mixing.fade * rate);
-		if (over < 1 || over > frames) return;
-
-		final from = frames - over;
+		final from = ends - over;
 
 		var index = 0;
 

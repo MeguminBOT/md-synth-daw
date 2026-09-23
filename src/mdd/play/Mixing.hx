@@ -234,12 +234,13 @@ final class Mixing {
 	public var padStart:Float = 0;
 
 	/**
-		Seconds of silence after it.
+		Seconds of silence after it, which come after the fade. Without a fade the last release
+		rings on into them.
 	**/
 	public var padEnd:Float = 1;
 
 	/**
-		Seconds of fade at the end, inside the piece.
+		Seconds of fade at the end, inside the piece, ending where the piece does.
 	**/
 	public var fade:Float = 0;
 

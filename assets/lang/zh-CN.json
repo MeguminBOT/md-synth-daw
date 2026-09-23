@@ -162,7 +162,7 @@
   "exportTip.stems": "在混音旁按轨道或按通道各写一个文件，放在同名文件夹中",
   "exportTip.stuck": "放开无法自行停止的声音：无法释音的音色上的音符，以及结尾仍在发声的方波",
   "exportTip.tag": "作为标签写入文件，在此修改也会修改项目的描述",
-  "exportTip.tail": "乐曲结束后的静音秒数，让最后的释音能被听到",
+  "exportTip.tail": "乐曲与淡出之后的静音秒数。没有淡出时，最后的释音会延续到其中",
   "exportTip.tune": "屏幕适合示波器的纯色背景和细线，默认为 VP9 的常规调校",
   "exportTip.videoBitrate": "以 kbit/s 为单位，或在数字后加 m 表示兆比特。自动采用 YouTube 的推荐值",
   "exportTip.videoSize": "画面尺寸。画面越大，通道画得越大，而不是留出空白",

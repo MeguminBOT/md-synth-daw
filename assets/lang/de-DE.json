@@ -162,7 +162,7 @@
   "exportTip.stems": "Eine Datei pro Spur oder pro Kanal neben dem Mix, in einem gleichnamigen Ordner",
   "exportTip.stuck": "Beendet, was nichts stoppt: eine Note, deren Patch nicht ausklingen kann, und einen Rechteckkanal, der am Ende weiterklingt",
   "exportTip.tag": "Wird als Tag in die Datei geschrieben. Eine Änderung hier ändert auch die Beschreibung des Projekts",
-  "exportTip.tail": "Sekunden Stille nach dem Stück, damit das letzte Ausklingen hörbar ist",
+  "exportTip.tail": "Sekunden Stille nach dem Stück und dem Ausblenden. Ohne Ausblenden klingt die letzte Note darin aus",
   "exportTip.tune": "Bildschirm passt zum flachen Hintergrund und den dünnen Linien des Oszilloskops, Standard ist die übliche Abstimmung von VP9",
   "exportTip.videoBitrate": "In kbit/s, oder in Megabit mit einem m hinter der Zahl. Auto nimmt den Wert von YouTube",
   "exportTip.videoSize": "Die Bildgröße. Ein größeres Bild zeichnet die Spuren größer, statt Platz hinzuzufügen",

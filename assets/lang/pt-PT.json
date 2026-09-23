@@ -162,7 +162,7 @@
   "exportTip.stems": "Um ficheiro por faixa ou por canal ao lado da mistura, numa pasta com o nome dela",
   "exportTip.stuck": "Solta o que nada para: uma nota cujo patch não consegue soltar e uma quadrada que continua a soar no fim",
   "exportTip.tag": "Gravado no ficheiro como etiqueta. Mudar aqui muda também a descrição do projeto",
-  "exportTip.tail": "Segundos de silêncio depois da peça, para ouvir o último release",
+  "exportTip.tail": "Segundos de silêncio depois da peça e do fade out. Sem fade, o último release soa neles",
   "exportTip.tune": "Ecrã adequa-se ao fundo liso e às linhas finas do osciloscópio, Predefinido é o ajuste normal do VP9",
   "exportTip.videoBitrate": "Em kbit/s, ou em megabits com um m depois do número. Auto usa o valor do YouTube",
   "exportTip.videoSize": "O tamanho da imagem. Uma imagem maior desenha as faixas maiores em vez de sobrar espaço",

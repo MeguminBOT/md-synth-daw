@@ -162,7 +162,7 @@
   "exportTip.stems": "A file per track or per channel beside the mix, in a folder named after it",
   "exportTip.stuck": "Lets go of what nothing stops: a note whose patch cannot release, and a square left sounding at the end",
   "exportTip.tag": "Written into the file as a tag. Changing it here changes the project's description too",
-  "exportTip.tail": "Seconds of silence after the piece, so the last release is heard",
+  "exportTip.tail": "Seconds of silence after the piece and its fade. Without a fade, the last release rings on into it",
   "exportTip.tune": "Screen suits the scope's flat ground and thin lines, Default is VP9's ordinary tuning",
   "exportTip.videoBitrate": "In kbit/s, or in megabits with an m after the number. Auto takes YouTube's figure",
   "exportTip.videoSize": "The picture size. A bigger picture draws the lanes bigger rather than adding room",

@@ -162,7 +162,7 @@
   "exportTip.stems": "En fil per spår eller per kanal bredvid mixen, i en mapp med samma namn",
   "exportTip.stuck": "Släpper det som inget stoppar: en not vars patch inte kan släppa, och en fyrkant som ljuder kvar vid slutet",
   "exportTip.tag": "Skrivs in i filen som en tagg. Ändras den här ändras också projektets beskrivning",
-  "exportTip.tail": "Sekunder tystnad efter stycket, så att den sista releasen hörs",
+  "exportTip.tail": "Sekunder tystnad efter stycket och uttoningen. Utan uttoning klingar den sista releasen ut i den",
   "exportTip.tune": "Skärm passar oscilloskopets jämna bakgrund och tunna linjer, Standard är VP9:s vanliga inställning",
   "exportTip.videoBitrate": "I kbit/s, eller i megabit med ett m efter talet. Auto tar YouTubes värde",
   "exportTip.videoSize": "Bildstorleken. En större bild ritar banorna större i stället för att lägga till utrymme",

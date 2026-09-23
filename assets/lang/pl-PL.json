@@ -162,7 +162,7 @@
   "exportTip.stems": "Plik na ścieżkę lub na kanał obok miksu, w folderze o jego nazwie",
   "exportTip.stuck": "Puszcza to, czego nic nie zatrzymuje: nutę, której patch nie może wybrzmieć, i kwadrat grający na końcu",
   "exportTip.tag": "Zapisywane w pliku jako tag. Zmiana tutaj zmienia też opis projektu",
-  "exportTip.tail": "Sekundy ciszy po utworze, by było słychać ostatnie wybrzmienie",
+  "exportTip.tail": "Sekundy ciszy po utworze i wyciszeniu. Bez wyciszenia wybrzmiewa w nich ostatnia nuta",
   "exportTip.tune": "Ekran pasuje do płaskiego tła i cienkich linii oscyloskopu, Domyślne to zwykłe strojenie VP9",
   "exportTip.videoBitrate": "W kbit/s albo w megabitach z m po liczbie. Auto bierze wartość YouTube",
   "exportTip.videoSize": "Rozmiar obrazu. Większy obraz rysuje większe ścieżki zamiast dodawać miejsca",

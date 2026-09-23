@@ -162,7 +162,7 @@
   "exportTip.stems": "Un fichier par piste ou par canal à côté du mix, dans un dossier à son nom",
   "exportTip.stuck": "Relâche ce que rien n'arrête : une note dont le patch ne peut pas relâcher, et un carré qui sonne encore à la fin",
   "exportTip.tag": "Écrit dans le fichier comme étiquette. Le changer ici change aussi la description du projet",
-  "exportTip.tail": "Secondes de silence après le morceau, pour entendre le dernier relâchement",
+  "exportTip.tail": "Secondes de silence après le morceau et son fondu. Sans fondu, le dernier relâchement s'y prolonge",
   "exportTip.tune": "Écran convient au fond uni et aux traits fins de l'oscilloscope, Par défaut est le réglage ordinaire de VP9",
   "exportTip.videoBitrate": "En kbit/s, ou en mégabits avec un m après le nombre. Auto prend la valeur de YouTube",
   "exportTip.videoSize": "La taille d'image. Une image plus grande dessine les voies plus grandes au lieu d'ajouter de la place",

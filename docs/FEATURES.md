@@ -526,7 +526,9 @@ WAV, FLAC, Ogg Vorbis and Opus. Set per export:
 - sample rate, with a warning when it is below 44100
 - bit depth, 16, 24 or 32
 - mono or stereo
-- silence before and after, and a fade, all typed in directly
+- silence before and after, and a fade out, all typed in directly. The fade ends where the piece
+  does and the silence after comes after it, so a faded piece ends in real silence; without a
+  fade, the last release rings on into that silence
 - normalise to a ceiling, and dither
 - encoder quality, and for Opus the application mode, frame size and bitrate mode
 - which output stage the render goes through
