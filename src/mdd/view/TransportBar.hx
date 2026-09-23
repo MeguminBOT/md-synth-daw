@@ -140,6 +140,17 @@ final class TransportBar extends Widget {
 		snap.label = "";
 		offset.label = "SHIFT";
 
+		tempo.tipKey = Locale.TRANSPORT_TEMPO;
+		resolution.tipKey = Locale.TRANSPORT_TICKS;
+		resolution.detailKey = Locale.TRANSPORT_TICKS_DETAIL;
+		video.tipKey = Locale.TRANSPORT_FRAMES;
+		video.detailKey = Locale.TRANSPORT_FRAMES_DETAIL;
+		lfo.tipKey = Locale.TRANSPORT_LFO;
+		lfo.detailKey = Locale.TRANSPORT_LFO_DETAIL;
+		snap.tipKey = Locale.TRANSPORT_GRID;
+		offset.tipKey = Locale.TRANSPORT_SHIFT;
+		offset.detailKey = Locale.TRANSPORT_SHIFT_DETAIL;
+
 		for (field in held) add(field);
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
@@ -291,25 +302,43 @@ final class TransportBar extends Widget {
 	}
 
 	/**
-		Puts a line in the status bar about whichever field is hovered.
+		Says in the tooltip what is under the pointer: a button, one half of the pattern and song
+		switch, the pattern picker or the volume.
 
-		@param which Which field.
+		@param which Which button, or -1 for none.
+		@param mode Which half of the switch, or -1 for neither.
+		@param picker Whether the pointer is on the pattern picker.
+		@param volume Whether the pointer is on the volume.
 	**/
-	function described(which:Int):Void {
-		if (which < 0) {
-			tip = "";
-			shortcut = "";
-			detail = "";
+	function described(which:Int, mode:Int, picker:Bool, volume:Bool):Void {
+		shortcut = "";
+		detail = "";
+
+		if (which >= 0) {
+			tip = translate(which == PLAY && session.transport.playing
+				? Locale.TRANSPORT_PAUSE : TIPS[which]);
+			shortcut = SHORTCUTS[which];
 			return;
 		}
 
-		final root = root();
-		final key = which == PLAY && session.transport.playing
-			? Locale.TRANSPORT_PAUSE : TIPS[which];
+		if (mode >= 0) {
+			tip = translate(mode == 0 ? Locale.TRANSPORT_ALONE : Locale.TRANSPORT_WHOLE);
+			return;
+		}
 
-		tip = root == null ? "" : translate(key);
-		shortcut = SHORTCUTS[which];
-		detail = "";
+		if (picker) {
+			tip = translate(Locale.TRANSPORT_CHOOSE);
+			detail = translate(Locale.TRANSPORT_CHOOSE_DETAIL);
+			return;
+		}
+
+		if (volume) {
+			tip = translate(Locale.TRANSPORT_VOLUME);
+			detail = translate(Locale.TRANSPORT_VOLUME_DETAIL);
+			return;
+		}
+
+		tip = "";
 	}
 
 	function size():Float {
@@ -510,7 +539,7 @@ final class TransportBar extends Widget {
 				final picker = onPicker(event.x, event.y);
 				final volume = onVolume(event.x, event.y);
 
-				described(which);
+				described(which, mode, picker, volume);
 
 				if (which == hoverAt && mode == overMode && picker == overPicker
 					&& volume == overVolume) return false;
