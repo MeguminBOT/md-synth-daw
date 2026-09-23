@@ -444,7 +444,7 @@ final class Library {
 		@param one A preset.
 		@param two Another.
 		@return Whether the two make the same sound: the same kind of part, the same patch, the
-			same envelope. What either is called is no part of it, because a reader's folder fills
+			same envelope, the same lanes. What either is called is no part of it, because a reader's folder fills
 			with one patch under several names and the browser should offer it once. A recording
 			is compared by `carriesSample` rather than here.
 	**/
@@ -486,6 +486,12 @@ final class Library {
 			for (step in 0...envelope.steps.length) {
 				if (envelope.steps[step] != shape.steps[step]) return false;
 			}
+		}
+
+		if (one.lanes.length != two.lanes.length) return false;
+
+		for (index in 0...one.lanes.length) {
+			if (!one.lanes[index].same(two.lanes[index])) return false;
 		}
 
 		return true;

@@ -45,6 +45,7 @@ class PresetCheck {
 		shipped();
 		identified();
 		released();
+		laned();
 		recorded(Gate.root);
 		carriedOver(Gate.root);
 		loaded();
@@ -396,12 +397,6 @@ class PresetCheck {
 	}
 
 	/**
-		A preset is what it sounds like rather than what it is called. Two presets differing in their
-		sound differ in identity, two sounding the same are the same preset whatever each is called,
-		tagged, drawn as or loaded on, and a channel edited in a piece is no longer the preset it
-		started as, which is what lets a project carry its own and a reader keep theirs.
-	**/
-	/**
 		A project holding a release rate past the four bits the chip has opens holding the most they
 		carry, which is what an editor that let one through left behind.
 	**/
@@ -419,6 +414,66 @@ class PresetCheck {
 			+ ", the most four bits carry");
 	}
 
+	/**
+		A preset carries what it moves on every note through a preset file and a project, a
+		library tells it from the same patch standing still, and moving something makes it another
+		preset while one that moves nothing keeps the identity it always had.
+	**/
+	static function laned():Void {
+		final still = patched("Kick");
+		final kick = patched("Kick");
+		final drop = new mdd.song.Automation(mdd.song.Automation.PITCH, 0);
+		final wobble = new mdd.song.Automation(mdd.song.Automation.LEVEL, 1);
+
+		final top = drop.add(new mdd.song.Point(0, 2400));
+		top.shape = mdd.song.Automation.CURVE;
+		top.tension = -60;
+		drop.add(new mdd.song.Point(60, 0));
+
+		wobble.synced = true;
+		wobble.add(new mdd.song.Point(0, 0)).shape = mdd.song.Automation.WAVE;
+		wobble.add(new mdd.song.Point(Std.int(mdd.song.Automation.BEAT / 2), -24));
+		wobble.add(new mdd.song.Point(mdd.song.Automation.BEAT, 0));
+		wobble.loop = 0;
+
+		kick.lanes.push(drop);
+		kick.lanes.push(wobble);
+
+		final plain = still.identifies(null);
+		final moving = kick.identifies(null);
+
+		final file = mdd.format.Preset.read(mdd.format.Preset.write("", [kick], [null]));
+		final filed = file == null || file.presets.length != 1 ? null : file.presets[0];
+		final keptFile = filed != null && filed.lanes.length == 2 && filed.lanes[0].same(drop)
+			&& filed.lanes[1].same(wobble) && filed.id == moving;
+
+		final json = new mdd.format.Json();
+		Project.wroteInstrument(json, kick);
+
+		final read = Project.readInstrument(mdd.format.Json.parse(json.toString()));
+		final keptProject = read.lanes.length == 2 && read.lanes[0].same(drop) && read.lanes[1].same(wobble);
+
+		says("a preset's lanes travel with it", keptFile && keptProject,
+			"a kick dropping two octaves in 60 ms and a level waving every beat read back "
+			+ (keptFile ? "whole" : "changed") + " from a preset file and "
+			+ (keptProject ? "whole" : "changed") + " from a project");
+
+		final copied = kick.copy();
+		copied.lanes[0].points[1].at = 80;
+
+		says("and moving something makes another preset", moving != plain
+			&& !Library.sounds(still, kick) && Library.sounds(kick, kick.copy())
+			&& !Library.sounds(kick, copied) && kick.lanes[0].points[1].at == 60,
+			"the kick answers " + moving.substr(0, 8) + " against " + plain.substr(0, 8)
+			+ " standing still, and a copy with a longer drop is another sound");
+	}
+
+	/**
+		A preset is what it sounds like rather than what it is called. Two presets differing in their
+		sound differ in identity, two sounding the same are the same preset whatever each is called,
+		tagged, drawn as or loaded on, and a channel edited in a piece is no longer the preset it
+		started as, which is what lets a project carry its own and a reader keep theirs.
+	**/
 	static function identified():Void {
 		final one = patched("Bass");
 		final two = patched("Bass");

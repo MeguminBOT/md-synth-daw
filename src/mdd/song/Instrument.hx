@@ -43,6 +43,14 @@ final class Instrument {
 	public final tags:Array<String> = [];
 
 	/**
+		What the preset moves on every note it plays, one lane a parameter, each starting again at
+		the key on: the envelopes and LFOs of a synthesizer, written as automation. A lane measures
+		its points in milliseconds or in beats and holds or loops once past its last, as its
+		`synced` and `loop` say. Empty for a preset that moves nothing.
+	**/
+	public final lanes:Array<mdd.song.Automation> = [];
+
+	/**
 		What this preset is: thirty two hexadecimal characters over what it sounds like, which
 		`identifies` works out. Two presets that sound different differ here, and two that sound the
 		same are the same preset whatever each is called, however each is tagged, whatever folder
@@ -122,6 +130,19 @@ final class Instrument {
 
 		tags.resize(0);
 		for (tag in other.tags) tags.push(tag);
+
+		lanes.resize(0);
+		for (line in other.lanes) lanes.push(line.copy());
+	}
+
+	/**
+		@param target Which parameter.
+		@param slot Which operator, for a per operator one.
+		@return The lane moving it, or null where the preset does not move it.
+	**/
+	public function lane(target:Int, slot:Int):Null<mdd.song.Automation> {
+		for (line in lanes) if (line.target == target && line.slot == slot) return line;
+		return null;
 	}
 
 	/**
@@ -235,6 +256,7 @@ final class Instrument {
 		out.sample = sample;
 
 		for (tag in tags) out.tags.push(tag);
+		for (line in lanes) out.lanes.push(line.copy());
 		return out;
 	}
 }

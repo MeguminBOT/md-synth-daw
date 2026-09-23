@@ -386,6 +386,39 @@ class Project {
 			out.close();
 		}
 
+		if (instrument.lanes.length > 0) {
+			out.key("lanes");
+			out.list();
+
+			for (line in instrument.lanes) {
+				out.open();
+				out.key("target");
+				out.whole(line.target);
+				out.key("slot");
+				out.whole(line.slot);
+
+				if (line.synced) {
+					out.key("synced");
+					out.flag(true);
+				}
+
+				if (line.loop >= 0) {
+					out.key("loop");
+					out.whole(line.loop);
+				}
+
+				out.key("points");
+				out.list();
+
+				for (point in line.points) wrotePoint(out, point, null);
+
+				out.ends();
+				out.close();
+			}
+
+			out.ends();
+		}
+
 		if (instrument.envelope != null) {
 			final envelope = instrument.envelope;
 
@@ -705,6 +738,24 @@ class Project {
 			instrument.envelope = envelope;
 		} else {
 			instrument.envelope = null;
+		}
+
+		final lines = node.get("lanes");
+
+		for (at in 0...lines.length()) {
+			final line = lines.at(at);
+			final lane = new Automation(within(line.get("target").whole(0), Automation.BASES.length),
+				within(line.get("slot").whole(0), Automation.SLOTS));
+
+			lane.synced = line.get("synced").truth(false);
+
+			final points = line.get("points");
+			for (index in 0...points.length()) lane.add(taken(points.at(index)));
+
+			final loop = line.get("loop").whole(-1);
+			lane.loop = loop < 0 || loop >= lane.points.length ? -1 : loop;
+
+			instrument.lanes.push(lane);
 		}
 
 		return instrument;

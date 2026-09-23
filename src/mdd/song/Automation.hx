@@ -74,11 +74,23 @@ final class Automation {
 	public static inline final INSTRUMENT = 10;
 
 	/**
+		Lane: pitch as cents away from the note, for a lane a preset carries, so a drop of two
+		octaves is two octaves from whichever note plays it. A pattern's own pitch lane is `TUNE`.
+	**/
+	public static inline final PITCH = 11;
+
+	/**
 		The register base each lane writes to, or nought for a lane that is not one
 		register.
 	**/
 	public static final BASES:Array<Int> = [0x40, 0, 0, 0x30, 0x50, 0x60, 0x70, 0x80, 0x90,
-		0xB0, 0];
+		0xB0, 0, 0];
+
+	/**
+		How finely a beat is divided on a lane a preset carries that follows the tempo, which is
+		fixed rather than the song's own division so a preset means the same in every song.
+	**/
+	public static inline final BEAT = 960;
 
 	/**
 		@param target A lane index.
@@ -192,6 +204,19 @@ final class Automation {
 	public final points:Array<Point> = [];
 
 	/**
+		For a lane a preset carries, whether its points are measured in `BEAT`ths of a beat and
+		follow the song's tempo, rather than in milliseconds from the key on. A pattern's lane
+		leaves it false.
+	**/
+	public var synced:Bool = false;
+
+	/**
+		For a lane a preset carries, which point it goes back to once past its last, by index, or
+		-1 to hold the last value. A pattern's lane leaves it at -1.
+	**/
+	public var loop:Int = -1;
+
+	/**
 		Builds an empty lane.
 
 		@param target Which channel it drives, or -1 for the part's own.
@@ -209,7 +234,62 @@ final class Automation {
 		final out = new Automation(target, slot);
 		for (point in points) out.points.push(point.copy());
 
+		out.synced = synced;
+		out.loop = loop;
+
 		return out;
+	}
+
+	/**
+		@param other Another lane.
+		@return Whether the two drive the same parameter the same way: the same target and slot,
+			time base and loop, and the same points with the same curves.
+	**/
+	public function same(other:Automation):Bool {
+		if (target != other.target || slot != other.slot || synced != other.synced
+				|| loop != other.loop || points.length != other.points.length) {
+			return false;
+		}
+
+		for (index in 0...points.length) {
+			final one = points[index];
+			final two = other.points[index];
+
+			if (one.at != two.at || one.value != two.value || one.shape != two.shape
+					|| one.tension != two.tension || one.steps != two.steps) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+		@param elapsed How long since the key on, in the lane's own units.
+		@return Where on the lane that falls, going back to the loop point each time the last
+			point is passed where the lane loops. A loop that spans no time holds the last value.
+	**/
+	public function looped(elapsed:Int):Int {
+		if (loop < 0 || loop >= points.length || points.length == 0) return elapsed;
+
+		final last = points[points.length - 1].at;
+		if (elapsed <= last) return elapsed;
+
+		final start = points[loop].at;
+		final span = last - start;
+
+		return span <= 0 ? last : start + (elapsed - start) % span;
+	}
+
+	/**
+		@return Where the lane's last point sits in its own units, or -1 for a lane that loops and
+			so never ends, or nought for an empty lane.
+	**/
+	public function reach():Int {
+		if (points.length == 0) return 0;
+		if (loop >= 0 && loop < points.length && points[points.length - 1].at > points[loop].at) return -1;
+
+		return points[points.length - 1].at;
 	}
 
 	/**

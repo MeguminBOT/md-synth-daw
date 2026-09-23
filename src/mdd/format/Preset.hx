@@ -44,7 +44,13 @@ final class Preset {
 		The four bytes a preset file opens with, which say both what it is and which version of it
 		this is.
 	**/
-	public static inline final MAGIC = "MDP2";
+	public static inline final MAGIC = "MDP3";
+
+	/**
+		The four bytes a preset file written before a preset carried lanes opens with. One still
+		reads, with no lanes on any preset.
+	**/
+	public static inline final UNMOVED = "MDP2";
 
 	/**
 		The four bytes a preset file written before a bank carried tags of its own opens with. One
@@ -107,9 +113,84 @@ final class Preset {
 			for (at in 0...(held.tags.length > 255 ? 255 : held.tags.length)) said(out, held.tags[at]);
 
 			sounded(out, held, sample);
+			moved(out, held);
 		}
 
 		return out.getBytes();
+	}
+
+	/**
+		Writes the lanes a preset moves on every note: how many, then each one's parameter, its time
+		base, its loop and its points. A preset with none writes a single nought.
+
+		@param out Where it goes.
+		@param held The preset.
+	**/
+	static function moved(out:BytesBuffer, held:Instrument):Void {
+		final many = held.lanes.length > 255 ? 255 : held.lanes.length;
+		out.addByte(many);
+
+		for (index in 0...many) {
+			final line = held.lanes[index];
+			final count = line.points.length > 0xFFFF ? 0xFFFF : line.points.length;
+
+			out.addByte(line.target & 0xFF);
+			out.addByte(line.slot & 0xFF);
+			out.addByte(line.synced ? 1 : 0);
+			whole(out, line.loop + 1, 2);
+			whole(out, count, 2);
+
+			for (at in 0...count) {
+				final point = line.points[at];
+
+				whole(out, point.at, 4);
+				whole(out, point.value, 2);
+				out.addByte(point.shape & 0xFF);
+				out.addByte(point.tension & 0xFF);
+				out.addByte(point.steps & 0xFF);
+			}
+		}
+	}
+
+	/**
+		Reads the lanes `moved` wrote into a preset.
+
+		@param from Where to read.
+		@param into The preset.
+	**/
+	static function unmoved(from:BytesInput, into:Instrument):Void {
+		final many = from.readByte();
+
+		for (index in 0...many) {
+			final target = from.readByte();
+			final slot = from.readByte();
+			final line = new mdd.song.Automation(target, slot);
+
+			line.synced = from.readByte() != 0;
+			line.loop = from.readUInt16() - 1;
+
+			final count = from.readUInt16();
+
+			for (step in 0...count) {
+				final at = from.readInt32();
+				final value = from.readInt16();
+				final point = new mdd.song.Point(at, value);
+
+				point.shape = from.readByte();
+				point.tension = signed(from.readByte());
+				point.steps = from.readByte();
+				line.points.push(point);
+			}
+
+			into.lanes.push(line);
+		}
+	}
+
+	/**
+		@return A byte read back as the signed number it was written from.
+	**/
+	static inline function signed(value:Int):Int {
+		return value > 127 ? value - 256 : value;
 	}
 
 	/**
@@ -161,7 +242,9 @@ final class Preset {
 
 	/**
 		What a preset is, worked out from what it sounds like alone: the MD5 of its family byte
-		followed by its sound record, as `sounded` writes it, in lower case hexadecimal.
+		followed by its sound record, as `sounded` writes it, and then its lanes as `moved` writes
+		them where it has any, in lower case hexadecimal. A preset that moves nothing is the same
+		preset it was before presets carried lanes.
 
 		Nothing a reader chose goes into it, so the same sound saved under another name, with other
 		tags or another icon, in another folder or another file, is the same preset. The layout is
@@ -178,6 +261,7 @@ final class Preset {
 
 		out.addByte(family(held.kind));
 		sounded(out, held, sample);
+		if (held.lanes.length > 0) moved(out, held);
 
 		return haxe.crypto.Md5.make(out.getBytes()).toHex();
 	}
@@ -192,7 +276,7 @@ final class Preset {
 		if (bytes == null || bytes.length < MAGIC.length + 4) return null;
 
 		final opening = bytes.getString(0, MAGIC.length);
-		if (opening != MAGIC && opening != UNTAGGED) return null;
+		if (opening != MAGIC && opening != UNMOVED && opening != UNTAGGED) return null;
 
 		final from = new BytesInput(bytes, MAGIC.length, bytes.length - MAGIC.length);
 		from.bigEndian = false;
@@ -202,7 +286,7 @@ final class Preset {
 		try {
 			out.name = spoken(from);
 
-			if (opening == MAGIC) {
+			if (opening != UNTAGGED) {
 				final tags = from.readByte();
 				for (at in 0...tags) out.tags.push(spoken(from));
 			}
@@ -256,6 +340,8 @@ final class Preset {
 					case _:
 						made.patch = unpatched(from);
 				}
+
+				if (opening == MAGIC) unmoved(from, made);
 
 				made.identifies(sample);
 				out.add(made, sample);

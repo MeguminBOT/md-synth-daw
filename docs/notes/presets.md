@@ -11,14 +11,14 @@ that many bytes of UTF-8, at most 4096.
 
 | bytes | what |
 | --- | --- |
-| 4 | `MDP2` |
+| 4 | `MDP3` |
 | text | the bank's name, empty for a single preset |
 | 1 | how many tags the bank carries, at most 255 |
 | text each | the bank's tags, which every preset in it answers to as well |
 | 2 | how many presets follow |
 
-A file opening with `MDP1` is the same layout without the bank's tags, and still reads as a bank
-with none.
+A file opening with `MDP2` is the same layout without any preset's lanes, and still reads with
+none. One opening with `MDP1` is also without the bank's tags, and reads as a bank with none.
 
 Each preset is:
 
@@ -29,7 +29,8 @@ Each preset is:
 | text | its name |
 | 1 | how many tags, at most 255 |
 | text each | the tags |
-| the rest | its sound record |
+| the sound record | what it sounds like, below |
+| the lanes | what it moves on every note, below |
 
 ## The sound record
 
@@ -47,11 +48,30 @@ three records follows:
   as one, the loop point plus one as 4, the length as 4, then the bytes as the converter takes
   them. A converter preset with no recording is written as a patch record of a fresh patch.
 
+## The lanes
+
+What a preset moves on every note it plays. One byte says how many lanes, at most 255, and nought is
+a preset that moves nothing. Each lane is:
+
+| bytes | what |
+| --- | --- |
+| 1 | the parameter, as `Automation` numbers its lanes |
+| 1 | the operator, for a per operator parameter, otherwise nought |
+| 1 | 1 where the points are in 960ths of a beat and follow the tempo, 0 where they are in milliseconds |
+| 2 | the point it loops back to plus one, so nought holds the last value |
+| 2 | how many points follow |
+
+Each point is where it sits as 4 bytes, its value as 2 bytes signed, its curve as one, the bend
+of that curve as one byte signed, and how many steps a stepped curve takes as one. Pitch is in
+cents away from the note.
+
 ## Identity
 
 A preset's identity is the MD5 of one byte for its family, 0 for FM, 1 for a square, 2 for the
-noise channel and 3 for the converter, followed by its sound record exactly as above. It is written
-as 32 lower case hexadecimal characters.
+noise channel and 3 for the converter, followed by its sound record exactly as above, and then by
+its lanes exactly as above where it has at least one. It is written as 32 lower case hexadecimal
+characters. A preset that moves nothing therefore has the identity it had before presets carried
+lanes, and one that moves something is a different preset from the same patch standing still.
 
 The family is taken rather than the part, so a patch saved from FM1 and the same patch saved from
 FM4 are one preset. The name, the tags, the icon, the file it sits in and the folder above that are
