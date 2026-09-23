@@ -358,8 +358,30 @@ final class FmEditor extends Widget {
 		return held > 0 ? "+" + held : Std.string(held);
 	}
 
+	/**
+		@param patch The patch being edited.
+		@param which Which dial.
+		@return The second line of a dial's tooltip: the register it writes and the value it holds.
+			The algorithm and the feedback share `$B0`, and both LFO sensitivities share `$B4`.
+	**/
+	function dialDetail(patch:Patch, which:Int):String {
+		final at = (which < 2 ? 0xB0 : 0xB4) + (session.part.index() % 3);
+		final half = session.part.index() >= 3 ? 1 : 0;
+
+		return filled(half == 1 ? Locale.FIELD_REGISTER_TWO : Locale.FIELD_REGISTER,
+			["$" + StringTools.hex(at, 2), "" + dialOf(patch, which)]);
+	}
+
 	function described(px:Float, py:Float):Void {
 		final patch = patch();
+		final dial = patch == null ? -1 : dialAt(px, py);
+
+		if (dial >= 0) {
+			tip = translate(DIAL_SPELT[dial]);
+			detail = dialDetail(patch, dial);
+			return;
+		}
+
 		final field = patch == null ? -1 : fieldAt(px, py);
 
 		if (field < 0) {

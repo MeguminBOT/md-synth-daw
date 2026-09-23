@@ -307,6 +307,8 @@ final class PsgEditor extends Widget {
 				}
 
 				if (!grabbing) {
+					described(event.x, event.y);
+
 					final at = stepAt(event.x);
 					if (at == held) return false;
 
@@ -352,6 +354,38 @@ final class PsgEditor extends Widget {
 		}
 
 		return false;
+	}
+
+	/**
+		What each dial does, in the order `DIAL_NAMES` names them.
+	**/
+	static final DIAL_TIPS:Array<Locale> = [Locale.PSG_LOOP_TIP, Locale.PSG_SPEED_TIP,
+		Locale.PSG_NOISE_TIP];
+
+	/**
+		Says in the tooltip what the pointer is over: a dial, or the graph the envelope is drawn
+		in.
+
+		@param px A point, across.
+		@param py A point, down.
+	**/
+	function described(px:Float, py:Float):Void {
+		final dial = dialAt(px, py);
+
+		if (dial >= 0) {
+			tip = translate(DIAL_TIPS[dial]);
+			detail = translate(Locale.PSG_DIAL_DETAIL);
+			return;
+		}
+
+		if (py >= y + head()) {
+			tip = translate(Locale.PSG_GRAPH);
+			detail = translate(Locale.PSG_GRAPH_DETAIL);
+			return;
+		}
+
+		tip = "";
+		detail = "";
 	}
 
 	function graphTall():Float {

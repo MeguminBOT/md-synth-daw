@@ -424,6 +424,8 @@ final class Presets extends Widget {
 		add(tree);
 
 		search = new mdd.ui.control.Field("");
+		search.tipKey = Locale.PRESET_SEARCH_TIP;
+		search.detailKey = Locale.PRESET_SEARCH_DETAIL;
 		add(search);
 
 		search.onChange = function(said:String):Void {
@@ -1467,7 +1469,19 @@ final class Presets extends Widget {
 		chipLeft[FOLDER_CHIP] = left + room - chipWide[FOLDER_CHIP];
 	}
 
+	/**
+		What each toolbar button does, in the order the buttons stand.
+	**/
+	static final CHIP_TIPS:Array<Locale> = [Locale.PRESET_GROUP_TIP, Locale.PRESET_SORT_TIP,
+		Locale.PRESET_FILTER_TIP, Locale.PRESET_FOLDER_TIP];
+
 	override function took(event:mdd.ui.Input):Bool {
+		if (event.kind == mdd.ui.Kind.PointerMove) {
+			final over = chipAt(event.x, event.y);
+			tip = over < 0 ? "" : translate(CHIP_TIPS[over]);
+			return false;
+		}
+
 		if (event.kind != mdd.ui.Kind.PointerDown) return false;
 
 		final which = chipAt(event.x, event.y);
