@@ -243,7 +243,7 @@ final class Sequencer {
 	final firsts:Vector<Int>;
 	final seconds:Vector<Int>;
 	final order:Vector<Int>;
-	final lines:Vector<Null<mdd.song.Automation>> = new Vector<Null<mdd.song.Automation>>(4);
+	final lines:Array<Null<mdd.song.Automation>> = cpp.NativeArray.create(4);
 
 	/**
 		What `owed` holds for a note that sounds until the next one rather than to an end.

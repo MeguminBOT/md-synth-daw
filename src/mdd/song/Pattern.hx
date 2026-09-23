@@ -1,7 +1,5 @@
 package mdd.song;
 
-import haxe.ds.Vector;
-
 /**
 	A block of music: one lane per part, a name, a colour and a length.
 
@@ -31,9 +29,11 @@ final class Pattern {
 	public var part:Int = -1;
 
 	/**
-		One lane per part, always all eleven.
+		One lane per part, always all eleven, in an array made at its size and never grown: a
+		`Vector` of objects casts through a virtual call on every read, and the sequencer reads
+		this for every part of every pattern it walks.
 	**/
-	public final lanes:Vector<Lane> = new Vector<Lane>(Part.COUNT);
+	public final lanes:Array<Lane> = cpp.NativeArray.create(Part.COUNT);
 
 	/**
 		Builds an empty pattern with a lane for every part.
