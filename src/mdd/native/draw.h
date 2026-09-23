@@ -141,6 +141,75 @@ void mdd_render_turned_part(SDL_Renderer *renderer, SDL_Texture *texture, float 
 	float fromTall, float x, float y, float width, float height, float degrees, float alpha);
 
 /**
+ * Draws a part of a texture tinted, into a rectangle turned about its own centre: its colour
+ * multiplied by the tint, which on a texture holding white is a silhouette in the tint's colour.
+ *
+ * @param renderer The renderer.
+ * @param texture The texture.
+ * @param fromWide How much of the texture to take, across from its left edge.
+ * @param fromTall How much, down from its top edge.
+ * @param x Where the rectangle's centre is, across.
+ * @param y Where its centre is, down.
+ * @param width How wide the rectangle is before it is turned.
+ * @param height How tall.
+ * @param degrees How far it is turned, clockwise.
+ * @param alpha How opaque, 0 to 1, scaling a premultiplied texture's colour as well.
+ * @param tint The colour to multiply by, as 0xRRGGBB.
+ */
+void mdd_render_tinted(SDL_Renderer *renderer, SDL_Texture *texture, float fromWide,
+	float fromTall, float x, float y, float width, float height, float degrees, float alpha,
+	int tint);
+
+/**
+ * mdd_render_shape: the target's alpha becomes the texture's laid over it, s + d(1 - s).
+ */
+#define MDD_SHAPE_OVER 0
+
+/**
+ * mdd_render_shape: the target's alpha becomes the two added, s + d, stopping at one.
+ */
+#define MDD_SHAPE_ADD 1
+
+/**
+ * mdd_render_shape: the target keeps its alpha only where the texture has one, ds.
+ */
+#define MDD_SHAPE_WITHIN 2
+
+/**
+ * mdd_render_shape: the target loses its alpha where the texture has one, d(1 - s).
+ */
+#define MDD_SHAPE_CUT 3
+
+/**
+ * mdd_render_shape: the target's alpha becomes the texture's where the target had none,
+ * s(1 - d).
+ */
+#define MDD_SHAPE_OUTSIDE 4
+
+/**
+ * Lays a part of a texture's alpha over the target's, unturned, and leaves the target's colour as
+ * it was. A target cleared to white with no alpha and drawn into this way holds a shape: white
+ * everywhere, with the alpha the modes make of it, which drawn tinted is a silhouette.
+ *
+ * In the modes, s is the texture's alpha times `alpha` and d is the target's.
+ *
+ * @param renderer The renderer.
+ * @param texture The texture, whose own blend mode is put back afterwards.
+ * @param fromWide How much of the texture to take, across from its left edge.
+ * @param fromTall How much, down from its top edge.
+ * @param x Where the rectangle's left edge is.
+ * @param y Where its top edge is.
+ * @param width How wide the rectangle is.
+ * @param height How tall.
+ * @param alpha What the texture's alpha is multiplied by.
+ * @param mode One of the MDD_SHAPE modes.
+ * @return Nonzero where it was drawn, and nought where the renderer cannot blend this way, which
+ *     the software renderer cannot.
+ */
+int mdd_render_shape(SDL_Renderer *renderer, SDL_Texture *texture, float fromWide,
+	float fromTall, float x, float y, float width, float height, float alpha, int mode);
+
+/**
  * Draws one whole texture into a rectangle.
  *
  * @param renderer The renderer.

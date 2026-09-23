@@ -296,6 +296,29 @@ final class Style {
 				out.number(layer.borderWidth);
 			}
 
+			out.key("shadow");
+			out.text(hex(layer.shadow));
+			out.key("shadowAlpha");
+			out.number(layer.shadowAlpha);
+			out.key("shadowAngle");
+			out.number(layer.shadowAngle);
+			out.key("shadowDistance");
+			out.number(layer.shadowDistance);
+			out.key("shadowSoftness");
+			out.number(layer.shadowSoftness);
+			out.key("outside");
+			out.text(hex(layer.outside));
+			out.key("outsideWidth");
+			out.number(layer.outsideWidth);
+			out.key("inside");
+			out.text(hex(layer.inside));
+			out.key("insideWidth");
+			out.number(layer.insideWidth);
+			out.key("bevel");
+			out.number(layer.bevel);
+			out.key("bevelDepth");
+			out.number(layer.bevelDepth);
+
 			out.close();
 		}
 
@@ -366,6 +389,17 @@ final class Style {
 			layer.colour = colourOf(held.get("colour").saying(""), 0xFFFFFF);
 			layer.border = colourOf(held.get("border").saying(""), 0x000000);
 			layer.borderWidth = held.get("borderWidth").real(0);
+			layer.shadow = colourOf(held.get("shadow").saying(""), 0x000000);
+			layer.shadowAlpha = held.get("shadowAlpha").real(0);
+			layer.shadowAngle = held.get("shadowAngle").real(45);
+			layer.shadowDistance = held.get("shadowDistance").real(0.01);
+			layer.shadowSoftness = held.get("shadowSoftness").real(0.01);
+			layer.outside = colourOf(held.get("outside").saying(""), 0xFFFFFF);
+			layer.outsideWidth = held.get("outsideWidth").real(0);
+			layer.inside = colourOf(held.get("inside").saying(""), 0xFFFFFF);
+			layer.insideWidth = held.get("insideWidth").real(0);
+			layer.bevel = held.get("bevel").real(0);
+			layer.bevelDepth = held.get("bevelDepth").real(0.5);
 			layer.tidied();
 
 			if (layer.kind == Layer.LANE && out.lone(layer.part) != null) continue;

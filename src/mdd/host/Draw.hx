@@ -102,6 +102,24 @@ extern class Draw {
 		degrees:Single, alpha:Single):Void;
 
 	/**
+		Draws a part of a texture, from its top left corner, tinted, into a rectangle turned
+		clockwise about its own centre.
+	**/
+	@:native("mdd_render_tinted")
+	public static function tinted(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>,
+		fromWide:Single, fromTall:Single, x:Single, y:Single, width:Single, height:Single,
+		degrees:Single, alpha:Single, tint:Int):Void;
+
+	/**
+		Lays a part of a texture's alpha over the target's, unturned, leaving the target's colour
+		as it was, in one of the ways `Paint.shaped` names. Nought where the renderer cannot.
+	**/
+	@:native("mdd_render_shape")
+	public static function shape(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>,
+		fromWide:Single, fromTall:Single, x:Single, y:Single, width:Single, height:Single,
+		alpha:Single, mode:Int):Int;
+
+	/**
 		How many draw calls have been made since the last reset.
 	**/
 	@:native("mdd_draw_calls")

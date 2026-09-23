@@ -683,6 +683,12 @@ has no timeline: what you set applies to the whole video.
   border. `{title}`, `{artist}`, `{composer}`, `{album}`, `{year}`, `{genre}`, `{track}` and
   `{comment}` fill in from the project's description, `{bpm}` from the tempo, and `{key}` from
   the key the piano roll is set to.
+- **Effects** on anything placed, lanes, pictures and text alike: a shadow at any angle, distance
+  and softness, a border outside and a border inside, and a bevel lit from the side the shadow
+  falls away from. They follow the shape of what is drawn rather than its box, so a waveform's
+  lines, a line's letters and a logo's transparent edges each get their own. Sizes read in pixels
+  at the height the video is set to, and a video made at another height scales them with it. Text
+  keeps its own border in place of the outside one.
 - **Filters** for how the lanes are drawn: the spectrum can weigh its samples by a Hann,
   Hamming, Blackman or Gaussian window, which keeps a note to its own bars instead of spreading
   it across the rest, and the waveform can be smoothed with the same shapes.

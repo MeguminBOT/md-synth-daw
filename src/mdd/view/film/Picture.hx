@@ -24,6 +24,14 @@ import mdd.view.monitor.Scope;
 	multiplied by alpha, which is what drawing into a target cleared to nothing leaves. Fading the
 	whole rather than each stroke keeps a border's overlapping rings from building up. A frame
 	makes no texture once the first has grown it.
+
+	A layer with effects is drawn the same way with room around it, and its shape is taken from
+	its alpha: every effect is made from that shape by laying it over itself, shifted, in blends
+	that touch only alpha, and the shadow, the outside border, the layer, the inside border and the
+	bevel are put together in a third texture before it is laid over the picture. Three more
+	textures are kept for that, and a few smaller ones the shadow is softened through, all grown
+	the same way and only once a layer with effects is drawn. The software renderer cannot blend
+	that way, and there a layer is drawn without its effects.
 **/
 @:unreflective
 final class Picture {
@@ -38,6 +46,27 @@ final class Picture {
 		oldest again when it comes round.
 	**/
 	static inline final FACES = 12;
+
+	/**
+		How many points around a circle a shape is laid at, on each pass that grows or shrinks it.
+	**/
+	static inline final RING = 12;
+
+	/**
+		The most passes a shape is grown or shrunk in. Each is twice the last, so this is far more
+		than `Layer.WIDEST` at `SCRATCH` needs.
+	**/
+	static inline final PASSES = 16;
+
+	/**
+		The most times a shadow is halved on its way to being softened.
+	**/
+	static inline final LEVELS = 12;
+
+	/**
+		The most steps a bevel is shaded in.
+	**/
+	static inline final BANDS = 16;
 
 	/**
 		The face a line of text is written in where it names none, or where the one it names will
@@ -55,9 +84,15 @@ final class Picture {
 	final fontPaths:Array<String> = [];
 	final fontPixels:Array<Int> = [];
 
-	var scratch:cpp.Star<Texture> = null;
-	var scratchWide:Int = 0;
-	var scratchTall:Int = 0;
+	final scratch:Source = Source.of("");
+	final shape:Source = Source.of("");
+	final work:Source = Source.of("");
+	final whole:Source = Source.of("");
+	final levels:Array<Source> = [];
+	final steps:Vector<Float> = new Vector<Float>(PASSES);
+
+	var softWide:Float = 0;
+	var softTall:Float = 0;
 
 	/**
 		Builds a picture that draws with a paint and reads pictures into its renderer.
@@ -93,7 +128,7 @@ final class Picture {
 					if (parts.indexOf(layer.part) >= 0) laned(layer, scope, parts, layer.part, wide, tall, into);
 
 				case Layer.TEXT: written(layer, words, wide, tall, into);
-				case _: placed(layer, wide, tall);
+				case _: placed(layer, wide, tall, into);
 			}
 		}
 	}
@@ -110,11 +145,10 @@ final class Picture {
 		fontPaths.resize(0);
 		fontPixels.resize(0);
 
-		if (scratch != null) Draw.destroyTexture(scratch);
+		for (held in [scratch, shape, work, whole]) emptied(held);
+		for (held in levels) emptied(held);
 
-		scratch = null;
-		scratchWide = 0;
-		scratchTall = 0;
+		levels.resize(0);
 	}
 
 	/**
@@ -158,7 +192,7 @@ final class Picture {
 		Measures the box a layer is drawn in, before it is turned, into `boundWide` and
 		`boundTall`: its own size for the lanes and a picture, and the line with its border for
 		text. A line that says nothing is measured as an empty line of its height, so it can still
-		be found and grabbed.
+		be found and grabbed. Effects reach outside the box and are not measured.
 
 		@param layer The layer.
 		@param words What text placeholders stand for.
@@ -226,7 +260,9 @@ final class Picture {
 
 		if (layer.alpha <= 0 || boxWide < 1 || boxTall < 1) return;
 
-		if (layer.turn % 360 == 0 && layer.alpha >= 1) {
+		final dressed = layer.dressed();
+
+		if (layer.turn % 360 == 0 && layer.alpha >= 1 && !dressed) {
 			scope.arrange(centreX - boxWide * 0.5, centreY - boxTall * 0.5, boxWide, boxTall);
 
 			if (single < 0) scope.films(paint, parts);
@@ -235,23 +271,19 @@ final class Picture {
 			return;
 		}
 
-		final much = shrink(boxWide, boxTall);
-		final drawnWide = boxWide * much;
-		final drawnTall = boxTall * much;
+		final pad = dressed ? padOf(layer, tall) : 0;
+		final much = shrink(boxWide + pad * 2, boxTall + pad * 2);
+		final spanWide = (boxWide + pad * 2) * much;
+		final spanTall = (boxTall + pad * 2) * much;
 
-		if (!grown(Math.ceil(drawnWide), Math.ceil(drawnTall))) return;
+		if (!opened(spanWide, spanTall)) return;
 
-		paint.target(scratch);
-		paint.clear(0, 0, 0, 0);
-
-		scope.arrange(0, 0, drawnWide, drawnTall);
+		scope.arrange(pad * much, pad * much, boxWide * much, boxTall * much);
 
 		if (single < 0) scope.films(paint, parts);
 		else scope.filmsLane(paint, single);
 
-		paint.target(into);
-		paint.turnedPart(scratch, drawnWide, drawnTall, centreX, centreY, boxWide, boxTall,
-			layer.turn, layer.alpha);
+		laid(layer, spanWide, spanTall, much, tall, centreX, centreY, into);
 	}
 
 	/**
@@ -273,23 +305,22 @@ final class Picture {
 		final lineTall = font.height + border * 2;
 		final centreX = layer.x * wide;
 		final centreY = layer.y * tall;
+		final dressed = layer.dressed();
 
-		if (layer.turn % 360 == 0 && layer.alpha >= 1) {
+		if (layer.turn % 360 == 0 && layer.alpha >= 1 && !dressed) {
 			lettered(font, said, layer, border, centreX - lineWide * 0.5, centreY - lineTall * 0.5);
 			return;
 		}
 
-		if (lineWide > SCRATCH || lineTall > SCRATCH) return;
-		if (!grown(Math.ceil(lineWide), Math.ceil(lineTall))) return;
+		final pad = dressed ? padOf(layer, tall) : 0;
+		final spanWide = lineWide + pad * 2;
+		final spanTall = lineTall + pad * 2;
 
-		paint.target(scratch);
-		paint.clear(0, 0, 0, 0);
+		if (spanWide > SCRATCH || spanTall > SCRATCH) return;
+		if (!opened(spanWide, spanTall)) return;
 
-		lettered(font, said, layer, border, 0, 0);
-
-		paint.target(into);
-		paint.turnedPart(scratch, lineWide, lineTall, centreX, centreY, lineWide, lineTall, layer.turn,
-			layer.alpha);
+		lettered(font, said, layer, border, pad, pad);
+		laid(layer, spanWide, spanTall, 1, tall, centreX, centreY, into);
 	}
 
 	/**
@@ -330,11 +361,330 @@ final class Picture {
 	}
 
 	/**
+		Draws a picture layer, stretched to its box and turned about its centre.
+	**/
+	function placed(layer:Layer, wide:Int, tall:Int, into:cpp.Star<Texture>):Void {
+		if (layer.kind != Layer.IMAGE || layer.path == "" || layer.alpha <= 0) return;
+
+		final held = read(layer.path);
+		if (held.texture == null) return;
+
+		final boxWide = layer.wide * wide;
+		final boxTall = layer.tall * tall;
+
+		if (!layer.dressed()) {
+			paint.turned(held.texture, layer.x * wide, layer.y * tall, boxWide, boxTall, layer.turn,
+				layer.alpha);
+			return;
+		}
+
+		if (boxWide < 1 || boxTall < 1) return;
+
+		final pad = padOf(layer, tall);
+		final much = shrink(boxWide + pad * 2, boxTall + pad * 2);
+		final spanWide = (boxWide + pad * 2) * much;
+		final spanTall = (boxTall + pad * 2) * much;
+
+		if (!opened(spanWide, spanTall)) return;
+
+		paint.turned(held.texture, spanWide * 0.5, spanTall * 0.5, boxWide * much, boxTall * much, 0, 1);
+		laid(layer, spanWide, spanTall, much, tall, layer.x * wide, layer.y * tall, into);
+	}
+
+	/**
+		Makes the scratch texture at least a size, draws into it from here and clears it to
+		nothing.
+
+		@param spanWide How wide what is about to be drawn is.
+		@param spanTall How tall.
+		@return Whether there is one to draw into.
+	**/
+	function opened(spanWide:Float, spanTall:Float):Bool {
+		if (!grown(scratch, Math.ceil(spanWide), Math.ceil(spanTall), true)) return false;
+
+		paint.target(scratch.texture);
+		paint.clear(0, 0, 0, 0);
+
+		return true;
+	}
+
+	/**
+		Lays what was drawn into the scratch texture over the picture, turned and faded as its
+		layer is, with the layer's effects around it.
+
+		@param layer The layer.
+		@param spanWide How much of the scratch texture was drawn into, across, the room for
+			effects included.
+		@param spanTall How much, down.
+		@param much What it was drawn at, against the picture's own pixels.
+		@param tall How tall the picture is, which effects are measured against.
+		@param centreX Where the layer's centre is, across the picture.
+		@param centreY Where it is, down.
+		@param into The target the picture is being drawn into.
+	**/
+	function laid(layer:Layer, spanWide:Float, spanTall:Float, much:Float, tall:Int, centreX:Float,
+			centreY:Float, into:cpp.Star<Texture>):Void {
+		final layWide = spanWide / much;
+		final layTall = spanTall / much;
+
+		if (layer.dressed() && dressedIn(layer, spanWide, spanTall, tall * much)) {
+			paint.target(into);
+			paint.turnedPart(whole.texture, spanWide, spanTall, centreX, centreY, layWide, layTall,
+				layer.turn, layer.alpha);
+			return;
+		}
+
+		paint.target(into);
+		Draw.premultiplied(scratch.texture, 1);
+		paint.turnedPart(scratch.texture, spanWide, spanTall, centreX, centreY, layWide, layTall,
+			layer.turn, layer.alpha);
+	}
+
+	/**
+		Puts a layer and its effects together in `whole`, from what was drawn into the scratch
+		texture: the shadow, the outside border, the layer, the inside border, and the bevel's
+		light and shade, in that order.
+
+		@param layer The layer.
+		@param spanWide How much of the scratch texture was drawn into, across.
+		@param spanTall How much, down.
+		@param unit How many pixels of the scratch texture the picture's height is, which every
+			effect is a fraction of.
+		@return Whether it was put together. Where it was not, the scratch texture still holds the
+			layer as drawn.
+	**/
+	function dressedIn(layer:Layer, spanWide:Float, spanTall:Float, unit:Float):Bool {
+		final needWide = Math.ceil(spanWide);
+		final needTall = Math.ceil(spanTall);
+
+		if (!grown(shape, needWide, needTall, false) || !grown(work, needWide, needTall, false)
+				|| !grown(whole, needWide, needTall, true)) {
+			return false;
+		}
+
+		paint.target(shape.texture);
+		paint.clear(1, 1, 1, 0);
+
+		if (!paint.shaped(scratch.texture, spanWide, spanTall, 0, 0, spanWide, spanTall, 1, Paint.SHAPE_OVER)) {
+			return false;
+		}
+
+		final outsideReach = layer.kind == Layer.TEXT ? 0 : layer.outsideWidth * unit;
+		final outside = outsideReach > 0 ? spread(outsideReach, spanWide, spanTall, whole, Paint.SHAPE_OVER) : null;
+		final softened = layer.shadowAlpha > 0 ? softenedBy(layer.shadowSoftness * unit, spanWide, spanTall) : null;
+
+		final middleX = spanWide * 0.5;
+		final middleY = spanTall * 0.5;
+		final fall = (layer.shadowAngle - layer.turn) * Math.PI / 180;
+		final alongX = Math.cos(fall);
+		final alongY = Math.sin(fall);
+
+		paint.target(whole.texture);
+		paint.clear(0, 0, 0, 0);
+
+		if (softened != null) {
+			final distance = layer.shadowDistance * unit;
+
+			paint.tintedPart(softened.texture, softWide, softTall, middleX + alongX * distance,
+				middleY + alongY * distance, spanWide, spanTall, 0, layer.shadowAlpha, layer.shadow);
+		}
+
+		if (outside != null) {
+			paint.tintedPart(outside.texture, spanWide, spanTall, middleX, middleY, spanWide, spanTall, 0,
+				1, layer.outside);
+		}
+
+		Draw.premultiplied(scratch.texture, 1);
+		paint.turnedPart(scratch.texture, spanWide, spanTall, middleX, middleY, spanWide, spanTall, 0, 1);
+
+		final insideReach = layer.insideWidth * unit;
+
+		if (insideReach > 0) {
+			final edge = spread(insideReach, spanWide, spanTall, scratch, Paint.SHAPE_WITHIN);
+
+			paint.target(edge.texture);
+			paint.shaped(shape.texture, spanWide, spanTall, 0, 0, spanWide, spanTall, 1, Paint.SHAPE_OUTSIDE);
+			paint.target(whole.texture);
+			paint.tintedPart(edge.texture, spanWide, spanTall, middleX, middleY, spanWide, spanTall, 0, 1,
+				layer.inside);
+		}
+
+		final bevelReach = layer.bevel * unit;
+
+		if (bevelReach > 0 && layer.bevelDepth > 0) {
+			lit(bevelReach, alongX, alongY, spanWide, spanTall, 0xFFFFFF, layer.bevelDepth);
+			lit(bevelReach, -alongX, -alongY, spanWide, spanTall, 0x000000, layer.bevelDepth);
+		}
+
+		return true;
+	}
+
+	/**
+		Grows or shrinks `shape` by a distance, into `work`: laid over itself at every point of a
+		ring, once for each pass, each pass twice as far as the last, so a wide border costs a few
+		passes rather than a ring for every pixel. Grown, it is the shape with a border around it;
+		shrunk, it is what is left of the shape once its edge is taken away.
+
+		@param reach How far, in pixels of the scratch texture.
+		@param spanWide How much of each texture is in use, across.
+		@param spanTall How much, down.
+		@param other The texture every other pass is drawn into, which is left holding nothing
+			anybody reads.
+		@param mode `Paint.SHAPE_OVER` to grow it, `Paint.SHAPE_WITHIN` to shrink it.
+		@return `work`, holding the result, white with the shape as its alpha.
+	**/
+	function spread(reach:Float, spanWide:Float, spanTall:Float, other:Source, mode:Int):Source {
+		final count = stepped(reach);
+		var from = shape;
+
+		for (pass in 0...count) {
+			final to = (count - pass) % 2 == 1 ? work : other;
+			final radius = steps[pass];
+
+			paint.target(to.texture);
+			paint.clear(1, 1, 1, 0);
+			paint.shaped(from.texture, spanWide, spanTall, 0, 0, spanWide, spanTall, 1, Paint.SHAPE_OVER);
+
+			for (point in 0...RING) {
+				final angle = (point + (pass & 1) * 0.5) * Math.PI * 2 / RING;
+				paint.shaped(from.texture, spanWide, spanTall, Math.cos(angle) * radius,
+					Math.sin(angle) * radius, spanWide, spanTall, 1, mode);
+			}
+
+			from = to;
+		}
+
+		return from;
+	}
+
+	/**
+		Splits a distance into the passes `spread` takes: one pixel, then two, four and so on, the
+		last taking whatever is left.
+
+		@param reach The distance, in pixels.
+		@return How many passes, written into `steps`.
+	**/
+	function stepped(reach:Float):Int {
+		var count = 0;
+		var left = reach;
+		var step = 1.0;
+
+		while (left > 0 && count < PASSES) {
+			final taken = left < step || count == PASSES - 1 ? left : step;
+
+			steps[count] = taken;
+			count++;
+			left -= taken;
+			step *= 2;
+		}
+
+		return count;
+	}
+
+	/**
+		Softens `shape` for a shadow by halving it until it is as many times smaller as the
+		softening is pixels wide, the last step less than a half where that is what is left. Drawn
+		back up to its size it is blurred by about that much. The part of the texture it answers
+		that holds it is written into `softWide` and `softTall`.
+
+		@param softness How far to soften it, in pixels of the scratch texture.
+		@param spanWide How much of `shape` is in use, across.
+		@param spanTall How much, down.
+		@return The texture it was softened into, or `shape` itself for less than a pixel.
+	**/
+	function softenedBy(softness:Float, spanWide:Float, spanTall:Float):Source {
+		var from = shape;
+		var scale = 1.0;
+		var index = 0;
+
+		softWide = spanWide;
+		softTall = spanTall;
+
+		while (softness - scale > 0.01 && index < LEVELS) {
+			final step = softness / scale >= 2 ? 2 : softness / scale;
+			final nextWide = softWide / step;
+			final nextTall = softTall / step;
+
+			if (nextWide < 1 || nextTall < 1) break;
+
+			while (levels.length <= index) levels.push(Source.of(""));
+
+			final level = levels[index];
+			if (!grown(level, Math.ceil(nextWide) + 1, Math.ceil(nextTall) + 1, false)) break;
+
+			paint.target(level.texture);
+			paint.clear(1, 1, 1, 0);
+			paint.shaped(from.texture, softWide, softTall, 0, 0, nextWide, nextTall, 1, Paint.SHAPE_OVER);
+
+			from = level;
+			softWide = nextWide;
+			softTall = nextTall;
+			scale *= step;
+			index++;
+		}
+
+		return from;
+	}
+
+	/**
+		Lays one side of a bevel over `whole`: the part of the shape within a distance of its edge
+		on one side, most strongly nearest the edge, in one colour.
+
+		@param reach How wide the bevel is, in pixels of the scratch texture.
+		@param towardX Which way the side it lights faces away from, across.
+		@param towardY Which way, down.
+		@param spanWide How much of each texture is in use, across.
+		@param spanTall How much, down.
+		@param colour What it is lit in, as `0xRRGGBB`.
+		@param depth How opaque, 0 to 1.
+	**/
+	function lit(reach:Float, towardX:Float, towardY:Float, spanWide:Float, spanTall:Float,
+			colour:Int, depth:Float):Void {
+		final wanted = Math.ceil(reach / 1.5);
+		final bands = wanted < 1 ? 1 : (wanted > BANDS ? BANDS : wanted);
+		final weight = 1 / bands + 1 / 510;
+
+		paint.target(work.texture);
+		paint.clear(1, 1, 1, 0);
+
+		for (band in 1...bands + 1) {
+			final shift = reach * band / bands;
+			paint.shaped(shape.texture, spanWide, spanTall, towardX * shift, towardY * shift, spanWide,
+				spanTall, weight, Paint.SHAPE_ADD);
+		}
+
+		paint.shaped(shape.texture, spanWide, spanTall, 0, 0, spanWide, spanTall, 1, Paint.SHAPE_OUTSIDE);
+		paint.target(whole.texture);
+		paint.tintedPart(work.texture, spanWide, spanTall, spanWide * 0.5, spanTall * 0.5, spanWide,
+			spanTall, 0, depth, colour);
+	}
+
+	/**
 		@return How many pixels tall a line of text is drawn at, never less than four.
 	**/
 	static inline function pixelsOf(layer:Layer, tall:Int):Int {
 		final held = Math.round(layer.tall * tall);
 		return held < 4 ? 4 : held;
+	}
+
+	/**
+		@param layer A layer with effects.
+		@param tall How tall the picture is.
+		@return How much room its effects need around what it draws, in whole pixels of the
+			picture: out to its outside border and its softened shadow, and at least as far as its
+			inside border and bevel reach in, which find the edge by looking past it.
+	**/
+	static function padOf(layer:Layer, tall:Int):Int {
+		var reach = layer.insideWidth > layer.bevel ? layer.insideWidth : layer.bevel;
+
+		if (layer.kind != Layer.TEXT && layer.outsideWidth > reach) reach = layer.outsideWidth;
+
+		if (layer.shadowAlpha > 0) {
+			final thrown = layer.shadowDistance + layer.shadowSoftness * 2;
+			if (thrown > reach) reach = thrown;
+		}
+
+		return Math.ceil(reach * tall) + 2;
 	}
 
 	/**
@@ -350,41 +700,42 @@ final class Picture {
 	}
 
 	/**
-		Makes sure the texture turned things are drawn into is at least a size, making it again
-		larger where it has to grow and never smaller.
+		Makes sure a texture kept for drawing into is at least a size, making it again larger
+		where it has to grow and never smaller.
 
+		@param held The texture and the size it was made at.
 		@param needWide How wide it has to be.
 		@param needTall How tall.
+		@param premultiplied Whether what is drawn into it is laid down as colour already
+			multiplied by alpha, rather than as a shape.
 		@return Whether there is one.
 	**/
-	function grown(needWide:Int, needTall:Int):Bool {
-		if (scratch != null && scratchWide >= needWide && scratchTall >= needTall) return true;
+	function grown(held:Source, needWide:Int, needTall:Int, premultiplied:Bool):Bool {
+		if (held.texture != null && held.wide >= needWide && held.tall >= needTall) return true;
 
-		final makeWide = needWide > scratchWide ? needWide : scratchWide;
-		final makeTall = needTall > scratchTall ? needTall : scratchTall;
+		final makeWide = needWide > held.wide ? needWide : held.wide;
+		final makeTall = needTall > held.tall ? needTall : held.tall;
 
-		if (scratch != null) Draw.destroyTexture(scratch);
+		if (held.texture != null) Draw.destroyTexture(held.texture);
 
-		scratch = Draw.createTarget(paint.canvas(), makeWide, makeTall);
-		scratchWide = scratch == null ? 0 : makeWide;
-		scratchTall = scratch == null ? 0 : makeTall;
+		held.texture = Draw.createTarget(paint.canvas(), makeWide, makeTall);
+		held.wide = held.texture == null ? 0 : makeWide;
+		held.tall = held.texture == null ? 0 : makeTall;
 
-		if (scratch != null) Draw.premultiplied(scratch, 1);
+		if (held.texture != null && premultiplied) Draw.premultiplied(held.texture, 1);
 
-		return scratch != null;
+		return held.texture != null;
 	}
 
 	/**
-		Draws a picture layer, stretched to its box and turned about its centre.
+		Gives back a texture kept for drawing into.
 	**/
-	function placed(layer:Layer, wide:Int, tall:Int):Void {
-		if (layer.kind != Layer.IMAGE || layer.path == "" || layer.alpha <= 0) return;
+	static function emptied(held:Source):Void {
+		if (held.texture != null) Draw.destroyTexture(held.texture);
 
-		final held = read(layer.path);
-		if (held.texture == null) return;
-
-		paint.turned(held.texture, layer.x * wide, layer.y * tall, layer.wide * wide,
-			layer.tall * tall, layer.turn, layer.alpha);
+		held.texture = null;
+		held.wide = 0;
+		held.tall = 0;
 	}
 
 	/**

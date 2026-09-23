@@ -788,7 +788,7 @@ class PaintCheck {
 		@param colour The colour of each pixel, as ABGR so the bytes run red, green, blue, alpha.
 		@return A PNG of it, eight bit RGBA with no filtering.
 	**/
-	static function png(wide:Int, tall:Int, colour:Int -> Int -> Int):haxe.io.Bytes {
+	public static function png(wide:Int, tall:Int, colour:Int -> Int -> Int):haxe.io.Bytes {
 		final rows = new haxe.io.BytesBuffer();
 
 		for (py in 0...tall) {

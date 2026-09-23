@@ -202,6 +202,78 @@ final class Paint {
 	}
 
 	/**
+		Draws a part of a texture, from its top left corner, tinted, into a rectangle turned about
+		its own centre. A texture holding white drawn this way is a silhouette in the tint's
+		colour. This flushes, because it is not a triangle batch.
+
+		@param texture The texture.
+		@param fromWide How much of it to take, across, in its own pixels.
+		@param fromTall How much, down.
+		@param x Where the rectangle's centre is, across.
+		@param y Where its centre is, down.
+		@param width How wide the rectangle is before it is turned.
+		@param height How tall.
+		@param degrees How far it is turned, clockwise.
+		@param alpha How opaque, 0 to 1, on top of any opacity pushed.
+		@param tint The colour to multiply by, as `0xRRGGBB`.
+	**/
+	public function tintedPart(texture:cpp.Star<Texture>, fromWide:Float, fromTall:Float, x:Float,
+			y:Float, width:Float, height:Float, degrees:Float, alpha:Float, tint:Int):Void {
+		flush();
+		Draw.tinted(renderer, texture, fromWide, fromTall, at(x), down(y), width * scaleX,
+			height * scaleY, degrees, alpha * opacity, tint);
+	}
+
+	/**
+		`shaped`: the target's alpha becomes the texture's laid over it.
+	**/
+	public static inline final SHAPE_OVER = 0;
+
+	/**
+		`shaped`: the target's alpha becomes the two added, stopping at one.
+	**/
+	public static inline final SHAPE_ADD = 1;
+
+	/**
+		`shaped`: the target keeps its alpha only where the texture has one.
+	**/
+	public static inline final SHAPE_WITHIN = 2;
+
+	/**
+		`shaped`: the target loses its alpha where the texture has one.
+	**/
+	public static inline final SHAPE_CUT = 3;
+
+	/**
+		`shaped`: the target's alpha becomes the texture's where the target had none.
+	**/
+	public static inline final SHAPE_OUTSIDE = 4;
+
+	/**
+		Lays a part of a texture's alpha over the target's, unturned, and leaves the target's colour
+		as it was. A target cleared to white with no alpha and drawn into this way holds a shape,
+		white everywhere with the alpha the modes make of it, which `tintedPart` draws as a
+		silhouette. This flushes, because it is not a triangle batch.
+
+		@param texture The texture.
+		@param fromWide How much of it to take, across, in its own pixels.
+		@param fromTall How much, down.
+		@param x Where the rectangle's left edge is.
+		@param y Where its top edge is.
+		@param width How wide the rectangle is.
+		@param height How tall.
+		@param alpha What the texture's alpha is multiplied by.
+		@param mode `SHAPE_OVER`, `SHAPE_ADD`, `SHAPE_WITHIN`, `SHAPE_CUT` or `SHAPE_OUTSIDE`.
+		@return Whether it was drawn: the software renderer cannot blend this way.
+	**/
+	public function shaped(texture:cpp.Star<Texture>, fromWide:Float, fromTall:Float, x:Float,
+			y:Float, width:Float, height:Float, alpha:Float, mode:Int):Bool {
+		flush();
+		return Draw.shape(renderer, texture, fromWide, fromTall, at(x), down(y), width * scaleX,
+			height * scaleY, alpha, mode) != 0;
+	}
+
+	/**
 		Multiplies everything drawn until the matching pop by an opacity.
 
 		@param amount How opaque, 0 to 1.

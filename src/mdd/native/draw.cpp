@@ -166,6 +166,92 @@ extern "C" void mdd_render_turned_part(SDL_Renderer *renderer, SDL_Texture *text
 	calls++;
 }
 
+extern "C" void mdd_render_tinted(SDL_Renderer *renderer, SDL_Texture *texture, float fromWide,
+		float fromTall, float x, float y, float width, float height, float degrees, float alpha,
+		int tint) {
+	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return;
+	if (fromWide <= 0 || fromTall <= 0) return;
+
+	SDL_FRect from;
+	from.x = 0;
+	from.y = 0;
+	from.w = fromWide;
+	from.h = fromTall;
+
+	SDL_FRect into;
+	into.x = x - width * 0.5f;
+	into.y = y - height * 0.5f;
+	into.w = width;
+	into.h = height;
+
+	SDL_BlendMode mode = SDL_BLENDMODE_BLEND;
+	SDL_GetTextureBlendMode(texture, &mode);
+
+	const float shade = mode == SDL_BLENDMODE_BLEND_PREMULTIPLIED ? alpha : 1.0f;
+
+	SDL_SetTextureColorModFloat(texture, ((tint >> 16) & 0xFF) / 255.0f * shade,
+		((tint >> 8) & 0xFF) / 255.0f * shade, (tint & 0xFF) / 255.0f * shade);
+	SDL_SetTextureAlphaModFloat(texture, alpha);
+	SDL_RenderTextureRotated(renderer, texture, &from, &into, degrees, nullptr, SDL_FLIP_NONE);
+	calls++;
+}
+
+extern "C" int mdd_render_shape(SDL_Renderer *renderer, SDL_Texture *texture, float fromWide,
+		float fromTall, float x, float y, float width, float height, float alpha, int mode) {
+	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return 0;
+	if (fromWide <= 0 || fromTall <= 0) return 0;
+
+	SDL_BlendFactor taken = SDL_BLENDFACTOR_ONE;
+	SDL_BlendFactor kept = SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+
+	switch (mode) {
+		case MDD_SHAPE_ADD:
+			kept = SDL_BLENDFACTOR_ONE;
+			break;
+		case MDD_SHAPE_WITHIN:
+			taken = SDL_BLENDFACTOR_ZERO;
+			kept = SDL_BLENDFACTOR_SRC_ALPHA;
+			break;
+		case MDD_SHAPE_CUT:
+			taken = SDL_BLENDFACTOR_ZERO;
+			break;
+		case MDD_SHAPE_OUTSIDE:
+			taken = SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+			kept = SDL_BLENDFACTOR_ZERO;
+			break;
+		default:
+			break;
+	}
+
+	const SDL_BlendMode shaped = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ZERO,
+		SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD, taken, kept, SDL_BLENDOPERATION_ADD);
+
+	SDL_BlendMode was = SDL_BLENDMODE_BLEND;
+	SDL_GetTextureBlendMode(texture, &was);
+
+	if (!SDL_SetTextureBlendMode(texture, shaped)) return 0;
+
+	SDL_FRect from;
+	from.x = 0;
+	from.y = 0;
+	from.w = fromWide;
+	from.h = fromTall;
+
+	SDL_FRect into;
+	into.x = x;
+	into.y = y;
+	into.w = width;
+	into.h = height;
+
+	SDL_SetTextureColorModFloat(texture, 1.0f, 1.0f, 1.0f);
+	SDL_SetTextureAlphaModFloat(texture, alpha);
+	SDL_RenderTexture(renderer, texture, &from, &into);
+	SDL_SetTextureBlendMode(texture, was);
+	calls++;
+
+	return 1;
+}
+
 extern "C" int mdd_draw_calls(void) {
 	return calls;
 }

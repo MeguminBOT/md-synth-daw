@@ -1181,6 +1181,114 @@ class SpineCheck {
 			+ upright[0] + " by " + upright[1] + " turned a quarter, and a face that is not there"
 			+ " falls back to the interface's");
 
+		final near = function(px:Int, py:Int, colour:Int):Bool {
+			final held = pixel(px, py);
+
+			for (shift in [16, 8, 0]) {
+				final gap = ((held >> shift) & 0xFF) - ((colour >> shift) & 0xFF);
+				if (gap > 8 || gap < -8) return false;
+			}
+
+			return true;
+		};
+
+		final at = function(px:Int, py:Int):String return "#" + StringTools.hex(pixel(px, py), 6);
+
+		final discPath = Gate.root + "/export/gate/pictures/disc.png";
+		mdd.host.Paths.make(Gate.root + "/export/gate/pictures");
+
+		sys.io.File.saveBytes(discPath, PaintCheck.png(128, 128, function(px:Int, py:Int):Int {
+			final dx = px + 0.5 - 64;
+			final dy = py + 0.5 - 64;
+			return dx * dx + dy * dy <= 48 * 48 ? 0xFF808080 : 0;
+		}));
+
+		final dressed = mdd.view.film.Style.plain();
+		final disc = new mdd.view.film.Layer(mdd.view.film.Layer.IMAGE);
+
+		dressed.groundColour = 0x204060;
+		dressed.lanes().alpha = 0;
+		disc.path = discPath;
+		disc.wide = 160 / wide;
+		disc.tall = 160 / tall;
+		dressed.layers.push(disc);
+
+		disc.shadow = 0xFF0000;
+		disc.shadowAlpha = 1;
+		disc.shadowDistance = 18 / tall;
+		disc.shadowSoftness = 0;
+		disc.shadowAngle = 0;
+		drawn(dressed);
+
+		final rightward = near(389, 180, 0xFF0000) && pixel(251, 180) == 0x204060
+			&& pixel(320, 249) == 0x204060;
+		final rightwardSaid = at(389, 180) + " right of it, " + at(251, 180) + " left, " + at(320, 249)
+			+ " below";
+
+		disc.shadowAngle = 90;
+		drawn(dressed);
+
+		final downward = near(320, 249, 0xFF0000) && pixel(389, 180) == 0x204060;
+		final downwardSaid = at(320, 249) + " below and " + at(389, 180) + " right";
+
+		disc.shadowAngle = 0;
+		disc.turn = 90;
+		drawn(dressed);
+
+		final turned = near(389, 180, 0xFF0000) && pixel(320, 249) == 0x204060;
+		final turnedSaid = at(389, 180) + " right and " + at(320, 249) + " below";
+
+		disc.turn = 0;
+
+		says("a shadow falls the way it is told", rightward && downward && turned,
+			"a grey disc 120 across throwing a red shadow 18 pixels at nought degrees reads "
+			+ rightwardSaid + "; at ninety, " + downwardSaid + "; at nought on a disc turned a quarter, "
+			+ turnedSaid);
+
+		disc.shadowAlpha = 0;
+		disc.outside = 0x00FF00;
+		disc.outsideWidth = 7 / tall;
+		drawn(dressed);
+
+		says("a border follows a picture's edge", near(384, 180, 0x00FF00) && pixel(395, 180) == 0x204060
+			&& pixel(395, 105) == 0x204060 && near(320, 180, 0x808080),
+			"a green border 7 pixels outside the disc reads " + at(384, 180) + " 4 pixels out, "
+			+ at(395, 180) + " 15 out, " + at(395, 105) + " in the corner of its box, and "
+			+ at(320, 180) + " at its centre");
+
+		disc.outsideWidth = 0;
+		disc.inside = 0x0000FF;
+		disc.insideWidth = 7 / tall;
+		drawn(dressed);
+
+		says("an inside border stays inside", near(377, 180, 0x0000FF) && near(320, 180, 0x808080)
+			&& pixel(384, 180) == 0x204060,
+			"a blue border 7 pixels inside the disc reads " + at(377, 180) + " 3 pixels in, "
+			+ at(320, 180) + " at the centre and " + at(384, 180) + " 4 pixels out");
+
+		disc.insideWidth = 0;
+		disc.bevel = 11 / tall;
+		disc.bevelDepth = 1;
+		disc.shadowAngle = 45;
+		drawn(dressed);
+
+		final lit = pixel(282, 142) & 0xFF;
+		final shaded = pixel(358, 218) & 0xFF;
+		final middle = pixel(320, 180) & 0xFF;
+
+		says("a bevel lights and shades", lit > 0xA0 && shaded < 0x60 && middle > 0x7C && middle < 0x84,
+			"an 11 pixel bevel lit from the upper left on a disc of grey 128 reads " + lit
+			+ " 6 pixels inside its upper left edge, " + shaded + " inside its lower right and "
+			+ middle + " at the centre");
+
+		icon.shadowAlpha = 0.5;
+		icon.shadowAngle = 120;
+		icon.outsideWidth = 0.01;
+		icon.inside = 0x123456;
+		icon.insideWidth = 0.004;
+		icon.bevel = 0.02;
+		icon.bevelDepth = 0.25;
+
 		final written = pictured.spelt();
 		final again = mdd.view.film.Style.read(written);
 

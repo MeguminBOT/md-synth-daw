@@ -21,7 +21,7 @@ import mdd.view.monitor.Windowing;
 
 /**
 	What a studio's style is set to, down the right of the editor: playback and the saved styles,
-	the background, the layers in the order they are drawn, and the chosen layer.
+	the background, the layers in the order they are drawn, and the chosen layer and its effects.
 
 	Every control writes straight into the style and tells the studio, which redraws the preview
 	and keeps the change. The controls that belong to a kind of layer other than the chosen one are
@@ -82,8 +82,20 @@ final class Styling extends Widget {
 	final border:Swatch;
 	final borderWidth:Number;
 
+	final shadow:Swatch;
+	final shadowAlpha:Slider;
+	final shadowAngle:Number;
+	final shadowDistance:Number;
+	final shadowSoftness:Number;
+	final outside:Swatch;
+	final outsideWidth:Number;
+	final inside:Swatch;
+	final insideWidth:Number;
+	final bevel:Number;
+	final bevelDepth:Number;
+
 	final headings:Vector<Float> = new Vector<Float>(4);
-	final labels:Vector<Float> = new Vector<Float>(2);
+	final labels:Vector<Float> = new Vector<Float>(3);
 
 	var listTop:Float = 0;
 	var listOffset:Int = 0;
@@ -196,6 +208,30 @@ final class Styling extends Widget {
 		borderWidth = number(0, 25, "%", function(value:Int):Void
 			chosenDo(function(layer:Layer):Void layer.borderWidth = value / 100));
 
+		shadow = swatch(function():Void {
+			final layer = studio.chosenLayer();
+			if (layer != null) picks(Locale.FILM_SHADOW, layer.shadow, function(colour:Int):Void layer.shadow = colour);
+		});
+		shadowAlpha = slider(function(value:Int):Void
+			chosenDo(function(layer:Layer):Void layer.shadowAlpha = value / 100));
+		shadowAngle = number(0, 359, "°", function(value:Int):Void
+			chosenDo(function(layer:Layer):Void layer.shadowAngle = value));
+		shadowDistance = pixels(function(layer:Layer, value:Float):Void layer.shadowDistance = value);
+		shadowSoftness = pixels(function(layer:Layer, value:Float):Void layer.shadowSoftness = value);
+		outside = swatch(function():Void {
+			final layer = studio.chosenLayer();
+			if (layer != null) picks(Locale.FILM_OUTSIDE, layer.outside, function(colour:Int):Void layer.outside = colour);
+		});
+		outsideWidth = pixels(function(layer:Layer, value:Float):Void layer.outsideWidth = value);
+		inside = swatch(function():Void {
+			final layer = studio.chosenLayer();
+			if (layer != null) picks(Locale.FILM_INSIDE, layer.inside, function(colour:Int):Void layer.inside = colour);
+		});
+		insideWidth = pixels(function(layer:Layer, value:Float):Void layer.insideWidth = value);
+		bevel = pixels(function(layer:Layer, value:Float):Void layer.bevel = value);
+		bevelDepth = number(0, 100, "%", function(value:Int):Void
+			chosenDo(function(layer:Layer):Void layer.bevelDepth = value / 100));
+
 		plain.toggle = true;
 		gradient.toggle = true;
 		names.tipKey = Locale.FILM_NAMES_TIP;
@@ -205,6 +241,14 @@ final class Styling extends Widget {
 		smoothing.tipKey = Locale.FILM_SMOOTHING_TIP;
 		words.detailKey = Locale.FILM_WORDS_TIP;
 		borderWidth.tipKey = Locale.FILM_BORDER_TIP;
+		shadow.tipKey = Locale.FILM_SHADOW;
+		shadowAlpha.tipKey = Locale.FILM_SHADOW_TIP;
+		shadowAngle.tipKey = Locale.FILM_SHADOW_ANGLE_TIP;
+		outside.tipKey = Locale.FILM_OUTSIDE;
+		outsideWidth.tipKey = Locale.FILM_OUTSIDE_TIP;
+		inside.tipKey = Locale.FILM_INSIDE;
+		insideWidth.tipKey = Locale.FILM_INSIDE_TIP;
+		bevel.tipKey = Locale.FILM_BEVEL_TIP;
 		alpha.tipKey = Locale.FILM_OPACITY;
 		groundAlpha.tipKey = Locale.FILM_OPACITY;
 
@@ -297,6 +341,40 @@ final class Styling extends Widget {
 			borderWidth.set(Math.round(layer.borderWidth * 100));
 		}
 
+		for (control in [shadowAngle, shadowDistance, shadowSoftness, insideWidth, bevel, bevelDepth]) {
+			control.visible = layer != null;
+		}
+
+		shadow.visible = layer != null;
+		shadowAlpha.visible = layer != null;
+		inside.visible = layer != null;
+		outside.visible = layer != null && kind != Layer.TEXT;
+		outsideWidth.visible = layer != null && kind != Layer.TEXT;
+
+		final tall = studio.pictureTall;
+		final widest = Math.round(Layer.WIDEST * tall);
+		final furthest = Math.round(Layer.FURTHEST * tall);
+
+		shadowDistance.spans(0, furthest);
+		shadowSoftness.spans(0, furthest);
+		outsideWidth.spans(0, widest);
+		insideWidth.spans(0, widest);
+		bevel.spans(0, widest);
+
+		if (layer != null) {
+			shadow.colour = layer.shadow;
+			shadowAlpha.set(Math.round(layer.shadowAlpha * 100));
+			shadowAngle.set(Math.round(layer.shadowAngle));
+			shadowDistance.set(Math.round(layer.shadowDistance * tall));
+			shadowSoftness.set(Math.round(layer.shadowSoftness * tall));
+			outside.colour = layer.outside;
+			outsideWidth.set(Math.round(layer.outsideWidth * tall));
+			inside.colour = layer.inside;
+			insideWidth.set(Math.round(layer.insideWidth * tall));
+			bevel.set(Math.round(layer.bevel * tall));
+			bevelDepth.set(Math.round(layer.bevelDepth * 100));
+		}
+
 		if (layer != null) {
 			final row = style.layers.length - 1 - studio.chosen;
 
@@ -357,6 +435,13 @@ final class Styling extends Widget {
 		weight.label = root.translate(Locale.FILM_WEIGHT);
 		smoothingWidth.label = root.translate(Locale.FILM_SPAN);
 		borderWidth.label = root.translate(Locale.FILM_BORDER_WIDTH);
+		shadowAngle.label = root.translate(Locale.FILM_ANGLE);
+		shadowDistance.label = root.translate(Locale.FILM_DISTANCE);
+		shadowSoftness.label = root.translate(Locale.FILM_SOFTNESS);
+		outsideWidth.label = root.translate(Locale.FILM_OUTSIDE);
+		insideWidth.label = root.translate(Locale.FILM_INSIDE);
+		bevel.label = root.translate(Locale.FILM_BEVEL);
+		bevelDepth.label = root.translate(Locale.FILM_DEPTH);
 
 		windowing.label = root.translate(Locale.FILM_WINDOWING) + ": "
 			+ root.translate(Windowing.NAMES[style.windowing]);
@@ -748,17 +833,54 @@ final class Styling extends Widget {
 			top += control + gap;
 		}
 
-		swap.arrange(left, top, wide, control);
+		if (swap.visible) {
+			swap.arrange(left, top, wide, control);
+			top += control + gap;
+		}
 
-		words.arrange(left, top, wide, control);
-		top += control + gap;
+		if (words.visible) {
+			words.arrange(left, top, wide, control);
+			top += control + gap;
 
-		font.arrange(left, top, wide, control);
-		top += control + gap;
+			font.arrange(left, top, wide, control);
+			top += control + gap;
 
-		fill.arrange(left, top, swatchSide, control);
-		border.arrange(left + swatchSide + gap, top, swatchSide, control);
-		borderWidth.arrange(left + (swatchSide + gap) * 2, top, wide - (swatchSide + gap) * 2, control);
+			fill.arrange(left, top, swatchSide, control);
+			border.arrange(left + swatchSide + gap, top, swatchSide, control);
+			borderWidth.arrange(left + (swatchSide + gap) * 2, top, wide - (swatchSide + gap) * 2, control);
+			top += control + gap;
+		}
+
+		headings[3] = top + gap;
+
+		if (shadow.visible) {
+			top += heading + gap;
+
+			labels[2] = top;
+			shadow.arrange(left + wide * 0.35, top, swatchSide, control);
+			shadowAlpha.arrange(left + wide * 0.35 + swatchSide + gap, top, wide * 0.65 - swatchSide - gap, control);
+			top += control + gap;
+
+			shadowAngle.arrange(left, top, half, control);
+			shadowDistance.arrange(left + half + gap, top, half, control);
+			top += control + gap;
+
+			shadowSoftness.arrange(left, top, half, control);
+			top += control + gap;
+
+			if (outside.visible) {
+				outside.arrange(left, top, swatchSide, control);
+				outsideWidth.arrange(left + swatchSide + gap, top, wide - swatchSide - gap, control);
+				top += control + gap;
+			}
+
+			inside.arrange(left, top, swatchSide, control);
+			insideWidth.arrange(left + swatchSide + gap, top, wide - swatchSide - gap, control);
+			top += control + gap;
+
+			bevel.arrange(left, top, half, control);
+			bevelDepth.arrange(left + half + gap, top, half, control);
+		}
 
 		var lowest = listTop + rowTall() * SHOWN;
 
@@ -771,8 +893,6 @@ final class Styling extends Widget {
 		if (scrolled > 0 && reach - height < scrolled) {
 			scrolled = reach - height < 0 ? 0 : reach - height;
 		}
-
-		headings[3] = 0;
 	}
 
 	override function paint(paint:Paint):Void {
@@ -796,6 +916,9 @@ final class Styling extends Widget {
 
 		if (layer != null) {
 			titled(paint, font, kindName(layer), left, headings[2]);
+			titled(paint, font, translate(Locale.FILM_EFFECTS), left, headings[3]);
+			paint.text(translate(Locale.FILM_SHADOW), left, labels[2] + (metrics.control - font.height) * 0.5
+				+ font.ascent, theme.dim, 0.9);
 		}
 
 		if (groundAlpha.visible) {
@@ -904,6 +1027,22 @@ final class Styling extends Widget {
 			studio.changed(true);
 		};
 		add(out);
+		return out;
+	}
+
+	/**
+		@param sets What to do to the chosen layer with each value, as a fraction of the picture's
+			height.
+		@return A number in pixels of the picture's height as the video is set to be made, which
+			writes a fraction of it into the chosen layer and settles, added to the panel.
+	**/
+	function pixels(sets:(Layer, Float) -> Void):Number {
+		final out = number(0, 1, "px", function(value:Int):Void {
+			final tall = studio.pictureTall < 1 ? 1 : studio.pictureTall;
+			chosenDo(function(layer:Layer):Void sets(layer, value / tall));
+		});
+
+		out.derived = function(value:Int):String return value + " px";
 		return out;
 	}
 
