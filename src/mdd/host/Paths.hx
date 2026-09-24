@@ -177,6 +177,16 @@ class Paths {
 	}
 
 	/**
+		Opens an address in the desktop's web browser.
+
+		@param address The address, whole.
+		@return Whether the desktop took it.
+	**/
+	public static function browse(address:String):Bool {
+		return address != "" && Sdl.openUrl(address) != 0;
+	}
+
+	/**
 		@param path A path.
 		@return It with every byte a URL cannot carry as it stands written as a percent
 			escape.

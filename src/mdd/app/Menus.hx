@@ -547,7 +547,10 @@ final class Menus {
 		final source = held.offer(new Choice(said(Locale.HELP_SOURCE)));
 
 		if (update.possible()) {
-			fired(source, function():Void session.say("https://github.com/" + Config.GITHUB));
+			fired(source, function():Void {
+				final address = "https://github.com/" + Config.GITHUB;
+				if (!mdd.host.Paths.browse(address)) session.say(address);
+			});
 		} else {
 			source.enabled = false;
 			source.reason = said(Locale.FILE_NO_UPDATE);
