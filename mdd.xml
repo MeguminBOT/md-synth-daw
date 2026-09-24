@@ -20,7 +20,7 @@
 
 	<!-- ==== APPLICATION ==== -->
 
-	<meta title="MD Synth DAW" short="mdd" version="0.7.0"
+	<meta title="MD Synth DAW" short="mdd" version="0.8.0"
 	      company="md-synth-daw"
 	      description="A hardware-aware DAW for the Sega Mega Drive" />
 
