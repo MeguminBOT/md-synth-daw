@@ -483,7 +483,8 @@ and the checks compare the live stream against the offline one on every run.
   can still be listened to at the top of the scale. It is heard and never written: what
   makes an exported file loud is the normalising in the export panel.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
-  curve.
+  curve. On Linux the devices listed are the keyboards and interfaces the kernel offers, read
+  directly, so a port that only a program running on the ALSA sequencer makes is not among them.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.

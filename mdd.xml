@@ -295,6 +295,7 @@
 	<link value="-framework CoreFoundation" if="mac" />
 	<link value="-framework CoreAudio"      if="mac" />
 	<link value="-framework AudioToolbox"   if="mac" />
+	<link value="-framework CoreMIDI"       if="mac" />
 
 	<!-- Windows links the vendored SDL3 and ships the DLL beside the binary. macOS and Linux
 	     link whatever the package manager installed, so the binary comes out naming an
