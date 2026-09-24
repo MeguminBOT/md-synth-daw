@@ -381,7 +381,8 @@ A VGM this application wrote therefore imports with its drums where they were.
   suffixes register with the desktop. With the program closed, it does not open a window: a small
   box asks about duplicates where there are any, then says what was imported, or what went wrong,
   and offers to open the program. With the program running, the file goes to it, and a sheet says
-  what was imported.
+  what was imported. On macOS the program always opens, because Finder hands it the file once it
+  is running rather than when it starts, and the file is imported the way a drop on the window is.
 - **A hit writes out as a wave file.** A converter preset's right-click menu writes what it plays
   at the rate it was recorded at, so you can take a hit into anything that edits sound and bring it
   back in.

@@ -6,7 +6,9 @@ extern "C" {
 #endif
 
 /**
- * @return Nonzero where this platform can register a file suffix at all.
+ * @return Nonzero where this platform can register a file suffix at run time. macOS answers
+ *     nought, because an application's types are declared in its bundle and registered when it
+ *     is installed, which the build writes into Info.plist.
  */
 int mdd_shell_supported(void);
 

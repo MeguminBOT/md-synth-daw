@@ -2110,31 +2110,48 @@ class Run {
 		out.add("\t<key>CFBundlePackageType</key><string>APPL</string>\n");
 		out.add("\t<key>NSHighResolutionCapable</key><true/>\n");
 
-		out.add("\t<key>CFBundleDocumentTypes</key>\n\t<array>\n\t\t<dict>\n");
-		out.add("\t\t\t<key>CFBundleTypeName</key><string>" + project.formatName
-			+ "</string>\n");
-		out.add("\t\t\t<key>CFBundleTypeRole</key><string>Editor</string>\n");
-		out.add("\t\t\t<key>LSHandlerRank</key><string>Owner</string>\n");
-		out.add("\t\t\t<key>CFBundleTypeIconFile</key><string>" + project.short
-			+ "</string>\n");
-		out.add("\t\t\t<key>LSItemContentTypes</key>\n\t\t\t<array><string>com."
-			+ project.company + "." + project.short + "." + project.formatSuffix
-			+ "</string></array>\n");
-		out.add("\t\t</dict>\n\t</array>\n");
+		final suffixes = [project.formatSuffix, project.presetSuffix, project.bankSuffix];
+		final names = [project.formatName, project.presetName, project.bankName];
+		final mimes = [project.formatMime, project.presetMime, project.bankMime];
 
-		out.add("\t<key>UTExportedTypeDeclarations</key>\n\t<array>\n\t\t<dict>\n");
-		out.add("\t\t\t<key>UTTypeIdentifier</key><string>com." + project.company + "."
-			+ project.short + "." + project.formatSuffix + "</string>\n");
-		out.add("\t\t\t<key>UTTypeDescription</key><string>" + project.formatName
-			+ "</string>\n");
-		out.add("\t\t\t<key>UTTypeConformsTo</key>\n\t\t\t<array>"
-			+ "<string>public.data</string><string>public.zip-archive</string></array>\n");
-		out.add("\t\t\t<key>UTTypeTagSpecification</key>\n\t\t\t<dict>\n");
-		out.add("\t\t\t\t<key>public.filename-extension</key>\n\t\t\t\t<array><string>"
-			+ project.formatSuffix + "</string></array>\n");
-		out.add("\t\t\t\t<key>public.mime-type</key>\n\t\t\t\t<array><string>"
-			+ project.formatMime + "</string></array>\n");
-		out.add("\t\t\t</dict>\n\t\t</dict>\n\t</array>\n");
+		out.add("\t<key>CFBundleDocumentTypes</key>\n\t<array>\n");
+
+		for (at in 0...suffixes.length) {
+			if (suffixes[at] == "") continue;
+
+			out.add("\t\t<dict>\n");
+			out.add("\t\t\t<key>CFBundleTypeName</key><string>" + names[at] + "</string>\n");
+			out.add("\t\t\t<key>CFBundleTypeRole</key><string>" + (at == 0 ? "Editor" : "Viewer")
+				+ "</string>\n");
+			out.add("\t\t\t<key>LSHandlerRank</key><string>Owner</string>\n");
+			out.add("\t\t\t<key>CFBundleTypeIconFile</key><string>" + project.short
+				+ "</string>\n");
+			out.add("\t\t\t<key>LSItemContentTypes</key>\n\t\t\t<array><string>com."
+				+ project.company + "." + project.short + "." + suffixes[at] + "</string></array>\n");
+			out.add("\t\t</dict>\n");
+		}
+
+		out.add("\t</array>\n");
+		out.add("\t<key>UTExportedTypeDeclarations</key>\n\t<array>\n");
+
+		for (at in 0...suffixes.length) {
+			if (suffixes[at] == "") continue;
+
+			out.add("\t\t<dict>\n");
+			out.add("\t\t\t<key>UTTypeIdentifier</key><string>com." + project.company + "."
+				+ project.short + "." + suffixes[at] + "</string>\n");
+			out.add("\t\t\t<key>UTTypeDescription</key><string>" + names[at] + "</string>\n");
+			out.add("\t\t\t<key>UTTypeConformsTo</key>\n\t\t\t<array><string>public.data</string>"
+				+ (at == 0 ? "<string>public.zip-archive</string>" : "") + "</array>\n");
+			out.add("\t\t\t<key>UTTypeTagSpecification</key>\n\t\t\t<dict>\n");
+			out.add("\t\t\t\t<key>public.filename-extension</key>\n\t\t\t\t<array><string>"
+				+ suffixes[at] + "</string></array>\n");
+			out.add("\t\t\t\t<key>public.mime-type</key>\n\t\t\t\t<array><string>"
+				+ mimes[at] + "</string></array>\n");
+			out.add("\t\t\t</dict>\n\t\t</dict>\n");
+		}
+
+		out.add("\t</array>\n");
 
 		out.add("</dict>\n</plist>\n");
 
