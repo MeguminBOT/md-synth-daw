@@ -336,7 +336,7 @@
   "limits.releaseFix": "Gdy patch wzięty z gry brzmi dalej po swoim dźwięku, zwiększ jego tempo release.",
   "limits.releaseTitle": "Release, którego nigdy nie słychać",
   "limits.sampleBody": "Każdy sampel jest zapisany na kartridżu, a XGM przelicza je na 14000 Hz, trzyma 63 i miksuje najwyżej cztery naraz. Cztery uderzenia perkusji z Sonic the Hedgehog, odzyskane z nagrania ścieżki dźwiękowej, zajmują 40 744 bajty.",
-  "limits.sampleFix": "Trzymaj uderzenia krótkie i ich częstotliwość niską, i graj jedno uderzenie na innej wysokości zamiast zapisywać drugie.",
+  "limits.sampleFix": "Trzymaj uderzenia krótkie i ich częstotliwość niską, a hi-haty i talerze oddaj kanałowi szumu, który w ogóle nie potrzebuje sampli.",
   "limits.sampleTitle": "Sample zajmują miejsce na kartridżu",
   "limits.squareBody": "Kanały prostokątne nie schodzą niżej niż około 109 Hz, nieco poniżej A2, a kanał szumu ma tylko trzy własne szybkości.",
   "limits.squareFix": "Bas zostaw FM. Dla strojonego szumu, na przykład werbla z wysokością, wycisz trzeci kanał prostokątny i pozwól szumowi przejąć jego wysokość.",

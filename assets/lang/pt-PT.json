@@ -336,7 +336,7 @@
   "limits.releaseFix": "Quando um patch tirado de um jogo continua a soar depois da nota, aumente a taxa de release.",
   "limits.releaseTitle": "Um release que nunca se ouve",
   "limits.sampleBody": "Cada sample fica guardado no cartucho, e um XGM reamostra-os para 14000 Hz, guarda 63 e mistura no máximo quatro ao mesmo tempo. Os quatro sons de bateria de Sonic the Hedgehog, recuperados de uma gravação da banda sonora, somam 40 744 bytes.",
-  "limits.sampleFix": "Mantenha os sons curtos e a taxa baixa, e toque o mesmo som noutra altura em vez de guardar um segundo.",
+  "limits.sampleFix": "Mantenha os sons curtos e a taxa baixa, e deixe os pratos de choque e os pratos com o canal de ruído, que não precisa de sample nenhum.",
   "limits.sampleTitle": "Os samples ocupam espaço no cartucho",
   "limits.squareBody": "Os canais quadrados não descem abaixo de cerca de 109 Hz, pouco abaixo de A2, e o canal de ruído tem apenas três velocidades próprias.",
   "limits.squareFix": "Deixe o baixo ao FM. Para um ruído afinado, como uma tarola com altura, silencie o terceiro quadrado e deixe o ruído usar a altura dele.",

@@ -336,7 +336,7 @@
   "limits.releaseFix": "Klingt ein Patch aus einem Spiel nach seinem Ton weiter, erhöhe seine Release-Rate.",
   "limits.releaseTitle": "Ein Release, das nie zu hören ist",
   "limits.sampleBody": "Jedes Sample liegt im Modul, und ein XGM rechnet sie auf 14000 Hz um, hält 63 davon und mischt höchstens vier zugleich. Die vier Drum-Hits von Sonic the Hedgehog, aus einer Aufnahme des Soundtracks gewonnen, kommen auf 40.744 Bytes.",
-  "limits.sampleFix": "Halte Hits kurz und ihre Rate niedrig, und spiel einen Hit lieber in anderer Tonhöhe, als einen zweiten zu speichern.",
+  "limits.sampleFix": "Halte Hits kurz und ihre Rate niedrig, und gib Hi-Hats und Becken dem Rauschkanal, der überhaupt kein Sample braucht.",
   "limits.sampleTitle": "Samples kosten Platz im Modul",
   "limits.squareBody": "Die Rechteckkanäle reichen nicht tiefer als etwa 109 Hz, knapp unter A2, und der Rauschkanal hat nur drei eigene Geschwindigkeiten.",
   "limits.squareFix": "Überlass den Bass dem FM. Für gestimmtes Rauschen, etwa eine gestimmte Snare, schalte das dritte Rechteck stumm und lass das Rauschen dessen Tonhöhe nehmen.",

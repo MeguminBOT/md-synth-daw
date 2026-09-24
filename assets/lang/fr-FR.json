@@ -336,7 +336,7 @@
   "limits.releaseFix": "Si un patch tiré d'un jeu résonne encore après sa note, augmentez son taux de release.",
   "limits.releaseTitle": "Un release qu'on n'entend jamais",
   "limits.sampleBody": "Chaque échantillon est stocké dans la cartouche, et un XGM les rééchantillonne à 14000 Hz, en garde 63 et en mixe au plus quatre à la fois. Les quatre frappes de batterie de Sonic the Hedgehog, récupérées d'un enregistrement de la bande-son, font 40 744 octets.",
-  "limits.sampleFix": "Gardez les frappes courtes et leur fréquence basse, et jouez une frappe à une autre hauteur plutôt que d'en stocker une deuxième.",
+  "limits.sampleFix": "Gardez les frappes courtes et leur fréquence basse, et confiez charleston et cymbales à la voie de bruit, qui n'a besoin d'aucun échantillon.",
   "limits.sampleTitle": "Les échantillons coûtent de la place",
   "limits.squareBody": "Les voies carrées ne descendent pas sous environ 109 Hz, un peu sous le la 2, et la voie de bruit n'a que trois vitesses propres.",
   "limits.squareFix": "Laissez la basse à la FM. Pour un bruit accordé, comme une caisse claire accordée, coupez le troisième carré et laissez le bruit prendre sa hauteur.",
