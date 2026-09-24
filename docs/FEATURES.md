@@ -330,13 +330,18 @@ A VGM this application wrote therefore imports with its drums where they were.
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
-- **The bank every piece opens with is Default**, 131 presets: ulalume's 67 and 64 lifted out of
+- **The bank every piece opens with is Default**, 140 presets: ulalume's 67 and 64 lifted out of
   the finished pieces this program was written alongside, 35 FM patches, 14 square envelopes and
   15 noise ones. Leads,
   basses, pads, plucks, bells, organs, guitars, brass and strings for the FM channels; hats,
   crashes, rides, sweeps and shakers for the square and noise ones. Each is named for what it is
   for and tagged with what it is good for, `Bass`, `Pad`, `Bright`, `Hard`, so a search on a use
   finds everything that serves it.
+- **Nine of the Default presets move on every note**, and `tag:moving` finds them: a gabber, a
+  frenchcore and a hardstyle kick, each dropping several octaves onto its note in a tenth of a
+  second, a hardstyle screech that scoops into the note and pulses on the beat, a phasing reese, a
+  talking growl and a wobble that follow the tempo, and a chip kick and a laser for the squares.
+  Open one in the automation editor on the channel's preset to see how it moves, and change it.
 - Seven drum kits ship for the converter, named for the music they suit. One is thirteen hits
   synthesised rather than recorded: a kick, a snare, three toms, closed, pedal and open hats, a
   clap, a rim, a crash, a ride and a cowbell. **808** is ten hits in the manner of that machine.

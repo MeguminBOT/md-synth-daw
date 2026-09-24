@@ -46,6 +46,7 @@ class PresetCheck {
 		identified();
 		released();
 		laned();
+		movesShipped();
 		recorded(Gate.root);
 		carriedOver(Gate.root);
 		loaded();
@@ -243,7 +244,7 @@ class PresetCheck {
 
 		for (held in (at < 0 ? [] : library.instruments[at])) bank.push(held.name);
 
-		says("and the bank it opens with is the one that ships", bank.length == 131
+		says("and the bank it opens with is the one that ships", bank.length == 140
 			&& bank.indexOf("Lead guitar") >= 0 && bank.indexOf("Bounce bass") < 0,
 			bank.length + " presets in " + Library.STARTERS
 			+ ", named for what they are for");
@@ -466,6 +467,58 @@ class PresetCheck {
 			&& !Library.sounds(kick, copied) && kick.lanes[0].points[1].at == 60,
 			"the kick answers " + moving.substr(0, 8) + " against " + plain.substr(0, 8)
 			+ " standing still, and a copy with a longer drop is another sound");
+	}
+
+	/**
+		Every Default preset that moves on its notes writes more to the chip over a note than the
+		same preset standing still.
+	**/
+	static function movesShipped():Void {
+		final library = Library.embedded();
+		final at = library.names.indexOf(Library.STARTERS);
+		final still:Array<String> = [];
+		var moving = 0;
+
+		for (held in (at < 0 ? [] : library.instruments[at])) {
+			if (held.moves() == 0) continue;
+
+			moving++;
+
+			final standing = held.copy();
+			standing.lanes.resize(0);
+
+			if (playedBy(held) <= playedBy(standing)) still.push(held.name);
+		}
+
+		says("the shipped presets that move, move", moving == 9 && still.length == 0,
+			moving + " Default presets move on every note, and "
+			+ (still.length == 0 ? "each writes more than its patch standing still" : still.join(", ")
+			+ " write no more than standing still"));
+	}
+
+	/**
+		@param held A preset.
+		@return How many writes two notes of it make, a beat apart, on the first part it plays.
+	**/
+	static function playedBy(held:Instrument):Int {
+		final song = new Song("moves", 96, 150);
+		final made = held.copy();
+
+		if (made.patch != null) made.patch.rests();
+		song.instrument(made);
+
+		final part = made.kind.fm() ? Part.Fm1 : (made.kind.noise() ? Part.Noise : Part.Psg1);
+		final pattern = song.add(new mdd.song.Pattern("p", 96 * 4));
+
+		song.rack[part.index()] = 0;
+		pattern.lane(part).add(new mdd.song.Note(0, 96, 48, 127, 0));
+		pattern.lane(part).add(new mdd.song.Note(192, 96, 48, 127, 0));
+		song.track(new mdd.song.Track("t")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final stream = new mdd.play.Stream(1 << 18);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		return stream.count;
 	}
 
 	/**
@@ -722,7 +775,7 @@ class PresetCheck {
 			+ (missing == "" ? "" : ", missing " + missing));
 
 		says("and only the starting bank is compiled in", compiled.names.length == 1
-			&& compiled.names[0] == Library.STARTERS && compiled.count() == 131,
+			&& compiled.names[0] == Library.STARTERS && compiled.count() == 140,
 			compiled.count() + " presets in " + compiled.names.join(", ") + " inside the program, "
 			+ inside + " bytes, and every other bank beside it");
 

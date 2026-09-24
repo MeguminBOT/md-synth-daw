@@ -3281,6 +3281,995 @@
           "noise": 4
         }
       }
+    },
+    {
+      "instrument": {
+        "name": "Gabber kick",
+        "kind": 0,
+        "sample": -1,
+        "icon": 52,
+        "tags": [
+          "Kick",
+          "Hard",
+          "Distorted",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 22,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 60,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 26,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 2,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 3,
+              "sustain": 5,
+              "sustainLevel": 2,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 3600,
+                "shape": 2,
+                "tension": -70
+              },
+              {
+                "at": 110,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 2,
+            "points": [
+              {
+                "at": 0,
+                "value": -4,
+                "shape": 1
+              },
+              {
+                "at": 300,
+                "value": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Frenchcore kick",
+        "kind": 0,
+        "sample": -1,
+        "icon": 52,
+        "tags": [
+          "Kick",
+          "Hard",
+          "Distorted",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 32,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 58,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 2,
+              "sustainLevel": 1,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 2,
+              "sustain": 4,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 4800,
+                "shape": 2,
+                "tension": -80
+              },
+              {
+                "at": 35,
+                "value": 800,
+                "shape": 2,
+                "tension": -40
+              },
+              {
+                "at": 140,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 9,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 42
+              },
+              {
+                "at": 50,
+                "value": 18
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Hardstyle kick",
+        "kind": 0,
+        "sample": -1,
+        "icon": 52,
+        "tags": [
+          "Kick",
+          "Hard",
+          "Punchy",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 2,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 45,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 20,
+              "sustain": 0,
+              "sustainLevel": 15,
+              "release": 12,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 70,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 1,
+              "sustainLevel": 0,
+              "release": 6,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 1,
+              "sustain": 3,
+              "sustainLevel": 1,
+              "release": 5,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 4200,
+                "shape": 2,
+                "tension": -85
+              },
+              {
+                "at": 12,
+                "value": 1600,
+                "shape": 2,
+                "tension": -50
+              },
+              {
+                "at": 70,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 2,
+            "points": [
+              {
+                "at": 0,
+                "value": 40
+              },
+              {
+                "at": 60,
+                "value": 40,
+                "shape": 2,
+                "tension": -30
+              },
+              {
+                "at": 170,
+                "value": -4
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Hardstyle screech",
+        "kind": 0,
+        "sample": -1,
+        "icon": 23,
+        "tags": [
+          "Lead",
+          "Hard",
+          "Screech",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 1,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 3,
+              "multiple": 5,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 22,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 7,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "loop": 1,
+            "points": [
+              {
+                "at": 0,
+                "value": -500,
+                "shape": 2,
+                "tension": -50
+              },
+              {
+                "at": 70,
+                "value": 0,
+                "shape": 8
+              },
+              {
+                "at": 135,
+                "value": 35,
+                "shape": 8
+              },
+              {
+                "at": 200,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 2,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 0,
+                "shape": 8
+              },
+              {
+                "at": 120,
+                "value": 14,
+                "shape": 8
+              },
+              {
+                "at": 240,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 10,
+                "shape": 1
+              },
+              {
+                "at": 300,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Phasing reese",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Bass",
+          "Dark",
+          "Reese",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 4,
+          "feedback": 5,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 28,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 1,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 5,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 3,
+            "slot": 3,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 113
+              },
+              {
+                "at": 240,
+                "value": 97
+              },
+              {
+                "at": 480,
+                "value": 81
+              },
+              {
+                "at": 720,
+                "value": 1
+              },
+              {
+                "at": 960,
+                "value": 17
+              },
+              {
+                "at": 1200,
+                "value": 33
+              },
+              {
+                "at": 1440,
+                "value": 49
+              },
+              {
+                "at": 1680,
+                "value": 33
+              },
+              {
+                "at": 1920,
+                "value": 17
+              },
+              {
+                "at": 2160,
+                "value": 1
+              },
+              {
+                "at": 2400,
+                "value": 81
+              },
+              {
+                "at": 2640,
+                "value": 97
+              },
+              {
+                "at": 2880,
+                "value": 113
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 2,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 8,
+                "shape": 8
+              },
+              {
+                "at": 1920,
+                "value": -4,
+                "shape": 8
+              },
+              {
+                "at": 3840,
+                "value": 8
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Talking growl",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Bass",
+          "Hard",
+          "Growl",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 2,
+          "feedback": 6,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 3,
+              "totalLevel": 40,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 2,
+              "totalLevel": 30,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": -1200,
+                "shape": 2,
+                "tension": -60
+              },
+              {
+                "at": 60,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 2,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 16,
+                "shape": 3
+              },
+              {
+                "at": 240,
+                "value": -6,
+                "shape": 3
+              },
+              {
+                "at": 480,
+                "value": 16
+              }
+            ]
+          },
+          {
+            "target": 0,
+            "slot": 0,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": -4,
+                "shape": 3
+              },
+              {
+                "at": 120,
+                "value": 14,
+                "shape": 3
+              },
+              {
+                "at": 240,
+                "value": -4
+              }
+            ]
+          },
+          {
+            "target": 9,
+            "slot": 0,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 50
+              },
+              {
+                "at": 240,
+                "value": 58
+              },
+              {
+                "at": 480,
+                "value": 42
+              },
+              {
+                "at": 720,
+                "value": 58
+              },
+              {
+                "at": 960,
+                "value": 50
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Synced wobble",
+        "kind": 0,
+        "sample": -1,
+        "icon": 31,
+        "tags": [
+          "Bass",
+          "Wobble",
+          "Moving"
+        ],
+        "patch": {
+          "algorithm": 0,
+          "feedback": 4,
+          "ams": 0,
+          "pms": 0,
+          "slots": [
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 36,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 34,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 20,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            },
+            {
+              "detune": 0,
+              "multiple": 1,
+              "totalLevel": 0,
+              "keyScale": 0,
+              "attack": 31,
+              "decay": 0,
+              "sustain": 0,
+              "sustainLevel": 0,
+              "release": 8,
+              "ssg": 0,
+              "tremolo": false
+            }
+          ]
+        },
+        "lanes": [
+          {
+            "target": 0,
+            "slot": 2,
+            "synced": true,
+            "loop": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 40,
+                "shape": 8
+              },
+              {
+                "at": 240,
+                "value": 0,
+                "shape": 8
+              },
+              {
+                "at": 480,
+                "value": 40
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Chip kick",
+        "kind": 6,
+        "sample": -1,
+        "icon": 52,
+        "tags": [
+          "Kick",
+          "Percussion",
+          "Moving"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            1,
+            2,
+            4,
+            6,
+            9,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 1,
+          "noise": 4
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 2400,
+                "shape": 2,
+                "tension": -70
+              },
+              {
+                "at": 60,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "instrument": {
+        "name": "Laser",
+        "kind": 6,
+        "sample": -1,
+        "icon": 13,
+        "tags": [
+          "Effect",
+          "Sweep",
+          "Moving"
+        ],
+        "envelope": {
+          "steps": [
+            0,
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            12,
+            15
+          ],
+          "loop": -1,
+          "speed": 2,
+          "noise": 4
+        },
+        "lanes": [
+          {
+            "target": 11,
+            "slot": 0,
+            "points": [
+              {
+                "at": 0,
+                "value": 1200,
+                "shape": 2,
+                "tension": -40
+              },
+              {
+                "at": 250,
+                "value": -2400
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
