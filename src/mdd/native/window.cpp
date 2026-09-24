@@ -18,6 +18,16 @@
 #include <windows.h>
 #endif
 
+#if defined(__APPLE__)
+#include <objc/message.h>
+#include <objc/objc.h>
+#include <objc/runtime.h>
+#elif defined(__linux__) && !defined(__ANDROID__)
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#endif
+
 /**
  * The calling convention vulkan's entry points use, which is only different from the
  * default on 32 bit Windows.
@@ -318,13 +328,92 @@ extern "C" void mdd_clear_clip(SDL_Renderer *renderer) {
 	if (renderer != nullptr) SDL_SetRenderClipRect(renderer, nullptr);
 }
 
+#if defined(__linux__) && !defined(__ANDROID__)
+
+/**
+ * Runs a command and keeps the start of what it prints.
+ *
+ * @param command The command, for the shell, its errors sent nowhere.
+ * @param out Where what it printed goes, always ended.
+ * @param room How many bytes out holds.
+ * @return Nonzero where it printed anything.
+ */
+static int mdd_asked(const char *command, char *out, int room) {
+	out[0] = 0;
+
+	FILE *pipe = popen(command, "r");
+	if (pipe == nullptr) return 0;
+
+	const size_t held = fread(out, 1, (size_t)(room - 1), pipe);
+	pclose(pipe);
+
+	out[held] = 0;
+	return held > 0 ? 1 : 0;
+}
+
+/**
+ * @return Nonzero where KDE's animation speed is set to nought, which is how it turns them off,
+ *     and -1 where it says nothing.
+ */
+static int mdd_reduce_motion_kde(void) {
+	char said[64];
+
+	if (!mdd_asked("kreadconfig6 --group KDE --key AnimationDurationFactor 2>/dev/null", said, sizeof(said))
+			&& !mdd_asked("kreadconfig5 --group KDE --key AnimationDurationFactor 2>/dev/null", said,
+				sizeof(said))) {
+		return -1;
+	}
+
+	char *end = nullptr;
+	const double factor = std::strtod(said, &end);
+
+	return end == said ? -1 : (factor <= 0 ? 1 : 0);
+}
+
+/**
+ * @return Nonzero where GNOME's animations are turned off, and -1 where it says nothing.
+ */
+static int mdd_reduce_motion_gnome(void) {
+	char said[64];
+
+	if (!mdd_asked("gsettings get org.gnome.desktop.interface enable-animations 2>/dev/null", said,
+			sizeof(said))) {
+		return -1;
+	}
+
+	if (std::strncmp(said, "false", 5) == 0) return 1;
+	if (std::strncmp(said, "true", 4) == 0) return 0;
+
+	return -1;
+}
+
+#endif
+
 extern "C" int mdd_reduce_motion(void) {
-#ifdef _WIN32
+#if defined(_WIN32)
 	BOOL animate = TRUE;
 	if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animate, 0) != 0) {
 		return animate != FALSE ? 0 : 1;
 	}
 	return 0;
+#elif defined(__APPLE__)
+	Class workspace = objc_getClass("NSWorkspace");
+	if (workspace == nullptr) return 0;
+
+	id shared = ((id (*)(Class, SEL))objc_msgSend)(workspace, sel_registerName("sharedWorkspace"));
+	SEL asks = sel_registerName("accessibilityDisplayShouldReduceMotion");
+
+	if (shared == nullptr || !class_respondsToSelector(object_getClass(shared), asks)) return 0;
+
+	return ((BOOL (*)(id, SEL))objc_msgSend)(shared, asks) ? 1 : 0;
+#elif defined(__linux__) && !defined(__ANDROID__)
+	const char *desktop = std::getenv("XDG_CURRENT_DESKTOP");
+	const bool kde = desktop != nullptr && std::strstr(desktop, "KDE") != nullptr;
+
+	int said = kde ? mdd_reduce_motion_kde() : mdd_reduce_motion_gnome();
+	if (said < 0) said = kde ? mdd_reduce_motion_gnome() : mdd_reduce_motion_kde();
+
+	return said > 0 ? 1 : 0;
 #else
 	return 0;
 #endif

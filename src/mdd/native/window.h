@@ -264,6 +264,11 @@ void mdd_set_clip(SDL_Renderer *renderer, int x, int y, int width, int height);
 void mdd_clear_clip(SDL_Renderer *renderer);
 
 /**
+ * Asks the desktop whether it wants less motion: the client area animation setting on Windows,
+ * the accessibility setting on macOS, and on Linux KDE's animation speed or GNOME's animations
+ * switch, whichever desktop is running first. Linux runs a command for it, so it is asked once
+ * rather than every frame.
+ *
  * @return Nonzero where the desktop asks for reduced motion.
  */
 int mdd_reduce_motion(void);
