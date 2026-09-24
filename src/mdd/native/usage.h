@@ -32,14 +32,19 @@ extern "C" double mdd_usage_ram();
 extern "C" double mdd_usage_peak();
 
 /**
- * @return Graphics memory held, in megabytes, or a negative number where it cannot be measured.
+ * How busy the graphics device is: for this process on Windows and Linux, and for the whole device
+ * on macOS, which keeps no figure for one process. Linux works it out between two calls, so the
+ * first answers nought.
+ *
+ * @return Percent, or a negative number where it cannot be measured.
  */
 extern "C" double mdd_usage_gpu();
 
 /**
  * Graphics memory this process has to itself, which is what the interface's glyph
  * atlases and render targets sit in. Approximate: the counter is per process and
- * what a driver reports against it is its own business.
+ * what a driver reports against it is its own business. On macOS it is what the whole
+ * device has in use.
  *
  * @return Megabytes held, or a negative number where it cannot be measured.
  */

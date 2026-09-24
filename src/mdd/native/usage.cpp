@@ -4,6 +4,12 @@
  * Processor use is a difference of two readings rather than an instant, so the first
  * call after starting answers nothing useful and the ones after it are a mean over the
  * gap.
+ *
+ * The graphics figures are this process's own on Windows, through the performance counters,
+ * and on Linux, through what the kernel's graphics driver writes about each client in
+ * /proc/self/fdinfo, which amdgpu, i915, xe and nvidia do and a driver without it answers
+ * nothing. macOS keeps no figure for one process, so there they are the whole device's, read
+ * from the accelerator's own statistics.
  */
 #include "usage.h"
 
@@ -193,9 +199,16 @@ extern "C" double mdd_usage_gpu() {
 #include <sys/time.h>
 #include <unistd.h>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #ifdef __APPLE__
 #include <mach/mach.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+#elif defined(__linux__) && !defined(__ANDROID__)
+#include <dirent.h>
 #endif
 
 static double heldBusy = 0;
@@ -285,6 +298,247 @@ extern "C" double mdd_usage_peak() {
 #endif
 }
 
+#if defined(__APPLE__)
+
+/**
+ * @param from A dictionary.
+ * @param key A key in it.
+ * @param into Where the number it holds goes.
+ * @return Whether it holds a number.
+ */
+static bool mdd_usage_number(CFDictionaryRef from, CFStringRef key, double *into) {
+	const void *held = CFDictionaryGetValue(from, key);
+	if (held == nullptr || CFGetTypeID(held) != CFNumberGetTypeID()) return false;
+
+	return CFNumberGetValue((CFNumberRef)held, kCFNumberDoubleType, into);
+}
+
+/**
+ * Reads the first graphics accelerator that keeps statistics: how busy it is, in percent, and how
+ * much memory it has in use, in bytes, -1 for either it does not say.
+ *
+ * @param busy Where how busy it is goes.
+ * @param memory Where the memory in use goes.
+ * @return Whether an accelerator answered at all.
+ */
+static bool mdd_usage_accelerator(double *busy, double *memory) {
+	*busy = -1;
+	*memory = -1;
+
+	io_iterator_t found = 0;
+
+	if (IOServiceGetMatchingServices(MACH_PORT_NULL, IOServiceMatching("IOAccelerator"), &found)
+			!= KERN_SUCCESS) {
+		return false;
+	}
+
+	bool answered = false;
+	io_object_t service = 0;
+
+	while (!answered && (service = IOIteratorNext(found)) != 0) {
+		CFMutableDictionaryRef properties = nullptr;
+
+		if (IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0)
+				== KERN_SUCCESS && properties != nullptr) {
+			const void *held = CFDictionaryGetValue(properties, CFSTR("PerformanceStatistics"));
+
+			if (held != nullptr && CFGetTypeID(held) == CFDictionaryGetTypeID()) {
+				const CFDictionaryRef stats = (CFDictionaryRef)held;
+				double value = 0;
+
+				if (mdd_usage_number(stats, CFSTR("Device Utilization %"), &value)) {
+					*busy = value;
+					answered = true;
+				}
+
+				if (mdd_usage_number(stats, CFSTR("In use system memory"), &value)
+						|| mdd_usage_number(stats, CFSTR("vramUsedBytes"), &value)) {
+					*memory = value;
+					answered = true;
+				}
+			}
+
+			CFRelease(properties);
+		}
+
+		IOObjectRelease(service);
+	}
+
+	IOObjectRelease(found);
+	return answered;
+}
+
+extern "C" double mdd_usage_gpu() {
+	double busy = -1;
+	double memory = -1;
+
+	if (!mdd_usage_accelerator(&busy, &memory) || busy < 0) return -1;
+
+	return busy > 100 ? 100 : busy;
+}
+
+extern "C" double mdd_usage_vram() {
+	double busy = -1;
+	double memory = -1;
+
+	if (!mdd_usage_accelerator(&busy, &memory) || memory < 0) return -1;
+
+	return memory / (1024.0 * 1024.0);
+}
+
+#elif defined(__linux__) && !defined(__ANDROID__)
+
+/**
+ * The most graphics clients of this process told apart, which is far more than one renderer
+ * opens.
+ */
+#define MDD_USAGE_CLIENTS 64
+
+static double heldEngines = -1;
+static double heldEngineWall = 0;
+static double heldGpu = -1;
+
+/**
+ * @param line A line of fdinfo, from the colon on.
+ * @return The size it gives in bytes, reading a unit of KiB, MiB or GiB after the number.
+ */
+static double mdd_usage_bytes(const char *line) {
+	char *end = nullptr;
+	const double much = std::strtod(line, &end);
+
+	if (end == nullptr) return much;
+	while (*end == ' ' || *end == '\t') end++;
+
+	if (std::strncmp(end, "KiB", 3) == 0) return much * 1024.0;
+	if (std::strncmp(end, "MiB", 3) == 0) return much * 1024.0 * 1024.0;
+	if (std::strncmp(end, "GiB", 3) == 0) return much * 1024.0 * 1024.0 * 1024.0;
+
+	return much;
+}
+
+/**
+ * Reads every graphics client this process holds, each once however many descriptors reach it:
+ * the nanoseconds its engines have been busy, added up, and the video memory resident in it.
+ *
+ * @param engines Where the busy nanoseconds go.
+ * @param memory Where the bytes of video memory go.
+ * @return How many clients there were, nought where the driver writes none of this.
+ */
+static int mdd_usage_clients(double *engines, double *memory) {
+	*engines = 0;
+	*memory = 0;
+
+	DIR *folder = opendir("/proc/self/fdinfo");
+	if (folder == nullptr) return 0;
+
+	unsigned long seen[MDD_USAGE_CLIENTS];
+	int clients = 0;
+	char path[64];
+	char line[256];
+	struct dirent *entry = nullptr;
+
+	while ((entry = readdir(folder)) != nullptr) {
+		if (entry->d_name[0] == '.') continue;
+
+		std::snprintf(path, sizeof(path), "/proc/self/fdinfo/%s", entry->d_name);
+
+		FILE *file = std::fopen(path, "r");
+		if (file == nullptr) continue;
+
+		bool drawn = false;
+		bool named = false;
+		unsigned long client = 0;
+		double busy = 0;
+		double resident = 0;
+		double older = 0;
+
+		while (std::fgets(line, sizeof(line), file) != nullptr) {
+			const char *colon = std::strchr(line, ':');
+			if (colon == nullptr) continue;
+
+			if (std::strncmp(line, "drm-driver:", 11) == 0) {
+				drawn = true;
+			} else if (std::strncmp(line, "drm-client-id:", 14) == 0) {
+				client = std::strtoul(colon + 1, nullptr, 10);
+				named = true;
+			} else if (std::strncmp(line, "drm-engine-", 11) == 0
+					&& std::strncmp(line + 11, "capacity-", 9) != 0) {
+				busy += std::strtod(colon + 1, nullptr);
+			} else if (std::strncmp(line, "drm-resident-vram", 17) == 0
+					|| std::strncmp(line, "drm-resident-local", 18) == 0) {
+				resident += mdd_usage_bytes(colon + 1);
+			} else if (std::strncmp(line, "drm-memory-vram", 15) == 0) {
+				older += mdd_usage_bytes(colon + 1);
+			}
+		}
+
+		std::fclose(file);
+
+		if (!drawn) continue;
+
+		bool again = false;
+
+		if (named) {
+			for (int at = 0; at < clients && at < MDD_USAGE_CLIENTS; at++) {
+				if (seen[at] == client) again = true;
+			}
+		}
+
+		if (again) continue;
+
+		if (clients < MDD_USAGE_CLIENTS) seen[clients] = client;
+		clients++;
+
+		*engines += busy;
+		*memory += resident > 0 ? resident : older;
+	}
+
+	closedir(folder);
+	return clients;
+}
+
+/**
+ * @return A monotonic clock, in nanoseconds.
+ */
+static double mdd_usage_ticking() {
+	struct timespec held;
+	clock_gettime(CLOCK_MONOTONIC, &held);
+
+	return held.tv_sec * 1000000000.0 + held.tv_nsec;
+}
+
+extern "C" double mdd_usage_gpu() {
+	double engines = 0;
+	double memory = 0;
+
+	if (mdd_usage_clients(&engines, &memory) == 0) return -1;
+
+	const double now = mdd_usage_ticking();
+
+	if (heldEngines >= 0 && now > heldEngineWall && engines >= heldEngines) {
+		heldGpu = (engines - heldEngines) / (now - heldEngineWall) * 100.0;
+
+		if (heldGpu < 0) heldGpu = 0;
+		if (heldGpu > 100) heldGpu = 100;
+	}
+
+	heldEngines = engines;
+	heldEngineWall = now;
+
+	return heldGpu < 0 ? 0 : heldGpu;
+}
+
+extern "C" double mdd_usage_vram() {
+	double engines = 0;
+	double memory = 0;
+
+	if (mdd_usage_clients(&engines, &memory) == 0) return -1;
+
+	return memory / (1024.0 * 1024.0);
+}
+
+#else
+
 extern "C" double mdd_usage_gpu() {
 	return -1;
 }
@@ -292,5 +546,7 @@ extern "C" double mdd_usage_gpu() {
 extern "C" double mdd_usage_vram() {
 	return -1;
 }
+
+#endif
 
 #endif

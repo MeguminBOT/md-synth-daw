@@ -43,8 +43,11 @@ extern class Usage {
 	public static function peak():Float;
 
 	/**
-		@return Graphics memory held, in megabytes, or a negative number where it cannot be
-			measured.
+		How busy the graphics device is: for this process on Windows and Linux, and for the whole
+		device on macOS, which keeps no figure for one process. Linux works it out between two
+		calls, so the first answers nought.
+
+		@return Percent, or a negative number where it cannot be measured.
 	**/
 	@:native("mdd_usage_gpu")
 	public static function gpu():Float;
@@ -52,7 +55,7 @@ extern class Usage {
 	/**
 		Graphics memory this process has to itself, which is what the glyph atlases and the
 		render targets sit in. Approximate: the counter is per process and what a driver
-		reports against it is its own business.
+		reports against it is its own business. On macOS it is what the whole device has in use.
 
 		@return Megabytes held, or a negative number where it cannot be measured.
 	**/
