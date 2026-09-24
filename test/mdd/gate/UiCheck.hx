@@ -9,6 +9,7 @@ import mdd.host.Texture;
 import mdd.host.Window;
 import mdd.ui.control.Button;
 import mdd.ui.control.Choice;
+import mdd.ui.control.Dropdown;
 import mdd.ui.control.Field;
 import mdd.ui.Flow;
 import mdd.ui.Font;
@@ -127,6 +128,7 @@ class UiCheck {
 		motions();
 		trees();
 		menus(renderer, target, face, monoFace);
+		dropdowns(renderer, face, monoFace);
 		tooltips(renderer, face, monoFace);
 		bars(renderer, face, monoFace);
 		shortcuts();
@@ -2042,6 +2044,114 @@ class UiCheck {
 
 		says("zone reduced", still.zone(Shell.RAIL).width == 24 && quiet.animating() == 0,
 			"snaps to " + still.zone(Shell.RAIL).width + " with motion reduced");
+	}
+
+	/**
+		A dropdown opens its whole list under it with the chosen entry ticked, takes the entry chosen
+		from it, steps through it from the wheel and the keyboard without opening it, and keeps one
+		width whichever entry it shows.
+
+		@param renderer What the fonts are baked for.
+		@param face The body font.
+		@param monoFace The monospaced font.
+	**/
+	static function dropdowns(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {
+		final body = Font.bake(renderer, face, 13);
+		final mono = Font.bake(renderer, monoFace, 12);
+
+		if (body == null || mono == null) {
+			says("a dropdown opens its list", false, "the fonts would not bake");
+			return;
+		}
+
+		final metrics = new Metrics(1);
+		metrics.dress(body, body, mono, mono, body);
+
+		final top = new Widget();
+		final root = new Root(top, metrics, new Theme());
+		root.flow = Flow.None;
+		root.resize(400, 300);
+		top.arrange(0, 0, 400, 300);
+
+		final names = ["Off", "3.98 Hz", "72.2 Hz"];
+		final rate = new Dropdown("LFO", 0, names.length);
+		var changes = 0;
+
+		rate.named = function(value:Int):String return names[value];
+		rate.onChange = function(from:Dropdown):Void changes++;
+
+		top.add(rate);
+		rate.measure(400, 28);
+		rate.arrange(20, 20, rate.wantWidth, 28);
+
+		final wide = rate.wantWidth;
+
+		root.pressed(30, 30, Pointer.Left, Mod.None);
+		root.released(30, 30, Pointer.Left, Mod.None);
+
+		final list = root.popups.length == 1 ? root.popups[0] : null;
+		var ticked = "";
+
+		if (list != null) {
+			for (index in 0...list.choices.length) if (list.choices[index].ticked) ticked += index;
+		}
+
+		says("a dropdown opens its list", list != null && rate.open() && list.choices.length == 3
+			&& ticked == "0" && list.ticking && list.anchorY == rate.y + rate.height,
+			root.popups.length + " popups open, holding " + (list == null ? 0 : list.choices.length)
+			+ " entries with '" + ticked + "' ticked, anchored at "
+			+ (list == null ? -1 : list.anchorY) + " under a field ending at " + (rate.y + rate.height));
+
+		if (list != null) list.fire(2);
+
+		final chosen = rate.value;
+		final fired = changes;
+		final shut = !rate.open() && root.opened() == 0;
+
+		root.pressed(30, 30, Pointer.Left, Mod.None);
+		root.released(30, 30, Pointer.Left, Mod.None);
+		final reopened = root.opened() == 1;
+
+		root.pressed(30, 30, Pointer.Left, Mod.None);
+		root.released(30, 30, Pointer.Left, Mod.None);
+		final toggled = root.opened() == 0;
+
+		says("a dropdown takes what is chosen", chosen == 2 && fired == 1 && shut && reopened
+			&& toggled,
+			"the last entry left it on " + chosen + " after " + fired + " changes, the list "
+			+ (shut ? "shut" : "stayed open") + ", and a press on the field "
+			+ (reopened ? "opened it again" : "did not open it") + " and a second "
+			+ (toggled ? "shut it" : "left it open"));
+
+		root.focusOn(rate);
+		root.moved(30, 30, Mod.None);
+		root.turned(0, 1, Mod.None);
+		final wheeled = rate.value;
+
+		root.key(true, Key.Up, Mod.None);
+		final raised = rate.value;
+
+		root.key(true, Key.Up, Mod.None);
+		final floored = rate.value;
+
+		root.key(true, Key.Down, Mod.None);
+		final lowered = rate.value;
+
+		var widths = "";
+		for (index in 0...names.length) {
+			rate.set(index);
+			rate.measure(400, 28);
+			if (rate.wantWidth != wide) widths += names[index] + " " + rate.wantWidth + " ";
+		}
+
+		says("a dropdown steps without opening", wheeled == 1 && raised == 0 && floored == 0
+			&& lowered == 1 && root.opened() == 0 && widths == "",
+			"the wheel up went to " + wheeled + ", up to " + raised + " and again to " + floored
+			+ ", down to " + lowered + ", " + root.opened() + " lists opened, and the width held at "
+			+ wide + (widths == "" ? "" : " except for " + widths));
+
+		body.shut();
+		mono.shut();
 	}
 
 	static function bars(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {

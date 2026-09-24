@@ -299,6 +299,17 @@ final class Number extends Widget implements Range {
 	}
 
 	/**
+		Wants the width `fits` gives and whatever height it is offered.
+
+		@param availableWidth How much room there is, across.
+		@param availableHeight How much room there is, down.
+	**/
+	override function measure(availableWidth:Float, availableHeight:Float):Void {
+		wantWidth = fits();
+		wantHeight = availableHeight;
+	}
+
+	/**
 		@return What the number shows while nobody is typing into it: what `derived` makes of its
 			value, or the value with its unit after it.
 	**/
