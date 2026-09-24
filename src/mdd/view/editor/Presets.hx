@@ -408,6 +408,37 @@ final class Presets extends Widget {
 	var pending:Bool = false;
 
 	/**
+		Whether a row here has just loaded a preset and the rows have not been built since.
+	**/
+	var anchoring:Bool = false;
+
+	/**
+		Whether the row a preset was loaded from stays chosen rather than the copy the piece now
+		carries, which it does until the chosen part plays something else.
+	**/
+	var anchored:Bool = false;
+
+	/**
+		What the chosen part played once the anchored row had loaded into it.
+	**/
+	var anchoredFor:Int = 0;
+
+	/**
+		The preset the anchored row stands for, or null where the row is a kit's heading.
+	**/
+	var anchor:Null<Instrument> = null;
+
+	/**
+		The key of the heading the anchored row sits under, or of the row itself where it is one.
+	**/
+	var anchorGroup:String = "";
+
+	/**
+		How far below the top of the view the anchored row sat.
+	**/
+	var anchorTop:Float = 0;
+
+	/**
 		Builds the browser.
 
 		@param session The session to read.
@@ -443,6 +474,7 @@ final class Presets extends Widget {
 		final at = held.indexOf(item);
 
 		if (at >= 0) {
+			anchors(item, shown[at].preset);
 			loads(shown[at]);
 			return;
 		}
@@ -451,7 +483,64 @@ final class Presets extends Widget {
 		if (group < 0 || !kits[group]) return;
 
 		final lead = leads[group];
-		if (lead != null) loads(lead);
+		if (lead == null) return;
+
+		anchors(item, null);
+		loads(lead);
+	}
+
+	/**
+		Remembers the row a preset is being loaded from and where it sits in the view, so the rows
+		built after the load keep it chosen and in place.
+
+		@param item The row.
+		@param preset The preset it stands for, or null where it is a kit's heading.
+	**/
+	function anchors(item:Item, preset:Null<Instrument>):Void {
+		anchoring = true;
+		anchor = preset;
+		anchorGroup = preset == null ? keyOf(item) : (item.parent == null ? "" : keyOf(item.parent));
+		anchorTop = rowOf(item) * rowStep() - tree.offsetY;
+	}
+
+	/**
+		@return The row standing for what `anchors` remembered, under the same heading where it
+			is still listed there, or null where it is listed nowhere.
+	**/
+	function anchoredRow():Null<Item> {
+		if (anchor == null) {
+			final group = groupKeys.indexOf(anchorGroup);
+			return group < 0 ? null : groups[group];
+		}
+
+		var first:Null<Item> = null;
+
+		for (index in 0...shown.length) {
+			if (shown[index].preset != anchor) continue;
+
+			final row = held[index];
+			if (row.parent != null && keyOf(row.parent) == anchorGroup) return row;
+			if (first == null) first = row;
+		}
+
+		return first;
+	}
+
+	/**
+		@param item A row.
+		@return Where it is among the rows shown, or -1 where it is folded away.
+	**/
+	function rowOf(item:Item):Int {
+		for (index in 0...tree.rows()) if (tree.shownAt(index) == item) return index;
+
+		return -1;
+	}
+
+	/**
+		@return How far apart the rows of the tree are.
+	**/
+	inline function rowStep():Float {
+		return tree.rowHeight > 0 ? tree.rowHeight : rowTall();
 	}
 
 	/**
@@ -622,7 +711,7 @@ final class Presets extends Widget {
 
 		menu = new Menu();
 
-		menu.offer(new Choice(translate(Locale.PRESET_LOAD))).submenu = into(offer);
+		menu.offer(new Choice(translate(Locale.PRESET_LOAD))).submenu = into(item, offer);
 
 		if (mdd.song.Library.kin(instrument.kind, session.part) && !session.part.sampled()) {
 			fires(menu.offer(new Choice(filled(Locale.PRESET_SWITCH, [session.part.name()]))),
@@ -702,11 +791,12 @@ final class Presets extends Widget {
 	}
 
 	/**
+		@param item The row the preset is listed on.
 		@param offer A preset.
 		@return A menu of every channel the preset plays on, each with what it plays now beside
 			it. A converter preset loads the kit it sits in.
 	**/
-	function into(offer:Offer):Menu {
+	function into(item:Item, offer:Offer):Menu {
 		final out = new Menu();
 		final song = session.song;
 
@@ -717,7 +807,10 @@ final class Presets extends Widget {
 			final playing = song.instrumentAt(song.rack[index]);
 
 			fires(out.offer(new Choice(part.name(), playing == null ? ""
-				: Kits.named(song, part, song.rack[index]))), function():Void loads(offer, part));
+				: Kits.named(song, part, song.rack[index]))), function():Void {
+				anchors(item, offer.preset);
+				loads(offer, part);
+			});
 		}
 
 		return out;
@@ -2237,7 +2330,22 @@ final class Presets extends Widget {
 			}
 		}
 
-		if (at >= 0) {
+		final landed = anchoring;
+
+		if (anchoring) {
+			anchoring = false;
+			anchored = true;
+			anchoredFor = chosen;
+		} else if (anchored && chosen != anchoredFor) {
+			anchored = false;
+		}
+
+		final kept = anchored ? anchoredRow() : null;
+
+		if (kept != null) {
+			tree.select(kept.parent != null && !kept.parent.open ? kept.parent : kept);
+			pending = false;
+		} else if (at >= 0) {
 			final row = held[at];
 			final want = row.parent != null && !row.parent.open ? row.parent : row;
 
@@ -2248,6 +2356,12 @@ final class Presets extends Widget {
 		sighted = chosen;
 
 		tree.reflow();
+
+		if (kept != null && landed) {
+			final row = rowOf(kept);
+			if (row >= 0) tree.scrollTo(row * rowStep() - anchorTop);
+		}
+
 		reveals();
 		invalidate();
 	}

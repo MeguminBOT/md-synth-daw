@@ -1351,6 +1351,107 @@ class SpineCheck {
 				+ browser.banks + " banks, against 16.67 in a frame");
 	}
 
+	/**
+		Loading a preset from the browser leaves the row it was loaded from chosen and where it
+		sat, rather than jumping to the copy the piece now carries under From project, while a
+		change made anywhere else still brings what the part plays into view.
+
+		@param tree The shell.
+		@param session The piece.
+		@param editor The inspector the browser sits in.
+	**/
+	static function anchored(tree:Root, session:Session, editor:mdd.view.Inspector):Void {
+		session.choose(Part.Fm1);
+		editor.show(mdd.view.Inspector.PRESETS);
+		tree.resize(tree.width, tree.height);
+
+		final browser = editor.presets;
+		final rows = browser.tree;
+		final own = browser.translate(mdd.app.Locale.PRESET_FROM_PROJECT);
+
+		browser.search.set("");
+		browser.opensAll(true);
+		browser.fit();
+		rows.scrollTo(0);
+
+		var picked:Null<mdd.ui.Item> = null;
+		var passed = 0;
+
+		for (row in 0...rows.rows()) {
+			final item = rows.shownAt(row);
+			if (item == null || item.children.length > 0 || item.parent == null) continue;
+			if (StringTools.startsWith(item.parent.label, own)) continue;
+			if (passed++ < 2) continue;
+
+			picked = item;
+			break;
+		}
+
+		if (picked == null || rows.height <= 0) {
+			says("a loaded preset stays in place", false, "no preset out of the library is on screen");
+			return;
+		}
+
+		final name = picked.label;
+		final before = sits(rows, picked);
+		final was = session.song.rack[Part.Fm1.index()];
+		final depth = session.history.depth();
+
+		rows.choose(picked);
+		browser.fit();
+
+		final after = rows.chosen;
+		final loaded = session.song.rack[Part.Fm1.index()] != was
+			&& session.history.depth() == depth + 1;
+		final stayed = after != null && after.label == name && after.parent != null
+			&& !StringTools.startsWith(after.parent.label, own);
+		final moved = after == null ? rows.height : Math.abs(sits(rows, after) - before);
+
+		says("a loaded preset stays in place", loaded && stayed && moved < 1,
+			(loaded ? "loading " : "nothing loaded from ") + name + " left "
+			+ (after == null ? "nothing" : after.label + " under "
+			+ (after.parent == null ? "nothing" : after.parent.label)) + " chosen, "
+			+ round(moved, 1) + " px from where the row sat");
+
+		browser.fit();
+
+		final kept = rows.chosen;
+
+		says("and stays chosen after an edit", kept != null && kept.label == name
+			&& kept.parent != null && !StringTools.startsWith(kept.parent.label, own),
+			"building the rows again left "
+			+ (kept == null ? "nothing" : kept.label + " under "
+			+ (kept.parent == null ? "nothing" : kept.parent.label)) + " chosen");
+
+		session.undo();
+		browser.fit();
+
+		final back = rows.chosen;
+		final seen = back == null ? -1.0 : sits(rows, back);
+
+		says("and undo shows what plays again", session.song.rack[Part.Fm1.index()] == was
+			&& back != null && back.parent != null && StringTools.startsWith(back.parent.label, own)
+			&& seen >= 0 && seen + rows.rowHeight <= rows.height + 1,
+			"undo left " + (back == null ? "nothing" : back.label + " under "
+			+ (back.parent == null ? "nothing" : back.parent.label)) + " chosen, "
+			+ round(seen, 1) + " px into a view " + round(rows.height, 1) + " tall");
+
+		rows.scrollTo(0);
+	}
+
+	/**
+		@param rows A tree.
+		@param item One of its rows.
+		@return How far below the top of the view the row sits, or -1 where it is folded away.
+	**/
+	static function sits(rows:mdd.ui.control.Tree, item:mdd.ui.Item):Float {
+		for (row in 0...rows.rows()) {
+			if (rows.shownAt(row) == item) return row * rows.rowHeight - rows.offsetY;
+		}
+
+		return -1;
+	}
+
 	static function synthed(tree:Root, session:Session,
 			editor:mdd.view.Inspector):Void {
 		session.choose(Part.Fm1);
@@ -4843,6 +4944,7 @@ class SpineCheck {
 		picked(tree, session, bar);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
+		anchored(tree, session, editor);
 		commanded(tree, session, centre);
 		rubbed(tree, session, centre);
 		zoomed(tree, session, centre);
