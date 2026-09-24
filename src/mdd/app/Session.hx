@@ -296,9 +296,84 @@ final class Session {
 	public final saidWith:Array<String> = [];
 
 	/**
-		The patch on the clipboard.
+		The preset on the clipboard: a copy of what a channel played when it was copied, its patch,
+		its envelope or its recording, or null.
 	**/
-	public var copiedPatch:Null<mdd.song.Patch> = null;
+	public var copiedPreset(default, null):Null<mdd.song.Instrument> = null;
+
+	/**
+		The recording the preset on the clipboard plays, a copy of its own, or null.
+	**/
+	public var copiedSample(default, null):Null<mdd.song.Sample> = null;
+
+	/**
+		Copies what a channel plays onto the clipboard: its patch, its envelope or its recording,
+		with its name and tags, so pasting it is loading that preset.
+
+		@param part Which channel.
+		@return Whether the channel played anything to copy.
+	**/
+	public function copiesPreset(part:Part):Bool {
+		final held = song.instrumentAt(song.rack[part.index()]);
+		if (held == null) return false;
+
+		final sample = song.sampleAt(held.sample);
+
+		copiedPreset = held.copy();
+		copiedSample = sample == null ? null : sample.copy();
+
+		says(Locale.SAID_PRESET_COPIED, part.name());
+		changed();
+
+		return true;
+	}
+
+	/**
+		@param part Which channel.
+		@return Whether the preset on the clipboard is one that channel plays: FM on an FM channel,
+			a square's envelope on a square, the noise channel's on the noise channel, and a
+			recording on the sample channel.
+	**/
+	public function pastes(part:Part):Bool {
+		final held = copiedPreset;
+		return held != null && mdd.song.Library.kin(held.kind, part);
+	}
+
+	/**
+		Loads the preset on the clipboard into a channel as one step on the undo stack, the same
+		way choosing it in the preset browser would.
+
+		@param part Which channel.
+		@return Whether the clipboard held a preset that channel plays.
+	**/
+	public function pastesPreset(part:Part):Bool {
+		final held = copiedPreset;
+		if (held == null || !pastes(part)) return false;
+
+		does(mdd.song.edit.TakesPreset.adopting(part, held.copy(),
+			copiedSample == null ? null : copiedSample.copy()));
+		says(Locale.SAID_PRESET_PASTED, part.name());
+
+		return true;
+	}
+
+	/**
+		Puts a channel back to a fresh preset of its kind, keeping its name: a patch every operator
+		of which is silent, an envelope that holds one level, or no recording, as one step on the
+		undo stack.
+
+		@param part Which channel.
+		@return Whether the channel played anything to reset.
+	**/
+	public function resetsPreset(part:Part):Bool {
+		final held = song.instrumentAt(song.rack[part.index()]);
+		if (held == null) return false;
+
+		does(mdd.song.edit.TakesPreset.adopting(part, new mdd.song.Instrument(held.name, held.kind), null));
+		says(Locale.SAID_PRESET_RESET, part.name());
+
+		return true;
+	}
 
 	/**
 		The notes on it.

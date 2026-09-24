@@ -47,6 +47,7 @@ class PresetCheck {
 		recorded(Gate.root);
 		carriedOver(Gate.root);
 		loaded();
+		rackCopied();
 		converted();
 		starred();
 
@@ -749,6 +750,59 @@ class PresetCheck {
 		needs to carry its own presets: the copy says which preset it came from, and the preset is
 		in the piece, so neither needs a reader's own folder.
 	**/
+	/**
+		Copying, pasting and resetting a channel's preset reach every kind of channel, as steps on
+		the undo stack: a square's pastes onto another square and onto no other kind, undo puts the
+		other square back, a reset keeps the name and nothing else, and the sample channel's
+		recording comes across with it.
+	**/
+	static function rackCopied():Void {
+		final session = new mdd.app.Session(mdd.app.Session.empty(Library.embedded()));
+		final song = session.song;
+		final first = song.instrumentAt(song.rack[Part.Psg1.index()]);
+		final before = song.instrumentAt(song.rack[Part.Psg2.index()]);
+
+		if (first == null || before == null || Library.sounds(first, before)) {
+			says("every channel's preset copies and pastes", false, "a new piece's first two squares"
+				+ " play the same preset, so a paste between them shows nothing");
+			return;
+		}
+
+		session.copiesPreset(Part.Psg1);
+
+		final refused = !session.pastes(Part.Fm1) && !session.pastes(Part.Noise) && session.pastes(Part.Psg2);
+
+		session.pastesPreset(Part.Psg2);
+		final pasted = Library.sounds(first, song.instrumentAt(song.rack[Part.Psg2.index()]));
+
+		session.undo();
+		final undone = song.instrumentAt(song.rack[Part.Psg2.index()]) == before;
+
+		session.resetsPreset(Part.Psg2);
+		final fresh = song.instrumentAt(song.rack[Part.Psg2.index()]);
+		final reset = fresh != null && fresh.name == before.name && fresh.envelope != null
+			&& fresh.envelope.steps.length == 0;
+
+		final samples = song.samples.length;
+		final kick = song.instrumentAt(song.rack[Part.Dac.index()]);
+		final recording = kick == null ? null : song.sampleAt(kick.sample);
+
+		session.copiesPreset(Part.Dac);
+		session.pastesPreset(Part.Dac);
+
+		final taken = song.instrumentAt(song.rack[Part.Dac.index()]);
+		final carried = song.sampleAt(taken == null ? -1 : taken.sample);
+		final whole = recording != null && carried != null && carried != recording
+			&& carried.length() == recording.length() && song.samples.length == samples + 1;
+
+		says("every channel's preset copies and pastes", refused && pasted && undone && reset && whole,
+			"PSG1's " + first.name + " pastes onto PSG2 " + (pasted ? "whole" : "changed") + " and onto"
+			+ " neither FM1 nor NOISE, undo puts " + before.name + " back " + (undone ? "" : "not ")
+			+ "as it was, a reset keeps the name with an empty envelope, and the sample channel's "
+			+ (recording == null ? "missing recording" : recording.length() + " byte recording")
+			+ " pastes as " + (whole ? "a copy of its own" : "something else"));
+	}
+
 	static function loaded():Void {
 		final song = new Song("loading");
 		final lead = song.instrument(patched("Lead"));

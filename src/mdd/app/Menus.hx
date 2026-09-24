@@ -364,12 +364,15 @@ final class Menus {
 		final paste = held.offer(new Choice(said(Locale.RACK_PASTE_PRESET)));
 		final reset = held.offer(new Choice(said(Locale.RACK_RESET_PRESET)));
 
-		fired(copy, function():Void copiedPatch());
-		fired(paste, function():Void pastedPatch());
-		fired(reset, function():Void resetPatch());
+		fired(copy, function():Void session.copiesPreset(session.part));
+		fired(paste, function():Void session.pastesPreset(session.part));
+		fired(reset, function():Void session.resetsPreset(session.part));
 
-		paste.enabled = session.copiedPatch != null;
-		if (!paste.enabled) paste.reason = said(Locale.RACK_NONE_COPIED);
+		paste.enabled = session.pastes(session.part);
+
+		if (!paste.enabled) {
+			paste.reason = said(session.copiedPreset == null ? Locale.RACK_NONE_COPIED : Locale.RACK_OTHER_KIND);
+		}
 
 		held.divide();
 		fired(held.offer(new Choice(said(Locale.PRESET_SAVE))), function():Void
@@ -606,39 +609,6 @@ final class Menus {
 		}
 	}
 
-	/**
-		Copies the chosen patch.
-	**/
-	function copiedPatch():Void {
-		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		if (held == null || held.patch == null) return;
-
-		session.copiedPatch = held.patch.copy();
-		session.say(said(Locale.RACK_COPY_PRESET));
-		session.changed();
-	}
-
-	/**
-		Pastes a patch onto the chosen channel.
-	**/
-	function pastedPatch():Void {
-		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		if (held == null || session.copiedPatch == null) return;
-
-		held.patch = session.copiedPatch.copy();
-		session.changed();
-	}
-
-	/**
-		Puts the chosen patch back to silence.
-	**/
-	function resetPatch():Void {
-		final held = session.song.instrumentAt(session.song.rack[session.part.index()]);
-		if (held == null) return;
-
-		held.patch = new mdd.song.Patch();
-		session.changed();
-	}
 
 	/**
 		Moves the whole piece in time.

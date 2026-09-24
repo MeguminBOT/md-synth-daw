@@ -340,41 +340,15 @@ final class ChannelRack extends Widget {
 		final paste = menu.offer(new Choice(translate(Locale.RACK_PASTE_PRESET)));
 		final reset = menu.offer(new Choice(translate(Locale.RACK_RESET_PRESET)));
 
-		if (!part.fm()) {
-			for (choice in [copy, paste, reset]) {
-				choice.enabled = false;
-				choice.reason = part.name() + " " + translate(Locale.RACK_NO_PRESET);
-			}
-		} else {
-			fires(copy, function():Void {
-				final held = song.instrumentAt(song.rack[at]);
-				if (held == null || held.patch == null) return;
+		fires(copy, function():Void session.copiesPreset(part));
+		fires(paste, function():Void session.pastesPreset(part));
+		fires(reset, function():Void session.resetsPreset(part));
 
-				session.copiedPatch = held.patch.copy();
-				session.says(Locale.SAID_PATCH_COPIED, part.name());
-				session.changed();
-			});
+		paste.enabled = session.pastes(part);
 
-			paste.enabled = session.copiedPatch != null;
-			if (!paste.enabled) paste.reason = translate(Locale.RACK_NONE_COPIED);
-
-			fires(paste, function():Void {
-				final held = song.instrumentAt(song.rack[at]);
-				if (held == null || session.copiedPatch == null) return;
-
-				held.patch = session.copiedPatch.copy();
-				session.says(Locale.SAID_PATCH_PASTED, part.name());
-				session.changed();
-			});
-
-			fires(reset, function():Void {
-				final held = song.instrumentAt(song.rack[at]);
-				if (held == null) return;
-
-				held.patch = new mdd.song.Patch();
-				session.says(Locale.SAID_PATCH_RESET, part.name());
-				session.changed();
-			});
+		if (!paste.enabled) {
+			paste.reason = translate(session.copiedPreset == null ? Locale.RACK_NONE_COPIED
+				: Locale.RACK_OTHER_KIND);
 		}
 
 		menu.divide();
