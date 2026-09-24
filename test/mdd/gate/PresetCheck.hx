@@ -44,6 +44,7 @@ class PresetCheck {
 		reached();
 		shipped();
 		identified();
+		released();
 		recorded(Gate.root);
 		carriedOver(Gate.root);
 		loaded();
@@ -400,6 +401,24 @@ class PresetCheck {
 		tagged, drawn as or loaded on, and a channel edited in a piece is no longer the preset it
 		started as, which is what lets a project carry its own and a reader keep theirs.
 	**/
+	/**
+		A project holding a release rate past the four bits the chip has opens holding the most they
+		carry, which is what an editor that let one through left behind.
+	**/
+	static function released():Void {
+		final saved = new mdd.format.Json();
+		final loud = patched("Loud release");
+
+		loud.patch.release[1] = 31;
+		Project.wroteInstrument(saved, loud);
+
+		final loaded = Project.readInstrument(mdd.format.Json.parse(saved.toString()));
+
+		says("a release rate reads as the chip's", loaded.patch.release[1] == 15,
+			"a project holding a release rate of 31 opens holding " + loaded.patch.release[1]
+			+ ", the most four bits carry");
+	}
+
 	static function identified():Void {
 		final one = patched("Bass");
 		final two = patched("Bass");

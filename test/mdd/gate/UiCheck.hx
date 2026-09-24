@@ -343,8 +343,10 @@ class UiCheck {
 	}
 
 	/**
-		An operator's envelope is drawn inside its own box. The line has a thickness of its own, so
-		a patch loud enough to reach the top of the box would draw half that line above it.
+		An operator's envelope is drawn inside its own box, at every end of every range the editor
+		lets a field reach. The line has a thickness of its own, so a patch loud enough to reach the
+		top of the box would draw half that line above it, and a release rate past what the chip
+		takes would draw its release backwards and pull the rest of the curve out of the box.
 	**/
 	static function envelopes():Void {
 		final root = shaped();
@@ -365,16 +367,21 @@ class UiCheck {
 
 		var outside = 0;
 		var worst = 0.0;
+		var stopped = -1;
 
-		for (loudest in [true, false]) {
+		for (pass in 0...3) {
+			final loudest = pass != 1;
+
 			for (slot in 0...mdd.song.Patch.SLOTS) {
-				patch.totalLevel[slot] = loudest ? 0 : 127;
-				patch.attack[slot] = loudest ? 31 : 0;
-				patch.decay[slot] = 0;
-				patch.sustain[slot] = 0;
-				patch.sustainLevel[slot] = 0;
-				patch.release[slot] = loudest ? 15 : 0;
+				for (row in 0...mdd.song.Patch.ROWS) {
+					final most = mdd.song.Patch.mostOf(row);
+					final slowest = pass == 2 && (row == 2 || row == 4);
+
+					patch.writes(slot, row, slowest || loudest == (row == 0) ? 0 : most + 1);
+				}
 			}
+
+			if (pass == 0) stopped = patch.release[0];
 
 			for (slot in 0...mdd.song.Patch.SLOTS) {
 				editor.boxAt(slot, box);
@@ -397,9 +404,10 @@ class UiCheck {
 			}
 		}
 
-		says("an envelope stays in its box", outside == 0,
-			outside == 0 ? "every point of all 8 envelopes drawn, at both ends of the range, sits inside its"
-			+ " box with room for the line's thickness"
+		says("an envelope stays in its box", outside == 0 && stopped == 15,
+			outside == 0 ? "every point of all 12 envelopes drawn, with every field pushed past both ends"
+			+ " of its range and with both decays slowest under the fastest release, sits inside its"
+			+ " box with room for the line's thickness, and a release rate stops at " + stopped
 			: outside + " points reach past it, the worst by " + round(worst, 2));
 	}
 

@@ -681,7 +681,7 @@ class Project {
 				patch.decay[slot] = one.get("decay").whole(0);
 				patch.sustain[slot] = one.get("sustain").whole(0);
 				patch.sustainLevel[slot] = one.get("sustainLevel").whole(0);
-				patch.release[slot] = one.get("release").whole(15);
+				patch.writes(slot, 5, one.get("release").whole(15));
 				patch.ssg[slot] = one.get("ssg").whole(0);
 				patch.tremolo[slot] = one.get("tremolo").truth(false);
 			}

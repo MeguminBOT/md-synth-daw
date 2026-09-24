@@ -194,9 +194,8 @@ final class Patch {
 	public static function mostOf(row:Int):Int {
 		return switch (row) {
 			case 0: 127;
-			case 1, 2, 4, 5: 31;
-			case 3: 15;
-			case 6: 15;
+			case 1, 2, 4: 31;
+			case 3, 5, 6: 15;
 			case 7: 7;
 			case 8: 3;
 			case _: 15;
