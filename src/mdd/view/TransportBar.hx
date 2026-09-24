@@ -14,6 +14,7 @@ import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Choice;
+import mdd.ui.control.Dropdown;
 import mdd.ui.control.Menu;
 import mdd.ui.control.Number;
 
@@ -75,21 +76,27 @@ final class TransportBar extends Widget {
 	**/
 	public var regrids:Bool = false;
 	final resolution:Number;
-	final video:Number;
+
+	/**
+		The video rate a driver paces an export at: 50 Hz or 60 Hz.
+	**/
+	final video:Dropdown;
 
 	/**
 		The chip's LFO: nought is off, and one to eight are its eight rates. The part has one LFO for
 		every channel, so this is the song's rather than a preset's; a preset only says how deeply
 		its channel takes it.
 	**/
-	final lfo:Number;
+	final lfo:Dropdown;
 
 	/**
 		What the editors snap to.
 	**/
-	public final snap:Number;
+	public final snap:Dropdown;
 
-	final held:Array<Number>;
+	final held:Array<Widget>;
+	final numbers:Array<Number>;
+	final dropdowns:Array<Dropdown>;
 
 	/**
 		Called when the monitoring volume moves.
@@ -120,17 +127,19 @@ final class TransportBar extends Widget {
 
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
 		resolution = new Number("", song.tempo.ppqn, 24, 48000);
-		video = new Number("", song.tempo.rate == 50 ? 0 : 1, 0, 1);
-		lfo = new Number("", lfoIndex(song), 0, 8);
-		snap = new Number("", snapIndex(), 0, SNAPS.length - 1);
+		video = new Dropdown("", song.tempo.rate == 50 ? 0 : 1, 2);
+		lfo = new Dropdown("", lfoIndex(song), 9);
+		snap = new Dropdown("", snapIndex(), SNAPS.length);
 		offset = new Number("", song.offset, -960, 960);
 
 		held = [tempo, resolution, video, lfo, snap, offset];
+		numbers = [tempo, resolution, offset];
+		dropdowns = [video, lfo, snap];
 
-		video.derived = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
-		lfo.derived = function(value:Int):String
+		video.named = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
+		lfo.named = function(value:Int):String
 			return value == 0 ? translate(Locale.EXPORT_OFF) : hertz(value - 1);
-		snap.derived = function(value:Int):String
+		snap.named = function(value:Int):String
 			return SNAPS[value] == 0 ? translate(Locale.EXPORT_OFF) : SNAP_NAMES[value];
 
 		tempo.label = "BPM";
@@ -155,17 +164,31 @@ final class TransportBar extends Widget {
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
 		resolution.onChange = function(from:Number):Void resolutionChanged(from);
-		video.onChange = function(from:Number):Void videoChanged(from);
-		lfo.onChange = function(from:Number):Void lfoChanged(from);
-		snap.onChange = function(from:Number):Void snapChanged(from);
+		video.onChange = function(from:Dropdown):Void videoChanged(from);
+		lfo.onChange = function(from:Dropdown):Void lfoChanged(from);
+		snap.onChange = function(from:Dropdown):Void snapChanged(from);
 		offset.onChange = function(from:Number):Void offsetChanged(from);
 	}
 
 	/**
-		@return Every typed field on the bar, so the keyboard can step between them.
+		@return Every field on the bar, in the order it is laid out.
 	**/
-	public function fields():Array<Number> {
+	public function fields():Array<Widget> {
 		return held;
+	}
+
+	/**
+		@return The fields on the bar that are typed or dragged.
+	**/
+	public function typed():Array<Number> {
+		return numbers;
+	}
+
+	/**
+		@return The fields on the bar that are chosen from a list.
+	**/
+	public function listed():Array<Dropdown> {
+		return dropdowns;
 	}
 
 	/**
@@ -247,7 +270,7 @@ final class TransportBar extends Widget {
 
 		@param from The field that changed.
 	**/
-	function videoChanged(from:Number):Void {
+	function videoChanged(from:Dropdown):Void {
 		if (settling) return;
 
 		session.song.tempo.rate = from.value == 0 ? 50 : 60;
@@ -256,8 +279,8 @@ final class TransportBar extends Widget {
 
 	/**
 		@param song A song.
-		@return Where its LFO sits on the field: nought when it is off, and its rate plus one when
-			it runs.
+		@return Which entry its LFO is on the list: nought when it is off, and its rate plus one
+			when it runs.
 	**/
 	static function lfoIndex(song:Song):Int {
 		return song.lfoOn ? (song.lfoRate & 7) + 1 : 0;
@@ -279,7 +302,7 @@ final class TransportBar extends Widget {
 
 		@param from The field that changed.
 	**/
-	function lfoChanged(from:Number):Void {
+	function lfoChanged(from:Dropdown):Void {
 		if (settling) return;
 
 		final on = from.value > 0;
@@ -294,7 +317,7 @@ final class TransportBar extends Widget {
 
 		@param from The field that changed.
 	**/
-	function snapChanged(from:Number):Void {
+	function snapChanged(from:Dropdown):Void {
 		if (settling) return;
 
 		session.snapping = SNAPS[from.value];
@@ -744,9 +767,11 @@ final class TransportBar extends Widget {
 		var many = held.length;
 		var shown = 0.0;
 
+		for (field in held) field.measure(room, button);
+
 		while (many > 0) {
 			shown = 0;
-			for (index in 0...many) shown += held[index].fits() + metrics.unit;
+			for (index in 0...many) shown += held[index].wantWidth + metrics.unit;
 
 			if (shown - metrics.unit <= room) break;
 			many--;
@@ -762,7 +787,7 @@ final class TransportBar extends Widget {
 			field.visible = index < many;
 			if (!field.visible) continue;
 
-			final wide = field.fits();
+			final wide = field.wantWidth;
 
 			field.arrange(pen, top, wide, button);
 			pen += wide + metrics.unit;

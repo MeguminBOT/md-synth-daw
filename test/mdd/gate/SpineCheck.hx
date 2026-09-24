@@ -4781,7 +4781,7 @@ class SpineCheck {
 		final depth = session.history.depth();
 		final resized:Array<String> = [];
 
-		for (field in bar.fields()) {
+		for (field in bar.typed()) {
 			final value = field.value;
 
 			field.set(value + 1);
@@ -4789,6 +4789,18 @@ class SpineCheck {
 
 			field.set(value - 1);
 			if (session.history.last() == "resize a pattern") resized.push(field.label);
+
+			field.set(value);
+		}
+
+		for (field in bar.listed()) {
+			final value = field.value;
+
+			field.set(value + 1);
+			if (session.history.last() == "resize a pattern") resized.push(field.shown());
+
+			field.set(value - 1);
+			if (session.history.last() == "resize a pattern") resized.push(field.shown());
 
 			field.set(value);
 		}
