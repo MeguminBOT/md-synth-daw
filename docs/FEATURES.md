@@ -437,8 +437,9 @@ left exactly as it was written, because it already carries the level it was play
   its key off is never heard; and a square or the noise channel held past its last note by a level
   lane, over the silence that note ended on. A driver hides the first by always keying on again in
   time, and a piece that stops does not.
-- **Hardware profiles.** Mega Drive and Master System, which is why the chips are named for chips:
-  the Master System has the same PSG in it.
+- **Checked against the Mega Drive.** The hardware meter and the warnings hold a piece to what the
+  Mega Drive's parts can do. The chips are named for the chips rather than for the console, so a
+  machine that shares one of them can be added later without renaming anything.
 - **Three output stages.** The chip alone, the Mega Drive, or the Mega Drive 2, which differ in the
   filtering the board puts after the chips. The one pole at twenty hertz is the coupling capacitor
   the real board has, not an effect.
