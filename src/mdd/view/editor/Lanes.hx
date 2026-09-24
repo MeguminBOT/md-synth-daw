@@ -145,6 +145,15 @@ final class Lanes extends Widget {
 	public var holding:Null<mdd.song.Clip> = null;
 
 	/**
+		The instrument whose lanes are edited, by index, where they are what a preset moves on
+		every note rather than a pattern's, or -1. A preset's lanes are measured from the key on:
+		one in milliseconds draws a millisecond where a pattern draws a tick, and one that follows
+		the tempo draws its 960ths of a beat at the tempo the song opens at, so both sit on the
+		same axis. A clip being edited takes precedence.
+	**/
+	public var preset:Int = -1;
+
+	/**
 		Where the playhead is, or -1 for nowhere.
 	**/
 	public var playhead:Int = -1;
@@ -290,6 +299,16 @@ final class Lanes extends Widget {
 	}
 
 	function spelt(tick:Int):String {
+		if (instrumented() != null) {
+			final line = lineOf(chosenAt);
+
+			if (line != null && line.synced) {
+				return Math.round(tick * 100 / Automation.BEAT) / 100 + " " + translate(Locale.LANE_BEATS_SHORT);
+			}
+
+			return tick + " ms";
+		}
+
 		final beat = session.song.tempo.ppqn;
 		if (beat < 1) return "" + tick;
 
@@ -307,7 +326,7 @@ final class Lanes extends Widget {
 		final was = chosen;
 
 		session.does(new MovePoint(session.pattern, drivenPart(), targeted(chosenAt),
-			slotted(chosenAt), was, position.value, amount.value, driven()));
+			slotted(chosenAt), was, position.value, amount.value, driven(), presetting()));
 
 		invalidate();
 	}
@@ -337,10 +356,11 @@ final class Lanes extends Widget {
 
 		final pattern = session.current();
 
-		position.spans(0, pattern == null ? 1 << 24 : pattern.length);
+		position.spans(0, instrumented() != null ? 1 << 20 : (pattern == null ? 1 << 24 : pattern.length));
 		amount.spans(one.low, one.high);
 
 		position.label = translate(Locale.POINT_AT);
+		position.tipKey = instrumented() != null ? Locale.LANE_AFTER : Locale.LANE_POSITION;
 		amount.label = one.titled(slotted(chosenAt));
 		shape.label = translate(Locale.POINT_SHAPE);
 		bend.label = translate(Locale.POINT_BEND);
@@ -417,6 +437,118 @@ final class Lanes extends Widget {
 
 	inline function driven():Null<Automation> {
 		return holding == null ? null : holding.line;
+	}
+
+	/**
+		@return The instrument whose lanes are edited, or null where a pattern's or a clip's are.
+	**/
+	public function instrumented():Null<mdd.song.Instrument> {
+		return preset < 0 || holding != null ? null : session.song.instrumentAt(preset);
+	}
+
+	/**
+		@return Which instrument an edit acts on, by index, or -1 for the pattern or the clip.
+	**/
+	inline function presetting():Int {
+		return holding == null ? preset : -1;
+	}
+
+	/**
+		@param row Which lane row.
+		@return How many of the axis's units one of the lane's is: one, except on a preset's lane
+			that follows the tempo, which counts 960ths of a beat where the axis counts
+			milliseconds.
+	**/
+	function scaleOf(row:Int):Float {
+		if (instrumented() == null) return 1;
+
+		final line = lineOf(row);
+		if (line == null || !line.synced) return 1;
+
+		final beats = session.song.tempo.beatsAt(0);
+		return 60000 / ((beats <= 0 ? 120 : beats) * Automation.BEAT);
+	}
+
+	/**
+		@param row Which lane row.
+		@param at A place on its lane.
+		@return Where that draws, across.
+	**/
+	inline function atPlace(row:Int, at:Float):Float {
+		return x + left - offsetX + at * scaleOf(row) * perTick;
+	}
+
+	/**
+		@param row Which lane row.
+		@param px A point, across.
+		@return Which place on its lane that is.
+	**/
+	inline function placeAt(row:Int, px:Float):Int {
+		return Math.round((px - x - left + offsetX) / perTick / scaleOf(row));
+	}
+
+	/**
+		@param row Which lane row.
+		@param at A place on its lane.
+		@param free Whether to ignore the snap, which holding alt does.
+		@return The place snapped: to the song's grid for a pattern, a clip or a preset's lane that
+			follows the tempo, and to the millisecond grid for a preset's lane in milliseconds.
+	**/
+	function snapsIn(row:Int, at:Int, free:Bool):Int {
+		if (free) return at;
+		if (instrumented() == null) return session.snapped(at);
+
+		final line = lineOf(row);
+
+		if (line != null && line.synced) {
+			final ppqn = session.song.tempo.ppqn;
+			final tick = session.snapped(Math.round(at * ppqn / Automation.BEAT));
+			return Math.round(tick * Automation.BEAT / ppqn);
+		}
+
+		final grid = msGrid();
+		return Math.round(at / grid) * grid;
+	}
+
+	/**
+		The millisecond steps the grid of a preset's lanes may take, the finest first.
+	**/
+	static final GRIDS:Array<Int> = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+
+	/**
+		@return The finest millisecond step at least seven pixels wide at the zoom in use, which is
+			the grid a preset's lanes snap to and draw.
+	**/
+	public function msGrid():Int {
+		final root = root();
+		final least = root == null ? 7 : root.metrics.whole(7);
+
+		for (step in GRIDS) if (step * perTick >= least) return step;
+		return GRIDS[GRIDS.length - 1];
+	}
+
+	/**
+		@return How far a preset's lanes are shown from the key on, in milliseconds: past the end of
+			the longest by a quarter, and never less than two seconds.
+	**/
+	public function presetSpan():Int {
+		final instrument = instrumented();
+		var most = 0.0;
+
+		if (instrument != null) {
+			final beats = session.song.tempo.beatsAt(0);
+			final unit = 60000 / ((beats <= 0 ? 120 : beats) * Automation.BEAT);
+
+			for (line in instrument.lanes) {
+				if (line.points.length == 0) continue;
+
+				final last = line.points[line.points.length - 1].at * (line.synced ? unit : 1);
+				if (last > most) most = last;
+			}
+		}
+
+		final want = Math.ceil(most * 1.25);
+		return want < 2000 ? 2000 : want;
 	}
 
 	inline function drivenPart():Part {
@@ -675,7 +807,7 @@ final class Lanes extends Widget {
 
 			for (point in going) {
 				group.also(new RemovePoint(session.pattern, drivenPart(), targeted(row),
-					slotted(row), point, driven()));
+					slotted(row), point, driven(), presetting()));
 			}
 
 			session.does(group);
@@ -731,7 +863,7 @@ final class Lanes extends Widget {
 	public function settles():Void {
 		if (holding != null) return;
 
-		final key = session.part.index() * 4096 + session.pattern;
+		final key = preset >= 0 ? -2 - preset : session.part.index() * 4096 + session.pattern;
 		if (key == filledFor) return;
 
 		filledFor = key;
@@ -752,6 +884,25 @@ final class Lanes extends Widget {
 		heights.resize(0);
 
 		forgets();
+
+		if (preset >= 0) {
+			final instrument = instrumented();
+
+			if (instrument != null) {
+				for (line in instrument.lanes) {
+					if (targets.length >= opens) break;
+					if (line.points.length == 0) continue;
+					if (Parameter.movedFound(session.part, line.target, line.slot) == null) continue;
+					if (shows(line.target, line.slot)) continue;
+
+					targets.push((line.target << 8) | line.slot);
+					recalls(targets.length - 1);
+				}
+			}
+
+			if (again) relayout();
+			return;
+		}
 
 		if (pattern == null) {
 			if (again) relayout();
@@ -788,6 +939,13 @@ final class Lanes extends Widget {
 		@return How many points that lane holds.
 	**/
 	public function carries(target:Int, slot:Int):Int {
+		if (preset >= 0 && holding == null) {
+			final instrument = instrumented();
+			final line = instrument == null ? null : instrument.lane(target, slot);
+
+			return line == null ? 0 : line.points.length;
+		}
+
 		final pattern = session.current();
 		if (pattern == null) return 0;
 
@@ -941,7 +1099,7 @@ final class Lanes extends Widget {
 
 			made.push(point);
 			group.also(new AddPoint(session.pattern, drivenPart(), targeted(row),
-				slotted(row), point, driven()));
+				slotted(row), point, driven(), presetting()));
 		}
 
 		if (made.length == 0) return false;
@@ -1061,6 +1219,8 @@ final class Lanes extends Widget {
 		final line = driven();
 		if (line != null) return Parameter.found(drivenPart(), line.target, line.slot);
 
+		if (preset >= 0) return Parameter.movedFound(session.part, targetOf(row), slotOf(row));
+
 		return Parameter.found(session.part, targetOf(row), slotOf(row));
 	}
 
@@ -1070,6 +1230,13 @@ final class Lanes extends Widget {
 	**/
 	public function lineOf(row:Int):Null<Automation> {
 		if (holding != null) return row == 0 ? holding.line : null;
+
+		if (preset >= 0) {
+			final instrument = instrumented();
+			if (instrument == null || row < 0 || row >= rows()) return null;
+
+			return instrument.lane(targetOf(row), slotOf(row));
+		}
 
 		final pattern = session.current();
 		if (pattern == null || row < 0 || row >= rows()) return null;
@@ -1380,7 +1547,7 @@ final class Lanes extends Widget {
 		var least = reach * reach * 4;
 
 		for (point in line.points) {
-			final dx = atTick(point.at) - px;
+			final dx = atPlace(row, point.at) - px;
 			final dy = atValue(row, point.value) - py;
 			final away = dx * dx + dy * dy;
 
@@ -1400,8 +1567,8 @@ final class Lanes extends Widget {
 		for (index in 0...line.points.length - 1) {
 			if (!Automation.moves(line.points[index].shape)) continue;
 
-			if (px >= atTick(line.points[index].at)
-				&& px < atTick(line.points[index + 1].at)) return index;
+			if (px >= atPlace(row, line.points[index].at)
+				&& px < atPlace(row, line.points[index + 1].at)) return index;
 		}
 
 		return -1;
@@ -1423,7 +1590,7 @@ final class Lanes extends Widget {
 			final to = line.points[index + 1];
 			final middle = Std.int((from.at + to.at) / 2);
 
-			final dx = atTick(middle) - px;
+			final dx = atPlace(row, middle) - px;
 			final dy = atValue(row, Automation.between(from, to, middle)) - py;
 
 			if (dx * dx + dy * dy > reach * reach * 4) continue;
@@ -1641,7 +1808,7 @@ final class Lanes extends Widget {
 		if (bandRow != chosenAt) picked.clear();
 
 		for (point in line.points) {
-			final at = atTick(point.at);
+			final at = atPlace(bandRow, point.at);
 			final up = atValue(bandRow, point.value);
 
 			if (at < left || at > right || up < top || up > floor) continue;
@@ -1685,9 +1852,10 @@ final class Lanes extends Widget {
 	function added(event:Input, row:Int, px:Float, py:Float):Void {
 		final held = parameterOf(row);
 		if (held == null) return;
-		if (holding == null && session.current() == null) return;
+		if (holding == null && preset < 0 && session.current() == null) return;
+		if (holding == null && preset >= 0 && instrumented() == null) return;
 
-		var tick = freely(tickAt(px), event.alt());
+		var tick = snapsIn(row, placeAt(row, px), event.alt());
 		if (tick < 0) tick = 0;
 
 		final line = lineOf(row);
@@ -1697,7 +1865,7 @@ final class Lanes extends Widget {
 		point.shape = held.smooth ? Automation.LINEAR : Automation.HOLD;
 
 		session.does(new AddPoint(session.pattern, drivenPart(), targeted(row),
-			slotted(row), point, driven()));
+			slotted(row), point, driven(), presetting()));
 
 		picked.only(point);
 
@@ -1769,7 +1937,7 @@ final class Lanes extends Widget {
 
 		if (moving.length == 1) {
 			session.does(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
-				slotted(draggingAt), moving[0], wantAt[0], wantValue[0], driven()));
+				slotted(draggingAt), moving[0], wantAt[0], wantValue[0], driven(), presetting()));
 
 			return;
 		}
@@ -1779,7 +1947,7 @@ final class Lanes extends Widget {
 		for (index in 0...moving.length) {
 			group.also(new MovePoint(session.pattern, drivenPart(), targeted(draggingAt),
 				slotted(draggingAt), moving[index], wantAt[index], wantValue[index],
-				driven()));
+				driven(), presetting()));
 		}
 
 		session.does(group);
@@ -1811,13 +1979,13 @@ final class Lanes extends Widget {
 
 		if (held.length == 1) {
 			session.does(new RemovePoint(session.pattern, drivenPart(), targeted(row),
-				slotted(row), held[0], driven()));
+				slotted(row), held[0], driven(), presetting()));
 		} else {
 			final group = new mdd.song.edit.Together("remove " + counted(held.length));
 
 			for (point in held) {
 				group.also(new RemovePoint(session.pattern, drivenPart(), targeted(row),
-					slotted(row), point, driven()));
+					slotted(row), point, driven(), presetting()));
 			}
 
 			session.does(group);
@@ -1864,8 +2032,8 @@ final class Lanes extends Widget {
 			}
 
 			var tick = fine
-				? tickAt(atTick(fineAt) + (event.x - fineX) * FINE)
-				: freely(tickAt(event.x), event.alt());
+				? placeAt(draggingAt, atPlace(draggingAt, fineAt) + (event.x - fineX) * FINE)
+				: snapsIn(draggingAt, placeAt(draggingAt, event.x), event.alt());
 
 			if (tick < 0) tick = 0;
 
@@ -2147,6 +2315,11 @@ final class Lanes extends Widget {
 	}
 
 	function gridded(paint:Paint, theme:Theme, metrics:Metrics, row:Int):Void {
+		if (instrumented() != null) {
+			timed(paint, theme, metrics, row);
+			return;
+		}
+
 		final beat = session.song.tempo.ppqn;
 		if (beat < 1 || perTick <= 0) return;
 
@@ -2178,6 +2351,32 @@ final class Lanes extends Widget {
 			}
 
 			tick += fine;
+		}
+	}
+
+	/**
+		Draws the millisecond grid behind a preset's lane, a stronger line every tenth step.
+	**/
+	function timed(paint:Paint, theme:Theme, metrics:Metrics, row:Int):Void {
+		if (perTick <= 0) return;
+
+		final step = msGrid();
+		final hair = metrics.whole(1);
+		final top = plotTop(row);
+		final tall = plotTall(row);
+		final from = x + left;
+		final reach = presetSpan();
+
+		var at = Std.int(tickAt(from) / step) * step;
+		if (at < 0) at = 0;
+
+		while (at <= reach) {
+			final px = atTick(at);
+			if (px > x + width) break;
+
+			if (px > from) paint.rect(px, top, hair, tall, theme.frame, at % (step * 10) == 0 ? 0.35 : 0.12);
+
+			at += step;
 		}
 	}
 
@@ -2427,8 +2626,8 @@ final class Lanes extends Widget {
 			final from = line.points[index];
 			final to = line.points[index + 1];
 
-			final headX = atTick(from.at);
-			final tailX = atTick(to.at);
+			final headX = atPlace(row, from.at);
+			final tailX = atPlace(row, to.at);
 
 			if (tailX < x + left || headX > x + width) continue;
 
@@ -2449,7 +2648,7 @@ final class Lanes extends Widget {
 			for (step in 0...many) {
 				final tick = from.at + Std.int((to.at - from.at) * step / (many - 1));
 
-				trace[step * 2] = atTick(tick);
+				trace[step * 2] = atPlace(row, tick);
 				trace[step * 2 + 1] = atValue(row, Automation.between(from, to, tick));
 			}
 
@@ -2463,17 +2662,24 @@ final class Lanes extends Widget {
 			final middle = Std.int((from.at + to.at) / 2);
 			final level = atValue(row, Automation.between(from, to, middle));
 
-			paint.circle(atTick(middle), level, knob * 0.8, theme.bar);
-			paint.ring(atTick(middle), level, knob * 0.8, metrics.whole(2), colour, 0.95);
+			paint.circle(atPlace(row, middle), level, knob * 0.8, theme.bar);
+			paint.ring(atPlace(row, middle), level, knob * 0.8, metrics.whole(2), colour, 0.95);
 		}
 
 		final last = line.points[line.points.length - 1];
 
-		paint.rect(atTick(last.at), atValue(row, last.value), x + width - atTick(last.at),
+		if (instrumented() != null && line.loop >= 0 && line.loop < line.points.length - 1) {
+			final from = atPlace(row, line.points[line.loop].at);
+			final to = atPlace(row, last.at);
+
+			if (to > from) paint.rect(from, plotTop(row), to - from, plotTall(row), colour, 0.08);
+		}
+
+		paint.rect(atPlace(row, last.at), atValue(row, last.value), x + width - atPlace(row, last.at),
 			hair, colour, 0.5);
 
 		for (point in line.points) {
-			final at = atTick(point.at);
+			final at = atPlace(row, point.at);
 			if (at < x + left - knob || at > x + width + knob) continue;
 
 			final level = atValue(row, point.value);

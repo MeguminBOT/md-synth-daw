@@ -138,6 +138,23 @@ the song itself carries, and a saved project carries every one of them in order,
 opens with the same switches on a machine with a different set of presets installed. The sample
 channel has no preset lane, because a kit picks each hit by the note.
 
+**A preset can move on every note it plays**, the way a synthesizer's envelopes and LFOs do. Switch
+the automation editor from *in this pattern* to *on this channel's preset*, at the right of its
+header, and the lanes you draw belong to the channel's preset rather than to the pattern: every
+note the preset plays starts them again at its key on. The ruler reads milliseconds from the key
+on. A lane's menu measures it in **Milliseconds**, so a kick drops the same way at any tempo, or
+**Sync to tempo**, so a wobble stays on the beat, and **Loop from point** repeats it from the
+chosen point for as long as the note sounds. Pitch is in cents, 1200 to an octave, so a drop
+follows whichever note plays it.
+
+On an FM channel the lanes run on through the release, until they end, the channel plays its next
+note, or two seconds have passed. A square or the noise channel stops where the note ends, so a
+rest stays silent. A square takes a pitch lane and the noise channel a mode lane, because their
+level is their envelope's. Where the pattern, or a clip driving the channel, has a lane of its own
+for the same parameter, that lane plays and the preset's does not. A preset's lanes are read every
+millisecond rather than every frame, because a kick drops over three frames, and a write is made
+only where the value changes.
+
 ### Undo
 
 Undo and redo cover everything, drags included. A drag lands as one step rather than one step per
@@ -280,16 +297,18 @@ A VGM this application wrote therefore imports with its drums where they were.
   where the playhead is, so one channel can change instrument part way through a pattern.
 - Any patch in a song can be lifted into the library.
 - Patches import from TFI files and export back to them, and one preset writes out as a TFI from
-  its right-click menu. A TFI is forty two bytes of registers and nothing else, so a name, tags and
-  the two LFO depths stay behind; everything the format carries comes back exactly.
+  its right-click menu. A TFI is forty two bytes of registers and nothing else, so a name, tags,
+  the two LFO depths and whatever the preset moves on each note stay behind; everything the format
+  carries comes back exactly.
 - **A preset goes back to what it was.** Loading one into a channel gives the channel its own copy
   of it, so playing with the knobs never touches the preset. Choose the same preset again and every
   field goes back to what it held when you loaded it, in one undo step. Right-click a single dial
   in the synthesizer, or a step of a square or noise envelope, to put that one parameter back and
   leave the rest as you have it.
 - **A preset is what it sounds like.** What makes one preset that preset is its patch, its
-  envelope or its recording, and nothing else: not its name, its tags, its icon or the folder it
-  sits in. Rename one, retag it or move it to another folder and it is still the same preset,
+  envelope or its recording, and what it moves on each note, and nothing else: not its name, its
+  tags, its icon or the folder it sits in. A patch that moves is another preset from the same patch
+  standing still. Rename one, retag it or move it to another folder and it is still the same preset,
   and the same sound saved twice under two names is one preset. That identity is an MD5 over the
   sound laid out byte by byte in `docs/notes/presets.md`, so anything that writes the same bytes
   gets the same answer.

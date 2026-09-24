@@ -25,6 +25,10 @@ import mdd.view.Parameter;
 
 	It shows what the lanes under the piano roll show, with the room to place points
 	precisely. Both draw the same `Lanes`, so a point moved in either is the same point.
+
+	The switch at the right of its header turns it from the chosen pattern's lanes to what the
+	chosen channel's preset moves on every note, measured from the key on, where the ruler reads
+	milliseconds and a lane's menu says whether it follows the tempo and where it loops.
 **/
 final class AutomationEditor extends Widget {
 	/**
@@ -73,7 +77,18 @@ final class AutomationEditor extends Widget {
 	**/
 	public var slot:Int = 0;
 
+	/**
+		Whether it shows what the chosen channel's preset moves on every note rather than the
+		chosen pattern's lanes. An open automation clip is shown whichever this says.
+	**/
+	public var presetting(default, null):Bool = false;
+
 	var menu:Null<Menu> = null;
+
+	var patternFrom:Float = 0;
+	var patternTo:Float = 0;
+	var presetFrom:Float = 0;
+	var presetTo:Float = 0;
 
 	/**
 		Builds the editor.
@@ -154,10 +169,45 @@ final class AutomationEditor extends Widget {
 	}
 
 	/**
-		@return How long the thing being edited is, in ticks.
+		Turns between the chosen pattern's lanes and what the chosen channel's preset moves.
+
+		@param on Whether to show the preset's.
+	**/
+	public function presents(on:Bool):Void {
+		if (presetting == on) return;
+
+		presetting = on;
+		stack.preset = showsPreset() ? presetOf() : -1;
+
+		if (holding == null) stack.settles();
+
+		framedSpan = -1;
+		framed();
+		relayout();
+	}
+
+	/**
+		@return Which instrument the chosen channel plays, by index into the song's.
+	**/
+	public function presetOf():Int {
+		return session.song.rack[session.part.index()];
+	}
+
+	/**
+		@return Whether what is shown is a preset's, which it is while the switch says so and no
+			automation clip is open.
+	**/
+	public inline function showsPreset():Bool {
+		return presetting && holding == null;
+	}
+
+	/**
+		@return How long the thing being edited is, in ticks, or in milliseconds for a preset's
+			lanes.
 	**/
 	public function span():Int {
 		if (holding != null) return holding.length;
+		if (presetting) return stack.presetSpan();
 
 		final pattern = session.current();
 		return pattern == null ? session.song.tempo.ppqn * 16 : pattern.length;
@@ -238,6 +288,7 @@ final class AutomationEditor extends Widget {
 		final room = height - head() - ruler() - reined();
 
 		stack.holding = holding;
+		stack.preset = showsPreset() ? presetOf() : -1;
 		stack.rowTall = holding == null ? 0 : room;
 
 		if (holding == null) stack.settles();
@@ -245,7 +296,7 @@ final class AutomationEditor extends Widget {
 		stack.perTick = perTick;
 		stack.offsetX = offsetX;
 		stack.left = gutter();
-		stack.playhead = playhead < 0 ? -1 : playhead - start();
+		stack.playhead = playhead < 0 || showsPreset() ? -1 : playhead - start();
 
 		stack.spreads(room);
 		stack.offsetY = 0;
@@ -268,7 +319,9 @@ final class AutomationEditor extends Widget {
 
 		menu = new Menu();
 
-		for (one in Parameter.of(session.part)) {
+		final offering = showsPreset() ? Parameter.moved(session.part) : Parameter.of(session.part);
+
+		for (one in offering) {
 			if (!one.operators) {
 				choice(menu, one, one.target, 0, row);
 				continue;
@@ -280,7 +333,67 @@ final class AutomationEditor extends Widget {
 			menu.offer(new Choice(one.name)).submenu = slots;
 		}
 
+		if (showsPreset() && row >= 0) timings(menu, row);
+
 		root.pop(menu, px, py, this);
+	}
+
+	/**
+		Offers what a preset's lane is measured in and whether it loops, on the lane's own menu.
+
+		@param into The menu.
+		@param row Which lane row.
+	**/
+	function timings(into:Menu, row:Int):Void {
+		final line = stack.lineOf(row);
+		final preset = presetOf();
+
+		into.divide();
+
+		final ms = into.offer(new Choice(translate(Locale.LANE_MILLISECONDS)));
+		final beats = into.offer(new Choice(translate(Locale.LANE_BEATS)));
+
+		if (line == null || line.points.length == 0) {
+			ms.enabled = false;
+			beats.enabled = false;
+			ms.reason = translate(Locale.LANE_EMPTY);
+			beats.reason = translate(Locale.LANE_EMPTY);
+			return;
+		}
+
+		if (line.synced) beats.shortcut = "•";
+		else ms.shortcut = "•";
+
+		fires(line.synced ? ms : beats, function():Void {
+			session.does(new mdd.song.edit.TimeLane(preset, line.target, line.slot, !line.synced,
+				session.song.tempo.beatsAt(0)));
+			relayout();
+		});
+
+		into.divide();
+
+		final from = stack.chosen == null ? -1 : line.points.indexOf(stack.chosen);
+		final loop = into.offer(new Choice(translate(Locale.LANE_LOOP)));
+		final hold = into.offer(new Choice(translate(Locale.LANE_HOLD)));
+
+		if (line.loop >= 0) loop.shortcut = "•";
+		else hold.shortcut = "•";
+
+		if (from < 0 || from >= line.points.length - 1) {
+			loop.enabled = false;
+			loop.reason = translate(Locale.LANE_LOOP_WHERE);
+		} else {
+			fires(loop, function():Void {
+				session.does(new mdd.song.edit.LoopLane(preset, line.target, line.slot, from));
+				relayout();
+			});
+		}
+
+		if (line.loop < 0) hold.enabled = false;
+		else fires(hold, function():Void {
+			session.does(new mdd.song.edit.LoopLane(preset, line.target, line.slot, -1));
+			relayout();
+		});
 	}
 
 	function choice(into:Menu, one:Parameter, want:Int, which:Int, row:Int):Void {
@@ -413,6 +526,8 @@ final class AutomationEditor extends Widget {
 		@param tick A position in the song, in ticks.
 	**/
 	public function keeps(tick:Int):Void {
+		if (showsPreset()) return;
+
 		final local = tick - start();
 		if (local < 0 || local > span()) return;
 
@@ -451,6 +566,8 @@ final class AutomationEditor extends Widget {
 		@param px A point, across.
 	**/
 	public function scrubbed(px:Float):Void {
+		if (showsPreset()) return;
+
 		final tick = session.snapped(tickAt(px));
 		final want = tick < 0 ? 0 : tick;
 
@@ -545,6 +662,18 @@ final class AutomationEditor extends Widget {
 			return;
 		}
 
+		if (py < y + head() && holding == null) {
+			if (px >= patternFrom && px < patternTo) {
+				tip = translate(Locale.AUTOMATION_PATTERN_TIP);
+				return;
+			}
+
+			if (px >= presetFrom && px < presetTo) {
+				tip = translate(Locale.AUTOMATION_PRESET_TIP);
+				return;
+			}
+		}
+
 		tip = py < y + head() + ruler() && px < x + gutter() ? translate(Locale.LANE_ADD) : "";
 	}
 
@@ -600,6 +729,19 @@ final class AutomationEditor extends Widget {
 
 		if (event.kind != Kind.PointerDown) return false;
 		if (event.y >= y + head() + ruler()) return false;
+
+		if (event.y < y + head() && holding == null) {
+			if (event.x >= patternFrom && event.x < patternTo) {
+				presents(false);
+				return true;
+			}
+
+			if (event.x >= presetFrom && event.x < presetTo) {
+				presents(true);
+				return true;
+			}
+		}
+
 		if (event.x >= x + gutter()) return false;
 
 		offered(event.x, event.y, -1);
@@ -621,7 +763,7 @@ final class AutomationEditor extends Widget {
 		super.paint(paint);
 		rein(paint, theme, metrics);
 
-		if (playhead >= 0) {
+		if (playhead >= 0 && !showsPreset()) {
 			final at = atTick(playhead - start());
 
 			if (at >= x + gutter() && at < x + width) {
@@ -643,10 +785,13 @@ final class AutomationEditor extends Widget {
 
 		paint.reface(font);
 
+		final instrument = showsPreset() ? session.song.instrumentAt(presetOf()) : null;
+
 		final said = holding != null
 			? (one == null ? translate(Locale.LANE_EMPTY) : part.name() + "   "
 				+ one.titled(holding.line == null ? 0 : holding.line.slot))
-			: part.name();
+			: (showsPreset() ? part.name() + "   " + (instrument == null
+				? translate(Locale.AUTOMATION_NO_PRESET) : instrument.name) : part.name());
 
 		paint.text(said, x + metrics.inset, y + (tall - font.height) * 0.5 + font.ascent,
 			theme.part(part.index()));
@@ -664,10 +809,40 @@ final class AutomationEditor extends Widget {
 
 		paint.reface(small);
 
-		paint.textRight(translate(holding == null ? Locale.AUTOMATION_PATTERN
-			: Locale.AUTOMATION_CLIP), x + width - metrics.inset,
-			y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.85);
+		final line = y + (tall - small.height) * 0.5 + small.ascent;
 
+		if (holding != null) {
+			patternFrom = patternTo = presetFrom = presetTo = 0;
+
+			paint.textRight(translate(Locale.AUTOMATION_CLIP), x + width - metrics.inset, line,
+				theme.dim, 0.85);
+			return;
+		}
+
+		final preset = translate(Locale.AUTOMATION_PRESET);
+		final pattern = translate(Locale.AUTOMATION_PATTERN);
+
+		presetTo = x + width - metrics.inset;
+		presetFrom = presetTo - small.measure(preset);
+		patternTo = presetFrom - metrics.inset * 2;
+		patternFrom = patternTo - small.measure(pattern);
+
+		switched(paint, theme, metrics, pattern, patternFrom, patternTo, !presetting, line, tall);
+		switched(paint, theme, metrics, preset, presetFrom, presetTo, presetting, line, tall);
+	}
+
+	/**
+		Draws one side of the switch between a pattern's lanes and a preset's, lit where it is the
+		one shown.
+	**/
+	function switched(paint:Paint, theme:Theme, metrics:Metrics, said:String, from:Float, to:Float,
+			on:Bool, line:Float, tall:Float):Void {
+		if (on) {
+			paint.roundedRect(from - metrics.unit, y + metrics.whole(3), to - from + metrics.unit * 2,
+				tall - metrics.whole(6), metrics.radiusSmall, theme.accent, 0.25);
+		}
+
+		paint.text(said, from, line, on ? theme.ink : theme.dim, on ? 0.95 : 0.7);
 	}
 
 	function barred(paint:Paint, theme:Theme, metrics:Metrics):Void {
@@ -679,6 +854,12 @@ final class AutomationEditor extends Widget {
 		paint.rect(x, top, width, tall, theme.bar);
 		paint.pushClip(left, top, width - gutter(), tall);
 		paint.reface(font);
+
+		if (showsPreset()) {
+			timed(paint, theme, metrics, top, tall, font);
+			paint.popClip();
+			return;
+		}
 
 		final bar = session.song.tempo.ppqn * 4;
 		final reach = span();
@@ -706,5 +887,38 @@ final class AutomationEditor extends Widget {
 		}
 
 		paint.popClip();
+	}
+
+	/**
+		Draws the ruler over a preset's lanes: milliseconds from the key on, marked every tenth step
+		of the lanes' grid and at least far enough apart to read.
+	**/
+	function timed(paint:Paint, theme:Theme, metrics:Metrics, top:Float, tall:Float,
+			font:mdd.ui.Font):Void {
+		final left = x + gutter();
+		final step = stack.msGrid() * 10;
+		final reach = span();
+
+		var at = 0;
+		var written = left - metrics.gap;
+
+		while (at <= reach) {
+			final px = atTick(at);
+
+			if (px >= left && px < x + width) {
+				paint.rect(px, top, metrics.whole(1), tall, theme.frame, 0.8);
+
+				if (px >= written) {
+					final said = at < 1000 ? at + " ms" : (at / 1000) + " s";
+
+					paint.text(said, px + metrics.unit, top + (tall - font.height) * 0.5 + font.ascent,
+						theme.dim, 0.8);
+
+					written = px + metrics.unit + paint.measure(said) + metrics.gap;
+				}
+			}
+
+			at += step;
+		}
 	}
 }

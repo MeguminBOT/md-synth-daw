@@ -15,6 +15,7 @@ final class MovePoint implements Command {
 	final direct:Null<Automation>;
 	final at:Int;
 	final value:Int;
+	final preset:Int;
 
 	var wasAt:Int = 0;
 	var wasValue:Int = 0;
@@ -30,9 +31,10 @@ final class MovePoint implements Command {
 		@param at Which one, by index.
 		@param value The new value for the point.
 		@param direct The lane to act on, or null to look it up from the pattern.
+		@param preset The instrument whose lane it is, by index, or -1 for the pattern's.
 	**/
 	public function new(pattern:Int, part:Part, target:Int, slot:Int, point:Point, at:Int,
-			value:Int, direct:Null<Automation> = null) {
+			value:Int, direct:Null<Automation> = null, preset:Int = -1) {
 		this.pattern = pattern;
 		this.part = part;
 		this.target = target;
@@ -41,6 +43,7 @@ final class MovePoint implements Command {
 		this.direct = direct;
 		this.at = at;
 		this.value = value;
+		this.preset = preset;
 	}
 
 	/**
@@ -71,7 +74,7 @@ final class MovePoint implements Command {
 	}
 
 	function resort(song:Song):Void {
-		final line = Points.line(song, pattern, part, target, slot, false, direct);
+		final line = Points.line(song, pattern, part, target, slot, false, direct, preset);
 		if (line != null) line.sort();
 	}
 

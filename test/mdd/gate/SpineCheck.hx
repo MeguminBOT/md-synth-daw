@@ -2216,6 +2216,113 @@ class SpineCheck {
 		laid(tree);
 	}
 
+	/**
+		The automation editor turns to what FM1's preset moves on every note: a click on a pitch lane
+		writes a point into the preset rather than the pattern, measured in milliseconds from the
+		key on, it undoes and redoes, it can be put on the beat and made to loop, the preset is
+		another preset for it, and the editor turns back to the pattern.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The tabs.
+	**/
+	static function movedBy(tree:Root, session:Session, centre:mdd.view.Centre):Void {
+		session.choose(Part.Fm1);
+		centre.show(mdd.view.Centre.AUTOMATION);
+		laid(tree);
+
+		final tab = centre.automation;
+		final stack = tab.stack;
+		final index = session.song.rack[Part.Fm1.index()];
+		final instrument = session.song.instrumentAt(index);
+
+		if (instrument == null) {
+			says("a preset's lanes are edited here", false, "FM1 plays no preset");
+			return;
+		}
+
+		final before = instrument.identifies(null);
+		final depth = session.history.depth();
+
+		tab.presents(true);
+		tab.shows(mdd.song.Automation.PITCH, 0);
+		laid(tree);
+
+		final px = stack.atTick(100);
+		final py = stack.plotTop(0) + stack.plotTall(0) * 0.25;
+
+		tree.pressed(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(px, py, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final line = instrument.lane(mdd.song.Automation.PITCH, 0);
+		final placed = line == null || line.points.length == 0 ? -1 : line.points[0].at;
+		final valued = line == null || line.points.length == 0 ? 0 : line.points[0].value;
+		final pattern = session.current();
+		var inPattern = 0;
+
+		if (pattern != null) {
+			for (held in pattern.lane(Part.Fm1).automation) {
+				if (held.target == mdd.song.Automation.PITCH) inPattern++;
+			}
+		}
+
+		says("a preset's lanes are edited here", stack.preset == index && tab.span() == 2000
+			&& placed >= 90 && placed <= 110 && valued > 0 && inPattern == 0,
+			"a click 100 ms along FM1's preset's pitch lane put a point at " + placed + " ms holding "
+			+ valued + " cents, into the preset, and " + inPattern + " into the pattern, on a ruler"
+			+ " two seconds long");
+
+		session.undo();
+		final undone = instrument.lane(mdd.song.Automation.PITCH, 0) == null;
+
+		session.redo();
+		final redone = instrument.lane(mdd.song.Automation.PITCH, 0);
+
+		says("and the edit undoes", undone && redone != null && redone.points.length == 1,
+			"undo took the lane out of the preset and redo put it back with "
+			+ (redone == null ? 0 : redone.points.length) + " point");
+
+		if (redone == null) {
+			while (session.history.depth() > depth) session.undo();
+			tab.presents(false);
+			return;
+		}
+
+		final beats = session.song.tempo.beatsAt(0);
+		session.does(new mdd.song.edit.TimeLane(index, mdd.song.Automation.PITCH, 0, true, beats));
+
+		final synced = redone == null ? -1 : redone.points[0].at;
+		final wanted = Math.round(placed * beats * mdd.song.Automation.BEAT / 60000);
+
+		redone.add(new mdd.song.Point(synced + 480, 0));
+		session.does(new mdd.song.edit.LoopLane(index, mdd.song.Automation.PITCH, 0, 0));
+
+		final looped = redone.loop;
+		final moving = instrument.identifies(null);
+
+		says("and it follows the beat and loops", redone.synced && synced == wanted && looped == 0
+			&& moving != before,
+			"on the beat the point sits at " + synced + " 960ths of a beat, where " + placed
+			+ " ms at " + beats + " bpm is " + wanted + ", it loops from point " + looped
+			+ ", and the preset answers " + moving.substr(0, 8) + " against " + before.substr(0, 8));
+
+		while (session.history.depth() > depth) session.undo();
+
+		redone.points.resize(0);
+		instrument.lanes.resize(0);
+
+		tab.presents(false);
+		laid(tree);
+
+		says("and the editor turns back", stack.preset == -1 && !tab.presetting
+			&& instrument.identifies(null) == before,
+			"back on the pattern the preset holds " + instrument.lanes.length
+			+ " lanes and answers " + instrument.id.substr(0, 8) + " again");
+
+		centre.show(mdd.view.Centre.ROLL);
+		laid(tree);
+	}
+
 	static function laid(tree:Root):Void {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
@@ -4728,6 +4835,7 @@ class SpineCheck {
 		grouped(tree, session, centre, paint, renderer);
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre, paint, renderer);
+		movedBy(tree, session, centre);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
 		followed(tree, session, centre);

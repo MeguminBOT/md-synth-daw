@@ -181,6 +181,56 @@ final class Parameter {
 
 	static final NONE:Array<Parameter> = [];
 
+	static final FM_MOVED:Array<Parameter> = fmMoved();
+	static final SQUARE_MOVED:Array<Parameter> = [pitch()];
+	static final NOISE_MOVED:Array<Parameter> = [made(Automation.TUNE, 0, 0, 15, "NOISE", Locale.PARAM_NOISE)];
+
+	/**
+		@param part A part.
+		@return Every parameter a preset for that part may move on each of its notes: an FM part's
+			own, with pitch in cents in place of the pattern's pitch and no preset lane, a square's
+			pitch, and the noise channel's mode. A square's and the noise channel's level is their
+			envelope's.
+	**/
+	public static function moved(part:Part):Array<Parameter> {
+		if (part.fm()) return FM_MOVED;
+		if (part.square()) return SQUARE_MOVED;
+		if (part.noise()) return NOISE_MOVED;
+
+		return NONE;
+	}
+
+	/**
+		@param part A part.
+		@param target Which lane.
+		@param slot Which operator.
+		@return That parameter as a preset moves it, or null where a preset for the part cannot.
+	**/
+	public static function movedFound(part:Part, target:Int, slot:Int):Null<Parameter> {
+		for (held in moved(part)) {
+			if (held.target != target) continue;
+			if (held.operators) return held;
+			if (held.slot == slot) return held;
+		}
+
+		return null;
+	}
+
+	static function pitch():Parameter {
+		return made(Automation.PITCH, 0, -4800, 4800, "PITCH", Locale.PARAM_PITCH).rides().ramps();
+	}
+
+	static function fmMoved():Array<Parameter> {
+		final out:Array<Parameter> = [];
+
+		for (held in fm()) {
+			if (held.target == Automation.TUNE) out.push(pitch());
+			else if (held.target != Automation.INSTRUMENT) out.push(held);
+		}
+
+		return out;
+	}
+
 	/**
 		@param part A part.
 		@return Every parameter that part has, built once per call.

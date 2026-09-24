@@ -488,10 +488,17 @@ final class Library {
 			}
 		}
 
-		if (one.lanes.length != two.lanes.length) return false;
+		if (one.moves() != two.moves()) return false;
 
-		for (index in 0...one.lanes.length) {
-			if (!one.lanes[index].same(two.lanes[index])) return false;
+		var other = 0;
+
+		for (line in one.lanes) {
+			if (line.points.length == 0) continue;
+
+			while (two.lanes[other].points.length == 0) other++;
+			if (!line.same(two.lanes[other])) return false;
+
+			other++;
 		}
 
 		return true;

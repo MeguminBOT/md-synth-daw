@@ -51,6 +51,17 @@ final class Instrument {
 	public final lanes:Array<mdd.song.Automation> = [];
 
 	/**
+		@return How many of its lanes hold a point, which are the ones that move anything. A lane
+			left empty by taking its last point out moves nothing and is no part of what the preset
+			sounds like.
+	**/
+	public function moves():Int {
+		var many = 0;
+		for (line in lanes) if (line.points.length > 0) many++;
+		return many;
+	}
+
+	/**
 		What this preset is: thirty two hexadecimal characters over what it sounds like, which
 		`identifies` works out. Two presets that sound different differ here, and two that sound the
 		same are the same preset whatever each is called, however each is tagged, whatever folder

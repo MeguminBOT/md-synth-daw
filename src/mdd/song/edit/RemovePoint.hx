@@ -13,6 +13,7 @@ final class RemovePoint implements Command {
 	final slot:Int;
 	final point:Point;
 	final direct:Null<Automation>;
+	final preset:Int;
 
 	/**
 		Records what to do. Nothing changes until `apply` is called.
@@ -23,14 +24,17 @@ final class RemovePoint implements Command {
 		@param slot Which lane of that channel.
 		@param point The point.
 		@param direct The lane to act on, or null to look it up from the pattern.
+		@param preset The instrument whose lane it is, by index, or -1 for the pattern's.
 	**/
-	public function new(pattern:Int, part:Part, target:Int, slot:Int, point:Point, direct:Null<Automation> = null) {
+	public function new(pattern:Int, part:Part, target:Int, slot:Int, point:Point, direct:Null<Automation> = null,
+			preset:Int = -1) {
 		this.pattern = pattern;
 		this.part = part;
 		this.target = target;
 		this.slot = slot;
 		this.point = point;
 		this.direct = direct;
+		this.preset = preset;
 	}
 
 	/**
@@ -39,7 +43,7 @@ final class RemovePoint implements Command {
 		@param song The song to act on.
 	**/
 	public function apply(song:Song):Void {
-		final line = Points.line(song, pattern, part, target, slot, false, direct);
+		final line = Points.line(song, pattern, part, target, slot, false, direct, preset);
 		if (line != null) line.remove(point);
 	}
 
@@ -49,7 +53,7 @@ final class RemovePoint implements Command {
 		@param song The song to act on.
 	**/
 	public function revert(song:Song):Void {
-		final line = Points.line(song, pattern, part, target, slot, true, direct);
+		final line = Points.line(song, pattern, part, target, slot, true, direct, preset);
 		if (line != null) line.add(point);
 	}
 

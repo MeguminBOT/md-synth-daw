@@ -386,11 +386,13 @@ class Project {
 			out.close();
 		}
 
-		if (instrument.lanes.length > 0) {
+		if (instrument.moves() > 0) {
 			out.key("lanes");
 			out.list();
 
 			for (line in instrument.lanes) {
+				if (line.points.length == 0) continue;
+
 				out.open();
 				out.key("target");
 				out.whole(line.target);

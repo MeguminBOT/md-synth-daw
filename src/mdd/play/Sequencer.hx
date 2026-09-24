@@ -588,7 +588,7 @@ final class Sequencer {
 		moving = false;
 
 		for (instrument in song.instruments) {
-			if (instrument.lanes.length > 0) {
+			if (instrument.moves() > 0) {
 				moving = true;
 				break;
 			}

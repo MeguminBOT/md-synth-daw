@@ -121,17 +121,24 @@ final class Preset {
 
 	/**
 		Writes the lanes a preset moves on every note: how many, then each one's parameter, its time
-		base, its loop and its points. A preset with none writes a single nought.
+		base, its loop and its points. A lane with no points moves nothing and is left out, and a
+		preset with none writes a single nought.
 
 		@param out Where it goes.
 		@param held The preset.
 	**/
 	static function moved(out:BytesBuffer, held:Instrument):Void {
-		final many = held.lanes.length > 255 ? 255 : held.lanes.length;
+		final moving = held.moves();
+		final many = moving > 255 ? 255 : moving;
+		var written = 0;
+
 		out.addByte(many);
 
-		for (index in 0...many) {
-			final line = held.lanes[index];
+		for (line in held.lanes) {
+			if (line.points.length == 0 || written >= many) continue;
+
+			written++;
+
 			final count = line.points.length > 0xFFFF ? 0xFFFF : line.points.length;
 
 			out.addByte(line.target & 0xFF);
@@ -261,7 +268,7 @@ final class Preset {
 
 		out.addByte(family(held.kind));
 		sounded(out, held, sample);
-		if (held.lanes.length > 0) moved(out, held);
+		if (held.moves() > 0) moved(out, held);
 
 		return haxe.crypto.Md5.make(out.getBytes()).toHex();
 	}
