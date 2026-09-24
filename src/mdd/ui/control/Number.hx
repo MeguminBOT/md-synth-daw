@@ -16,7 +16,9 @@ final class Number extends Widget implements Range {
 	public var label:String;
 
 	/**
-		What the number is in, drawn after it.
+		What the number is in, drawn straight after it, so a unit that wants a space before it
+		carries one. A number that turns its value into words through `derived` shows those instead,
+		without it.
 	**/
 	public var unit:String = "";
 
@@ -288,12 +290,20 @@ final class Number extends Widget implements Range {
 
 		if (mono == null || small == null) return 70;
 
-		final said = derived != null ? derived(value) : Std.string(value);
+		final said = shown();
 		final wide = small.measure(label) + mono.measure(said) + metrics.unit * 4
 			+ metrics.inset;
 		final least = metrics.whole(70);
 
 		return wide < least ? least : wide;
+	}
+
+	/**
+		@return What the number shows while nobody is typing into it: what `derived` makes of its
+			value, or the value with its unit after it.
+	**/
+	public function shown():String {
+		return derived != null ? derived(value) : Std.string(value) + unit;
 	}
 
 	override function paint(paint:Paint):Void {
@@ -317,8 +327,7 @@ final class Number extends Widget implements Range {
 			metrics.radiusRow);
 
 		final stacked = height >= small.height + mono.height + metrics.unit * 3;
-		final said = typing ? entry + "_"
-			: (derived != null && !stacked ? derived(value) : Std.string(value));
+		final said = typing ? entry + "_" : (stacked && derived != null ? Std.string(value) : shown());
 
 		if (!stacked) {
 			paint.reface(small);

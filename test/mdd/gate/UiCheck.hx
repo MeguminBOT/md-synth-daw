@@ -117,6 +117,7 @@ class UiCheck {
 		editing();
 		numbers();
 		gestures();
+		united();
 		slotted();
 		ranges();
 		switches();
@@ -701,6 +702,25 @@ class UiCheck {
 			number.value == 60,
 			"the 3 that was typed landed as " + number.value
 			+ ", where 40 would mean the caret was left sitting in the field");
+	}
+
+	/**
+		A number shows its unit after its value, and a number that words its own value shows only
+		those words.
+	**/
+	static function united():Void {
+		final plain = new Number("Turn", 45, 0, 359);
+		final turned = new Number("Turn", 45, 0, 359);
+		final worded = new Number("Turn", 45, 0, 359);
+
+		turned.unit = "°";
+		worded.unit = " px";
+		worded.derived = function(value:Int):String return value + " px";
+
+		says("a number shows its unit", plain.shown() == "45" && turned.shown() == "45°"
+			&& worded.shown() == "45 px",
+			"45 reads '" + plain.shown() + "' with no unit, '" + turned.shown() + "' in degrees and '"
+			+ worded.shown() + "' where it words itself");
 	}
 
 	static function gestures():Void {
