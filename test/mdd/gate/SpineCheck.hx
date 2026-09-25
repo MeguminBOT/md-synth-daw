@@ -1752,6 +1752,30 @@ class SpineCheck {
 			"a busy frame with " + Math.round(mdd.host.Collector.CEILING / 1048576)
 			+ " mb behind it was swept anyway, " + held.forced + " forced");
 
+		final window:Array<haxe.io.Bytes> = [];
+		var early = 0.0;
+		var late = 0.0;
+
+		for (frame in 0...3000) {
+			for (one in 0...8) {
+				window.push(haxe.io.Bytes.alloc(65536));
+				if (window.length > 40) window.shift();
+			}
+
+			held.rests(1 / 60, true);
+
+			final now = mdd.host.Usage.ram();
+			if (frame >= 500 && frame < 1000 && now > early) early = now;
+			if (frame >= 2500 && now > late) late = now;
+		}
+
+		window.resize(0);
+
+		says("and busy frames stay bounded", late - early < 16,
+			"1.5 gb allocated over 3000 frames drawn one after another moved the process's peak by "
+			+ Math.round(late - early) + " mb from frames 500 to 1000 to the last five hundred, with the"
+			+ " slowest whole sweep of the heap taking " + round(held.worst * 1000, 1) + " ms");
+
 		held.leaves();
 	}
 

@@ -220,7 +220,7 @@ class BusyCheck {
 			held.frame(paint);
 			Sdl.renderPresent(renderer);
 
-			collector.rests(since, true);
+			collector.rests(since, true, true);
 
 			if (files.wroteYet()) break;
 

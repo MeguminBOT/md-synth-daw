@@ -7,9 +7,13 @@ package mdd.host;
 
 	A collection stops every participating thread, so one landing in the middle of a
 	frame is seen and one landing while a bounce runs is heard. This keeps them out of
-	both by running a small collection when nothing is happening, and by never forcing
+	both where it can by collecting when no frame is being drawn, and by never forcing
 	a large one while a bounce is in progress: a bounce is a known large allocation
 	rather than a leak.
+
+	Frames drawn back to back, as they are while a piece plays, never leave a quiet moment, so
+	past the ceiling a whole collection runs anyway. A small one there only reaches what was
+	allocated since the last, and what it leaves behind adds up at every ceiling after.
 **/
 final class Collector {
 	/**
@@ -94,21 +98,22 @@ final class Collector {
 		Decides whether to collect now. Call once a frame.
 
 		@param seconds How long since the last call.
-		@param busy Whether something long is running, such as a bounce.
+		@param drawn Whether a frame was drawn, which is what makes a moment not quiet.
+		@param bouncing Whether a bounce is running, which is left to allocate what it needs.
 	**/
-	public function rests(seconds:Float, busy:Bool):Void {
+	public function rests(seconds:Float, drawn:Bool, bouncing:Bool = false):Void {
 		if (!minding) return;
 
 		final much = loose();
 
 		if (much > CEILING) {
 			forced++;
-			sweeps(!busy);
+			sweeps(!bouncing);
 
 			return;
 		}
 
-		if (busy) {
+		if (drawn || bouncing) {
 			idle = 0;
 			return;
 		}

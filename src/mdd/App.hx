@@ -2279,7 +2279,7 @@ class App {
 			if (costed()) stage.root.soil();
 			if (received()) stage.root.soil();
 
-			collector.rests(since, stage.draw());
+			collector.rests(since, stage.draw(), bounce.running());
 		}
 	}
 
