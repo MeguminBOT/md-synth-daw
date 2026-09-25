@@ -951,6 +951,48 @@ class StreamCheck {
 		for (index in 0...9) if (held.keyed[index]) still++;
 
 		says("and when they stop", still == 0, "every part reads silent after key off");
+
+		for (index in 6...9) stream.attenuate(1100, index, 2);
+
+		held.take(stream, 0);
+
+		var relabelled = 0;
+		for (at in 6...9) if (held.keyed[at] && held.notes[at] == wanted[at]) relabelled++;
+
+		final period = Stream.PSG_PERIODS[wanted[7]];
+		final finer = (period & 0x3F0) | ((period & 0x0F) ^ 0x0F);
+
+		stream.raw(1200, Stream.PSG, 0, 0x80 | (1 << 5) | (finer & 0x0F));
+		held.take(stream, 0);
+
+		final moved = held.notes[7];
+
+		var expected = -1;
+		var away = 0x7FFFFFFF;
+
+		for (note in 0...128) {
+			final gap = Stream.PSG_PERIODS[note] - finer;
+			final much = gap < 0 ? -gap : gap;
+
+			if (much >= away) continue;
+
+			away = much;
+			expected = note;
+		}
+
+		stream.raw(1300, Stream.PSG, 0, 0x80 | (1 << 5) | 0x10 | 0x0F);
+		stream.raw(1300, Stream.PSG, 0, 0x03);
+		held.take(stream, 0);
+
+		final data = held.keyed[7];
+
+		says("a square keyed again is labelled", relabelled == 3 && data,
+			relabelled + " of 3 squares read their note again when a level came back with no period"
+			+ " written, and a data byte after a level latch " + (data ? "set the level" : "was lost"));
+
+		says("and a lone latch byte retunes it", expected != wanted[7] && moved == expected,
+			"a period of " + period + " moved to " + finer + " by its low four bits alone reads as note "
+			+ moved + ", where the nearest to it is " + expected + " and the old one " + wanted[7]);
 	}
 
 	static function identical():Void {

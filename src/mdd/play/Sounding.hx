@@ -26,11 +26,9 @@ final class Sounding {
 	final blocks:Vector<Int> = new Vector<Int>(3);
 	final coarse:Vector<Int> = new Vector<Int>(3);
 	final halves:Vector<Int> = new Vector<Int>(2);
-	final periods:Vector<Int> = new Vector<Int>(4);
-	final latched:Vector<Int> = new Vector<Int>(4);
+	final periods:Vector<Int> = new Vector<Int>(3);
 
-	var waiting:Int = 0;
-	var pending:Int = -1;
+	var latch:Int = 0;
 
 	public function new() {
 		forget();
@@ -52,14 +50,9 @@ final class Sounding {
 		}
 
 		for (index in 0...2) halves[index] = -1;
+		for (index in 0...3) periods[index] = 0;
 
-		for (index in 0...4) {
-			periods[index] = 0;
-			latched[index] = 0;
-		}
-
-		waiting = 0;
-		pending = -1;
+		latch = 0;
 	}
 
 	/**
@@ -163,41 +156,48 @@ final class Sounding {
 	}
 
 	/**
-		Follows one square part write, which may be half of a two byte period.
+		Follows one square part write the way the part takes it: a latch byte chooses a register
+		and writes its low four bits at once, and a data byte writes to whichever register was
+		latched last, the high six bits of a period or the whole of an attenuation. A square
+		keeps its note through a silence, so one keyed again at the same period is still labelled.
 
 		@param value The byte written.
 	**/
 	function psg(value:Int):Void {
-		if ((value & 0x80) != 0) {
-			final channel = (value >> 5) & 3;
+		final byte = value & 0xFF;
 
-			if ((value & 0x10) != 0) {
-				final quiet = (value & 0x0F) == 0x0F;
-				final slot = 6 + channel;
+		if ((byte & 0x80) != 0) {
+			latch = (byte >> 4) & 0x07;
 
-				if (slot < Part.COUNT) {
-					keyed[slot] = !quiet;
-					if (quiet) notes[slot] = -1;
-				}
+			final channel = latch >> 1;
 
-				waiting = 0;
-				pending = -1;
-				return;
-			}
+			if ((latch & 1) != 0) attenuated(channel, byte & 0x0F);
+			else if (channel < 3) toned(channel, (periods[channel] & 0x3F0) | (byte & 0x0F));
 
-			latched[channel] = value & 0x0F;
-			pending = channel;
-			waiting = 1;
 			return;
 		}
 
-		if (waiting == 0 || pending < 0 || pending > 2) return;
+		final channel = latch >> 1;
 
-		periods[pending] = latched[pending] | ((value & 0x3F) << 4);
-		notes[6 + pending] = periodNote(periods[pending]);
+		if ((latch & 1) != 0) attenuated(channel, byte & 0x0F);
+		else if (channel < 3) toned(channel, (periods[channel] & 0x0F) | ((byte & 0x3F) << 4));
+	}
 
-		waiting = 0;
-		pending = -1;
+	/**
+		@param channel Which channel of the part, 0 to 3.
+		@param attenuation What it was set to, 15 being silence.
+	**/
+	inline function attenuated(channel:Int, attenuation:Int):Void {
+		keyed[6 + channel] = attenuation != 0x0F;
+	}
+
+	/**
+		@param channel Which square, 0 to 2.
+		@param period Its whole ten bit period now.
+	**/
+	inline function toned(channel:Int, period:Int):Void {
+		periods[channel] = period;
+		notes[6 + channel] = periodNote(period);
 	}
 
 	/**
