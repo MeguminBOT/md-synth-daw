@@ -2794,6 +2794,50 @@ class SpineCheck {
 		is what every other sequencer does with that button, and somebody arriving from one
 		will have taken a clip off the playlist before working out why.
 	**/
+	/**
+		A track header's solo button solos the track on a click and solos it alone with Alt held,
+		each as one step.
+
+		@param tree The shell.
+		@param session The piece.
+		@param centre The centre the playlist sits in.
+	**/
+	static function soloed(tree:Root, session:mdd.app.Session, centre:Centre):Void {
+		centre.show(Centre.PLAYLIST);
+		laid(tree);
+
+		final list = centre.playlist;
+		final tracks = session.song.tracks;
+
+		while (tracks.length < 2) session.song.track(new mdd.song.Track("track " + (tracks.length + 1)));
+
+		final px = list.x + list.names() - tree.metrics.whole(26) + tree.metrics.whole(9);
+		final first = list.atTrack(0) + (list.atTrack(1) - list.atTrack(0)) * 0.5;
+		final second = first + (list.atTrack(1) - list.atTrack(0));
+		final depth = session.history.depth();
+
+		tree.pressed(px, first, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(px, first, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final one = tracks[0].soloed && !tracks[1].soloed;
+
+		tree.pressed(px, second, mdd.ui.Pointer.Left, mdd.ui.Mod.Alt);
+		tree.released(px, second, mdd.ui.Pointer.Left, mdd.ui.Mod.Alt);
+
+		final alone = !tracks[0].soloed && tracks[1].soloed;
+		final steps = session.history.depth() - depth;
+
+		session.undo();
+		session.undo();
+
+		final back = !tracks[0].soloed && !tracks[1].soloed;
+
+		says("a track header solos its track", one && alone && steps == 2 && back,
+			"a click soloed the first track " + (one ? "alone" : "wrongly") + ", alt on the second "
+			+ (alone ? "moved the solo to it" : "did not move the solo") + ", in " + steps
+			+ " steps, and undo " + (back ? "took both back" : "left a solo behind"));
+	}
+
 	static function buttoned(tree:Root, session:mdd.app.Session, centre:Centre):Void {
 		centre.show(Centre.PLAYLIST);
 
@@ -5032,6 +5076,7 @@ class SpineCheck {
 		movedBy(tree, session, centre);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
+		soloed(tree, session, centre);
 		followed(tree, session, centre);
 		reopened(tree, session, centre);
 		picked(tree, session, bar);

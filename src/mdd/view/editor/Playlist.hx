@@ -265,9 +265,37 @@ final class Playlist extends Widget {
 		if (root == null) return false;
 
 		final metrics = root.metrics;
+		final left = x + names() - metrics.whole(48);
+
+		return px >= left && px < left + metrics.whole(18);
+	}
+
+	function soloAt(px:Float):Bool {
+		final root = root();
+		if (root == null) return false;
+
+		final metrics = root.metrics;
 		final left = x + names() - metrics.whole(26);
 
 		return px >= left && px < left + metrics.whole(18);
+	}
+
+	/**
+		Solos one track and unsolos every other, as one step.
+
+		@param which The track.
+	**/
+	function solosAlone(which:Int):Void {
+		final tracks = session.song.tracks;
+		final group = new mdd.song.edit.Together("solo one track");
+
+		for (index in 0...tracks.length) {
+			if (tracks[index].soloed == (index == which)) continue;
+			group.also(new mdd.song.edit.SoloTrack(index, index == which));
+		}
+
+		session.does(group);
+		session.says(Locale.SAID_SOLOED_ALONE, tracks[which].name);
 	}
 
 	/**
@@ -661,6 +689,12 @@ final class Playlist extends Widget {
 
 		if (muteAt(px)) {
 			tip = translate(tracks[which].muted ? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE);
+			return;
+		}
+
+		if (soloAt(px)) {
+			tip = translate(tracks[which].soloed ? Locale.TRACK_UNSOLO : Locale.TRACK_SOLO);
+			shortcut = translate(Locale.TRACK_SOLO_SHORTCUT);
 			return;
 		}
 
@@ -1330,6 +1364,19 @@ final class Playlist extends Widget {
 			return true;
 		}
 
+		if (soloAt(event.x)) {
+			final track = session.song.tracks[which];
+
+			if (event.alt()) solosAlone(which);
+			else {
+				session.does(new mdd.song.edit.SoloTrack(which, !track.soloed));
+				session.says(track.soloed ? Locale.SAID_SOLOED : Locale.SAID_UNSOLOED, track.name);
+			}
+
+			invalidate();
+			return true;
+		}
+
 		chosenTrack = which;
 		railing = which;
 		railTo = which;
@@ -1511,6 +1558,15 @@ final class Playlist extends Widget {
 					? Locale.TRACK_UNMUTE : Locale.TRACK_MUTE))), function():Void {
 				session.does(new mdd.song.edit.MuteTrack(which, !held.muted));
 			});
+
+			fires(menu.offer(new Choice(translate(held.soloed
+					? Locale.TRACK_UNSOLO : Locale.TRACK_SOLO))), function():Void {
+				session.does(new mdd.song.edit.SoloTrack(which, !held.soloed));
+				session.says(held.soloed ? Locale.SAID_SOLOED : Locale.SAID_UNSOLOED, held.name);
+			});
+
+			fires(menu.offer(new Choice(translate(Locale.TRACK_SOLO_ONLY))), function():Void
+				solosAlone(which));
 
 			menu.divide();
 
@@ -1947,10 +2003,12 @@ final class Playlist extends Widget {
 		paint.reface(font);
 
 		final hauls = haulRows != 0;
+		final soloing = session.song.soloingTracks();
 
 		for (which in 0...session.song.tracks.length) {
 			final track = session.song.tracks[which];
 			final seat = atTrack(which);
+			final silent = soloing ? !track.soloed : track.muted;
 
 			if (!hauls) {
 				if (seat + tall < top) continue;
@@ -1970,7 +2028,7 @@ final class Playlist extends Widget {
 				painted++;
 
 				if (clip.automates()) {
-					curved(paint, theme, metrics, clip, at, row, wide, tall, track.muted);
+					curved(paint, theme, metrics, clip, at, row, wide, tall, silent);
 					continue;
 				}
 
@@ -1980,7 +2038,7 @@ final class Playlist extends Widget {
 					: (track.colour >= 0 ? new Colour(track.colour) : theme.dim);
 
 				final deep = tall - 5;
-				final quiet = track.muted;
+				final quiet = silent;
 
 				final label = Math.fceil(font.height + metrics.whole(2));
 
@@ -2170,6 +2228,27 @@ final class Playlist extends Widget {
 		}
 	}
 
+	/**
+		Draws one of the square buttons on a track header, lit where what it switches is on.
+
+		@param paint What to draw with.
+		@param theme The colours to draw in.
+		@param metrics The sizes to draw at.
+		@param left Where it sits, across.
+		@param top Where it sits, down.
+		@param box How big it is.
+		@param on Whether it is lit.
+	**/
+	function lit(paint:Paint, theme:Theme, metrics:Metrics, left:Float, top:Float, box:Float,
+			on:Bool):Void {
+		if (on) {
+			paint.roundedGradient(left, top, box, box, metrics.radiusSmall,
+				theme.accent.lift(0.20), theme.accent.sink(0.16), 0.8);
+		} else {
+			paint.roundedRect(left, top, box, box, metrics.radiusSmall, theme.raise1);
+		}
+	}
+
 	function rails(paint:Paint, theme:Theme, metrics:Metrics, top:Float):Void {
 		final tree = root();
 		final wide = names();
@@ -2180,6 +2259,8 @@ final class Playlist extends Widget {
 
 		paint.rect(x, top, wide, height - ruler(), theme.panel);
 		paint.pushClip(x, top, wide, height - ruler());
+
+		final soloing = session.song.soloingTracks();
 
 		for (which in 0...rows()) {
 			final row = atTrack(which);
@@ -2213,21 +2294,18 @@ final class Playlist extends Widget {
 				continue;
 			}
 
+			final silent = soloing ? !held.soloed : held.muted;
+
 			paint.rect(x, row + metrics.unit, metrics.whole(3), tall - metrics.unit * 2 - hair,
 				held.colour >= 0 ? new Colour(held.colour) : theme.frame,
-				held.muted ? 0.25 : 0.9);
+				silent ? 0.25 : 0.9);
 
 			final box = metrics.whole(18);
-			final at = x + wide - metrics.whole(26);
+			final at = x + wide - metrics.whole(48);
+			final solo = x + wide - metrics.whole(26);
 
-			if (held.muted) {
-				paint.roundedGradient(at, row + (tall - box) * 0.5, box, box,
-					metrics.radiusSmall, theme.accent.lift(0.20), theme.accent.sink(0.16),
-					0.8);
-			} else {
-				paint.roundedRect(at, row + (tall - box) * 0.5, box, box,
-					metrics.radiusSmall, theme.raise1);
-			}
+			lit(paint, theme, metrics, at, row + (tall - box) * 0.5, box, held.muted);
+			lit(paint, theme, metrics, solo, row + (tall - box) * 0.5, box, held.soloed);
 
 			var pen = x + metrics.inset + metrics.gap;
 
@@ -2235,19 +2313,24 @@ final class Playlist extends Widget {
 				final box = metrics.whole(14);
 
 				paint.icon(tree.icons, held.icon, pen, row + (tall - box) * 0.5, box,
-					held.muted ? theme.dim : theme.ink, held.muted ? 0.4 : 0.9);
+					silent ? theme.dim : theme.ink, silent ? 0.4 : 0.9);
 
 				pen += box + metrics.gap;
 			}
 
 			paint.reface(font);
+			paint.pushClip(pen, row, at - metrics.gap - pen, tall);
 			paint.text(held.name, pen, row + (tall - font.height) * 0.5 + font.ascent,
-				held.muted ? theme.dim : theme.ink);
+				silent ? theme.dim : theme.ink);
+			paint.popClip();
 
 			paint.reface(small);
 			paint.textCentred("M", at + box * 0.5,
 				row + (tall - small.height) * 0.5 + small.ascent,
 				held.muted ? theme.ink : theme.dim);
+			paint.textCentred("S", solo + box * 0.5,
+				row + (tall - small.height) * 0.5 + small.ascent,
+				held.soloed ? theme.ink : theme.dim);
 		}
 
 		paint.popClip();

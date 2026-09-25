@@ -31,9 +31,12 @@ Drive, and that is where the resemblance stops.
 Clips laid over named tracks, each track carrying its own name, colour and icon.
 
 Right clicking a track header offers: rename, auto name, auto name the clips, recolour, pick an
-icon, clone, insert above, reset, mute, merge the clips, and delete. Clips can be dragged between
-tracks, resized, sliced in two, and moved as a group. A clip knows where inside its pattern it
-starts, so slicing one keeps the music where it was rather than restarting it.
+icon, clone, insert above, reset, mute, solo, solo only this, merge the clips, and delete. Each
+header carries a mute and a solo button, and `Alt` and a click on the solo button solos that track
+alone, the same as on a channel. While any track is soloed only the soloed tracks are heard, in
+playback and in an export alike. Clips can be dragged between tracks, resized, sliced in two, and
+moved as a group. A clip knows where inside its pattern it starts, so slicing one keeps the music
+where it was rather than restarting it.
 
 Drawing lays a clip where you press and another for every length of it you drag across, so four
 bars of a pattern is one stroke rather than four clicks, and the whole run undoes in one step.
