@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Rulla över den för att bläddra mellan mönstren",
   "transport.disarmed": "spelar inte längre in",
   "transport.frames": "Konsolens bildfrekvens",
-  "transport.framesDetail": "50 Hz på PAL, 60 Hz på NTSC. Automationsramper och ljuddrivrutiner stegar en gång per bildruta",
+  "transport.framesDetail": "Musik skrivs för 60 Hz, som på NTSC. På 50 Hz låter den som på en PAL-konsol: drivrutiner stegar en gång per bildruta, så den går i fem sjättedelar av tempot, och den långsammare klockan gör den ungefär sexton cent lägre",
   "transport.grid": "Vad redigerarna fäster mot",
   "transport.lfo": "Kretsens LFO",
   "transport.lfoDetail": "Av, eller en av dess åtta hastigheter. En förinställning anger bara hur djupt dess kanal följer den",

@@ -313,15 +313,20 @@ final class TransportBar extends Widget {
 	}
 
 	/**
-		Switches between the two frame rates, which changes how a driver paces an
-		export.
+		Switches between the two frame rates, which is the console the piece plays as: at 50 it is
+		heard the way a PAL console plays music written for 60, slower and a little lower. The
+		playhead keeps its place in the music, and a piece playing picks up from there.
 
 		@param from The field that changed.
 	**/
 	function videoChanged(from:Dropdown):Void {
 		if (settling) return;
 
+		final transport = session.transport;
+		final at = transport.tick();
+
 		session.song.tempo.rate = from.value == 0 ? 50 : 60;
+		transport.seek(session.song.tempo.samplesAt(at));
 		session.changed();
 	}
 
@@ -336,10 +341,13 @@ final class TransportBar extends Widget {
 
 	/**
 		@param rate One of the LFO's eight rates.
-		@return How fast it swings at that rate, to three figures.
+		@return How fast it swings at that rate on the console the piece plays as, to three
+			figures.
 	**/
-	static function hertz(rate:Int):String {
-		final value = mdd.chip.Ym2612.lfoHertz(rate);
+	function hertz(rate:Int):String {
+		final pal = session.song.tempo.rate == 50;
+		final value = mdd.chip.Ym2612.lfoHertz(rate)
+			* (pal ? mdd.chip.Ym2612.PAL_CLOCK / mdd.chip.Ym2612.CLOCK : 1.0);
 		final rounded = value < 10 ? Math.round(value * 100) / 100 : Math.round(value * 10) / 10;
 
 		return rounded + " Hz";

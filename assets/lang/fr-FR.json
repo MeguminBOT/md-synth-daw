@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Faites tourner la molette dessus pour parcourir les patterns",
   "transport.disarmed": "enregistrement arrêté",
   "transport.frames": "Fréquence d'images de la console",
-  "transport.framesDetail": "50 Hz en PAL, 60 Hz en NTSC. Les rampes d'automation et les pilotes sonores avancent une fois par image",
+  "transport.framesDetail": "La musique est écrite pour 60 Hz, comme en NTSC. À 50 Hz, elle sonne comme sur une console PAL : les pilotes avancent une fois par image, elle tourne donc aux cinq sixièmes du tempo, et l'horloge plus lente la baisse d'environ seize cents",
   "transport.grid": "Ce sur quoi les éditeurs s'aimantent",
   "transport.lfo": "Le LFO de la puce",
   "transport.lfoDetail": "Éteint, ou l'une de ses huit vitesses. Un preset indique seulement à quel point son canal le suit",

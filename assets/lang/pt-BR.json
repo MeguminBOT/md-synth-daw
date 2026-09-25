@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Role a roda do mouse sobre ele para passar pelos patterns",
   "transport.disarmed": "não está mais gravando",
   "transport.frames": "Taxa de quadros do console",
-  "transport.framesDetail": "50 Hz no PAL, 60 Hz no NTSC. As rampas de automação e os drivers de som avançam uma vez por quadro",
+  "transport.framesDetail": "A música é escrita para 60 Hz, como no NTSC. Em 50 Hz ela soa como num console PAL: os drivers avançam uma vez por quadro, então ela toca a cinco sextos do andamento, e o clock mais lento a deixa uns dezesseis cents mais grave",
   "transport.grid": "Ao que os editores se ajustam",
   "transport.lfo": "O LFO do chip",
   "transport.lfoDetail": "Desligado, ou uma das suas oito velocidades. Um preset só define o quanto o canal o segue",

@@ -2119,6 +2119,7 @@ final class Files {
 
 		final held = new Vector<cpp.Float32>(frames * 2);
 		final render = new Render(RATE, Render.BLOCK);
+		render.video = session.song.tempo.rate;
 
 		var done = 0;
 

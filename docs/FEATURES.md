@@ -497,6 +497,13 @@ and the checks compare the live stream against the offline one on every run.
   and a loop that sends it back scrolls back with it; in the tracker the cursor rides along with
   it. It is on to start with, it is kept between sessions, and it can be given a shortcut in the
   Keyboard preferences.
+- **50 Hz or 60 Hz**, on the transport bar, is the console the piece plays on. Music is written for
+  a 60 Hz console, and at 50 Hz you hear it the way a PAL console plays it. A sound driver counts
+  frames, so the piece runs at five sixths of its tempo, and every envelope step and every frame
+  of automation takes a fiftieth of a second rather than a sixtieth. Both chips run from a master
+  clock 0.9 per cent slower, so every note sounds about sixteen cents lower and the envelopes and
+  the LFO slow down with it. The tempo field still shows the tempo you wrote, and every export
+  carries what you hear.
 - **Declick**, in the Sound preferences and again in the export options, smooths the edges the
   chips would otherwise click on. A sample that stops away from the middle, cut by its note or
   ending there, returns to the middle over 1.5 ms instead of stepping there. An FM channel still
@@ -657,10 +664,12 @@ and Opus are both compiled in, so there is nothing else to install.
 
 - **VGM**, which reads back as the same register stream it was written from. A VGM holds the
   writes rather than the sound, so a player runs them through its own chip cores with no board
-  after them, which is the chip alone output stage rather than a Mega Drive's.
+  after them, which is the chip alone output stage rather than a Mega Drive's. A piece at 50 Hz
+  declares a PAL console's clocks, so the player sounds it as the application does.
 - **XGM**, the format SGDK's driver plays. A kit exports each hit its keys pick, a hit stops where
   its note ends, and FM6 plays between samples, because the driver only takes channel six while a
-  sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second.
+  sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second, or a fiftieth
+  for a piece at 50 Hz.
 - **MIDI**, which reads back as the notes it was written from.
 - **TFI**, one patch at a time.
 - **`.mdpreset`** and **`.mdbank`**, one preset or a whole bank of them, with the recordings.

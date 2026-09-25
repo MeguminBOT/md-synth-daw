@@ -139,6 +139,7 @@ final class Filming {
 
 		render = new Render(made.rate, Render.BLOCK);
 		render.console = mixing.console;
+		render.video = song.tempo.rate;
 
 		var warmed = 0;
 		final warming = Std.int(made.rate * SETTLE);

@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Scroll over it to step through the patterns",
   "transport.disarmed": "no longer recording",
   "transport.frames": "The console's frame rate",
-  "transport.framesDetail": "50 Hz on PAL, 60 Hz on NTSC. Automation ramps and sound drivers step once a frame",
+  "transport.framesDetail": "Music is written for 60 Hz, as on NTSC. At 50 Hz it plays the way a PAL console plays it: drivers step once a frame, so it runs at five sixths of the tempo, and the slower clock makes it about sixteen cents lower",
   "transport.grid": "What the editors snap to",
   "transport.lfo": "The chip's LFO",
   "transport.lfoDetail": "Off, or one of its eight rates. A preset only sets how deeply its channel follows it",

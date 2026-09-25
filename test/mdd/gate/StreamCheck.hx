@@ -47,6 +47,7 @@ class StreamCheck {
 		legato();
 		grown();
 		survived();
+		paced();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -497,6 +498,105 @@ class StreamCheck {
 		}
 
 		return [attacked, after, before];
+	}
+
+	/**
+		A piece at 50 frames a second plays the way a PAL console plays music written for 60: every
+		tick takes six fifths as long, and both chips run on the PAL clocks, so a held note on
+		either sounds that much lower. A VGM of it declares those clocks.
+	**/
+	static function paced():Void {
+		final ratios:Array<Float> = [];
+		var longer = 0.0;
+
+		for (part in [Part.Fm1, Part.Psg1]) {
+			final pitches:Array<Float> = [];
+
+			for (rate in [60, 50]) {
+				final song = part == Part.Fm1 ? mdd.app.Session.started(mdd.song.Library.embedded()).song
+					: steady();
+				final pattern = song.patternAt(0);
+				final bar = pattern.length;
+
+				pattern.length = bar * 2;
+				pattern.lane(part).add(new Note(0, bar * 2, 81, 110));
+				song.tracks[0].add(new mdd.song.Clip(0, 0, bar * 2));
+				song.tempo.rate = rate;
+
+				if (part == Part.Fm1) {
+					final at60 = new Song("plain", song.tempo.ppqn, song.tempo.beatsAt(0));
+					longer = song.tempo.samplesAt(bar * 2) / at60.tempo.samplesAt(bar * 2);
+				}
+
+				final span = song.tempo.samplesAt(bar * 2);
+				final stream = new Stream(1 << 18);
+				new mdd.play.Sequencer(song).spanned(stream, 0, span);
+
+				final render = new mdd.play.Render(44100, mdd.play.Render.BLOCK);
+				render.video = rate;
+
+				final from = 22050;
+				final until = from + 44100;
+				var done = 0;
+				var last = 0.0;
+				var first = -1.0;
+				var latest = -1.0;
+				var crossed = 0;
+
+				while (done < until) {
+					final many = render.serve(stream, done, mdd.play.Render.BLOCK);
+					if (many <= 0) break;
+
+					for (index in 0...many) {
+						final at = done + index;
+						final value = render.block[index * 2];
+
+						if (at > from && last < 0 && value >= 0 && at < until) {
+							final when = at - 1 + (-last) / (value - last);
+							if (first < 0) first = when;
+							latest = when;
+							crossed++;
+						}
+
+						last = value;
+					}
+
+					done += many;
+				}
+
+				pitches.push(crossed < 2 ? 0 : (crossed - 1) * 44100 / (latest - first));
+			}
+
+			ratios.push(pitches[0] <= 0 ? 0 : pitches[1] / pitches[0]);
+		}
+
+		final share = mdd.chip.Ym2612.PAL_CLOCK / mdd.chip.Ym2612.CLOCK;
+		final stream = new Stream(64);
+		final vgm = mdd.format.Vgm.write(stream, 0, 44100, 50);
+
+		says("PAL plays it slower and lower", Math.abs(longer - 1.2) < 0.001
+			&& Math.abs(ratios[0] - share) < 0.0005 && Math.abs(ratios[1] - share) < 0.0005
+			&& vgm.getInt32(0x2C) == mdd.chip.Ym2612.PAL_CLOCK
+			&& vgm.getInt32(0x0C) == mdd.chip.Sn76489.PAL_CLOCK,
+			"at 50 frames a second the piece took " + round(longer, 4) + " times as long, a held A5 "
+			+ "sounded " + round(ratios[0], 5) + " times as high on FM and " + round(ratios[1], 5)
+			+ " on a square against a clock ratio of " + round(share, 5) + ", and the VGM declares "
+			+ vgm.getInt32(0x2C) + " and " + vgm.getInt32(0x0C) + " Hz");
+	}
+
+	/**
+		@return A piece of one empty bar with a square on the first part that holds its level, so a
+			note on it is one steady tone.
+	**/
+	static function steady():Song {
+		final song = new Song("steady", 96, 120);
+
+		song.add(new mdd.song.Pattern("p", 96 * 4));
+		song.instrument(new Instrument("square", Part.Psg1));
+		song.rack[Part.Psg1.index()] = song.instruments.length - 1;
+		song.track(new mdd.song.Track("t"));
+
+		return song;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

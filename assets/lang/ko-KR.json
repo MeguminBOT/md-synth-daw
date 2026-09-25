@@ -843,7 +843,7 @@
   "transport.chooseDetail": "위에서 휠을 돌리면 패턴을 차례로 넘깁니다",
   "transport.disarmed": "녹음을 마쳤습니다",
   "transport.frames": "본체의 프레임 속도",
-  "transport.framesDetail": "PAL은 50 Hz, NTSC는 60 Hz입니다. 오토메이션 램프와 사운드 드라이버는 프레임마다 한 번씩 진행합니다",
+  "transport.framesDetail": "음악은 NTSC처럼 60 Hz 기준으로 씁니다. 50 Hz에서는 PAL 콘솔에서 나는 소리가 됩니다. 드라이버가 프레임마다 한 번씩 진행하므로 템포의 6분의 5로 재생되고, 느린 클럭 때문에 약 16센트 낮아집니다",
   "transport.grid": "편집기가 스냅하는 단위",
   "transport.lfo": "칩의 LFO",
   "transport.lfoDetail": "끄거나 여덟 가지 속도 중 하나를 고릅니다. 프리셋은 채널이 LFO를 얼마나 깊게 따를지만 정합니다",

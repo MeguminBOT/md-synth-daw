@@ -50,6 +50,12 @@ final class Ym2612 {
 	public static inline final CLOCK = 7670453;
 
 	/**
+		The clock on a PAL console: its master clock of 53,203,424 Hz divided by seven, where an
+		NTSC console's is 53,693,175 Hz.
+	**/
+	public static inline final PAL_CLOCK = 7600489;
+
+	/**
 		Master clocks per output sample, which is what makes the part run at 53267 Hz.
 	**/
 	public static inline final PER_SAMPLE = 144;

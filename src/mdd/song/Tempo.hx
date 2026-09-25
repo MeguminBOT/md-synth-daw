@@ -20,9 +20,17 @@ final class Tempo {
 	public var ppqn(default, null):Int;
 
 	/**
-		Frames a second the machine runs at, 60 on NTSC and 50 on PAL.
+		Frames a second the machine runs at, 60 on NTSC and 50 on PAL. The music is written for 60,
+		and at 50 it plays the way a driver counting frames plays it on a PAL console: every tick
+		takes six fifths as long, which changing this works out again.
 	**/
-	public var rate:Int;
+	public var rate(default, set):Int;
+
+	/**
+		How much longer a tick takes than the tempo says, which is one at 60 frames a second and
+		six fifths at 50.
+	**/
+	public var stretch(get, never):Float;
 
 	/**
 		The tick each tempo change happens on.
@@ -46,11 +54,22 @@ final class Tempo {
 	**/
 	public function new(ppqn:Int = 96, first:Float = 120, rate:Int = 60) {
 		this.ppqn = ppqn < 1 ? 96 : ppqn;
-		this.rate = rate;
 
 		at.push(0);
 		bpm.push(first <= 0 ? 120 : first);
+
+		this.rate = rate;
+	}
+
+	function set_rate(want:Int):Int {
+		rate = want;
 		settle();
+
+		return rate;
+	}
+
+	inline function get_stretch():Float {
+		return rate == 50 ? 1.2 : 1.0;
 	}
 
 	/**
@@ -125,7 +144,7 @@ final class Tempo {
 
 		for (i in 0...at.length) {
 			base.push(running);
-			perTick.push(TICKS * 60.0 / (bpm[i] * ppqn));
+			perTick.push(TICKS * 60.0 / (bpm[i] * ppqn) * stretch);
 
 			if (i + 1 < at.length) running += (at[i + 1] - at[i]) * perTick[i];
 		}

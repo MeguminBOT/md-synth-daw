@@ -843,7 +843,7 @@
   "transport.chooseDetail": "上でホイールを回すとパターンを順に切り替えます",
   "transport.disarmed": "録音を終了しました",
   "transport.frames": "本体のフレームレート",
-  "transport.framesDetail": "PAL は 50 Hz、NTSC は 60 Hz。オートメーションのランプとサウンドドライバーは 1 フレームごとに進みます",
+  "transport.framesDetail": "音楽は NTSC と同じ 60 Hz 用に書かれます。50 Hz では PAL 本体での鳴り方になります。ドライバーは 1 フレームごとに進むのでテンポは 6 分の 5 になり、遅いクロックで約 16 セント低くなります",
   "transport.grid": "エディターがスナップする単位",
   "transport.lfo": "チップの LFO",
   "transport.lfoDetail": "オフ、または 8 段階の速さのどれか。プリセットが決めるのは、チャンネルが LFO にどれだけ従うかだけです",

@@ -164,10 +164,10 @@ final class Transport {
 	/**
 		Moves the playhead, forgetting what the chips are holding so the next span writes every register again.
 
-		@param tick Where to move it to, in ticks.
+		@param samples Where to move it to, in output samples.
 	**/
-	public function seek(tick:Int):Void {
-		position = tick < 0 ? 0 : tick;
+	public function seek(samples:Int):Void {
+		position = samples < 0 ? 0 : samples;
 		hushing.store(1);
 	}
 

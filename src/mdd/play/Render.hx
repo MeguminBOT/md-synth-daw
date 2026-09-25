@@ -293,8 +293,18 @@ final class Render {
 	**/
 	public final block:Vector<cpp.Float32>;
 
-	final fmStep:Float;
-	final psgStep:Float;
+	var fmStep:Float = 0;
+	var psgStep:Float = 0;
+
+	/**
+		The frame rate of the console the chips play as: 60 for NTSC, and 50 for PAL, whose master
+		clock runs about 0.9 per cent slower and takes both chips with it, so the same writes sound
+		lower and every envelope and the LFO run slower. The render takes a new one up at the start
+		of its next block, on its own thread.
+	**/
+	public var video:Int = 60;
+
+	var clockedFor:Int = 60;
 
 	var fmAt:Float = 0;
 	var psgAt:Float = 0;
@@ -393,8 +403,28 @@ final class Render {
 
 		coupling = Math.exp(-2 * Math.PI * COUPLED / this.rate);
 		rolled();
-		fmStep = Ym2612.CLOCK / (Ym2612.PER_SAMPLE * this.rate);
-		psgStep = Sn76489.CLOCK / (Sn76489.DIVIDER * this.rate);
+		clocks();
+
+		for (index in 0...WEIGHTS * 2) {
+			pastLeft[index] = 0;
+			pastRight[index] = 0;
+		}
+
+		for (index in 0...SQUARES * 2) squarePast[index] = 0;
+	}
+
+	/**
+		Runs both chips from the clocks of the console `video` names, and builds the resampler
+		kernels for the rates that gives them. What the kernels have already taken in is kept, so a
+		change of console mid piece does not click.
+	**/
+	function clocks():Void {
+		clockedFor = video == 50 ? 50 : 60;
+
+		final pal = clockedFor == 50;
+
+		fmStep = (pal ? Ym2612.PAL_CLOCK : Ym2612.CLOCK) / (Ym2612.PER_SAMPLE * rate);
+		psgStep = (pal ? Sn76489.PAL_CLOCK : Sn76489.CLOCK) / (Sn76489.DIVIDER * rate);
 
 		shaped();
 	}
@@ -403,7 +433,8 @@ final class Render {
 		Builds the resampler kernel, once, in the constructor.
 	**/
 	function shaped():Void {
-		final chip = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
+		final pal = clockedFor == 50;
+		final chip = (pal ? Ym2612.PAL_CLOCK : Ym2612.CLOCK) / Ym2612.PER_SAMPLE;
 
 		final kept = 0.45 * rate < BAND ? 0.45 * rate : BAND;
 
@@ -433,12 +464,7 @@ final class Render {
 			for (index in 0...WEIGHTS) weights[base + index] /= total;
 		}
 
-		for (index in 0...WEIGHTS * 2) {
-			pastLeft[index] = 0;
-			pastRight[index] = 0;
-		}
-
-		final square = Sn76489.CLOCK / Sn76489.DIVIDER;
+		final square = (pal ? Sn76489.PAL_CLOCK : Sn76489.CLOCK) / Sn76489.DIVIDER;
 
 		var edge = kept / square;
 		if (edge > 0.5) edge = 0.5;
@@ -465,8 +491,6 @@ final class Render {
 
 			for (index in 0...SQUARES) squareWeights[base + index] /= whole;
 		}
-
-		for (index in 0...SQUARES * 2) squarePast[index] = 0;
 	}
 
 	/**
@@ -556,6 +580,7 @@ final class Render {
 			fresh:Bool = false):Int {
 		final many = count > frames ? frames : count;
 
+		if (video != clockedFor) clocks();
 		if (fresh || stream == null || poured > stream.count) poured = 0;
 
 		var next = poured;
@@ -826,6 +851,8 @@ final class Render {
 			drain();
 			fill(frames);
 		} else {
+			video = held.song.tempo.rate;
+
 			final from = held.advance(frames, rate);
 			drain();
 			serve(held.stream, from, frames, held.entering, true);

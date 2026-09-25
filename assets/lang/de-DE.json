@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Scrolle darüber, um durch die Patterns zu blättern",
   "transport.disarmed": "Aufnahme beendet",
   "transport.frames": "Bildrate der Konsole",
-  "transport.framesDetail": "50 Hz bei PAL, 60 Hz bei NTSC. Automationsrampen und Soundtreiber schalten einmal pro Bild weiter",
+  "transport.framesDetail": "Musik wird für 60 Hz geschrieben, wie bei NTSC. Bei 50 Hz klingt sie wie auf einer PAL-Konsole: Treiber schalten einmal pro Bild weiter, also läuft sie mit fünf Sechsteln des Tempos, und der langsamere Takt macht sie etwa sechzehn Cent tiefer",
   "transport.grid": "Woran die Editoren einrasten",
   "transport.lfo": "Der LFO des Chips",
   "transport.lfoDetail": "Aus oder eine seiner acht Raten. Ein Preset legt nur fest, wie stark sein Kanal ihm folgt",

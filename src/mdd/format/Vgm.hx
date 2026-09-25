@@ -451,7 +451,8 @@ final class Vgm {
 		@param stream The writes to put in it.
 		@param from The first sample to write.
 		@param to One past the last.
-		@param rate Frames a second to declare.
+		@param rate Frames a second to declare, which also decides the chip clocks declared: a PAL
+			console's at 50.
 		@param title The title tag.
 		@param author The author tag.
 		@param game The game tag, which is where an album goes.
@@ -529,12 +530,12 @@ final class Vgm {
 
 		out.setInt32(0x04, HEADER + made.length + tagged.length - 4);
 		out.setInt32(0x08, 0x150);
-		out.setInt32(0x0C, mdd.chip.Sn76489.CLOCK);
+		out.setInt32(0x0C, rate == 50 ? mdd.chip.Sn76489.PAL_CLOCK : mdd.chip.Sn76489.CLOCK);
 		out.setInt32(0x18, to - from);
 		out.setInt32(0x24, rate);
 		out.setUInt16(0x28, NOISE_TAPS);
 		out.set(0x2A, NOISE_WIDTH);
-		out.setInt32(0x2C, mdd.chip.Ym2612.CLOCK);
+		out.setInt32(0x2C, rate == 50 ? mdd.chip.Ym2612.PAL_CLOCK : mdd.chip.Ym2612.CLOCK);
 		out.setInt32(0x34, HEADER - 0x34);
 
 		return out;

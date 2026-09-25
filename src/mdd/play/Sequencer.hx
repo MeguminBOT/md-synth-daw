@@ -65,8 +65,9 @@ final class Sequencer {
 	static inline final PSG_STEP = 1;
 
 	/**
-		How many output samples one square envelope step lasts, which is a sixtieth of a
-		second at 44100.
+		How many output samples one square envelope step lasts on an NTSC console, which is a
+		sixtieth of a second at 44100. A driver steps an envelope once a frame, so on a PAL console
+		a step lasts a fiftieth.
 	**/
 	public static inline final ENVELOPE_TICKS = 735;
 
@@ -1231,7 +1232,7 @@ final class Sequencer {
 		@return The sample that place falls on.
 	**/
 	function sampleOf(line:mdd.song.Automation, clock:Int, at:Int):Int {
-		if (!line.synced) return clock + Math.ceil(at * Tempo.TICKS / 1000.0);
+		if (!line.synced) return clock + Math.ceil(at * Tempo.TICKS / 1000.0 * song.tempo.stretch);
 
 		final tempo = song.tempo;
 		final tick = Math.ceil(tempo.ticksAt(clock) + at * tempo.ppqn / mdd.song.Automation.BEAT);
@@ -2120,10 +2121,10 @@ final class Sequencer {
 		}
 
 		final rate = sample.rate < 1 ? 1 : sample.rate;
-		final step = Tempo.TICKS / rate;
+		final clocked = song.tempo.rate == 50 ? mdd.chip.Sn76489.PAL_CLOCK / mdd.chip.Sn76489.CLOCK : 1.0;
+		final step = Tempo.TICKS / (rate * clocked);
 
-
-		final frame = song.stallEvery < 8 ? 735.0 : song.stallEvery;
+		final frame = (song.stallEvery < 8 ? 735.0 : song.stallEvery) * song.tempo.stretch;
 		final stalls = song.stallAt >= 0 && song.stallFor > 0;
 
 		var when = onSample + 0.0;
@@ -2285,7 +2286,7 @@ final class Sequencer {
 		if (envelope.steps.length == 0) return;
 
 		final speed = envelope.speed < 1 ? 1 : envelope.speed;
-		final step = ENVELOPE_TICKS * speed;
+		final step = Math.round(ENVELOPE_TICKS * song.tempo.stretch) * speed;
 
 		var index = 1;
 		if (fromSample > onSample) index = Std.int((fromSample - onSample) / step);

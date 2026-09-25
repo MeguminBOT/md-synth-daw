@@ -843,7 +843,7 @@
   "transport.chooseDetail": "在上面滚动滚轮可逐个切换样式",
   "transport.disarmed": "已停止录制",
   "transport.frames": "主机的帧率",
-  "transport.framesDetail": "PAL 为 50 Hz，NTSC 为 60 Hz。自动化渐变和声音驱动每帧前进一次",
+  "transport.framesDetail": "音乐按 NTSC 的 60 Hz 编写。在 50 Hz 下，它会像在 PAL 主机上那样播放：驱动每帧前进一次，所以速度变为六分之五，较慢的时钟也让音高降低约十六音分",
   "transport.grid": "编辑器吸附的单位",
   "transport.lfo": "芯片的 LFO",
   "transport.lfoDetail": "关闭，或八种速率之一。预设只决定其通道跟随它的深度",

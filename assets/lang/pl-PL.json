@@ -843,7 +843,7 @@
   "transport.chooseDetail": "Przewiń nad nim kółkiem, by przejść przez patterny",
   "transport.disarmed": "nagrywanie zakończone",
   "transport.frames": "Częstotliwość klatek konsoli",
-  "transport.framesDetail": "50 Hz w PAL, 60 Hz w NTSC. Rampy automatyki i sterowniki dźwięku robią krok raz na klatkę",
+  "transport.framesDetail": "Muzykę pisze się dla 60 Hz, jak w NTSC. Przy 50 Hz brzmi tak, jak na konsoli PAL: sterowniki robią krok raz na klatkę, więc gra w pięciu szóstych tempa, a wolniejszy zegar obniża ją o około szesnaście centów",
   "transport.grid": "Do czego przyciągają edytory",
   "transport.lfo": "LFO układu",
   "transport.lfoDetail": "Wyłączony albo jedna z ośmiu szybkości. Preset określa tylko, jak mocno podąża za nim jego kanał",

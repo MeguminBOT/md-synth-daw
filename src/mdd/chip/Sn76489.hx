@@ -45,6 +45,11 @@ final class Sn76489 {
 	public static inline final CLOCK = 3579545;
 
 	/**
+		The clock on a PAL console: its master clock of 53,203,424 Hz divided by fifteen.
+	**/
+	public static inline final PAL_CLOCK = 3546895;
+
+	/**
 		How many clocks pass between internal steps.
 	**/
 	public static inline final DIVIDER = 16;

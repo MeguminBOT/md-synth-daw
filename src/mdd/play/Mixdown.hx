@@ -26,6 +26,11 @@ final class Mixdown {
 	public var console(default, null):Int = Render.MODEL_ONE;
 
 	/**
+		The frame rate of the console the piece is rendered as, which decides the chips' clocks.
+	**/
+	public var video(default, null):Int = 60;
+
+	/**
 		Whether the writes smooth the edges the parts would otherwise click on, taken from the
 		export's own settings.
 	**/
@@ -229,6 +234,7 @@ final class Mixdown {
 		rate = mixing.worksAt();
 		channels = mixing.channels();
 		console = mixing.console;
+		video = song.tempo.rate;
 		declick = mixing.declick;
 		stuck = mixing.stuck;
 
@@ -300,6 +306,7 @@ final class Mixdown {
 
 		final render = working;
 		render.console = console;
+		render.video = video;
 
 		var warmed = 0;
 		final warming = Std.int(rate * SETTLE);

@@ -11,6 +11,12 @@ The Mega Drive's PSG is inside the VDP rather than beside it, and it takes the m
 by fifteen, 3,579,545 Hz. Everything below counts in that clock. Each of the four channels counts
 its own period down once every sixteen of those, so a channel's counter ticks at 223,721 Hz.
 
+That is an NTSC console. A PAL console's master clock is 53,203,424 Hz rather than 53,693,175, so
+the part runs at 3,546,895 Hz and every period sounds 0.99088 times as high, fifteen and a half
+cents lower. The Z80 takes the master clock divided by fifteen as well, so a converter hit timed by
+the Z80's own loop slows by the same share. Rendered, a held square at 880 Hz comes out 0.99088
+times as high on the PAL clock, the ratio exactly.
+
 ## One port, two kinds of byte
 
 There is a single write port and no way to read anything back.
