@@ -267,6 +267,7 @@ final class Menus {
 			panels.patterns.dropped(session.pattern));
 		held.divide();
 		held.offer(new Choice(said(Locale.PATTERN_PART))).submenu = parted();
+		held.offer(new Choice(said(Locale.PATTERN_METER))).submenu = metered();
 		held.divide();
 		fired(held.offer(new Choice(said(Locale.PATTERN_CLEAR))), function():Void
 			emptied());
@@ -291,6 +292,51 @@ final class Menus {
 		}
 
 		return out;
+	}
+
+	/**
+		@return The menu of time signatures for the chosen pattern, which fills itself as it opens:
+			the piece's, then the common ones, with the one the pattern follows ticked.
+	**/
+	function metered():Menu {
+		final out = new Menu();
+
+		out.ticking = true;
+		out.onShow = function(menu:Menu):Void meters(menu);
+
+		return out;
+	}
+
+	/**
+		Fills the menu of time signatures for the pattern chosen now.
+
+		@param out The menu.
+	**/
+	function meters(out:Menu):Void {
+		out.clears();
+
+		final at = session.pattern;
+		final now = session.song.patternAt(at);
+		final own = now == null ? null : now.meter;
+
+		final follows = out.offer(new Choice(said(Locale.PATTERN_METER_PIECE) + "  "
+			+ session.song.meter.spelt()));
+
+		follows.ticked = own == null;
+		follows.onFire = function(from:Choice):Void
+			if (own != null) session.does(new mdd.song.edit.SetMeter(at, 0, 0));
+
+		out.divide();
+
+		for (index in 0...mdd.song.Meter.COMMON_BEATS.length) {
+			final beats = mdd.song.Meter.COMMON_BEATS[index];
+			final unit = mdd.song.Meter.COMMON_UNITS[index];
+			final choice = out.offer(new Choice(beats + "/" + unit));
+
+			choice.ticked = own != null && own.beats == beats && own.unit == unit;
+			choice.onFire = function(from:Choice):Void
+				session.does(new mdd.song.edit.SetMeter(at, beats, unit));
+		}
 	}
 
 	/**

@@ -2,6 +2,7 @@ package mdd.view;
 
 import mdd.app.Locale;
 import mdd.app.Session;
+import mdd.song.Meter;
 import mdd.song.Song;
 import mdd.song.Tempo;
 import mdd.song.edit.SetTempo;
@@ -83,6 +84,12 @@ final class TransportBar extends Widget {
 	final video:Dropdown;
 
 	/**
+		The piece's time signature: one of those commonly used, or, last, whatever else the piece
+		carries.
+	**/
+	final meter:Dropdown;
+
+	/**
 		The chip's LFO: nought is off, and one to eight are its eight rates. The part has one LFO for
 		every channel, so this is the song's rather than a preset's; a preset only says how deeply
 		its channel takes it.
@@ -126,15 +133,23 @@ final class TransportBar extends Widget {
 		final song = session.song;
 
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
+		meter = new Dropdown("", 0, Meter.COMMON_BEATS.length);
 		resolution = new Number("", song.tempo.ppqn, 24, 48000);
 		video = new Dropdown("", song.tempo.rate == 50 ? 0 : 1, 2);
 		lfo = new Dropdown("", lfoIndex(song), 9);
 		snap = new Dropdown("", snapIndex(), SNAPS.length);
 		offset = new Number("", song.offset, -960, 960);
 
-		held = [tempo, resolution, video, lfo, snap, offset];
+		held = [tempo, meter, resolution, video, lfo, snap, offset];
 		numbers = [tempo, resolution, offset];
-		dropdowns = [video, lfo, snap];
+		dropdowns = [meter, video, lfo, snap];
+
+		signed();
+
+		meter.named = function(value:Int):String
+			return value < Meter.COMMON_BEATS.length
+				? Meter.COMMON_BEATS[value] + "/" + Meter.COMMON_UNITS[value]
+				: session.song.meter.spelt();
 
 		video.named = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
 		lfo.named = function(value:Int):String
@@ -150,6 +165,8 @@ final class TransportBar extends Widget {
 		offset.label = "SHIFT";
 
 		tempo.tipKey = Locale.TRANSPORT_TEMPO;
+		meter.tipKey = Locale.TRANSPORT_METER;
+		meter.detailKey = Locale.TRANSPORT_METER_DETAIL;
 		resolution.tipKey = Locale.TRANSPORT_TICKS;
 		resolution.detailKey = Locale.TRANSPORT_TICKS_DETAIL;
 		video.tipKey = Locale.TRANSPORT_FRAMES;
@@ -163,6 +180,7 @@ final class TransportBar extends Widget {
 		for (field in held) add(field);
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
+		meter.onChange = function(from:Dropdown):Void meterChanged(from);
 		resolution.onChange = function(from:Number):Void resolutionChanged(from);
 		video.onChange = function(from:Dropdown):Void videoChanged(from);
 		lfo.onChange = function(from:Dropdown):Void lfoChanged(from);
@@ -216,6 +234,7 @@ final class TransportBar extends Widget {
 		settling = true;
 
 		tempo.set(Math.round(session.song.tempo.beatsAt(0)));
+		signed();
 		offset.set(session.song.offset);
 		resolution.set(session.song.tempo.ppqn);
 		video.set(session.song.tempo.rate == 50 ? 0 : 1);
@@ -262,6 +281,35 @@ final class TransportBar extends Widget {
 
 		session.song.retick(from.value);
 		session.changed();
+	}
+
+	/**
+		Puts the piece's time signature on its field: its place among the common ones, or an entry
+		of its own after them where it is none of those.
+	**/
+	function signed():Void {
+		final at = session.song.meter.common();
+		final many = Meter.COMMON_BEATS.length;
+
+		meter.counts(at < 0 ? many + 1 : many);
+		meter.set(at < 0 ? many : at);
+	}
+
+	/**
+		Changes the piece's time signature, as one step on the undo stack.
+
+		@param from The field that changed.
+	**/
+	function meterChanged(from:Dropdown):Void {
+		if (settling || from.value >= Meter.COMMON_BEATS.length) return;
+
+		final beats = Meter.COMMON_BEATS[from.value];
+		final unit = Meter.COMMON_UNITS[from.value];
+		final held = session.song.meter;
+
+		if (held.beats == beats && held.unit == unit) return;
+
+		session.does(new mdd.song.edit.SetMeter(-1, beats, unit));
 	}
 
 	/**

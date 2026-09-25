@@ -72,6 +72,11 @@ clip panning a channel keeps it panned from note to note.
   becoming a sliver of one. The roll and the transport bar offer the same divisions, and
   the one you pick is kept between sessions. A note you place lands on the step you
   pointed at; one you drag goes to the nearest line.
+- A time signature for the piece, chosen on the transport bar from 2/4 to 7/4 and 3/8 to 12/8,
+  and one of its own for any pattern from the Pattern menu. It decides where bars fall in the
+  grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.
+  Every other bar is shaded a little lighter, so where one ends can be seen at any zoom. A MIDI
+  file's time signature is read when it is imported and written when one is exported.
 - `Ctrl` and the wheel to zoom, as far out as a bar four pixels wide and as far in as one
   two thousand wide, wherever the pattern happens to end. `Ctrl` and the wheel over the
   keyboard, or with `Shift` held anywhere, makes the rows taller or shorter instead. Middle
