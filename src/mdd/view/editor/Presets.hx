@@ -461,6 +461,7 @@ final class Presets extends Widget {
 
 		search.onChange = function(said:String):Void {
 			fit();
+			tree.scrollTo(0);
 			relayout();
 		};
 
