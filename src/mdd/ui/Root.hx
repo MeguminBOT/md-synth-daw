@@ -160,6 +160,8 @@ final class Root {
 	var returnFocus:Null<Widget> = null;
 	var tipText:String = "";
 	var tipDetail:String = "";
+	var tipX:Float = 0;
+	var tipY:Float = 0;
 
 	/**
 		Moves the real pointer to a point in the window, which is how a drag with Ctrl held
@@ -321,6 +323,9 @@ final class Root {
 		@return Whether anything changed.
 	**/
 	function hint(seconds:Float):Bool {
+		final held = capture;
+		if (held != null && held.readsOut && held.tip != "") return readOut(held);
+
 		if (capture != null || blocked) {
 			if (tipUp) hideTip();
 			still = 0;
@@ -353,6 +358,32 @@ final class Root {
 		if (still < STILL && grace >= GRACE) return false;
 
 		showTip(want);
+		return true;
+	}
+
+	/**
+		Keeps the tooltip of a widget holding a drag up, beside the pointer and saying what the
+		widget says now.
+
+		@param held The widget holding the drag.
+		@return Whether anything changed.
+	**/
+	function readOut(held:Widget):Bool {
+		if (!tipUp || tooltip.subject != held) {
+			showTip(held);
+			soil();
+			return true;
+		}
+
+		if (held.tip == tipText && held.detail == tipDetail && pointerX == tipX && pointerY == tipY) {
+			return false;
+		}
+
+		tipText = held.tip;
+		tipDetail = held.detail;
+
+		placeTip();
+		soil();
 		return true;
 	}
 
@@ -395,6 +426,9 @@ final class Root {
 	**/
 	function placeTip():Void {
 		if (tooltip.subject == null) return;
+
+		tipX = pointerX;
+		tipY = pointerY;
 
 		tooltip.measure(width, height);
 
@@ -982,8 +1016,12 @@ final class Root {
 		capture = null;
 
 		if (held != null) {
+			final reading = held.readsOut;
+
 			event.pointer(Kind.PointerUp, x, y, button, mods);
 			send(held, event);
+
+			if (reading) hideTip();
 		}
 
 		hover(pick(x, y));

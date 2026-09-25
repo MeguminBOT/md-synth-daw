@@ -122,6 +122,13 @@ class Widget {
 	public var precision:Float = 1;
 
 	/**
+		Whether the tooltip stays up while this widget holds a drag, following the pointer and
+		showing whatever `tip` and `detail` say as they change, which is how a control that
+		shows no number reads out the value it is being dragged to.
+	**/
+	public var readsOut:Bool = false;
+
+	/**
 		What holds it, or null where nothing does.
 	**/
 	public var parent(default, null):Null<Widget> = null;
