@@ -29,6 +29,7 @@ class MidiCheck {
 		surveyed();
 		chosen();
 		crossed();
+		overlong();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 		Sys.println(failed == 0 ? "    passed" : "    " + failed + " FAILED");
@@ -387,6 +388,45 @@ class MidiCheck {
 			lowest == 38 && many == 2,
 			"the second channel kept " + many + " notes, lowest " + lowest
 			+ ", with the first channel sounding the same 60");
+	}
+
+	/**
+		A sysex whose length is five continuation bytes long, which overflows to a negative number
+		when read, ends the track rather than walking the reader backwards through it for ever.
+	**/
+	static function overlong():Void {
+		final out = new haxe.io.BytesOutput();
+		out.bigEndian = true;
+
+		out.writeString("MThd");
+		out.writeInt32(6);
+		out.writeUInt16(0);
+		out.writeUInt16(1);
+		out.writeUInt16(96);
+
+		final track = new haxe.io.BytesOutput();
+
+		for (byte in [0x00, 0x90, 60, 100, 0x60, 0x80, 60, 0, 0x00, 0xF0, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F,
+				0x00, 0x90, 62, 100]) {
+			track.writeByte(byte);
+		}
+
+		final body = track.getBytes();
+
+		out.writeString("MTrk");
+		out.writeInt32(body.length);
+		out.write(body);
+
+		final began = haxe.Timer.stamp();
+		final song = mdd.format.Midi.read(out.getBytes(), "overlong");
+		final spent = haxe.Timer.stamp() - began;
+
+		var notes = 0;
+		for (pattern in song.patterns) for (index in 0...mdd.song.Part.COUNT) notes += pattern.lanes[index].notes.length;
+
+		says("an overlong sysex ends its track", spent < 1 && notes == 1,
+			"the file read in " + round(spent * 1000) + " ms and kept the " + notes
+			+ " note written before it");
 	}
 
 	static function round(value:Float):Float {

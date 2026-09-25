@@ -608,24 +608,24 @@ final class Midi {
 	}
 
 	/**
-		Steps over an event that is not a note or a tempo.
+		Steps over an event that is not a note or a tempo. Its length is read as four bytes at most
+		and held to what is left of the track, so a mangled one can only end the track early.
 
 		@param bytes The file.
 		@param at Where the event starts.
 		@param to One past the end of the track.
-		@return Where the next event starts.
+		@return How far the next event starts from `at`, never less than one byte.
 	**/
 	static function skip(bytes:Bytes, at:Int, to:Int):Int {
 		var pen = at;
 		var length = 0;
+		var wide = 0;
 
 		while (pen < to) {
 			final byte = bytes.get(pen);
 			pen++;
+			wide++;
 			length = (length << 7) | (byte & 0x7F);
-			if ((byte & 0x80) == 0) break;
+			if ((byte & 0x80) == 0 || wide >= 4) break;
 		}
-
-		return (pen - at) + length;
-	}
 }
