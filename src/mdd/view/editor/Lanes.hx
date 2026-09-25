@@ -863,11 +863,27 @@ final class Lanes extends Widget {
 	public function settles():Void {
 		if (holding != null) return;
 
-		final key = preset >= 0 ? -2 - preset : session.part.index() * 4096 + session.pattern;
+		final key = filledKey();
 		if (key == filledFor) return;
 
 		filledFor = key;
 		fills(false);
+	}
+
+	/**
+		@return What the rows were worked out for: the preset whose lanes they are, or the part
+			and the pattern.
+	**/
+	inline function filledKey():Int {
+		return preset >= 0 ? -2 - preset : session.part.index() * 4096 + session.pattern;
+	}
+
+	/**
+		@return Whether another part or pattern has been chosen since the rows were worked out, so
+			they are showing what is no longer there.
+	**/
+	public function stale():Bool {
+		return holding == null && filledKey() != filledFor;
 	}
 
 	/**

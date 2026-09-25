@@ -748,9 +748,20 @@ final class AutomationEditor extends Widget {
 		return true;
 	}
 
+	/**
+		@return Whether what it shows has moved under it since it was laid out: another pattern or
+			part chosen, another preset under a preset's lanes, or the span grown or cut.
+	**/
+	function stale():Bool {
+		if (stack.preset != (showsPreset() ? presetOf() : -1)) return true;
+		return stack.stale() || span() != framedSpan;
+	}
+
 	override function paint(paint:Paint):Void {
 		final root = root();
 		if (root == null || root.metrics.body == null) return;
+
+		if (stale()) layout();
 
 		final theme = root.theme;
 		final metrics = root.metrics;

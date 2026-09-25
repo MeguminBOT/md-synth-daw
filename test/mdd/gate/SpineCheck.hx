@@ -2424,6 +2424,54 @@ class SpineCheck {
 		laid(tree);
 	}
 
+	/**
+		The automation tab follows the pattern chosen while it is open, rather than going on
+		showing the lanes of the one it was opened on until it is left and opened again.
+
+		@param tree The shell.
+		@param centre The centre the tab sits in.
+		@param paint What a frame is drawn with.
+	**/
+	static function retabbed(tree:Root, centre:mdd.view.Centre, paint:Paint):Void {
+		final session = centre.session;
+		final song = session.song;
+		final was = session.pattern;
+		final other = song.add(new mdd.song.Pattern("refresh", song.tempo.ppqn * 4));
+		final line = new mdd.song.Automation(mdd.song.Automation.LEVEL, 0);
+
+		line.add(new mdd.song.Point(0, 0));
+		line.add(new mdd.song.Point(song.tempo.ppqn, 40));
+		other.lane(session.part).automation.push(line);
+
+		centre.show(mdd.view.Centre.AUTOMATION);
+		laid(tree);
+		centre.automation.invalidate();
+		tree.frame(paint);
+
+		final stack = centre.automation.stack;
+		final before = stack.rows();
+
+		session.chooses(song.patterns.indexOf(other));
+		centre.automation.invalidate();
+		tree.frame(paint);
+
+		final after = stack.rows();
+		final shown = after > 0 ? stack.parameterOf(0) : null;
+		final level = shown != null && shown.target == mdd.song.Automation.LEVEL;
+
+		session.chooses(was);
+		centre.automation.invalidate();
+		tree.frame(paint);
+
+		final again = stack.rows();
+
+		song.patterns.remove(other);
+
+		says("automation follows the pattern", after == 1 && level && again == before,
+			before + " lanes on the pattern it opened on, " + after + " on one carrying a single"
+			+ (level ? " level" : " unseen") + " lane once chosen, and " + again + " on the way back");
+	}
+
 	static function laid(tree:Root):Void {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
@@ -4936,6 +4984,7 @@ class SpineCheck {
 		grouped(tree, session, centre, paint, renderer);
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre, paint, renderer);
+		retabbed(tree, centre, paint);
 		movedBy(tree, session, centre);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);
