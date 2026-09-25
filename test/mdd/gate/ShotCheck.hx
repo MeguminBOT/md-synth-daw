@@ -60,6 +60,7 @@ class ShotCheck {
 		var frames = 1;
 		var sweep = "";
 		var side = 0;
+		var scale = -1;
 
 		var at = 0;
 
@@ -98,6 +99,7 @@ class ShotCheck {
 				case "--frames": frames = whole(held, frames); at++;
 				case "--sweep": sweep = held; at++;
 				case "--side": side = whole(held, side); at++;
+				case "--scale": scale = whole(held, scale); at++;
 				case _:
 			}
 
@@ -257,6 +259,7 @@ class ShotCheck {
 		shell.zone(Shell.MENU).add(menus);
 
 		session.choose(part);
+		if (scale >= 0) session.scale.kind = scale;
 
 		if (lane > 0) centre.roll.shows(lane);
 

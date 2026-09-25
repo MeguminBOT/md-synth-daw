@@ -2926,11 +2926,15 @@ final class PianoRoll extends Widget {
 				if ((pitch & 1) == 0) {
 					paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.35);
 				}
-			} else if (lit && scale.rooted(pitch)) {
-				paint.rect(left, row, width - gutter(), rowTall,
-					theme.part(session.part.index()), 0.14);
-			} else if (lit && !scale.holds(pitch)) {
-				paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.72);
+			} else if (lit) {
+				if (scale.rooted(pitch)) {
+					paint.rect(left, row, width - gutter(), rowTall,
+						theme.part(session.part.index()), 0.14);
+				} else if (scale.holds(pitch)) {
+					paint.rect(left, row, width - gutter(), rowTall, theme.raise1, 0.3);
+				} else {
+					paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.95);
+				}
 			} else if (BLACK[pitch % 12]) {
 				paint.rect(left, row, width - gutter(), rowTall, theme.sink, 0.5);
 			} else if (pitch % 12 == 0) {
