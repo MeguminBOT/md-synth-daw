@@ -29,6 +29,7 @@ class MidiCheck {
 		surveyed();
 		chosen();
 		crossed();
+		signed();
 		overlong();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
@@ -388,6 +389,27 @@ class MidiCheck {
 			lowest == 38 && many == 2,
 			"the second channel kept " + many + " notes, lowest " + lowest
 			+ ", with the first channel sounding the same 60");
+	}
+
+	/**
+		A piece's time signature is written into the file it exports and read back out of it, and a
+		file with none reads as four four.
+	**/
+	static function signed():Void {
+		final song = new mdd.song.Song("signed", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("p", 96 * 5));
+
+		song.meter.sets(5, 4);
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 96, 60, 100));
+		song.track(new mdd.song.Track("t")).add(new mdd.song.Clip(0, 0, pattern.length));
+
+		final back = mdd.format.Midi.read(mdd.format.Midi.write(song), "signed");
+		final plain = mdd.format.Midi.read(fileOf(96), "plain");
+
+		says("a time signature survives a file", back.meter.beats == 5 && back.meter.unit == 4
+			&& plain.meter.beats == 4 && plain.meter.unit == 4,
+			"5/4 came back as " + back.meter.spelt() + ", and a file carrying none reads as "
+			+ plain.meter.spelt());
 	}
 
 	/**

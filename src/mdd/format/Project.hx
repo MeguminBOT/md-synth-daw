@@ -7,6 +7,7 @@ import mdd.song.Bank;
 import mdd.song.Clip;
 import mdd.song.Envelope;
 import mdd.song.Instrument;
+import mdd.song.Meter;
 import mdd.song.Note;
 import mdd.song.Part;
 import mdd.song.Patch;
@@ -152,6 +153,11 @@ class Project {
 		out.whole(song.tempo.ppqn);
 		out.key("rate");
 		out.whole(song.tempo.rate);
+		out.key("meter");
+		out.list();
+		out.whole(song.meter.beats);
+		out.whole(song.meter.unit);
+		out.ends();
 		out.key("changes");
 		out.list();
 
@@ -459,6 +465,17 @@ class Project {
 		out.whole(pattern.part);
 		out.key("length");
 		out.whole(pattern.length);
+
+		final meter = pattern.meter;
+
+		if (meter != null) {
+			out.key("meter");
+			out.list();
+			out.whole(meter.beats);
+			out.whole(meter.unit);
+			out.ends();
+		}
+
 		out.key("lanes");
 		out.list();
 
@@ -559,6 +576,9 @@ class Project {
 		final tempo = node.get("tempo");
 		song.tempo.resolve(tempo.get("ppqn").whole(96));
 		song.tempo.rate = tempo.get("rate").whole(60);
+
+		final meter = tempo.get("meter");
+		if (meter.length() == 2) song.meter.sets(meter.at(0).whole(4), meter.at(1).whole(4));
 
 		final changes = tempo.get("changes");
 		for (i in 0...changes.length()) {
@@ -823,6 +843,9 @@ class Project {
 			node.get("colour").whole(-1));
 
 		pattern.part = node.get("part").whole(-1);
+
+		final meter = node.get("meter");
+		if (meter.length() == 2) pattern.meter = new Meter(meter.at(0).whole(4), meter.at(1).whole(4));
 
 		final lanes = node.get("lanes");
 

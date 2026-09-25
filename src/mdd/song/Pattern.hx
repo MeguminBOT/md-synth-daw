@@ -29,6 +29,11 @@ final class Pattern {
 	public var part:Int = -1;
 
 	/**
+		Its own time signature, or null where it follows the piece's.
+	**/
+	public var meter:Null<Meter> = null;
+
+	/**
 		One lane per part, always all eleven, in an array made at its size and never grown: a
 		`Vector` of objects casts through a virtual call on every read, and the sequencer reads
 		this for every part of every pattern it walks. The build tool reads the model on the
@@ -65,6 +70,7 @@ final class Pattern {
 	public function copy(called:String):Pattern {
 		final out = new Pattern(called, length, colour);
 		out.part = part;
+		out.meter = meter == null ? null : meter.copy();
 
 		for (index in 0...Part.COUNT) {
 			final part:Part = index;

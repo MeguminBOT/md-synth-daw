@@ -101,6 +101,18 @@ final class Midi {
 	static function tempoTrack(song:Song, scale:Float):Bytes {
 		final out = new BytesOutput();
 		var last = 0;
+		var power = 0;
+
+		while ((1 << power) < song.meter.unit) power++;
+
+		variable(out, 0);
+		out.writeByte(0xFF);
+		out.writeByte(0x58);
+		out.writeByte(4);
+		out.writeByte(song.meter.beats);
+		out.writeByte(power);
+		out.writeByte(24);
+		out.writeByte(8);
 
 		for (i in 0...song.tempo.at.length) {
 			final at = Math.round(song.tempo.at[i] * scale);
@@ -517,6 +529,10 @@ final class Midi {
 					if (micros > 0) song.tempo.set(tick, 60000000.0 / micros);
 				}
 
+				if (meta == 0x58 && length >= 2 && tick == 0 && song != null) {
+					song.meter.sets(bytes.get(at), 1 << (bytes.get(at + 1) & 7));
+				}
+
 				if (meta == 0x03 && length > 0) called = named(bytes, at, length);
 
 				at += length;
@@ -628,4 +644,10 @@ final class Midi {
 			length = (length << 7) | (byte & 0x7F);
 			if ((byte & 0x80) == 0 || wide >= 4) break;
 		}
+
+		if (length < 0 || length > to - pen) length = to - pen;
+
+		final step = (pen - at) + length;
+		return step < 1 ? 1 : step;
+	}
 }

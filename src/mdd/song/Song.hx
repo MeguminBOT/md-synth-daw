@@ -194,6 +194,12 @@ final class Song {
 	public final tempo:Tempo;
 
 	/**
+		The piece's time signature, which the playlist, the bar count and any pattern without one of
+		its own are divided by.
+	**/
+	public final meter:Meter = new Meter(4, 4);
+
+	/**
 		Every pattern, whether placed or not.
 	**/
 	public final patterns:Array<Pattern> = [];
@@ -281,6 +287,37 @@ final class Song {
 			volume[i] = LOUDEST;
 			pan[i] = BOTH;
 		}
+	}
+
+	/**
+		@return How many ticks a bar of the piece is, by its own signature.
+	**/
+	public inline function bar():Int {
+		return meter.bar(tempo.ppqn);
+	}
+
+	/**
+		@param pattern A pattern, or null.
+		@return The signature it is divided by: its own where it has one, and the piece's otherwise.
+	**/
+	public inline function meterOf(pattern:Null<Pattern>):Meter {
+		return pattern == null || pattern.meter == null ? meter : pattern.meter;
+	}
+
+	/**
+		@param pattern A pattern, or null for the piece.
+		@return How many ticks a bar of it is.
+	**/
+	public inline function barOf(pattern:Null<Pattern>):Int {
+		return meterOf(pattern).bar(tempo.ppqn);
+	}
+
+	/**
+		@param pattern A pattern, or null for the piece.
+		@return How many ticks a beat of it is.
+	**/
+	public inline function beatOf(pattern:Null<Pattern>):Int {
+		return meterOf(pattern).beat(tempo.ppqn);
 	}
 
 	/**
@@ -548,6 +585,7 @@ final class Song {
 		out.mode = mode;
 		out.driving = driving;
 		out.tempo.rate = tempo.rate;
+		out.meter.sets(meter.beats, meter.unit);
 
 		for (i in 1...tempo.at.length) out.tempo.set(tempo.at[i], tempo.bpm[i]);
 

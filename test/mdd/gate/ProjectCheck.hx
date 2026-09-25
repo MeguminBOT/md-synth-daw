@@ -40,6 +40,7 @@ class ProjectCheck {
 
 		carried(where);
 		flagged(where);
+		metered(where);
 		kitted(where);
 		heard(where);
 		older(where);
@@ -116,6 +117,35 @@ class ProjectCheck {
 			before.count + " register writes over " + SPAN + " samples, and the file reads back "
 			+ after.count + ", " + (alike(before, after) == -2 ? "every one the same"
 			: "differing at " + alike(before, after)));
+	}
+
+	/**
+		The piece's time signature and a pattern's own are written and read back, and a pattern with
+		none of its own still follows the piece's.
+
+		@param where The folder to write into.
+	**/
+	static function metered(where:String):Void {
+		final song = StreamCheck.written();
+
+		song.meter.sets(3, 4);
+
+		final own = song.add(new mdd.song.Pattern("own", song.tempo.ppqn * 3));
+		own.meter = new mdd.song.Meter(7, 8);
+
+		final named = where + "/metered.mdsyn";
+		Project.save(song, named);
+
+		final back = Project.open(named);
+		final kept = back.patterns[back.patterns.length - 1];
+		final follows = back.patterns[0];
+
+		says("a time signature is kept", back.meter.spelt() == "3/4" && kept.meter != null
+			&& kept.meter.spelt() == "7/8" && follows.meter == null
+			&& back.barOf(kept) == song.tempo.ppqn * 7 / 2 && back.barOf(follows) == song.tempo.ppqn * 3,
+			"the piece read back in " + back.meter.spelt() + ", a pattern of its own in "
+			+ (kept.meter == null ? "none" : kept.meter.spelt()) + " with a bar of " + back.barOf(kept)
+			+ " ticks, and one following the piece with a bar of " + back.barOf(follows));
 	}
 
 	/**
