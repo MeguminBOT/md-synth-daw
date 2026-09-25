@@ -373,6 +373,40 @@ class PaintCheck {
 		paint.flush();
 		within("polygon", read(), 200 * 160 / 2, 400);
 
+		final speaker = Vector.fromArrayCopy([40.0, 80.0, 90.0, 80.0, 160.0, 40.0, 160.0, 200.0,
+			90.0, 160.0, 40.0, 160.0]);
+		final mirrored = new Vector<Float>(12);
+
+		for (corner in 0...6) {
+			mirrored[corner * 2] = SIDE - speaker[corner * 2];
+			mirrored[corner * 2 + 1] = speaker[corner * 2 + 1];
+		}
+
+		begin();
+		paint.polygon(speaker, 6, Theme.FM2);
+		paint.flush();
+		within("concave polygon", read(), 50 * 80 + (80 + 160) / 2 * 70, 300);
+
+		final facing = new Vector<Bool>(SIDE * SIDE);
+		for (at in 0...SIDE * SIDE) facing[at] = pixels[at * 4] > 8 || pixels[at * 4 + 1] > 8
+			|| pixels[at * 4 + 2] > 8;
+
+		begin();
+		paint.polygon(mirrored, 6, Theme.FM2);
+		paint.flush();
+		within("and the same shape mirrored", read(), 50 * 80 + (80 + 160) / 2 * 70, 300);
+
+		var unlike = 0;
+		for (row in 0...SIDE) {
+			for (column in 0...SIDE) {
+				final at = (row * SIDE + column) * 4;
+				final lit = pixels[at] > 8 || pixels[at + 1] > 8 || pixels[at + 2] > 8;
+				if (lit != facing[row * SIDE + SIDE - 1 - column]) unlike++;
+			}
+		}
+
+		within("pixels a mirror image disagrees on", unlike, 0, 40);
+
 		final wave = new Vector<Float>(4096);
 		for (i in 0...4096) wave[i] = (i % 2) == 0 ? 1.0 : -1.0;
 		begin();

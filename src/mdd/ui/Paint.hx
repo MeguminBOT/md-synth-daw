@@ -982,6 +982,15 @@ final class Paint {
 		var left = count;
 		for (i in 0...count) corners[i] = i;
 
+		var twice = 0.0;
+
+		for (i in 0...count) {
+			final next = (i + 1) % count;
+			twice += points[i * 2] * points[next * 2 + 1] - points[next * 2] * points[i * 2 + 1];
+		}
+
+		final turn = twice < 0 ? -1.0 : 1.0;
+
 		var guard = 0;
 		final most = count * count;
 
@@ -994,7 +1003,7 @@ final class Paint {
 				final b = corners[(i + 1) % left];
 				final c = corners[(i + 2) % left];
 
-				if (!ear(points, a, b, c, left)) continue;
+				if (!ear(points, a, b, c, left, turn)) continue;
 
 				triangle(points[a * 2], points[a * 2 + 1], points[b * 2], points[b * 2 + 1],
 					points[c * 2], points[c * 2 + 1], colour, alpha);
@@ -1080,9 +1089,11 @@ final class Paint {
 		@param b The second.
 		@param c The third.
 		@param left How many points are still in the polygon.
+		@param turn Which way the polygon winds, one for clockwise on screen and minus one for the
+			other way, so a shape drawn mirrored is cut the same way as the shape it mirrors.
 		@return Whether that triangle can be cut off without crossing the shape.
 	**/
-	function ear(points:Vector<Float>, a:Int, b:Int, c:Int, left:Int):Bool {
+	function ear(points:Vector<Float>, a:Int, b:Int, c:Int, left:Int, turn:Float):Bool {
 		final ax = points[a * 2];
 		final ay = points[a * 2 + 1];
 		final bx = points[b * 2];
@@ -1090,7 +1101,7 @@ final class Paint {
 		final cx = points[c * 2];
 		final cy = points[c * 2 + 1];
 
-		if ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax) <= 0) return false;
+		if (((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) * turn <= 0) return false;
 
 		for (n in 0...left) {
 			final index = corners[n];
