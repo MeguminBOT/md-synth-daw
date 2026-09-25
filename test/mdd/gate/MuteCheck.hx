@@ -48,7 +48,13 @@ class MuteCheck {
 	**/
 	static inline final CLIP = 2;
 
-	static final HOWS:Array<String> = ["the track muted", "the note deleted", "the clips deleted"];
+	/**
+		The note is taken away by soloing another track.
+	**/
+	static inline final SOLO = 3;
+
+	static final HOWS:Array<String> = ["the track muted", "the note deleted", "the clips deleted",
+		"another soloed"];
 
 	static var failed:Int = 0;
 	static var ran:Int = 0;
@@ -69,11 +75,13 @@ class MuteCheck {
 			listened(part, "a run of short notes", false, true, false);
 			listened(part, "muted, unmuted and muted again", false, false, true);
 
-			for (how in [TRACK, NOTE, CLIP]) {
+			for (how in [TRACK, NOTE, CLIP, SOLO]) {
 				removed(part, how, false);
 				removed(part, how, true);
 			}
 		}
+
+		overridden();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -149,6 +157,7 @@ class MuteCheck {
 
 		switch (how) {
 			case TRACK: song.tracks[0].muted = true;
+			case SOLO: song.tracks[1].soloed = true;
 			case NOTE: song.patternAt(0).lane(part).notes.resize(0);
 			case _: song.tracks[0].clips.resize(0);
 		}
@@ -162,6 +171,27 @@ class MuteCheck {
 			before > HEARD && after < QUIET,
 			"peaks at " + round(before) + " and " + round(after)
 			+ " in the two seconds after it settles");
+	}
+
+	/**
+		A soloed track is heard whatever its own mute says, the way a soloed part is.
+	**/
+	static function overridden():Void {
+		final song = written(Part.Fm1, false);
+
+		song.tracks[0].muted = true;
+		song.tracks[0].soloed = true;
+
+		final transport = new Transport(song, 1 << 18);
+		final render = new Render(RATE, Render.BLOCK);
+
+		render.transport = transport;
+		transport.play();
+
+		final loud = poured(transport, render, 0.5);
+
+		says("a soloed track sounds through its mute", loud > HEARD,
+			"peaks at " + round(loud) + " with the one track holding the note both muted and soloed");
 	}
 
 	/**

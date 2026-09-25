@@ -1094,7 +1094,7 @@ final class Files {
 		@return Whether the track is heard in the mix and places a pattern that holds notes.
 	**/
 	static function noted(song:mdd.song.Song, track:mdd.song.Track):Bool {
-		if (track.muted) return false;
+		if (!song.heard(track)) return false;
 
 		for (clip in track.clips) {
 			if (clip.kind != mdd.song.Clip.PATTERN) continue;

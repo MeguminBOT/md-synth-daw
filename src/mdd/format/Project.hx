@@ -255,6 +255,8 @@ class Project {
 			out.whole(track.icon);
 			out.key("muted");
 			out.flag(track.muted);
+			out.key("soloed");
+			out.flag(track.soloed);
 			out.key("clips");
 			out.list();
 
@@ -618,6 +620,7 @@ class Project {
 			track.colour = held.get("colour").whole(-1);
 			track.icon = held.get("icon").whole(-1);
 			track.muted = held.get("muted").truth(false);
+			track.soloed = held.get("soloed").truth(false);
 
 			final clips = held.get("clips");
 

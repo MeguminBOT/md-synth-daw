@@ -1,23 +1,26 @@
 package mdd.song.edit;
 
 /**
-	Copies a track and everything on it, and puts the copy after it.
+	Solos or unsolos a track.
 
 	One step on the undo stack. `apply` does it and `revert` puts the song back
 	exactly as it was, which is why anything it overwrites is kept here.
 **/
-final class CloneTrack implements Command {
+final class SoloTrack implements Command {
 	final at:Int;
+	final soloed:Bool;
 
-	var made:Int = -1;
+	var was:Bool = false;
 
 	/**
 		Records what to do. Nothing changes until `apply` is called.
 
 		@param at Which one, by index.
+		@param soloed Whether the track is soloed.
 	**/
-	public function new(at:Int) {
+	public function new(at:Int, soloed:Bool) {
 		this.at = at;
+		this.soloed = soloed;
 	}
 
 	/**
@@ -28,18 +31,8 @@ final class CloneTrack implements Command {
 	public function apply(song:Song):Void {
 		if (at < 0 || at >= song.tracks.length) return;
 
-		final from = song.tracks[at];
-		final held = new Track(from.name);
-
-		held.colour = from.colour;
-		held.icon = from.icon;
-		held.muted = from.muted;
-		held.soloed = from.soloed;
-
-		for (clip in from.clips) held.add(clip.copy());
-
-		made = at + 1;
-		song.tracks.insert(made, held);
+		was = song.tracks[at].soloed;
+		song.tracks[at].soloed = soloed;
 	}
 
 	/**
@@ -48,16 +41,15 @@ final class CloneTrack implements Command {
 		@param song The song to act on.
 	**/
 	public function revert(song:Song):Void {
-		if (made < 0 || made >= song.tracks.length) return;
+		if (at < 0 || at >= song.tracks.length) return;
 
-		song.tracks.splice(made, 1);
-		made = -1;
+		song.tracks[at].soloed = was;
 	}
 
 	/**
 		@return What the undo entry is called, in lower case.
 	**/
 	public function label():String {
-		return "clone a track";
+		return soloed ? "solo a track" : "unsolo a track";
 	}
 }

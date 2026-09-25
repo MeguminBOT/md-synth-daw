@@ -39,6 +39,7 @@ class ProjectCheck {
 		mdd.host.Paths.make(where);
 
 		carried(where);
+		flagged(where);
 		kitted(where);
 		heard(where);
 		older(where);
@@ -115,6 +116,42 @@ class ProjectCheck {
 			before.count + " register writes over " + SPAN + " samples, and the file reads back "
 			+ after.count + ", " + (alike(before, after) == -2 ? "every one the same"
 			: "differing at " + alike(before, after)));
+	}
+
+	/**
+		A track's mute and solo are written with it and read back where they were.
+
+		@param where The folder to write into.
+	**/
+	static function flagged(where:String):Void {
+		final song = StreamCheck.written();
+
+		while (song.tracks.length < 3) song.track(new mdd.song.Track("track " + (song.tracks.length + 1)));
+
+		song.tracks[0].muted = true;
+		song.tracks[1].soloed = true;
+		song.tracks[2].muted = true;
+		song.tracks[2].soloed = true;
+
+		final named = where + "/flagged.mdsyn";
+		Project.save(song, named);
+
+		final back = Project.open(named);
+		var kept = 0;
+
+		for (index in 0...3) {
+			if (index >= back.tracks.length) break;
+
+			final one = back.tracks[index];
+			final was = song.tracks[index];
+
+			if (one.muted == was.muted && one.soloed == was.soloed) kept++;
+		}
+
+		says("a track keeps its mute and solo", kept == 3 && back.heard(back.tracks[2])
+			&& !back.heard(back.tracks[0]),
+			kept + " of 3 tracks read back muted and soloed as they were written, and the one both"
+			+ " muted and soloed is " + (back.heard(back.tracks[2]) ? "heard" : "silent"));
 	}
 
 	/**

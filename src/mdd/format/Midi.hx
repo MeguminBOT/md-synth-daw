@@ -149,7 +149,7 @@ final class Midi {
 		final events:Array<Int> = [];
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!song.heard(track)) continue;
 
 			for (clip in track.clips) {
 				final pattern = song.patternAt(clip.pattern);

@@ -189,6 +189,11 @@ final class Sequencer {
 	var trackParts:Int = 0;
 
 	/**
+		Whether any track was soloed at the start of the span.
+	**/
+	var soloTracks:Bool = false;
+
+	/**
 		Sequence only this pattern, or -1 for the whole arrangement. This is a pattern
 		index and not a track, which `onlyTrack` is for.
 	**/
@@ -514,12 +519,21 @@ final class Sequencer {
 
 	/**
 		@param track A track.
-		@return Whether the notes on it are sounded: it is not muted, and it is the track a track
-			stem is of where one is being rendered.
+		@return Whether the notes on it are sounded: it is heard in the mix, and it is the track a
+			track stem is of where one is being rendered.
 	**/
 	inline function heard(track:mdd.song.Track):Bool {
-		return !track.muted && (onlyTrack < 0
+		return sounds(track) && (onlyTrack < 0
 			|| (onlyTrack < song.tracks.length && song.tracks[onlyTrack] == track));
+	}
+
+	/**
+		@param track A track.
+		@return Whether it is heard in the mix, by its mute and by every track's solo as they stood
+			at the start of the span.
+	**/
+	inline function sounds(track:mdd.song.Track):Bool {
+		return soloTracks ? track.soloed : !track.muted;
 	}
 
 	/**
@@ -585,6 +599,7 @@ final class Sequencer {
 		Works out which parts the track a track stem is of plays notes on.
 	**/
 	function tracked():Void {
+		soloTracks = song.soloingTracks();
 		moving = false;
 
 		for (instrument in song.instruments) {
@@ -635,7 +650,7 @@ final class Sequencer {
 		}
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!sounds(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.automates() && clip.part >= 0 && clip.part < Part.COUNT) {
@@ -676,7 +691,7 @@ final class Sequencer {
 		if (drivenParts == 0 || fading) return;
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!sounds(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.at > high || clip.ends() <= low) continue;
@@ -703,7 +718,7 @@ final class Sequencer {
 		var found:Null<mdd.song.Clip> = null;
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!sounds(track)) continue;
 
 			for (clip in track.clips) {
 				if (!clip.automates() || clip.part != part.index()) continue;
@@ -819,7 +834,7 @@ final class Sequencer {
 	**/
 	function operated(part:Part, tick:Int, at:Int):Void {
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!sounds(track)) continue;
 
 			for (clip in track.clips) {
 				if (!clip.automates() || clip.part != part.index()) continue;
@@ -1931,7 +1946,7 @@ final class Sequencer {
 		if (alone >= 0) return;
 
 		for (track in song.tracks) {
-			if (track.muted) continue;
+			if (!sounds(track)) continue;
 
 			for (clip in track.clips) {
 				if (!clip.automates() || clip.part != part.index()) continue;

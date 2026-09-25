@@ -26,6 +26,12 @@ final class Track {
 	public var muted:Bool = false;
 
 	/**
+		Whether the row is soloed. While any row is, only the soloed rows are heard, whatever their
+		mute says.
+	**/
+	public var soloed:Bool = false;
+
+	/**
 		The clips on it, kept in tick order.
 	**/
 	public final clips:Array<Clip> = [];

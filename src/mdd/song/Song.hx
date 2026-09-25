@@ -480,7 +480,7 @@ final class Song {
 		if (!audible(part)) return false;
 
 		for (track in tracks) {
-			if (track.muted) continue;
+			if (!heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (clip.automates()) continue;
@@ -493,6 +493,23 @@ final class Song {
 		}
 
 		return false;
+	}
+
+	/**
+		@return Whether any track is soloed.
+	**/
+	public function soloingTracks():Bool {
+		for (track in tracks) if (track.soloed) return true;
+		return false;
+	}
+
+	/**
+		@param track One of the tracks.
+		@return Whether what it holds is heard, taking both its mute and every track's solo into
+			account.
+	**/
+	public function heard(track:Track):Bool {
+		return soloingTracks() ? track.soloed : !track.muted;
 	}
 
 	/**
@@ -558,6 +575,7 @@ final class Song {
 			made.colour = track.colour;
 			made.icon = track.icon;
 			made.muted = track.muted;
+			made.soloed = track.soloed;
 
 			for (clip in track.clips) {
 				final source = patternAt(clip.pattern);

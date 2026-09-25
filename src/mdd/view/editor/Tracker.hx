@@ -191,7 +191,7 @@ final class Tracker extends Widget {
 	**/
 	public function clipAt(tick:Int, part:Part):Null<mdd.song.Clip> {
 		for (track in session.song.tracks) {
-			if (track.muted) continue;
+			if (!session.song.heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (tick < clip.at || tick >= clip.ends()) continue;
@@ -208,7 +208,7 @@ final class Tracker extends Widget {
 
 	function clipFor(tick:Int):Null<mdd.song.Clip> {
 		for (track in session.song.tracks) {
-			if (track.muted) continue;
+			if (!session.song.heard(track)) continue;
 
 			for (clip in track.clips) {
 				if (tick < clip.at || tick >= clip.ends()) continue;

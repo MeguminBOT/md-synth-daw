@@ -14,6 +14,7 @@ final class ResetTrack implements Command {
 	var wasColour:Int = -1;
 	var wasIcon:Int = -1;
 	var wasMuted:Bool = false;
+	var wasSoloed:Bool = false;
 
 	final held:Array<Clip> = [];
 
@@ -42,6 +43,7 @@ final class ResetTrack implements Command {
 		wasColour = track.colour;
 		wasIcon = track.icon;
 		wasMuted = track.muted;
+		wasSoloed = track.soloed;
 
 		held.resize(0);
 		for (clip in track.clips) held.push(clip);
@@ -50,6 +52,7 @@ final class ResetTrack implements Command {
 		track.colour = -1;
 		track.icon = -1;
 		track.muted = false;
+		track.soloed = false;
 		track.clips.resize(0);
 	}
 
@@ -67,6 +70,7 @@ final class ResetTrack implements Command {
 		track.colour = wasColour;
 		track.icon = wasIcon;
 		track.muted = wasMuted;
+		track.soloed = wasSoloed;
 
 		track.clips.resize(0);
 		for (clip in held) track.clips.push(clip);
