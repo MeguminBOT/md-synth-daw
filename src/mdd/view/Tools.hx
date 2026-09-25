@@ -29,7 +29,12 @@ final class Tools extends Widget {
 		The switch that keeps the playhead in sight while the song plays.
 	**/
 	public static inline final FOLLOW = Session.TOOLS + 2;
-	static inline final CELLS = Session.TOOLS + 3;
+
+	/**
+		The switch that holds the tracker to the chosen pattern rather than the whole piece.
+	**/
+	public static inline final LOCK = Session.TOOLS + 3;
+	static inline final CELLS = Session.TOOLS + 4;
 
 	/**
 		Which chord reaches each tool, for the tooltips.
@@ -53,7 +58,7 @@ final class Tools extends Widget {
 
 	static final TIPS:Array<Locale> = [Locale.TOOL_SELECT, Locale.TOOL_DRAW, Locale.TOOL_ERASE,
 		Locale.TOOL_SLICE, Locale.TOOL_PAN, Locale.TOOL_SNAP, Locale.TOOL_GHOSTS,
-		Locale.TOOL_FOLLOW];
+		Locale.TOOL_FOLLOW, Locale.TOOL_LOCK];
 
 	/**
 		The session to read.
@@ -101,9 +106,9 @@ final class Tools extends Widget {
 	public var room:Float = 0;
 
 	/**
-		Every tool allowed, as bits.
+		Every tool and switch, as bits.
 	**/
-	public static inline final EVERY = (1 << (Session.TOOLS + 3)) - 1;
+	public static inline final EVERY = (1 << (Session.TOOLS + 4)) - 1;
 
 	/**
 		Which tools this editor offers, as bits.
@@ -204,6 +209,7 @@ final class Tools extends Widget {
 			case SNAP: session.snapping > 0;
 			case GHOSTS: session.ghosts;
 			case FOLLOW: session.following;
+			case LOCK: session.lockedToPattern;
 			case _: session.tool == index;
 		}
 	}
@@ -227,6 +233,12 @@ final class Tools extends Widget {
 				session.following = !session.following;
 				session.say(translate(session.following ? Locale.SAID_FOLLOW_ON
 					: Locale.SAID_FOLLOW_OFF));
+				session.changed();
+
+			case LOCK:
+				session.lockedToPattern = !session.lockedToPattern;
+				session.say(translate(session.lockedToPattern ? Locale.SAID_LOCK_ON
+					: Locale.SAID_LOCK_OFF));
 				session.changed();
 
 			case _:
@@ -433,6 +445,11 @@ final class Tools extends Widget {
 				arrow[5] = centre + reach * 0.7;
 
 				paint.polygon(arrow, 3, ink);
+
+			case LOCK:
+				paint.ring(middle, centre - reach * 0.3, reach * 0.6, hair, ink);
+				paint.roundedRect(middle - reach * 0.85, centre - reach * 0.15, reach * 1.7,
+					reach * 1.2, hair * 0.6, ink);
 
 			case _:
 		}

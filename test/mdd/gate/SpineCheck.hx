@@ -5029,9 +5029,22 @@ class SpineCheck {
 		tree.frame(paint);
 		Sdl.renderPresent(renderer);
 
-		says("and the pattern when the transport is on one",
-			tracker.rows() == pattern.length / 24,
-			tracker.rows() + " rows for a pattern of " + pattern.length + " ticks");
+		final playing = tracker.rows();
+
+		centre.tools.press(mdd.view.Tools.LOCK);
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final locked = tracker.rows();
+
+		centre.tools.press(mdd.view.Tools.LOCK);
+
+		says("and the pattern when locked",
+			playing == grid && locked == pattern.length / 24 && !session.lockedToPattern,
+			"playing the pattern alone left " + playing + " rows of the arrangement, and the lock "
+			+ "showed " + locked + " rows for a pattern of " + pattern.length + " ticks");
 
 		session.plays(false);
 

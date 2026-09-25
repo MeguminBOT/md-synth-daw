@@ -178,8 +178,8 @@ final class Centre extends Widget {
 	static final ALLOWS:Array<Int> = [
 		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
 			| (1 << Session.SLICE) | (1 << Session.PAN) | (1 << Tools.SNAP) | (1 << Tools.FOLLOW),
-		Tools.EVERY,
-		(1 << Tools.SNAP) | (1 << Tools.FOLLOW),
+		Tools.EVERY & ~(1 << Tools.LOCK),
+		(1 << Tools.SNAP) | (1 << Tools.FOLLOW) | (1 << Tools.LOCK),
 		0,
 		0,
 		(1 << Session.SELECT) | (1 << Session.DRAW) | (1 << Session.ERASE)
@@ -293,7 +293,10 @@ final class Centre extends Widget {
 
 		if (!tracker.visible) return;
 
-		final local = tick - origin;
+		final whole = tracker.songly();
+		if (whole && session.alone) return;
+
+		final local = whole ? tick : tick - origin;
 		if (local < 0) return;
 
 		final step = tracker.step();

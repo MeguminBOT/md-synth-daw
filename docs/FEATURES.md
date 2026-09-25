@@ -107,7 +107,10 @@ clip panning a channel keeps it panned from note to note.
 
 ### The tracker
 
-The same pattern data as hexadecimal rows, for anyone who thinks in trackers rather than in rolls.
+The music as hexadecimal rows, for anyone who thinks in trackers rather than in rolls. It reads the
+whole piece as the playlist lays it out, one pattern running straight into the next, and writes a
+note into whichever pattern plays under the cursor. The lock among the tracker's tools holds it to
+the chosen pattern instead, and a piece with nothing placed yet shows the chosen pattern either way.
 It is a view, not a second model: edits in either show up in the other.
 
 Notes are named the same way everywhere, as the Editing preferences say: with sharps or with flats,
@@ -488,7 +491,7 @@ and the checks compare the live stream against the offline one on every run.
 ## Playback
 
 - Play, pause, stop and rewind, seek, and loop.
-- **Follow playhead**, the last button in the editor's tools and an entry in the View menu, keeps
+- **Follow playhead**, a button among the editor's tools and an entry in the View menu, keeps
   the playhead in sight while a song plays. When it reaches the right edge of the playlist, the
   piano roll or the automation editor, the view turns a page so the playhead is back at the left,
   and a loop that sends it back scrolls back with it; in the tracker the cursor rides along with

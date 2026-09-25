@@ -18,7 +18,9 @@ import mdd.ui.Widget;
 @:unreflective
 
 /**
-	The same pattern as hexadecimal rows, one column per part.
+	The music as hexadecimal rows, one column per part: the whole piece as the playlist lays it
+	out, one pattern running into the next, or the chosen pattern alone while the tool strip's lock
+	holds it there. A piece with nothing placed yet shows the chosen pattern either way.
 
 	It is a view of the same notes the roll draws, not a second model, so an edit in
 	either shows up in the other at once.
@@ -165,8 +167,11 @@ final class Tracker extends Widget {
 		return held < 1 ? 1 : held;
 	}
 
-	inline function songly():Bool {
-		return !session.alone && session.song.tracks.length > 0;
+	/**
+		@return Whether the rows are the whole piece rather than the chosen pattern.
+	**/
+	public inline function songly():Bool {
+		return !session.lockedToPattern && session.song.ends() > 0;
 	}
 
 	/**

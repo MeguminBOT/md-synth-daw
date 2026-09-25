@@ -164,6 +164,12 @@ final class Session {
 	public var ghosts:Bool = true;
 
 	/**
+		Whether the tracker shows the chosen pattern alone. Off, it reads the whole piece as the
+		playlist lays it out, one pattern running into the next.
+	**/
+	public var lockedToPattern:Bool = false;
+
+	/**
 		Whether the editor in front keeps the playhead in sight while the song plays, turning the
 		view on a page at a time as the playhead reaches its edge.
 	**/
