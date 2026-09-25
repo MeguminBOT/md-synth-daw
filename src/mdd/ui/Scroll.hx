@@ -11,15 +11,18 @@ package mdd.ui;
 **/
 class Scroll extends Widget {
 	/**
-		How far down the contents are scrolled.
+		How far down the contents are scrolled, never past their end. Contents that shrink under
+		the view bring it back up to them rather than leaving it looking at nothing, and grow back
+		to where it was scrolled to when they return.
 	**/
-	public var offsetY(default, null):Float = 0;
+	public var offsetY(get, never):Float;
 
 	/**
 		How tall the contents are.
 	**/
 	public var contentHeight:Float = 0;
 
+	var scrolled:Float = 0;
 	var scrubbing:Bool = false;
 	var grabAt:Float = 0;
 	var grabOffset:Float = 0;
@@ -30,6 +33,12 @@ class Scroll extends Widget {
 	public function new() {
 		super();
 		opaque = true;
+	}
+
+	inline function get_offsetY():Float {
+		final most = contentHeight - height;
+		if (scrolled > most) return most > 0 ? most : 0;
+		return scrolled < 0 ? 0 : scrolled;
 	}
 
 	/**
@@ -51,8 +60,8 @@ class Scroll extends Widget {
 		if (next > most) next = most;
 		if (next < 0) next = 0;
 
-		if (next == offsetY) return;
-		offsetY = next;
+		if (next == scrolled) return;
+		scrolled = next;
 		invalidate();
 	}
 

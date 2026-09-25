@@ -282,7 +282,7 @@ final class Registers extends Scroll {
 		final head = metrics.head;
 		final many = rows();
 
-		contentHeight = many * tall;
+		contentHeight = many * tall + head;
 
 		paint.rect(x, y, width, height, theme.panel);
 		Panel.titled(paint, theme, metrics, translate(Locale.VIEW_REGISTERS), x, y, width, head);
@@ -301,8 +301,7 @@ final class Registers extends Scroll {
 			return;
 		}
 
-		if (following) offsetY = contentHeight - (height - head);
-		if (offsetY < 0) offsetY = 0;
+		if (following) scrolled = contentHeight - height;
 
 		paint.pushClip(x, y + head, width, height - head);
 		paint.reface(font);

@@ -127,6 +127,7 @@ class UiCheck {
 		marquee();
 		motions();
 		trees();
+		shrunk();
 		menus(renderer, target, face, monoFace);
 		dropdowns(renderer, face, monoFace);
 		tooltips(renderer, face, monoFace);
@@ -2152,6 +2153,45 @@ class UiCheck {
 
 		body.shut();
 		mono.shut();
+	}
+
+	/**
+		A list scrolled down that shrinks under the view shows what is left of it rather than the
+		empty space past its end, and grows back to where it was scrolled once it returns.
+	**/
+	static function shrunk():Void {
+		final root = shaped();
+		final tree = new Tree();
+
+		root.top.add(tree);
+		root.resize(400, 300);
+		root.top.arrange(0, 0, 400, 300);
+
+		tree.rowHeight = 20;
+		tree.arrange(0, 0, 200, 100);
+
+		for (row in 0...50) tree.plant(new Item("row " + row));
+		tree.scrollTo(600);
+		final far = tree.offsetY;
+
+		tree.clear();
+		for (row in 0...3) tree.plant(new Item("found " + row));
+		final few = tree.offsetY;
+		final first = tree.rowAt(5);
+
+		tree.clear();
+		for (row in 0...20) tree.plant(new Item("found " + row));
+		final some = tree.offsetY;
+
+		tree.clear();
+		for (row in 0...50) tree.plant(new Item("row " + row));
+		final back = tree.offsetY;
+
+		says("a shrunk list shows its rows", far == 600 && few == 0 && first == 0
+			&& some == 300 && back == 600,
+			"scrolled to " + far + ", three rows put the view at " + few + " with row " + first
+			+ " at the top, twenty at " + some + " against a last page at 300, and fifty again at "
+			+ back);
 	}
 
 	static function bars(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {
