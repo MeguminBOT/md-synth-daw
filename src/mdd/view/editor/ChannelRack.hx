@@ -232,8 +232,8 @@ final class ChannelRack extends Widget {
 				}
 
 				if (slotHolds(metrics, SOLO, event.x)) {
-					session.does(new mdd.song.edit.SoloPart(at,
-						!session.song.soloed[at]));
+					if (event.alt()) solosAlone(at);
+					else session.does(new mdd.song.edit.SoloPart(at, !session.song.soloed[at]));
 
 					invalidate();
 					return true;
@@ -283,6 +283,25 @@ final class ChannelRack extends Widget {
 		return false;
 	}
 
+	/**
+		Solos one channel and unsolos every other, as one step.
+
+		@param at Which part.
+	**/
+	function solosAlone(at:Int):Void {
+		final song = session.song;
+		final part:Part = at;
+		final group = new mdd.song.edit.Together("solo one channel");
+
+		for (i in 0...Part.COUNT) {
+			if (song.soloed[i] == (i == at)) continue;
+			group.also(new mdd.song.edit.SoloPart(i, i == at));
+		}
+
+		session.does(group);
+		session.says(Locale.SAID_SOLOED_ALONE, part.name());
+	}
+
 	function popped(at:Int, px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
@@ -315,17 +334,8 @@ final class ChannelRack extends Widget {
 			});
 		}
 
-		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void {
-			final group = new mdd.song.edit.Together("solo one channel");
-
-			for (i in 0...Part.COUNT) {
-				if (song.soloed[i] == (i == at)) continue;
-				group.also(new mdd.song.edit.SoloPart(i, i == at));
-			}
-
-			session.does(group);
-			session.says(Locale.SAID_SOLOED_ALONE, part.name());
-		});
+		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void
+			solosAlone(at));
 
 		menu.divide();
 
