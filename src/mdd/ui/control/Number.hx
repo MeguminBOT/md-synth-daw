@@ -61,7 +61,6 @@ final class Number extends Widget implements Range {
 	var dragging:Bool = false;
 	var grabY:Float = 0;
 	var grabValue:Int = 0;
-	var fine:Bool = false;
 
 	var entry:String = "";
 
@@ -80,6 +79,7 @@ final class Number extends Widget implements Range {
 		this.most = most;
 		focusable = true;
 		opaque = true;
+		precision = 4;
 		set(value);
 	}
 
@@ -163,21 +163,12 @@ final class Number extends Widget implements Range {
 				dragging = true;
 				grabY = event.y;
 				grabValue = carried;
-				fine = event.ctrl();
 				return true;
 
 			case Kind.PointerMove:
 				if (!dragging) return false;
 
-				if (event.ctrl() != fine) {
-					fine = event.ctrl();
-					grabY = event.y;
-					grabValue = carried;
-				}
-
-				final moved = grabY - event.y;
-				final step = fine ? 8.0 : 2.0;
-				set(grabValue + Std.int(moved / step));
+				set(grabValue + Std.int((grabY - event.y) / 2.0));
 				return true;
 
 			case Kind.PointerUp:

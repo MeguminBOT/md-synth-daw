@@ -49,7 +49,6 @@ final class Knob extends Widget implements Range {
 	var dragging:Bool = false;
 	var grabY:Float = 0;
 	var grabValue:Int = 0;
-	var fine:Bool = false;
 
 	/**
 		Builds a knob.
@@ -66,6 +65,7 @@ final class Knob extends Widget implements Range {
 		this.most = most;
 		focusable = true;
 		opaque = true;
+		precision = 4;
 		carried = least - 1;
 		set(value);
 	}
@@ -115,20 +115,12 @@ final class Knob extends Widget implements Range {
 				dragging = true;
 				grabY = event.y;
 				grabValue = carried;
-				fine = event.ctrl();
 				return true;
 
 			case Kind.PointerMove:
 				if (!dragging) return false;
 
-				if (event.ctrl() != fine) {
-					fine = event.ctrl();
-					grabY = event.y;
-					grabValue = carried;
-				}
-
-				final moved = (grabY - event.y) / (fine ? TRAVEL * 4 : TRAVEL);
-				set(grabValue + Math.round(moved * span()));
+				set(grabValue + Math.round((grabY - event.y) / TRAVEL * span()));
 				return true;
 
 			case Kind.PointerUp:
