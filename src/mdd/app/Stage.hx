@@ -174,6 +174,7 @@ final class Stage {
 		shell = new Shell();
 		root = new Root(shell, metrics, new Theme());
 		root.flow = Sdl.reduceMotion() != 0 ? Flow.Reduced : Flow.Full;
+		root.onWarp = function(x:Float, y:Float):Void Sdl.warp(window, x, y);
 
 		if (!faces(metrics)) return false;
 

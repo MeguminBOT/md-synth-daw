@@ -128,6 +128,7 @@ class UiCheck {
 		motions();
 		trees();
 		shrunk();
+		slowed();
 		menus(renderer, target, face, monoFace);
 		dropdowns(renderer, face, monoFace);
 		tooltips(renderer, face, monoFace);
@@ -2192,6 +2193,61 @@ class UiCheck {
 			"scrolled to " + far + ", three rows put the view at " + few + " with row " + first
 			+ " at the top, twenty at " + some + " against a last page at 300, and fifty again at "
 			+ back);
+	}
+
+	/**
+		A widget that asks for precision gets the pointer slowed while Ctrl is held in a drag of it,
+		the real pointer is asked to follow, and the motion that move causes is not read as the
+		hand moving. One that does not ask gets the pointer as it is.
+	**/
+	static function slowed():Void {
+		final root = shaped();
+		final fine = new Widget();
+		final plain = new Widget();
+		final seen:Array<Float> = [];
+		final warped:Array<Float> = [];
+
+		fine.precision = 4;
+
+		root.top.add(fine);
+		root.top.add(plain);
+		root.resize(400, 300);
+		root.top.arrange(0, 0, 400, 300);
+		fine.arrange(0, 0, 200, 300);
+		plain.arrange(200, 0, 200, 300);
+
+		root.onWarp = function(x:Float, y:Float):Void {
+			warped.push(x);
+			warped.push(y);
+		};
+
+		root.pressed(100, 100, Pointer.Left, Mod.None);
+		root.moved(140, 100, Mod.Ctrl);
+		seen.push(root.pointerX);
+
+		root.moved(110, 100, Mod.Ctrl);
+		seen.push(root.pointerX);
+
+		root.moved(150, 100, Mod.Ctrl);
+		seen.push(root.pointerX);
+
+		root.moved(120, 100, Mod.Ctrl);
+		root.moved(130, 100, Mod.None);
+		seen.push(root.pointerX);
+		root.released(130, 100, Pointer.Left, Mod.None);
+
+		root.pressed(300, 100, Pointer.Left, Mod.None);
+		root.moved(340, 100, Mod.Ctrl);
+		final free = root.pointerX;
+		root.released(340, 100, Pointer.Left, Mod.None);
+
+		says("ctrl slows a precise drag", seen[0] == 110 && seen[1] == 110 && seen[2] == 120
+			&& seen[3] == 130 && warped.length == 4 && warped[0] == 110 && warped[2] == 120
+			&& free == 340,
+			"40 px with ctrl read as " + (seen[0] - 100) + ", the echo of the warp to " + warped[0]
+			+ " as " + (seen[1] - seen[0]) + ", 40 more as " + (seen[2] - seen[1]) + ", 10 without"
+			+ " ctrl as " + (seen[3] - seen[2]) + ", and a drag of a plain widget with ctrl as "
+			+ (free - 300));
 	}
 
 	static function bars(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {

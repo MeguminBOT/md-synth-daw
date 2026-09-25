@@ -465,4 +465,15 @@ extern class Sdl {
 	**/
 	@:native("mdd_cursor_free")
 	public static function freeCursors():Void;
+
+	/**
+		Moves the pointer to a point in a window. The move arrives back as an ordinary motion
+		event at that point.
+
+		@param window The window.
+		@param x Where, across, in points.
+		@param y Where, down, in points.
+	**/
+	@:native("mdd_pointer_warp")
+	public static function warp(window:cpp.Star<Window>, x:Float, y:Float):Void;
 }

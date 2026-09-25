@@ -115,6 +115,13 @@ class Widget {
 	public var typing:Bool = false;
 
 	/**
+		How many times slower the pointer moves while this widget holds a drag with Ctrl held,
+		for a fine adjustment. The root slows the pointer it reports and moves the real one with
+		it, so what is being dragged stays under the pointer. One leaves the pointer alone.
+	**/
+	public var precision:Float = 1;
+
+	/**
 		What holds it, or null where nothing does.
 	**/
 	public var parent(default, null):Null<Widget> = null;

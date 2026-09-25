@@ -366,6 +366,16 @@ void mdd_cursor_set(int shape);
  */
 void mdd_cursor_free(void);
 
+/**
+ * Moves the pointer to a point in a window. SDL posts the move back as an ordinary motion
+ * event at that point.
+ *
+ * @param window The window.
+ * @param x Where, across, in points.
+ * @param y Where, down, in points.
+ */
+void mdd_pointer_warp(SDL_Window *window, float x, float y);
+
 #ifdef __cplusplus
 }
 #endif

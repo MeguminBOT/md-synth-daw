@@ -519,3 +519,7 @@ extern "C" void mdd_cursor_free(void) {
 
 	mdd_cursor_now = -1;
 }
+
+extern "C" void mdd_pointer_warp(SDL_Window *window, float x, float y) {
+	if (window != nullptr) SDL_WarpMouseInWindow(window, x, y);
+}

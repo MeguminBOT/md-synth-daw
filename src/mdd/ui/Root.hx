@@ -83,8 +83,16 @@ final class Root {
 	**/
 	public var over(default, null):Null<Widget> = null;
 
-	var pointerX(default, null):Float = 0;
-	var pointerY(default, null):Float = 0;
+	/**
+		Where the pointer is across, as the widgets are told it: slowed where a precise drag has
+		slowed it.
+	**/
+	public var pointerX(default, null):Float = 0;
+
+	/**
+		Where the pointer is down, as the widgets are told it.
+	**/
+	public var pointerY(default, null):Float = 0;
 
 	/**
 		Which modifiers were last held.
@@ -152,6 +160,18 @@ final class Root {
 	var returnFocus:Null<Widget> = null;
 	var tipText:String = "";
 	var tipDetail:String = "";
+
+	/**
+		Moves the real pointer to a point in the window, which is how a drag with Ctrl held
+		keeps it with a control it has slowed. Null leaves the real pointer alone.
+	**/
+	public var onWarp:Null<(Float, Float) -> Void> = null;
+
+	var realX:Float = 0;
+	var realY:Float = 0;
+	var warping:Bool = false;
+	var warpX:Float = 0;
+	var warpY:Float = 0;
 	var opener:Null<Widget> = null;
 
 	final event:Input = new Input();
@@ -785,32 +805,71 @@ final class Root {
 			caller has no way to tell.
 	**/
 	public function moved(x:Float, y:Float, mods:Mod, buttons:Int = UNKNOWN_BUTTONS):Void {
-		if (x != pointerX || y != pointerY) {
+		if (warping && Math.abs(x - warpX) < 0.5 && Math.abs(y - warpY) < 0.5) {
+			warping = false;
+			realX = x;
+			realY = y;
+			return;
+		}
+
+		final held = capture;
+		var atX = x;
+		var atY = y;
+
+		if (held != null && held.precision > 1 && (mods & Mod.Ctrl) != 0) {
+			atX = pointerX + (x - realX) / held.precision;
+			atY = pointerY + (y - realY) / held.precision;
+		}
+
+		realX = x;
+		realY = y;
+
+		if (atX != x || atY != y) warps(atX, atY);
+
+		if (atX != pointerX || atY != pointerY) {
 			still = 0;
 			blocked = false;
 		}
 
-		if (capture != null && buttons == 0) released(x, y, Pointer.Left, mods);
+		if (capture != null && buttons == 0) released(atX, atY, Pointer.Left, mods);
 
-		pointerX = x;
-		pointerY = y;
+		pointerX = atX;
+		pointerY = atY;
 		this.mods = mods;
 
 		if (capture != null) {
-			event.pointer(Kind.PointerMove, x, y, Pointer.Left, mods);
+			event.pointer(Kind.PointerMove, atX, atY, Pointer.Left, mods);
 			send(capture, event);
-			shapes(x, y);
+			shapes(atX, atY);
 			return;
 		}
 
-		hover(pick(x, y));
+		hover(pick(atX, atY));
 
 		if (over != null) {
-			event.pointer(Kind.PointerMove, x, y, Pointer.Nothing, mods);
+			event.pointer(Kind.PointerMove, atX, atY, Pointer.Nothing, mods);
 			send(over, event);
 		}
 
-		shapes(x, y);
+		shapes(atX, atY);
+	}
+
+	/**
+		Moves the real pointer to where a slowed drag has put the one reported, and remembers
+		where, so the motion the move itself causes is not read as the hand moving.
+
+		@param x Where, across.
+		@param y Where, down.
+	**/
+	function warps(x:Float, y:Float):Void {
+		final warp = onWarp;
+		if (warp == null) return;
+
+		warping = true;
+		warpX = x;
+		warpY = y;
+
+		warp(x, y);
 	}
 
 	/**
@@ -870,6 +929,9 @@ final class Root {
 	public function pressed(x:Float, y:Float, button:Pointer, mods:Mod, clicks:Int = 1):Void {
 		pointerX = x;
 		pointerY = y;
+		realX = x;
+		realY = y;
+		warping = false;
 		this.mods = mods;
 
 		blocked = true;
