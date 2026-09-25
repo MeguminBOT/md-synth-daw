@@ -131,6 +131,7 @@ class UiCheck {
 		slowed();
 		menus(renderer, target, face, monoFace);
 		dropdowns(renderer, face, monoFace);
+		refilled();
 		tooltips(renderer, face, monoFace);
 		bars(renderer, face, monoFace);
 		shortcuts();
@@ -2248,6 +2249,45 @@ class UiCheck {
 			+ " as " + (seen[1] - seen[0]) + ", 40 more as " + (seen[2] - seen[1]) + ", 10 without"
 			+ " ctrl as " + (seen[3] - seen[2]) + ", and a drag of a plain widget with ctrl as "
 			+ (free - 300));
+	}
+
+	/**
+		A menu that fills itself as it opens shows what is true when it opens, not when it was built,
+		and a dropdown whose list shrinks under its choice moves onto the last entry left.
+	**/
+	static function refilled():Void {
+		final root = shaped();
+		root.resize(400, 300);
+		root.top.arrange(0, 0, 400, 300);
+
+		var now = 1;
+		final menu = new Menu();
+
+		menu.onShow = function(held:Menu):Void {
+			held.clears();
+			for (index in 0...now) held.offer(new Choice("entry " + index));
+		};
+
+		root.pop(menu, 20, 20);
+		final first = menu.choices.length;
+		root.dismiss();
+
+		now = 3;
+		root.pop(menu, 20, 20);
+		final second = menu.choices.length;
+		root.dismiss();
+
+		final list = new Dropdown("", 5, 6);
+		var moved = 0;
+
+		list.onChange = function(from:Dropdown):Void moved++;
+		list.counts(4);
+
+		says("a menu fills itself as it opens", first == 1 && second == 3 && list.value == 3
+			&& list.count == 4 && moved == 1,
+			"it held " + first + " then " + second + " entries as it was opened twice, and a list"
+			+ " of six on its last entry cut to four stands on " + list.value + " after " + moved
+			+ " change");
 	}
 
 	static function bars(renderer:cpp.Star<Canvas>, face:String, monoFace:String):Void {

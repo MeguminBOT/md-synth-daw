@@ -58,6 +58,22 @@ final class Dropdown extends Widget implements Range {
 	}
 
 	/**
+		Changes how many entries there are, moving the chosen one onto the last where it no longer
+		fits, and telling `onChange` where that moved it.
+
+		@param count How many entries there are now, at least one.
+	**/
+	public function counts(count:Int):Void {
+		final held = count < 1 ? 1 : count;
+		if (held == this.count) return;
+
+		this.count = held;
+		invalidate();
+
+		if (carried >= held) set(held - 1);
+	}
+
+	/**
 		@return How far it can move.
 	**/
 	public function span():Int {

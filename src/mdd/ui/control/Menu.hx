@@ -35,6 +35,12 @@ final class Menu extends Widget {
 	public var onClose:Null<Motion -> Void> = null;
 
 	/**
+		Called as it opens, before it is measured, so a menu whose entries depend on the moment it
+		is opened can fill them in then rather than showing what was true when it was built.
+	**/
+	public var onShow:Null<Menu -> Void> = null;
+
+	/**
 		Which entry the pointer is over, or -1.
 	**/
 	public var hoverAt(default, null):Int = -1;
@@ -109,6 +115,15 @@ final class Menu extends Widget {
 	}
 
 	/**
+		Takes every entry away, for a menu that fills itself again as it opens.
+	**/
+	public function clears():Void {
+		choices.resize(0);
+		hoverAt = -1;
+		relayout();
+	}
+
+	/**
 		@return How many entries can actually be chosen, dividers left out.
 	**/
 	public function commands():Int {
@@ -144,6 +159,8 @@ final class Menu extends Widget {
 		rise.hold(0);
 		hoverAt = -1;
 		dwelt = 0;
+
+		if (onShow != null) onShow(this);
 	}
 
 	/**
