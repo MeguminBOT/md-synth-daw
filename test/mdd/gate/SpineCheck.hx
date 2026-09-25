@@ -2569,6 +2569,55 @@ class SpineCheck {
 		song.patterns.remove(pattern);
 	}
 
+	/**
+		The transport's time signature moves where bars fall, what the bar readout says and what a
+		whole bar of snap is, a pattern can keep a signature of its own beside it, and the triplet
+		snaps cut a whole note into thirds of its binary divisions.
+
+		@param session The piece.
+		@param bar The transport bar.
+	**/
+	static function metered(session:Session, bar:TransportBar):Void {
+		final song = session.song;
+		final ppqn = song.tempo.ppqn;
+		final was = song.meter.spelt();
+		final snapped = session.snapping;
+		final depth = session.history.depth();
+		final pick = bar.listed()[0];
+
+		pick.set(1);
+
+		final measured = song.bar();
+		final three = song.meter.spelt() == "3/4" && measured == ppqn * 3
+			&& session.history.depth() == depth + 1;
+		final readout = bar.bar(ppqn * 3);
+
+		session.snapping = 1;
+		final whole = session.snap;
+
+		session.snapping = 12;
+		final triplet = session.snap;
+
+		session.snapping = snapped;
+
+		final pattern = session.current();
+		session.does(new mdd.song.edit.SetMeter(session.pattern, 7, 8));
+
+		final own = pattern != null && song.barOf(pattern) == Math.round(ppqn * 3.5)
+			&& song.bar() == ppqn * 3;
+
+		session.undo();
+		session.undo();
+
+		final back = song.meter.spelt() == was && (pattern == null || pattern.meter == null);
+
+		says("a time signature moves the bars", three && readout == "bar 2.1"
+			&& whole == ppqn * 3 && triplet == Math.round(ppqn / 3) && own && back,
+			"3/4 made a bar " + measured + " ticks and read the fourth beat as " + readout
+			+ ", snapped a whole bar to " + whole + " and a twelfth to " + triplet + ", a pattern in"
+			+ " 7/8 kept its own bar beside the piece's, and undo put " + was + " back");
+	}
+
 	static function laid(tree:Root):Void {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
@@ -5135,6 +5184,7 @@ class SpineCheck {
 		followed(tree, session, centre);
 		reopened(tree, session, centre);
 		picked(tree, session, bar);
+		metered(session, bar);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		anchored(tree, session, editor);

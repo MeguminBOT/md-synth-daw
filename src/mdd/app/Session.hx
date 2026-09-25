@@ -128,7 +128,9 @@ final class Session {
 	public var arming:Bool = false;
 
 	/**
-		How many steps a bar is cut into for snapping, or nought for no snap.
+		How many steps a whole note is cut into for snapping, one for a whole bar of the piece's
+		time signature, or nought for no snap. Three, six, twelve, twenty four and forty eight are
+		the triplets.
 
 		The division is held rather than the tick count it works out to, because a piece
 		carries its own resolution and an imported one rarely carries 96. A count fixed
@@ -150,6 +152,7 @@ final class Session {
 
 	function get_snap():Int {
 		if (snapping < 1) return 0;
+		if (snapping == 1) return song.bar();
 
 		final step = Math.round(song.tempo.ppqn * 4 / snapping);
 		return step < 1 ? 1 : step;

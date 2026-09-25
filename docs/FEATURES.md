@@ -66,12 +66,13 @@ clip panning a channel keeps it panned from note to note.
   selection, away from the one you started on.
 - Nine scales and twelve roots, chosen from the roll's own right click menu. Rows outside the scale
   are darkened and the root row takes the channel's colour.
-- Snap to anything from a bar down to a sixty fourth, or to nothing at all, with `Alt`
-  held to drop the grid mid drag. The grid is a division of a bar rather than a count of
-  ticks, so it stays a sixteenth in a piece imported at 480 ticks a beat instead of
-  becoming a sliver of one. The roll and the transport bar offer the same divisions, and
-  the one you pick is kept between sessions. A note you place lands on the step you
-  pointed at; one you drag goes to the nearest line.
+- Snap to anything from a bar down to a sixty fourth, the triplets from a third down to a forty
+  eighth among them, or to nothing at all, with `Alt` held to drop the grid mid drag. The grid is
+  a division of a note rather than a count of ticks, so it stays a sixteenth in a piece imported
+  at 480 ticks a beat instead of becoming a sliver of one, and 1/1 is a whole bar of whatever the
+  time signature says. The roll and the transport bar offer the same divisions, and the one you
+  pick is kept between sessions. A note you place lands on the step you pointed at; one you drag
+  goes to the nearest line.
 - A time signature for the piece, chosen on the transport bar from 2/4 to 7/4 and 3/8 to 12/8,
   and one of its own for any pattern from the Pattern menu. It decides where bars fall in the
   grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.

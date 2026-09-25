@@ -48,9 +48,9 @@ final class TransportBar extends Widget {
 	**/
 	public static inline final BUTTONS = 5;
 
-	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1, 0];
-	static final SNAP_NAMES:Array<String> = ["1/64", "1/32", "1/16", "1/8", "1/4",
-		"1/2", "1/1", ""];
+	static final SNAPS:Array<Int> = [64, 48, 32, 24, 16, 12, 8, 6, 4, 3, 2, 1, 0];
+	static final SNAP_NAMES:Array<String> = ["1/64", "1/48", "1/32", "1/24", "1/16", "1/12",
+		"1/8", "1/6", "1/4", "1/3", "1/2", "1/1", ""];
 
 	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];

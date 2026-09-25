@@ -81,11 +81,11 @@ final class PianoRoll extends Widget {
 	static inline final LEAN = 8;
 
 	/**
-		What the grid can divide a bar into, coarsening down the list, with no snap at
-		all last. The transport bar offers the same divisions, so the two controls
-		never disagree about what is on offer.
+		What the grid can divide a whole note into, coarsening down the list, the triplets among
+		them and a whole bar at the end, with no snap at all last. The transport bar offers the same
+		divisions, so the two controls never disagree about what is on offer.
 	**/
-	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1, 0];
+	static final SNAPS:Array<Int> = [64, 48, 32, 24, 16, 12, 8, 6, 4, 3, 2, 1, 0];
 
 	/**
 		How strongly every other bar is lightened, so where one bar ends and the next begins can be
@@ -93,10 +93,8 @@ final class PianoRoll extends Widget {
 	**/
 	public static inline final SHADE = 0.035;
 
-	static final SNAP_NAMES:Array<Locale> = [Locale.ROLL_SNAP_SIXTY_FOURTH,
-		Locale.ROLL_SNAP_THIRTY_SECOND, Locale.ROLL_SNAP_SIXTEENTH,
-		Locale.ROLL_SNAP_EIGHTH, Locale.ROLL_SNAP_BEAT, Locale.ROLL_SNAP_HALF,
-		Locale.ROLL_SNAP_BAR, Locale.ROLL_SNAP_NONE];
+	static final SNAP_NAMES:Array<String> = ["1/64", "1/48", "1/32", "1/24", "1/16", "1/12",
+		"1/8", "1/6", "1/4", "1/3", "1/2", "1/1", ""];
 
 	/**
 		The session to read.
@@ -2096,10 +2094,14 @@ final class PianoRoll extends Widget {
 			menu.divide();
 
 			final snaps = new Menu();
+		snaps.ticking = true;
 
 			for (index in 0...SNAPS.length) {
 				final step = SNAPS[index];
-				final choice = snaps.offer(new Choice(translate(SNAP_NAMES[index])));
+				final choice = snaps.offer(new Choice(step == 0 ? translate(Locale.ROLL_SNAP_NONE)
+					: SNAP_NAMES[index]));
+
+				choice.ticked = step == session.snapping;
 
 				fires(choice, function():Void snapped(step));
 			}
