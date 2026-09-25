@@ -210,7 +210,10 @@ final class ChannelRack extends Widget {
 
 					sliding = at;
 					leanedWas = session.song.volume[at];
+					precision = PRECISE;
+					readsOut = true;
 					leaned(at, metrics, event.x);
+					told(at);
 					return true;
 				}
 
@@ -242,18 +245,7 @@ final class ChannelRack extends Widget {
 
 			case Kind.PointerMove:
 				if (sliding >= 0) {
-					final fine = event.ctrl();
-
-					if (fine != fining) {
-						fining = fine;
-						fineX = event.x;
-						fineWas = session.song.volume[sliding];
-					}
-
-					if (fining) {
-						leansTo(sliding, fineWas + Std.int((event.x - fineX) / FINE));
-					} else leaned(sliding, root.metrics, event.x);
-
+					leaned(sliding, root.metrics, event.x);
 					return true;
 				}
 
@@ -280,7 +272,8 @@ final class ChannelRack extends Widget {
 				}
 
 				sliding = -1;
-				fining = false;
+				precision = 1;
+				readsOut = false;
 				invalidate();
 				return true;
 
@@ -384,7 +377,7 @@ final class ChannelRack extends Widget {
 		final soloed = session.song.soloed[at];
 
 		if (px >= slotAt(metrics, METER)) {
-			tip = translate(Locale.RACK_VOLUME) + " " + part.name();
+			told(at);
 			shortcut = "";
 			detail = translate(Locale.RACK_VOLUME_DETAIL);
 			return;
@@ -641,38 +634,34 @@ final class ChannelRack extends Widget {
 	}
 
 	/**
-		Sets a channel volume outright, which the precision drag needs because it
-		counts steps rather than reading a point on the fader.
-
-		@param index Which part.
-		@param want How loud, held to the range.
+		How many times slower the pointer moves over a fader dragged with Ctrl held.
 	**/
-	function leansTo(index:Int, want:Int):Void {
-		final held = want < 0 ? 0 : (want > Song.LOUDEST ? Song.LOUDEST : want);
-		if (session.song.volume[index] == held) return;
-
-		session.holds();
-		session.song.volume[index] = held;
-		session.frees();
-
-		final part:Part = index;
-		session.say(part.name() + "  "
-			+ Math.round(held * 100 / Song.LOUDEST) + "%");
-
-		session.changed();
-		invalidate();
-	}
-
-	/**
-		How far the pointer moves for one step with the precision key held.
-	**/
-	static inline final FINE = 4.0;
+	static inline final PRECISE = 4.0;
 
 	var sliding:Int = -1;
 	var leanedWas:Int = 0;
-	var fining:Bool = false;
-	var fineX:Float = 0;
-	var fineWas:Int = 0;
+
+	/**
+		Puts a channel's volume in the tooltip, in what it does to the channel.
+
+		@param index Which part.
+	**/
+	function told(index:Int):Void {
+		final part:Part = index;
+		tip = translate(Locale.RACK_VOLUME) + " " + part.name() + "   "
+			+ decibels(session.song.volume[index]);
+	}
+
+	/**
+		@param volume A channel volume, nought to the loudest.
+		@return What it does to the channel, in decibels, or off at nought.
+	**/
+	function decibels(volume:Int):String {
+		if (volume <= 0) return translate(Locale.EXPORT_OFF);
+
+		final much = Math.round(20 * Math.log(volume / Song.LOUDEST) / Math.log(10) * 10) / 10;
+		return (much == 0 ? "0" : Std.string(much)) + " dB";
+	}
 
 	function leaned(index:Int, metrics:Metrics, px:Float):Void {
 		final room = faderWide(metrics);
@@ -690,7 +679,8 @@ final class ChannelRack extends Widget {
 		session.frees();
 
 		final part:Part = index;
-		session.say(part.name() + "  " + Math.round(want * 100 / Song.LOUDEST) + "%");
+		session.say(part.name() + "  " + decibels(want));
+		told(index);
 		session.changed();
 		invalidate();
 	}

@@ -322,6 +322,49 @@ class SpineCheck {
 			+ " step, and undo put " + session.song.volume[at] + " back");
 
 		session.history.clear();
+
+		final warped:Array<Float> = [];
+		tree.onWarp = function(x:Float, y:Float):Void {
+			warped.push(x);
+			warped.push(y);
+		};
+
+		final start = fader + 14;
+		final away = wasVolume > 60 ? -6 : 6;
+
+		tree.pressed(start, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		final grabbed = session.song.volume[at];
+
+		tree.moved(start + away, row, mdd.ui.Mod.None);
+		final plain = session.song.volume[at] - grabbed;
+
+		tree.moved(start + away * 2, row, mdd.ui.Mod.Ctrl);
+		final slowed = session.song.volume[at] - grabbed - plain;
+		final landed = warped.length == 2 ? warped[0] : -1.0;
+
+		tree.moved(landed, row, mdd.ui.Mod.Ctrl);
+		final echoed = session.song.volume[at] - grabbed - plain - slowed;
+
+		tree.advance(0.02);
+		final reading = tree.tipUp && tree.tooltip.subject == rack && rack.tip.indexOf(" dB") > 0;
+		final said = rack.tip;
+
+		tree.released(landed, row, mdd.ui.Pointer.Left, mdd.ui.Mod.Ctrl);
+
+		session.undo();
+		tree.onWarp = null;
+		session.history.clear();
+
+		final quarter = Math.abs(Math.abs(slowed) - Math.abs(plain) / 4) <= 1;
+
+		says("a fine fader keeps its pointer", plain != 0 && quarter && echoed == 0
+			&& Math.abs(landed - (start + away * 1.25)) < 0.5,
+			"6 px moved the volume " + plain + " and 6 more with ctrl held " + slowed
+			+ ", the pointer was put at " + round(landed, 2) + " against " + (start + away * 1.25)
+			+ ", and the move that put it there changed " + echoed);
+
+		says("and reads out as it moves", reading,
+			"the tooltip said \"" + said + "\" while the fader was held");
 	}
 
 	static function shaped(tree:Root, session:Session,
