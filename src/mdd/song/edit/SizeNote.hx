@@ -43,7 +43,7 @@ final class SizeNote implements Command {
 		if (held == null) return;
 
 		held.lane(part).grow(note.length);
-		wasLength = held.fits(song.tempo.ppqn * 4);
+		wasLength = held.fits(song.barOf(held));
 	}
 
 	/**

@@ -34,7 +34,7 @@ final class Patterns {
 	**/
 	public function added(name:String):Void {
 		final held = session.current();
-		final length = held == null ? session.song.tempo.ppqn * 4 : held.length;
+		final length = held == null ? session.song.bar() : held.length;
 
 		session.does(new AddPattern(new Pattern(name, length)));
 		session.chooses(session.song.patterns.length - 1);

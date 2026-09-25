@@ -1104,8 +1104,8 @@ final class TransportBar extends Widget {
 		@return It as a bar, a beat and a tick, for the readout.
 	**/
 	public function bar(tick:Int):String {
-		final beat = session.song.tempo.ppqn;
-		final span = beat * 4;
+		final beat = session.song.beatOf(null);
+		final span = session.song.bar();
 		final which = Std.int(tick / span) + 1;
 		final within = Std.int((tick % span) / beat) + 1;
 

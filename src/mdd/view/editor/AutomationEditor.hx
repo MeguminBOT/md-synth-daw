@@ -872,7 +872,7 @@ final class AutomationEditor extends Widget {
 			return;
 		}
 
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.barOf(holding != null ? null : session.current());
 		final reach = span();
 
 		var tick = 0;

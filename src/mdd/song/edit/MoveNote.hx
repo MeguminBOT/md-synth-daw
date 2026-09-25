@@ -57,7 +57,7 @@ final class MoveNote implements Command {
 		if (held == null) return;
 
 		held.lane(part).sort();
-		wasLength = held.fits(song.tempo.ppqn * 4);
+		wasLength = held.fits(song.barOf(held));
 	}
 
 	/**

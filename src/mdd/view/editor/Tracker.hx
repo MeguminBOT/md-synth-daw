@@ -1093,8 +1093,9 @@ final class Tracker extends Widget {
 
 		painted = last - first;
 
-		final beat = Math.round(division / 4);
-		final bar = beat * 4;
+		final meter = session.song.meterOf(songly() ? null : session.current());
+		final beat = Math.round(division / meter.unit);
+		final bar = beat * meter.beats;
 
 		for (at in first...last) {
 			final line = top + at * tall - offsetY;

@@ -36,7 +36,7 @@ final class RemoveNote implements Command {
 		if (held == null) return;
 
 		held.lane(part).remove(note);
-		wasLength = held.fits(song.tempo.ppqn * 4);
+		wasLength = held.fits(song.barOf(held));
 	}
 
 	/**

@@ -87,6 +87,12 @@ final class PianoRoll extends Widget {
 	**/
 	static final SNAPS:Array<Int> = [64, 32, 16, 8, 4, 2, 1, 0];
 
+	/**
+		How strongly every other bar is lightened, so where one bar ends and the next begins can be
+		seen at any zoom.
+	**/
+	public static inline final SHADE = 0.035;
+
 	static final SNAP_NAMES:Array<Locale> = [Locale.ROLL_SNAP_SIXTY_FOURTH,
 		Locale.ROLL_SNAP_THIRTY_SECOND, Locale.ROLL_SNAP_SIXTEENTH,
 		Locale.ROLL_SNAP_EIGHTH, Locale.ROLL_SNAP_BEAT, Locale.ROLL_SNAP_HALF,
@@ -726,7 +732,7 @@ final class PianoRoll extends Widget {
 	**/
 	public function reach():Int {
 		final pattern = session.current();
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.barOf(pattern);
 		final length = pattern == null ? 0 : pattern.length;
 
 		if (bar < 1) return length;
@@ -1228,8 +1234,8 @@ final class PianoRoll extends Widget {
 			if (note.ends() > until) until = note.ends();
 		}
 
-		final beat = session.song.tempo.ppqn;
-		final bar = beat * 4;
+		final beat = session.song.beatOf(session.current());
+		final bar = session.song.barOf(session.current());
 		final raw = until - least;
 
 		var apart = raw;
@@ -1582,7 +1588,7 @@ final class PianoRoll extends Widget {
 
 		framedFor = beat;
 
-		perTick = zoomed((width - gutter()) / (beat * 16));
+		perTick = zoomed((width - gutter()) / (session.song.barOf(pattern) * 4));
 		scrollTo(0, offsetY);
 	}
 
@@ -1595,7 +1601,7 @@ final class PianoRoll extends Widget {
 	**/
 	public function zoomed(want:Float):Float {
 		final root = root();
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.barOf(session.current());
 
 		if (bar < 1) return want;
 
@@ -2947,10 +2953,29 @@ final class PianoRoll extends Widget {
 
 	function bars(paint:Paint, theme:Theme, metrics:Metrics, left:Float, top:Float,
 			length:Int):Void {
-		final beat = session.song.tempo.ppqn;
-		final bar = beat * 4;
+		final pattern = session.current();
+		final beat = session.song.beatOf(pattern);
+		final bar = session.song.barOf(pattern);
 		final hair = metrics.whole(1);
 		final step = session.snap;
+
+		var shade = Std.int(tickAt(left) / bar) * bar;
+		if (shade < 0) shade = 0;
+
+		while (shade < length) {
+			final from = atTick(shade);
+			if (from > x + width) break;
+
+			if (Std.int(shade / bar) % 2 == 1) {
+				final start = from < left ? left : from;
+				final ends = atTick(shade + bar);
+
+				paint.rect(start, top, (ends > x + width ? x + width : ends) - start, grid(),
+					theme.ink, SHADE);
+			}
+
+			shade += bar;
+		}
 
 		if (step > 0 && step < beat && step * perTick >= metrics.whole(5)) {
 			var fine = Std.int(tickAt(left) / step) * step;
@@ -3109,8 +3134,8 @@ final class PianoRoll extends Widget {
 		final pattern = session.current();
 		if (pattern == null || pitch < 0 || pitch > 127) return;
 
-		final beat = session.song.tempo.ppqn;
-		final step = session.snap < 1 ? Std.int(beat / 4) : session.snap;
+		final beat = session.song.beatOf(pattern);
+		final step = session.snap < 1 ? Std.int(session.song.tempo.ppqn / 4) : session.snap;
 
 		final every = switch (which) {
 			case 0: step;
@@ -3118,7 +3143,7 @@ final class PianoRoll extends Widget {
 			case 2: step * 4;
 			case 3: beat;
 			case 4: beat * 2;
-			case _: beat * 4;
+			case _: session.song.barOf(pattern);
 		}
 
 		if (every < 1) return;
@@ -3223,7 +3248,7 @@ final class PianoRoll extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(font);
 
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.barOf(session.current());
 		var tick = Std.int(tickAt(left) / bar) * bar;
 		if (tick < 0) tick = 0;
 

@@ -374,7 +374,7 @@ final class Playlist extends Widget {
 
 		framedFor = beat;
 
-		final want = (width - names()) / (beat * 4 * FRAMED_BARS);
+		final want = (width - names()) / (session.song.bar() * FRAMED_BARS);
 		final least = widest();
 
 		perTick = want < least ? least : (want > 1 ? 1 : want);
@@ -385,7 +385,7 @@ final class Playlist extends Widget {
 		@return The tick the last clip on any track finishes on.
 	**/
 	public function reach():Int {
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.bar();
 		final length = session.song.ends();
 
 		return (length < bar ? bar : length) + bar * SPARE;
@@ -1742,7 +1742,7 @@ final class Playlist extends Widget {
 		one.reason = translate(held.about);
 
 		fires(one, function():Void {
-			final bar = session.song.tempo.ppqn * 4;
+			final bar = session.song.bar();
 
 			var at = session.snapped(tickAt(px));
 			if (at < 0) at = 0;
@@ -1951,14 +1951,32 @@ final class Playlist extends Widget {
 	}
 
 	function bars(paint:Paint, theme:Theme, metrics:Metrics, left:Float, top:Float):Void {
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.bar();
 		final hair = metrics.whole(1);
 		final tall = trackTall();
 		final shown = tickAt(x + width);
 		final length = reach() > shown ? reach() : shown;
 
-		final beat = session.song.tempo.ppqn;
+		final beat = session.song.beatOf(null);
 		final step = session.snap < 1 ? beat : session.snap;
+
+		var shade = Std.int(tickAt(left) / bar) * bar;
+		if (shade < 0) shade = 0;
+
+		while (shade < length) {
+			final from = atTick(shade);
+			if (from > x + width) break;
+
+			if (Std.int(shade / bar) % 2 == 1) {
+				final start = from < left ? left : from;
+				final ends = atTick(shade + bar);
+
+				paint.rect(start, top, (ends > x + width ? x + width : ends) - start, height - ruler(),
+					theme.ink, PianoRoll.SHADE);
+			}
+
+			shade += bar;
+		}
 
 		var fine = step;
 		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;
@@ -2346,7 +2364,7 @@ final class Playlist extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(font);
 
-		final bar = session.song.tempo.ppqn * 4;
+		final bar = session.song.bar();
 		final shown = tickAt(x + width);
 		final ends = session.song.ends() + bar * 4;
 		final length = ends > shown ? ends : shown;

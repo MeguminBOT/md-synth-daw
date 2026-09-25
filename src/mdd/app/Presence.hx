@@ -382,7 +382,7 @@ final class Presence {
 
 		final census = out.toString();
 
-		final span = song.tempo.ppqn * 4;
+		final span = song.bar();
 		final bars = span < 1 ? 0 : Math.ceil(song.ends() / span);
 
 		return (census == "" ? "no channels used" : census.substr(2)) + ", "
@@ -529,8 +529,8 @@ final class Presence {
 	}
 
 	static function bar(held:Session, tick:Int):String {
-		final beat = held.song.tempo.ppqn;
-		final span = beat * 4;
+		final beat = held.song.beatOf(null);
+		final span = held.song.bar();
 
 		final which = Std.int(tick / span) + 1;
 		final within = Std.int((tick % span) / beat) + 1;

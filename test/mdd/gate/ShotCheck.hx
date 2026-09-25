@@ -61,6 +61,7 @@ class ShotCheck {
 		var sweep = "";
 		var side = 0;
 		var scale = -1;
+		var meter = "";
 
 		var at = 0;
 
@@ -100,6 +101,7 @@ class ShotCheck {
 				case "--sweep": sweep = held; at++;
 				case "--side": side = whole(held, side); at++;
 				case "--scale": scale = whole(held, scale); at++;
+				case "--meter": meter = held; at++;
 				case _:
 			}
 
@@ -260,6 +262,11 @@ class ShotCheck {
 
 		session.choose(part);
 		if (scale >= 0) session.scale.kind = scale;
+
+		if (meter.indexOf("/") > 0) {
+			final parts = meter.split("/");
+			session.song.meter.sets(whole(parts[0], 4), whole(parts[1], 4));
+		}
 
 		if (lane > 0) centre.roll.shows(lane);
 

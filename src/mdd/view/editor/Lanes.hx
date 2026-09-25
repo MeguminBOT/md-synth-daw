@@ -317,10 +317,9 @@ final class Lanes extends Widget {
 			return tick + " ms";
 		}
 
-		final beat = session.song.tempo.ppqn;
-		if (beat < 1) return "" + tick;
-
-		final bar = beat * 4;
+		final meter = session.song.meterOf(holding != null ? null : session.current());
+		final beat = meter.beat(session.song.tempo.ppqn);
+		final bar = meter.bar(session.song.tempo.ppqn);
 
 		return (Std.int(tick / bar) + 1) + "." + (Std.int((tick % bar) / beat) + 1)
 			+ "." + (tick % beat);
@@ -2357,24 +2356,42 @@ final class Lanes extends Widget {
 			return;
 		}
 
-		final beat = session.song.tempo.ppqn;
-		if (beat < 1 || perTick <= 0) return;
+		if (perTick <= 0) return;
 
-		final bar = beat * 4;
+		final meter = session.song.meterOf(holding != null ? null : session.current());
+		final beat = meter.beat(session.song.tempo.ppqn);
+		final bar = meter.bar(session.song.tempo.ppqn);
 		final step = session.snap < 1 ? beat : session.snap;
 		final hair = metrics.whole(1);
 
 		final top = plotTop(row);
 		final tall = plotTall(row);
 		final from = x + left;
+		final reach = holding != null ? holding.length : span();
+
+		var shade = Std.int(tickAt(from) / bar) * bar;
+		if (shade < 0) shade = 0;
+
+		while (shade < reach) {
+			final start = atTick(shade);
+			if (start > x + width) break;
+
+			if (Std.int(shade / bar) % 2 == 1) {
+				final begins = start < from ? from : start;
+				final ends = atTick(shade + bar);
+
+				paint.rect(begins, top, (ends > x + width ? x + width : ends) - begins, tall,
+					theme.ink, PianoRoll.SHADE);
+			}
+
+			shade += bar;
+		}
 
 		var fine = step;
 		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;
 
 		var tick = Std.int(tickAt(from) / fine) * fine;
 		if (tick < 0) tick = 0;
-
-		final reach = holding != null ? holding.length : span();
 
 		while (tick <= reach) {
 			final at = atTick(tick);
