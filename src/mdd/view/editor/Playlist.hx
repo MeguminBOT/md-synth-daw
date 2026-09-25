@@ -329,7 +329,14 @@ final class Playlist extends Widget {
 	var framedFor:Int = -1;
 
 	/**
-		Zooms and scrolls so the whole piece fits.
+		How many bars a fresh view opens on.
+	**/
+	static inline final FRAMED_BARS = 16;
+
+	/**
+		Sets the zoom the first time the playlist is drawn, and again where the piece changes what
+		it counts a beat in, so a fresh window opens on sixteen bars rather than on the whole piece
+		squeezed into it.
 	**/
 	public function framed():Void {
 		if (width <= 0) return;
@@ -338,8 +345,11 @@ final class Playlist extends Widget {
 		if (beat < 1 || framedFor == beat) return;
 
 		framedFor = beat;
-		perTick = widest();
 
+		final want = (width - names()) / (beat * 4 * FRAMED_BARS);
+		final least = widest();
+
+		perTick = want < least ? least : (want > 1 ? 1 : want);
 		scrollTo(0);
 	}
 
@@ -1888,7 +1898,8 @@ final class Playlist extends Widget {
 		final bar = session.song.tempo.ppqn * 4;
 		final hair = metrics.whole(1);
 		final tall = trackTall();
-		final length = reach();
+		final shown = tickAt(x + width);
+		final length = reach() > shown ? reach() : shown;
 
 		final beat = session.song.tempo.ppqn;
 		final step = session.snap < 1 ? beat : session.snap;
@@ -2253,7 +2264,9 @@ final class Playlist extends Widget {
 		paint.reface(font);
 
 		final bar = session.song.tempo.ppqn * 4;
-		final length = session.song.ends() + bar * 4;
+		final shown = tickAt(x + width);
+		final ends = session.song.ends() + bar * 4;
+		final length = ends > shown ? ends : shown;
 
 		var tick = Std.int(tickAt(left) / (bar * 4)) * bar * 4;
 		if (tick < 0) tick = 0;
