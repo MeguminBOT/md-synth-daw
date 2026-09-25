@@ -62,7 +62,10 @@ final class Lanes extends Widget {
 	static inline final KNOB = 5;
 	static inline final TRACE = 512;
 
-	static inline final FINE = 0.125;
+	/**
+		How many times slower the pointer moves over a point dragged with Ctrl held.
+	**/
+	static inline final PRECISE = 8.0;
 
 	/**
 		The session to read.
@@ -216,11 +219,6 @@ final class Lanes extends Widget {
 	var wasAt:Int = 0;
 	var wasValue:Int = 0;
 
-	var fining:Bool = false;
-	var fineX:Float = 0;
-	var fineY:Float = 0;
-	var fineAt:Int = 0;
-	var fineValue:Int = 0;
 
 	var overSegment:Int = -1;
 	var overSegmentAt:Int = -1;
@@ -1655,7 +1653,7 @@ final class Lanes extends Widget {
 				bending = -1;
 				sizing = -1;
 				ranging = -1;
-				fining = false;
+				precision = 1;
 				return true;
 
 			case Kind.KeyDown:
@@ -1764,7 +1762,7 @@ final class Lanes extends Widget {
 			fresh = false;
 
 			grabs(point, row);
-			anchors(event, point);
+			precision = PRECISE;
 
 			relayout();
 			return true;
@@ -1898,7 +1896,7 @@ final class Lanes extends Widget {
 
 		session.say(held.titled(slotted(row)) + "  " + told(held, point.value));
 
-		anchors(event, point);
+		precision = PRECISE;
 		relayout();
 	}
 
@@ -1969,14 +1967,6 @@ final class Lanes extends Widget {
 		session.does(group);
 	}
 
-	function anchors(event:Input, point:Point):Void {
-		fining = event.ctrl();
-		fineX = event.x;
-		fineY = event.y;
-		fineAt = point.at;
-		fineValue = point.value;
-	}
-
 	function erased():Bool {
 		if (chosenAt < 0 || picked.count == 0) return false;
 
@@ -2037,25 +2027,12 @@ final class Lanes extends Widget {
 			final held = parameterOf(draggingAt);
 			if (held == null) return true;
 
-			final fine = event.ctrl();
-
-			if (fine != fining) {
-				fining = fine;
-				fineX = event.x;
-				fineY = event.y;
-				fineAt = dragging.at;
-				fineValue = dragging.value;
-			}
-
-			var tick = fine
-				? placeAt(draggingAt, atPlace(draggingAt, fineAt) + (event.x - fineX) * FINE)
+			var tick = event.ctrl() ? placeAt(draggingAt, event.x)
 				: snapsIn(draggingAt, placeAt(draggingAt, event.x), event.alt());
 
 			if (tick < 0) tick = 0;
 
-			final value = fine
-				? valueAt(draggingAt, atValue(draggingAt, fineValue) + (event.y - fineY) * FINE)
-				: valueAt(draggingAt, event.y);
+			final value = valueAt(draggingAt, event.y);
 
 			if (tick == dragging.at && value == dragging.value) return true;
 
