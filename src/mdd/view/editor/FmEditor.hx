@@ -111,14 +111,11 @@ final class FmEditor extends Widget {
 	final box:Vector<Float> = new Vector<Float>(4);
 
 	/**
-		How far the pointer moves for one step with the precision key held.
+		How many times slower the pointer moves over a bar or a dial dragged with Ctrl held.
 	**/
-	static inline final FINE = 4.0;
+	static inline final PRECISE = 4.0;
 
 	var grabbing:Int = -1;
-	var fining:Bool = false;
-	var fineX:Float = 0;
-	var fineWas:Int = 0;
 	var grabWas:Int = 0;
 	var turning:Int = -1;
 
@@ -400,22 +397,6 @@ final class FmEditor extends Widget {
 	}
 
 	/**
-		Takes the precision key changing mid drag, which has to re-anchor or the
-		value jumps by however far the pointer had already travelled.
-
-		@param fine Whether the key is down now.
-		@param px Where the pointer is, across.
-		@param value What the thing being dragged holds now.
-	**/
-	function anchored(fine:Bool, px:Float, value:Int):Void {
-		if (fine == fining) return;
-
-		fining = fine;
-		fineX = px;
-		fineWas = value;
-	}
-
-	/**
 		Where the bar of a field would stand if it reached a point, which is what
 		dragging one sets it to. Total level draws backwards, because the register
 		attenuates and the bar reads as loudness, and it is read back the same way.
@@ -533,6 +514,7 @@ final class FmEditor extends Widget {
 					turning = turned;
 					grabWas = dialOf(patch, turned);
 					dial = turned;
+					precision = PRECISE;
 					invalidate();
 					return true;
 				}
@@ -554,6 +536,7 @@ final class FmEditor extends Widget {
 				grabbing = field;
 				grabWas = valueOf(patch, Std.int(field / NAMES.length),
 					field % NAMES.length);
+				precision = PRECISE;
 
 				held = field;
 				slot = Std.int(field / NAMES.length);
@@ -564,11 +547,7 @@ final class FmEditor extends Widget {
 				described(event.x, event.y);
 
 				if (turning >= 0) {
-					anchored(event.ctrl(), event.x, dialOf(patch, turning));
-
-					turnTo(patch, turning, fining
-						? fineWas + Std.int((event.x - fineX) / FINE)
-						: dialValueAt(event.x, turning));
+					turnTo(patch, turning, dialValueAt(event.x, turning));
 
 					invalidate();
 					return true;
@@ -579,11 +558,7 @@ final class FmEditor extends Widget {
 				final slot = Std.int(grabbing / NAMES.length);
 				final row = grabbing % NAMES.length;
 
-				anchored(event.ctrl(), event.x, valueOf(patch, slot, row));
-
-				setTo(patch, slot, row, fining
-					? fineWas + Std.int((event.x - fineX) / FINE)
-					: valueAt(event.x, grabbing));
+				setTo(patch, slot, row, valueAt(event.x, grabbing));
 
 				invalidate();
 				return true;
@@ -595,7 +570,7 @@ final class FmEditor extends Widget {
 
 				turning = -1;
 				grabbing = -1;
-				fining = false;
+				precision = 1;
 				return true;
 
 			case Kind.Wheel:

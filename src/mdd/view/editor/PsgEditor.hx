@@ -67,14 +67,11 @@ final class PsgEditor extends Widget {
 	public var dial(default, null):Int = -1;
 
 	/**
-		How far the pointer moves for one step with the precision key held.
+		How many times slower the pointer moves over a dial dragged with Ctrl held.
 	**/
-	static inline final FINE = 4.0;
+	static inline final PRECISE = 4.0;
 
 	var grabbing:Bool = false;
-	var fining:Bool = false;
-	var fineX:Float = 0;
-	var fineWas:Int = 0;
 	var turning:Int = -1;
 	var grabWas:Int = 0;
 
@@ -275,6 +272,7 @@ final class PsgEditor extends Widget {
 					turning = turned;
 					grabWas = dialOf(envelope, turned);
 					dial = turned;
+					precision = PRECISE;
 					invalidate();
 					return true;
 				}
@@ -290,17 +288,7 @@ final class PsgEditor extends Widget {
 
 			case Kind.PointerMove:
 				if (turning >= 0) {
-					final fine = event.ctrl();
-
-					if (fine != fining) {
-						fining = fine;
-						fineX = event.x;
-						fineWas = dialOf(envelope, turning);
-					}
-
-					turnTo(envelope, turning, fining
-						? fineWas + Std.int((event.x - fineX) / FINE)
-						: dialValueAt(event.x, turning));
+					turnTo(envelope, turning, dialValueAt(event.x, turning));
 
 					invalidate();
 					return true;
@@ -330,7 +318,7 @@ final class PsgEditor extends Widget {
 					}
 
 					turning = -1;
-					fining = false;
+					precision = 1;
 					return true;
 				}
 
