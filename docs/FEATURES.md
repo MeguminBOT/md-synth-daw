@@ -747,6 +747,11 @@ importing one reads those back.
 - **Every control says what it does** when you hover it: the transport fields, the rulers and
   track headers, the dials, the monitors, every preference and every export setting. Where a
   click does more than one thing, a second line says what the right click or the wheel does.
+- **A fader says what it is set to while you drag it.** The channel volumes and the monitoring
+  fader read out in decibels beside the pointer as they move, and say off at the bottom.
+- **`Ctrl` makes a drag fine.** Held while dragging a fader, a parameter bar, a dial, a number or
+  an automation point, it slows the pointer to a quarter of its speed, an eighth on a point, and
+  the pointer stays on what it is dragging rather than running on ahead of it.
 - **One instance.** Opening a second project hands it to the copy already running, by a double
   click or from a terminal, and that copy comes to the front and opens it, asking first about
   unsaved work the way any open does. Starting a second copy with nothing to open brings the first

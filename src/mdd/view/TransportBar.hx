@@ -356,7 +356,7 @@ final class TransportBar extends Widget {
 		}
 
 		if (volume) {
-			tip = translate(Locale.TRANSPORT_VOLUME);
+			monitored();
 			detail = translate(Locale.TRANSPORT_VOLUME_DETAIL);
 			return;
 		}
@@ -498,10 +498,33 @@ final class TransportBar extends Widget {
 		session.master = want;
 		if (onMaster != null) onMaster(want);
 
-		session.say(translate(Locale.TRANSPORT_VOLUME) + "  "
-			+ Math.round(want * 100 / Song.LOUDEST) + "%");
+		session.say(translate(Locale.TRANSPORT_VOLUME) + "  " + monitoring());
+		monitored();
 
 		invalidate();
+	}
+
+	/**
+		How many times slower the pointer moves over the monitoring volume dragged with Ctrl held.
+	**/
+	static inline final PRECISE = 4.0;
+
+	/**
+		Puts the monitoring volume in the tooltip.
+	**/
+	function monitored():Void {
+		tip = translate(Locale.TRANSPORT_VOLUME) + "   " + monitoring();
+	}
+
+	/**
+		@return What the monitoring volume does to what is heard, in decibels, or off at the
+			bottom of its travel.
+	**/
+	function monitoring():String {
+		if (session.master <= 0) return translate(Locale.EXPORT_OFF);
+
+		final much = Session.decibelsOf(session.master);
+		return (much > 0 ? "+" : "") + much + " dB";
 	}
 
 	/**
@@ -547,7 +570,10 @@ final class TransportBar extends Widget {
 
 				if (onVolume(event.x, event.y)) {
 					sliding = true;
+					precision = PRECISE;
+					readsOut = true;
 					leaned(event.x);
+					monitored();
 					return true;
 				}
 
@@ -578,6 +604,8 @@ final class TransportBar extends Widget {
 				if (!sliding) return false;
 
 				sliding = false;
+				precision = 1;
+				readsOut = false;
 				return true;
 
 			case Kind.Wheel:

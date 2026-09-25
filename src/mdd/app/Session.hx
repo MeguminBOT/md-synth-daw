@@ -209,6 +209,15 @@ final class Session {
 	public static final MOST:Float = gainOf(Song.LOUDEST);
 
 	/**
+		@param fader A fader position, 1 to 127.
+		@return The gain it stands for in decibels, nought at unity. The bottom of the travel is
+			silence, which no number of decibels says, so the caller answers that one itself.
+	**/
+	public static inline function decibelsOf(fader:Int):Float {
+		return (fader - UNITY) * STEP;
+	}
+
+	/**
 		@param fader A fader position, 0 to 127.
 		@return The gain it stands for, nought at the bottom of the travel.
 	**/
