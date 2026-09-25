@@ -2515,6 +2515,60 @@ class SpineCheck {
 			+ (level ? " level" : " unseen") + " lane once chosen, and " + again + " on the way back");
 	}
 
+	/**
+		A wide lane opens on a readable window rather than every value it takes: an empty frequency
+		lane on the sixty four around no change, a level lane on the fall its points make, and a
+		register byte on all of its values, because its meaning is in its top bits.
+
+		@param centre The centre the automation tab sits in.
+	**/
+	static function framedLanes(centre:mdd.view.Centre):Void {
+		final session = centre.session;
+		final song = session.song;
+		final was = session.pattern;
+		final pattern = song.add(new mdd.song.Pattern("frames", song.tempo.ppqn * 4));
+		final fall = new mdd.song.Automation(mdd.song.Automation.LEVEL, 0);
+
+		fall.add(new mdd.song.Point(0, 0));
+		fall.add(new mdd.song.Point(song.tempo.ppqn, -40));
+		pattern.lane(Part.Fm1).automation.push(fall);
+
+		session.choose(Part.Fm1);
+		session.chooses(song.patterns.indexOf(pattern));
+
+		final stack = new mdd.view.editor.Lanes(session);
+
+		stack.fills();
+		stack.show(mdd.song.Automation.TUNE, 0);
+		stack.show(mdd.song.Automation.SIDES, 0);
+
+		var tune = -1;
+		var level = -1;
+		var sides = -1;
+
+		for (row in 0...stack.rows()) {
+			final one = stack.parameterOf(row);
+			if (one == null) continue;
+
+			if (one.target == mdd.song.Automation.TUNE) tune = row;
+			if (one.target == mdd.song.Automation.LEVEL) level = row;
+			if (one.target == mdd.song.Automation.SIDES) sides = row;
+		}
+
+		final tuned = tune >= 0 && stack.lowOf(tune) == -32 && stack.highOf(tune) == 32;
+		final fitted = level >= 0 && stack.lowOf(level) <= -40 && stack.highOf(level) >= 0
+			&& stack.highOf(level) - stack.lowOf(level) < 127;
+		final whole = sides >= 0 && stack.lowOf(sides) == 0 && stack.highOf(sides) == 255;
+
+		says("a wide lane opens readable", tuned && fitted && whole,
+			"an empty FREQ lane shows " + stack.lowOf(tune) + " to " + stack.highOf(tune)
+			+ ", a level falling 40 steps " + stack.lowOf(level) + " to " + stack.highOf(level)
+			+ ", and SIDES " + stack.lowOf(sides) + " to " + stack.highOf(sides));
+
+		session.chooses(was);
+		song.patterns.remove(pattern);
+	}
+
 	static function laid(tree:Root):Void {
 		tree.reshape();
 		tree.top.measure(tree.width, tree.height);
@@ -2964,7 +3018,7 @@ class SpineCheck {
 		stack.took(releaseAt(scale, middle));
 
 		says("and a double click fits the points",
-			fitted && !stack.zoomed(0) && stack.lowOf(0) == low && stack.highOf(0) == high,
+			fitted && !stack.zoomed(0) && stack.lowOf(0) == held.low && stack.highOf(0) == held.high,
 			"fitted to " + fitLow + " to " + fitHigh + " around the point at " + value
 			+ ", then back to " + stack.lowOf(0) + " to " + stack.highOf(0));
 
@@ -5073,6 +5127,7 @@ class SpineCheck {
 		tagged(tree, editor.presets, session);
 		tabbed(tree, centre, paint, renderer);
 		retabbed(tree, centre, paint);
+		framedLanes(centre);
 		movedBy(tree, session, centre);
 		sheeted(tree, session);
 		buttoned(tree, session, centre);

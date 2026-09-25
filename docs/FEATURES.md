@@ -120,7 +120,9 @@ The scale beside a lane zooms what the lane shows. Turn the wheel over it to zoo
 the value under the pointer, and drag it to move the values shown. Double click it to fit the lane
 to its points and again to show every value, or right click it to pick a span either side of nought.
 A vibrato a dozen frequency steps wide then fills the lane instead of drawing as a flat line, and a
-point you add lands on the value drawn where you pressed.
+point you add lands on the value drawn where you pressed. A wide lane opens that way to begin with:
+a frequency, pitch or level offset, or anything wider than one register byte, opens fitted to its
+points, or on the sixty four values around where it rests when it has none yet.
 
 Any parameter that corresponds to a register can be automated, including the ones that share a
 register: `$B4` holds the stereo bits and both LFO sensitivities, and the automation lane owns the

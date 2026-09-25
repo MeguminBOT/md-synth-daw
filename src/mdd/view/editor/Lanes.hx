@@ -58,6 +58,11 @@ final class Lanes extends Widget {
 	**/
 	static inline final ZOOM = 0.5;
 
+	/**
+		How many values a wide lane shows the first time it appears with no points to fit to.
+	**/
+	public static inline final FIRST_SPAN = 64;
+
 	static inline final REACH = 8;
 	static inline final KNOB = 5;
 	static inline final TRACE = 512;
@@ -127,6 +132,11 @@ final class Lanes extends Widget {
 		returns to every value rather than fitting again.
 	**/
 	final fitted:Map<Int, Bool> = new Map<Int, Bool>();
+
+	/**
+		The lanes that have been given their first view, so one unzoomed by hand is not framed again.
+	**/
+	final framed:Map<Int, Bool> = new Map<Int, Bool>();
 
 	var ranging:Int = -1;
 	var rangeFrom:Float = 0;
@@ -687,6 +697,40 @@ final class Lanes extends Widget {
 
 		final want = row < targets.length ? targets[row] : -1;
 		heights[row] = want >= 0 && remembered.exists(want) ? remembered.get(want) : 0;
+
+		firstViews(row);
+	}
+
+	/**
+		Gives a lane its first view the first time it appears, where every value its parameter takes
+		would be too many to read one step from the next: a lane that is an offset, or one wider than
+		a register byte. It is fitted to its points where it has any, and otherwise shows
+		`FIRST_SPAN` values from where it rests. A lane zoomed or framed before keeps what it had.
+
+		@param row Which lane row.
+	**/
+	function firstViews(row:Int):Void {
+		final held = parameterOf(row);
+		if (held == null) return;
+
+		final key = keyOf(row);
+		if (key < 0 || framed.exists(key)) return;
+
+		framed.set(key, true);
+
+		if (lows.exists(key)) return;
+		if (!held.offset && held.high - held.low <= 255) return;
+		if (held.high - held.low <= FIRST_SPAN) return;
+
+		final line = lineOf(row);
+
+		if (line != null && line.points.length > 0) {
+			fits(row);
+			return;
+		}
+
+		final from = held.offset ? -Std.int(FIRST_SPAN / 2) : held.low;
+		ranged(row, from, from + FIRST_SPAN);
 	}
 
 	/**
