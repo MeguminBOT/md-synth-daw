@@ -126,6 +126,15 @@ final class Kitting extends Widget {
 	var offset:Int = 0;
 	var hoverAt:Int = -1;
 
+	final rowBytes:Array<Int> = [];
+	final rowSized:Array<String> = [];
+	final rowRoot:Array<Int> = [];
+	final rowStyle:Array<Int> = [];
+	final rowKey:Array<String> = [];
+	var roomBytes:Int = -1;
+	var roomIn:String = "";
+	var roomText:String = "";
+
 	/**
 		Builds the sheet with nothing in it.
 	**/
@@ -624,12 +633,12 @@ final class Kitting extends Widget {
 			final made = slot.made;
 			final bytes = made == null ? 0 : made.length();
 
-			paint.textRight(bytes == 0 ? "" : bytes + " b",
-				keyed - metrics.gap * 2, middle - small.height * 0.5 + small.ascent,
-				theme.dim, alpha * 0.7);
+			labels(at, bytes, slot.root);
 
-			paint.textCentred(slot.root < 0 ? "" : keyName(slot.root, notation),
-				keyed + metrics.whole(KEYED) * 0.5,
+			paint.textRight(rowSized[at], keyed - metrics.gap * 2,
+				middle - small.height * 0.5 + small.ascent, theme.dim, alpha * 0.7);
+
+			paint.textCentred(rowKey[at], keyed + metrics.whole(KEYED) * 0.5,
 				middle - small.height * 0.5 + small.ascent,
 				slot.taken ? theme.ink : theme.dim, alpha * 0.9);
 		}
@@ -646,9 +655,17 @@ final class Kitting extends Widget {
 		final line = listTop() + (shown() < 1 ? rowTall() * 2 : shown() * rowTall())
 			+ metrics.gap;
 
+		final language = root().translation.language;
+
+		if (bytes != roomBytes || language != roomIn) {
+			roomBytes = bytes;
+			roomIn = language;
+			roomText = filled(Locale.KIT_ROOM, ["" + bytes, "" + ceiling]);
+		}
+
 		paint.reface(small);
-		paint.text(filled(Locale.KIT_ROOM, ["" + bytes, "" + ceiling]), x + metrics.inset,
-			line + small.ascent, over ? theme.warn : theme.dim, alpha * (over ? 1 : 0.8));
+		paint.text(roomText, x + metrics.inset, line + small.ascent, over ? theme.warn : theme.dim,
+			alpha * (over ? 1 : 0.8));
 
 		final wide = width - metrics.inset * 2;
 		final part = ceiling <= 0 ? 0.0 : bytes / ceiling;
@@ -674,4 +691,34 @@ final class Kitting extends Widget {
 	static function keyName(pitch:Int, style:Int):String {
 		return mdd.song.Notation.spelt(pitch, style) + "  " + pitch;
 	}
+
+	/**
+		Makes what a row says about its sample's size and its key again where either has changed
+		since, so a frame of rows allocates nothing.
+
+		@param at The row's slot.
+		@param bytes How long its sample is.
+		@param rooted The key it sits on, or below nought for none.
+	**/
+	function labels(at:Int, bytes:Int, rooted:Int):Void {
+		while (rowBytes.length <= at) {
+			rowBytes.push(-1);
+			rowSized.push("");
+			rowRoot.push(-2);
+			rowStyle.push(-1);
+			rowKey.push("");
+		}
+
+		if (bytes != rowBytes[at]) {
+			rowBytes[at] = bytes;
+			rowSized[at] = bytes == 0 ? "" : bytes + " b";
+		}
+
+		if (rooted != rowRoot[at] || notation != rowStyle[at]) {
+			rowRoot[at] = rooted;
+			rowStyle[at] = notation;
+			rowKey[at] = rooted < 0 ? "" : keyName(rooted, notation);
+		}
+	}
+
 }

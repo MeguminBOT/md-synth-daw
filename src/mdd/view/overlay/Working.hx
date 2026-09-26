@@ -50,6 +50,8 @@ final class Working extends Widget {
 
 	var over:Bool = false;
 	var swept:Float = 0;
+	var percent:Int = -1;
+	var percentText:String = "";
 
 	/**
 		Builds a progress bar with nothing running.
@@ -218,7 +220,14 @@ final class Working extends Widget {
 
 		if (reach >= 0) {
 			paint.reface(small);
-			paint.textRight(Math.round(reach * 100) + "%", x + width - metrics.inset,
+			final much = Math.round(reach * 100);
+
+			if (much != percent) {
+				percent = much;
+				percentText = much + "%";
+			}
+
+			paint.textRight(percentText, x + width - metrics.inset,
 				y + metrics.inset + font.ascent, theme.dim, alpha * 0.9);
 		}
 

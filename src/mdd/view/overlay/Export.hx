@@ -316,6 +316,10 @@ final class Export extends Widget {
 	final showing:Array<Int> = [];
 	final entered:Array<Int> = [];
 
+	final summaryKey:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(12);
+	var summaryIn:String = "";
+	var summary:String = "";
+
 	/**
 		Builds the sheet and every field on it.
 
@@ -705,8 +709,8 @@ final class Export extends Widget {
 	public function choices(row:Int):Array<String> {
 		return switch (row) {
 			case FORMAT: FORMATS;
-			case RATE: mixing.kind == Mixing.OPUS || video ? ONE_RATE : rates();
-			case DEPTH: depths();
+			case RATE: mixing.kind == Mixing.OPUS || video ? ONE_RATE : RATES_SAID;
+			case DEPTH: DEPTHS;
 			case LEAD: LEADS;
 			case TAIL, FADE: TAILED;
 
@@ -732,6 +736,9 @@ final class Export extends Widget {
 		return keys.length > 0 ? keys.length : choices(row).length;
 	}
 
+	static final RATES_SAID:Array<String> = rates();
+	static final DEPTHS:Array<String> = ["16", "24", "32"];
+
 	static function rates():Array<String> {
 		final held:Array<String> = [];
 		for (rate in Mixing.RATES) held.push("" + rate);
@@ -743,10 +750,6 @@ final class Export extends Widget {
 		Which choice of the depth row is floating point rather than whole numbered.
 	**/
 	public static inline final FLOAT = 2;
-
-	static function depths():Array<String> {
-		return ["16", "24", "32"];
-	}
 
 	/**
 		Whether one choice of a row is open to the format in hand.
@@ -1372,10 +1375,48 @@ final class Export extends Widget {
 			thick * 0.5, theme.frame, alpha * 0.9);
 	}
 
+	/**
+		@param index Which of the summary's inputs.
+		@param value What it is now.
+		@return One where it has changed since the summary was last made, and nought where not.
+	**/
+	inline function moves(index:Int, value:Float):Int {
+		if (summaryKey[index] == value) return 0;
+
+		summaryKey[index] = value;
+		return 1;
+	}
+
+	/**
+		@return What `summed` says, made again only when something it says has changed, so a frame
+			of the sheet allocates nothing.
+	**/
 	function said():String {
 		final song = session.song;
 		final seconds = song.tempo.samplesAt(song.ends()) / mdd.song.Tempo.TICKS
 			+ mixing.padStart + mixing.padEnd;
+		final language = root().translation.language;
+
+		var moved = moves(0, seconds) | moves(1, mixing.kind) | moves(2, mixing.rate)
+			| moves(3, mixing.stereo ? 1 : 0) | moves(4, mixing.depth) | moves(5, mixing.wide())
+			| moves(6, mixing.tall()) | moves(7, mixing.fps) | moves(8, mixing.rateControl)
+			| moves(9, mixing.qualityLevel) | moves(10, mixing.kilobits()) | moves(11, video ? 1 : 0);
+
+		if (language != summaryIn) {
+			summaryIn = language;
+			moved = 1;
+		}
+
+		if (moved != 0 || summary == "") summary = summed(seconds);
+
+		return summary;
+	}
+
+	/**
+		@param seconds How long the export runs.
+		@return A line saying how long the export runs and what it is written as.
+	**/
+	function summed(seconds:Float):String {
 		final spent = Math.round(seconds * 10) / 10 + " s   ";
 
 		if (video) {

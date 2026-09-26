@@ -23,6 +23,8 @@ final class About extends Widget {
 	static final LICENCES:Array<String> = ["zlib", "MIT-0", "public domain", "BSD-3", "BSD-3",
 		"BSD-3", "BSD-3", "BSD-3"];
 
+	static final ADDRESS:String = "github.com/" + mdd.Config.GITHUB;
+
 	/**
 		Called when it closes.
 	**/
@@ -152,7 +154,8 @@ final class About extends Widget {
 
 		top += tall * 0.5;
 
-		paint.text("github.com/" + mdd.Config.GITHUB, x + metrics.inset, top + small.ascent,
+		paint.text(ADDRESS, x + metrics.inset, top + small.ascent,
+
 			theme.accent, alpha * 0.9);
 
 		paint.popTransform();
