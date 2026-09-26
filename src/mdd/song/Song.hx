@@ -186,7 +186,7 @@ final class Song {
 	/**
 		How often it happens, in samples.
 	**/
-	public var stallEvery:Float = 735;
+	public var stallEvery:Float = Tempo.FRAME;
 
 	/**
 		The tempo map.

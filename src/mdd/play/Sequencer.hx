@@ -69,7 +69,7 @@ final class Sequencer {
 		sixtieth of a second at 44100. A driver steps an envelope once a frame, so on a PAL console
 		a step lasts a fiftieth.
 	**/
-	public static inline final ENVELOPE_TICKS = 735;
+	public static inline final ENVELOPE_TICKS = Tempo.FRAME;
 
 	/**
 		How many samples early a key off on an FM channel is written where another note keys the
@@ -964,8 +964,7 @@ final class Sequencer {
 			from:mdd.song.Point, to:mdd.song.Point, riding:Bool, fromSample:Int,
 			toSample:Int):Void {
 		final tempo = song.tempo;
-		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
-		final step = Std.int(Tempo.TICKS / rate);
+		final step = tempo.frame();
 		if (step < 1) return;
 
 		final head = tempo.samplesAt(clip.at + from.at);
@@ -1722,8 +1721,7 @@ final class Sequencer {
 			to:mdd.song.Point, base:Int, transpose:Int, riding:Bool, fromSample:Int,
 			toSample:Int):Void {
 		final tempo = song.tempo;
-		final rate = song.tempo.rate < 1 ? 60 : song.tempo.rate;
-		final step = Std.int(Tempo.TICKS / rate);
+		final step = tempo.frame();
 		if (step < 1) return;
 
 		final head = tempo.samplesAt(base + from.at);
@@ -2124,7 +2122,7 @@ final class Sequencer {
 		final clocked = song.tempo.rate == 50 ? mdd.chip.Sn76489.PAL_CLOCK / mdd.chip.Sn76489.CLOCK : 1.0;
 		final step = Tempo.TICKS / (rate * clocked);
 
-		final frame = (song.stallEvery < 8 ? 735.0 : song.stallEvery) * song.tempo.stretch;
+		final frame = (song.stallEvery < 8 ? Tempo.FRAME : song.stallEvery) * song.tempo.stretch;
 		final stalls = song.stallAt >= 0 && song.stallFor > 0;
 
 		var when = onSample + 0.0;

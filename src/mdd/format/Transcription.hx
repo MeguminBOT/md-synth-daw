@@ -123,7 +123,7 @@ final class Transcription {
 	/**
 		How many samples one square envelope step lasts.
 	**/
-	static inline final ENVELOPE_TICKS = 735;
+	static inline final ENVELOPE_TICKS = Tempo.FRAME;
 
 	/**
 		The most steps a recovered square envelope may have.

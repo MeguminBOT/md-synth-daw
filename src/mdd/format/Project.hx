@@ -561,7 +561,7 @@ class Project {
 		song.drums = node.get("drums").truth(false);
 		song.stallAt = stall.at(0).whole(-1);
 		song.stallFor = stall.at(1).whole(0);
-		song.stallEvery = stall.at(2).real(735);
+		song.stallEvery = stall.at(2).real(mdd.song.Tempo.FRAME);
 
 		final sides = node.get("pan");
 

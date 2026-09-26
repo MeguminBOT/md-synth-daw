@@ -15,6 +15,11 @@ final class Tempo {
 	public static inline final TICKS = 44100;
 
 	/**
+		How many samples one frame lasts on an NTSC console, a sixtieth of a second.
+	**/
+	public static inline final FRAME = 735;
+
+	/**
 		Ticks per quarter note.
 	**/
 	public var ppqn(default, null):Int;
@@ -70,6 +75,14 @@ final class Tempo {
 
 	inline function get_stretch():Float {
 		return rate == 50 ? 1.2 : 1.0;
+	}
+
+	/**
+		@return How many samples one frame of the console lasts: `FRAME` at 60 frames a second,
+			and a fiftieth of a second at 50.
+	**/
+	public inline function frame():Int {
+		return Std.int(TICKS / (rate < 1 ? 60 : rate));
 	}
 
 	/**
