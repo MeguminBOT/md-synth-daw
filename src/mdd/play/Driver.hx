@@ -87,10 +87,11 @@ final class Driver {
 	}
 
 	/**
-		@return How many output samples the busy flag stays raised for after a write.
+		@return How many output samples the busy flag stays raised for after a write, on the
+			console `rate` names, whose part runs from a slower clock on PAL.
 	**/
-	public static function busy():Int {
-		final samples = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
+	function busy():Int {
+		final samples = (rate == 50 ? Ym2612.PAL_CLOCK : Ym2612.CLOCK) / Ym2612.PER_SAMPLE;
 		final gap = Math.ceil(Tempo.TICKS * BUSY_CYCLES / (PER_SAMPLE * samples));
 
 		return gap < 1 ? 1 : gap;
