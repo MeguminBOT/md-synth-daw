@@ -155,9 +155,35 @@ final class Tempo {
 		@return Which stretch of constant tempo it falls in.
 	**/
 	public function segment(tick:Int):Int {
-		var found = 0;
-		for (i in 0...at.length) if (at[i] <= tick) found = i;
-		return found;
+		var low = 0;
+		var high = at.length - 1;
+
+		while (low < high) {
+			final middle = (low + high + 1) >> 1;
+
+			if (at[middle] <= tick) low = middle;
+			else high = middle - 1;
+		}
+
+		return low;
+	}
+
+	/**
+		@param samples A sample position.
+		@return Which stretch of constant tempo it falls in.
+	**/
+	function segmentAt(samples:Float):Int {
+		var low = 0;
+		var high = base.length - 1;
+
+		while (low < high) {
+			final middle = (low + high + 1) >> 1;
+
+			if (base[middle] <= samples) low = middle;
+			else high = middle - 1;
+		}
+
+		return low;
 	}
 
 	/**
@@ -174,9 +200,7 @@ final class Tempo {
 		@return The tick it falls on.
 	**/
 	public function tickAt(samples:Int):Int {
-		var which = 0;
-		for (i in 0...at.length) if (base[i] <= samples) which = i;
-
+		final which = segmentAt(samples);
 		return at[which] + Math.round((samples - base[which]) / perTick[which]);
 	}
 
@@ -186,9 +210,7 @@ final class Tempo {
 			read between ticks needs.
 	**/
 	public function ticksAt(samples:Float):Float {
-		var which = 0;
-		for (i in 0...at.length) if (base[i] <= samples) which = i;
-
+		final which = segmentAt(samples);
 		return at[which] + (samples - base[which]) / perTick[which];
 	}
 
