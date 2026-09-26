@@ -130,6 +130,11 @@ final class Root {
 	public final translation:Translation = new Translation();
 
 	/**
+		The spellings of the numbers widgets write every frame, kept so they are made once.
+	**/
+	public final numerals:Numerals = new Numerals();
+
+	/**
 		The one modal layer. Raising anything here lowers whatever was in it.
 	**/
 	public var sheet(default, null):Null<Widget> = null;

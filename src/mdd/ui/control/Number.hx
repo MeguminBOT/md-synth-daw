@@ -45,9 +45,10 @@ final class Number extends Widget implements Range {
 	public var onChange:Null<Number -> Void> = null;
 
 	/**
-		What turns the raw value into what it means, for the tooltip.
+		What turns the raw value into what it means, for the tooltip. It is asked again only when
+		the value or the language changes, when it is replaced, or when `rederive` is called.
 	**/
-	public var derived:Null<Int -> String> = null;
+	public var derived(default, set):Null<Int -> String> = null;
 
 	/**
 		What turns typed text back into a raw value, where the number is shown in
@@ -63,6 +64,14 @@ final class Number extends Widget implements Range {
 	var grabValue:Int = 0;
 
 	var entry:String = "";
+
+	var plainValue:Int = 0;
+	var plainUnit:Null<String> = null;
+	var plainText:String = "";
+
+	var meantValue:Int = 0;
+	var meantIn:Null<String> = null;
+	var meantText:String = "";
 
 	/**
 		Builds a number.
@@ -305,7 +314,61 @@ final class Number extends Widget implements Range {
 			value, or the value with its unit after it.
 	**/
 	public function shown():String {
-		return derived != null ? derived(value) : Std.string(value) + unit;
+		return derived != null ? meant() : plain(unit);
+	}
+
+	function set_derived(next:Null<Int -> String>):Null<Int -> String> {
+		derived = next;
+		meantIn = null;
+
+		return next;
+	}
+
+	/**
+		Asks `derived` again on the next frame, which an owner whose words for a value follow
+		something besides the value and the language calls when that changes.
+	**/
+	public function rederive():Void {
+		meantIn = null;
+		invalidate();
+	}
+
+	/**
+		@return What `derived` makes of the value, asked again only when the value or the language
+			has changed or `rederive` was called. A call into a function held in a variable boxes
+			the string it returns, so asking on every frame would allocate on every frame.
+	**/
+	function meant():String {
+		final root = root();
+		final language = root == null ? "" : root.translation.language;
+		final now = value;
+
+		if (meantIn == null || now != meantValue || language != meantIn) {
+			meantText = derived(now);
+			meantValue = now;
+			meantIn = language;
+		}
+
+		return meantText;
+	}
+
+	/**
+		The value as digits, built again only when the value or the unit has changed since the
+		last time, so a number sitting still draws without allocating.
+
+		@param after What follows the digits.
+		@return The value and `after`.
+	**/
+	function plain(after:String):String {
+		final now = value;
+
+		if (plainUnit == null || now != plainValue || plainUnit != after) {
+			plainText = Std.string(now) + after;
+			plainValue = now;
+			plainUnit = after;
+		}
+
+		return plainText;
 	}
 
 	override function paint(paint:Paint):Void {
@@ -329,7 +392,7 @@ final class Number extends Widget implements Range {
 			metrics.radiusRow);
 
 		final stacked = height >= small.height + mono.height + metrics.unit * 3;
-		final said = typing ? entry + "_" : (stacked && derived != null ? Std.string(value) : shown());
+		final said = typing ? entry + "_" : (stacked && derived != null ? plain("") : shown());
 
 		if (!stacked) {
 			paint.reface(small);
@@ -352,7 +415,7 @@ final class Number extends Widget implements Range {
 
 		if (derived != null && !typing) {
 			paint.reface(small);
-			paint.text(derived(value), x + metrics.unit * 2,
+			paint.text(meant(), x + metrics.unit * 2,
 				y + height - metrics.unit - small.descent, theme.dim);
 		}
 	}

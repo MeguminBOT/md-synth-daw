@@ -171,8 +171,12 @@ final class Tabs extends Widget {
 
 			if (pen + wide > x + width + 0.5) {
 				overflowed = labels.length - i;
-				paint.text("+" + overflowed, pen + metrics.unit, y + (height - font.height) * 0.5
-					+ font.ascent, theme.dim);
+
+				final line = y + (height - font.height) * 0.5 + font.ascent;
+				final sign = paint.text("+", pen + metrics.unit, line, theme.dim);
+
+				paint.text(root.numerals.decimal(overflowed), sign, line, theme.dim);
+
 				break;
 			}
 

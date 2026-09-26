@@ -41,6 +41,11 @@ final class Dropdown extends Widget implements Range {
 	var list:Null<Menu> = null;
 	final arrow:Vector<Float> = new Vector<Float>(6);
 
+	var spokenValue:Int = -1;
+	var spokenCount:Int = 0;
+	var spokenLanguage:String = "";
+	var spoken:String = "";
+
 	/**
 		Builds a dropdown.
 
@@ -116,10 +121,31 @@ final class Dropdown extends Widget implements Range {
 	}
 
 	/**
-		@return What the chosen entry says.
+		@return What the chosen entry says, asked of `named` again only when the entry, the length
+			of the list or the language has changed since, so a dropdown sitting still draws
+			without allocating.
 	**/
 	public function shown():String {
-		return entry(carried);
+		final root = root();
+		final language = root == null ? "" : root.translation.language;
+
+		if (carried != spokenValue || count != spokenCount || language != spokenLanguage) {
+			spoken = entry(carried);
+			spokenValue = carried;
+			spokenCount = count;
+			spokenLanguage = language;
+		}
+
+		return spoken;
+	}
+
+	/**
+		Asks `named` again for what the chosen entry says, which an owner whose names follow
+		something other than the entry and the language calls when that changes.
+	**/
+	public function renamed():Void {
+		spokenValue = -1;
+		invalidate();
 	}
 
 	/**
