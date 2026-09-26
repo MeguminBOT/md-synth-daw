@@ -95,6 +95,10 @@ final class Tracker extends Widget {
 	**/
 	public var entered(default, null):String = "";
 
+	var headedDivision:Int = -1;
+	var headedOctave:Int = 0;
+	var headedText:String = "";
+
 	/**
 		Called to sound a note as it is typed.
 	**/
@@ -1114,7 +1118,7 @@ final class Tracker extends Widget {
 
 			final baseline = line + (tall - font.height) * 0.5 + font.ascent;
 
-			paint.text(hex(at), x + metrics.unit * 2, baseline, theme.dim, 0.8);
+			paint.text(root.numerals.hex(at), x + metrics.unit * 2, baseline, theme.dim, 0.8);
 
 			for (index in 0...Part.COUNT) {
 				final left = atColumn(index);
@@ -1130,9 +1134,11 @@ final class Tracker extends Widget {
 					continue;
 				}
 
-				final said = spelt(held.pitch, session.notation) + " " + hex(held.velocity >> 1);
+				final after = paint.text(spelt(held.pitch, session.notation), left + metrics.gap,
+					baseline, theme.part(index), loud);
 
-				paint.text(said, left + metrics.gap, baseline, theme.part(index), loud);
+				paint.text(root.numerals.hex(held.velocity >> 1), after + paint.measure(" "),
+					baseline, theme.part(index), loud);
 			}
 		}
 
@@ -1197,8 +1203,14 @@ final class Tracker extends Widget {
 
 		paint.popClip();
 
-		paint.text("1/" + division + "  oct " + octave, x + metrics.gap,
-			y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.85);
+		if (division != headedDivision || octave != headedOctave) {
+			headedDivision = division;
+			headedOctave = octave;
+			headedText = "1/" + division + "  oct " + octave;
+		}
+
+		paint.text(headedText, x + metrics.gap, y + (tall - small.height) * 0.5 + small.ascent,
+			theme.dim, 0.85);
 
 		paint.rect(x, y + tall - hair, width, hair, theme.frame, 0.7);
 	}

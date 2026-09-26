@@ -117,15 +117,11 @@ final class Lanes extends Widget {
 	final shut:Map<Int, Bool> = new Map<Int, Bool>();
 
 	/**
-		The lowest value each zoomed lane shows, by lane. A lane with no entry shows every value its
-		parameter takes.
+		The lowest and the highest value each zoomed lane shows, by lane. A lane with no entry shows
+		every value its parameter takes. A range is held as an object rather than as two numbers,
+		because reading a number out of a map boxes it on every frame the lane is drawn.
 	**/
-	final lows:Map<Int, Int> = new Map<Int, Int>();
-
-	/**
-		The highest value each zoomed lane shows, by lane.
-	**/
-	final highs:Map<Int, Int> = new Map<Int, Int>();
+	final ranges:Map<Int, Vector<Int>> = new Map<Int, Vector<Int>>();
 
 	/**
 		The lanes last fitted to their points and not zoomed since, which a double click on the scale
@@ -234,6 +230,8 @@ final class Lanes extends Widget {
 	var overSegmentAt:Int = -1;
 
 	final trace:Vector<Float> = new Vector<Float>(TRACE * 2);
+	final triangle:Vector<Float> = new Vector<Float>(6);
+	final readouts:Array<mdd.view.Readout> = [];
 
 	/**
 		The chosen point position, typed or dragged.
@@ -374,6 +372,7 @@ final class Lanes extends Widget {
 		steps.label = translate(Locale.POINT_STEPS);
 
 		amount.derived = function(value:Int):String return told(one, value);
+		position.rederive();
 
 		position.set(chosen.at);
 		amount.set(chosen.value);
@@ -440,6 +439,26 @@ final class Lanes extends Widget {
 
 		final instrument = session.song.instrumentAt(value);
 		return instrument == null ? "" + value : instrument.name;
+	}
+
+	/**
+		The same as `told`, kept between frames so a lane drawn again allocates nothing.
+
+		@param held The parameter.
+		@param value A value of it.
+		@param slot Which of the places a lane writes a value this is: three to a row, its highest,
+			its lowest and its value now.
+		@return What the value reads as.
+	**/
+	function reads(held:Parameter, value:Int, slot:Int):String {
+		if (held.target == Automation.INSTRUMENT) {
+			final instrument = session.song.instrumentAt(value);
+			return instrument == null ? root().numerals.decimal(value) : instrument.name;
+		}
+
+		while (readouts.length <= slot) readouts.push(new mdd.view.Readout());
+
+		return readouts[slot].of(held, value);
 	}
 
 	inline function driven():Null<Automation> {
@@ -717,7 +736,7 @@ final class Lanes extends Widget {
 
 		framed.set(key, true);
 
-		if (lows.exists(key)) return;
+		if (ranges.exists(key)) return;
 		if (!held.offset && held.high - held.low <= 255) return;
 		if (held.high - held.low <= FIRST_SPAN) return;
 
@@ -1372,8 +1391,8 @@ final class Lanes extends Widget {
 		final held = parameterOf(row);
 		if (held == null) return 0;
 
-		final key = keyOf(row);
-		return lows.exists(key) ? lows.get(key) : held.low;
+		final zoom = ranges.get(keyOf(row));
+		return zoom == null ? held.low : zoom[0];
 	}
 
 	/**
@@ -1384,8 +1403,8 @@ final class Lanes extends Widget {
 		final held = parameterOf(row);
 		if (held == null) return 0;
 
-		final key = keyOf(row);
-		return highs.exists(key) ? highs.get(key) : held.high;
+		final zoom = ranges.get(keyOf(row));
+		return zoom == null ? held.high : zoom[1];
 	}
 
 	/**
@@ -1393,7 +1412,7 @@ final class Lanes extends Widget {
 		@return Whether the row shows fewer values than its parameter takes.
 	**/
 	public function zoomed(row:Int):Bool {
-		return lows.exists(keyOf(row));
+		return ranges.exists(keyOf(row));
 	}
 
 	/**
@@ -1421,12 +1440,17 @@ final class Lanes extends Widget {
 
 		final key = keyOf(row);
 
-		if (span >= full) {
-			lows.remove(key);
-			highs.remove(key);
-		} else {
-			lows.set(key, from);
-			highs.set(key, from + span);
+		if (span >= full) ranges.remove(key);
+		else {
+			var zoom = ranges.get(key);
+
+			if (zoom == null) {
+				zoom = new Vector<Int>(2);
+				ranges.set(key, zoom);
+			}
+
+			zoom[0] = from;
+			zoom[1] = from + span;
 		}
 
 		fitted.remove(key);
@@ -1504,11 +1528,11 @@ final class Lanes extends Widget {
 	public function unzooms(row:Int):Void {
 		final key = keyOf(row);
 
-		lows.remove(key);
-		highs.remove(key);
+		ranges.remove(key);
 		fitted.remove(key);
 
 		invalidate();
+
 	}
 
 	/**
@@ -2338,10 +2362,10 @@ final class Lanes extends Widget {
 		final floor = plotTop(row) + plotTall(row) - padding();
 		final lift = zoomed(row) ? 0.75 : 0.45;
 
-		paint.textRight(told(held, held.attenuates() ? low : high), x + left - metrics.unit,
-			ceiling + small.ascent * 0.5, theme.dim, lift);
+		paint.textRight(reads(held, held.attenuates() ? low : high, row * 3),
+			x + left - metrics.unit, ceiling + small.ascent * 0.5, theme.dim, lift);
 
-		paint.textRight(told(held, held.attenuates() ? high : low),
+		paint.textRight(reads(held, held.attenuates() ? high : low, row * 3 + 1),
 			x + left - metrics.unit, floor + small.ascent * 0.5, theme.dim, lift);
 
 		if (!nought) return;
@@ -2539,7 +2563,7 @@ final class Lanes extends Widget {
 
 		final value = lineOf(row);
 		final now = value == null || value.points.length == 0 ? ""
-			: told(held, value.valueAt(playhead < 0 ? 0 : playhead));
+			: reads(held, value.valueAt(playhead < 0 ? 0 : playhead), row * 3 + 2);
 
 		final right = x + width - (holding == null && adding ? metrics.whole(62) : metrics.gap);
 
@@ -2560,7 +2584,7 @@ final class Lanes extends Widget {
 
 	function chevron(paint:Paint, theme:Theme, metrics:Metrics, at:Float, middle:Float):Void {
 		final reach = metrics.whole(3);
-		final points = new Vector<Float>(6);
+		final points = triangle;
 
 		points[0] = at - reach;
 		points[1] = middle - reach * 0.5;
@@ -2587,7 +2611,7 @@ final class Lanes extends Widget {
 		final centre = box + size * 0.5;
 		final ink = lit ? theme.ink : theme.dim;
 
-		final arrow = new Vector<Float>(6);
+		final arrow = triangle;
 
 		if (shut) {
 			arrow[0] = middle - reach * 0.6;

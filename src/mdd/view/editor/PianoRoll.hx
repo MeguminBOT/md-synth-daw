@@ -231,6 +231,7 @@ final class PianoRoll extends Widget {
 		shape the file wrote it in.
 	**/
 	final kit:Vector<Int> = new Vector<Int>(HIGHEST + 1);
+	final triangle:Vector<Float> = new Vector<Float>(6);
 	var settledOn:Int = -1;
 	var settledPart:Int = -1;
 
@@ -2621,7 +2622,7 @@ final class PianoRoll extends Widget {
 		final at = x + metrics.gap + font.measure(said) + metrics.unit + reach;
 		final middle = top + head * 0.5;
 
-		final points = new haxe.ds.Vector<Float>(6);
+		final points = triangle;
 
 		points[0] = at - reach;
 		points[1] = middle - reach * 0.5;
@@ -3250,6 +3251,7 @@ final class PianoRoll extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(font);
 
+		final numerals = root().numerals;
 		final bar = session.song.barOf(session.current());
 		var tick = Std.int(tickAt(left) / bar) * bar;
 		if (tick < 0) tick = 0;
@@ -3261,7 +3263,7 @@ final class PianoRoll extends Widget {
 			if (at > x + width) break;
 
 			if (at >= left && at >= written) {
-				final said = Std.string(Std.int((origin + tick) / bar) + 1);
+				final said = numerals.decimal(Std.int((origin + tick) / bar) + 1);
 
 				paint.text(said, at + metrics.unit,
 					y + (tall - font.height) * 0.5 + font.ascent, theme.dim);

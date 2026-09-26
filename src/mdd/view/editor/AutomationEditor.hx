@@ -90,6 +90,9 @@ final class AutomationEditor extends Widget {
 	var presetFrom:Float = 0;
 	var presetTo:Float = 0;
 
+	var markedStep:Int = 0;
+	final marks:Array<String> = [];
+
 	/**
 		Builds the editor.
 
@@ -798,22 +801,36 @@ final class AutomationEditor extends Widget {
 
 		final instrument = showsPreset() ? session.song.instrumentAt(presetOf()) : null;
 
-		final said = holding != null
-			? (one == null ? translate(Locale.LANE_EMPTY) : part.name() + "   "
-				+ one.titled(holding.line == null ? 0 : holding.line.slot))
-			: (showsPreset() ? part.name() + "   " + (instrument == null
-				? translate(Locale.AUTOMATION_NO_PRESET) : instrument.name) : part.name());
+		final colour = theme.part(part.index());
+		final baseline = y + (tall - font.height) * 0.5 + font.ascent;
+		var pen = x + metrics.inset;
 
-		paint.text(said, x + metrics.inset, y + (tall - font.height) * 0.5 + font.ascent,
-			theme.part(part.index()));
+		if (holding != null && one == null) {
+			pen = paint.text(translate(Locale.LANE_EMPTY), pen, baseline, colour);
+		} else {
+			pen = paint.text(part.name(), pen, baseline, colour);
+
+			final tail = holding != null ? one.titled(holding.line == null ? 0 : holding.line.slot)
+				: !showsPreset() ? ""
+				: instrument == null ? translate(Locale.AUTOMATION_NO_PRESET) : instrument.name;
+
+			if (tail != "") {
+				pen = paint.text("   ", pen, baseline, colour);
+				pen = paint.text(tail, pen, baseline, colour);
+			}
+		}
 
 		if (holding == null && stack.rows() > 0) {
 			paint.reface(small);
 
-			paint.text(stack.rows() + " " + translate(stack.rows() == 1
-				? Locale.LANE_ONE : Locale.LANE_MANY),
-				x + metrics.inset + font.measure(said) + metrics.inset,
-				y + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.7);
+			final many = stack.rows();
+			final line = y + (tall - small.height) * 0.5 + small.ascent;
+			final counted = paint.text(root().numerals.decimal(many), pen + metrics.inset, line,
+				theme.dim, 0.7);
+			final spaced = paint.text(" ", counted, line, theme.dim, 0.7);
+
+			paint.text(translate(many == 1 ? Locale.LANE_ONE : Locale.LANE_MANY), spaced, line,
+				theme.dim, 0.7);
 
 			paint.reface(font);
 		}
@@ -885,7 +902,7 @@ final class AutomationEditor extends Widget {
 				paint.rect(at, top, metrics.whole(1), tall, theme.frame, 0.8);
 
 				if (at >= written) {
-					final said = "" + (Std.int((start() + tick) / bar) + 1);
+					final said = root().numerals.decimal(Std.int((start() + tick) / bar) + 1);
 
 					paint.text(said, at + metrics.unit,
 						top + (tall - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
@@ -920,7 +937,7 @@ final class AutomationEditor extends Widget {
 				paint.rect(px, top, metrics.whole(1), tall, theme.frame, 0.8);
 
 				if (px >= written) {
-					final said = at < 1000 ? at + " ms" : (at / 1000) + " s";
+					final said = marked(at, step);
 
 					paint.text(said, px + metrics.unit, top + (tall - font.height) * 0.5 + font.ascent,
 						theme.dim, 0.8);
@@ -932,4 +949,24 @@ final class AutomationEditor extends Widget {
 			at += step;
 		}
 	}
+
+	/**
+		@param at A mark on the ruler over a preset's lanes, in milliseconds.
+		@param step How far apart the marks are.
+		@return What the mark says, made once for each mark and kept until the marks move apart.
+	**/
+	function marked(at:Int, step:Int):String {
+		if (step != markedStep) {
+			markedStep = step;
+			marks.resize(0);
+		}
+
+		final index = Std.int(at / step);
+
+		while (marks.length <= index) marks.push(null);
+		if (marks[index] == null) marks[index] = at < 1000 ? at + " ms" : (at / 1000) + " s";
+
+		return marks[index];
+	}
+
 }
