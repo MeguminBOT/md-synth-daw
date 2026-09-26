@@ -1150,14 +1150,21 @@ final class Paint {
 	/**
 		Draws a run of joined lines.
 
+		A sharp turn in a line thicker than one and a half gets a round join, which is a circle of
+		at least 108 vertices. A trace whose points sit closer than the line is thick needs none,
+		because its strokes already cover every turn, and one that turns at every point would
+		otherwise draw one at each: a scope lane reduced to its highs and lows did, and its frame
+		came to a million and a half vertices.
+
 		@param points The points, two floats each.
 		@param count How many points.
 		@param weight How thick.
 		@param colour The colour to draw it in.
 		@param alpha How opaque, 0 to 1.
+		@param joined Whether sharp turns get a round join.
 	**/
 	public function polyline(points:Vector<Float>, count:Int, weight:Float, colour:Colour,
-			alpha:Float = 1):Void {
+			alpha:Float = 1, joined:Bool = true):Void {
 		if (count < 2) return;
 
 		for (i in 0...count - 1) {
@@ -1165,7 +1172,7 @@ final class Paint {
 				colour, alpha);
 		}
 
-		if (weight <= 1.5) return;
+		if (!joined || weight <= 1.5) return;
 
 		final half = weight * 0.5;
 		final least = JOIN / half;

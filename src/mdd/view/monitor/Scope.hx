@@ -833,7 +833,7 @@ final class Scope extends Widget {
 			reach / peak);
 
 		painted++;
-		paint.polyline(line, count, metrics.whole(1.5), theme.part(part), 0.95);
+		paint.polyline(line, count, metrics.whole(1.5), theme.part(part), 0.95, many <= columns);
 
 		if (notes[part] >= 0) {
 			paint.textRight(spelt(notes[part], session.notation), left + wide - inset - metrics.unit * 2,
