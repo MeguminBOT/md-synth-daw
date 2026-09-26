@@ -2085,8 +2085,6 @@ final class Playlist extends Widget {
 					quiet ? 0.35 : 0.9);
 
 				final said = pattern == null ? "?" : pattern.name;
-				final tail = clip.transpose == 0 ? ""
-					: (clip.transpose > 0 ? "  +" + clip.transpose : "  " + clip.transpose);
 
 				if (wide < metrics.whole(12)) continue;
 
@@ -2101,9 +2099,17 @@ final class Playlist extends Widget {
 				}
 
 				if (strip >= font.height * 0.9) {
-					paint.text(said + tail, at + labelAt(wide, metrics),
-						row + 2 + (strip - font.height) * 0.5 + font.ascent,
-						colour.sink(0.74));
+					final line = row + 2 + (strip - font.height) * 0.5 + font.ascent;
+					final ink = colour.sink(0.74);
+					final after = paint.text(said, at + labelAt(wide, metrics), line, ink);
+
+					if (clip.transpose != 0) {
+						final shift = clip.transpose;
+						final sign = paint.text(shift > 0 ? "  +" : "  -", after, line, ink);
+
+						paint.text(root().numerals.decimal(shift > 0 ? shift : -shift), sign, line,
+							ink);
+					}
 				}
 
 				paint.popClip();
@@ -2184,8 +2190,12 @@ final class Playlist extends Widget {
 
 		paint.pushClip(at, row + 2, wide - metrics.unit, tall - 5);
 
-		paint.text(part.name() + "  " + held.titled(line.slot), at + metrics.unit,
-			row + 2 + metrics.unit + font.ascent, colour, quiet ? 0.4 : 0.85);
+		final baseline = row + 2 + metrics.unit + font.ascent;
+		final alpha = quiet ? 0.4 : 0.85;
+		final named = paint.text(part.name(), at + metrics.unit, baseline, colour, alpha);
+		final gap = paint.text("  ", named, baseline, colour, alpha);
+
+		paint.text(held.titled(line.slot), gap, baseline, colour, alpha);
 
 		paint.popClip();
 	}
@@ -2364,9 +2374,11 @@ final class Playlist extends Widget {
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(font);
 
+		final numerals = root().numerals;
 		final bar = session.song.bar();
 		final shown = tickAt(x + width);
 		final ends = session.song.ends() + bar * 4;
+
 		final length = ends > shown ? ends : shown;
 
 		var tick = Std.int(tickAt(left) / (bar * 4)) * bar * 4;
@@ -2379,7 +2391,7 @@ final class Playlist extends Widget {
 			if (at > x + width) break;
 
 			if (at >= left && at >= written) {
-				final said = Std.string(Std.int(tick / bar) + 1);
+				final said = numerals.decimal(Std.int(tick / bar) + 1);
 
 				paint.text(said, at + metrics.unit,
 					y + (tall - font.height) * 0.5 + font.ascent, theme.dim);
