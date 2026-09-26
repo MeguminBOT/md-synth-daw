@@ -32,6 +32,8 @@ final class Font {
 	static inline final PAIRED = 0x10000;
 
 	static inline final CACHE = 1024;
+	static inline final BUCKETS = 256;
+
 	static inline final SCRATCH = 192;
 
 	/**
@@ -104,7 +106,9 @@ final class Font {
 	public var texture(default, null):cpp.Star<Texture>;
 
 	final metrics:Vector<Single> = new Vector<Single>((GLYPHS + CACHE) * FLOATS);
-	final cached:haxe.ds.IntMap<Int> = new haxe.ds.IntMap<Int>();
+	var codes:Vector<Int> = new Vector<Int>(BUCKETS);
+	var slots:Vector<Int> = new Vector<Int>(BUCKETS);
+	var stored:Int = 0;
 
 	final asked:Vector<Int> = new Vector<Int>(2);
 	final scratch:Vector<cpp.UInt8> = new Vector<cpp.UInt8>(SCRATCH * SCRATCH * 4);
@@ -119,7 +123,9 @@ final class Font {
 	/**
 		Private: use `bake`.
 	**/
-	function new() {}
+	function new() {
+		for (at in 0...BUCKETS) codes[at] = 0;
+	}
 
 	/**
 		Reads a face, bakes the Latin range into an atlas, and uploads it.
@@ -222,16 +228,66 @@ final class Font {
 	**/
 	public function chains(next:Null<Fallback>):Void {
 		beside = next;
-
-		final lost:Array<Int> = [];
-
-		for (code in cached.keys()) {
-			if (cached.get(code) == NONE) lost.push(code);
-		}
-
-		for (code in lost) cached.remove(code);
-
+		rehashes(codes.length, true);
 		missed = 0;
+	}
+
+	/**
+		@param code A codepoint outside the baked range.
+		@return The bucket holding it, or the empty one where it would go.
+	**/
+	inline function bucketOf(code:Int):Int {
+		final mask = codes.length - 1;
+		var at = code & mask;
+
+		while (codes[at] != 0 && codes[at] != code) at = (at + 1) & mask;
+
+		return at;
+	}
+
+	/**
+		Keeps a lookup, doubling the table first where it would be more than half full.
+
+		@param code A codepoint outside the baked range.
+		@param slot Its slot, or `NONE`.
+	**/
+	function stores(code:Int, slot:Int):Void {
+		if ((stored + 1) * 2 > codes.length) rehashes(codes.length * 2, false);
+
+		final at = bucketOf(code);
+
+		codes[at] = code;
+		slots[at] = slot;
+		stored++;
+	}
+
+	/**
+		Moves every kept lookup into a table of a new size.
+
+		@param size How many buckets, a power of two.
+		@param found Whether to keep only the glyphs that were found, forgetting the misses so
+			they are asked for again.
+	**/
+	function rehashes(size:Int, found:Bool):Void {
+		final wereCodes = codes;
+		final wereSlots = slots;
+
+		codes = new Vector<Int>(size);
+		slots = new Vector<Int>(size);
+		stored = 0;
+
+		for (at in 0...size) codes[at] = 0;
+
+		for (at in 0...wereCodes.length) {
+			final code = wereCodes[at];
+			if (code == 0 || (found && wereSlots[at] == NONE)) continue;
+
+			final into = bucketOf(code);
+
+			codes[into] = code;
+			slots[into] = wereSlots[at];
+			stored++;
+		}
 	}
 
 	/**
@@ -253,11 +309,11 @@ final class Font {
 	function extra(code:Int):Int {
 		if (code < FIRST) return NONE;
 
-		final held = cached.get(code);
-		if (held != null) return held;
+		final at = bucketOf(code);
+		if (codes[at] == code) return slots[at];
 
 		final slot = takes(code);
-		cached.set(code, slot);
+		stores(code, slot);
 
 		if (slot == NONE) missed++;
 		else kept++;
