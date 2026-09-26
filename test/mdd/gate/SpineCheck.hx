@@ -538,7 +538,7 @@ class SpineCheck {
 			cpp.vm.Gc.run(true);
 			cpp.vm.Gc.enable(false);
 
-			final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+			final measured = Allocations.begin();
 
 			for (frame in 0...60) {
 				tree.soil();
@@ -547,7 +547,7 @@ class SpineCheck {
 				Sdl.renderPresent(renderer);
 			}
 
-			final took = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+			final took = measured.since();
 			cpp.vm.Gc.enable(true);
 
 			final each = Math.round(took / 60);
@@ -2306,7 +2306,7 @@ class SpineCheck {
 		cpp.vm.Gc.run(true);
 		cpp.vm.Gc.enable(false);
 
-		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+		final measured = Allocations.begin();
 
 		for (frame in 0...120) {
 			stack.invalidate();
@@ -2316,7 +2316,7 @@ class SpineCheck {
 			Sdl.renderPresent(renderer);
 		}
 
-		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+		final grew = measured.since();
 		cpp.vm.Gc.enable(true);
 
 		says("and every one of them allocates nothing", grew == 0,
@@ -5174,10 +5174,24 @@ class SpineCheck {
 			warned + " warnings in the centre, and clicking the first one selected "
 			+ session.part.name() + " and the note it names");
 
+		for (warm in 0...8) {
+			roll.invalidate();
+
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+		}
+
 		cpp.vm.Gc.run(true);
 		cpp.vm.Gc.enable(false);
 
-		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+		final meter = Allocations.begin();
+		final probe:Array<haxe.ds.Vector<Float>> = [];
+
+		for (one in 0...10) probe.push(new haxe.ds.Vector<Float>(6));
+
+		final seen = meter.since();
+		final measured = Allocations.begin();
 
 		for (frame in 0...120) {
 			roll.invalidate();
@@ -5187,8 +5201,11 @@ class SpineCheck {
 			Sdl.renderPresent(renderer);
 		}
 
-		final grew = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT) - before;
+		final grew = measured.since();
 		cpp.vm.Gc.enable(true);
+
+		says("the meter sees ten vectors", seen > 0,
+			"ten vectors of six numbers moved it by " + seen + " bytes");
 
 		says("a frame allocates nothing", grew == 0,
 			Math.round(grew / 120) + " bytes a frame across 120 frames of the whole shell,"

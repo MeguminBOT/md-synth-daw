@@ -489,19 +489,46 @@ class AudioCheck {
 		var done = 0;
 
 		cpp.vm.Gc.enable(false);
-		final before = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+		final measured = Allocations.begin();
 		final began = Sdl.ticks();
 
 		while (done < wanted) done += render.fill(Render.BLOCK);
 
 		final spent = Sdl.ticks() - began;
-		final after = cpp.vm.Gc.memInfo(cpp.vm.Gc.MEM_INFO_CURRENT);
+		final grown = measured.since();
 		cpp.vm.Gc.enable(true);
 
-		final grown = after - before;
-
-		says("the render allocates", grown == 0,
+		says("the render allocates nothing", grown == 0,
 			grown + " bytes across " + Std.int(OFFLINE) + " s of audio, with the collector off");
+
+		final song = StreamCheck.written();
+		final transport = new mdd.play.Transport(song, 1 << 16);
+		final playing = new Render(RATE, Render.BLOCK);
+
+		playing.transport = transport;
+		transport.play();
+
+		for (warm in 0...64) {
+			final from = transport.advance(Render.BLOCK, RATE);
+			playing.serve(transport.stream, from, Render.BLOCK, transport.entering, true);
+		}
+
+		cpp.vm.Gc.run(true);
+		cpp.vm.Gc.enable(false);
+
+		final served = Allocations.begin();
+
+		for (block in 0...2000) {
+			final from = transport.advance(Render.BLOCK, RATE);
+			playing.serve(transport.stream, from, Render.BLOCK, transport.entering, true);
+		}
+
+		final sequenced = served.since();
+		cpp.vm.Gc.enable(true);
+
+		says("and sequencing adds nothing", sequenced == 0,
+			sequenced + " bytes across 2000 blocks of a song sequenced and rendered the way the"
+			+ " render thread does it, with the collector off");
 
 		says("the render keeps up", spent < OFFLINE,
 			Std.int(OFFLINE) + " s of audio rendered in " + round(spent, 2) + " s, "
