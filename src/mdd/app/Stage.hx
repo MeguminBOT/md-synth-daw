@@ -308,7 +308,9 @@ final class Stage {
 	}
 
 	/**
-		Shows the window, once there is a frame to show.
+		Shows the window, once there is a frame to show. The main window takes whatever showing it
+		put in the queue; a window beside it leaves the queue to the main loop, which hands each
+		window its own events and would otherwise lose the main window's.
 
 		@param maximised Whether to open it maximised.
 	**/
@@ -318,8 +320,10 @@ final class Stage {
 
 		shown = true;
 
-		final event = new Event();
-		while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) took(event);
+		if (!aside) {
+			final event = new Event();
+			while (Sdl.pollEvent(cpp.Pointer.addressOf(event).raw) != 0) took(event);
+		}
 
 		measured();
 	}

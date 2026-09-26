@@ -94,6 +94,11 @@ final class StyleWindow {
 	}
 
 	function wires():Void {
+		stage.root.onTyping = function(on:Bool):Void {
+			if (on) mdd.host.Sdl.startTextInput(stage.window);
+			else mdd.host.Sdl.stopTextInput(stage.window);
+		};
+
 		studio.onChange = function():Void kept();
 		studio.onPick = function(what:Int):Void asks(what);
 		studio.onSizes = function(tall:Int):Null<mdd.ui.Metrics> return stage.bakes(tall / Filming.DESIGNED);
