@@ -116,6 +116,7 @@ final class Tools extends Widget {
 	public var allowed:Int = EVERY;
 
 	final order:Array<Int> = [];
+	final corners:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(14);
 
 	/**
 		@return Which buttons to draw, in order, leaving out the ones this editor does not offer.
@@ -342,7 +343,7 @@ final class Tools extends Widget {
 
 		switch (index) {
 			case Session.SELECT:
-				final arrow = new haxe.ds.Vector<Float>(14);
+				final arrow = corners;
 				final left = middle - reach * 0.5;
 				final head = centre - reach;
 
@@ -367,7 +368,7 @@ final class Tools extends Widget {
 				paint.line(middle - reach * 0.8, centre + reach * 0.8,
 					middle + reach * 0.55, centre - reach * 0.55, hair * 1.4, ink);
 
-				final nib = new haxe.ds.Vector<Float>(6);
+				final nib = corners;
 
 				nib[0] = middle - reach;
 				nib[1] = centre + reach;
@@ -379,7 +380,7 @@ final class Tools extends Widget {
 				paint.polygon(nib, 3, ink);
 
 			case Session.ERASE:
-				final block = new haxe.ds.Vector<Float>(8);
+				final block = corners;
 
 				block[0] = middle - reach * 0.2;
 				block[1] = centre - reach * 0.9;
@@ -435,7 +436,7 @@ final class Tools extends Widget {
 			case FOLLOW:
 				paint.rect(middle - reach * 0.7, centre - reach, hair, reach * 2, ink);
 
-				final arrow = new haxe.ds.Vector<Float>(6);
+				final arrow = corners;
 
 				arrow[0] = middle - reach * 0.1;
 				arrow[1] = centre - reach * 0.7;

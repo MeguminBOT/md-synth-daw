@@ -32,6 +32,10 @@ final class Status extends Widget {
 	**/
 	public var usage:String = "";
 
+	var countedWarnings:Int = -1;
+	var countedIn:String = "";
+	var counted:String = "";
+
 	/**
 		Builds the status bar.
 
@@ -65,8 +69,16 @@ final class Status extends Widget {
 		final count = warnings.found();
 
 		if (count > 0) {
-			final much = count + " " + translate(count == 1
-				? Locale.PANEL_WARNING : Locale.PANEL_WARNINGS);
+			final language = root.translation.language;
+
+			if (count != countedWarnings || language != countedIn) {
+				countedWarnings = count;
+				countedIn = language;
+				counted = count + " " + translate(count == 1
+					? Locale.PANEL_WARNING : Locale.PANEL_WARNINGS);
+			}
+
+			final much = counted;
 
 			paint.textRight(much, right, line, theme.warn, 0.9);
 			right -= paint.measure(much) + metrics.inset * 2;

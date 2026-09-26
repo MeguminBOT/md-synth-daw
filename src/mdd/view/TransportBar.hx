@@ -117,6 +117,20 @@ final class TransportBar extends Widget {
 	var sliding:Bool = false;
 	var menu:Null<Menu> = null;
 	var settling:Bool = false;
+	var namedRate:Int = 0;
+	var namedBeats:Int = 0;
+	var namedUnit:Int = 0;
+
+	final triangle:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(6);
+
+	var clockKey:Int = -1;
+	var clockText:String = "";
+	var barWhich:Int = 0;
+	var barWithin:Int = 0;
+	var barText:String = "";
+	var pickedIndex:Int = -1;
+	var pickedName:String = "";
+	var pickedText:String = "";
 
 	/**
 		Builds the bar and every field on it.
@@ -151,7 +165,7 @@ final class TransportBar extends Widget {
 				? Meter.COMMON_BEATS[value] + "/" + Meter.COMMON_UNITS[value]
 				: session.song.meter.spelt();
 
-		video.named = function(value:Int):String return (value == 0 ? "50" : "60") + " Hz";
+		video.named = function(value:Int):String return value == 0 ? "50 Hz" : "60 Hz";
 		lfo.named = function(value:Int):String
 			return value == 0 ? translate(Locale.EXPORT_OFF) : hertz(value - 1);
 		snap.named = function(value:Int):String
@@ -241,6 +255,11 @@ final class TransportBar extends Widget {
 		lfo.set(lfoIndex(session.song));
 		snap.set(snapIndex());
 
+		if (session.song.tempo.rate != namedRate) {
+			namedRate = session.song.tempo.rate;
+			lfo.renamed();
+		}
+
 		settling = false;
 	}
 
@@ -293,6 +312,14 @@ final class TransportBar extends Widget {
 
 		meter.counts(at < 0 ? many + 1 : many);
 		meter.set(at < 0 ? many : at);
+
+		final held = session.song.meter;
+
+		if (held.beats != namedBeats || held.unit != namedUnit) {
+			namedBeats = held.beats;
+			namedUnit = held.unit;
+			meter.renamed();
+		}
 	}
 
 	/**
@@ -951,7 +978,7 @@ final class TransportBar extends Widget {
 		paint.roundedRect(clockAt - metrics.gap, top, room, button, metrics.radiusRow,
 			theme.sink);
 
-		paint.text(clock(transport.seconds()), clockAt, line, theme.ink);
+		paint.text(clocked(transport.seconds()), clockAt, line, theme.ink);
 		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
 
 		for (field in held) if (field.visible) field.paint(paint);
@@ -1025,7 +1052,7 @@ final class TransportBar extends Widget {
 
 		paint.rect(at, middle - reach * 0.35, reach * 0.5, reach * 0.7, ink);
 
-		final points = new haxe.ds.Vector<Float>(6);
+		final points = triangle;
 
 		points[0] = at + reach * 0.85;
 		points[1] = middle - reach * 0.85;
@@ -1079,13 +1106,12 @@ final class TransportBar extends Widget {
 
 		paint.reface(font);
 		paint.pushClip(textAt, top, room, button);
-		paint.text((session.pattern + 1) + "  " + (pattern == null ? "" : pattern.name),
-			textAt, line, theme.ink, 0.85);
+		paint.text(picked(pattern), textAt, line, theme.ink, 0.85);
 		paint.popClip();
 
 		final middle = left + wide - metrics.gap - arrow;
 		final centre = top + button * 0.5;
-		final points = new haxe.ds.Vector<Float>(6);
+		final points = triangle;
 
 		points[0] = middle - arrow;
 		points[1] = centre - arrow * 0.5;
@@ -1110,7 +1136,7 @@ final class TransportBar extends Widget {
 					paint.rect(middle - reach * 0.7, centre - reach, reach * 0.5, reach * 2, ink);
 					paint.rect(middle + reach * 0.2, centre - reach, reach * 0.5, reach * 2, ink);
 				} else {
-					final points = new haxe.ds.Vector<Float>(6);
+					final points = triangle;
 					points[0] = middle - reach * 0.6;
 					points[1] = centre - reach;
 					points[2] = middle + reach * 0.8;
@@ -1131,7 +1157,7 @@ final class TransportBar extends Widget {
 				paint.rect(middle - reach * 0.9, centre - reach * 0.8, metrics.whole(2),
 					reach * 1.6, ink);
 
-				final points = new haxe.ds.Vector<Float>(6);
+				final points = triangle;
 				points[0] = middle + reach * 0.8;
 				points[1] = centre - reach * 0.8;
 				points[2] = middle + reach * 0.8;
@@ -1147,6 +1173,40 @@ final class TransportBar extends Widget {
 		}
 	}
 
+	/**
+		@param pattern The pattern being edited, or null.
+		@return What the picker says: the pattern's number and its name, built again only when
+			either has changed.
+	**/
+	function picked(pattern:Null<mdd.song.Pattern>):String {
+		final name = pattern == null ? "" : pattern.name;
+
+		if (session.pattern != pickedIndex || name != pickedName) {
+			pickedIndex = session.pattern;
+			pickedName = name;
+			pickedText = (session.pattern + 1) + "  " + name;
+		}
+
+		return pickedText;
+	}
+
+	/**
+		@param seconds A position in the piece.
+		@return What `clock` says of it, built again only when the millisecond it shows has
+			changed, so a transport standing still draws without allocating.
+	**/
+	function clocked(seconds:Float):String {
+		final whole = Std.int(seconds);
+		final key = whole * 1000 + Std.int((seconds - whole) * 1000);
+
+		if (key != clockKey) {
+			clockKey = key;
+			clockText = clock(seconds);
+		}
+
+		return clockText;
+	}
+
 	public static function clock(seconds:Float):String {
 		final whole = Std.int(seconds);
 		final minutes = Std.int(whole / 60);
@@ -1160,7 +1220,7 @@ final class TransportBar extends Widget {
 
 	/**
 		@param tick A position in the piece.
-		@return It as a bar, a beat and a tick, for the readout.
+		@return It as a bar and a beat, for the readout, built again only when either has changed.
 	**/
 	public function bar(tick:Int):String {
 		final beat = session.song.beatOf(null);
@@ -1168,6 +1228,12 @@ final class TransportBar extends Widget {
 		final which = Std.int(tick / span) + 1;
 		final within = Std.int((tick % span) / beat) + 1;
 
-		return "bar " + which + "." + within;
+		if (which != barWhich || within != barWithin) {
+			barWhich = which;
+			barWithin = within;
+			barText = "bar " + which + "." + within;
+		}
+
+		return barText;
 	}
 }
