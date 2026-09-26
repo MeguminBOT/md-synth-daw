@@ -403,6 +403,13 @@ final class Presets extends Widget {
 	**/
 	var terse:Bool = false;
 
+	final chipText:Array<String> = cpp.NativeArray.create(CHIPS);
+	var chipKey:Int = -1;
+	var chipIn:String = "";
+	var countedListed:Int = -1;
+	var countedBanks:Int = -1;
+	var counted:String = "";
+
 	var sighted:Int = -2;
 	var sought:String = "";
 	var pending:Bool = false;
@@ -1496,9 +1503,30 @@ final class Presets extends Widget {
 
 	/**
 		@param which A toolbar button.
-		@return What it says.
+		@return What it says, made again only when something it says or the language has changed
+			since, so a frame allocates nothing.
 	**/
 	function chipLabel(which:Int):String {
+		final root = root();
+		final language = root == null ? "" : root.translation.language;
+		final key = grouping | (sorting << 4) | (reversed ? 1 << 8 : 0) | (terse ? 1 << 9 : 0)
+			| (filtering() << 10);
+
+		if (key != chipKey || language != chipIn) {
+			chipKey = key;
+			chipIn = language;
+
+			for (one in 0...CHIPS) chipText[one] = chipSaid(one);
+		}
+
+		return chipText[which];
+	}
+
+	/**
+		@param which A toolbar button.
+		@return What it says, made afresh.
+	**/
+	function chipSaid(which:Int):String {
 		return switch (which) {
 			case GROUP_CHIP:
 				final name = translate(GROUP_NAMES[grouping]);
@@ -2553,7 +2581,13 @@ final class Presets extends Widget {
 		search.paint(paint);
 
 		paint.reface(font);
-		paint.textRight(listed + " / " + banks, x + width - metrics.inset,
+		if (listed != countedListed || banks != countedBanks) {
+			countedListed = listed;
+			countedBanks = banks;
+			counted = listed + " / " + banks;
+		}
+
+		paint.textRight(counted, x + width - metrics.inset,
 			y + (top - font.height) * 0.5 + font.ascent, theme.dim, 0.8);
 
 		for (which in 0...CHIPS) {

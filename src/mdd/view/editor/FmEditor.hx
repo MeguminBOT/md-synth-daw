@@ -31,6 +31,8 @@ final class FmEditor extends Widget {
 
 	static final SPELT:Array<Locale> = Patch.SPELT;
 
+	static final OPERATORS:Array<String> = ["OP1", "OP2", "OP3", "OP4"];
+
 	static final BASES:Array<Int> = [0x40, 0x50, 0x60, 0x80, 0x70, 0x80, 0x30, 0x30, 0x50, 0x90];
 
 	/**
@@ -664,7 +666,8 @@ final class FmEditor extends Widget {
 			paint.fitted(font, metrics.condensed, translate(DIAL_SPELT[which]),
 				DIAL_NAMES[which], left + metrics.unit, top + tall * 0.5, room, theme.dim,
 				0.85);
-			paint.textRight(Std.string(value), left + wide - metrics.unit, line, theme.ink);
+			paint.textRight(root().numerals.decimal(value), left + wide - metrics.unit, line,
+				theme.ink);
 		}
 	}
 
@@ -705,7 +708,7 @@ final class FmEditor extends Widget {
 			paint.outline(at, top, box, tall, slot == this.slot ? theme.accent : theme.frame,
 				metrics.whole(1), 1, metrics.radiusSmall);
 
-			paint.textCentred("OP" + (slot + 1), at + box * 0.5,
+			paint.textCentred(OPERATORS[slot], at + box * 0.5,
 				top + tall * 0.5 - font.height * 0.5 + font.ascent,
 				carrier ? theme.ink : theme.dim);
 
@@ -898,7 +901,8 @@ final class FmEditor extends Widget {
 				final at = top + row * tall;
 				if (at > y + height) break;
 
-				paint.textRight(Std.string(valueOf(patch, slot, row)),
+				paint.textRight(root().numerals.decimal(valueOf(patch, slot, row)),
+
 					left + wide - metrics.unit * 2,
 					at + (tall - font.height) * 0.5 + font.ascent, theme.ink);
 			}

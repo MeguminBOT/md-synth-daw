@@ -67,6 +67,8 @@ final class Parameter {
 	**/
 	public var decibels(default, null):Float;
 
+	var titles:Array<String> = [];
+
 	/**
 		Private: the list is built by `of`.
 
@@ -118,6 +120,7 @@ final class Parameter {
 	**/
 	function slotted():Parameter {
 		operators = true;
+		titles = [for (index in 0...4) name + " " + (index + 1)];
 		return this;
 	}
 
@@ -136,7 +139,8 @@ final class Parameter {
 			operator.
 	**/
 	public function titled(slot:Int):String {
-		return operators ? name + " " + (slot + 1) : name;
+		if (!operators) return name;
+		return slot >= 0 && slot < titles.length ? titles[slot] : name + " " + (slot + 1);
 	}
 
 	/**

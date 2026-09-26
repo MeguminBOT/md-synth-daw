@@ -77,6 +77,13 @@ final class PsgEditor extends Widget {
 
 	final wereSteps:Array<Int> = [];
 
+	var titledPart:Int = -1;
+	var titledSquare:Bool = false;
+	var titledSteps:Int = -1;
+	var titledIn:String = "";
+	var title:String = "";
+	var stepsText:String = "";
+
 	/**
 		Builds the editor.
 
@@ -448,9 +455,9 @@ final class PsgEditor extends Widget {
 		final small = metrics.small == null ? metrics.body : metrics.small;
 		paint.reface(small);
 
-		Panel.titled(paint, theme, metrics, session.part.name() + "   "
-			+ translate(envelope == null ? Locale.PANEL_NOT_SQUARE : Locale.PANEL_ENVELOPE),
-			x, y, width, metrics.head);
+		words(root.translation.language, envelope);
+
+		Panel.titled(paint, theme, metrics, title, x, y, width, metrics.head);
 
 		paint.reface(small);
 
@@ -491,8 +498,32 @@ final class PsgEditor extends Widget {
 		paint.rect(x, top + tall, width, metrics.whole(1), theme.frame);
 
 		paint.reface(small);
-		paint.text(translate(Locale.PSG_STEPS) + " " + envelope.steps.length,
-			x + metrics.inset, top + tall + metrics.gap + small.ascent, theme.dim, 0.8);
+		paint.text(stepsText, x + metrics.inset, top + tall + metrics.gap + small.ascent,
+			theme.dim, 0.8);
+	}
+
+	/**
+		Makes the title and the step count again where the part, the envelope's length or the
+		language has changed since they were last made, so a frame allocates nothing.
+
+		@param language The language the interface is in.
+		@param envelope The envelope shown, or null where the part has none.
+	**/
+	function words(language:String, envelope:Null<Envelope>):Void {
+		final part = session.part.index();
+		final square = envelope != null;
+		final steps = square ? envelope.steps.length : -1;
+
+		if (part == titledPart && square == titledSquare && steps == titledSteps
+			&& language == titledIn) return;
+
+		titledPart = part;
+		titledSquare = square;
+		titledSteps = steps;
+		titledIn = language;
+		title = session.part.name() + "   "
+			+ translate(square ? Locale.PANEL_ENVELOPE : Locale.PANEL_NOT_SQUARE);
+		stepsText = square ? translate(Locale.PSG_STEPS) + " " + steps : "";
 	}
 
 	function dials(paint:Paint, theme:Theme, metrics:Metrics, envelope:Envelope):Void {
@@ -524,7 +555,7 @@ final class PsgEditor extends Widget {
 
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 			final said = which == LOOP && value < 0 ? translate(Locale.PSG_NO_LOOP)
-				: Std.string(value);
+				: root().numerals.decimal(value);
 
 			paint.fitted(font, metrics.condensed, translate(DIAL_NAMES[which]), "",
 				left + metrics.unit, top + tall * 0.5,
