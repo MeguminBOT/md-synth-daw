@@ -1233,14 +1233,16 @@ class UiCheck {
 			== "https://api.github.com/repos/MeguminBOT/md-synth-daw/releases/latest",
 			held.checkAt());
 
+		final ours = "MeguminBOT/md-synth-daw";
+
 		held.read('{"tag_name":"v0.3.1","html_url":"https://example/rel",'
 			+ '"body":"Faster import\nand other things","assets":['
-			+ '{"name":"mdd-0.3.1-linux.tar.gz","browser_download_url":"https://example/linux"},'
-			+ '{"name":"mdd-0.3.1-windows-portable.zip","browser_download_url":"https://example/zip"},'
-			+ '{"name":"mdd-0.3.1-setup.exe","browser_download_url":"https://example/setup"}]}');
+			+ released(ours, "v0.3.1", "mdd-0.3.1-linux.tar.gz") + ","
+			+ released(ours, "v0.3.1", "mdd-0.3.1-windows-portable.zip") + ","
+			+ released(ours, "v0.3.1", "mdd-0.3.1-setup.exe") + "]}");
 
 		says("and picks its own platform", held.offered == "0.3.1" && held.assets == 3
-			&& held.saidAt == "https://example/setup",
+			&& held.saidAt == releasedAt(ours, "v0.3.1", "mdd-0.3.1-setup.exe"),
 			"tag v0.3.1 reads as " + held.offered + ", and of " + held.assets
 			+ " assets it took the windows installer");
 
@@ -1248,13 +1250,11 @@ class UiCheck {
 			"the release body's first line is what the notice shows: " + held.notes);
 
 		final split = '{"tag_name":"v0.4.0","html_url":"https://example/rel","assets":['
-			+ '{"name":"mdd-0.4.0-linux-x86_64-portable.tar.gz","browser_download_url":"https://example/lx64p"},'
-			+ '{"name":"mdd-0.4.0-linux-arm64-portable.tar.gz","browser_download_url":"https://example/larmp"},'
-			+ '{"name":"mdd-0.4.0-linux-x86_64-installer.tar.gz","browser_download_url":"https://example/lx64i"},'
-			+ '{"name":"mdd-0.4.0-linux-arm64-installer.tar.gz","browser_download_url":"https://example/larmi"},'
-			+ '{"name":"mdd-0.4.0-windows-x86_64-setup.exe","browser_download_url":"https://example/wx64"},'
-			+ '{"name":"mdd-0.4.0-mac-arm64.dmg","browser_download_url":"https://example/marm"},'
-			+ '{"name":"mdd-0.4.0-mac-x86_64.dmg","browser_download_url":"https://example/mx64"}]}';
+			+ [for (name in ["mdd-0.4.0-linux-x86_64-portable.tar.gz",
+				"mdd-0.4.0-linux-arm64-portable.tar.gz", "mdd-0.4.0-linux-x86_64-installer.tar.gz",
+				"mdd-0.4.0-linux-arm64-installer.tar.gz", "mdd-0.4.0-windows-x86_64-setup.exe",
+				"mdd-0.4.0-mac-arm64.dmg", "mdd-0.4.0-mac-x86_64.dmg"])
+				released("owner/name", "v0.4.0", name)].join(",") + "]}";
 
 		final armed = new mdd.app.Update("owner/name", "0.1.0", "linux", "arm64", false);
 		armed.read(split);
@@ -1266,9 +1266,9 @@ class UiCheck {
 		apple.read(split);
 
 		says("a release with both architectures gives each its own",
-			armed.saidAt == "https://example/larmi"
-			&& wide.saidAt == "https://example/lx64i"
-			&& apple.saidAt == "https://example/marm",
+			armed.saidAt == releasedAt("owner/name", "v0.4.0", "mdd-0.4.0-linux-arm64-installer.tar.gz")
+			&& wide.saidAt == releasedAt("owner/name", "v0.4.0", "mdd-0.4.0-linux-x86_64-installer.tar.gz")
+			&& apple.saidAt == releasedAt("owner/name", "v0.4.0", "mdd-0.4.0-mac-arm64.dmg"),
 			"of 7 assets linux arm64 took " + armed.saidAt.split("/").pop()
 			+ ", linux x86_64 took " + wide.saidAt.split("/").pop()
 			+ " and mac arm64 took " + apple.saidAt.split("/").pop());
@@ -1281,20 +1281,19 @@ class UiCheck {
 			+ " cannot win on any other part of its name");
 
 		final both = '{"tag_name":"v0.5.0","html_url":"https://example/rel","assets":['
-			+ '{"name":"mdd-0.5.0-windows-x86_64-portable.zip","browser_download_url":"https://example/winzip"},'
-			+ '{"name":"mdd-0.5.0-windows-x86_64-setup.exe","browser_download_url":"https://example/winexe"},'
-			+ '{"name":"mdd-0.5.0-linux-x86_64-portable.tar.gz","browser_download_url":"https://example/lintar"},'
-			+ '{"name":"mdd-0.5.0-linux-x86_64-installer.tar.gz","browser_download_url":"https://example/lininst"},'
-			+ '{"name":"mdd-0.5.0-mac-x86_64-portable.tar.gz","browser_download_url":"https://example/mactar"},'
-			+ '{"name":"mdd-0.5.0-mac-x86_64.dmg","browser_download_url":"https://example/macdmg"}]}';
+			+ [for (name in ["mdd-0.5.0-windows-x86_64-portable.zip",
+				"mdd-0.5.0-windows-x86_64-setup.exe", "mdd-0.5.0-linux-x86_64-portable.tar.gz",
+				"mdd-0.5.0-linux-x86_64-installer.tar.gz", "mdd-0.5.0-mac-x86_64-portable.tar.gz",
+				"mdd-0.5.0-mac-x86_64.dmg"])
+				released("owner/name", "v0.5.0", name)].join(",") + "]}";
 
 		final kinds:Array<{name:String, portable:Bool, wanted:String}> = [
-			{name: "windows", portable: true, wanted: "winzip"},
-			{name: "windows", portable: false, wanted: "winexe"},
-			{name: "linux", portable: true, wanted: "lintar"},
-			{name: "linux", portable: false, wanted: "lininst"},
-			{name: "mac", portable: true, wanted: "mactar"},
-			{name: "mac", portable: false, wanted: "macdmg"}
+			{name: "windows", portable: true, wanted: "mdd-0.5.0-windows-x86_64-portable.zip"},
+			{name: "windows", portable: false, wanted: "mdd-0.5.0-windows-x86_64-setup.exe"},
+			{name: "linux", portable: true, wanted: "mdd-0.5.0-linux-x86_64-portable.tar.gz"},
+			{name: "linux", portable: false, wanted: "mdd-0.5.0-linux-x86_64-installer.tar.gz"},
+			{name: "mac", portable: true, wanted: "mdd-0.5.0-mac-x86_64-portable.tar.gz"},
+			{name: "mac", portable: false, wanted: "mdd-0.5.0-mac-x86_64.dmg"}
 		];
 
 		var missed = 0;
@@ -1323,9 +1322,31 @@ class UiCheck {
 		final bare = new mdd.app.Update("owner/name", "0.1.0", "mac");
 		bare.read('{"tag_name":"0.2.0","html_url":"https://example/page","assets":[]}');
 
-		says("and falls back to the release page", bare.offered == "0.2.0"
-			&& bare.saidAt == "https://example/page" && bare.assets == 0,
-			"a release with no assets sends the reader to the page instead");
+		says("and offers no page for a file", bare.offered == "0.2.0"
+			&& bare.saidAt == "" && bare.assets == 0,
+			"a release with no assets has nothing to download, so not even its page is"
+			+ " offered in place of one");
+	}
+
+	/**
+		@param repository The owner and the repository.
+		@param tag The release's tag.
+		@param name What the release calls a file.
+		@return The file as a release document lists it, at the address GitHub serves it from.
+	**/
+	static function released(repository:String, tag:String, name:String):String {
+		return '{"name":"' + name + '","browser_download_url":"' + releasedAt(repository, tag, name)
+			+ '"}';
+	}
+
+	/**
+		@param repository The owner and the repository.
+		@param tag The release's tag.
+		@param name What the release calls a file.
+		@return Where GitHub serves that file from.
+	**/
+	static function releasedAt(repository:String, tag:String, name:String):String {
+		return "https://github.com/" + repository + "/releases/download/" + tag + "/" + name;
 	}
 
 	static function banded():Void {

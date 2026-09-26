@@ -64,6 +64,10 @@ class UpdateCheck {
 		bare();
 		tentative();
 		truthful(port);
+		strangers(archive);
+		unsummed(port, archive);
+		twice(where, port, archive);
+		changed(where, port);
 
 		shuts();
 
@@ -223,9 +227,29 @@ class UpdateCheck {
 		return code == 0 && FileSystem.exists(archive) ? archive : "";
 	}
 
+	/**
+		Points an updater at the local server, both for the release document and for the
+		files the release carries.
+
+		@param update The updater.
+		@param port The port the server is on.
+	**/
+	static function pointed(update:Update, port:Int):Void {
+		update.looksAt("http://127.0.0.1:" + port + "/repos/", "http://127.0.0.1:" + port + "/");
+	}
+
+	/**
+		@param port The port the server is on.
+		@return Where the local server serves the offered release's files, laid out as GitHub
+			lays out a release's downloads.
+	**/
+	static function served(port:Int):String {
+		return "http://127.0.0.1:" + port + "/owner/name/releases/download/v" + OFFERED + "/";
+	}
+
 	static function release(port:Int, archive:String):String {
 		final leaf = haxe.io.Path.withoutDirectory(archive);
-		final at = "http://127.0.0.1:" + port + "/assets/";
+		final at = served(port);
 		final size = FileSystem.stat(archive).size;
 
 		final other = mdd.Config.SHORT + "-" + OFFERED + "-" + Paths.platform() + "-"
@@ -258,7 +282,9 @@ class UpdateCheck {
 	}
 
 	/**
-		Serves bytes that are not the ones the hashes list, and expects them to be refused.
+		Serves bytes that are not the ones the hashes list, and expects them to be refused:
+		once the same length as the real file, which only the hash can catch, and once a
+		different length, which the size the release lists catches first.
 
 		Every other check here runs against a server telling the truth, so none of them can
 		tell a download that arrived whole from one that did not. The archive is put back
@@ -270,10 +296,34 @@ class UpdateCheck {
 	**/
 	static function tampered(where:String, port:Int, archive:String):Void {
 		final was = File.getBytes(archive);
-		File.saveBytes(archive, haxe.io.Bytes.ofString("not the file that was built"));
+		final flipped = was.sub(0, was.length);
+		final middle = flipped.length >> 1;
+
+		flipped.set(middle, flipped.get(middle) ^ 0xFF);
+
+		refuses(where, port, archive, flipped, "a download that does not match is refused");
+		refuses(where, port, archive, haxe.io.Bytes.ofString("not the file that was built"),
+			"and one of the wrong size");
+
+		File.saveBytes(archive, was);
+	}
+
+	/**
+		Serves other bytes in place of the archive and expects the download to be refused and
+		deleted.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+		@param served What it hands out instead.
+		@param name What the check is called.
+	**/
+	static function refuses(where:String, port:Int, archive:String, served:haxe.io.Bytes,
+			name:String):Void {
+		File.saveBytes(archive, served);
 
 		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
-		update.looksAt("http://127.0.0.1:" + port + "/repos/");
+		pointed(update, port);
 		update.look();
 
 		final waiting = settles(update, Update.WAITING);
@@ -296,9 +346,7 @@ class UpdateCheck {
 
 		final gone = !FileSystem.exists(into);
 
-		File.saveBytes(archive, was);
-
-		says("a download that does not match is refused", refused && gone,
+		says(name, refused && gone,
 			!waiting ? "the api would not answer"
 				: (refused ? "refused: " + update.wrong + (gone ? ", and deleted" : ", but kept")
 					: "state " + update.state() + " rather than broken"));
@@ -371,7 +419,7 @@ class UpdateCheck {
 			+ "/release\",\"body\":\"same\",\"assets\":[]}";
 
 		final same = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
-		same.looksAt("http://127.0.0.1:" + port + "/repos/");
+		pointed(same, port);
 		same.look();
 
 		final settledAt = waits(same);
@@ -382,7 +430,7 @@ class UpdateCheck {
 		papers = "";
 
 		final gone = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
-		gone.looksAt("http://127.0.0.1:" + port + "/repos/");
+		pointed(gone, port);
 		gone.look();
 
 		final missed = waits(gone);
@@ -391,6 +439,179 @@ class UpdateCheck {
 			"settled at " + phase(missed) + " rather than waiting");
 
 		papers = was;
+	}
+
+	/**
+		Only a file the offered release carries in this repository is taken. Every address in
+		the document is handed to the downloader, so one pointing anywhere else, another
+		repository, another release, plain http or another file's address, has to leave
+		nothing to download, while the same document pointing home still offers the file.
+
+		@param archive The file the server hands out.
+	**/
+	static function strangers(archive:String):Void {
+		final leaf = haxe.io.Path.withoutDirectory(archive);
+		final home = "https://github.com/owner/name/releases/download/v" + OFFERED + "/";
+
+		final elsewhere = [
+			"https://example.com/owner/name/releases/download/v" + OFFERED + "/" + leaf,
+			"https://github.com/other/name/releases/download/v" + OFFERED + "/" + leaf,
+			"https://github.com/owner/name/releases/download/v1.0.0/" + leaf,
+			"http://github.com/owner/name/releases/download/v" + OFFERED + "/" + leaf,
+			home + "renamed-" + leaf
+		];
+
+		var taken = 0;
+
+		for (url in elsewhere) {
+			final update = fresh();
+			update.read(listing(leaf, url, home + Update.SUMS));
+
+			if (update.saidAt != "") taken++;
+		}
+
+		final control = fresh();
+		control.read(listing(leaf, home + leaf, home + Update.SUMS));
+
+		final homely = control.saidAt == home + leaf && control.sumsAt == home + Update.SUMS;
+
+		says("a file from outside the release goes", taken == 0 && homely,
+			taken + " of " + elsewhere.length + " addresses outside the release taken, and the"
+			+ " release's own " + (homely ? "taken with its hashes" : "not taken"));
+	}
+
+	/**
+		@param leaf What the release calls its one file.
+		@param url Where the document says that file is.
+		@param sums Where it says the hashes are.
+		@return A release document offering the one file and the hashes.
+	**/
+	static function listing(leaf:String, url:String, sums:String):String {
+		return "{\"tag_name\":\"v" + OFFERED + "\",\"assets\":["
+			+ "{\"name\":\"" + leaf + "\",\"size\":16,\"browser_download_url\":\"" + url + "\"},"
+			+ "{\"name\":\"" + Update.SUMS + "\",\"size\":0,\"browser_download_url\":\"" + sums
+			+ "\"}]}";
+	}
+
+	/**
+		A release publishing no hashes is not offered, because nothing it carries could be
+		checked, and a download that cannot be checked is refused after it has been fetched.
+
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+	**/
+	static function unsummed(port:Int, archive:String):Void {
+		final was = papers;
+		final leaf = haxe.io.Path.withoutDirectory(archive);
+
+		papers = "{\"tag_name\":\"v" + OFFERED + "\",\"assets\":[{\"name\":\"" + leaf
+			+ "\",\"size\":" + FileSystem.stat(archive).size + ",\"browser_download_url\":\""
+			+ served(port) + leaf + "\"}]}";
+
+		final update = fresh();
+		pointed(update, port);
+		update.look();
+
+		final settledAt = waits(update);
+
+		says("a release without hashes is not offered", settledAt == Update.UNREACHABLE,
+			"settled at " + phase(settledAt) + " with " + update.named() + " and no "
+			+ Update.SUMS);
+
+		papers = was;
+	}
+
+	/**
+		A hash file listing the chosen file twice says two different things about it, and
+		taking either line would be a guess.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+	**/
+	static function twice(where:String, port:Int, archive:String):Void {
+		final list = lot + "/" + Update.SUMS;
+		final was = File.getContent(list);
+		final leaf = haxe.io.Path.withoutDirectory(archive);
+
+		File.saveContent(list, was + StringTools.lpad("", "0", 64) + "  " + leaf + "\n");
+
+		final update = fresh();
+		pointed(update, port);
+		update.look();
+
+		final into = where + "/downloads/twice";
+		final waiting = settles(update, Update.WAITING);
+
+		if (waiting) update.take(into);
+
+		final settledAt = waiting ? downloads(update) : update.state();
+
+		File.saveContent(list, was);
+
+		says("a name listed twice is refused", settledAt == Update.BROKEN,
+			!waiting ? "the api would not answer"
+				: "settled at " + phase(settledAt) + (update.wrong == "" ? "" : ": " + update.wrong));
+	}
+
+	/**
+		A download is checked when it arrives and installed later, so the file is checked
+		again before anything is replaced, and one changed in between is refused and deleted.
+
+		@param where The working folder.
+		@param port The port the server is on.
+	**/
+	static function changed(where:String, port:Int):Void {
+		final install = where + "/unchanged";
+
+		wrote(install + "/" + mdd.Config.SHORT + ending(), "the old program, 0.1.0\n");
+
+		final update = fresh();
+		pointed(update, port);
+		update.look();
+
+		final waiting = settles(update, Update.WAITING);
+		final into = where + "/downloads/changed-" + update.named();
+
+		if (waiting) update.take(into);
+
+		final pulled = waiting && downloads(update) == Update.FETCHED;
+
+		if (pulled) File.saveContent(into, "swapped for something else after the check");
+		if (pulled) update.applies(install, false, false);
+
+		final settledAt = pulled ? applying(update) : update.state();
+		final program = File.getContent(install + "/" + mdd.Config.SHORT + ending());
+
+		says("a file changed after the check is refused",
+			settledAt == Update.BROKEN && !FileSystem.exists(into) && program.indexOf(OFFERED) < 0,
+			!pulled ? "the download did not arrive"
+				: "settled at " + phase(settledAt) + (update.wrong == "" ? "" : ": " + update.wrong)
+				+ (FileSystem.exists(into) ? ", and the file was kept" : ", and it was deleted"));
+	}
+
+	/**
+		@param update One that has been told to download.
+		@return The state it settles in once the download has finished or been refused.
+	**/
+	static function downloads(update:Update):Int {
+		final until = Sys.time() + PATIENCE;
+
+		while (Sys.time() < until && update.state() == Update.FETCHING) Sys.sleep(0.02);
+
+		return update.state();
+	}
+
+	/**
+		@param update One that has been told to apply what it downloaded.
+		@return The state it settles in once applying has finished.
+	**/
+	static function applying(update:Update):Int {
+		final until = Sys.time() + PATIENCE;
+
+		while (Sys.time() < until && update.state() == Update.APPLYING) Sys.sleep(0.02);
+
+		return update.state();
 	}
 
 	/**
@@ -417,6 +638,9 @@ class UpdateCheck {
 			case Update.CURRENT: "current";
 			case Update.WAITING: "WAITING";
 			case Update.UNREACHABLE: "unreachable";
+			case Update.FETCHED: "fetched";
+			case Update.APPLIED: "applied";
+			case Update.BROKEN: "broken";
 			case _: "" + state;
 		}
 	}
@@ -445,7 +669,7 @@ class UpdateCheck {
 		wrote(install + "/userdata/settings/kept.txt", "the reader's own settings\n");
 
 		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
-		update.looksAt("http://127.0.0.1:" + port + "/repos/");
+		pointed(update, port);
 
 		update.look();
 
@@ -531,7 +755,7 @@ class UpdateCheck {
 
 	static function installed(where:String, port:Int):Void {
 		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), false);
-		update.looksAt("http://127.0.0.1:" + port + "/repos/");
+		pointed(update, port);
 
 		update.look();
 

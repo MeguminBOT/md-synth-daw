@@ -77,6 +77,21 @@ final class Update {
 	static inline final LATEST = "/releases/latest";
 
 	/**
+		Where a release's files are downloaded from, before the repository's name.
+	**/
+	static inline final DOWNLOADS = "https://github.com/";
+
+	/**
+		The most a release document or a hash file may run to, in bytes.
+	**/
+	static inline final PAPERS = 1 << 22;
+
+	/**
+		The most a download may run to where the release does not say how large it is.
+	**/
+	static inline final HEAVIEST = 1 << 30;
+
+	/**
 		What the release calls the file listing a hash for everything it carries.
 	**/
 	public static inline final SUMS = "SHA256SUMS";
@@ -168,7 +183,16 @@ final class Update {
 	var answered:Int = -1;
 
 	var endpoint:String = API;
+	var downloads:String = DOWNLOADS;
+	var schemes:String = "=https";
 	var weighs:Int = 0;
+
+	/**
+		The hash the download was checked against, which it is checked against again just
+		before anything is replaced.
+	**/
+	var verified:String = "";
+
 	var lock:Null<sys.io.FileOutput> = null;
 
 	final held:Atomic = new Atomic(IDLE);
@@ -193,12 +217,18 @@ final class Update {
 
 	/**
 		Points the updater at another address. Nothing in the application calls this;
-		it is how a check drives the whole path against a local server.
+		it is how a check drives the whole path against a local server. That server answers
+		in plain http, so plain http is allowed from then on, where otherwise every address
+		and every redirect has to be https.
 
 		@param where The address to ask, ending in a slash.
+		@param from Where the release's files are served from in place of GitHub, ending in a
+			slash.
 	**/
-	public function looksAt(where:String):Void {
+	public function looksAt(where:String, from:String):Void {
 		endpoint = where;
+		downloads = from;
+		schemes = "=http,https";
 	}
 
 	/**
@@ -281,7 +311,7 @@ final class Update {
 		}
 
 		if (offered == "" || !newer(offered, running)) return CURRENT;
-		if (saidAt == "") return UNREACHABLE;
+		if (saidAt == "" || sumsAt == "") return UNREACHABLE;
 
 		return WAITING;
 	}
@@ -319,8 +349,7 @@ final class Update {
 			final kept:Array<String> = [];
 
 			if (FileSystem.exists(where)) {
-				for (held in File.getContent(where).split("
-")) {
+				for (held in File.getContent(where).split("\n")) {
 					if (StringTools.trim(held) != "") kept.push(held);
 				}
 			}
@@ -329,9 +358,7 @@ final class Update {
 
 			while (kept.length > KEPT) kept.shift();
 
-			File.saveContent(where, kept.join("
-") + "
-");
+			File.saveContent(where, kept.join("\n") + "\n");
 		} catch (e:Dynamic) {}
 	}
 
@@ -358,6 +385,10 @@ final class Update {
 	/**
 		Reads a release document and chooses which of its files this copy wants.
 
+		Only a file this release carries in this repository is taken, and nothing stands in
+		for one where none suits: offering something else, the release page included, puts
+		up a notice whose download can only be refused.
+
 		@param said The release as JSON.
 	**/
 	public function read(said:String):Void {
@@ -370,8 +401,9 @@ final class Update {
 		weighs = 0;
 
 		final node = Json.parse(said);
+		final tag = StringTools.trim(node.get("tag_name").saying(""));
 
-		offered = trimmed(node.get("tag_name").saying(""));
+		offered = trimmed(tag);
 		notes = firstLine(node.get("body").saying(""));
 
 		if (node.get("prerelease").truth(false) || node.get("draft").truth(false)) {
@@ -382,7 +414,7 @@ final class Update {
 		final listed = node.get("assets");
 		assets = listed.length();
 
-		var fallback = "";
+		final release = released(tag);
 		var best = 0;
 
 		for (i in 0...listed.length()) {
@@ -391,14 +423,12 @@ final class Update {
 			final name = called.toLowerCase();
 			final url = asset.get("browser_download_url").saying("");
 
-			if (url == "") continue;
+			if (!belongs(url, release, called)) continue;
 
 			if (name == SUMS.toLowerCase()) {
 				sumsAt = url;
 				continue;
 			}
-
-			if (fallback == "") fallback = url;
 
 			final score = suits(name);
 			if (score <= best) continue;
@@ -408,21 +438,34 @@ final class Update {
 			chosen = called;
 			weighs = asset.get("size").whole(0);
 		}
+	}
 
-		if (saidAt == "") saidAt = fallback;
-		if (saidAt == "") saidAt = node.get("html_url").saying("");
-		if (!addressed(saidAt)) saidAt = "";
+	/**
+		@param tag The release's tag, as the document writes it.
+		@return Where that release's files are served from in this repository, or an empty
+			string where the tag could not be part of an address.
+	**/
+	function released(tag:String):String {
+		if (tag == "" || plain(tag) != tag) return "";
+		return downloads + repository + "/releases/download/" + tag + "/";
 	}
 
 	/**
 		@param url What the release document offered to download.
-		@return Whether it is an address at all. The document is fetched over the network,
-			and what comes back is handed to a downloader as an argument: anything that is
-			not plainly an address is read as a flag, a local path or a scheme nobody meant
-			to hand it, so only the two schemes this ever wants are taken.
+		@param release Where that release's files are served from.
+		@param called What the document calls the file.
+		@return Whether the address is exactly that file in that release. What comes back from
+			the network is handed to a downloader as an argument, and anything else there is
+			somebody else's file, another release's, a flag, a local path or a scheme nobody
+			meant to hand it. The owner and the repository are compared without case, as
+			GitHub compares them.
 	**/
-	static function addressed(url:String):Bool {
-		return StringTools.startsWith(url, "https://") || StringTools.startsWith(url, "http://");
+	static function belongs(url:String, release:String, called:String):Bool {
+		if (release == "" || called == "" || plain(called) != called) return false;
+		if (url.length != release.length + called.length) return false;
+
+		return url.substr(0, release.length).toLowerCase() == release.toLowerCase()
+			&& url.substr(release.length) == called;
 	}
 
 	/**
@@ -565,9 +608,18 @@ final class Update {
 	**/
 	function downloaded():Int {
 		wrong = "";
-		answered = Sys.command("curl", ["-sL", "--fail", "-o", into, saidAt]);
+		verified = "";
 
-		if (answered != 0) return UNREACHABLE;
+		answered = Sys.command("curl", [
+			"-sL", "--fail", "--proto", schemes, "--proto-redir", schemes,
+			"--connect-timeout", "15", "--max-filesize", "" + (weighs > 0 ? weighs : HEAVIEST),
+			"-o", into, saidAt
+		]);
+
+		if (answered != 0) {
+			discards();
+			return UNREACHABLE;
+		}
 
 		final fault = unmatched();
 
@@ -582,7 +634,7 @@ final class Update {
 	}
 
 	/**
-		Checks the download against the hashes the release publishes.
+		Checks the download against the size and the hashes the release publishes.
 
 		A file off the network is not the file that was built until something says so, and
 		until this ran nothing did: whatever arrived was unpacked and then run. What this
@@ -590,10 +642,9 @@ final class Update {
 		cut short, corrupted in transit, or served by something sitting in the middle of the
 		connection.
 
-		What it does not answer is who built them. Anybody able to replace the file is able
-		to replace the list beside it, so this is the file being whole rather than the file
-		being genuine. The release also carries a signature for every file, and checking one
-		of those is what would answer the other question.
+		What it does not answer is who built them. Anybody able to replace the file in the
+		release is able to replace the list beside it, so this is the file being the one the
+		release carries rather than the release being genuine.
 
 		@return An empty string where the download is the file the release lists, and
 			otherwise what is wrong with it, in words a notice can show.
@@ -602,25 +653,41 @@ final class Update {
 		if (chosen == "") return "nothing says which file this should be";
 		if (sumsAt == "") return "the release publishes no " + SUMS + " to check it against";
 
+		if (weighs > 0 && FileSystem.stat(into).size != weighs) {
+			return "the download is not the size the release lists";
+		}
+
 		final listed = fetched(sumsAt);
 		if (listed == "") return SUMS + " would not download";
 
 		final want = hashOf(listed, chosen);
-		if (want == "") return SUMS + " does not list " + chosen;
+		if (want == "") return SUMS + " does not list " + chosen + " once, with a whole hash";
 
-		final held = haxe.crypto.Sha256.make(File.getBytes(into)).toHex().toLowerCase();
-		if (held == want) return "";
+		final held = hashed(into);
+		if (held != want) return "the download is not the file the release lists";
 
-		return "the download is not the file the release lists";
+		verified = held;
+		return "";
+	}
+
+	/**
+		@param path A file.
+		@return Its SHA-256, in lower case hexadecimal.
+	**/
+	static function hashed(path:String):String {
+		return haxe.crypto.Sha256.make(File.getBytes(path)).toHex().toLowerCase();
 	}
 
 	/**
 		@param listed A hash file, one hash and one name a line, as sha256sum writes it.
 		@param want Which name to find.
 		@return The hash listed against it, in lower case, or an empty string where the name
-			is not listed.
+			is not listed, is listed more than once, or is listed against something that is
+			not a whole SHA-256.
 	**/
 	static function hashOf(listed:String, want:String):String {
+		var found = "";
+
 		for (line in listed.split("\n")) {
 			final kept = StringTools.trim(line);
 			final gap = kept.indexOf(" ");
@@ -632,10 +699,28 @@ final class Update {
 
 			if (name != want) continue;
 
-			return kept.substr(0, gap).toLowerCase();
+			final hash = kept.substr(0, gap).toLowerCase();
+			if (found != "" || !whole(hash)) return "";
+
+			found = hash;
 		}
 
-		return "";
+		return found;
+	}
+
+	/**
+		@param hash What a hash file lists.
+		@return Whether it is a SHA-256 written out in full: 64 hexadecimal digits.
+	**/
+	static function whole(hash:String):Bool {
+		if (hash.length != 64) return false;
+
+		for (index in 0...hash.length) {
+			final code = StringTools.fastCodeAt(hash, index);
+			if ((code < 48 || code > 57) && (code < 97 || code > 102)) return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -694,7 +779,10 @@ final class Update {
 	**/
 	function swapped(where:String, restart:Bool, guarded:Bool):Void {
 		try {
-			if (portable) carried(where, restart, guarded);
+			if (verified == "" || hashed(into) != verified) {
+				wrong = "the download changed after it was checked";
+				discards();
+			} else if (portable) carried(where, restart, guarded);
 			else installs(where, restart, guarded);
 		} catch (e:Dynamic) {
 			wrong = Std.string(e);
@@ -982,7 +1070,8 @@ final class Update {
 	**/
 	function fetched(url:String):String {
 		final run = new sys.io.Process("curl", [
-			"-sL", "--fail", "--max-time", "10",
+			"-sL", "--fail", "--proto", schemes, "--proto-redir", schemes,
+			"--max-time", "10", "--max-filesize", "" + PAPERS,
 			"-H", "Accept: application/vnd.github+json",
 			"-H", "User-Agent: " + mdd.Config.SHORT + "/" + mdd.Config.VERSION,
 			url

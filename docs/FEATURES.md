@@ -720,10 +720,13 @@ importing one reads those back.
   says which version you have and which is offered, and gives you download, not now, or stop
   asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
-  the new copy. What it downloads is checked against the `SHA256SUMS` the release publishes before
-  anything is unpacked, and a file that does not match is deleted rather than run. That says the
-  download arrived whole, not that it is genuine: the Sigstore signature beside each file is what
-  answers that, and checking one of those is still something you do yourself.
+  the new copy. It only downloads over https, and only files the release itself carries in this
+  project's repository on GitHub, and a release that publishes no `SHA256SUMS` is not offered at
+  all. What it downloads has to be the size the release lists and match its `SHA256SUMS` before
+  anything is unpacked, and it is checked again just before anything is replaced; a file that does
+  not match is deleted rather than run. That says the download is the file the release carries, not
+  that the release is genuine: the Sigstore signature beside each file is what answers that, and
+  checking one of those is still something you do yourself.
 - **An installer that knows what is already there.** Running it over an existing copy says which
   version is installed and which one it carries, and asks before replacing it, whether that is an
   update, the same version again, or a downgrade.
