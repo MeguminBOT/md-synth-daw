@@ -386,6 +386,15 @@ final class Sequencer {
 	var paced:Null<Stream> = null;
 
 	/**
+		Makes the stream a span is written into before a driver paces it, which `emit` otherwise
+		makes the first time a piece is paced. It allocates, so a sequencer the render thread runs
+		is readied on the thread that built it.
+	**/
+	public function readies():Void {
+		if (paced == null) paced = new Stream(capacity * 4);
+	}
+
+	/**
 		Sequences a span given in output samples, which is what the render thread works
 		in. Gathers the events, sorts them, and plays them into the stream.
 
@@ -427,7 +436,7 @@ final class Sequencer {
 			return count;
 		}
 
-		if (paced == null) paced = new Stream(capacity * 4);
+		readies();
 
 		final scratch = paced;
 		scratch.clear();

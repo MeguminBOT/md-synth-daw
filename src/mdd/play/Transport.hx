@@ -119,6 +119,7 @@ final class Transport {
 		this.song = song;
 		sequencer = new Sequencer(song);
 		sequencer.quiets();
+		sequencer.readies();
 		for (index in 0...Part.COUNT) sounded[index] = true;
 		stream = new Stream(capacity);
 	}
