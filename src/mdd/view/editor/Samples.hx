@@ -60,6 +60,13 @@ final class Samples extends Widget {
 	var grabbing:Int = -1;
 	var hoverAt:Int = -1;
 
+	var totalShown:Int = -1;
+	var ceilingShown:Int = -1;
+	var totalText:String = "";
+	final rowLength:Array<Int> = [];
+	final rowRate:Array<Int> = [];
+	final rowText:Array<String> = [];
+
 	/**
 		Builds the editor.
 
@@ -405,9 +412,14 @@ final class Samples extends Widget {
 		final ceiling = budget == null ? 65536 : budget.profile.sampleBytes;
 		final over = total > ceiling;
 
-		paint.textRight(kb(total) + " / " + kb(ceiling) + " kb",
-			x + width - metrics.inset, y + head() * 0.5 + small.ascent * 0.5,
-			over ? theme.over : theme.dim, 0.8);
+		if (total != totalShown || ceiling != ceilingShown) {
+			totalShown = total;
+			ceilingShown = ceiling;
+			totalText = kb(total) + " / " + kb(ceiling) + " kb";
+		}
+
+		paint.textRight(totalText, x + width - metrics.inset,
+			y + head() * 0.5 + small.ascent * 0.5, over ? theme.over : theme.dim, 0.8);
 
 		final tall = slots();
 
@@ -429,16 +441,40 @@ final class Samples extends Widget {
 
 			paint.text(sample.name, x + metrics.inset,
 				row + (tall - small.height) * 0.5 + small.ascent, theme.ink);
-			paint.textRight(sample.length() + " at " + sample.rate + " Hz",
-				x + width - metrics.inset, row + (tall - small.height) * 0.5 + small.ascent,
-				theme.dim, 0.75);
+			paint.textRight(sized(index, sample), x + width - metrics.inset,
+				row + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.75);
 		}
 
 		paint.popClip();
 		waveform(paint, theme, metrics);
 	}
 
+	/**
+		@param index A row.
+		@param sample The recording on it.
+		@return How long the recording is and the rate it plays at, made again only when either
+			has changed, so a frame of rows allocates nothing.
+	**/
+	function sized(index:Int, sample:Sample):String {
+		while (rowText.length <= index) {
+			rowLength.push(-1);
+			rowRate.push(-1);
+			rowText.push("");
+		}
+
+		final length = sample.length();
+
+		if (length != rowLength[index] || sample.rate != rowRate[index]) {
+			rowLength[index] = length;
+			rowRate[index] = sample.rate;
+			rowText[index] = length + " at " + sample.rate + " Hz";
+		}
+
+		return rowText[index];
+	}
+
 	function waveform(paint:Paint, theme:Theme, metrics:Metrics):Void {
+
 		final sample = sample();
 		final top = wave();
 		final tall = waveTall();

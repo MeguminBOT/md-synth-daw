@@ -57,6 +57,12 @@ final class ChannelRack extends Widget {
 	var menu:Null<Menu> = null;
 	var menuFor:Int = -1;
 
+	final cone:Vector<Float> = new Vector<Float>(12);
+	final fitted:Array<String> = cpp.NativeArray.create(Part.COUNT);
+	final fittedFrom:Array<String> = cpp.NativeArray.create(Part.COUNT);
+	final fittedRoom:Vector<Float> = new Vector<Float>(Part.COUNT);
+	var fittedFace:Null<mdd.ui.Font> = null;
+
 	/**
 		Builds the rack.
 
@@ -501,7 +507,7 @@ final class ChannelRack extends Widget {
 
 			if (room < metrics.whole(24)) continue;
 
-			paint.text(shortened(paint, said, room), left, line, theme.dim, 0.95);
+			paint.text(fits(paint, index, said, room), left, line, theme.dim, 0.95);
 		}
 
 		paint.reface(font);
@@ -569,7 +575,7 @@ final class ChannelRack extends Widget {
 		final neck = back + facing * wide * 0.42;
 		final mouth = back + facing * wide;
 
-		final shape = new haxe.ds.Vector<Float>(12);
+		final shape = cone;
 
 		shape[0] = back;
 		shape[1] = middle - near;
@@ -585,6 +591,31 @@ final class ChannelRack extends Widget {
 		shape[11] = middle + near;
 
 		paint.polygon(shape, 6, colour, alpha);
+	}
+
+	/**
+		What a row's instrument name is shortened to, cut again only when the name, the room or
+		the face has changed since, so a rack sitting still draws without allocating.
+
+		@param paint What it is drawn with, in the face it is drawn in.
+		@param index The row.
+		@param said The whole name.
+		@param room How wide it may be.
+		@return The name, shortened to fit.
+	**/
+	function fits(paint:Paint, index:Int, said:String, room:Float):String {
+		if (paint.font != fittedFace) {
+			fittedFace = paint.font;
+			for (row in 0...Part.COUNT) fittedFrom[row] = null;
+		}
+
+		if (said != fittedFrom[index] || room != fittedRoom[index]) {
+			fittedFrom[index] = said;
+			fittedRoom[index] = room;
+			fitted[index] = shortened(paint, said, room);
+		}
+
+		return fitted[index];
 	}
 
 	static function shortened(paint:Paint, said:String, room:Float):String {
