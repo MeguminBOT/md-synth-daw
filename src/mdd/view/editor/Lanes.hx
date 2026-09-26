@@ -2393,23 +2393,8 @@ final class Lanes extends Widget {
 		final from = x + left;
 		final reach = holding != null ? holding.length : span();
 
-		var shade = Std.int(tickAt(from) / bar) * bar;
-		if (shade < 0) shade = 0;
-
-		while (shade < reach) {
-			final start = atTick(shade);
-			if (start > x + width) break;
-
-			if (Std.int(shade / bar) % 2 == 1) {
-				final begins = start < from ? from : start;
-				final ends = atTick(shade + bar);
-
-				paint.rect(begins, top, (ends > x + width ? x + width : ends) - begins, tall,
-					theme.ink, PianoRoll.SHADE);
-			}
-
-			shade += bar;
-		}
+		Bars.shade(paint, theme.ink, bar, reach, x + left, offsetX, perTick, from, x + width, top,
+			tall);
 
 		var fine = step;
 		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;

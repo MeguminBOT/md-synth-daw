@@ -1960,23 +1960,8 @@ final class Playlist extends Widget {
 		final beat = session.song.beatOf(null);
 		final step = session.snap < 1 ? beat : session.snap;
 
-		var shade = Std.int(tickAt(left) / bar) * bar;
-		if (shade < 0) shade = 0;
-
-		while (shade < length) {
-			final from = atTick(shade);
-			if (from > x + width) break;
-
-			if (Std.int(shade / bar) % 2 == 1) {
-				final start = from < left ? left : from;
-				final ends = atTick(shade + bar);
-
-				paint.rect(start, top, (ends > x + width ? x + width : ends) - start, height - ruler(),
-					theme.ink, PianoRoll.SHADE);
-			}
-
-			shade += bar;
-		}
+		Bars.shade(paint, theme.ink, bar, length, x + names(), offsetX, perTick, left, x + width,
+			top, height - ruler());
 
 		var fine = step;
 		while (fine * perTick < metrics.whole(7) && fine < bar) fine *= 2;

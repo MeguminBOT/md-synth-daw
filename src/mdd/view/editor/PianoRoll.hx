@@ -85,11 +85,6 @@ final class PianoRoll extends Widget {
 	**/
 	static final SNAPS:Array<Int> = [64, 48, 32, 24, 16, 12, 8, 6, 4, 3, 2, 1, 0];
 
-	/**
-		How strongly every other bar is lightened, so where one bar ends and the next begins can be
-		seen at any zoom.
-	**/
-	public static inline final SHADE = 0.035;
 
 	static final SNAP_NAMES:Array<String> = ["1/64", "1/48", "1/32", "1/24", "1/16", "1/12",
 		"1/8", "1/6", "1/4", "1/3", "1/2", "1/1", ""];
@@ -2960,23 +2955,8 @@ final class PianoRoll extends Widget {
 		final hair = metrics.whole(1);
 		final step = session.snap;
 
-		var shade = Std.int(tickAt(left) / bar) * bar;
-		if (shade < 0) shade = 0;
-
-		while (shade < length) {
-			final from = atTick(shade);
-			if (from > x + width) break;
-
-			if (Std.int(shade / bar) % 2 == 1) {
-				final start = from < left ? left : from;
-				final ends = atTick(shade + bar);
-
-				paint.rect(start, top, (ends > x + width ? x + width : ends) - start, grid(),
-					theme.ink, SHADE);
-			}
-
-			shade += bar;
-		}
+		Bars.shade(paint, theme.ink, bar, length, x + gutter(), offsetX, perTick, left, x + width,
+			top, grid());
 
 		if (step > 0 && step < beat && step * perTick >= metrics.whole(5)) {
 			var fine = Std.int(tickAt(left) / step) * step;
