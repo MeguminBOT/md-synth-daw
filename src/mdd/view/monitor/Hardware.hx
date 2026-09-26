@@ -41,6 +41,10 @@ final class Hardware extends Widget {
 	**/
 	public var levels:Null<Vector<Float>> = null;
 
+	final shownHeld:Vector<Int> = new Vector<Int>(ROWS);
+	final shownMost:Vector<Int> = new Vector<Int>(ROWS);
+	final shownText:Array<String> = cpp.NativeArray.create(ROWS);
+
 	/**
 		Builds the meter.
 
@@ -167,14 +171,26 @@ final class Hardware extends Widget {
 		}
 	}
 
+	/**
+		@param row A row.
+		@return How much of it is in use against what the machine has, built again only when
+			either has changed.
+	**/
 	function shown(row:Int):String {
 		final held = used(row);
 		final ceiling = most(row);
 
-		if (row != ROWS - 1) return held + " / " + ceiling;
-		if (ceiling <= 0) return Math.round(held / 1024) + " kb";
+		if (shownText[row] != null && held == shownHeld[row] && ceiling == shownMost[row]) {
+			return shownText[row];
+		}
 
-		return Math.round(held / 1024) + " / " + Math.round(ceiling / 1024) + " kb";
+		shownHeld[row] = held;
+		shownMost[row] = ceiling;
+		shownText[row] = row != ROWS - 1 ? held + " / " + ceiling
+			: ceiling <= 0 ? Math.round(held / 1024) + " kb"
+			: Math.round(held / 1024) + " / " + Math.round(ceiling / 1024) + " kb";
+
+		return shownText[row];
 	}
 
 	override function paint(paint:Paint):Void {

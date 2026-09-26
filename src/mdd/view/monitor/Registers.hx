@@ -24,7 +24,7 @@ import mdd.ui.Theme;
 **/
 final class Registers extends Scroll {
 	static inline final KEPT = 512;
-	static inline final SEEN = 256;
+	static final PORTS:Array<String> = ["port 0", "port 1", "port 2", "port 3"];
 
 	/**
 		The session to read.
@@ -50,10 +50,18 @@ final class Registers extends Scroll {
 	final ports:Vector<Int> = new Vector<Int>(KEPT);
 	final values:Vector<Int> = new Vector<Int>(KEPT);
 
-	final ymSeen:Vector<Int> = new Vector<Int>(SEEN * 2);
-	final psgSeen:Vector<Int> = new Vector<Int>(4);
-
 	var at:Int = 0;
+
+	final tickShown:Vector<Int> = new Vector<Int>(KEPT);
+	final tickText:Array<String> = cpp.NativeArray.create(KEPT);
+	final portText:Array<String> = cpp.NativeArray.create(4);
+	final squareText:Array<String> = cpp.NativeArray.create(8);
+	var dataText:String = "";
+	var spokenIn:String = "";
+	var spoken:Bool = false;
+	var headWrites:Int = -1;
+	var headFollowing:Bool = false;
+	var headText:String = "";
 
 	/**
 		Builds the timeline.
@@ -73,9 +81,6 @@ final class Registers extends Scroll {
 			ports[index] = 0;
 			values[index] = -1;
 		}
-
-		for (index in 0...SEEN * 2) ymSeen[index] = -1;
-		for (index in 0...4) psgSeen[index] = -1;
 	}
 
 	/**
@@ -86,8 +91,6 @@ final class Registers extends Scroll {
 		at = 0;
 
 		for (index in 0...KEPT) values[index] = -1;
-		for (index in 0...SEEN * 2) ymSeen[index] = -1;
-		for (index in 0...4) psgSeen[index] = -1;
 
 		invalidate();
 	}
@@ -110,27 +113,12 @@ final class Registers extends Scroll {
 			ports[at] = stream.portAt(index);
 			values[at] = stream.valueAt(index);
 
-			remember(kinds[at], ports[at], values[at]);
-
 			at = (at + 1) % KEPT;
 			writes++;
 		}
 
 		invalidate();
 		return many;
-	}
-
-	function remember(kind:Int, port:Int, value:Int):Void {
-		if (kind != Stream.YM) {
-			if ((value & 0x80) == 0) return;
-
-			final which = (value >> 5) & 3;
-			psgSeen[which] = value;
-			return;
-		}
-
-		final held = port & 1;
-		if (held > 1) return;
 	}
 
 	/**
@@ -149,7 +137,6 @@ final class Registers extends Scroll {
 	}
 
 	function indexOf(row:Int):Int {
-		final many = rows();
 		if (writes < KEPT) return row;
 
 		return (at + row) % KEPT;
@@ -253,17 +240,54 @@ final class Registers extends Scroll {
 
 	function named(kind:Int, port:Int, value:Int):String {
 		if (kind != Stream.YM) return square(value);
-		return "port " + port;
+		return PORTS[port & 3];
 	}
 
 	function square(value:Int):String {
-		if ((value & 0x80) == 0) return translate(Locale.REGISTERS_DATA);
+		speaks();
 
-		final which = (value >> 5) & 3;
-		final volume = (value & 0x10) != 0;
+		if ((value & 0x80) == 0) return dataText;
 
-		return (which == 3 ? "noise" : "psg" + (which + 1)) + " "
-			+ translate(volume ? Locale.REGISTERS_LEVEL : Locale.REGISTERS_TONE);
+		return squareText[((value >> 5) & 3) * 2 + ((value & 0x10) != 0 ? 1 : 0)];
+	}
+
+	/**
+		Makes the words the rows write again where the language has changed since they were
+		last made, so a frame of rows allocates nothing.
+	**/
+	function speaks():Void {
+		final root = root();
+		final language = root == null ? "" : root.translation.language;
+
+		if (spoken && language == spokenIn) return;
+
+		spoken = true;
+		spokenIn = language;
+		headText = "";
+		dataText = translate(Locale.REGISTERS_DATA);
+
+		for (which in 0...4) {
+			final part = which == 3 ? "noise" : "psg" + (which + 1);
+
+			squareText[which * 2] = part + " " + translate(Locale.REGISTERS_TONE);
+			squareText[which * 2 + 1] = part + " " + translate(Locale.REGISTERS_LEVEL);
+		}
+
+		for (port in 0...4) portText[port] = filled(Locale.FIELD_PORT, [Std.string(port)]);
+	}
+
+	/**
+		@param index A slot.
+		@return The tick of the write held there, in hexadecimal, made again only when the slot
+			holds a different tick.
+	**/
+	function tickOf(index:Int):String {
+		if (tickText[index] == null || tickShown[index] != ticks[index]) {
+			tickShown[index] = ticks[index];
+			tickText[index] = hex(ticks[index], 8);
+		}
+
+		return tickText[index];
 	}
 
 	static function hex(value:Int, wide:Int):String {
@@ -288,10 +312,17 @@ final class Registers extends Scroll {
 		Panel.titled(paint, theme, metrics, translate(Locale.VIEW_REGISTERS), x, y, width, head);
 		paint.reface(small);
 
-		paint.textRight(writes + "   " + translate(following
-			? Locale.REGISTERS_FOLLOWING : Locale.REGISTERS_HELD),
-			x + width - metrics.inset, y + (head - small.height) * 0.5 + small.ascent,
-			theme.dim, 0.8);
+		speaks();
+
+		if (writes != headWrites || following != headFollowing || headText == "") {
+			headWrites = writes;
+			headFollowing = following;
+			headText = writes + "   "
+				+ translate(following ? Locale.REGISTERS_FOLLOWING : Locale.REGISTERS_HELD);
+		}
+
+		paint.textRight(headText, x + width - metrics.inset,
+			y + (head - small.height) * 0.5 + small.ascent, theme.dim, 0.8);
 
 		if (many == 0) {
 			paint.text(translate(Locale.REGISTERS_NOTHING), x + metrics.inset,
@@ -331,15 +362,12 @@ final class Registers extends Scroll {
 
 			final ym = kinds[index] == Stream.YM;
 
-			paint.text(hex(ticks[index], 8), tickAt, line, theme.dim, 0.85);
+			paint.text(tickOf(index), tickAt, line, theme.dim, 0.85);
 			paint.text(ym ? "ym" : "psg", chipAt, line, ym ? theme.part(1) : theme.part(6), 1);
 
-			if (ym) {
-				paint.text(filled(Locale.FIELD_PORT, ["" + ports[index]]), portAt, line,
-					theme.dim, 0.85);
-			}
+			if (ym) paint.text(portText[ports[index] & 3], portAt, line, theme.dim, 0.85);
 
-			paint.text(hex(values[index], 2), valueAt, line, theme.ink, 1);
+			paint.text(root.numerals.hex(values[index]), valueAt, line, theme.ink, 1);
 
 			paint.reface(small);
 			paint.text(named(kinds[index], ports[index], values[index]), sayAt, line,

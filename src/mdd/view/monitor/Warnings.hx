@@ -45,6 +45,11 @@ final class Warnings extends Scroll {
 
 	var hoverAt:Int = -1;
 
+	final saidFor:Array<Diagnostic> = [];
+	final saidWhat:Array<String> = [];
+	final saidWhy:Array<String> = [];
+	var saidIn:String = "";
+
 	/**
 		Builds the list.
 
@@ -157,9 +162,16 @@ final class Warnings extends Scroll {
 
 		painted = last - first;
 
+		if (root.translation.language != saidIn) {
+			saidIn = root.translation.language;
+			for (index in 0...saidFor.length) saidFor[index] = null;
+		}
+
 		for (at in first...last) {
 			final found = budget.found[at];
 			final top = y + at * tall - offsetY;
+
+			says(at, found);
 
 			if (at == chosen) {
 				paint.rect(x, top, width, tall, theme.accent, Theme.SELECT);
@@ -175,16 +187,36 @@ final class Warnings extends Scroll {
 			final line = top + (tall - font.height) * 0.5 + font.ascent;
 			paint.text(found.part.name(), x + metrics.inset, line, theme.part(found.part.index()));
 
-			paint.text(filled(found.saying, found.values),
-				x + metrics.inset + metrics.whole(52), line, theme.ink);
+			paint.text(saidWhat[at], x + metrics.inset + metrics.whole(52), line, theme.ink);
 
 			paint.reface(small);
-			paint.textRight(filled(found.reason, found.values),
-				x + width - metrics.inset,
+			paint.textRight(saidWhy[at], x + width - metrics.inset,
 				top + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.75);
 		}
 
 		paint.popClip();
 		bar(paint);
 	}
+
+	/**
+		Makes what a row says and why again where the warning on it is not the one it was made
+		for, so a frame of rows allocates nothing.
+
+		@param at A row.
+		@param found The warning on it.
+	**/
+	function says(at:Int, found:Diagnostic):Void {
+		while (saidFor.length <= at) {
+			saidFor.push(null);
+			saidWhat.push("");
+			saidWhy.push("");
+		}
+
+		if (saidFor[at] == found) return;
+
+		saidFor[at] = found;
+		saidWhat[at] = filled(found.saying, found.values);
+		saidWhy[at] = filled(found.reason, found.values);
+	}
+
 }
