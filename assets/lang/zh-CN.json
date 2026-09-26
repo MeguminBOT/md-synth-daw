@@ -708,6 +708,7 @@
   "said.pointsCopied": "已复制节点：{0}",
   "said.pointsPasted": "已粘贴节点：{0}",
   "said.pointsSelected": "已选节点：{0}",
+  "said.preferencesUnwritten": "无法将首选项保存到 {0}",
   "said.presetAgain": "{0} 已还原为 {1} 的值",
   "said.presetCopied": "已复制 {0} 的预设",
   "said.presetImported": "已导入预设 {0}",

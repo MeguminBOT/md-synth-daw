@@ -708,6 +708,7 @@
   "said.pointsCopied": "points copiés : {0}",
   "said.pointsPasted": "points collés : {0}",
   "said.pointsSelected": "points sélectionnés : {0}",
+  "said.preferencesUnwritten": "impossible d’enregistrer les préférences dans {0}",
   "said.presetAgain": "{0} revient à ce qu’a {1}",
   "said.presetCopied": "preset de {0} copié",
   "said.presetImported": "preset {0} importé",

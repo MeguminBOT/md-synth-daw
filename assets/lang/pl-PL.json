@@ -708,6 +708,7 @@
   "said.pointsCopied": "skopiowane punkty: {0}",
   "said.pointsPasted": "wklejone punkty: {0}",
   "said.pointsSelected": "zaznaczone punkty: {0}",
+  "said.preferencesUnwritten": "nie udało się zapisać preferencji w {0}",
   "said.presetAgain": "{0} z powrotem jak w {1}",
   "said.presetCopied": "skopiowano preset z {0}",
   "said.presetImported": "zaimportowano preset {0}",

@@ -708,6 +708,7 @@
   "said.pointsCopied": "kopierade punkter: {0}",
   "said.pointsPasted": "inklistrade punkter: {0}",
   "said.pointsSelected": "valda punkter: {0}",
+  "said.preferencesUnwritten": "kunde inte spara inställningarna i {0}",
   "said.presetAgain": "{0} tillbaka till det {1} har",
   "said.presetCopied": "kopierade förinställningen på {0}",
   "said.presetImported": "förinställningen {0} importerad",

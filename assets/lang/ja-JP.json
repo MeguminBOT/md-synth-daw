@@ -708,6 +708,7 @@
   "said.pointsCopied": "コピーしたポイント: {0}",
   "said.pointsPasted": "貼り付けたポイント: {0}",
   "said.pointsSelected": "選択したポイント: {0}",
+  "said.preferencesUnwritten": "環境設定を {0} に保存できませんでした",
   "said.presetAgain": "{0} を {1} の値に戻しました",
   "said.presetCopied": "{0} のプリセットをコピーしました",
   "said.presetImported": "プリセット {0} を読み込みました",

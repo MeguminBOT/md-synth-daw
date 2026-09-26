@@ -708,6 +708,7 @@
   "said.pointsCopied": "скопировано точек: {0}",
   "said.pointsPasted": "вставлено точек: {0}",
   "said.pointsSelected": "выбрано точек: {0}",
+  "said.preferencesUnwritten": "не удалось сохранить настройки в {0}",
   "said.presetAgain": "{0} снова как в {1}",
   "said.presetCopied": "пресет {0} скопирован",
   "said.presetImported": "пресет {0} импортирован",

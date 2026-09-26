@@ -80,6 +80,7 @@ class App {
 	var update:Null<Update> = null;
 
 	var firstRun:Bool = false;
+	var preferencesWritten:Bool = true;
 
 	/**
 		Whether the playhead was being followed when the menus were last built, so they are built
@@ -542,7 +543,7 @@ class App {
 		panels.preferences.onRightClick = function():Void keeps();
 		panels.preferences.onUpdates = function(on:Bool):Void {
 			settings.flag("update", on);
-			settings.save();
+			stores();
 		};
 
 		panels.preferences.onFolder = function(row:Int):Void folder(row);
@@ -639,7 +640,7 @@ class App {
 
 		panels.preferences.onRenderer = function(name:String):Void {
 			settings.put("renderer", name);
-			settings.save();
+			stores();
 
 			session.say(stage.root.translate(Locale.RENDERER_RESTART));
 		};
@@ -653,7 +654,7 @@ class App {
 		panels.notice.onTake = function():Void fetching();
 		panels.notice.onNever = function():Void {
 			settings.flag("update", false);
-			settings.save();
+			stores();
 		};
 
 		firstRun = settings.of("language", "") == "";
@@ -1392,7 +1393,7 @@ class App {
 			settings.whole("automating", session.automating);
 
 			panels.preferences.chose(Preferences.AUTOMATING, session.automating);
-			settings.save();
+			stores();
 
 			stage.root.lower();
 			session.changed();
@@ -1707,7 +1708,7 @@ class App {
 			settings.of("presetsShipped", ""));
 
 		settings.put("presetsShipped", record);
-		settings.save();
+		stores();
 
 		final planted = mdd.app.ShippedBanks.planted(record, keeper.root);
 
@@ -1797,7 +1798,7 @@ class App {
 				rescanned();
 			}
 
-			settings.save();
+			stores();
 			session.say(where);
 			session.changed();
 		}
@@ -1853,7 +1854,7 @@ class App {
 
 		favourites.onChange = function():Void {
 			settings.put("favourites", favourites.spelt());
-			settings.save();
+			stores();
 		};
 
 		final dated = files.cache("added");
@@ -1877,7 +1878,7 @@ class App {
 
 		panels.onPresetView = function(said:String):Void {
 			settings.put("presetView", said);
-			settings.save();
+			stores();
 		};
 
 		if (!settings.asFlag("presetsSorted", false)) {
@@ -2031,7 +2032,24 @@ class App {
 		settings.put("keys", bindings.said());
 		settings.put("controls", mapping.said());
 
-		settings.save();
+		stores();
+	}
+
+	/**
+		Writes the preferences file, and says so where it could not be written. It says it once
+		and not again until a write has worked, so a folder that cannot be written to is not
+		announced on every change.
+	**/
+	function stores():Void {
+		if (settings == null) return;
+
+		final worked = settings.save();
+
+		if (!worked && preferencesWritten && session != null) {
+			session.says(Locale.SAID_PREFERENCES_UNWRITTEN, settings.path);
+		}
+
+		preferencesWritten = worked;
 	}
 
 	/**

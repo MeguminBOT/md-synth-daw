@@ -708,6 +708,7 @@
   "said.pointsCopied": "복사한 포인트: {0}",
   "said.pointsPasted": "붙여넣은 포인트: {0}",
   "said.pointsSelected": "선택한 포인트: {0}",
+  "said.preferencesUnwritten": "환경설정을 {0}에 저장할 수 없습니다",
   "said.presetAgain": "{0} 을 {1} 의 값으로 되돌렸습니다",
   "said.presetCopied": "{0}의 프리셋을 복사했습니다",
   "said.presetImported": "프리셋 {0}을(를) 가져왔습니다",

@@ -708,6 +708,7 @@
   "said.pointsCopied": "points copied: {0}",
   "said.pointsPasted": "points pasted: {0}",
   "said.pointsSelected": "points selected: {0}",
+  "said.preferencesUnwritten": "could not write the settings to {0}",
   "said.presetAgain": "{0} back to what {1} has",
   "said.presetCopied": "copied the preset on {0}",
   "said.presetImported": "preset {0} imported",
