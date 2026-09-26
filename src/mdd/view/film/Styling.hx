@@ -110,6 +110,12 @@ final class Styling extends Widget {
 	var following:Bool = false;
 
 	/**
+		The language the controls were last labelled in, or null where they never were: the panel
+		is built before its window has a root to translate with.
+	**/
+	var labelledIn:Null<String> = null;
+
+	/**
 		Builds the panel for a studio.
 
 		@param studio The studio.
@@ -400,6 +406,8 @@ final class Styling extends Widget {
 	function labelled():Void {
 		final root = root();
 		if (root == null) return;
+
+		labelledIn = root.translation.language;
 
 		final style = studio.style;
 		final layer = studio.chosenLayer();
@@ -720,6 +728,8 @@ final class Styling extends Widget {
 	override function layout():Void {
 		final root = root();
 		if (root == null) return;
+
+		if (labelledIn != root.translation.language) labelled();
 
 		final metrics = root.metrics;
 		final pad = metrics.inset;

@@ -1352,6 +1352,12 @@ class SpineCheck {
 		framed();
 		framed();
 
+		final named = @:privateAccess studio.panel.play.label;
+
+		says("the style editor is labelled", named != "",
+			"built before its root, as its window builds it, its play button reads \"" + named
+			+ "\" once it is laid out");
+
 		final preview = studio.preview;
 		final left = preview.pictureLeft;
 		final top = preview.pictureTop;
