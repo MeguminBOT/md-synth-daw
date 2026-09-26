@@ -221,11 +221,6 @@ final class Render {
 	public final psg:Sn76489 = new Sn76489();
 
 	/**
-		Where register writes arrive from the main thread.
-	**/
-	public final queue:Queue;
-
-	/**
 		The output rate in hertz. Both chips run at their own rates and are resampled to
 		this one.
 	**/
@@ -392,12 +387,10 @@ final class Render {
 
 		@param rate The output rate in hertz. Anything at or below nought becomes 48000.
 		@param frames Frames per block. Anything at or below nought becomes `BLOCK`.
-		@param queue Where register writes arrive from, or null for a queue of its own.
 	**/
-	public function new(rate:Int, frames:Int = BLOCK, queue:Null<Queue> = null) {
+	public function new(rate:Int, frames:Int = BLOCK) {
 		this.rate = rate <= 0 ? 48000 : rate;
 		this.frames = frames <= 0 ? BLOCK : frames;
-		this.queue = queue == null ? new Queue() : queue;
 
 		block = new Vector<cpp.Float32>(this.frames * 2);
 
@@ -499,7 +492,6 @@ final class Render {
 	public function reset():Void {
 		ym.reset();
 		psg.reset();
-		queue.clear();
 
 		fmAt = 0;
 		psgAt = 0;
@@ -526,28 +518,6 @@ final class Render {
 		sounding.forget();
 
 		for (index in 0...SNAPS) snapAt[index] = -1;
-	}
-
-	/**
-		Takes everything waiting in the queue and applies it to the chips.
-
-		@return How many writes were taken.
-	**/
-	public function drain():Int {
-		var took = 0;
-
-		while (true) {
-			final word = queue.pull();
-			if (word < 0) break;
-
-			if (Queue.kindOf(word) == Stream.PSG) psg.write(Queue.valueOf(word));
-			else ym.write(Queue.portOf(word), Queue.valueOf(word));
-
-			took++;
-		}
-
-		writes += took;
-		return took;
 	}
 
 	/**
@@ -848,13 +818,11 @@ final class Render {
 		final held = transport;
 
 		if (held == null) {
-			drain();
 			fill(frames);
 		} else {
 			video = held.song.tempo.rate;
 
 			final from = held.advance(frames, rate);
-			drain();
 			serve(held.stream, from, frames, held.entering, true);
 		}
 

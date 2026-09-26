@@ -7,7 +7,6 @@ import mdd.host.Audio;
 import mdd.host.Device;
 import mdd.host.Native;
 import mdd.host.Sdl;
-import mdd.play.Queue;
 import mdd.play.Render;
 import mdd.play.Stream;
 
@@ -37,7 +36,6 @@ class AudioCheck {
 
 		final live = args.length > 0 ? Std.parseFloat(args[0]) : LIVE;
 
-		queueing();
 		resampled();
 		deep();
 		sampling();
@@ -374,7 +372,6 @@ class AudioCheck {
 		final render = new Render(RATE, Render.BLOCK);
 
 		voiced(render);
-		render.drain();
 
 		final frames = Std.int(seconds * RATE);
 		final held = new haxe.ds.Vector<cpp.Float32>(frames * 2);
@@ -397,35 +394,6 @@ class AudioCheck {
 
 		Sys.println("    " + StringTools.rpad("wrote", " ", 22) + Std.int(seconds)
 			+ " s of the test voice to " + path);
-	}
-
-	static function queueing():Void {
-		final queue = new Queue(64);
-
-		for (i in 0...64) queue.push(Stream.YM, i & 3, i & 0xFF);
-		final full = queue.waiting();
-
-		final refused = queue.push(Stream.YM, 0, 0);
-		final dropped = queue.dropped;
-
-		var read = 0;
-		var right = true;
-
-		while (true) {
-			final word = queue.pull();
-			if (word < 0) break;
-
-			if (Queue.kindOf(word) != Stream.YM) right = false;
-			if (Queue.portOf(word) != (read & 3)) right = false;
-			if (Queue.valueOf(word) != (read & 0xFF)) right = false;
-
-			read++;
-		}
-
-		says("queue holds", full == 64 && read == 64 && right,
-			"64 writes in and " + read + " out, in order");
-		says("queue refuses", !refused && dropped == 1,
-			"a full queue drops rather than blocking, " + dropped + " dropped");
 	}
 
 	static function voiced(render:Render):Void {
@@ -459,20 +427,19 @@ class AudioCheck {
 		push(render, 0xA0, 0x69);
 		push(render, 0x28, 0xF0);
 
-		render.queue.push(Stream.PSG, 0, 0x80 | 0x00 | 0x0E);
-		render.queue.push(Stream.PSG, 0, 0x08);
-		render.queue.push(Stream.PSG, 0, 0x80 | 0x10 | 0x04);
+		render.psg.write(0x80 | 0x00 | 0x0E);
+		render.psg.write(0x08);
+		render.psg.write(0x80 | 0x10 | 0x04);
 	}
 
 	static function push(render:Render, at:Int, value:Int):Void {
-		render.queue.push(Stream.YM, 0, at);
-		render.queue.push(Stream.YM, 1, value);
+		render.ym.write(0, at);
+		render.ym.write(1, value);
 	}
 
 	static function offline():Void {
 		final render = new Render(RATE, Render.BLOCK);
 		voiced(render);
-		render.drain();
 
 		render.fill(Render.BLOCK);
 
@@ -817,8 +784,6 @@ class AudioCheck {
 		push(render, 0xA4, 0x22);
 		push(render, 0xA0, 0x69);
 		push(render, 0x28, 0xF0);
-
-		render.drain();
 	}
 
 	static function shape():Void {
@@ -948,8 +913,6 @@ class AudioCheck {
 		push(render, 0xA4, 0x22);
 		push(render, 0xA0, 0x69);
 		push(render, 0x28, 0xF0);
-
-		render.drain();
 
 		final held = new haxe.ds.Vector<Float>(32768);
 		var done = 0;

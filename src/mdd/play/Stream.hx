@@ -186,8 +186,8 @@ final class Stream {
 	var ticks:Vector<Int>;
 
 	/**
-		Each write's part, port and byte in one number, packed as `Queue.packed` packs them,
-		so a write costs eight bytes here rather than sixteen.
+		Each write's part, port and byte in one number, the part above bit 16, the port above
+		bit 8 and the byte below it, so a write costs eight bytes here rather than sixteen.
 	**/
 	var packed:Vector<Int>;
 
@@ -321,7 +321,7 @@ final class Stream {
 		@return Which part it is for, `YM` or `PSG`.
 	**/
 	public inline function kindAt(index:Int):Int {
-		return Queue.kindOf(packed[index]);
+		return (packed[index] >> 16) & 0xFF;
 	}
 
 	/**
@@ -329,7 +329,7 @@ final class Stream {
 		@return The bus port it goes to.
 	**/
 	public inline function portAt(index:Int):Int {
-		return Queue.portOf(packed[index]);
+		return (packed[index] >> 8) & 0xFF;
 	}
 
 	/**
@@ -337,7 +337,7 @@ final class Stream {
 		@return The byte it carries.
 	**/
 	public inline function valueAt(index:Int):Int {
-		return Queue.valueOf(packed[index]);
+		return packed[index] & 0xFF;
 	}
 
 	/**
@@ -356,7 +356,7 @@ final class Stream {
 		}
 
 		ticks[count] = tick;
-		packed[count] = Queue.packed(kind, port & 3, value);
+		packed[count] = ((kind & 0xFF) << 16) | ((port & 3) << 8) | (value & 0xFF);
 		count++;
 	}
 
