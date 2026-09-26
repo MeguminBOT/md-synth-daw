@@ -8,6 +8,22 @@
 
 namespace {
 	int calls = 0;
+
+	/**
+	 * How many vertices a renderer is handed before it is made to run what it has queued.
+	 *
+	 * SDL uploads every vertex queued since it last ran its queue in one go, and the Direct3D 11
+	 * and OpenGL ES renderers keep eight vertex buffers each sized to the largest upload they
+	 * have seen and never shrunk. A frame is otherwise one upload, so eight of the heaviest
+	 * frame's vertices stayed allocated for good: 36 MB a frame of a zoomed out playlist held
+	 * 651 MB. At this bound an upload is 2 MB and the eight buffers 16 MB, whatever is drawn.
+	 */
+	constexpr Sint64 UPLOAD = 65536;
+
+	/**
+	 * The renderer property the vertices handed over since the last upload are counted in.
+	 */
+	constexpr const char *PENDING = "mdd.pending";
 }
 
 extern "C" SDL_Texture *mdd_texture_create(SDL_Renderer *renderer, int width, int height) {
@@ -92,6 +108,17 @@ extern "C" void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture
 	SDL_RenderGeometry(renderer, texture, reinterpret_cast<const SDL_Vertex *>(vertices),
 		vertexCount, nullptr, 0);
 	calls++;
+
+	const SDL_PropertiesID held = SDL_GetRendererProperties(renderer);
+	const Sint64 pending = SDL_GetNumberProperty(held, PENDING, 0) + vertexCount;
+
+	if (pending < UPLOAD) {
+		SDL_SetNumberProperty(held, PENDING, pending);
+		return;
+	}
+
+	SDL_FlushRenderer(renderer);
+	SDL_SetNumberProperty(held, PENDING, 0);
 }
 
 extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture, float x, float y,

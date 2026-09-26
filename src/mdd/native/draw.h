@@ -87,7 +87,8 @@ int mdd_read_pixels(SDL_Renderer *renderer, int x, int y, int width, int height,
 
 /**
  * Draws triangles, with or without a texture. Every filled shape and every run of
- * glyphs comes down to this.
+ * glyphs comes down to this. Once a renderer has been handed 65536 vertices since SDL last
+ * ran its queue, it is made to run it, so no upload is larger than that.
  *
  * @param renderer The renderer.
  * @param texture The texture to sample, or NULL for flat colour.
