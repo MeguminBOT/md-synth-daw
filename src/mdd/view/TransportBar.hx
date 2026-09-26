@@ -325,7 +325,10 @@ final class TransportBar extends Widget {
 		final transport = session.transport;
 		final at = transport.tick();
 
+		session.holds();
 		session.song.tempo.rate = from.value == 0 ? 50 : 60;
+		session.frees();
+
 		transport.seek(session.song.tempo.samplesAt(at));
 		session.changed();
 	}
