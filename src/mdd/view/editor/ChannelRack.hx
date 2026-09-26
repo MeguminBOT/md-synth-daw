@@ -17,6 +17,7 @@ import mdd.ui.Paint;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.Decibels;
 
 @:unreflective
 
@@ -700,8 +701,7 @@ final class ChannelRack extends Widget {
 	function decibels(volume:Int):String {
 		if (volume <= 0) return translate(Locale.EXPORT_OFF);
 
-		final much = Math.round(20 * Math.log(volume / Song.LOUDEST) / Math.log(10) * 10) / 10;
-		return (much == 0 ? "0" : Std.string(much)) + " dB";
+		return Decibels.spelt(20 * Math.log(volume / Song.LOUDEST) / Math.log(10), 1);
 	}
 
 	function leaned(index:Int, metrics:Metrics, px:Float):Void {

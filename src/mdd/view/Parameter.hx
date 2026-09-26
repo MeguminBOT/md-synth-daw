@@ -166,11 +166,7 @@ final class Parameter {
 	public function said(value:Int):String {
 		if (decibels == 0) return (offset && value > 0 ? "+" : "") + value;
 
-		final much = -value * decibels;
-		final one = Math.round(much * 10) / 10;
-
-		return (offset && value > 0 ? "+" : "") + value + "  "
-			+ (one > 0 ? "+" : "") + one + " dB";
+		return (offset && value > 0 ? "+" : "") + value + "  " + Decibels.spelt(-value * decibels, 1);
 	}
 
 	/**

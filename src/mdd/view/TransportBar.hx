@@ -607,8 +607,7 @@ final class TransportBar extends Widget {
 	function monitoring():String {
 		if (session.master <= 0) return translate(Locale.EXPORT_OFF);
 
-		final much = Session.decibelsOf(session.master);
-		return (much > 0 ? "+" : "") + much + " dB";
+		return Decibels.spelt(Session.decibelsOf(session.master), 1);
 	}
 
 	/**

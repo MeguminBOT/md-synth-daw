@@ -13,6 +13,7 @@ import mdd.ui.Panel;
 import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
+import mdd.view.Decibels;
 
 @:unreflective
 
@@ -344,17 +345,13 @@ final class FmEditor extends Widget {
 		var said = filled(half == 1 ? Locale.FIELD_REGISTER_TWO : Locale.FIELD_REGISTER,
 			["$" + StringTools.hex(at, 2), "" + value]);
 
-		if (row == 0) said += "   " + shown(-0.75 * value) + " dB";
-		else if (row == 3) said += "   " + shown(-3.0 * value) + " dB";
+		if (row == 0) said += "   " + Decibels.spelt(-0.75 * value, 2);
+		else if (row == 3) said += "   " + Decibels.spelt(-3.0 * value, 2);
 		else if (row == 6) said += "   x" + (value == 0 ? "0.5" : Std.string(value));
 
 		return said;
 	}
 
-	static function shown(value:Float):String {
-		final held = Math.round(value * 100) / 100;
-		return held > 0 ? "+" + held : Std.string(held);
-	}
 
 	/**
 		@param patch The patch being edited.
