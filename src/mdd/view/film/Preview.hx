@@ -109,6 +109,7 @@ final class Preview extends Widget {
 		if (held != null) held.shut();
 
 		picture = null;
+		unsized();
 
 		if (texture != null) Draw.destroyTexture(texture);
 
@@ -494,7 +495,10 @@ final class Preview extends Widget {
 		if (held == null || !sized(paint)) return;
 
 		if (sizesFor != pictureTall && studio.onSizes != null) {
-			sizes = studio.onSizes(pictureTall);
+			final made = studio.onSizes(pictureTall);
+
+			unsized();
+			sizes = made;
 			sizesFor = pictureTall;
 		}
 
@@ -510,9 +514,11 @@ final class Preview extends Widget {
 		held.draws(studio.style, studio.scope, studio.parts(), words, pictureWide, pictureTall, texture);
 
 		paint.target(back);
+		paint.reface(metrics.body);
 		if (worn != null) root.wears(worn);
 
-		paint.blit(texture, pictureLeft, pictureTop, pictureWide, pictureTall);
+		paint.turnedPart(texture, pictureWide, pictureTall, pictureLeft + pictureWide * 0.5,
+			pictureTop + pictureTall * 0.5, pictureWide, pictureTall, 0);
 		paint.outline(pictureLeft, pictureTop, pictureWide, pictureTall, theme.frame, metrics.whole(1),
 			1, 0);
 
@@ -584,19 +590,38 @@ final class Preview extends Widget {
 	}
 
 	/**
-		Makes sure the texture the picture is drawn into is the preview's size.
+		Gives back the sizes the picture was drawn at, which are baked again for every height the
+		preview is laid out at and would otherwise be kept, faces and all, for each of them.
+	**/
+	function unsized():Void {
+		final held = sizes;
+
+		sizes = null;
+		sizesFor = 0;
+
+		if (held != null && studio.onUnsized != null) studio.onUnsized(held);
+	}
+
+	/**
+		Makes sure the texture the picture is drawn into holds the preview, drawn into its top left
+		corner. It is made in steps of `Picture.ROOM` and never smaller than it was, because a window
+		being dragged to a new size would otherwise make a texture for every size it passed
+		through: thirty resizes on Direct3D 11 held 85 MB of video memory, and 49 MB in steps.
 
 		@param paint What the window is drawn with, whose renderer the texture belongs to.
 		@return Whether there is one.
 	**/
 	function sized(paint:Paint):Bool {
-		if (texture != null && textureWide == pictureWide && textureTall == pictureTall) return true;
+		if (texture != null && textureWide >= pictureWide && textureTall >= pictureTall) return true;
+
+		final wide = Picture.roomy(pictureWide > textureWide ? pictureWide : textureWide);
+		final tall = Picture.roomy(pictureTall > textureTall ? pictureTall : textureTall);
 
 		if (texture != null) Draw.destroyTexture(texture);
 
-		texture = Draw.createTarget(paint.canvas(), pictureWide, pictureTall);
-		textureWide = texture == null ? 0 : pictureWide;
-		textureTall = texture == null ? 0 : pictureTall;
+		texture = Draw.createTarget(paint.canvas(), wide, tall);
+		textureWide = texture == null ? 0 : wide;
+		textureTall = texture == null ? 0 : tall;
 
 		return texture != null;
 	}

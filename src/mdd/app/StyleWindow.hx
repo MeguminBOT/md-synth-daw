@@ -97,6 +97,7 @@ final class StyleWindow {
 		studio.onChange = function():Void kept();
 		studio.onPick = function(what:Int):Void asks(what);
 		studio.onSizes = function(tall:Int):Null<mdd.ui.Metrics> return stage.bakes(tall / Filming.DESIGNED);
+		studio.onUnsized = function(sizes:mdd.ui.Metrics):Void stage.shuts(sizes);
 		studio.onStyles = function():Array<String> return saved();
 		studio.onSave = function(name:String):Void saves(name);
 		studio.onLoad = function(name:String):Void loads(name);

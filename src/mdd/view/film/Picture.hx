@@ -713,8 +713,8 @@ final class Picture {
 	function grown(held:Source, needWide:Int, needTall:Int, premultiplied:Bool):Bool {
 		if (held.texture != null && held.wide >= needWide && held.tall >= needTall) return true;
 
-		final makeWide = needWide > held.wide ? needWide : held.wide;
-		final makeTall = needTall > held.tall ? needTall : held.tall;
+		final makeWide = roomy(needWide > held.wide ? needWide : held.wide);
+		final makeTall = roomy(needTall > held.tall ? needTall : held.tall);
 
 		if (held.texture != null) Draw.destroyTexture(held.texture);
 
@@ -725,6 +725,20 @@ final class Picture {
 		if (held.texture != null && premultiplied) Draw.premultiplied(held.texture, 1);
 
 		return held.texture != null;
+	}
+
+	/**
+		The steps a texture drawn into is made in, so a picture growing a little at a time is not
+		given a new texture for every size it passes through.
+	**/
+	public static inline final ROOM = 256;
+
+	/**
+		@param size A size, in pixels.
+		@return It rounded up to the next whole `ROOM`.
+	**/
+	public static inline function roomy(size:Int):Int {
+		return Std.int((size + ROOM - 1) / ROOM) * ROOM;
 	}
 
 	/**

@@ -125,9 +125,16 @@ final class Studio extends Widget {
 
 	/**
 		Called for sizes to draw a picture of a height at, dressed in faces baked for it, or null
-		where there are none.
+		where there are none. Every set it hands out comes back through `onUnsized` once the preview
+		has finished with it.
 	**/
 	public var onSizes:Null<Int -> Null<Metrics>> = null;
+
+	/**
+		Called with sizes `onSizes` made, once nothing draws with them any more, so their faces can
+		be given back.
+	**/
+	public var onUnsized:Null<Metrics -> Void> = null;
 
 	/**
 		Called for the names of the styles that have been saved.
