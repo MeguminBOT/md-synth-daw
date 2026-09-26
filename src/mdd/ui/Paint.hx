@@ -1081,7 +1081,9 @@ final class Paint {
 			colour:Colour, alpha:Float = 1):Void {
 		if (radius <= 0 || weight <= 0) return;
 
-		final count = segments(radius);
+		final swept = Math.abs(to - from) / (Math.PI * 2);
+		final part = Math.ceil(segments(radius) * (swept > 1 ? 1 : swept));
+		final count = part < 2 ? 2 : part;
 
 		final outer = radius - FEATHER;
 		var inner = radius - weight + FEATHER;
