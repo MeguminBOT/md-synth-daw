@@ -35,6 +35,33 @@ final class Notation {
 		["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "B", "H"]
 	];
 
+	static final SPELT:Array<Array<String>> = spellings(false);
+	static final CELLS:Array<Array<String>> = spellings(true);
+
+	/**
+		Every MIDI note's name and octave in every style, made once, so a view spelling a screen of
+		notes every frame allocates nothing doing it.
+
+		@param cells Whether to pad a one letter name with a dash, as a tracker cell writes it.
+		@return The names, by style and then by pitch.
+	**/
+	static function spellings(cells:Bool):Array<Array<String>> {
+		final made:Array<Array<String>> = [];
+
+		for (style in 0...4) {
+			final names:Array<String> = [];
+
+			for (pitch in 0...128) {
+				final held = NAMES[style][pitch % 12];
+				names.push((cells && held.length < 2 ? held + "-" : held) + (Std.int(pitch / 12) - 1));
+			}
+
+			made.push(names);
+		}
+
+		return made;
+	}
+
 	/**
 		@param accidentals `SHARPS` or `FLATS`.
 		@param letters `ENGLISH` or `GERMAN`.
@@ -76,6 +103,8 @@ final class Notation {
 	**/
 	public static function spelt(pitch:Int, style:Int):String {
 		final held = pitch < 0 ? 0 : pitch;
+		if (held < 128) return SPELT[style & 3][held];
+
 		return name(held % 12, style) + (Std.int(held / 12) - 1);
 	}
 
@@ -88,8 +117,7 @@ final class Notation {
 	public static function cell(pitch:Int, style:Int):String {
 		if (pitch < 0 || pitch > 127) return "---";
 
-		final held = name(pitch % 12, style);
-		return (held.length < 2 ? held + "-" : held) + (Std.int(pitch / 12) - 1);
+		return CELLS[style & 3][pitch];
 	}
 
 	/**
