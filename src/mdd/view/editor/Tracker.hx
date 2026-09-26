@@ -99,6 +99,8 @@ final class Tracker extends Widget {
 	var headedOctave:Int = 0;
 	var headedText:String = "";
 
+	final louds:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(Part.COUNT);
+
 	/**
 		Called to sound a note as it is typed.
 	**/
@@ -199,8 +201,10 @@ final class Tracker extends Widget {
 		@return The clip playing there, or null.
 	**/
 	public function clipAt(tick:Int, part:Part):Null<mdd.song.Clip> {
+		final soloing = session.song.soloingTracks();
+
 		for (track in session.song.tracks) {
-			if (!session.song.heard(track)) continue;
+			if (soloing ? !track.soloed : track.muted) continue;
 
 			for (clip in track.clips) {
 				if (tick < clip.at || tick >= clip.ends()) continue;
@@ -216,8 +220,10 @@ final class Tracker extends Widget {
 	}
 
 	function clipFor(tick:Int):Null<mdd.song.Clip> {
+		final soloing = session.song.soloingTracks();
+
 		for (track in session.song.tracks) {
-			if (!session.song.heard(track)) continue;
+			if (soloing ? !track.soloed : track.muted) continue;
 
 			for (clip in track.clips) {
 				if (tick < clip.at || tick >= clip.ends()) continue;
@@ -1102,6 +1108,8 @@ final class Tracker extends Widget {
 
 		painted = last - first;
 
+		for (index in 0...Part.COUNT) louds[index] = session.song.audible(index) ? 1.0 : 0.4;
+
 		final meter = session.song.meterOf(songly() ? null : session.current());
 		final beat = Math.round(division / meter.unit);
 		final bar = beat * meter.beats;
@@ -1125,7 +1133,7 @@ final class Tracker extends Widget {
 				if (left + wide < x + numbers() || left > x + width) continue;
 
 				final held = noteOf(at, index);
-				final loud = session.song.audible(index) ? 1.0 : 0.4;
+				final loud = louds[index];
 
 				if (held == null) {
 					if (!carried) continue;
