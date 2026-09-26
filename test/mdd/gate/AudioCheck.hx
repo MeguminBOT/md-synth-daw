@@ -4,7 +4,6 @@ import haxe.ds.Vector;
 import mdd.chip.Sn76489;
 import mdd.chip.Ym2612;
 import mdd.host.Audio;
-import mdd.host.Device;
 import mdd.host.Native;
 import mdd.host.Sdl;
 import mdd.play.Render;

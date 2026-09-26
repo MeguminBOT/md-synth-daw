@@ -1,10 +1,8 @@
 package mdd.gate;
 
-import mdd.host.Canvas;
 import mdd.host.Event;
 import mdd.host.Native;
 import mdd.host.Sdl;
-import mdd.host.Window;
 
 @:unreflective
 class WindowCheck {

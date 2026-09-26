@@ -49,12 +49,6 @@ extern class Draw {
 	public static function destroyTexture(texture:cpp.Star<Texture>):Void;
 
 	/**
-		Chooses whether a texture is smoothed when scaled.
-	**/
-	@:native("mdd_texture_scale_mode")
-	static function textureSmooth(texture:cpp.Star<Texture>, smooth:Int):Void;
-
-	/**
 		Draws into a texture from here, or back into the window when given null.
 	**/
 	@:native("mdd_set_target")

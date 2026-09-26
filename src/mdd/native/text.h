@@ -62,15 +62,6 @@ float mdd_font_descent(int font, float pixels);
 float mdd_font_line(int font, float pixels);
 
 /**
- * @param font A font handle from mdd_font_load.
- * @param pixels The size to draw at, in pixels.
- * @param left The codepoint on the left.
- * @param right The codepoint on the right.
- * @return How much closer the pair sits than their advances alone would put them.
- */
-float mdd_font_kern(int font, float pixels, int left, int right);
-
-/**
  * Draws a run of codepoints into an atlas in one pass.
  *
  * @param font A font handle from mdd_font_load.

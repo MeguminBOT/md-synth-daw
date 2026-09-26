@@ -14,7 +14,6 @@ import mdd.song.Pattern;
 import mdd.song.edit.RenamePattern;
 import mdd.song.edit.ResizePattern;
 import mdd.song.Song;
-import mdd.song.Tempo;
 import mdd.song.Track;
 
 @:unreflective

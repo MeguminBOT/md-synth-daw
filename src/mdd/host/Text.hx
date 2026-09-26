@@ -55,12 +55,6 @@ extern class Text {
 	public static function line(font:Int, pixels:Single):Single;
 
 	/**
-		How much closer a particular pair of glyphs sits.
-	**/
-	@:native("mdd_font_kern")
-	static function kern(font:Int, pixels:Single, left:Int, right:Int):Single;
-
-	/**
 		How large a glyph is, without drawing it. With oversampling the packed rectangle is
 		larger than the glyph is drawn, and the width to use is the offset difference
 		rather than the rectangle width.

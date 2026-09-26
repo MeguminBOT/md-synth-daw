@@ -1,7 +1,6 @@
 package mdd.gate;
 
 import mdd.check.Budget;
-import mdd.check.Diagnostic;
 import mdd.check.Profile;
 import mdd.host.Sdl;
 import mdd.play.Sequencer;

@@ -10,8 +10,6 @@ package mdd.ui;
 	running for ever.
 **/
 final class Motion {
-	static inline final QUICK = 0.120;
-
 	/**
 		How long something takes to arrive. Leaving is faster, because waiting for a thing
 		to go is worse than waiting for it to come.

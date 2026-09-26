@@ -206,8 +206,6 @@ final class Transcription {
 		the same sound.
 	**/
 	static inline final DAC_STRETCH = 2;
-	static inline final DAC_BLOCK = 32;
-	static inline final DAC_STEP = 800;
 
 	final dacBytes:Array<Int> = [];
 	final dacWhen:Array<Int> = [];

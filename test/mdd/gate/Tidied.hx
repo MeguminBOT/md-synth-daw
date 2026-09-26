@@ -2,7 +2,6 @@ package mdd.gate;
 
 import mdd.song.Instrument;
 import mdd.song.Library;
-import mdd.song.Sample;
 import mdd.song.Song;
 
 /**

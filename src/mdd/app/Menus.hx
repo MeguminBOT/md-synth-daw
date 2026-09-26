@@ -6,7 +6,6 @@ import mdd.ui.Shell;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.control.MenuBar;
-import mdd.view.Centre;
 import mdd.view.Inspector;
 import mdd.view.Tools;
 import mdd.view.TransportBar;

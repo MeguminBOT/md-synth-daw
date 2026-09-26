@@ -3,13 +3,11 @@ package mdd.view.overlay;
 import mdd.app.Languages;
 import mdd.app.Locale;
 import mdd.app.Session;
-import mdd.ui.Font;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
 import mdd.ui.Motion;
 import mdd.ui.Paint;
-import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 

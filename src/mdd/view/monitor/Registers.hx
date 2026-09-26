@@ -12,7 +12,6 @@ import mdd.ui.Pointer;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
 import mdd.ui.Scroll;
-import mdd.ui.Theme;
 
 @:unreflective
 

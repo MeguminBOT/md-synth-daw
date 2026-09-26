@@ -5,7 +5,6 @@ import mdd.format.Midi;
 import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.format.Wav;
-import mdd.host.Sdl;
 import mdd.play.Render;
 import mdd.play.Sequencer;
 import mdd.play.Stream;

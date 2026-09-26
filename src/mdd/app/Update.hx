@@ -2,7 +2,6 @@ package mdd.app;
 
 import mdd.host.Atomic;
 import mdd.format.Json;
-import mdd.format.Node;
 import mdd.host.Paths;
 import sys.FileSystem;
 import sys.io.File;

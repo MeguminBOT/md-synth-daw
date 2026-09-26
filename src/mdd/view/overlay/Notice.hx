@@ -5,10 +5,8 @@ import mdd.app.Session;
 import mdd.app.Update;
 import mdd.ui.Input;
 import mdd.ui.Kind;
-import mdd.ui.Metrics;
 import mdd.ui.Motion;
 import mdd.ui.Paint;
-import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 

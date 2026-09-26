@@ -2,7 +2,6 @@ package mdd.view.overlay;
 
 import mdd.app.Locale;
 import mdd.format.Kit;
-import mdd.format.Slot;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;

@@ -80,16 +80,6 @@ const char *mdd_event_text(const MddEvent *event);
 int mdd_mods(void);
 
 /**
- * @return Where the pointer is, across.
- */
-float mdd_mouse_x(void);
-
-/**
- * @return Where the pointer is, down.
- */
-float mdd_mouse_y(void);
-
-/**
  * Puts text on the clipboard.
  *
  * @param text What to put there.

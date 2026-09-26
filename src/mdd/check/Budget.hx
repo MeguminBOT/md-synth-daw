@@ -5,7 +5,6 @@ import mdd.app.Locale;
 import mdd.play.Stream;
 import mdd.song.Note;
 import mdd.song.Part;
-import mdd.song.Pattern;
 import mdd.song.Song;
 
 @:unreflective

@@ -174,10 +174,6 @@ final class Bindings {
 		return keys[action];
 	}
 
-	inline function modOf(action:Int):Int {
-		return mods[action];
-	}
-
 	/**
 		@param held The bindings, or null.
 		@param action Which action, one of the constants above.
@@ -264,14 +260,6 @@ final class Bindings {
 		}
 
 		return NONE;
-	}
-
-	/**
-		@param action Which action.
-		@return Where it is heard: `GLOBAL`, or the editors it belongs to.
-	**/
-	public static inline function scopeOf(action:Int):Int {
-		return action < 0 || action >= COUNT ? GLOBAL : SCOPES[action];
 	}
 
 	/**

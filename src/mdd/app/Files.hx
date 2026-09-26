@@ -505,23 +505,6 @@ final class Files {
 	}
 
 	/**
-		@return How much room the backups take, in bytes.
-	**/
-	function backedUp():Float {
-		final where = backups();
-		if (!FileSystem.exists(where)) return 0;
-
-		var held = 0.0;
-
-		for (name in FileSystem.readDirectory(where)) {
-			if (!StringTools.endsWith(name.toLowerCase(), "." + mdd.Config.SUFFIX)) continue;
-			held += FileSystem.stat(where + "/" + name).size;
-		}
-
-		return held;
-	}
-
-	/**
 		Forgets where the piece was saved, which starting a new one needs.
 	**/
 	public function forget():Void {

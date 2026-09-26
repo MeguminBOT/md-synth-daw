@@ -156,20 +156,6 @@ extern "C" int mdd_mods(void) {
 	return foldMods(SDL_GetModState());
 }
 
-extern "C" float mdd_mouse_x(void) {
-	float x = 0.0f;
-	float y = 0.0f;
-	SDL_GetMouseState(&x, &y);
-	return x;
-}
-
-extern "C" float mdd_mouse_y(void) {
-	float x = 0.0f;
-	float y = 0.0f;
-	SDL_GetMouseState(&x, &y);
-	return y;
-}
-
 extern "C" void mdd_clipboard_set(const char *text) {
 	if (text != nullptr) SDL_SetClipboardText(text);
 }

@@ -49,12 +49,6 @@ extern "C" void mdd_texture_destroy(SDL_Texture *texture) {
 	if (texture != nullptr) SDL_DestroyTexture(texture);
 }
 
-extern "C" void mdd_texture_scale_mode(SDL_Texture *texture, int smooth) {
-	if (texture != nullptr) {
-		SDL_SetTextureScaleMode(texture, smooth != 0 ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
-	}
-}
-
 extern "C" void mdd_set_target(SDL_Renderer *renderer, SDL_Texture *texture) {
 	if (renderer != nullptr) SDL_SetRenderTarget(renderer, texture);
 }

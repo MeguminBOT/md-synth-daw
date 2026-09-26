@@ -3,7 +3,6 @@ package mdd.format;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
 import mdd.song.Automation;
-import mdd.song.Bank;
 import mdd.song.Clip;
 import mdd.song.Envelope;
 import mdd.song.Instrument;

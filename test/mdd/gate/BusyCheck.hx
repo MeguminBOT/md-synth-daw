@@ -10,7 +10,6 @@ import mdd.play.Mixdown;
 import mdd.play.Mixing;
 import mdd.song.Song;
 import mdd.host.Canvas;
-import mdd.host.Draw;
 import mdd.ui.Font;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;

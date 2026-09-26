@@ -51,14 +51,6 @@ void mdd_window_destroy(SDL_Window *window);
 unsigned int mdd_window_id(SDL_Window *window);
 
 /**
- * Renames the window.
- *
- * @param window The window.
- * @param title The new name.
- */
-void mdd_window_set_title(SDL_Window *window, const char *title);
-
-/**
  * @param window The window.
  * @return How wide it is, in points.
  */
@@ -71,27 +63,6 @@ int mdd_window_width(SDL_Window *window);
 int mdd_window_height(SDL_Window *window);
 
 /**
- * @param window The window.
- * @return How wide it is in real pixels, which differs on a scaled display.
- */
-int mdd_window_pixel_width(SDL_Window *window);
-
-/**
- * @param window The window.
- * @return How tall it is in real pixels.
- */
-int mdd_window_pixel_height(SDL_Window *window);
-
-/**
- * Resizes the window.
- *
- * @param window The window.
- * @param width How wide.
- * @param height How tall.
- */
-void mdd_window_set_size(SDL_Window *window, int width, int height);
-
-/**
  * Sets the smallest it may be dragged to.
  *
  * @param window The window.
@@ -99,14 +70,6 @@ void mdd_window_set_size(SDL_Window *window, int width, int height);
  * @param height How tall.
  */
 void mdd_window_set_minimum_size(SDL_Window *window, int width, int height);
-
-/**
- * Puts the window full screen, or takes it back.
- *
- * @param window The window.
- * @param on Nonzero for full screen.
- */
-void mdd_window_set_fullscreen(SDL_Window *window, int on);
 
 /**
  * Shows a window that was created hidden.

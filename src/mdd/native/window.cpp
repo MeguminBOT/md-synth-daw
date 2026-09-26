@@ -132,10 +132,6 @@ extern "C" unsigned int mdd_window_id(SDL_Window *window) {
 	return window == nullptr ? 0 : SDL_GetWindowID(window);
 }
 
-extern "C" void mdd_window_set_title(SDL_Window *window, const char *title) {
-	if (window != nullptr) SDL_SetWindowTitle(window, title);
-}
-
 extern "C" int mdd_window_width(SDL_Window *window) {
 	int width = 0;
 	int height = 0;
@@ -150,30 +146,8 @@ extern "C" int mdd_window_height(SDL_Window *window) {
 	return height;
 }
 
-extern "C" int mdd_window_pixel_width(SDL_Window *window) {
-	int width = 0;
-	int height = 0;
-	if (window != nullptr) SDL_GetWindowSizeInPixels(window, &width, &height);
-	return width;
-}
-
-extern "C" int mdd_window_pixel_height(SDL_Window *window) {
-	int width = 0;
-	int height = 0;
-	if (window != nullptr) SDL_GetWindowSizeInPixels(window, &width, &height);
-	return height;
-}
-
-extern "C" void mdd_window_set_size(SDL_Window *window, int width, int height) {
-	if (window != nullptr) SDL_SetWindowSize(window, width, height);
-}
-
 extern "C" void mdd_window_set_minimum_size(SDL_Window *window, int width, int height) {
 	if (window != nullptr) SDL_SetWindowMinimumSize(window, width, height);
-}
-
-extern "C" void mdd_window_set_fullscreen(SDL_Window *window, int on) {
-	if (window != nullptr) SDL_SetWindowFullscreen(window, on != 0);
 }
 
 extern "C" void mdd_window_show(SDL_Window *window) {

@@ -12,26 +12,12 @@ import mdd.host.Shell;
 	has to know what the application calls itself.
 **/
 final class Associations {
-	/**
-		@return Whether this platform can register a suffix at all.
-	**/
-	public static inline function available():Bool {
-		return Shell.supported() != 0;
-	}
 
 	/**
 		@return Whether the suffix is registered to this application.
 	**/
 	public static inline function holds():Bool {
 		return Shell.associated(suffix(), identity()) != 0;
-	}
-
-	/**
-		@return Whether the preset and bank suffixes are registered to this application.
-	**/
-	public static inline function holdsPresets():Bool {
-		return Shell.associated(presetSuffix(), presetIdentity()) != 0
-			&& Shell.associated(bankSuffix(), bankIdentity()) != 0;
 	}
 
 	/**

@@ -7,9 +7,7 @@ import mdd.check.Diagnostic;
 import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
-import mdd.ui.Metrics;
 import mdd.ui.Paint;
-import mdd.ui.Pointer;
 import mdd.ui.Scroll;
 import mdd.ui.Theme;
 

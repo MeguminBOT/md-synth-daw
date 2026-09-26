@@ -6,7 +6,6 @@ import mdd.format.Tfi;
 import mdd.format.Transcription;
 import mdd.format.Vgm;
 import mdd.play.Stream;
-import mdd.song.Instrument;
 import mdd.song.Part;
 import mdd.song.Patch;
 import sys.FileSystem;

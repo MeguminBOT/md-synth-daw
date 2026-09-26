@@ -5,7 +5,6 @@ import mdd.format.Midi;
 import mdd.format.Vgm;
 import mdd.format.Xgm;
 import mdd.host.Usage;
-import mdd.play.Mixdown;
 import mdd.play.Sequencer;
 import mdd.play.Stream;
 import mdd.song.Automation;

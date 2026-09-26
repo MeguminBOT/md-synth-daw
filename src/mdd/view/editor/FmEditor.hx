@@ -5,7 +5,6 @@ import mdd.app.Locale;
 import mdd.app.Session;
 import mdd.song.Instrument;
 import mdd.song.Patch;
-import mdd.ui.Colour;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;

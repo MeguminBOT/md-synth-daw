@@ -1,7 +1,6 @@
 package mdd.gate;
 
 import haxe.ds.Vector;
-import mdd.format.Project;
 import mdd.play.Mixdown;
 import mdd.play.Mixing;
 import mdd.play.Sequencer;

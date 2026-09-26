@@ -10,8 +10,6 @@ import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;
 import mdd.ui.Paint;
-import mdd.ui.Panel;
-import mdd.ui.Pointer;
 import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Choice;

@@ -5,7 +5,6 @@ import mdd.host.Canvas;
 import mdd.host.Draw;
 import mdd.host.Native;
 import mdd.host.Sdl;
-import mdd.host.Window;
 import mdd.ui.Colour;
 import mdd.ui.Font;
 import mdd.ui.Paint;

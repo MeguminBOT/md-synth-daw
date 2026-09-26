@@ -16,8 +16,6 @@ package mdd.host;
 	answers and adapting them is slower than reading the SDL3 header.
 **/
 extern class Sdl {
-	static inline final EVENT_NONE = 0;
-
 	/**
 		Event: the application was asked to close.
 	**/
@@ -85,16 +83,6 @@ extern class Sdl {
 	**/
 	public static inline final EVENT_DROP_FILE = 15;
 
-	static inline final MOD_NONE = 0;
-	static inline final MOD_SHIFT = 1;
-	static inline final MOD_CTRL = 2;
-	static inline final MOD_ALT = 4;
-	static inline final MOD_GUI = 8;
-
-	static inline final BUTTON_LEFT = 1;
-	static inline final BUTTON_MIDDLE = 2;
-	static inline final BUTTON_RIGHT = 3;
-
 	/**
 		Starts SDL. Nonzero where it started.
 	**/
@@ -133,12 +121,6 @@ extern class Sdl {
 	public static function windowID(window:cpp.Star<Window>):Int;
 
 	/**
-		Renames the window.
-	**/
-	@:native("mdd_window_set_title")
-	static function setWindowTitle(window:cpp.Star<Window>, title:cpp.ConstCharStar):Void;
-
-	/**
 		How wide the window is, in points.
 	**/
 	@:native("mdd_window_width")
@@ -151,35 +133,11 @@ extern class Sdl {
 	public static function windowHeight(window:cpp.Star<Window>):Int;
 
 	/**
-		How wide it is in real pixels, which differs on a scaled display.
-	**/
-	@:native("mdd_window_pixel_width")
-	static function windowPixelWidth(window:cpp.Star<Window>):Int;
-
-	/**
-		How tall it is in real pixels.
-	**/
-	@:native("mdd_window_pixel_height")
-	static function windowPixelHeight(window:cpp.Star<Window>):Int;
-
-	/**
-		Resizes the window.
-	**/
-	@:native("mdd_window_set_size")
-	static function setWindowSize(window:cpp.Star<Window>, width:Int, height:Int):Void;
-
-	/**
 		Sets the smallest the window may be dragged to.
 	**/
 	@:native("mdd_window_set_minimum_size")
 	public static function setWindowMinimumSize(window:cpp.Star<Window>, width:Int,
 		height:Int):Void;
-
-	/**
-		Puts the window full screen, or takes it back.
-	**/
-	@:native("mdd_window_set_fullscreen")
-	static function setWindowFullscreen(window:cpp.Star<Window>, on:Int):Void;
 
 	/**
 		Shows a window that was created hidden.
@@ -383,18 +341,6 @@ extern class Sdl {
 	**/
 	@:native("mdd_mods")
 	public static function mods():Int;
-
-	/**
-		Where the pointer is, across.
-	**/
-	@:native("mdd_mouse_x")
-	static function mouseX():Single;
-
-	/**
-		Where the pointer is, down.
-	**/
-	@:native("mdd_mouse_y")
-	static function mouseY():Single;
 
 	/**
 		Puts text on the clipboard.

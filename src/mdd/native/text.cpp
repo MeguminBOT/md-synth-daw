@@ -118,11 +118,6 @@ extern "C" float mdd_font_line(int font, float pixels) {
 	return (ascent - descent + gap) * scaleOf(font, pixels);
 }
 
-extern "C" float mdd_font_kern(int font, float pixels, int left, int right) {
-	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
-	return stbtt_GetCodepointKernAdvance(&faces[font].info, left, right) * scaleOf(font, pixels);
-}
-
 extern "C" int mdd_font_extent(int font, float pixels, int codepoint, int *wide, int *tall) {
 	if (font < 0 || font >= SLOTS || !faces[font].taken) return 0;
 	if (wide == nullptr || tall == nullptr) return 0;

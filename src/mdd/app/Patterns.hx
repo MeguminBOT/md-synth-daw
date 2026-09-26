@@ -1,6 +1,5 @@
 package mdd.app;
 
-import mdd.song.Part;
 import mdd.song.Pattern;
 import mdd.song.edit.AddPattern;
 

@@ -7,7 +7,6 @@ import mdd.app.Session;
 import mdd.Typeface;
 import mdd.ui.control.Choice;
 import mdd.ui.control.Menu;
-import mdd.ui.Flow;
 import mdd.ui.Input;
 import mdd.ui.Kind;
 import mdd.ui.Metrics;

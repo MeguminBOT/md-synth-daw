@@ -5,7 +5,6 @@ import mdd.ui.Input;
 import mdd.ui.Key;
 import mdd.ui.Kind;
 import mdd.ui.Paint;
-import mdd.ui.Theme;
 import mdd.ui.Widget;
 import mdd.ui.control.Field;
 

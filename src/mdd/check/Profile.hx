@@ -30,7 +30,6 @@ final class Profile {
 		The lowest note a square channel can reach, below which the period overflows.
 	**/
 	public var lowestSquare:Int = 45;
-	var highestSquare:Int = 127;
 
 	/**
 		The lowest note an FM channel can reach.

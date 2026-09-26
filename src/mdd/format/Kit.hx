@@ -3,7 +3,6 @@ package mdd.format;
 import haxe.ds.Vector;
 import mdd.song.Instrument;
 import mdd.song.Part;
-import mdd.song.Sample;
 
 @:unreflective
 

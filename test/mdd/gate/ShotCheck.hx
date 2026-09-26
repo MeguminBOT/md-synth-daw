@@ -17,11 +17,7 @@ import mdd.view.Inspector;
 import mdd.view.Rail;
 import mdd.app.Session;
 import mdd.view.TransportBar;
-import mdd.view.editor.Playlist;
-import mdd.view.editor.Tracker;
-import mdd.view.monitor.Registers;
 import mdd.view.monitor.Scope;
-import mdd.view.monitor.Warnings;
 import mdd.view.overlay.Export;
 import mdd.view.overlay.Preferences;
 

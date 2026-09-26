@@ -431,18 +431,4 @@ final class Channel {
 			case _: true;
 		}
 	}
-
-	/**
-		@return The channel's sample on the left, or nought where it is not panned there.
-	**/
-	inline function onLeft():Int {
-		return left ? delivered : 0;
-	}
-
-	/**
-		@return The same on the right.
-	**/
-	inline function onRight():Int {
-		return right ? delivered : 0;
-	}
 }

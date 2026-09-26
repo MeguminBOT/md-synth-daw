@@ -62,14 +62,6 @@ void mdd_texture_patch(SDL_Texture *texture, const unsigned char *rgba, int x, i
 void mdd_texture_destroy(SDL_Texture *texture);
 
 /**
- * Chooses whether a texture is smoothed when it is drawn at another size.
- *
- * @param texture The texture.
- * @param smooth Nonzero to smooth it.
- */
-void mdd_texture_scale_mode(SDL_Texture *texture, int smooth);
-
-/**
  * Draws into a texture from here, or back into the window when given NULL.
  *
  * @param renderer The renderer.
