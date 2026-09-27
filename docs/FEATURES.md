@@ -616,7 +616,7 @@ faster or slower, or moves the grid under it instead.
   makes an exported file loud is the normalising in the export panel.
 - **A metronome**, from its button on the transport bar or `Ctrl+M`, clicks every beat while the
   song plays, higher on the first beat of a bar, and follows the time signature of whatever is
-  playing. Right click the button to choose the count in.
+  playing. Right click the button for the count in and the volume.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve. A channel sounds one note at a time, the way the chip does, so the key you pressed last is
   the one you hear, and letting it go falls back to a key you are still holding. The sustain pedal

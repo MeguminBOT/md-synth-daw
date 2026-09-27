@@ -1041,6 +1041,7 @@ class App {
 		final following = session == null ? true : session.following;
 		final clicks = session == null ? false : session.metronome;
 		final counts = session == null ? 1 : session.countIn;
+		final loudness = session == null ? 70 : session.metronomeVolume;
 
 		sound.stop();
 
@@ -1065,6 +1066,7 @@ class App {
 		session.following = following;
 		session.metronome = clicks;
 		session.countIn = counts;
+		session.metronomeVolume = loudness;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -2028,6 +2030,7 @@ class App {
 
 		final counts = settings.asWhole("countIn", 1);
 		session.countIn = counts < 0 ? 0 : (counts > 2 ? 2 : counts);
+		session.metronomeVolume = settings.asWhole("metronomeVolume", 70);
 
 		stage.root.theme.wear(which);
 		session.partColours = settings.asWhole("partColours", 0) == mdd.ui.Theme.SAFE
@@ -2114,6 +2117,7 @@ class App {
 		settings.flag("following", session.following);
 		settings.flag("metronome", session.metronome);
 		settings.whole("countIn", session.countIn);
+		settings.whole("metronomeVolume", session.metronomeVolume);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("textSize", panels.preferences.textSize);
 		settings.whole("tail", panels.preferences.tail);

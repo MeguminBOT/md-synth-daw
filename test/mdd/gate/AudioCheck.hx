@@ -47,6 +47,7 @@ class AudioCheck {
 		wheeled();
 		clicked();
 		counted();
+		leveled();
 		ticked();
 		keyed();
 		velocities();
@@ -668,9 +669,10 @@ class AudioCheck {
 		A piece of two bars of 4/4 at 120 bpm, one note on the first FM channel at its start, on a
 		track the playlist plays from the top.
 
+		@param noted Whether the note is there, or the piece is silent.
 		@return The piece.
 	**/
-	static function beating():mdd.song.Song {
+	static function beating(noted:Bool = true):mdd.song.Song {
 		final song = new mdd.song.Song("beats", 96, 120);
 
 		for (index in 0...mdd.song.Part.COUNT) {
@@ -683,7 +685,7 @@ class AudioCheck {
 		final pattern = song.add(new mdd.song.Pattern("beats", bar * 2));
 		final index = song.patterns.length - 1;
 
-		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 48, 60, 100));
+		if (noted) pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 48, 60, 100));
 		song.track(new mdd.song.Track("beats")).add(new mdd.song.Clip(index, 0, bar * 2));
 
 		return song;
@@ -871,6 +873,45 @@ class AudioCheck {
 
 		says("even with it off", beatsAt(none, ["0*", "24000", "48000", "72000"]),
 			"a count in with the metronome off still clicks at frames " + none.join(" "));
+	}
+
+	/**
+		The metronome's volume scales the click it adds to a block, the way the render thread adds
+		it.
+	**/
+	static function leveled():Void {
+		final peaks:Array<Float> = [];
+
+		for (level in [1.0, 0.5]) {
+			final transport = new mdd.play.Transport(beating(false), 1 << 16);
+			final render = new Render(RATE, Render.BLOCK);
+
+			transport.clicking = true;
+			transport.clickLevel = level;
+			render.listens();
+			transport.play();
+
+			var loudest = 0.0;
+
+			for (block in 0...40) {
+				final from = transport.advance(Render.BLOCK, RATE);
+				render.serve(transport.stream, from, Render.BLOCK, transport.entering, true);
+				render.clicked(transport);
+
+				for (index in 0...Render.BLOCK * 2) {
+					final value = render.block[index] < 0 ? -render.block[index] : render.block[index];
+					if (value > loudest) loudest = value;
+				}
+			}
+
+			peaks.push(loudest);
+		}
+
+		final ratio = peaks[1] / peaks[0];
+
+		says("the volume scales it", peaks[1] > 0.1 && ratio > 0.49 && ratio < 0.51,
+			"a click at full volume peaks at " + round(peaks[0], 3) + " and at half at "
+			+ round(peaks[1], 3) + ", " + round(ratio, 3) + " of it");
 	}
 
 	/**

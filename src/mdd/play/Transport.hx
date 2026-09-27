@@ -117,6 +117,11 @@ final class Transport {
 	public var clicking:Bool = false;
 
 	/**
+		How loud the metronome and the count in click, nought to one.
+	**/
+	public var clickLevel:Float = 0.7;
+
+	/**
 		The most clicks one span can hold.
 	**/
 	static inline final CLICKS = 4;

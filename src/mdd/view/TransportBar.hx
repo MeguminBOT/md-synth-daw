@@ -131,7 +131,7 @@ final class TransportBar extends Widget {
 	public var onMaster:Null<Int -> Void> = null;
 
 	/**
-		Called when the metronome or the count in changes.
+		Called when the metronome, its volume or the count in changes.
 	**/
 	public var onMetronome:Null<Void -> Void> = null;
 
@@ -791,7 +791,7 @@ final class TransportBar extends Widget {
 	public static inline final DELETE = 3;
 
 	/**
-		Offers how long to count in before recording.
+		Offers how long to count in before recording, and how loud the metronome is.
 
 		@param px Where the menu opens, across.
 		@param py Where it opens, down.
@@ -814,7 +814,34 @@ final class TransportBar extends Widget {
 			};
 		}
 
+		menu.divide();
+		menu.offer(new Choice(translate(Locale.TRANSPORT_METRONOME_VOLUME))).submenu = louder();
+
 		root.pop(menu, px, py, this);
+	}
+
+	/**
+		@return The metronome's volumes, loudest first, the one it is at ticked.
+	**/
+	function louder():Menu {
+		final out = new Menu();
+		var level = 100;
+
+		while (level >= 10) {
+			final want = level;
+			final choice = out.offer(new Choice(level + "%"));
+
+			choice.ticked = session.metronomeVolume == level;
+			choice.onFire = function(from:Choice):Void {
+				session.metronomeVolume = want;
+				session.says(Locale.TRANSPORT_METRONOME_LEVEL, want + "%");
+				if (onMetronome != null) onMetronome();
+			};
+
+			level -= 10;
+		}
+
+		return out;
 	}
 
 	function popped(px:Float, py:Float):Void {

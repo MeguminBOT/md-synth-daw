@@ -144,6 +144,21 @@ final class Session {
 	}
 
 	/**
+		How loud the metronome clicks, in per cent from 10 to 100.
+	**/
+	public var metronomeVolume(get, set):Int;
+
+	function get_metronomeVolume():Int {
+		return Math.round(transport.clickLevel * 100);
+	}
+
+	function set_metronomeVolume(value:Int):Int {
+		final held = value < 10 ? 10 : (value > 100 ? 100 : value);
+		transport.clickLevel = held / 100;
+		return held;
+	}
+
+	/**
 		How many bars to count in when play starts with recording armed: nought, one or two.
 	**/
 	public var countIn:Int = 1;

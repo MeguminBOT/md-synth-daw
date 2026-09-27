@@ -777,7 +777,7 @@ final class Render {
 		if (running || device == null) return false;
 
 		this.device = device;
-		if (metronome == null) metronome = new Metronome(rate);
+		listens();
 		blocks = 0;
 		worstHeld = 0;
 
@@ -843,18 +843,29 @@ final class Render {
 	}
 
 	/**
-		Adds the clicks the transport asked for to the block just served. This is the one place
-		they reach the sound, after the output stage and never in an export. They follow the
-		monitoring volume down but not up past unity.
+		Makes the click the transport asks for. Only a render feeding a device needs one, and
+		`start` makes it; nothing else does unless it asks.
+	**/
+	public function listens():Void {
+		if (metronome == null) metronome = new Metronome(rate);
+	}
+
+	/**
+		Adds the clicks the transport asked for to the block just served, at the transport's
+		click level. This is the one place they reach the sound, after the output stage and never
+		in an export, and `deliver` calls it on the render thread. They follow the monitoring
+		volume down but not up past unity. Nothing is added before `listens`.
 
 		@param held The transport.
 	**/
-	function clicked(held:Transport):Void {
+	public function clicked(held:Transport):Void {
 		final voice = metronome;
 		if (voice == null) return;
 
 		for (index in 0...held.clicks) voice.strikes(held.clickAt[index], held.clickFirst[index]);
-		if (voice.sounding()) voice.adds(block, frames, monitor < 1 ? monitor : 1);
+
+		final level = held.clickLevel < 0 ? 0 : (held.clickLevel > 1 ? 1 : held.clickLevel);
+		if (voice.sounding()) voice.adds(block, frames, (monitor < 1 ? monitor : 1) * level);
 	}
 
 	/**
