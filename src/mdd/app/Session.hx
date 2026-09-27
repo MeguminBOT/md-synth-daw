@@ -123,9 +123,15 @@ final class Session {
 	public var alone:Bool = false;
 
 	/**
-		Whether a MIDI keyboard is recording.
+		Whether recording is armed, so a key played on a MIDI keyboard or clicked on the piano
+		roll's keyboard writes a note at the playhead. `recording` writes them.
 	**/
 	public var arming:Bool = false;
+
+	/**
+		What writes the notes played while recording is armed.
+	**/
+	public final recording:Recording;
 
 	/**
 		How many steps a whole note is cut into for snapping, one for a whole bar of the piece's
@@ -421,6 +427,7 @@ final class Session {
 	public function new(song:Song) {
 		this.song = song;
 		transport = new Transport(song, 65536);
+		recording = new Recording(this);
 
 		for (held in song.instruments) carried.push(held);
 	}

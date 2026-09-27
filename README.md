@@ -246,7 +246,8 @@ application does, and an honest list of what it does not do and why.
 
 ### Other
 
-- **Plug in a MIDI keyboard** and it plays the channel you have selected.
+- **Plug in a MIDI keyboard** and it plays the channel you have selected, or records into it with
+  record turned on.
 - **It saves on its own** every five minutes by default, and only once something has changed.
 - **Portable mode.** Drop a `portable.txt` beside the executable and it keeps its settings there
   instead of in your account directory.
@@ -272,7 +273,7 @@ is always installed.
 | --- | --- | --- |
 | English (United Kingdom) | `en-GB` | written here, and the language every other one is measured against |
 | English (United States) | `en-US` | written here |
-| Svenska | `sv-SE` | written by a speaker |
+| Svenska | `sv-SE` | mostly machine translated |
 | Deutsch | `de-DE` | machine translated |
 | Español | `es-ES` | machine translated |
 | Français | `fr-FR` | machine translated |

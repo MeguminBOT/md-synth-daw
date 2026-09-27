@@ -1969,11 +1969,17 @@ class App {
 		}
 
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
-			if (session != null) session.transport.auditions(session.part, pitch, velocity, true);
+			if (session == null) return;
+
+			session.transport.auditions(session.part, pitch, velocity, true);
+			session.recording.pressed(pitch, velocity);
 		};
 
 		keyboard.onRelease = function(pitch:Int):Void {
-			if (session != null) session.transport.releases(session.part);
+			if (session == null) return;
+
+			session.transport.releases(session.part);
+			session.recording.released(pitch);
 		};
 
 		keyboard.onControl = function(control:Int, value:Int):Void turned(control, value);
@@ -2560,6 +2566,8 @@ class App {
 		}
 
 		if (playing && panels.bar != null) panels.bar.invalidateOverlay();
+
+		session.recording.follows();
 
 		if (sound.render == null) return;
 

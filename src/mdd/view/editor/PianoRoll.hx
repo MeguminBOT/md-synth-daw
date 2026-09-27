@@ -560,21 +560,6 @@ final class PianoRoll extends Widget {
 		return held == null ? named(seat) : held.name;
 	}
 
-	function records(pitch:Int):Void {
-		if (!session.arming || !session.transport.playing) return;
-
-		final pattern = session.current();
-		if (pattern == null) return;
-
-		final at = session.snapped(session.transport.tick());
-		final length = session.snap < 1 ? session.song.tempo.ppqn : session.snap;
-
-		final note = new mdd.song.Note(at, length, pitch);
-		seated(note, pitch);
-
-		session.does(new mdd.song.edit.AddNote(session.pattern, session.part, note));
-	}
-
 	/**
 		@return How wide the keyboard down the side is.
 	**/
@@ -1755,7 +1740,7 @@ final class PianoRoll extends Widget {
 					}
 
 					if (onAudition != null) onAudition(session.part, pitch);
-					records(pitch);
+					session.recording.strikes(pitch);
 					return true;
 				}
 

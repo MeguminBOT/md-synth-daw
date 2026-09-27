@@ -42,6 +42,7 @@ class SpineCheck {
 		Sys.println("  spine");
 
 		snapping();
+		recorded();
 		played();
 		blocks();
 		looping();
@@ -97,6 +98,85 @@ class SpineCheck {
 		says("and no snap leaves a tick alone",
 			session.snap == 0 && session.begins(7) == 7 && session.snapped(7) == 7,
 			"a tick of 7 stays at 7");
+	}
+
+	/**
+		Recording writes what a MIDI keyboard plays into the pattern under the playhead, placed from
+		where that pattern starts on the playlist rather than from the start of the song. While the
+		song plays a key lands on the nearest grid line and lasts as long as it was held. While it
+		is stopped, keys land a grid step apart, keys held together land together, and a key
+		pressed where the pattern is not playing writes nothing.
+	**/
+	static function recorded():Void {
+		final session = Session.started(Gate.library());
+		final song = session.song;
+		final tempo = song.tempo;
+		final bar = song.bar();
+
+		song.add(new mdd.song.Pattern("recorded", bar * 2));
+		final index = song.patterns.length - 1;
+		final placed = bar * 2;
+
+		song.track(new mdd.song.Track("recorded")).add(new mdd.song.Clip(index, placed, bar * 2));
+
+		session.pattern = index;
+		session.part = Part.Fm2;
+		session.alone = false;
+		session.snapping = Session.SIXTEENTH;
+		session.history.clear();
+
+		final step = session.snap;
+		final lane = song.patterns[index].lane(Part.Fm2);
+		final recording = session.recording;
+
+		session.arming = true;
+		session.transport.play();
+
+		session.transport.seek(tempo.samplesAt(placed + step * 3 + 2));
+		recording.pressed(60, 90);
+		session.transport.seek(tempo.samplesAt(placed + step * 5 + 1));
+		recording.released(60);
+
+		final heldNote = lane.notes.length == 1 ? lane.notes[0] : null;
+
+		says("a recorded key is a note", heldNote != null && heldNote.at == step * 3
+			&& heldNote.length == step * 2 && heldNote.velocity == 90 && heldNote.pitch == 60,
+			heldNote == null ? lane.notes.length + " notes written"
+				: "pressed two ticks past the fourth sixteenth of a pattern placed at bar 3, held two"
+				+ " sixteenths: written at tick " + heldNote.at + ", " + heldNote.length
+				+ " long, velocity " + heldNote.velocity);
+
+		session.transport.stop();
+		session.transport.seek(tempo.samplesAt(placed + step * 8));
+
+		recording.pressed(62, 100);
+		recording.released(62);
+		recording.pressed(64, 100);
+		recording.released(64);
+		recording.pressed(65, 100);
+		recording.pressed(67, 100);
+		recording.released(65);
+		recording.released(67);
+
+		final starts = [for (note in lane.notes) note.pitch + "@" + Std.int(note.at / step)];
+		final landed = session.transport.tick();
+
+		says("and a run of keys steps along", starts.join(" ") == "60@3 62@8 64@9 65@10 67@10"
+			&& session.snapped(landed - placed) == step * 11 && session.history.depth() == 5,
+			"stopped, three keys and a chord of two land at sixteenths " + starts.join(" ")
+			+ ", the playhead ends " + Std.int(session.snapped(landed - placed) / step)
+			+ " sixteenths in, and "
+			+ session.history.depth() + " steps undo them");
+
+		session.transport.seek(tempo.samplesAt(placed + bar * 3));
+		recording.pressed(70, 100);
+		recording.released(70);
+
+		says("and none lands outside the clip", lane.notes.length == 5,
+			"a key pressed past the clip playing the pattern leaves " + lane.notes.length
+			+ " notes");
+
+		session.arming = false;
 	}
 
 	static function restarted(tree:Root, session:Session,
