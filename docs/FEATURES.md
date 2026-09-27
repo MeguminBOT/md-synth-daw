@@ -553,8 +553,9 @@ and the checks compare the live stream against the offline one on every run.
 
 From left to right:
 
-- **Play**, **Stop and rewind**, **Record**, **Back to the start** and **Loop**. With Loop on, the
-  song, or the pattern playing on its own, goes round again instead of stopping at the end.
+- **Play**, **Stop and rewind**, **Record**, **Back to the start**, **Loop** and the **metronome**.
+  With Loop on, the song, or the pattern playing on its own, goes round again instead of stopping at
+  the end.
 - **PAT** and **SONG** choose between playing the chosen pattern on its own and playing the whole
   song.
 - The pattern picker, the clock, and the bar the playhead is in.
@@ -613,6 +614,9 @@ faster or slower, or moves the grid under it instead.
 - A monitoring fader with 20 dB of make up above unity, so a piece sitting in its headroom
   can still be listened to at the top of the scale. It is heard and never written: what
   makes an exported file loud is the normalising in the export panel.
+- **A metronome**, from its button on the transport bar or `Ctrl+M`, clicks every beat while the
+  song plays, higher on the first beat of a bar, and follows the time signature of whatever is
+  playing. Right click the button to choose the count in.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve. A channel sounds one note at a time, the way the chip does, so the key you pressed last is
   the one you hear, and letting it go falls back to a key you are still holding. The sustain pedal
@@ -630,14 +634,15 @@ faster or slower, or moves the grid under it instead.
   a knob rests for half a second, everything it did since it started moving is one step to undo.
 - **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, or press `R`,
   and every key you play becomes a note on the chosen channel, in the pattern under the playhead,
-  starting on the nearest grid line. While the song plays, a note lasts as long as you held the key,
-  or until the sustain pedal lifts, and keeps how hard you played it. While it is stopped, each key
-  writes a note one grid step long and moves the playhead on by a step, so you can enter a line one
-  note at a time, and keys held together land as a chord. With the grid off, a step is a beat.
-  Clicking a key on the piano roll's keyboard records the same way. A key played where the chosen
-  pattern is not playing is heard but not written. Everything recorded between starting the song and
-  stopping it is one step to undo, knob turns included, and so is each step you enter while it is
-  stopped.
+  starting on the nearest grid line. Pressing play with record on counts in first, a bar of clicks
+  to start with, while the playhead waits. The metronome's right click menu sets it to two bars or
+  none. While the song plays, a note lasts as long as you held the key, or until the sustain pedal
+  lifts, and keeps how hard you played it. While it is stopped, each key writes a note one grid step
+  long and moves the playhead on by a step, so you can enter a line one note at a time, and keys
+  held together land as a chord. With the grid off, a step is a beat. Clicking a key on the piano
+  roll's keyboard records the same way. A key played where the chosen pattern is not playing is
+  heard but not written. Everything recorded between starting the song and stopping it is one step
+  to undo, knob turns included, and so is each step you enter while it is stopped.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.
@@ -996,6 +1001,7 @@ you accept the sheet.
 | `Ctrl+Space` | stop and rewind |
 | `Ctrl+L` | loop on or off |
 | `R` | record on or off |
+| `Ctrl+M` | metronome on or off |
 | `Ctrl+Z`, `Ctrl+Y` | undo, redo |
 | `Ctrl+N` | new project |
 | `Ctrl+S`, `Ctrl+O` | save, open |
@@ -1035,8 +1041,8 @@ something works, and typing a space into a field does not start playback.
 These are decisions, not gaps, and they are not going to change.
 
 - **Not a general-purpose DAW.** No reverb, no filters, no oversampling, no parameter that does not
-  correspond to a register on one of the two chips. Anything the hardware cannot do does not belong
-  here, however ordinary it is elsewhere.
+  correspond to a register on one of the two chips. Anything that is no use for music made for the
+  Mega Drive does not belong here, however ordinary it is elsewhere.
 - **No pan pot.** The YM2612 gives a channel one bit for the left and one for the right, so
   a channel is on the left, on the right, on both, or silent. There is no sixty forty: the
   register has nowhere to put it. The squares have no stereo at all on a stock console, and

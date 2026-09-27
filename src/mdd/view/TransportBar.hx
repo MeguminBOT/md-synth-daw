@@ -42,17 +42,29 @@ final class TransportBar extends Widget {
 	public static inline final LOOP = 4;
 
 	/**
+		Button: the metronome, and on a right click the count in.
+	**/
+	public static inline final METRONOME = 5;
+
+	/**
 		How many buttons there are.
 	**/
-	public static inline final BUTTONS = 5;
+	public static inline final BUTTONS = 6;
 
 	static final SNAPS:Array<Int> = [64, 48, 32, 24, 16, 12, 8, 6, 4, 3, 2, 1, 0];
 	static final SNAP_NAMES:Array<String> = ["1/64", "1/48", "1/32", "1/24", "1/16", "1/12",
 		"1/8", "1/6", "1/4", "1/3", "1/2", "1/1", ""];
 
 	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
-		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP];
-	static final SHORTCUTS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L"];
+		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP,
+		Locale.TRANSPORT_METRONOME];
+	static final SHORTCUTS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L", "Ctrl+M"];
+
+	/**
+		What each count in is called, by how many bars it lasts.
+	**/
+	static final COUNTS:Array<Locale> = [Locale.TRANSPORT_COUNT_NONE, Locale.TRANSPORT_COUNT_ONE,
+		Locale.TRANSPORT_COUNT_TWO];
 
 	/**
 		The session to read.
@@ -107,6 +119,11 @@ final class TransportBar extends Widget {
 		Called when the monitoring volume moves.
 	**/
 	public var onMaster:Null<Int -> Void> = null;
+
+	/**
+		Called when the metronome or the count in changes.
+	**/
+	public var onMetronome:Null<Void -> Void> = null;
 
 	var hoverAt:Int = -1;
 	var overMode:Int = -1;
@@ -426,6 +443,7 @@ final class TransportBar extends Widget {
 			tip = translate(which == PLAY && session.transport.playing
 				? Locale.TRANSPORT_PAUSE : TIPS[which]);
 			shortcut = SHORTCUTS[which];
+			if (which == METRONOME) detail = translate(Locale.TRANSPORT_METRONOME_DETAIL);
 			return;
 		}
 
@@ -633,6 +651,11 @@ final class TransportBar extends Widget {
 			case Kind.PointerDown:
 				final which = buttonAt(event.x, event.y);
 
+				if (which == METRONOME && event.button == mdd.ui.Pointer.Right) {
+					countsIn(event.x, y + height);
+					return true;
+				}
+
 				if (which >= 0) {
 					press(which);
 					invalidate();
@@ -752,6 +775,33 @@ final class TransportBar extends Widget {
 	public static inline final RENAME = 2;
 	public static inline final DELETE = 3;
 
+	/**
+		Offers how long to count in before recording.
+
+		@param px Where the menu opens, across.
+		@param py Where it opens, down.
+	**/
+	function countsIn(px:Float, py:Float):Void {
+		final root = root();
+		if (root == null) return;
+
+		menu = new Menu();
+
+		for (bars in 0...COUNTS.length) {
+			final want = bars;
+			final choice = menu.offer(new Choice(translate(COUNTS[bars])));
+
+			choice.ticked = session.countIn == bars;
+			choice.onFire = function(from:Choice):Void {
+				session.countIn = want;
+				session.say(translate(COUNTS[want]));
+				if (onMetronome != null) onMetronome();
+			};
+		}
+
+		root.pop(menu, px, py, this);
+	}
+
 	function popped(px:Float, py:Float):Void {
 		final root = root();
 		if (root == null) return;
@@ -827,7 +877,7 @@ final class TransportBar extends Widget {
 		switch (which) {
 			case PLAY:
 				if (transport.playing) transport.stop();
-				else transport.play();
+				else transport.play(session.arming ? session.countIn : 0);
 
 			case STOP:
 				transport.stop();
@@ -845,6 +895,12 @@ final class TransportBar extends Widget {
 				transport.looping = !transport.looping;
 				session.say(translate(transport.looping
 					? Locale.TRANSPORT_LOOPING : Locale.TRANSPORT_ONCE));
+
+			case METRONOME:
+				session.metronome = !session.metronome;
+				session.say(translate(session.metronome
+					? Locale.TRANSPORT_METRONOME_ON : Locale.TRANSPORT_METRONOME_OFF));
+				if (onMetronome != null) onMetronome();
 
 			case _:
 		}
@@ -938,6 +994,7 @@ final class TransportBar extends Widget {
 				case PLAY: transport.playing;
 				case RECORD: session.arming;
 				case LOOP: transport.looping;
+				case METRONOME: session.metronome;
 				case _: false;
 			}
 
@@ -1191,6 +1248,27 @@ final class TransportBar extends Widget {
 
 			case LOOP:
 				paint.ring(middle, centre, reach * 0.8, metrics.whole(2), ink);
+
+			case METRONOME:
+				final points = triangle;
+				points[0] = middle - reach * 0.3;
+				points[1] = centre - reach;
+				points[2] = middle + reach * 0.3;
+				points[3] = centre - reach;
+				points[4] = middle + reach * 0.7;
+				points[5] = centre + reach;
+				paint.polygon(points, 3, ink);
+
+				points[0] = middle - reach * 0.3;
+				points[1] = centre - reach;
+				points[2] = middle + reach * 0.7;
+				points[3] = centre + reach;
+				points[4] = middle - reach * 0.7;
+				points[5] = centre + reach;
+				paint.polygon(points, 3, ink);
+
+				paint.line(middle, centre + reach * 0.5, middle + reach * 0.8, centre - reach * 0.6,
+					metrics.whole(2), on ? theme.accent : theme.raise2);
 
 			case _:
 		}

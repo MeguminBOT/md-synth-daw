@@ -130,6 +130,25 @@ final class Session {
 	public var arming:Bool = false;
 
 	/**
+		Whether the metronome clicks on every beat while the song plays.
+	**/
+	public var metronome(get, set):Bool;
+
+	function get_metronome():Bool {
+		return transport.clicking;
+	}
+
+	function set_metronome(value:Bool):Bool {
+		transport.clicking = value;
+		return value;
+	}
+
+	/**
+		How many bars to count in when play starts with recording armed: nought, one or two.
+	**/
+	public var countIn:Int = 1;
+
+	/**
 		The patch a knob is turning live, waiting to be put on the undo stack, and which field of it.
 	**/
 	var turnedPatch:Null<Patch> = null;

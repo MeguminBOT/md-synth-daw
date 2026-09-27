@@ -41,6 +41,11 @@ final class Panels {
 	public var onMaster:Null<Int -> Void> = null;
 
 	/**
+		Called when the metronome or the count in changes.
+	**/
+	public var onMetronome:Null<Void -> Void> = null;
+
+	/**
 		What the warnings panel shows.
 	**/
 	public var budget:Null<Budget> = null;
@@ -326,6 +331,7 @@ final class Panels {
 			if (onWriteBank != null) onWriteBank(name, presets, samples);
 		centre.warnings.budget = budget;
 		bar.onMaster = function(much:Int):Void if (onMaster != null) onMaster(much);
+		bar.onMetronome = function():Void if (onMetronome != null) onMetronome();
 		bar.onPatterns = function(which:Int):Void commanded(which);
 
 		follows(session);

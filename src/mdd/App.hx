@@ -496,6 +496,8 @@ class App {
 			keeps();
 		};
 
+		panels.onMetronome = function():Void keeps();
+
 		files.onBusy = function(label:Locale, detail:String):Void busy(label, detail);
 		files.onIdle = function():Void idle();
 		files.onRender = function(where:String):Void renders(where);
@@ -1037,6 +1039,8 @@ class App {
 		final palette = session == null ? 0 : session.partColours;
 		final rightly = session == null ? Session.DELETES : session.rightClick;
 		final following = session == null ? true : session.following;
+		final clicks = session == null ? false : session.metronome;
+		final counts = session == null ? 1 : session.countIn;
 
 		sound.stop();
 
@@ -1059,6 +1063,8 @@ class App {
 		session.partColours = palette;
 		session.rightClick = rightly;
 		session.following = following;
+		session.metronome = clicks;
+		session.countIn = counts;
 
 		panels.dress(session);
 		menus.dress(session);
@@ -2018,6 +2024,10 @@ class App {
 			? Session.OPENS : Session.DELETES;
 		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
 		session.following = settings.asFlag("following", true);
+		session.metronome = settings.asFlag("metronome", false);
+
+		final counts = settings.asWhole("countIn", 1);
+		session.countIn = counts < 0 ? 0 : (counts > 2 ? 2 : counts);
 
 		stage.root.theme.wear(which);
 		session.partColours = settings.asWhole("partColours", 0) == mdd.ui.Theme.SAFE
@@ -2102,6 +2112,8 @@ class App {
 		settings.whole("rightClick", session.rightClick);
 		settings.whole("snapping", session.snapping);
 		settings.flag("following", session.following);
+		settings.flag("metronome", session.metronome);
+		settings.whole("countIn", session.countIn);
 		settings.whole("density", panels.preferences.density);
 		settings.whole("textSize", panels.preferences.textSize);
 		settings.whole("tail", panels.preferences.tail);
@@ -2231,6 +2243,7 @@ class App {
 			case Bindings.STOP: panels.bar.press(TransportBar.STOP);
 			case Bindings.LOOP: panels.bar.press(TransportBar.LOOP);
 			case Bindings.RECORD: panels.bar.press(TransportBar.RECORD);
+			case Bindings.METRONOME: panels.bar.press(TransportBar.METRONOME);
 			case Bindings.WRITE_VGM: files.ask(stage.window, Files.VGM);
 			case Bindings.WRITE_AUDIO: panels.sounded();
 			case Bindings.EARLIER: nudged(-1);

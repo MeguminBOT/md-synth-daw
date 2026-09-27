@@ -64,12 +64,13 @@ final class Bindings {
 	public static inline final TRACKER_COARSER = 37;
 	public static inline final TRACKER_CUT = 38;
 	public static inline final RECORD = 39;
+	public static inline final METRONOME = 40;
 
 	/**
 		How many actions there are. A new one goes on the end, because a saved binding names its
 		action by this position.
 	**/
-	public static inline final COUNT = 40;
+	public static inline final COUNT = 41;
 
 	/**
 		Where an action is heard: everywhere, once nothing with the keyboard has taken the chord.
@@ -100,7 +101,7 @@ final class Bindings {
 		GLOBAL,
 		ROLL, ROLL, ROLL | PLAYLIST, ROLL | PLAYLIST, ROLL, ROLL, ROLL, ROLL,
 		TRACKER, TRACKER, TRACKER, TRACKER, TRACKER, TRACKER, TRACKER,
-		GLOBAL
+		GLOBAL, GLOBAL
 	];
 
 	static final KEYS:Array<Key> = [
@@ -112,7 +113,7 @@ final class Bindings {
 		Key.Unknown,
 		Key.Left, Key.Right, Key.Up, Key.Down, Key.Up, Key.Down, Key.Up, Key.Down,
 		Key.Up, Key.Down, Key.PageUp, Key.PageDown, Key.Right, Key.Left, Key.One,
-		Key.R
+		Key.R, Key.M
 	];
 
 	static final MODS:Array<Int> = [
@@ -124,7 +125,7 @@ final class Bindings {
 		Mod.None,
 		Mod.None, Mod.None, Mod.None, Mod.None, Mod.Ctrl, Mod.Ctrl, Mod.Shift, Mod.Shift,
 		Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.Ctrl, Mod.None,
-		Mod.None
+		Mod.None, Mod.Ctrl
 	];
 
 	/**
@@ -144,7 +145,7 @@ final class Bindings {
 		Locale.BIND_LOUDER, Locale.BIND_QUIETER,
 		Locale.BIND_TRACKER_LOUDER, Locale.BIND_TRACKER_QUIETER, Locale.BIND_TRACKER_OCTAVE_UP,
 		Locale.BIND_TRACKER_OCTAVE_DOWN, Locale.BIND_TRACKER_FINER, Locale.BIND_TRACKER_COARSER,
-		Locale.BIND_TRACKER_CUT, Locale.BIND_RECORD
+		Locale.BIND_TRACKER_CUT, Locale.BIND_RECORD, Locale.BIND_METRONOME
 	];
 
 	final keys:Array<Key> = [];
