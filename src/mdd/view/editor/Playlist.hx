@@ -155,6 +155,7 @@ final class Playlist extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 	}
 
 	/**
@@ -1846,17 +1847,38 @@ final class Playlist extends Widget {
 		bars(paint, theme, metrics, left, top);
 		clips(paint, theme, metrics);
 
-		if (playhead >= 0) {
-			final at = atTick(playhead);
-			if (at >= left && at < x + width) {
-				paint.rect(at, top, metrics.whole(2), height - ruler(), theme.warn, 0.9);
-			}
-		}
-
 		paint.popClip();
 
 		rails(paint, theme, metrics, top);
 		heading(paint, theme, metrics, left);
+	}
+
+	/**
+		Draws the playhead over the clips, and the strips that scroll the view over that, as
+		they would lie over it anyway: a song playing moves the playhead every frame and nothing
+		else here.
+
+		@param paint What to draw with.
+	**/
+	override function overlay(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final left = x + names();
+		final top = y + ruler();
+
+		if (playhead >= 0) {
+			final at = atTick(playhead);
+
+			if (at >= left && at < x + width) {
+				paint.pushClip(left, top, width - names(), height - ruler());
+				paint.rect(at, top, metrics.whole(2), height - ruler(), theme.warn, 0.9);
+				paint.popClip();
+			}
+		}
+
 		reins(paint, theme, metrics, left, top);
 	}
 
