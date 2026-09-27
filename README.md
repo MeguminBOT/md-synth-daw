@@ -85,20 +85,22 @@ against the offline one on every run.
 
 ### Small, and no runtime to install
 
-The whole application is a **6 MB executable** sitting next to a copy of SDL. There is no runtime to
+The whole application is an **8 MB executable** sitting next to a copy of SDL. There is no runtime to
 install, no framework, no .NET, no Electron, no Java, no redistributable. Download it, run it.
 
 That is because almost none of it is somebody else's code:
 
 - **The interface is written here.** No widget toolkit. Every panel, control and glyph is drawn by
-  about 9,300 lines of this repository straight onto an SDL3 renderer, which is how the scope, the
-  meters and the register timeline can redraw every frame while audio is being served.
+  about 11,300 lines of this repository straight onto an SDL3 renderer, which is how the scope, the
+  meters and the register timeline can redraw every frame while audio is being served. Each panel
+  keeps what it drew and draws again only what moves, so a song playing asks little of the
+  graphics card.
 - **The FLAC encoder is written here too**, in Haxe, in 981 lines: LPC prediction, rice partitioning
   and the MD5 signature, with no libFLAC anywhere. The signature it writes matches libFLAC's for the
   same audio, and the reference decoder verifies its files rather than warning about them.
 - **The chip cores are written here**, from the part documentation and from measurement.
 
-62,000 lines of Haxe and 7,300 of C++, all told. Most of what a packaged copy weighs is the bundled
+89,000 lines of Haxe and 10,400 of C++, all told. Most of what a packaged copy weighs is the bundled
 typefaces rather than the program: the three CJK faces alone are 36 MB of the download, and they are
 there so the interface has something to fall back to in any language. The installer lets you leave
 them out, and the application downloads one again if you pick its language later.
@@ -119,7 +121,7 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 | **OS** | Windows 10, macOS 26, or Linux: Ubuntu 25.04, Debian 13, Fedora 42. Each or newer |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
-| **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, OpenGL 2.0 elsewhere |
+| **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, or OpenGL and then Direct3D 9 where it falls short, and OpenGL 2.0 elsewhere |
 | **Storage** | 500 MB |
 
 Arch and anything rolling is current by definition, and Mint, Pop!_OS and Zorin want whichever
@@ -139,14 +141,14 @@ Download the latest build from the [Releases page][releases-url], then either
   and Korean fonts, or
 - unzip the **portable archive** anywhere and run `mdd`.
 
+On Windows the installer checks the machine against the requirements above before it installs
+anything, and will not install on one short of the cores, memory or graphics memory they ask for.
+
 Nothing else is needed. The portable archive keeps its settings beside itself rather than in your
 account directory, so it will happily live on a USB stick with your preferences intact. Keep the
 folder whole: the program reads its fonts and icons from the folders beside it, and says so in a box
 if they are missing rather than failing to open. It leaves out the Japanese, Chinese and Korean
 fonts, which are most of the size, and downloads the one a language needs when you pick it.
-
-> **Heads up:** no release is published yet. Until the first one, build it from source. It is three
-> commands.
 
 ### Verifying a download
 
@@ -156,10 +158,10 @@ way:
 
 ```sh
 # with the GitHub CLI, which checks the build provenance as well
-gh attestation verify mdd-0.1.0-linux-x86_64.tar.gz --repo MeguminBOT/md-synth-daw
+gh attestation verify mdd-0.9.0-linux-x86_64-portable.tar.gz --repo MeguminBOT/md-synth-daw
 
 # or with cosign alone, against the bundle published beside the file
-cosign verify-blob mdd-0.1.0-linux-x86_64.tar.gz   --bundle mdd-0.1.0-linux-x86_64.tar.gz.sigstore   --certificate-identity-regexp '^https://github.com/MeguminBOT/md-synth-daw/'   --certificate-oidc-issuer https://token.actions.githubusercontent.com
+cosign verify-blob mdd-0.9.0-linux-x86_64-portable.tar.gz   --bundle mdd-0.9.0-linux-x86_64-portable.tar.gz.sigstore   --certificate-identity-regexp '^https://github.com/MeguminBOT/md-synth-daw/'   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
 Either one tells you the file came out of this repository's release workflow, at a named commit, and
@@ -211,7 +213,8 @@ application does, and an honest list of what it does not do and why.
 
 - **A register timeline**, saying which chip took each write.
 - **A scope** that switches between waveform and spectrum.
-- **A hardware meter** for what the song is asking of the parts.
+- **A hardware meter** for FM channels, FM operators, squares and noise, and sample memory: what
+  is sounding while the song plays, and otherwise the most sounding at once anywhere in it.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note.
 - **Three output stages**: the chip alone, the Mega Drive, or the Mega Drive 2.
 
@@ -234,6 +237,11 @@ application does, and an honest list of what it does not do and why.
   listening. The FLAC encoder is this repository's own.
 - **Stems**, one file per part beside the mix, each scaled by the gain the mix worked out so
   the set of them sums back to it.
+- **Video**, a WebM of a scope lane for every part over the piece with the mix underneath as Opus,
+  starting at YouTube's recommended upload settings.
+- **A video style window** with a preview that follows the song, where the lanes, pictures and
+  text are moved, sized and turned by dragging, over a background of your choosing, with shadows,
+  borders and styles you can save.
 - **A project as a zip or as a folder**, byte identical between runs.
 
 ### Other
