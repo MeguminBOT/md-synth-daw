@@ -317,6 +317,12 @@ final class Render {
 	**/
 	public var transport:Null<Transport> = null;
 
+	/**
+		The click the transport asks for, made when the device starts, since nothing but the
+		device ever hears it.
+	**/
+	var metronome:Null<Metronome> = null;
+
 	var device:cpp.Star<Device> = null;
 	var alive:Bool = false;
 
@@ -771,6 +777,7 @@ final class Render {
 		if (running || device == null) return false;
 
 		this.device = device;
+		if (metronome == null) metronome = new Metronome(rate);
 		blocks = 0;
 		worstHeld = 0;
 
@@ -824,6 +831,7 @@ final class Render {
 
 			final from = held.advance(frames, rate);
 			serve(held.stream, from, frames, held.entering, true);
+			clicked(held);
 		}
 
 		snapped();
@@ -832,6 +840,21 @@ final class Render {
 		if (took < frames) dropped += frames - took;
 
 		blocks++;
+	}
+
+	/**
+		Adds the clicks the transport asked for to the block just served. This is the one place
+		they reach the sound, after the output stage and never in an export. They follow the
+		monitoring volume down but not up past unity.
+
+		@param held The transport.
+	**/
+	function clicked(held:Transport):Void {
+		final voice = metronome;
+		if (voice == null) return;
+
+		for (index in 0...held.clicks) voice.strikes(held.clickAt[index], held.clickFirst[index]);
+		if (voice.sounding()) voice.adds(block, frames, monitor < 1 ? monitor : 1);
 	}
 
 	/**

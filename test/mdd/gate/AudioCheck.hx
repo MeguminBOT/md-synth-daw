@@ -45,6 +45,9 @@ class AudioCheck {
 		shape();
 		auditioned();
 		wheeled();
+		clicked();
+		counted();
+		ticked();
 		keyed();
 		velocities();
 		device(Math.isNaN(live) ? LIVE : live);
@@ -659,6 +662,268 @@ class AudioCheck {
 			+ mdd.play.Stream.periodOf(58) + ", and moving to it let go of the FM key");
 
 		transport.bends(0);
+	}
+
+	/**
+		A piece of two bars of 4/4 at 120 bpm, one note on the first FM channel at its start, on a
+		track the playlist plays from the top.
+
+		@return The piece.
+	**/
+	static function beating():mdd.song.Song {
+		final song = new mdd.song.Song("beats", 96, 120);
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			song.instrument(new mdd.song.Instrument(part.name().toLowerCase(), part));
+			song.rack[index] = index;
+		}
+
+		final bar = song.bar();
+		final pattern = song.add(new mdd.song.Pattern("beats", bar * 2));
+		final index = song.patterns.length - 1;
+
+		pattern.lane(mdd.song.Part.Fm1).add(new mdd.song.Note(0, 48, 60, 100));
+		song.track(new mdd.song.Track("beats")).add(new mdd.song.Clip(index, 0, bar * 2));
+
+		return song;
+	}
+
+	/**
+		Plays a transport for a number of blocks and writes down every click it asks for.
+
+		@param transport The transport, already playing.
+		@param first How many blocks it has already played.
+		@param blocks How many blocks.
+		@param into Filled with each click's frame from the start, marked `*` on a bar's first beat.
+		@return The frame the first FM key on landed at, or -1 where there was none.
+	**/
+	static function listened(transport:mdd.play.Transport, first:Int, blocks:Int,
+			into:Array<String>):Int {
+		var keyed = -1;
+
+		for (block in first...first + blocks) {
+			final from = transport.advance(Render.BLOCK, RATE);
+			final stream = transport.stream;
+
+			for (index in 0...transport.clicks) {
+				into.push((block * Render.BLOCK + transport.clickAt[index])
+					+ (transport.clickFirst[index] ? "*" : ""));
+			}
+
+			var address = -1;
+
+			for (index in 0...stream.count) {
+				if (stream.kindAt(index) != Stream.YM) continue;
+
+				if (stream.portAt(index) == 0) {
+					address = stream.valueAt(index);
+					continue;
+				}
+
+				if (keyed >= 0 || address != 0x28 || (stream.valueAt(index) & 0xF0) == 0) continue;
+
+				keyed = block * Render.BLOCK
+					+ Std.int((stream.tickAt(index) - from) * RATE / mdd.song.Tempo.TICKS);
+			}
+		}
+
+		return keyed;
+	}
+
+	/**
+		@param heard Clicks as `listened` writes them down.
+		@param wanted The frames they should fall on, marked the same way.
+		@return Whether each falls within a frame of where it should, marked the same.
+	**/
+	static function beatsAt(heard:Array<String>, wanted:Array<String>):Bool {
+		if (heard.length != wanted.length) return false;
+
+		for (index in 0...heard.length) {
+			final one = heard[index];
+			final two = wanted[index];
+
+			if (StringTools.endsWith(one, "*") != StringTools.endsWith(two, "*")) return false;
+
+			final apart = Std.parseInt(StringTools.replace(one, "*", ""))
+				- Std.parseInt(StringTools.replace(two, "*", ""));
+
+			if (apart < -1 || apart > 1) return false;
+		}
+
+		return true;
+	}
+
+	/**
+		The metronome clicks on every beat of what is playing and louder on the first of a bar, and
+		neither the transport nor the render adds a byte for it.
+	**/
+	static function clicked():Void {
+		final transport = new mdd.play.Transport(beating(), 1 << 16);
+		final quiet:Array<String> = [];
+
+		transport.play();
+		listened(transport, 0, 400, quiet);
+		transport.stop();
+		transport.seek(0);
+
+		final heard:Array<String> = [];
+
+		transport.clicking = true;
+		transport.play();
+		listened(transport, 0, 1125, heard);
+
+		says("clicks on the beats", quiet.length == 0
+			&& beatsAt(heard, ["0*", "24000", "48000", "72000", "96000*", "120000"]),
+			"three seconds at 120 bpm click at frames " + heard.join(" ")
+			+ ", the first beat of a bar marked, and nothing with it off");
+
+		final render = new Render(RATE, Render.BLOCK);
+		final voice = new mdd.play.Metronome(RATE);
+
+		render.transport = transport;
+		transport.stop();
+		transport.seek(0);
+		transport.play();
+
+		for (warm in 0...64) {
+			final from = transport.advance(Render.BLOCK, RATE);
+			render.serve(transport.stream, from, Render.BLOCK, transport.entering, true);
+			for (index in 0...transport.clicks) voice.strikes(transport.clickAt[index], transport.clickFirst[index]);
+			voice.adds(render.block, Render.BLOCK, 1);
+		}
+
+		cpp.vm.Gc.run(true);
+		cpp.vm.Gc.enable(false);
+
+		final measured = Allocations.begin();
+
+		for (block in 0...2000) {
+			final from = transport.advance(Render.BLOCK, RATE);
+			render.serve(transport.stream, from, Render.BLOCK, transport.entering, true);
+			for (index in 0...transport.clicks) voice.strikes(transport.clickAt[index], transport.clickFirst[index]);
+			voice.adds(render.block, Render.BLOCK, 1);
+		}
+
+		final grown = measured.since();
+		cpp.vm.Gc.enable(true);
+
+		says("and allocate nothing", grown == 0,
+			grown + " bytes across 2000 blocks of a song clicked and rendered the way the render"
+			+ " thread does it, with the collector off");
+
+		final offline:Array<Float> = [];
+		final plain:Array<Float> = [];
+
+		for (clicks in [true, false]) {
+			final held = new mdd.play.Transport(beating(), 1 << 16);
+			final into = new Render(RATE, Render.BLOCK);
+			final out = clicks ? offline : plain;
+
+			held.clicking = clicks;
+			held.play();
+
+			for (block in 0...400) {
+				final from = held.advance(Render.BLOCK, RATE);
+				into.serve(held.stream, from, Render.BLOCK, held.entering, true);
+				for (index in 0...Render.BLOCK * 2) out.push(into.block[index]);
+			}
+		}
+
+		var differ = 0;
+		for (index in 0...offline.length) if (offline[index] != plain[index]) differ++;
+
+		says("exports never click", differ == 0 && offline.length == plain.length,
+			differ + " of " + offline.length + " samples differ between a render of the song with"
+			+ " the metronome on and one with it off");
+	}
+
+	/**
+		A count in clicks a bar with the playhead held, and the song starts on the beat after it.
+	**/
+	static function counted():Void {
+		final transport = new mdd.play.Transport(beating(), 1 << 16);
+		final heard:Array<String> = [];
+
+		transport.clicking = true;
+		transport.play(1);
+
+		listened(transport, 0, 700, heard);
+		final waited = transport.tick();
+		final still = transport.counting > 0;
+
+		final keyed = listened(transport, 700, 500, heard);
+
+		says("a count in waits", waited == 0 && still && transport.counting == 0
+			&& beatsAt(heard, ["0*", "24000", "48000", "72000", "96000*", "120000", "144000"]),
+			"clicks at frames " + heard.join(" ") + ", the playhead at tick " + waited
+			+ " until the fourth beat has gone");
+
+		says("then the song starts", keyed >= 95999 && keyed <= 96001,
+			"the first note keys on at frame " + keyed + ", where the bar after the count in"
+			+ " begins at 96000");
+
+		final quiet = new mdd.play.Transport(beating(), 1 << 16);
+		final none:Array<String> = [];
+
+		quiet.play(1);
+		listened(quiet, 0, 700, none);
+
+		says("even with it off", beatsAt(none, ["0*", "24000", "48000", "72000"]),
+			"a count in with the metronome off still clicks at frames " + none.join(" "));
+	}
+
+	/**
+		The click itself: silent before it is struck, higher and louder on the first beat of a bar,
+		and gone after it has rung.
+	**/
+	static function ticked():Void {
+		final voice = new mdd.play.Metronome(RATE);
+		final block = new Vector<cpp.Float32>(Render.BLOCK * 2);
+
+		for (index in 0...block.length) block[index] = 0;
+
+		voice.strikes(10, true);
+		voice.adds(block, Render.BLOCK, 1);
+
+		var early = 0.0;
+		var first = 0.0;
+
+		for (frame in 0...Render.BLOCK) {
+			final value = block[frame * 2] < 0 ? -block[frame * 2] : block[frame * 2];
+			if (frame <= 10 && value > early) early = value;
+			if (frame > 10 && value > first) first = value;
+		}
+
+		var rang = Render.BLOCK - 10;
+
+		while (voice.sounding()) {
+			for (index in 0...block.length) block[index] = 0;
+			voice.adds(block, Render.BLOCK, 1);
+
+			rang += Render.BLOCK;
+
+			if (rang > RATE) break;
+		}
+
+		for (index in 0...block.length) block[index] = 0;
+
+		voice.strikes(0, false);
+		voice.adds(block, Render.BLOCK, 1);
+
+		var other = 0.0;
+
+		for (frame in 0...Render.BLOCK) {
+			final value = block[frame * 2] < 0 ? -block[frame * 2] : block[frame * 2];
+			if (value > other) other = value;
+		}
+
+		says("a click lands on time", early == 0 && first > other && other > 0.2,
+			"nothing before frame 10, then a first beat peaking at " + round(first, 3)
+			+ " against " + round(other, 3) + " for the others");
+
+		says("and rings out", rang > RATE * 0.05 && rang < RATE * 0.07,
+			"it stopped after about " + round(rang * 1000.0 / RATE, 1) + " ms");
 	}
 
 	/**

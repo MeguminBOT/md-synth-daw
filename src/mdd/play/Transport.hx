@@ -110,6 +110,42 @@ final class Transport {
 	var priming:Bool = false;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
+	/**
+		Whether the metronome clicks on every beat while the song plays. A count in clicks either
+		way.
+	**/
+	public var clicking:Bool = false;
+
+	/**
+		The most clicks one span can hold.
+	**/
+	static inline final CLICKS = 4;
+
+	/**
+		How many clicks fall in the span `advance` last sequenced.
+	**/
+	public var clicks(default, null):Int = 0;
+
+	/**
+		Where each click falls, in output frames from the start of that span.
+	**/
+	public final clickAt:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(CLICKS);
+
+	/**
+		Whether each click is the first beat of a bar.
+	**/
+	public final clickFirst:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(CLICKS);
+
+	/**
+		How much of the count in is still to go, in samples. The playhead waits while it runs.
+	**/
+	public var counting(default, null):Int = 0;
+
+	var countLength:Int = 0;
+	var countBeats:Int = 0;
+	var countBar:Int = 1;
+	var countNext:Int = 0;
+
 	var carried:Int = 0;
 
 	/**
@@ -151,9 +187,31 @@ final class Transport {
 	}
 
 	/**
-		Starts playing from wherever the playhead is.
+		Starts playing from wherever the playhead is, after a count in where one is asked for. The
+		count in clicks every beat of its bars at the tempo the playhead is at, and the song starts
+		on the beat after the last.
+
+		@param bars How many bars to count in, or nought to start at once.
 	**/
-	public function play():Void {
+	public function play(bars:Int = 0):Void {
+		gate.acquire();
+
+		counting = 0;
+
+		if (bars > 0) {
+			final pattern = sequencer.alone >= 0 ? song.patternAt(sequencer.alone) : null;
+			final meter = song.meterOf(pattern);
+			final tempo = song.tempo;
+			final tick = tempo.tickAt(position);
+
+			countLength = tempo.samplesAt(tick + meter.bar(tempo.ppqn) * bars) - tempo.samplesAt(tick);
+			countBar = meter.beats;
+			countBeats = meter.beats * bars;
+			countNext = 0;
+			counting = countLength;
+		}
+
+		gate.release();
 		running.store(1);
 	}
 
@@ -163,6 +221,7 @@ final class Transport {
 	public function stop():Void {
 		running.store(0);
 		hushing.store(1);
+		counting = 0;
 	}
 
 	/**
@@ -214,6 +273,7 @@ final class Transport {
 	public function advance(frames:Int, rate:Int):Int {
 		stream.clear();
 		entering = carried;
+		clicks = 0;
 
 		watched();
 
@@ -239,10 +299,28 @@ final class Transport {
 		final step = Std.int(total / rate);
 		carried = total - step * rate;
 
-		final from = position;
-		var until = from + step;
-
 		gate.acquire();
+
+		var lead = 0;
+
+		if (counting > 0) {
+			counted(step, rate);
+
+			if (counting >= step) {
+				counting -= step;
+				auditioned(position, step);
+				gate.release();
+
+				stepped = 0;
+				return position;
+			}
+
+			lead = counting;
+			counting = 0;
+		}
+
+		final from = position;
+		var until = from + step - lead;
 
 		if (priming) {
 			priming = false;
@@ -257,6 +335,7 @@ final class Transport {
 
 		sequencer.emit(stream, from, until);
 		auditioned(from, until - from);
+		if (clicking) beaten(from, until, lead, rate);
 
 		gate.release();
 		served++;
@@ -276,7 +355,63 @@ final class Transport {
 			position = until;
 		}
 
-		return from;
+		return from - lead;
+	}
+
+	/**
+		Marks the beats of the count in that fall in the next `step` samples of it.
+
+		@param step How many samples the span covers.
+		@param rate The output rate in hertz.
+	**/
+	function counted(step:Int, rate:Int):Void {
+		final elapsed = countLength - counting;
+
+		while (countNext < countBeats && clicks < CLICKS) {
+			final offset = Std.int(countNext * (countLength / countBeats) + 0.5);
+			if (offset >= elapsed + step) break;
+
+			if (offset >= elapsed) {
+				clickAt[clicks] = Std.int((offset - elapsed) * rate / Tempo.TICKS);
+				clickFirst[clicks] = countNext % countBar == 0;
+				clicks++;
+			}
+
+			countNext++;
+		}
+	}
+
+	/**
+		Marks the beats of the song that fall in a span, by the signature of whatever is playing:
+		the pattern on its own, or the piece.
+
+		@param from The first sample of the span.
+		@param until The sample after its last.
+		@param lead How many samples of count in come before `from` in the same block.
+		@param rate The output rate in hertz.
+	**/
+	function beaten(from:Int, until:Int, lead:Int, rate:Int):Void {
+		final pattern = sequencer.alone >= 0 ? song.patternAt(sequencer.alone) : null;
+		final meter = song.meterOf(pattern);
+		final tempo = song.tempo;
+		final beat = meter.beat(tempo.ppqn);
+		final bar = meter.bar(tempo.ppqn);
+
+		var at = Std.int(tempo.tickAt(from) / beat) * beat;
+		if (at >= beat) at -= beat;
+
+		while (clicks < CLICKS) {
+			final sample = tempo.samplesAt(at);
+			if (sample >= until) break;
+
+			if (sample >= from) {
+				clickAt[clicks] = Std.int((sample - from + lead) * rate / Tempo.TICKS);
+				clickFirst[clicks] = at % bar == 0;
+				clicks++;
+			}
+
+			at += beat;
+		}
 	}
 
 	/**
