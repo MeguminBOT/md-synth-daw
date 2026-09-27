@@ -34,7 +34,11 @@ final class TransportBar extends Widget {
 	**/
 	public static inline final STOP = 1;
 	public static inline final RECORD = 2;
-	static inline final REWIND = 3;
+
+	/**
+		Button: back to the start.
+	**/
+	public static inline final REWIND = 3;
 
 	/**
 		Button: loop.
@@ -58,7 +62,13 @@ final class TransportBar extends Widget {
 	static final TIPS:Array<Locale> = [Locale.TRANSPORT_PLAY, Locale.TRANSPORT_STOP,
 		Locale.TRANSPORT_RECORD, Locale.TRANSPORT_REWIND, Locale.TRANSPORT_LOOP,
 		Locale.TRANSPORT_METRONOME];
-	static final SHORTCUTS:Array<String> = ["Space", "Ctrl+Space", "R", "Home", "Ctrl+L", "Ctrl+M"];
+
+	/**
+		The action each button runs, whose shortcut its tooltip names.
+	**/
+	static final ACTIONS:Array<Int> = [mdd.app.Bindings.PLAY, mdd.app.Bindings.STOP,
+		mdd.app.Bindings.RECORD, mdd.app.Bindings.REWIND, mdd.app.Bindings.LOOP,
+		mdd.app.Bindings.METRONOME];
 
 	/**
 		What each count in is called, by how many bars it lasts.
@@ -124,6 +134,11 @@ final class TransportBar extends Widget {
 		Called when the metronome or the count in changes.
 	**/
 	public var onMetronome:Null<Void -> Void> = null;
+
+	/**
+		The shortcuts, which the tooltips name as they stand, or null for none.
+	**/
+	public var bindings:Null<mdd.app.Bindings> = null;
 
 	var hoverAt:Int = -1;
 	var overMode:Int = -1;
@@ -442,7 +457,7 @@ final class TransportBar extends Widget {
 		if (which >= 0) {
 			tip = translate(which == PLAY && session.transport.playing
 				? Locale.TRANSPORT_PAUSE : TIPS[which]);
-			shortcut = SHORTCUTS[which];
+			shortcut = mdd.app.Bindings.of(bindings, ACTIONS[which]);
 			if (which == METRONOME) detail = translate(Locale.TRANSPORT_METRONOME_DETAIL);
 			return;
 		}

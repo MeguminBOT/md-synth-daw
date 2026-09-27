@@ -47,6 +47,7 @@
   "bind.quieter": "벨로시티 내리기",
   "bind.record": "녹음",
   "bind.redo": "다시 실행",
+  "bind.rewind": "처음으로",
   "bind.save": "저장",
   "bind.select": "선택 도구",
   "bind.slice": "자르기 도구",

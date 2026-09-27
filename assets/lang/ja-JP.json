@@ -47,6 +47,7 @@
   "bind.quieter": "ベロシティを下げる",
   "bind.record": "録音",
   "bind.redo": "やり直し",
+  "bind.rewind": "先頭に戻る",
   "bind.save": "保存",
   "bind.select": "選択ツール",
   "bind.slice": "分割ツール",

@@ -999,6 +999,7 @@ you accept the sheet.
 | --- | --- |
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
+| `Home` | back to the start |
 | `Ctrl+L` | loop on or off |
 | `R` | record on or off |
 | `Ctrl+M` | metronome on or off |

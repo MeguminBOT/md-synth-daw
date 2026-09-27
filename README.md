@@ -294,6 +294,7 @@ which of the two the one you pick is.
 | --- | --- |
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
+| `Home` | back to the start |
 | `Ctrl+L` | loop the pattern |
 | `R` | record |
 | `Ctrl+M` | metronome |

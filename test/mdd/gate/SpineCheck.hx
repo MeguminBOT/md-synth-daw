@@ -3870,6 +3870,47 @@ class SpineCheck {
 	/**
 		Turning the wheel over the pattern picker steps through the patterns and wraps round the list.
 	**/
+	/**
+		The transport bar's tooltips name each button's shortcut as it is bound now.
+	**/
+	static function hinted(tree:Root, session:mdd.app.Session, bar:TransportBar):Void {
+		final bindings = new mdd.app.Bindings();
+		final was = bar.bindings;
+
+		bar.bindings = bindings;
+
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		final py = bar.y + bar.height * 0.5;
+		final at:Array<Float> = [for (index in 0...TransportBar.BUTTONS) -1.0];
+		var across = bar.x;
+
+		while (across < bar.x + bar.width) {
+			final which = bar.buttonAt(across, py);
+			if (which >= 0 && at[which] < 0) at[which] = across + 4;
+			across += 2;
+		}
+
+		tree.moved(at[TransportBar.REWIND], py, mdd.ui.Mod.None);
+		final rewind = bar.shortcut;
+
+		bindings.binds(mdd.app.Bindings.PLAY, mdd.ui.Key.P, mdd.ui.Mod.Ctrl);
+		final wanted = bindings.shortcut(mdd.app.Bindings.PLAY);
+
+		tree.moved(at[TransportBar.PLAY], py, mdd.ui.Mod.None);
+		final play = bar.shortcut;
+
+		bindings.forget();
+		bar.bindings = was;
+
+		says("the bar's tips name the shortcuts", rewind == "Home" && play == wanted
+			&& bindings.actionFor(mdd.ui.Key.Home, mdd.ui.Mod.None) == mdd.app.Bindings.REWIND,
+			"back to the start names " + rewind + ", which runs it, and play bound again to "
+			+ wanted + " names " + play);
+	}
+
 	static function picked(tree:Root, session:mdd.app.Session, bar:TransportBar):Void {
 		final song = session.song;
 		final had = song.patterns.length;
@@ -6108,6 +6149,7 @@ class SpineCheck {
 		reopened(tree, session, centre);
 		picked(tree, session, bar);
 		metered(session, bar);
+		hinted(tree, session, bar);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		anchored(tree, session, editor);

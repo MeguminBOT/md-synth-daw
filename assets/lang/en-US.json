@@ -47,6 +47,7 @@
   "bind.quieter": "Velocity down",
   "bind.record": "Record",
   "bind.redo": "Redo",
+  "bind.rewind": "Back to the start",
   "bind.save": "Save",
   "bind.select": "The select tool",
   "bind.slice": "The slice tool",

@@ -47,6 +47,7 @@
   "bind.quieter": "降低力度",
   "bind.record": "录制",
   "bind.redo": "重做",
+  "bind.rewind": "回到开头",
   "bind.save": "保存",
   "bind.select": "选择工具",
   "bind.slice": "切分工具",

@@ -47,6 +47,7 @@
   "bind.quieter": "Anschlagstärke verringern",
   "bind.record": "Aufnahme",
   "bind.redo": "Wiederherstellen",
+  "bind.rewind": "Zurück zum Anfang",
   "bind.save": "Speichern",
   "bind.select": "Das Auswahlwerkzeug",
   "bind.slice": "Das Schneidewerkzeug",

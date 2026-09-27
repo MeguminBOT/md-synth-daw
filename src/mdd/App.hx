@@ -2244,6 +2244,7 @@ class App {
 			case Bindings.LOOP: panels.bar.press(TransportBar.LOOP);
 			case Bindings.RECORD: panels.bar.press(TransportBar.RECORD);
 			case Bindings.METRONOME: panels.bar.press(TransportBar.METRONOME);
+			case Bindings.REWIND: panels.bar.press(TransportBar.REWIND);
 			case Bindings.WRITE_VGM: files.ask(stage.window, Files.VGM);
 			case Bindings.WRITE_AUDIO: panels.sounded();
 			case Bindings.EARLIER: nudged(-1);
@@ -2267,6 +2268,7 @@ class App {
 		if (panels == null || panels.centre == null) return;
 
 		if (panels.centre.tools != null) panels.centre.tools.bindings = bindings;
+		if (panels.bar != null) panels.bar.bindings = bindings;
 
 		panels.centre.roll.bindings = bindings;
 		panels.centre.playlist.bindings = bindings;

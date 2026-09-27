@@ -47,6 +47,7 @@
   "bind.quieter": "Diminuer la vélocité",
   "bind.record": "Enregistrer",
   "bind.redo": "Rétablir",
+  "bind.rewind": "Revenir au début",
   "bind.save": "Enregistrer",
   "bind.select": "L'outil de sélection",
   "bind.slice": "L'outil de découpe",
