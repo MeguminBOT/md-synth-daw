@@ -749,6 +749,8 @@
   "said.lockOff": "the tracker shows the whole piece",
   "said.lockOn": "the tracker shows the chosen pattern alone",
   "said.lookingAlready": "already looking",
+  "said.midiConnected": "{0} connected",
+  "said.midiDisconnected": "{0} disconnected, and reconnects when it is plugged back in",
   "said.motion": "motion {0}",
   "said.muted": "muted {0}",
   "said.noPatch": "this channel has no patch",

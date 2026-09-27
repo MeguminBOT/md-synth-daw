@@ -2380,6 +2380,7 @@ class App {
 			if (since > 0.100) since = 0.100;
 
 			if (keyed()) stage.root.soil();
+			if (plugged(now)) stage.root.soil();
 			rested(now);
 
 			stage.root.advance(since);
@@ -2551,6 +2552,44 @@ class App {
 	}
 
 	/**
+		Every `MIDI_EVERY` seconds, looks at which MIDI devices are plugged in. The chosen one is
+		opened again once it comes back, and let go of once it goes, with every key it held
+		released.
+
+		@param now The time, in seconds.
+		@return Whether anything changed.
+	**/
+	function plugged(now:Float):Bool {
+		if (now - midiLooked < MIDI_EVERY) return false;
+
+		midiLooked = now;
+
+		final names = devices();
+		final listed = names.join("\n");
+
+		if (listed == midiListed) return false;
+
+		midiListed = listed;
+
+		if (panels != null && panels.preferences != null) keyboards();
+		if (midiSaid == "" || session == null) return true;
+
+		final at = names.indexOf(midiSaid);
+
+		if (at < 0 && midiAt >= 0) {
+			mdd.host.Midi.close();
+			keyboard.lets();
+			midiAt = -1;
+			session.says(Locale.SAID_MIDI_DISCONNECTED, midiSaid);
+		} else if (at >= 0 && at != midiAt) {
+			final back = midiAt < 0;
+			if (listens(midiSaid) && back) session.says(Locale.SAID_MIDI_CONNECTED, midiSaid);
+		}
+
+		return true;
+	}
+
+	/**
 		Opens a MIDI port by name.
 
 		@param want What the port is called, or an empty string for none.
@@ -2590,9 +2629,21 @@ class App {
 	var midiSaid:String = "";
 
 	/**
+		How often the MIDI devices plugged in are looked at, in seconds.
+	**/
+	static inline final MIDI_EVERY = 2.0;
+
+	/**
 		How long a knob rests before its turns become one step to undo, in seconds.
 	**/
 	static inline final KNOB_REST = 0.5;
+
+	var midiLooked:Float = 0;
+
+	/**
+		The MIDI devices plugged in when they were last looked at, one name a line.
+	**/
+	var midiListed:String = "";
 
 	/**
 		When a knob last turned, or -1 when none has since its turns were put on the undo stack.

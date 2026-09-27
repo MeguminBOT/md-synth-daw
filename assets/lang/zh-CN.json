@@ -749,6 +749,8 @@
   "said.lockOff": "Tracker 显示整首乐曲",
   "said.lockOn": "Tracker 只显示所选样式",
   "said.lookingAlready": "正在检查中",
+  "said.midiConnected": "已连接 {0}",
+  "said.midiDisconnected": "{0} 已断开，重新插入后会自动连接",
   "said.motion": "动效 {0}",
   "said.muted": "已静音 {0}",
   "said.noPatch": "此通道没有音色",

@@ -749,6 +749,8 @@
   "said.lockOff": "트래커가 곡 전체를 보여 줍니다",
   "said.lockOn": "트래커가 고른 패턴만 보여 줍니다",
   "said.lookingAlready": "이미 확인 중입니다",
+  "said.midiConnected": "{0} 연결됨",
+  "said.midiDisconnected": "{0} 연결 끊김, 다시 꽂으면 다시 연결됩니다",
   "said.motion": "모션 {0}",
   "said.muted": "{0} 음소거했습니다",
   "said.noPatch": "이 채널에는 음색이 없습니다",

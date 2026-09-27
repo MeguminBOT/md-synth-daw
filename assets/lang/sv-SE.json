@@ -749,6 +749,8 @@
   "said.lockOff": "trackern visar hela stycket",
   "said.lockOn": "trackern visar bara det valda mönstret",
   "said.lookingAlready": "letar redan",
+  "said.midiConnected": "{0} ansluten",
+  "said.midiDisconnected": "{0} frånkopplad, ansluts igen när den kopplas in",
   "said.motion": "rörelse {0}",
   "said.muted": "tystade {0}",
   "said.noPatch": "den här kanalen har ingen patch",

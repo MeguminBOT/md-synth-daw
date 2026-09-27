@@ -749,6 +749,8 @@
   "said.lockOff": "Tracker zeigt das ganze Stück",
   "said.lockOn": "Tracker zeigt nur das gewählte Pattern",
   "said.lookingAlready": "wird bereits gesucht",
+  "said.midiConnected": "{0} verbunden",
+  "said.midiDisconnected": "{0} getrennt, wird beim erneuten Einstecken wieder verbunden",
   "said.motion": "Bewegung {0}",
   "said.muted": "{0} stummgeschaltet",
   "said.noPatch": "dieser Kanal hat kein Patch",

@@ -749,6 +749,8 @@
   "said.lockOff": "トラッカーは曲全体を表示します",
   "said.lockOn": "トラッカーは選んだパターンだけを表示します",
   "said.lookingAlready": "すでに確認中です",
+  "said.midiConnected": "{0} を接続しました",
+  "said.midiDisconnected": "{0} が切断されました。差し直すと再接続します",
   "said.motion": "モーション {0}",
   "said.muted": "{0} をミュートしました",
   "said.noPatch": "このチャンネルには音色がありません",

@@ -749,6 +749,8 @@
   "said.lockOff": "le tracker affiche tout le morceau",
   "said.lockOn": "le tracker n'affiche que le pattern choisi",
   "said.lookingAlready": "recherche déjà en cours",
+  "said.midiConnected": "{0} connecté",
+  "said.midiDisconnected": "{0} déconnecté, il se reconnecte dès qu’il est rebranché",
   "said.motion": "animation {0}",
   "said.muted": "{0} coupé",
   "said.noPatch": "ce canal n’a pas de patch",

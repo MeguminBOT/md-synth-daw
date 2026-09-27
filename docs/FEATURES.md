@@ -617,9 +617,10 @@ faster or slower, or moves the grid under it instead.
   curve. A channel sounds one note at a time, the way the chip does, so the key you pressed last is
   the one you hear, and letting it go falls back to a key you are still holding. The sustain pedal
   holds keys until it lifts, the pitch wheel bends what is sounding by up to two semitones either
-  way, and a keyboard's all notes off lets everything go. On Linux the devices listed are the
-  keyboards and interfaces the kernel offers, read directly, so a port that only a program running
-  on the ALSA sequencer makes is not among them.
+  way, and a keyboard's all notes off lets everything go. A keyboard that is unplugged reconnects on
+  its own when it comes back. On Linux the devices listed are the keyboards and interfaces the
+  kernel offers, read directly, so a port that only a program running on the ALSA sequencer makes is
+  not among them.
 - **Knobs on a MIDI keyboard turn FM parameters.** The MIDI preferences have eight slots, each
   pointed at one of the FM dials or at one field of one operator. Click a slot and move a knob to
   wire it, and right click the slot to clear it. They start wired to the controllers most keyboards
