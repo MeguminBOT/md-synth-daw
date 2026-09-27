@@ -28,6 +28,18 @@ SDL_Texture *mdd_texture_create(SDL_Renderer *renderer, int width, int height);
 SDL_Texture *mdd_texture_target(SDL_Renderer *renderer, int width, int height);
 
 /**
+ * Makes a texture a widget keeps its drawing in. It can be drawn into, it is blended as
+ * premultiplied alpha, which is what drawing into a target cleared to nothing leaves, and it is
+ * read at the nearest pixel, so it lands on the window exactly as it was drawn.
+ *
+ * @param renderer The renderer.
+ * @param width How wide.
+ * @param height How tall.
+ * @return The texture, or NULL.
+ */
+SDL_Texture *mdd_texture_kept(SDL_Renderer *renderer, int width, int height);
+
+/**
  * Replaces the whole of a texture.
  *
  * How tall the pixels are is not asked for: the whole texture is replaced, so the
@@ -68,6 +80,12 @@ void mdd_texture_destroy(SDL_Texture *texture);
  * @param texture The target, or NULL for the window.
  */
 void mdd_set_target(SDL_Renderer *renderer, SDL_Texture *texture);
+
+/**
+ * @param renderer The renderer.
+ * @return The texture being drawn into, or NULL for the window.
+ */
+SDL_Texture *mdd_get_target(SDL_Renderer *renderer);
 
 /**
  * Reads pixels back out of the target. A target cleared opaque has alpha 255
@@ -225,13 +243,34 @@ void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture, float x, f
 	float width, float height, float alpha);
 
 /**
+ * Draws a part of a texture, from its top left corner, at the size it has in the texture. A
+ * texture blended as premultiplied alpha has its colour scaled by the opacity as well, or a
+ * faded one comes out brighter than it was drawn.
+ *
+ * @param renderer The renderer.
+ * @param texture The texture.
+ * @param width How much of it to take, across, in its own pixels.
+ * @param height How much, down.
+ * @param x Where its left edge goes.
+ * @param y Where its top edge goes.
+ * @param alpha How opaque, 0 to 1.
+ */
+void mdd_render_part(SDL_Renderer *renderer, SDL_Texture *texture, float width, float height,
+	float x, float y, float alpha);
+
+/**
  * @return How many draw calls have been made since the last reset, which is what a check measuring
  * 	an idle frame reads.
  */
 int mdd_draw_calls(void);
 
 /**
- * Sets that count back to nought.
+ * @return How many vertices the geometry calls have been handed since the last reset.
+ */
+int mdd_draw_vertices(void);
+
+/**
+ * Sets both counts back to nought.
  */
 void mdd_draw_calls_reset(void);
 

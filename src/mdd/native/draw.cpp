@@ -8,6 +8,7 @@
 
 namespace {
 	int calls = 0;
+	int handed = 0;
 
 	/**
 	 * How many vertices a renderer is handed before it is made to run what it has queued.
@@ -43,6 +44,16 @@ extern "C" SDL_Texture *mdd_texture_target(SDL_Renderer *renderer, int width, in
 	return texture;
 }
 
+extern "C" SDL_Texture *mdd_texture_kept(SDL_Renderer *renderer, int width, int height) {
+	SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
+		SDL_TEXTUREACCESS_TARGET, width, height);
+	if (texture == nullptr) return nullptr;
+
+	SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+	return texture;
+}
+
 extern "C" void mdd_texture_update(SDL_Texture *texture, const unsigned char *rgba,
 		int width) {
 	if (texture != nullptr) SDL_UpdateTexture(texture, nullptr, rgba, width * 4);
@@ -67,6 +78,10 @@ extern "C" void mdd_texture_destroy(SDL_Texture *texture) {
 
 extern "C" void mdd_set_target(SDL_Renderer *renderer, SDL_Texture *texture) {
 	if (renderer != nullptr) SDL_SetRenderTarget(renderer, texture);
+}
+
+extern "C" SDL_Texture *mdd_get_target(SDL_Renderer *renderer) {
+	return renderer == nullptr ? nullptr : SDL_GetRenderTarget(renderer);
 }
 
 extern "C" int mdd_read_pixels(SDL_Renderer *renderer, int x, int y, int width, int height,
@@ -108,6 +123,7 @@ extern "C" void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture
 	SDL_RenderGeometry(renderer, texture, reinterpret_cast<const SDL_Vertex *>(vertices),
 		vertexCount, nullptr, 0);
 	calls++;
+	handed += vertexCount;
 
 	const SDL_PropertiesID held = SDL_GetRendererProperties(renderer);
 	const Sint64 pending = SDL_GetNumberProperty(held, PENDING, 0) + vertexCount;
@@ -133,6 +149,33 @@ extern "C" void mdd_render_texture(SDL_Renderer *renderer, SDL_Texture *texture,
 
 	SDL_SetTextureAlphaModFloat(texture, alpha);
 	SDL_RenderTexture(renderer, texture, nullptr, &into);
+	calls++;
+}
+
+extern "C" void mdd_render_part(SDL_Renderer *renderer, SDL_Texture *texture, float width,
+		float height, float x, float y, float alpha) {
+	if (renderer == nullptr || texture == nullptr || width <= 0 || height <= 0) return;
+
+	SDL_FRect from;
+	from.x = 0;
+	from.y = 0;
+	from.w = width;
+	from.h = height;
+
+	SDL_FRect into;
+	into.x = x;
+	into.y = y;
+	into.w = width;
+	into.h = height;
+
+	SDL_BlendMode mode = SDL_BLENDMODE_BLEND;
+	SDL_GetTextureBlendMode(texture, &mode);
+
+	const float shade = mode == SDL_BLENDMODE_BLEND_PREMULTIPLIED ? alpha : 1.0f;
+
+	SDL_SetTextureColorModFloat(texture, shade, shade, shade);
+	SDL_SetTextureAlphaModFloat(texture, alpha);
+	SDL_RenderTexture(renderer, texture, &from, &into);
 	calls++;
 }
 
@@ -283,6 +326,11 @@ extern "C" int mdd_draw_calls(void) {
 	return calls;
 }
 
+extern "C" int mdd_draw_vertices(void) {
+	return handed;
+}
+
 extern "C" void mdd_draw_calls_reset(void) {
 	calls = 0;
+	handed = 0;
 }

@@ -27,6 +27,14 @@ extern class Draw {
 		height:Int):cpp.Star<Texture>;
 
 	/**
+		Makes a texture a widget keeps its drawing in: drawn into, blended as premultiplied
+		alpha, and read at the nearest pixel.
+	**/
+	@:native("mdd_texture_kept")
+	public static function createKept(renderer:cpp.Star<Canvas>, width:Int,
+		height:Int):cpp.Star<Texture>;
+
+	/**
 		Replaces the whole of a texture from raw pixels. The height is the one the
 		texture was made at, so only the width is given, and only to say how far apart
 		two rows of pixels are.
@@ -55,6 +63,12 @@ extern class Draw {
 	public static function setTarget(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>):Void;
 
 	/**
+		The texture being drawn into, or null for the window.
+	**/
+	@:native("mdd_get_target")
+	public static function getTarget(renderer:cpp.Star<Canvas>):cpp.Star<Texture>;
+
+	/**
 		Reads pixels back out of the target. A target cleared opaque has alpha 255
 		everywhere, so a check looking for what was drawn has to test the colour channels.
 	**/
@@ -76,6 +90,13 @@ extern class Draw {
 	@:native("mdd_render_texture")
 	public static function texture(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>, x:Single,
 		y:Single, width:Single, height:Single, alpha:Single):Void;
+
+	/**
+		Draws a part of a texture, from its top left corner, at the size it has in the texture.
+	**/
+	@:native("mdd_render_part")
+	public static function part(renderer:cpp.Star<Canvas>, texture:cpp.Star<Texture>,
+		width:Single, height:Single, x:Single, y:Single, alpha:Single):Void;
 
 	/**
 		Sets whether a texture's colour is already multiplied by its alpha, which is what drawing
@@ -126,7 +147,13 @@ extern class Draw {
 	public static function calls():Int;
 
 	/**
-		Sets that count back to nought.
+		How many vertices the geometry calls have been handed since the last reset.
+	**/
+	@:native("mdd_draw_vertices")
+	public static function vertices():Int;
+
+	/**
+		Sets both counts back to nought.
 	**/
 	@:native("mdd_draw_calls_reset")
 	public static function resetCalls():Void;
