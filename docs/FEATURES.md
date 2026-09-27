@@ -766,6 +766,12 @@ importing one reads those back.
   not match is deleted rather than run. That says the download is the file the release carries, not
   that the release is genuine: the Sigstore signature beside each file is what answers that, and
   checking one of those is still something you do yourself.
+- **An installer that checks the machine first.** A Windows older than 10 or a processor without
+  SSE2 stops it, since MD Synth DAW cannot run there. Fewer than two cores, less than 1 GB of
+  memory, less than 256 MB of graphics memory, or Direct3D 11 below feature level 10_0 it lists
+  and lets you install anyway, and where Direct3D 11 falls short it says whether OpenGL works
+  instead. It finds out by starting MD Synth DAW itself with `--requirements`, which tries every
+  renderer the way the application would.
 - **An installer that knows what is already there.** Running it over an existing copy says which
   version is installed and which one it carries, and asks before replacing it, whether that is an
   update, the same version again, or a downgrade.

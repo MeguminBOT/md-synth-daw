@@ -22,6 +22,38 @@ class Run {
 
 	static inline final PRESENCE:Int = 1024;
 
+	/**
+		The processor cores the Windows installer holds a machine to, as the requirements state
+		them: the sound takes one and the interface another.
+	**/
+	static inline final CORES = 2;
+
+	/**
+		The installed memory it holds a machine to, in megabytes.
+	**/
+	static inline final MEMORY = 1024;
+
+	/**
+		The graphics memory it holds the card to, in megabytes: its own, or the system's too
+		where it shares that.
+	**/
+	static inline final GRAPHICS = 256;
+
+	/**
+		The renderers the installer asks the application about, the one Windows starts on first:
+		the name SDL has for each, what it has to reach as `--requirements` writes it, what it is
+		called, what its level is called, and whether it is tested with a song playing, which is
+		what decides whether the installer suggests it in place of the first.
+	**/
+	static final RENDERERS:Array<Array<String>> = [
+		["direct3d11", "10.0", "Direct3D 11", "feature level ", "tested"],
+		["opengl", "2.0", "OpenGL", "OpenGL ", "tested"],
+		["vulkan", "1", "Vulkan", "", ""],
+		["direct3d12", "1", "Direct3D 12", "", ""],
+		["direct3d", "2.0", "Direct3D 9", "shader model ", ""],
+		["opengles2", "2.0", "OpenGL ES", "OpenGL ES ", ""]
+	];
+
 
 	/**
 		Reads the arguments and runs one command. Exits nonzero on anything that failed.
@@ -1741,6 +1773,7 @@ class Run {
 		out.add("SolidCompression=yes\n");
 		out.add("ArchitecturesInstallIn64BitMode=x64compatible\n");
 		out.add("ArchitecturesAllowed=x64compatible\n");
+		out.add("MinVersion=10.0\n");
 		out.add("PrivilegesRequiredOverridesAllowed=dialog\n");
 		out.add("AppMutex=" + project.short + "-running,Global\\" + project.short
 			+ "-running\n");
@@ -1815,6 +1848,10 @@ class Run {
 		for (face in optional) {
 			out.add("Source: \"" + source + "\\fonts\\" + face.name + "\"; DestDir: \"{app}\\fonts\";"
 				+ " Components: " + component(face.language) + "; Flags: ignoreversion\n");
+		}
+
+		for (name in probing(into, project)) {
+			out.add("Source: \"" + source + "\\" + name + "\"; Flags: dontcopy\n");
 		}
 
 		out.add("\n");
@@ -1949,11 +1986,28 @@ class Run {
 		out.add("  end;\n");
 		out.add("end;\n\n");
 
+		required(out, into, project);
+
 		out.add("function InitializeSetup(): Boolean;\n");
 		out.add("var Held, Said: String;\n");
 		out.add("begin\n");
-		out.add("  Result := False;\n");
+		out.add("  Result := False;\n\n");
+		out.add("  if not IsArm64() and not IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE) then\n");
+		out.add("  begin\n");
+		out.add("    SuppressibleMsgBox('" + title + " needs a processor with SSE2, and this one"
+			+ " does not report it.', mbCriticalError, MB_OK, IDOK);\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
 		out.add("  if not Alone() then Exit;\n\n");
+		out.add("  if not WizardSilent() then\n");
+		out.add("  begin\n");
+		out.add("    Said := Short();\n\n");
+		out.add("    if (Said <> '') and (MsgBox(\n");
+		out.add("      'This computer falls short of what " + title + " needs:' + #13#10 + Said"
+			+ " + #13#10 + #13#10 +\n");
+		out.add("      'It may still run. Install it anyway?',\n");
+		out.add("      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDNO) then Exit;\n");
+		out.add("  end;\n\n");
 		out.add("  Held := Installed();\n\n");
 		out.add("  if Held = '' then\n");
 		out.add("  begin\n");
@@ -2064,6 +2118,191 @@ class Run {
 	**/
 	static function pascal(said:String):String {
 		return StringTools.replace(said, "'", "''");
+	}
+
+	/**
+		@param into The staged folder.
+		@param project The build file.
+		@return What the installer takes out on its own to run `--requirements` before it
+			installs anything: the application and every library beside it, which it needs to
+			start.
+	**/
+	static function probing(into:String, project:Project):Array<String> {
+		final out = [project.short + ".exe"];
+
+		for (name in FileSystem.readDirectory(into)) {
+			if (StringTools.endsWith(name.toLowerCase(), ".dll")) out.push(name);
+		}
+
+		return out;
+	}
+
+	/**
+		Writes the Pascal the installer checks a machine with before it installs anything, into
+		the code section ahead of `InitializeSetup`, which it needs `Ranks` for: the processor
+		cores and the installed memory read from Windows, and the graphics read by running the
+		application itself with `--requirements`, which makes every renderer the way it would and
+		asks the card how much memory it can use. A figure that cannot be read is let through,
+		since a check that fails is not a machine that does.
+
+		@param out The script being written.
+		@param into The staged folder.
+		@param project The build file.
+	**/
+	static function required(out:StringBuf, into:String, project:Project):Void {
+		final title = pascal(project.title);
+		final exe = project.short + ".exe";
+
+		out.add("const\n");
+		out.add("  PF_XMMI64_INSTRUCTIONS_AVAILABLE = 10;\n");
+		out.add("  NeedCores = " + CORES + ";\n");
+		out.add("  NeedMemory = " + MEMORY + ";\n");
+		out.add("  NeedGraphics = " + GRAPHICS + ";\n\n");
+
+		out.add("var Facts: TArrayOfString;\n\n");
+
+		out.add("function IsProcessorFeaturePresent(Feature: Cardinal): Boolean;\n");
+		out.add("  external 'IsProcessorFeaturePresent@kernel32.dll stdcall';\n\n");
+		out.add("function GetPhysicallyInstalledSystemMemory(var Kilobytes: Int64): Boolean;\n");
+		out.add("  external 'GetPhysicallyInstalledSystemMemory@kernel32.dll stdcall';\n\n");
+		out.add("function GetLogicalProcessorInformationEx(Relation: Integer; Buffer: AnsiString;\n");
+		out.add("  var Size: Cardinal): Boolean;\n");
+		out.add("  external 'GetLogicalProcessorInformationEx@kernel32.dll stdcall';\n\n");
+
+		out.add("function Cores(): Integer;\n");
+		out.add("var Size, At, Step: Cardinal; Buffer: AnsiString;\n");
+		out.add("begin\n");
+		out.add("  Result := 0;\n");
+		out.add("  Size := 0;\n");
+		out.add("  GetLogicalProcessorInformationEx(0, '', Size);\n");
+		out.add("  if Size = 0 then Exit;\n\n");
+		out.add("  SetLength(Buffer, Size);\n");
+		out.add("  if not GetLogicalProcessorInformationEx(0, Buffer, Size) then Exit;\n\n");
+		out.add("  At := 0;\n\n");
+		out.add("  while At + 8 <= Size do\n");
+		out.add("  begin\n");
+		out.add("    Step := Ord(Buffer[At + 5]) + Ord(Buffer[At + 6]) * 256 +\n");
+		out.add("      Ord(Buffer[At + 7]) * 65536 + Ord(Buffer[At + 8]) * 16777216;\n");
+		out.add("    if Step = 0 then Exit;\n\n");
+		out.add("    Result := Result + 1;\n");
+		out.add("    At := At + Step;\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+
+		out.add("function Memory(): Integer;\n");
+		out.add("var Kilobytes: Int64;\n");
+		out.add("begin\n");
+		out.add("  Result := 0;\n");
+		out.add("  Kilobytes := 0;\n");
+		out.add("  if GetPhysicallyInstalledSystemMemory(Kilobytes) then Result := Kilobytes div 1024;\n");
+		out.add("end;\n\n");
+
+		out.add("function Probed(): Boolean;\n");
+		out.add("var Code: Integer; Where: String;\n");
+		out.add("begin\n");
+		out.add("  Result := False;\n\n");
+		out.add("  try\n");
+
+		for (name in probing(into, project)) out.add("    ExtractTemporaryFile('" + pascal(name) + "');\n");
+
+		out.add("  except\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  Where := ExpandConstant('{tmp}\\requirements.txt');\n\n");
+		out.add("  if not Exec(ExpandConstant('{tmp}\\" + pascal(exe) + "'), '--requirements \"' + Where"
+			+ " + '\"',\n");
+		out.add("    ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, Code) then Exit;\n\n");
+		out.add("  Result := LoadStringsFromFile(Where, Facts) and (GetArrayLength(Facts) > 0);\n");
+		out.add("end;\n\n");
+
+		out.add("function Fact(Name: String): String;\n");
+		out.add("var At, Split: Integer;\n");
+		out.add("begin\n");
+		out.add("  Result := '';\n\n");
+		out.add("  for At := 0 to GetArrayLength(Facts) - 1 do\n");
+		out.add("  begin\n");
+		out.add("    Split := Pos(' ', Facts[At]);\n\n");
+		out.add("    if (Split > 0) and (Copy(Facts[At], 1, Split - 1) = Name) then\n");
+		out.add("    begin\n");
+		out.add("      Result := Copy(Facts[At], Split + 1, Length(Facts[At]));\n");
+		out.add("      Exit;\n");
+		out.add("    end;\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+
+		out.add("function Reaches(Name, Wanted: String): Boolean;\n");
+		out.add("var Held: String;\n");
+		out.add("begin\n");
+		out.add("  Held := Fact(Name);\n");
+		out.add("  Result := (Held <> '') and (Held <> '0') and (Ranks(Held, Wanted) >= 0);\n");
+		out.add("end;\n\n");
+
+		final first = RENDERERS[0];
+
+		out.add("function Drawn(): String;\n");
+		out.add("var Held, Others, Rest: String;\n");
+		out.add("begin\n");
+		out.add("  Result := '';\n");
+		out.add("  if Reaches('" + first[0] + "', '" + first[1] + "') then Exit;\n\n");
+		out.add("  Held := Fact('" + first[0] + "');\n\n");
+		out.add("  if (Held = '') or (Held = '0') then\n");
+		out.add("    Result := '" + first[2] + " will not start here.'\n");
+		out.add("  else\n");
+		out.add("  begin\n");
+		out.add("    StringChange(Held, '.', '_');\n");
+		out.add("    Result := '" + first[2] + " reaches " + first[3] + "' + Held + ' here, and "
+			+ title + " needs " + StringTools.replace(first[1], ".", "_") + ".';\n");
+		out.add("  end;\n\n");
+		out.add("  Others := '';\n");
+		out.add("  Rest := '';\n");
+
+		for (at in 1...RENDERERS.length) {
+			final one = RENDERERS[at];
+			out.add("  if Reaches('" + one[0] + "', '" + one[1] + "') then "
+				+ (one[4] != "" ? "Others := Others" : "Rest := Rest") + " + ', " + one[2] + "';\n");
+		}
+
+		final tested = [for (one in RENDERERS) if (one[4] != "") one[2]].join(" and ");
+
+		out.add("\n  if Others <> '' then\n");
+		out.add("    Result := Result + ' ' + Copy(Others, 3, Length(Others)) + ' can draw it instead,"
+			+ " picked under Preferences once it is installed.'\n");
+		out.add("  else if Rest <> '' then\n");
+		out.add("    Result := Result + ' ' + Copy(Rest, 3, Length(Rest)) + ' can draw it instead,"
+			+ " though only " + tested + " are tested with a song playing.'\n");
+		out.add("  else\n");
+		out.add("    Result := Result + ' Nothing else here draws its window either.';\n");
+		out.add("end;\n\n");
+
+		out.add("function Short(): String;\n");
+		out.add("var Held: Integer; Said: String;\n");
+		out.add("begin\n");
+		out.add("  Result := '';\n\n");
+		out.add("  Held := Cores();\n\n");
+		out.add("  if (Held > 0) and (Held < NeedCores) then\n");
+		out.add("    Result := Result + #13#10 + '- The processor has ' + IntToStr(Held) + ' core, and "
+			+ title + " needs ' +\n");
+		out.add("      IntToStr(NeedCores) + ': the sound takes one and the interface another,"
+			+ " so on one the interface stutters while anything plays.';\n\n");
+		out.add("  Held := Memory();\n\n");
+		out.add("  if (Held > 0) and (Held < NeedMemory) then\n");
+		out.add("    Result := Result + #13#10 + '- There is ' + IntToStr(Held) + ' MB of memory, and "
+			+ title + " needs ' +\n");
+		out.add("      IntToStr(NeedMemory) + ' MB.';\n\n");
+		out.add("  if not Probed() then\n");
+		out.add("  begin\n");
+		out.add("    Result := Result + #13#10 + '- " + title + " would not start here to check the"
+			+ " graphics, so it may not start once it is installed either.';\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+		out.add("  Held := StrToIntDef(Fact('graphics'), 0);\n\n");
+		out.add("  if (Held > 0) and (Held < NeedGraphics) then\n");
+		out.add("    Result := Result + #13#10 + '- The graphics can use ' + IntToStr(Held) + ' MB of"
+			+ " memory, and " + title + " needs ' +\n");
+		out.add("      IntToStr(NeedGraphics) + ' MB.';\n\n");
+		out.add("  Said := Drawn();\n");
+		out.add("  if Said <> '' then Result := Result + #13#10 + '- ' + Said;\n");
+		out.add("end;\n\n");
 	}
 
 	static function identity(project:Project):String {
