@@ -239,6 +239,7 @@ final class PianoRoll extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 
 		stack = new Lanes(session);
 		stack.onOffer = function(from:Lanes, row:Int, px:Float, py:Float):Void
@@ -2454,21 +2455,59 @@ final class PianoRoll extends Widget {
 
 		if (banding) band(paint, theme, metrics);
 
-		if (playhead >= 0) {
-			final at = atTick(playhead - origin);
-			if (at >= left && at < x + width) {
-				paint.rect(at, top, metrics.whole(2), grid(), theme.warn, 0.9);
-			}
-		}
-
 		paint.popClip();
 
 		keys(paint, theme, metrics, top);
 		heading(paint, theme, metrics, pattern.length);
 		strip(paint, theme, metrics, pattern);
-		reins(paint, theme, metrics, left, top);
 
 		super.paint(paint);
+	}
+
+	/**
+		Draws the playhead over the notes, the key sounding now over the keyboard, and the strips
+		that scroll the view over those, as each would lie anyway: a song playing moves the
+		playhead every frame and the sounding key with every note, and nothing else here.
+
+		@param paint What to draw with.
+	**/
+	override function overlay(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null || session.current() == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final left = x + gutter();
+		final top = y + ruler();
+
+		if (playhead >= 0) {
+			final at = atTick(playhead - origin);
+
+			if (at >= left && at < x + width) {
+				paint.pushClip(left, top, width - gutter(), grid());
+				paint.rect(at, top, metrics.whole(2), grid(), theme.warn, 0.9);
+				paint.popClip();
+			}
+		}
+
+		if (litOn && litNote >= lowest() && litNote <= highest()) {
+			final row = atPitch(litNote);
+
+			if (row + rowTall >= top && row <= y + height) {
+				final wide = gutter();
+				final face = paint.font;
+
+				paint.pushClip(x, top, wide, grid());
+				paint.reface(metrics.small == null ? metrics.body : metrics.small);
+				key(paint, theme, metrics, litNote, row, true);
+				paint.rect(x + wide - metrics.whole(1), row, metrics.whole(1), rowTall - 1,
+					theme.frame);
+				paint.popClip();
+				paint.reface(face);
+			}
+		}
+
+		reins(paint, theme, metrics, left, top);
 	}
 
 	/**
@@ -3080,7 +3119,7 @@ final class PianoRoll extends Widget {
 
 		litNote = note;
 		litOn = on;
-		invalidate();
+		invalidateOverlay();
 	}
 
 	/**
@@ -3173,43 +3212,12 @@ final class PianoRoll extends Widget {
 		paint.pushClip(x, top, wide, grid());
 		paint.reface(metrics.small == null ? metrics.body : metrics.small);
 
-		final font = metrics.small == null ? metrics.body : metrics.small;
-		final drums = kitting();
 		final floor = lowest();
 		var pitch = highest();
 
 		while (pitch >= floor) {
 			final row = atPitch(pitch);
-
-			if (row + rowTall >= top && row <= y + height) {
-				final seated = drums && drumAt(pitch) >= 0;
-				final black = BLACK[pitch % 12];
-				final lit = litOn && pitch == litNote;
-
-				if (lit) {
-					paint.rect(x, row, wide, rowTall - 1, theme.part(session.part.index()));
-				} else if (seated) {
-					paint.rect(x, row, wide, rowTall - 1, theme.raise1);
-				} else {
-					paint.rect(x, row, wide, rowTall - 1, black ? theme.ebony : theme.ivory,
-						black ? 1 : (drums ? SILENT : 0.72));
-				}
-
-				if (rowTall >= font.height) {
-					final rooted = !drums && pitch % 12 == 0;
-
-					if (seated) {
-						paint.text(seatName(pitch), x + metrics.unit * 2,
-							row + (rowTall - font.height) * 0.5 + font.ascent, theme.ink, 0.9);
-					} else {
-						paint.textRight(named(pitch, session.notation), x + wide - metrics.unit * 2,
-							row + (rowTall - font.height) * 0.5 + font.ascent,
-							black ? (theme.light ? theme.frame : theme.dim) : theme.ebony,
-							drums ? SILENT : (rooted ? 1 : 0.75));
-					}
-				}
-			}
-
+			if (row + rowTall >= top && row <= y + height) key(paint, theme, metrics, pitch, row, false);
 			pitch--;
 		}
 
@@ -3217,6 +3225,48 @@ final class PianoRoll extends Widget {
 
 		paint.rect(x + wide - metrics.whole(1), top, metrics.whole(1), grid(),
 			theme.frame);
+	}
+
+	/**
+		Draws one key of the keyboard down the side, in the small face.
+
+		@param paint What to draw with.
+		@param theme The colours.
+		@param metrics The sizes.
+		@param pitch Which key.
+		@param row Where its row starts, down.
+		@param lit Whether it is sounding now, which fills it in the part's colour.
+	**/
+	function key(paint:Paint, theme:Theme, metrics:Metrics, pitch:Int, row:Float,
+			lit:Bool):Void {
+		final wide = gutter();
+		final font = metrics.small == null ? metrics.body : metrics.small;
+		final drums = kitting();
+		final seated = drums && drumAt(pitch) >= 0;
+		final black = BLACK[pitch % 12];
+
+		if (lit) {
+			paint.rect(x, row, wide, rowTall - 1, theme.part(session.part.index()));
+		} else if (seated) {
+			paint.rect(x, row, wide, rowTall - 1, theme.raise1);
+		} else {
+			paint.rect(x, row, wide, rowTall - 1, black ? theme.ebony : theme.ivory,
+				black ? 1 : (drums ? SILENT : 0.72));
+		}
+
+		if (rowTall < font.height) return;
+
+		final rooted = !drums && pitch % 12 == 0;
+
+		if (seated) {
+			paint.text(seatName(pitch), x + metrics.unit * 2,
+				row + (rowTall - font.height) * 0.5 + font.ascent, theme.ink, 0.9);
+		} else {
+			paint.textRight(named(pitch, session.notation), x + wide - metrics.unit * 2,
+				row + (rowTall - font.height) * 0.5 + font.ascent,
+				black ? (theme.light ? theme.frame : theme.dim) : theme.ebony,
+				drums ? SILENT : (rooted ? 1 : 0.75));
+		}
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics, length:Int):Void {

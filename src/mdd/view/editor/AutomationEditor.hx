@@ -102,6 +102,7 @@ final class AutomationEditor extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 
 		stack = new Lanes(session);
 		stack.onOffer = function(from:Lanes, row:Int, px:Float, py:Float):Void
@@ -774,15 +775,24 @@ final class AutomationEditor extends Widget {
 
 		super.paint(paint);
 		rein(paint, theme, metrics);
+	}
 
-		if (playhead >= 0 && !showsPreset()) {
-			final at = atTick(playhead - start());
+	/**
+		Draws the playhead over everything else, which a song playing moves every frame.
 
-			if (at >= x + gutter() && at < x + width) {
-				paint.rect(at, y + head(), metrics.whole(2), height - head(), theme.warn, 0.9);
-			}
+		@param paint What to draw with.
+	**/
+	override function overlay(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+		if (playhead < 0 || showsPreset()) return;
+
+		final at = atTick(playhead - start());
+
+		if (at >= x + gutter() && at < x + width) {
+			paint.rect(at, y + head(), root.metrics.whole(2), height - head(), root.theme.warn,
+				0.9);
 		}
-
 	}
 
 	function heading(paint:Paint, theme:Theme, metrics:Metrics):Void {

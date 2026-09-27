@@ -119,6 +119,7 @@ final class Tracker extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 	}
 
 	/**

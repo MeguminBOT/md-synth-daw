@@ -281,9 +281,9 @@ final class Centre extends Widget {
 
 		if (!session.transport.playing) return;
 
-		if (roll.visible) roll.invalidate();
+		if (roll.visible) roll.invalidateOverlay();
 		if (playlist.visible) playlist.invalidateOverlay();
-		if (automation.visible) automation.invalidate();
+		if (automation.visible) automation.invalidateOverlay();
 
 		if (!session.following) return;
 
