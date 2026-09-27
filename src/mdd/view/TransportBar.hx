@@ -141,6 +141,7 @@ final class TransportBar extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 
 		final song = session.song;
 
@@ -533,7 +534,7 @@ final class TransportBar extends Widget {
 		if (Math.abs(much - peak) < 0.01) return;
 
 		peak = much;
-		invalidate();
+		invalidateOverlay();
 	}
 
 	function volumeLeft():Float {
@@ -961,13 +962,12 @@ final class TransportBar extends Widget {
 
 		mode(paint, theme, metrics, top, button);
 		picker(paint, theme, metrics, top, button);
-		volume(paint, theme, metrics, top, button);
+		speaker(paint, theme, metrics, volumeLeft(), top + button * 0.5, speakerWide());
 
 		final font = metrics.mono == null ? metrics.body : metrics.mono;
 
 		paint.reface(font);
 
-		final line = y + (height - font.height) * 0.5 + font.ascent;
 		final clockAt = pickerLeft() + pickerWide() + metrics.inset;
 		final barAt = clockAt + font.measure("00:00.000") + metrics.inset;
 		final room = barAt + font.measure("bar 000.0") - clockAt + metrics.inset;
@@ -975,10 +975,39 @@ final class TransportBar extends Widget {
 		paint.roundedRect(clockAt - metrics.gap, top, room, button, metrics.radiusRow,
 			theme.sink);
 
+		for (field in held) if (field.visible) field.draw(paint);
+	}
+
+	/**
+		Draws the volume with the meter in it, and the clock, over the rest: a song playing moves
+		both every frame and nothing else here. Neither overlaps anything drawn after it.
+
+		@param paint What to draw with.
+	**/
+	override function overlay(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final button = size();
+		final top = y + (height - button) * 0.5;
+		final transport = session.transport;
+		final font = metrics.mono == null ? metrics.body : metrics.mono;
+		final face = paint.font;
+
+		volume(paint, theme, metrics, top, button);
+
+		paint.reface(font);
+
+		final line = y + (height - font.height) * 0.5 + font.ascent;
+		final clockAt = pickerLeft() + pickerWide() + metrics.inset;
+		final barAt = clockAt + font.measure("00:00.000") + metrics.inset;
+
 		paint.text(clocked(transport.seconds()), clockAt, line, theme.ink);
 		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
 
-		for (field in held) if (field.visible) field.draw(paint);
+		paint.reface(face);
 	}
 
 	function mode(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {
@@ -1008,9 +1037,6 @@ final class TransportBar extends Widget {
 
 	function volume(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {
 		final middle = top + button * 0.5;
-
-		speaker(paint, theme, metrics, volumeLeft(), middle, speakerWide());
-
 		final left = trackLeft();
 		final room = trackWide();
 		if (room <= 0) return;

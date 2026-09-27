@@ -210,6 +210,16 @@ class Widget {
 	}
 
 	/**
+		Keeps what this widget draws in a texture from here on, for a widget drawn every frame
+		whose drawing rarely changes and costs more than laying one texture down. A widget
+		holding one that draws something that moves on its own keeps it in its constructor
+		instead, and draws the moving part in `overlay`.
+	**/
+	public function caches():Void {
+		if (cache == null) cache = new Cache();
+	}
+
+	/**
 		Says the appearance changed, so the next frame draws it again, along with whatever keeps
 		it in a texture. A widget that is hidden, or held by one that is, asks for no frame: it is
 		not drawn, and showing it again asks for one through `visible`.

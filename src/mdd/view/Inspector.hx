@@ -79,6 +79,8 @@ final class Inspector extends Widget {
 		super();
 		this.session = session;
 
+		cache = new mdd.ui.Cache();
+
 		tabs = new Tabs(["", ""]);
 		fm = new FmEditor(session);
 		psg = new PsgEditor(session);

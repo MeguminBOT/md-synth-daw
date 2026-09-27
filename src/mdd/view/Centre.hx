@@ -125,6 +125,9 @@ final class Centre extends Widget {
 		tabs = new Tabs(["", "", "", "", "", "", ""]);
 		tools = new Tools(session);
 		tools.allowed = ALLOWS[PLAYLIST];
+
+		tabs.caches();
+		tools.caches();
 		roll = new PianoRoll(session);
 		scope = new Scope(session);
 		tracker = new Tracker(session);
@@ -234,6 +237,8 @@ final class Centre extends Widget {
 	}
 
 	override function layout():Void {
+		named();
+
 		final tall = head();
 
 		tools.room = width * 0.45;
@@ -321,8 +326,6 @@ final class Centre extends Widget {
 	}
 
 	override function paint(paint:Paint):Void {
-		named();
-
 		tabs.draw(paint);
 		if (tools.visible) tools.draw(paint);
 
