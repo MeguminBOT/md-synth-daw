@@ -1,12 +1,19 @@
+<a id="top"></a>
+
 # Preset notes
 
 What a preset file holds, byte by byte, and how a preset's identity is worked out from it.
 `mdd.format.Preset` is the reader and the writer. Nothing here is borrowed from another format.
 
+- [The file](#the-file)
+- [The sound record](#the-sound-record)
+- [The lanes](#the-lanes)
+- [Identity](#identity)
+
 ## The file
 
-A `.mdpreset` holds one preset and a `.mdbank` holds a bank of them. Both are the same layout;
-a preset file simply names no bank. Numbers are little endian. Text is a 16 bit length followed by
+A `.mdpreset` holds one preset and a `.mdbank` holds a bank of them. Both are the same layout, and a
+preset file simply names no bank. Numbers are little endian. Text is a 16 bit length followed by
 that many bytes of UTF-8, at most 4096.
 
 | bytes | what |
@@ -32,6 +39,8 @@ Each preset is:
 | the sound record | what it sounds like, below |
 | the lanes | what it moves on every note, below |
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The sound record
 
 The part of a preset that decides what it sounds like, and nothing else. One byte says which of
@@ -47,6 +56,8 @@ three records follows:
 - **2, a recording**, for the converter. The rate in hertz as 4 bytes, the MIDI note it sounds at
   as one, the loop point plus one as 4, the length as 4, then the bytes as the converter takes
   them. A converter preset with no recording is written as a patch record of a fresh patch.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The lanes
 
@@ -64,6 +75,8 @@ a preset that moves nothing. Each lane is:
 Each point is where it sits as 4 bytes, its value as 2 bytes signed, its curve as one, the bend
 of that curve as one byte signed, and how many steps a stepped curve takes as one. Pitch is in
 cents away from the note.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Identity
 
@@ -86,5 +99,7 @@ eleven bytes.
 
 Stars in the settings and each channel's record of the preset it was loaded from are kept by
 identity. Before identity was taken from the sound alone it also covered the name, the tags and
-the icon; `mdd.app.Formerly` still works that one out, once, to carry a star or a channel's origin
+the icon. `mdd.app.Formerly` still works that one out, once, to carry a star or a channel's origin
 across, and nothing is written with it.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

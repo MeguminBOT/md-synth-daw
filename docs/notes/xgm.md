@@ -1,17 +1,27 @@
+<a id="top"></a>
+
 # XGM notes
 
 What the XGM format is, where its own documentation is ambiguous, and what `mdd.format.Xgm` assumes.
-The format description is `bin/xgm.txt` in SGDK; the writer that actually produces the files is
-`tools/xgmtool/src/xgm.c` in the same repository. Where the two disagree, this build follows the
+The format description is `bin/xgm.txt` in SGDK, and the writer that actually produces the files
+is `tools/xgmtool/src/xgm.c` in the same repository. Where the two disagree, this build follows the
 tool, because the tool is what reads the file back.
+
+- [What XGM is](#what-xgm-is)
+- [The header, and the part the description gets wrong](#the-header-and-the-part-the-description-gets-wrong)
+- [The commands](#the-commands)
+- [One command a slot](#one-command-a-slot)
+- [What this build does with it](#what-this-build-does-with-it)
+- [Still open](#still-open)
+- [Tempo from a register stream](#tempo-from-a-register-stream)
 
 ## What XGM is
 
-A driver format rather than a log. The Z80 runs the driver; the 68000 hands it a track and gets on
-with the game. Music data is a list of commands grouped into frames: a frame ends with a wait, and
-the wait is 1/60 of a second on NTSC and 1/50 on PAL. Everything inside a frame happens at once as
-far as the driver is concerned, so **XGM timing is frame quantised and a VGM's sample timing is not**.
-A VGM that writes a register 3 samples after another lands both in the same XGM frame.
+A driver format rather than a log. The Z80 runs the driver, and the 68000 hands it a track and gets
+on with the game. Music data is a list of commands grouped into frames: a frame ends with a wait,
+and the wait is 1/60 of a second on NTSC and 1/50 on PAL. Everything inside a frame happens at once
+as far as the driver is concerned, so **XGM timing is frame quantised and a VGM's sample timing is
+not**. A VGM that writes a register 3 samples after another lands both in the same XGM frame.
 
 The DAC is the driver's, not the music's. XGM mixes up to four PCM voices in software and writes the
 sum to the YM2612's DAC, and it switches the converter itself: `src/snd/drv_xgm.s80` in SGDK writes
@@ -39,6 +49,8 @@ of what the machine is normally fed: 16000 for the plain PCM driver, 22050 for D
 PCM4, and 13300 for XGM2, whose help text accepts only 6650 or 13300. The PCM driver's own help
 text accepts 8000, 11025, 13400, 16000, 22050 and 32000.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The header, and the part the description gets wrong
 
 | where | size | what |
@@ -65,8 +77,10 @@ Two things to know before writing one:
   `(getInt16(data, 0x100) << 8) + 0x104`. A 16 bit byte count would cap samples at 64 kB, which the
   description's own "samples can be >32KB" rules out.
 - **An empty table entry is address `$FFFF` and size `$0000`, not `$0001`.** The description says
-  `$0001`; `xgmtool` writes `$0000` and reads an entry as empty when the address is `$FFFF` or the
-  size is `$0100`. Writing `$FFFF` and `$0000` satisfies every reading.
+  `$0001`, but `xgmtool` writes `$0000` and reads an entry as empty when the address is `$FFFF` or
+  the size is `$0100`. Writing `$FFFF` and `$0000` satisfies every reading.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The commands
 
@@ -83,10 +97,12 @@ Two things to know before writing one:
 
 X is four bits, so a run is at most 16 writes and a longer run is several commands.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## One command a slot
 
 The driver's loop runs one command a slot, and a slot is 254 cycles of the 3.58 MHz Z80, the time
-between two bytes to the converter; the cycle counts beside every path in `drv_xgm.s80` add up to
+between two bytes to the converter. The cycle counts beside every path in `drv_xgm.s80` add up to
 it. That is 71 microseconds. The writes inside one command are much closer: a `$4X` command writes
 each byte 40 cycles after the last, 11 microseconds, which is inside one 18.8 microsecond sample of
 the YM2612. The chip reads its key bits once a sample, so a key off and a key on for one channel in
@@ -95,6 +111,8 @@ the same command are no edge at all, and the note after them never strikes.
 The export never puts two key writes for one channel in one command, and a register written after a
 key write goes into a command after it, so writes reach the chip in the order they were made. The
 import spreads the commands of a frame a slot apart for the same reason.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## What this build does with it
 
@@ -121,6 +139,8 @@ song wrote has to come back holding the same value. The same program checks that
 sample per hit and stops each where its note ends, that back to back notes keep their attack, and
 that FM6 comes back once a sample is over.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Still open
 
 - **Priority is written as zero.** The driver's sixteen levels exist so a sound effect can take a
@@ -130,6 +150,8 @@ that FM6 comes back once a sample is over.
 - **PAL export is untested against hardware.** The rate is taken from the song's tempo and written
   into the flags, and the frame length follows from it, but no PAL file has been played back.
 - **XGM2 is not read or written.** It is a different format with its own command set.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Tempo from a register stream
 
@@ -226,3 +248,5 @@ The reason is not tuning. A vgm is not a recording, it is an exact log of when
 every note began, and estimating those times from rendered audio can only lose
 information that was already there. The pipeline stays in the gate as the
 measurement that says so, and the application carries none of it.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

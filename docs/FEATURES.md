@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # Everything MD Synth DAW does
 
 The README is the short version. This is the long one: every feature the application has, and an
@@ -18,6 +20,7 @@ Drive, and that is where the resemblance stops.
 - [Exporting](#exporting)
 - [The project file](#the-project-file)
 - [Other](#other)
+- [Preferences](#preferences)
 - [Keyboard](#keyboard)
 - [What it deliberately is not](#what-it-deliberately-is-not)
 - [What is not built yet](#what-is-not-built-yet)
@@ -25,6 +28,36 @@ Drive, and that is where the resemblance stops.
 ---
 
 ## Composing
+
+### Tools
+
+The tools sit at the right of the editor tabs. Each editor offers the ones that make sense in it,
+and the first five have a key of their own.
+
+- **Select** (`E`) picks notes, clips or points, one at a time or by dragging a box around them.
+- **Draw** (`P`) writes notes, clips and points.
+- **Erase** (`D`) takes away what you click or drag across.
+- **Slice** (`C`) cuts a clip or a note in two where you click.
+- **Pan** (`H`) drags the view around.
+- **Snap to the grid** turns the grid on and off.
+- **Follow playhead** keeps the playhead in sight while a song plays.
+- **Notes on other channels**, in the piano roll, shows what the pattern holds for the other
+  channels faintly behind the chosen one's.
+- **Keep the tracker to the pattern**, in the tracker, holds it to the chosen pattern.
+
+### Patterns
+
+A pattern holds notes for any of the eleven channels, and the playlist places it as clips. The
+pattern picker on the transport bar chooses the one the editors show, and turning the wheel over it
+steps through them. The **Pattern** menu has the rest:
+
+- **New pattern**, **Duplicate** and **Rename**.
+- **Add to the playlist** puts a clip of it after the last clip on the first track.
+- **Delete** takes it out of the song along with every clip that played it. A song always keeps at
+  least one pattern.
+- **Play it on** moves a pattern that holds one channel's notes onto another channel.
+- **Time signature** gives the pattern one of its own, or has it follow the piece.
+- **Clear every channel** empties it.
 
 ### The playlist
 
@@ -71,8 +104,8 @@ clip panning a channel keeps it panned from note to note.
   a division of a note rather than a count of ticks, so it stays a sixteenth in a piece imported
   at 480 ticks a beat instead of becoming a sliver of one, and 1/1 is a whole bar of whatever the
   time signature says. The roll and the transport bar offer the same divisions, and the one you
-  pick is kept between sessions. A note you place lands on the step you pointed at; one you drag
-  goes to the nearest line.
+  pick is kept between sessions. A note you place lands on the step you pointed at, and one you
+  drag goes to the nearest line.
 - A time signature for the piece, chosen on the transport bar from 2/4 to 7/4 and 3/8 to 12/8,
   and one of its own for any pattern from the Pattern menu. It decides where bars fall in the
   grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.
@@ -178,6 +211,8 @@ every operator field, every dial, a whole envelope stroke, and mute, solo, pan a
 faders. Taking a sample out and normalising one are steps too, and taking one out moves every
 instrument that named a later one along with it.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## The eleven parts
@@ -193,6 +228,22 @@ The ones the machine has, and no others:
 
 Each keeps one colour everywhere it appears: the rack, the playlist, the roll, the scope and the
 register timeline.
+
+### The channel rack
+
+Each part has a row in the channel rack, with its colour, its name, the preset it plays, the
+speakers it reaches on an FM channel, mute and solo buttons, and a volume fader with its level
+meter inside. Click a row to choose that channel. Drag the fader to set the volume, and double click
+it to put it back to full. `Alt` and a click on a solo button solos that channel alone.
+
+Right click a row to mute or solo it, solo it alone, copy, paste or reset its preset, or clear it.
+On the sample channel the same menu turns it into a drum kit and back.
+
+The **Channels** menu unmutes or unsolos every channel, mutes every channel but the chosen one, or
+clears the chosen one. The **Instrument** menu copies, pastes or resets the chosen channel's preset,
+saves it as a preset of your own, and opens the preset browser.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ---
 
@@ -277,6 +328,8 @@ never written because the converter already holds it is kept for as long as the 
 sample keeps its length, and a hit cut short by its note is read as the recording it was cut from.
 A VGM this application wrote therefore imports with its drums where they were.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## Presets and banks
@@ -312,7 +365,7 @@ A VGM this application wrote therefore imports with its drums where they were.
 - Any patch in a song can be lifted into the library.
 - Patches import from TFI files and export back to them, and one preset writes out as a TFI from
   its right-click menu. A TFI is forty two bytes of registers and nothing else, so a name, tags,
-  the two LFO depths and whatever the preset moves on each note stay behind; everything the format
+  the two LFO depths and whatever the preset moves on each note stay behind. Everything the format
   carries comes back exactly.
 - **A preset goes back to what it was.** Loading one into a channel gives the channel its own copy
   of it, so playing with the knobs never touches the preset. Choose the same preset again and every
@@ -346,11 +399,10 @@ A VGM this application wrote therefore imports with its drums where they were.
   came out of, so you can search for the sound you remember by where you heard it.
 - **The bank every piece opens with is Default**, 140 presets: ulalume's 67 and 64 lifted out of
   the finished pieces this program was written alongside, 35 FM patches, 14 square envelopes and
-  15 noise ones. Leads,
-  basses, pads, plucks, bells, organs, guitars, brass and strings for the FM channels; hats,
-  crashes, rides, sweeps and shakers for the square and noise ones. Each is named for what it is
-  for and tagged with what it is good for, `Bass`, `Pad`, `Bright`, `Hard`, so a search on a use
-  finds everything that serves it.
+  15 noise ones. The FM channels get leads, basses, pads, plucks, bells, organs, guitars, brass and
+  strings, and the square and noise channels get hats, crashes, rides, sweeps and shakers. Each is
+  named for what it is for and tagged with what it is good for, such as `Bass`, `Pad`, `Bright` or
+  `Hard`, so a search on a use finds everything that serves it.
 - **Nine of the Default presets move on every note**, and `tag:moving` finds them: a gabber, a
   frenchcore and a hardstyle kick, each dropping several octaves onto its note in a tenth of a
   second, a hardstyle screech that scoops into the note and pulses on the beat, a phasing reese, a
@@ -458,6 +510,8 @@ logs and 120300 key ons, a carrier stands at 22 when the note arrives, and only 
 key ons were at the top of the range. A patch read out of a recording or out of a TFI file is
 left exactly as it was written, because it already carries the level it was played at.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## Watching the hardware
@@ -473,11 +527,11 @@ left exactly as it was written, because it already carries the level it was play
   otherwise the most sounding at once anywhere in the arrangement or in any pattern played on its
   own. Sample memory is a total, because that is what a cartridge carries.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note. Among
-  them are the two ways a piece is left sounding with nothing playing it: a note whose patch has a
-  release rate of nought or one on a carrier, which is slower than anything a piece waits for, so
-  its key off is never heard; and a square or the noise channel held past its last note by a level
-  lane, over the silence that note ended on. A driver hides the first by always keying on again in
-  time, and a piece that stops does not.
+  them are the two ways a piece is left sounding with nothing playing it. The first is a note whose
+  patch has a release rate of nought or one on a carrier, which is slower than anything a piece
+  waits for, so its key off is never heard. The second is a square or the noise channel held past
+  its last note by a level lane, over the silence that note ended on. A driver hides the first by
+  always keying on again in time, and a piece that stops does not.
 - **Checked against the Mega Drive.** The hardware meter and the warnings hold a piece to what the
   Mega Drive's parts can do. The chips are named for the chips rather than for the console, so a
   machine that shares one of them can be added later without renaming anything.
@@ -489,15 +543,37 @@ Everything above reads the same register stream that playback and the export rea
 producer of register writes in the whole program, so what is drawn cannot drift from what is heard,
 and the checks compare the live stream against the offline one on every run.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## Playback
+
+### The transport bar
+
+From left to right:
+
+- **Play**, **Stop and rewind**, **Record**, **Back to the start** and **Loop**. With Loop on, the
+  song, or the pattern playing on its own, goes round again instead of stopping at the end.
+- **PAT** and **SONG** choose between playing the chosen pattern on its own and playing the whole
+  song.
+- The pattern picker, the clock, and the bar the playhead is in.
+- The monitoring fader.
+- The tempo, the time signature, the ticks per quarter note, the console's frame rate, the LFO,
+  the snap, and **Shift**, which moves every note, clip and automation point in the song earlier or
+  later by a number of ticks.
+
+Changing the ticks per quarter note keeps the music where it is, and only changes how finely a beat
+is divided. The **Changing the tempo** preference decides whether a new tempo plays the music
+faster or slower, or moves the grid under it instead.
+
+### Playing
 
 - Play, pause, stop and rewind, seek, and loop.
 - **Follow playhead**, a button among the editor's tools and an entry in the View menu, keeps
   the playhead in sight while a song plays. When it reaches the right edge of the playlist, the
   piano roll or the automation editor, the view turns a page so the playhead is back at the left,
-  and a loop that sends it back scrolls back with it; in the tracker the cursor rides along with
+  and a loop that sends it back scrolls back with it. In the tracker the cursor rides along with
   it. It is on to start with, it is kept between sessions, and it can be given a shortcut in the
   Keyboard preferences.
 - **50 Hz or 60 Hz**, on the transport bar, is the console the piece plays on. Music is written for
@@ -511,7 +587,7 @@ and the checks compare the live stream against the offline one on every run.
   chips would otherwise click on. A sample that stops away from the middle, cut by its note or
   ending there, returns to the middle over 1.5 ms instead of stepping there. An FM channel still
   sounding is let go at its quickest 4 ms before its next note keys it on, so the phase that key
-  on resets starts about 50 dB down; a patch whose carriers attack slowly is left alone, because
+  on resets starts about 50 dB down. A patch whose carriers attack slowly is left alone, because
   it swells legato from wherever the last note left it. Every write this adds is one a driver on
   the machine could make, so an export carries it too. Both start on, and what an export writes
   follows what you are listening to until you set the export's own row, the same way the output
@@ -525,9 +601,14 @@ and the checks compare the live stream against the offline one on every run.
   past its last note would otherwise leave sounding. It is off to start with, because what a patch
   does is what the part does, and a piece whose notes all let go renders the same either way. The
   warnings say when a piece needs it.
-- Three polyphony behaviours: **strict**, where a part that runs out of voices drops the note;
-  **stealing**, where the oldest voice gives way; and **arpeggio**, where notes beyond the channel
-  count are cycled through it.
+- **Play through a driver**, in the View menu, holds a piece to what a sound driver on the console
+  could actually send. A driver writes on a frame timer and waits on the chip's busy flag between
+  writes, so at 60 Hz only about 178 register writes fit into each frame. Anything that does not fit
+  is carried into the next frame, so a part asking for too much is heard arriving late, in playback
+  and in every export alike. It is saved with the project and can be undone.
+- Three polyphony behaviours for a part asked to play more notes than it has channels. **Strict**
+  drops the note, **stealing** gives the oldest voice away, and **arpeggio** cycles the extra notes
+  through the channel.
 - Velocity mapping and tuning per part.
 - A monitoring fader with 20 dB of make up above unity, so a piece sitting in its headroom
   can still be listened to at the top of the scale. It is heard and never written: what
@@ -535,6 +616,12 @@ and the checks compare the live stream against the offline one on every run.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve. On Linux the devices listed are the keyboards and interfaces the kernel offers, read
   directly, so a port that only a program running on the ALSA sequencer makes is not among them.
+- **Knobs on a MIDI keyboard turn FM parameters.** The MIDI preferences have eight slots, each
+  pointed at one of the FM dials or at one field of one operator. Click a slot and move a knob to
+  wire it, and right click the slot to clear it. They start wired to the controllers most keyboards
+  send: the modulation wheel to vibrato depth, controllers 7 and 74 to the total level of operators
+  4 and 1, 71 to feedback, 70 to the algorithm, and 73, 72 and 75 to operator 4's attack, release
+  and first decay. A knob turns the chosen channel's preset, and the status bar says the value.
 - **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, and every key
   you play becomes a note on the chosen channel, in the pattern under the playhead, starting on the
   nearest grid line. While the song plays, a note lasts as long as you held the key and keeps how
@@ -548,6 +635,8 @@ and the checks compare the live stream against the offline one on every run.
   to the default.
 - The audio device is opened stopped and primed with 100 ms before it starts, because a WASAPI
   device asks for more in its first few callbacks than the buffer size it reports.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ---
 
@@ -574,6 +663,8 @@ bar one, with a lane for each part you chose. It keeps the piece's own tempo and
 the piece's own resolution rather than the file's, so what was already there does not
 move. It goes on the undo stack whole.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## Exporting
@@ -586,7 +677,7 @@ WAV, FLAC, Ogg Vorbis and Opus. Set per export:
 - bit depth, 16, 24 or 32
 - mono or stereo
 - silence before and after, and a fade out, all typed in directly. The fade ends where the piece
-  does and the silence after comes after it, so a faded piece ends in real silence; without a
+  does and the silence after comes after it, so a faded piece ends in real silence. Without a
   fade, the last release rings on into that silence
 - normalise to a ceiling, and dither
 - encoder quality, and for Opus the application mode, frame size and bitrate mode
@@ -677,7 +768,7 @@ has no timeline: what you set applies to the whole video.
 
 - **Move, size and turn** anything on the picture by dragging it in the preview: drag inside it
   to move it, a corner to size it, and the knob above it to turn it. A move comes to rest on the
-  picture's middle lines, and a turn on a quarter; Shift turns in steps of 15°. The arrow keys
+  picture's middle lines, and a turn on a quarter. `Shift` turns in steps of 15°. The arrow keys
   nudge what is chosen, Delete takes it out, and Ctrl+Z and Ctrl+Y undo and redo in the window.
 - **The lanes** start laid out together, and every part's lane moves on its own: drag any lane
   and the song's lanes come apart where they sit, so nothing else moves, and the one you took
@@ -727,6 +818,8 @@ A zip packed with Deflate, or a folder, byte identical between runs. A zip's dat
 hold anything before 1980, so the written date is fixed at 1980 rather than being a real timestamp
 that would make two saves of the same song differ.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## The project file
@@ -741,11 +834,15 @@ click opens it, and unregistered again from preferences. The JSON reader and wri
 this repository's own, because a `Map` insertion order is preserved on some Haxe targets and not on
 hxcpp, and a project that reorders itself between saves is not byte identical.
 
+**Open recent** in the File menu lists the projects you opened lately, so one is a click away.
+
 A project carries its own description: title, artist, composer, album, year, genre, track number and
 comment, filled in under **Project info** in the file menu, and one step on the undo stack however
 many change. Every audio export is tagged with them, including one started from the command line, a
 VGM or XGM export writes the title, artist, album, year and comment into its tag block, and
 importing one reads those back.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ---
 
@@ -757,11 +854,15 @@ importing one reads those back.
   that ship beside the program, and nothing else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
   it on their own, and the program downloads the one a language needs when that language is
   picked, pinned to the same file the installer ships.
+- **The first run asks two things**: which language to speak, and whether you would rather write
+  automation as lanes under the editor or as clips on the playlist. Both can be changed later in
+  the preferences.
 - **A start that fails says why.** A window that will not open, drawing that will not start, and
   fonts that are missing or will not read each raise a box saying what went wrong and what to do,
   rather than the program closing with nothing on screen.
-- **It saves on its own** every five or ten minutes, or never, and only once something has changed.
-  A song that was never saved by hand goes to a recovery file rather than nowhere.
+- **It saves on its own** every minute, every five or every ten minutes, or never, and only once
+  something has changed. Every five minutes is where it starts. A song that was never saved by hand
+  goes to a recovery file rather than nowhere.
 - **Backups**, kept for as long as you set.
 - **An updater that asks first.** It checks the releases page, and when there is something newer it
   says which version you have and which is offered, and gives you download, not now, or stop
@@ -770,7 +871,7 @@ importing one reads those back.
   the new copy. It only downloads over https, and only files the release itself carries in this
   project's repository on GitHub, and a release that publishes no `SHA256SUMS` is not offered at
   all. What it downloads has to be the size the release lists and match its `SHA256SUMS` before
-  anything is unpacked, and it is checked again just before anything is replaced; a file that does
+  anything is unpacked, and it is checked again just before anything is replaced. A file that does
   not match is deleted rather than run. That says the download is the file the release carries, not
   that the release is genuine: the Sigstore signature beside each file is what answers that, and
   checking one of those is still something you do yourself.
@@ -810,6 +911,8 @@ importing one reads those back.
   writes them in every language. Which languages ship, and how each was translated, is in
   the README, and the sheet that asks for one on the first run says whether the language
   picked was written by a person or translated by a machine.
+- **The Help menu** holds a page on the console's limits, **About**, which says the version and what
+  the program is built with, and a link to the source code.
 - **A page on the console's limits**, in the help menu: five FM channels once the sample channel
   is in use, one LFO, no pan pot, volume in steps, the squares' lowest note, channel three's four
   notes, what samples cost, one note per channel and a release some drivers never let sound. Each
@@ -845,6 +948,36 @@ importing one reads those back.
   written where your settings live. Functions the compiler inlined are named too, rather than the
   fault being blamed on the call site.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
+
+## Preferences
+
+`Ctrl+,` opens them. Every setting says what it does when you hover it, and nothing changes until
+you accept the sheet.
+
+- **Look**: the theme, the part colours, the typeface, how much the interface animates, the
+  density, the text size, the language, the graphics backend, and the **system monitor**, which
+  puts the processor, memory and sound figures on the status bar, those and the graphics too, or
+  nothing.
+- **Editing**: whether new automation goes into lanes under the editor or into clips on the
+  playlist, how much silence plays past the end of the song before it loops or stops, whether a
+  right click on a clip removes it or opens its menu, whether a new tempo speeds the music up or
+  moves the grid under it, and how notes are named.
+- **Files**: how often it saves on its own, how much disk space the backups may take and how long
+  they are kept, where projects are saved to start with, where your presets live, and whether a
+  double click on a project file opens it here.
+- **Updates**: whether to look for a newer version at launch. Nothing is downloaded without asking.
+- **MIDI**: the keyboard, the channel it is listened to on, whether notes play at the velocity you
+  play or always at full, and the eight controller slots.
+- **Sound**: the audio device, the output stage and declick.
+- **Keyboard**: every shortcut. Click one and press the new keys, or right click to put back the
+  one it came with.
+- **Sharing**: what Discord shows, which is the song as well, the application only, or nothing.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## Keyboard
@@ -853,12 +986,18 @@ importing one reads those back.
 | --- | --- |
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
-| `Ctrl+L` | loop the pattern |
+| `Ctrl+L` | loop on or off |
 | `Ctrl+Z`, `Ctrl+Y` | undo, redo |
+| `Ctrl+N` | new project |
 | `Ctrl+S`, `Ctrl+O` | save, open |
 | `Ctrl+E` | export a VGM |
 | `Ctrl+Shift+E` | export audio |
 | `Ctrl+,` | preferences |
+| `E`, `P`, `D`, `C`, `H` | the select, draw, erase, slice and pan tools |
+| `Ctrl+A` | select everything |
+| `Ctrl+C`, `Ctrl+X`, `Ctrl+V` | copy, cut, paste |
+| `Ctrl+B` | duplicate the selection straight after itself |
+| `Ctrl+Left`, `Ctrl+Right` | nudge everything in the song earlier or later |
 | `Left`, `Right` | nudge the selected notes by the snap |
 | `Up`, `Down` | transpose the selected notes or clips a semitone |
 | `Ctrl+Up`, `Ctrl+Down` | transpose the selected notes an octave |
@@ -878,6 +1017,8 @@ Down moving the tracker's cursor, Delete, Escape, Enter and Tab, and the tracker
 A chord reaches the session after the focus chain declines it, so stopping playback while renaming
 something works, and typing a space into a field does not start playback.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## What it deliberately is not
@@ -894,7 +1035,7 @@ These are decisions, not gaps, and they are not going to change.
   together, because that register has to have one writer.
 - **Not a plugin.** Not CLAP, not VST, not AU. This is an application, and the reason it is one is
   that a plugin could not be it.
-- **Not an emulator.** No 68000, no Z80, no VDP. It produces and consumes a register stream; it
+- **Not an emulator.** No 68000, no Z80, no VDP. It produces and consumes a register stream, and
   does not pretend to be a console.
 - **No second front end**, and no interface toolkit taken from anywhere.
 - **No MP3 export.** Every encoder worth using is LGPL, and linking one in would put the whole
@@ -904,6 +1045,8 @@ These are decisions, not gaps, and they are not going to change.
   sample lands at -1 dBFS. Nothing here measures LUFS.
 - **No 32-bit build.** Sixty-four bit only.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ---
 
 ## What is not built yet
@@ -912,7 +1055,8 @@ Wanted, not present, and named here rather than implied by silence.
 
 - **ROM and driver export.** Nothing produces a playable ROM or an SGDK driver blob.
 - **Real hardware playback.** No link to a real Mega Drive, and no live parameter editing on one.
-- **MIDI out.** A MIDI keyboard plays into the program; the program does not play out to a device.
+- **MIDI out.** A MIDI keyboard plays into the program, but the program does not play out to a
+  device.
 - **Automatic pattern detection** in an imported VGM. Patterns come across as they were written,
   and finding the repeats is left to you.
 - **Driver-specific optimisation** of an export for a particular sound driver.
@@ -925,3 +1069,5 @@ Where a claim on this page can be held by a check, `mdd gate` holds it, and the 
 claim of working that counts here. It exits nonzero on any failure, and every check from the render
 path onward has an offline half, because a host being right is not the same as an engine being
 right.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

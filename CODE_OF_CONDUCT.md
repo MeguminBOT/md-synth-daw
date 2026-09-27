@@ -6,7 +6,7 @@ anywhere else you are speaking as part of it.
 ## What is expected
 
 - **Treat people with respect.** Criticise code, designs and decisions, never the person who wrote
-  them. A review that says what is wrong and why is welcome; one that sneers is not.
+  them. A review that says what is wrong and why is welcome, but one that sneers is not.
 - **Assume good faith.** The interface ships in thirteen languages and a lot of the people here are
   writing in their second or third one. A blunt sentence is usually just a short one.
 - **Be patient with questions.** Everyone was new to the YM2612 once.

@@ -1,13 +1,24 @@
+<a id="top"></a>
+
 # Renderer notes
 
 Which SDL backend draws the interface, and what was wrong with vulkan.
 
-SDL3 ships `direct3d11`, `direct3d12`, `opengl`, `opengles2`, `vulkan` and `software`, and
-`SDL_CreateRenderer` takes any of them by name. Windows starts at `direct3d11`.
+SDL3 ships `direct3d11`, `direct3d12`, `direct3d`, `opengl`, `opengles2`, `vulkan` and `software`,
+and `SDL_CreateRenderer` takes any of them by name. Windows starts at `direct3d11`, and where that
+falls short of feature level 10_0 with no renderer chosen, it starts at `opengl`, then `direct3d`,
+and keeps the choice. Every backend is tested with a song playing. `direct3d12` runs with faults,
+so it is offered as an experimental option and nothing falls back to it.
 
 The preferences offer every backend the build has except `software` and `gpu`, and name each for
 the interface it drives: `direct3d` is DirectX 9, `direct3d11` DirectX 11, `direct3d12` DirectX 12,
 `opengl` OpenGL, `opengles2` OpenGL ES and `vulkan` Vulkan. The setting keeps the SDL name.
+
+- [Choosing one](#choosing-one)
+- [What was wrong](#what-was-wrong)
+- [Zoom](#zoom)
+- [What each backend's chain does](#what-each-backends-chain-does)
+- [The window going bright](#the-window-going-bright)
 
 ## Choosing one
 
@@ -27,10 +38,12 @@ The selection was behind `#if windows` until it was measured, which meant the fl
 compiled out on the one platform the fault appears on: nothing on Windows could ask for
 the backend that was wrong, so nothing could look at it.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## What was wrong
 
 Both faults are vulkan's, both sit below this application, and both are measured on the screen
-rather than in the renderer. A still window is correct on every backend; what goes wrong is a single
+rather than in the renderer. A still window is correct on every backend. What goes wrong is a single
 frame here and there while the interface is changing, which is why a screenshot of an idle window, a
 readback and a comparison of the draw commands all came back clean.
 
@@ -46,8 +59,8 @@ Two things are counted in each frame:
 
 - **A glitch**: pixels that differ from the frame before and from the frame after, spread across
   panels that have nothing to do with one another. A playhead, a key lighting under a note or a zoom
-  step changes one region; this changes the channel rack, the synthesiser panel and the transport
-  bar at once.
+  step changes one region, while this changes the channel rack, the synthesiser panel and the
+  transport bar at once.
 - **A repeat**: a frame identical to one from two to four frames earlier and not to the one before
   it, which is an old image returning to the screen.
 
@@ -66,7 +79,7 @@ waiting for its image to come free when the next frame's vertices are copied ove
 then drawn with its own draw calls and the next frame's vertices. Every quad after the first place
 the two frames differ takes another quad's corners and texture coordinates, which is a glyph
 somewhere else in the atlas. The direct3d12 backend waits for the device at every present and cannot
-do this; the direct3d11 and opengl drivers manage their own buffers.
+do this, and the direct3d11 and opengl drivers manage their own buffers.
 
 `mdd_render_present` waits for the device after every present on vulkan, through the
 `vkDeviceWaitIdle` of the instance SDL publishes on the renderer, so one frame is in flight and the
@@ -76,7 +89,7 @@ copy never lands on vertices a frame still needs.
 
 The second fault is an old image coming back for one refresh: the screen shows frames A and B and
 then A again, byte for byte, with the time readout going backwards, before carrying on. During
-playback that is a playhead jumping back two pixels for seven milliseconds; on a zoom step it is the
+playback that is a playhead jumping back two pixels for seven milliseconds. On a zoom step it is the
 whole previous zoom level flashing. Two presents back is what a two buffer flip swap chain shows when
 it flips a buffer nothing new was copied into, and a windowed vulkan swap chain on Windows is
 presented through one.
@@ -110,6 +123,8 @@ direct3d12 was reported as flickering as well and does not here. SDL's direct3d1
 the device at every present and keeps each texture upload's buffer until the batch that uses it has
 run, so neither mechanism above reaches it. What the report saw on direct3d12 is not established.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Zoom
 
 `mdd gate shot --direct --sweep <file>` shows its window and zooms the playlist, or with `--centre 1`
@@ -119,6 +134,8 @@ starts, so a capture taken from outside the process can say which step it saw. A
 Loop are byte identical on direct3d11, vulkan and direct3d12, and so are the still frames of the
 application itself after every step of the session above: no zoom level draws wrongly once it has
 settled.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## What each backend's chain does
 
@@ -147,6 +164,8 @@ Two more things the same program checks, and both are the same on all seven:
   backend that records render passes has to end one and begin another to do it.
   None of them loses the window's contents over that.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The window going bright
 
 The other half of what is reported is the window flashing white, which is not a
@@ -172,3 +191,5 @@ eight out of two hundred and fifty five.
 Around a hundred and twenty readings a second against a screen at a hundred and
 forty four means a flash lasting a single frame is more likely seen than missed.
 Ten minutes of it were watched and none was.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

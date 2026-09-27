@@ -43,10 +43,10 @@ it.
 
 Only you and the maintainers can see the report. Please include:
 
-- the version, from **Help > About**, or the commit you built;
-- your operating system and whether it is the installer, the portable archive or a source build;
-- the file or steps that trigger it, attached to the report rather than linked publicly;
-- what happens, and the crash report from your settings folder if one was written.
+- the version, from **Help > About**, or the commit you built
+- your operating system, and whether you use the installer, the portable archive or a source build
+- the file or the steps that trigger it, attached to the report rather than linked publicly
+- what happens, and the crash report from your settings folder if one was written
 
 ## What happens next
 

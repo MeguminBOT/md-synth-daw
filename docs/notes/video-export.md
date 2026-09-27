@@ -1,7 +1,17 @@
+<a id="top"></a>
+
 # Video export
 
 A scope video is a WebM file holding VP9 video and Opus audio, written by
 `src/mdd/native/video.cpp` through libvpx and libwebm.
+
+- [The VP9 encoder](#the-vp9-encoder)
+- [What a file carries](#what-a-file-carries)
+- [What the settings set](#what-the-settings-set)
+- [How far it spreads over processors](#how-far-it-spreads-over-processors)
+- [Colour and flicker](#colour-and-flicker)
+- [Defaults](#defaults)
+- [Measured](#measured)
 
 ## The VP9 encoder
 
@@ -26,6 +36,8 @@ so on Windows it is left undefined rather than set to nought.
 
 A new libvpx version regenerates these files with the commands above, run against the new source.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## What a file carries
 
 Frames are converted with BT.709 weights at studio range, to I444 in VP9 profile 1 where the
@@ -39,6 +51,8 @@ written both as the header's pre-skip and as the track's codec delay.
 
 The muxer holds audio back until a frame at or after its time has arrived, so the writer hands
 over each frame's audio and the frame as they are made and the file still comes out in time order.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## What the settings set
 
@@ -60,6 +74,8 @@ control, so each frame drawn is a frame in the file, even where CBR runs short o
 Tile columns follow the width: as many as the encoder threads allow while each tile stays at least
 256 pixels wide, which is four at 1920 and eight at 3840.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## How far it spreads over processors
 
 The encoder takes all but one of the processors and stops at 16. That ceiling is not the thing
@@ -77,7 +93,7 @@ hardest case for VP9:
     20          42.3 fps  4.46    13.6 fps  5.23
     24          42.9 fps  4.52    13.8 fps  5.28
 
-Doubling from 4 threads to 8 is worth a third again; from 8 to 16 it is a tenth, and from 16 to 24
+Doubling from 4 threads to 8 is worth a third again. From 8 to 16 it is a tenth, and from 16 to 24
 it is three per cent at 1080 and one at 4K. Row threading spreads the work inside a tile, which is
 why it keeps gaining anything at all past four columns, but the curve is flat well before the
 processors run out. Lifting the 16 stands to gain about a frame a second on a 24 thread machine and
@@ -94,6 +110,8 @@ The scope in a video is drawn at its design sizes times the picture height over 
 baked at that scale for the one export, so 3840 by 2160 carries the scope drawn three times as
 large rather than the 1280 by 720 one with room around it.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Colour and flicker
 
 A scope is lines two to four pixels thick in saturated colours on black, which is close to the
@@ -101,7 +119,7 @@ worst case for 4:2:0: the chroma plane has half the resolution each way, so a th
 is averaged with the black beside it. Measured on 14 September 2026 with ffmpeg's libvpx-vp9 at
 realtime, row threading and screen tuning, over 90 frames of nine moving sine traces three pixels
 thick at 1280 by 720, 60 frames a second and 6000 kilobits, which is the bitrate per pixel of 2560
-by 1440 at 24000. Colour kept is the saturation of the decoded traces over the source's; flicker is
+by 1440 at 24000. Colour kept is the saturation of the decoded traces over the source's. Flicker is
 the mean change between consecutive decoded frames over pixels at least six from any trace:
 
     chroma  speed  largest quantiser  bytes     trace error  colour kept  flicker
@@ -116,9 +134,11 @@ Turning adaptive quantisation off changed nothing, byte for byte, and neither de
 place of screen tuning nor a static threshold of 500 did better than the 4:4:4, speed 7, largest
 quantiser 40 row. A video therefore starts at 4:4:4 and speed 5, and variable and constrained
 quality never go coarser than 40. The measurement is ffmpeg's libvpx rather than the encoder this
-repository compiles in; `mdd gate video` measures the colour a thin line keeps through the compiled
+repository compiles in. `mdd gate video` measures the colour a thin line keeps through the compiled
 one, and on still lines two pixels thick it keeps 68.8 per cent of the saturation at 4:2:0 and
 99.8 per cent at 4:4:4.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Defaults
 
@@ -143,6 +163,8 @@ Its bitrates, in kilobits a second, with the low end taken where it gives a rang
 It names no size, so a video starts at 2560 by 1440. Its container is MP4 and its video codec
 H.264, and neither is written here: the file is WebM and the video VP9. WebM is on the list of
 formats its upload help accepts.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Measured
 
@@ -182,3 +204,5 @@ after the video export went in:
 
     before              5898752 bytes
     after               6689792 bytes, 791040 more
+
+<p align="right">(<a href="#top">back to top</a>)</p>

@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # What MD Synth DAW needs to run
 
 The README has the short table. This is where the numbers in it come from, what happens to them
@@ -33,6 +35,8 @@ update is held to the same. For the graphics it starts the application itself wi
 much memory it can use, counting the system memory integrated graphics shares. Where none of
 Direct3D 11, OpenGL and Direct3D 9 reaches its level in the table below, it says which of the
 other renderers would draw the window, and asks whether to install anyway.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Operating system
 
@@ -80,6 +84,8 @@ distributions do not package it yet.
 problem on it isn't one we can look into. That covers a custom build aimed at an older Unix just as
 it covers an old Windows: if the machine is outside the table, so is the help.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Processor
 
 **Two cores is a floor rather than a preference.** Synthesis runs on one thread and the interface on
@@ -92,6 +98,8 @@ processor from the last 15 years might be missing.
 **Arm64 is built but not yet run on hardware here.** The Linux and macOS Arm packages come out of
 CI and pass the same checks, on emulated and native runners respectively, but nobody has sat in
 front of a machine running one. Treat it as working and tell us if it is not.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Memory
 
@@ -117,6 +125,8 @@ spare: 30 minutes of 11 busy parts fills 1.7 million of the 33 million writes it
 An audio export holds the finished mixdown as well, at 44100 frames a second in stereo, which is a
 further 10 MB a minute on top.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Graphics
 
 **The interface is 2D and never touches a 3D pipeline.** The card holds glyph atlases and a couple
@@ -140,6 +150,8 @@ The renderer can be changed in the preferences or with `--renderer=`:
 Every renderer is tested with a song playing. Direct3D 12 runs, but with faults, so it is there as
 an experimental option and nothing falls back to it.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Storage
 
 **500 MB, and most of it is not the program.**
@@ -154,6 +166,8 @@ an experimental option and nothing falls back to it.
 An update downloads an archive and unpacks a whole second copy beside the first before swapping
 them, then clears both away. The rest of the 500 MB is room for your own projects and the samples
 in them, which is the part that actually grows.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Measuring it yourself
 
@@ -172,3 +186,5 @@ mdd gate weigh --ceiling 800      # fail if anything goes past that many megabyt
 
 It prints the time, the peak, what is still held afterwards and what came out, a phase at a time.
 The numbers on this page are its output.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

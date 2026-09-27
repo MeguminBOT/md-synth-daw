@@ -1,9 +1,19 @@
+<a id="top"></a>
+
 # SN76489 notes
 
 What the Mega Drive's PSG does, and how each of these was established. The FM chip has 1032 fixtures
-behind it; this part has none, so what stands in for them is `mdd.gate.PsgCheck`, which is the
+behind it and this part has none, so what stands in for them is `mdd.gate.PsgCheck`, which is the
 documented behaviour written out as assertions. Where a number here was measured rather than read, it
 says so.
+
+- [The part, and its clock](#the-part-and-its-clock)
+- [One port, two kinds of byte](#one-port-two-kinds-of-byte)
+- [Attenuation is two decibels a step](#attenuation-is-two-decibels-a-step)
+- [A period of zero holds the output high](#a-period-of-zero-holds-the-output-high)
+- [The noise register is sixteen bits and does not repeat where anyone expects](#the-noise-register-is-sixteen-bits-and-does-not-repeat-where-anyone-expects)
+- [A note's edge is one more edge](#a-notes-edge-is-one-more-edge)
+- [What this does not cover](#what-this-does-not-cover)
 
 ## The part, and its clock
 
@@ -17,6 +27,8 @@ cents lower. The Z80 takes the master clock divided by fifteen as well, so a con
 the Z80's own loop slows by the same share. Rendered, a held square at 880 Hz comes out 0.99088
 times as high on the PAL clock, the ratio exactly.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## One port, two kinds of byte
 
 There is a single write port and no way to read anything back.
@@ -24,11 +36,13 @@ There is a single write port and no way to read anything back.
 - **A byte with bit 7 set latches a register and writes its low four bits.** Bits 6 to 4 choose the
   register: channel in bits 6 and 5, and bit 4 picking the period or the attenuation.
 - **A byte with bit 7 clear writes the register that was latched.** For a tone period that is the
-  six bits above the four already there, making ten; for an attenuation or the noise control it is
+  six bits above the four already there, making ten. For an attenuation or the noise control it is
   four bits again, and the two above them are dropped.
 
 `PsgCheck` holds all four of those, including that a data byte to an attenuation register writes
 four bits rather than six.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Attenuation is two decibels a step
 
@@ -38,14 +52,18 @@ sample, is 32767, 26028, 20675, 16422, 13045, 10362, 8231, 6538, 5193, 4125, 327
 1642, 1304, 0, and every one of those is the ratio applied to the one before it and rounded. This
 rounds rather than truncating for that reason: truncating is a unit low at half the steps.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## A period of zero holds the output high
 
 A channel's counter is reloaded with its ten bit period and the output flips when it reaches zero,
 so a period of n gives a full cycle every 2n counts and a frequency of the clock over 32n. A period
 of **zero** is the exception: the output is held high and never flips, which is what a program
 driving sampled sound through the attenuation register relies on. A period of **one** is not an
-exception, and gives a real tone at 111,861 Hz that nothing can hear; this modelled it as another
+exception, and gives a real tone at 111,861 Hz that nothing can hear. This modelled it as another
 constant high until `PsgCheck` was written and the documentation said otherwise.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The noise register is sixteen bits and does not repeat where anyone expects
 
@@ -68,6 +86,8 @@ model to it exactly rather than to a threshold.
 The shift rate is the low two bits of the noise control register: once every 10h, 20h or 40h counts,
 or the third channel's own period.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## A note's edge is one more edge
 
 The output is nought or the attenuated level, never both ways around nought, so a square is a run of
@@ -81,6 +101,8 @@ take away that the part is not already making.
 
 The squares reach the output through a resampler of their own, heard 238 samples behind the writes
 at 44100 Hz against the FM part's 212, and noise 84 samples behind.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## What this does not cover
 
@@ -102,3 +124,5 @@ are the ratio applied again and the worst deviation, which says the same thing i
 
 Not modelled, and not known to matter: whatever the part does between a write and the next count,
 and the analogue mixing that sets its level against the FM chip's on the board.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

@@ -204,25 +204,23 @@ application does, and an honest list of what it does not do and why.
 - **An FM operator editor** with the algorithm drawn as separate wires rather than one line through
   every box, and a square editor beside it.
 - **Preset banks** you can search, group, sort and filter, and organise into categories from the
-  browser itself. A project you save by hand carries only the presets it plays, a preset you
-  swap out of a channel stays on offer until then, and any patch in a song can be lifted into
-  the library.
+  browser itself.
 - **Undo and redo on everything**, drags included, which land as one step rather than one a frame.
 
 ### Watching The Hardware
 
 - **A register timeline**, saying which chip took each write.
 - **A scope** that switches between waveform and spectrum.
-- **A hardware meter** for FM channels, FM operators, squares and noise, and sample memory: what
-  is sounding while the song plays, and otherwise the most sounding at once anywhere in it.
+- **A hardware meter** showing how much of the console the song uses.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note.
 - **Three output stages**: the chip alone, the Mega Drive, or the Mega Drive 2.
+- **Play through a driver**, which paces the piece the way the console's own sound driver would.
 
 ### Importing
 
 | Format | What comes across |
 | --- | --- |
-| **VGM** | The register stream becomes notes, patches, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at, and the exact frequency word is recorded at every key on, so vibrato and slides survive |
+| **VGM** | Notes, patches, square envelopes and samples, with the timing, vibrato and slides kept as the file wrote them |
 | **XGM** | Patterns and samples |
 | **MIDI** | Notes and tempo |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
@@ -231,17 +229,11 @@ application does, and an honest list of what it does not do and why.
 ### Exporting
 
 - **VGM, XGM and MIDI.**
-- **Audio as WAV, FLAC, Ogg Vorbis or Opus**, with sample rate, bit depth, channels, normalise,
-  dither, leading and trailing silence, fade and metadata tags all set per export. Opus exposes its
-  application mode, frame size and bitrate mode, so a file can be aimed at streaming or at local
-  listening. The FLAC encoder is this repository's own.
-- **Stems**, one file per part beside the mix, each scaled by the gain the mix worked out so
-  the set of them sums back to it.
-- **Video**, a WebM of a scope lane for every part over the piece with the mix underneath as Opus,
-  starting at YouTube's recommended upload settings.
-- **A video style window** with a preview that follows the song, where the lanes, pictures and
-  text are moved, sized and turned by dragging, over a background of your choosing, with shadows,
-  borders and styles you can save.
+- **Audio as WAV, FLAC, Ogg Vorbis or Opus**, with the rate, depth, fades, normalising and tags
+  set per export. The FLAC encoder is this project's own.
+- **Stems**, one file per part or per track, which sum back to the mix.
+- **Video**, a WebM of a scope lane for every part with the mix as its sound, ready for YouTube.
+- **A video style window** to lay out the lanes, pictures and text over a background of your own.
 - **A project as a zip or as a folder**, byte identical between runs.
 
 ### Other
@@ -348,8 +340,8 @@ an engine being right.
 - **Not a plugin.** This is an application, and the reason it is one is that a plugin could not be
   it.
 - **Not a second front end** on somebody else's interface toolkit.
-- **Not an emulator.** No 68000, no Z80, no VDP. It produces and consumes a register stream; it does
-  not pretend to be a console.
+- **Not an emulator.** No 68000, no Z80, no VDP. It produces and consumes a register stream, and
+  does not pretend to be a console.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -370,7 +362,7 @@ a source, that is noted.
 
 | Source | Licence | How it is used |
 | --- | --- | --- |
-| [Nuked-OPN2][nuked-url] | LGPL-2.1 | The known-good YM2612 the FM core is measured against, and a reverse engineering of the die that settled several behaviours in minutes that curve fitting never would. Built as a program of its own; only the samples it produces cross over, and it is never linked into anything shipped |
+| [Nuked-OPN2][nuked-url] | LGPL-2.1 | The known-good YM2612 the FM core is measured against, and a reverse engineering of the die that settled several behaviours in minutes that curve fitting never would. Built as a program of its own. Only the samples it produces cross over, and it is never linked into anything shipped |
 
 ### Libraries
 
@@ -386,7 +378,7 @@ a source, that is noted.
 | [libvpx][vpx-url] | BSD-3-Clause, with a patent grant | VP9 encoding for the video export |
 | [libwebm][webm-url] | BSD-3-Clause, with a patent grant | Writing the WebM the video goes in |
 
-FLAC and WAV have no library behind them; both are written in this repository.
+FLAC and WAV have no library behind them. Both are written in this repository.
 
 There is no MP3 encoder, and that is the same decision that keeps Nuked-OPN2 at arm's length. LAME
 and shine are both LGPL, which would put the whole application under obligations it does not want.

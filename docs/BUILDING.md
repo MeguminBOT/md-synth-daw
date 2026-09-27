@@ -1,8 +1,22 @@
+<a id="top"></a>
+
 # Building from source
 
 Everything runs through one command, `./mdd` on a shell and `mdd.bat` on Windows. There is no
 haxelib to install and nothing is put on your system: the command runs `tools/src/Run.hx` through
 `haxe --run` from the repository root.
+
+- [Prerequisites](#prerequisites)
+- [First build](#first-build)
+- [The commands](#the-commands)
+- [Toolchains](#toolchains)
+- [Architecture](#architecture)
+- [Warnings a build prints](#warnings-a-build-prints)
+- [Continuous integration](#continuous-integration)
+- [The build file](#the-build-file)
+- [The shipped presets](#the-shipped-presets)
+- [Adding a check](#adding-a-check)
+- [Editor setup](#editor-setup)
 
 ## Prerequisites
 
@@ -19,6 +33,8 @@ haxelib to install and nothing is put on your system: the command runs `tools/sr
 - `git` and `curl`
 - A C++ toolchain, see below
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## First build
 
 ```sh
@@ -30,6 +46,8 @@ cd md-synth-daw
 
 `mdd setup` fetches everything into `vendor/`, which is gitignored and never edited in place. If a
 fetch fails, `mdd check` tells you what is present and what is missing.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The commands
 
@@ -57,11 +75,13 @@ its fonts folder missing ran perfectly here and closed on a reader's machine wit
 fonts beside the binary are the ones the portable archive holds, which leaves out the three a
 language downloads on demand, so a copy run from here asks for those exactly as a reader's does.
 
-**A package takes what it names and nothing else.** From beside the binary that is the application,
-the libraries `<ship>` lists and the one `<carry>` finds; anything else that lands in `export/bin`,
-a check program or an archive left over from something else, stays behind. The pictures the Linux
-install script gives the desktop's icon theme are copied by that package alone, because nothing
-else reads them: the window icon and the program's own are built into the binary.
+**A package takes what it names and nothing else.** From beside the binary, that is the application,
+the libraries `<ship>` lists and the one `<carry>` finds. Anything else that lands in `export/bin`,
+such as a check program or an archive left over from something else, stays behind. The pictures the
+Linux install script gives the desktop's icon theme are copied by that package alone, because
+nothing else reads them: the window icon and the program's own are built into the binary.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Toolchains
 
@@ -84,6 +104,8 @@ linker, not that there is a separate mingw build to produce.
 
 A Debian image under `tools/docker` builds the Linux one and carries the whole toolchain.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Architecture
 
 A build reads the machine it is running on and defines `HXCPP_M64` on x86-64 or `HXCPP_ARM64` on
@@ -93,6 +115,8 @@ Pass `--x86_64` or `--arm64` to say which, or set `MDD_ARCH`. There is no 32-bit
 
 Arm64 is built by the workflows and has not been run on hardware yet, so treat a first arm64 build
 as unproven until `mdd gate` has passed on one.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Warnings a build prints
 
@@ -127,6 +151,8 @@ everything except MSVC, which does not know the name.
 macOS-11.0, but linking with dylib ... built for newer version 26.0` meant exactly what it said:
 the 0.3.0 macOS packages carried an SDL3 that would not load on the macOS they claimed to support.
 That one was a fault, and the macOS jobs now aim at the version their libraries were built for.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Continuous integration
 
@@ -213,6 +239,8 @@ x86-64 one says 10.9 and carries an SDL3 built for 14.0. The macOS jobs therefor
 version and aim at it, so the binary says what it can actually do. Both macOS jobs run on macOS 26,
 which for Intel is the last release there is.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The build file
 
 There is no `.hxml` anywhere, and none is written by hand. Every option lives in `mdd.xml`: window
@@ -236,6 +264,8 @@ name, or `Project.xml`, `project.hxp` or `project.lime`, makes the Lime editor e
 workspace and answer the Haxe language server with the output of a `lime` command that is not
 installed here, leaving the editor with no completion at all and nothing saying why.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The shipped presets
 
 The banks that ship are edited as text and shipped as records. `assets/presets/*.json` is one
@@ -246,6 +276,8 @@ conversion runs only where a document is newer than the bank built from it.
 That is where to fix a name or add a tag: edit the document, build, and the bank the application
 offers is what you wrote. The records are the same format a preset or a bank saved from the browser
 is written in, so nothing about a shipped bank is special beyond where it is kept.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Adding a check
 
@@ -281,7 +313,7 @@ the repository, or takes long enough that nobody would sit through it on every r
 | `mdd gate gather <folder> <name> <file>` | the same without the tables: it works a name out from the envelope a patch carries and the pitch it was played at |
 | `mdd gate kit <file>` | writes the drum kit, every hit of it arithmetic rather than a recording |
 | `mdd gate convert <folder> <file> [rate]` | turns a folder of recordings into a bank, working each hit's key out from the sound |
-| `mdd gate bank <into> <presets folder> <project>[=kit]...` | reads finished pieces' own presets out of their project files and writes them as bank documents. Everything that is not a recording goes into the default bank and each piece's hits become a kit named after the `=`. A preset a shipped bank, the default set or the named presets folder already has is left out, which is how anything that arrived from elsewhere stays out of what ships; `-` in place of the folder reads none |
+| `mdd gate bank <into> <presets folder> <project>[=kit]...` | reads finished pieces' own presets out of their project files and writes them as bank documents. Everything that is not a recording goes into the default bank and each piece's hits become a kit named after the `=`. A preset a shipped bank, the default set or the named presets folder already has is left out, which is how anything that arrived from elsewhere stays out of what ships. A `-` in place of the folder reads none |
 | `mdd gate tidy <presets folder> [--delete]` | lists the files in a presets folder whose sound the library already offers, and removes them when told to |
 | `mdd gate voice <into folder> [bank]` | renders every preset in a bank playing C0 to C7 and measures each note, so a name that claims something the sound does not do can be heard and seen |
 | `mdd gate drift` | measures how far a converter run drifts from the rate it was written at |
@@ -290,6 +322,8 @@ the repository, or takes long enough that nobody would sit through it on every r
 
 A program that writes an asset is kept out of the gate on purpose. An asset that rewrote itself on
 every run would show up as churn in a history that should only move when somebody decided something.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Editor setup
 
@@ -310,3 +344,5 @@ chosen toolchain uses. The C/C++ extension reads it through `.vscode/settings.js
 through `.clangd` at the repository root. The hxcpp output in `export/obj` and the vendored trees
 are kept out of the C/C++ extension's symbol index, which would otherwise parse thousands of
 generated files for workspace symbols. A header included from them still resolves.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

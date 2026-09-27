@@ -1,8 +1,19 @@
+<a id="top"></a>
+
 # Discord presence notes
 
 What Discord's local IPC actually is, what was measured against a running client, and why this
 repository speaks it directly instead of linking a library. `src/mdd/native/discord.cpp` is the
 transport, `mdd.host.Discord` binds it, and `mdd.app.Presence` decides what is said.
+
+- [Why there is no vendored library](#why-there-is-no-vendored-library)
+- [The socket](#the-socket)
+- [The frame](#the-frame)
+- [What was measured](#what-was-measured)
+- [The activity, and its limits](#the-activity-and-its-limits)
+- [Timing](#timing)
+- [What is deliberately not sent](#what-is-deliberately-not-sent)
+- [Setting it up](#setting-it-up)
 
 ## Why there is no vendored library
 
@@ -11,6 +22,8 @@ redistribution. Neither is a candidate under the vendoring rules. The protocol u
 small enough that writing it is cheaper than depending on either: a socket, an eight byte header and
 a JSON payload. Nothing else in the application needs Discord's SDK, because nothing else is being
 asked for. Presence is a one way announcement.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The socket
 
@@ -23,9 +36,11 @@ Off Windows a unix socket named `discord-ipc-N` inside the first of `XDG_RUNTIME
 and the Vesktop flatpak's `xdg-run` directory beneath it, because a sandboxed client puts its socket
 under its own prefix rather than at the top.
 
-Reads never block. Windows peeks the pipe for how much is waiting before reading any of it; the unix
-socket is put in non blocking mode after connecting. Writes block, and are allowed to: a payload is
-under a kilobyte and the client's receive buffer is 64 KB.
+Reads never block. Windows peeks the pipe for how much is waiting before reading any of it, and the
+unix socket is put in non blocking mode after connecting. Writes block, and are allowed to: a
+payload is under a kilobyte and the client's receive buffer is 64 KB.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The frame
 
@@ -52,6 +67,8 @@ Setting the presence is opcode 1 with
 `pid` is required, which is why `mdd_discord_pid` exists at all. Discord uses it to notice that the
 process has gone and clear the presence, so nothing has to be sent on the way out.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## What was measured
 
 `mdd gate presence --dial <id>` opens a socket, runs `Presence` against it for eight seconds and
@@ -77,6 +94,8 @@ Two frames because the handshake is answered with a READY carrying the signed in
 command is answered in turn. What says the activity was taken is that the fault stayed empty: an
 answer carrying `"evt":"ERROR"` puts its message there, and that is what an id Discord does not know
 produced above.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The activity, and its limits
 
@@ -106,6 +125,8 @@ empty badge takes the tempo and the position with it.
 A new application already answers to three names it derives from its own icon and cover image,
 `embedded_cover`, `embedded_icon` and `embedded_background`, before anything has been uploaded.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Timing
 
 Discord throttles activity updates at five in twenty seconds and silently drops the rest, so an
@@ -117,14 +138,18 @@ any waiting.
 An epoch stamp is thirteen digits, which does not fit an `Int` on hxcpp. `Presence.whole` writes the
 digits out of a `Float` by hand rather than trusting `Std.string` not to reach for an exponent.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## What is deliberately not sent
 
-No file path, ever, at any level. The song's name is something typed on purpose; the path it was
+No file path, ever, at any level. The song's name is something typed on purpose. The path it was
 saved to is not, and it carries a user name on nearly every machine.
 
 The `Sharing` preference has three settings. **Off** never opens the socket. **The application only**
 sends no part of the song: no name, no census, no party, no tempo, and the state says no more than
 whether something is playing. **The song as well** is the default and sends the table above.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Setting it up
 
@@ -140,3 +165,5 @@ this repository.
 
 The three badges point at one image until three are uploaded, which costs nothing but leaves the
 badge the same whatever the transport is doing. Three separate images and it follows.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

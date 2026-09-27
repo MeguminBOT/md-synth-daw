@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # What ships that this repository did not write
 
 Every file the application distributes, where it came from, its licence, and the date the licence
@@ -8,6 +10,17 @@ reading below. Anything else is read for reference and never copied. An asset wi
 is not a permissively licensed asset, however freely it circulates.
 
 `vendor/` is fetched by `mdd setup`, is gitignored, and is never edited in place.
+
+- [Compiled into the executable](#compiled-into-the-executable)
+- [Shipped beside the executable](#shipped-beside-the-executable)
+- [Typefaces](#typefaces)
+- [The shipped preset banks](#the-shipped-preset-banks)
+- [The drum kit](#the-drum-kit)
+- [The 808 kit](#the-808-kit)
+- [The Instruments patches](#the-instruments-patches)
+- [The banks lifted out of finished pieces](#the-banks-lifted-out-of-finished-pieces)
+- [The example projects](#the-example-projects)
+- [Read but never shipped](#read-but-never-shipped)
 
 ---
 
@@ -31,7 +44,7 @@ beyond the notice in its own source, which travels with the header.
 The three Xiph libraries are the audio export: libvorbis writes Ogg Vorbis, libopus writes Opus, and
 libogg carries the pages both of them are framed in. Their sources are compiled from `vendor/` into
 the executable by the `<tree>` entries in `mdd.xml` and are never edited. BSD three clause asks that
-the copyright notice, the conditions and the disclaimer travel with a binary distribution; each
+the copyright notice, the conditions and the disclaimer travel with a binary distribution. Each
 library's `COPYING` is fetched alongside its source and is what carries them.
 
 libvpx and libwebm are the video export: libvpx encodes VP9, and libwebm writes the WebM
@@ -46,6 +59,8 @@ There is deliberately no MP3 encoder. Every usable one is LGPL, and an LGPL enco
 executable would put the executable under the same obligation. That is a decision about what this
 application is, not a build detail, and it has not been taken.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Shipped beside the executable
 
 | source | version | licence | checked | fetched from |
@@ -54,8 +69,8 @@ application is, not a build detail, and it has not been taken.
 | Qlementine Icons | e7cf96d | MIT | 2026-09-03 | github.com/oclero/qlementine-icons |
 
 `SDL3.dll` is copied next to the program on Windows and linked from the system elsewhere. The zlib
-licence requires that the origin not be misrepresented and that altered versions be marked as such;
-this repository ships SDL unaltered.
+licence requires that the origin not be misrepresented and that altered versions be marked as
+such. This repository ships SDL unaltered.
 
 **The interface icons.** `mdd setup` fetches the SVGs the icon manifest in `mdd.xml` names, at the
 commit recorded in `vendor/qlementine/COMMIT`, and the build rasterises them into the atlases under
@@ -68,6 +83,8 @@ interface draws it at, and its instrument category is what made it worth taking.
 The manifest also accepts this repository's own SVGs under `assets/icons`, on the same terms and
 through the same rasteriser. `wave-saw` and `wave-noise` are written here, because a general icon
 set has no reason to carry them and this one does.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Typefaces
 
@@ -125,6 +142,8 @@ renames nothing. Each family's `OFL.txt` is fetched next to its face and ships w
 The Go faces are BSD-3-Clause rather than OFL, and their `LICENSE` ships alongside them for the same
 reason.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The shipped preset banks
 
 `assets/presets/*.json` carry four operator FM patches read out of the VGM recordings in
@@ -175,6 +194,8 @@ was put into, so the paragraph above does not reach them.
 They are recorded here because this file is the register of what ships. Whether they should ship at
 all is a decision rather than a fact, and it has not been taken.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The drum kit
 
 `assets/presets/drum-kit.json` is written by `mdd gate kit`, which the gate does not run. Nothing in
@@ -199,6 +220,8 @@ Thirteen hits, 41393 bytes at 11025 Hz, which is 15.8 per cent of the 262144 the
 allows for samples. The roots are where general MIDI puts each drum, so a drum track imported from a
 MIDI lands on the right hit with nothing to move.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The 808 kit
 
 `assets/presets/808.json` is this repository's author's own work rather than anybody else's: ten
@@ -217,6 +240,8 @@ same shape the synthesised kit uses, and each hit sits where general MIDI puts t
 Ten hits, 80350 bytes, which is 30.7 per cent of the 262144 the Mega Drive profile allows for
 samples. None of that is spent until a note reaches for a hit: a bank sitting in the library
 costs the machine nothing.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The Instruments patches
 
@@ -245,6 +270,8 @@ operators taken in order, a patch's nearest neighbour by parameter distance sits
 | bass, brass, pipe, strings | 5 each |
 | organ, synth pad | 4 each |
 | ensemble | 3 |
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The banks lifted out of finished pieces
 
@@ -277,6 +304,8 @@ named for the music it suits.
 Together 139410 bytes, and the largest of them 36825, which is 14.0 per cent of the 262144 the
 Mega Drive profile allows for samples. None of it is spent until a note reaches for a hit.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The example projects
 
 `assets/example-projects/console-tricks.mdsyn` is this repository's own work, covered by its
@@ -285,6 +314,8 @@ four bar patterns, one a track, each showing a way around a limit of the YM2612 
 Nothing in it is read out of a recording. Its presets are the default bank the application builds
 in code, 29 instruments made for it out of operator values and envelope steps, and the synthesised
 Drum Kit above, whose 13 hits are the only samples it holds.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Read but never shipped
 
@@ -305,3 +336,5 @@ Hardware behaviour is taken from documentation or established by measurement. It
 reading a restrictive source and transcribing what it does: a number lifted out of somebody else's
 emulator is that emulator's answer, and it arrives with no way to tell a measurement from an
 approximation somebody settled for.
+
+<p align="right">(<a href="#top">back to top</a>)</p>

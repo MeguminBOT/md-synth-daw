@@ -1,6 +1,17 @@
+<a id="top"></a>
+
 # Audio export notes
 
 What the export path does, what is measured, and what is deliberately absent.
+
+- [The chain](#the-chain)
+- [FLAC](#flac)
+- [Ogg Vorbis and Opus](#ogg-vorbis-and-opus)
+- [Not built yet](#not-built-yet)
+- [The flac encoder measured against libFLAC](#the-flac-encoder-measured-against-libflac)
+- [The json reader against haxe.Json](#the-json-reader-against-haxejson)
+- [Rendering the stems at once](#rendering-the-stems-at-once)
+- [How closely the stems sum to the mix](#how-closely-the-stems-sum-to-the-mix)
 
 ## The chain
 
@@ -17,8 +28,10 @@ What the export path does, what is measured, and what is deliberately absent.
 and `mdd.view.Files` picks the writer.
 
 Normalisation is peak based, not loudness based. A -1 dB ceiling means the loudest sample is at
--1 dBFS, which is what a tracker or a chip export wants; it says nothing about how loud the piece
+-1 dBFS, which is what a tracker or a chip export wants. It says nothing about how loud the piece
 feels. Nothing here does LUFS.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## FLAC
 
@@ -34,7 +47,7 @@ subframe. The measurements at the end of this file are what each of those was wo
 Two things the format description makes easy to get wrong, both paid for here:
 
 - **The blocking strategy bit decides what the coded frame number means.** Zero means fixed
-  blocksize and the number is the frame index; one means the number is the first sample's index.
+  blocksize and the number is the frame index. One means the number is the first sample's index.
   Writing the frame index with the bit set produces a file every decoder rejects.
 - **The CRC-16 covers the whole frame including the header and the header's own CRC-8.** Resetting
   it after the header gives a file that decodes and then fails verification.
@@ -42,6 +55,8 @@ Two things the format description makes easy to get wrong, both paid for here:
 **Verified against ffmpeg**, which is the only claim worth making about a format encoder: 16 bit
 stereo, 24 bit stereo and 16 bit mono all decode to PCM byte identical to the WAV written from the
 same samples, and the Vorbis comments read back as the tags they were given.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Ogg Vorbis and Opus
 
@@ -84,6 +99,8 @@ what says the pre-skip is written correctly. Vorbis decodes to 568 frames more t
 and so does ffmpeg's own libvorbis encoder on the same input: that is the format's block padding,
 not a fault in this glue.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Not built yet
 
 **MP3.** Every encoder worth using is LGPL: LAME, and the smaller `shine`.
@@ -94,6 +111,8 @@ not a fault in this glue.
 
 The export window offers WAV, FLAC, Ogg Vorbis and Opus, because a format in the list that writes
 nothing is worse than a format that is not there.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## The flac encoder measured against libFLAC
 
@@ -145,7 +164,7 @@ that a fixed predictor suits still gets one.
 
 The predictor sum is accumulated as a float rather than an integer. Twelve
 coefficients of fifteen bits against a seventeen bit side channel reaches 2^35,
-which a thirty two bit accumulator would wrap; a float carries integers exactly to
+which a thirty two bit accumulator would wrap. A float carries integers exactly to
 2^53, and `Math.ffloor` of the division is the arithmetic shift the decoder does.
 
 ### What was wrong with it
@@ -172,6 +191,8 @@ One check in the mixdown had assumed a lossy file is smaller than a lossless one
 On a plain tone that is no longer true here: 16411 bytes of flac against 16698 of
 opus at 128k. It now compares each against the wav instead.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## The json reader against haxe.Json
 
 Both read the same ten documents: exponents, escapes, four digit unicode, nested
@@ -192,6 +213,8 @@ to the character loop only when a backslash appears, turns 1.36 ms into 0.20 ms.
 
 Ours, then: it is now faster, and it hands back a typed `Node` rather than the
 `Dynamic` that `haxe.Json` returns, which would put reflection at every read.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Rendering the stems at once
 
@@ -232,6 +255,8 @@ bounce has kept the output identical:
 | two exports of one piece | byte for byte |
 | one export of a two second piece | 1.01 s |
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## How closely the stems sum to the mix
 
 A stem by track is the piece rendered with only one track's notes, and only the channels those notes
@@ -250,3 +275,5 @@ past the first 50 ms:
 | --- | --- | --- |
 | a bass note keying on with a lead on the same sample | -39 dB | -39 dB |
 | every note a few ticks from any other | -140 dB | -138 dB |
+
+<p align="right">(<a href="#top">back to top</a>)</p>

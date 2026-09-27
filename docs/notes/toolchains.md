@@ -1,7 +1,15 @@
+<a id="top"></a>
+
 # Toolchain notes
 
 What compiles this, how the build chooses, and what each choice costs. `mdd.xml` declares the
 choices and `tools/src/Run.hx` acts on them.
+
+- [How one is chosen](#how-one-is-chosen)
+- [Windows](#windows)
+- [What a second compiler found](#what-a-second-compiler-found)
+- [Sizes](#sizes)
+- [Linux](#linux)
 
 ## How one is chosen
 
@@ -14,6 +22,8 @@ A name given to `mdd build` overrides the choice. A name is also a build conditi
 and `unless="msvc"` gate any element, and `if="llvm"` holds for clang-cl, clang and mingw alike.
 
 `mdd check` prints the list with the chosen one marked.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Windows
 
@@ -53,6 +63,8 @@ it has no stack rather than trying to walk one.
 mingw is asked for by name rather than picked up, because it is a different ABI. Its linker takes
 `SDL3.dll` directly, so it needs no import library and nothing extra is fetched for it.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## What a second compiler found
 
 Three real portability faults, none of which MSVC would ever have reported:
@@ -70,10 +82,14 @@ Three real portability faults, none of which MSVC would ever have reported:
 Plus five `_snprintf_s` and `_snwprintf_s` calls, which are Microsoft's and are now `snprintf` and
 `swprintf`.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Sizes
 
 Measured on the same source, same day: msvc `gate.exe` 9.25 MB, mingw 106.6 MB. The difference is
 unstripped DWARF.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Linux
 
@@ -117,3 +133,5 @@ on Linux:
 Written, not run. There is no Mac here. `usage.cpp` uses `task_info` with `MACH_TASK_BASIC_INFO`,
 which is the standard call, and the toolchain is hxcpp's own `HXCPP_CLANG`. Treat it as untested
 until somebody builds it.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
