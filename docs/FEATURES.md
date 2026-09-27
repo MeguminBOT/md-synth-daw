@@ -1052,7 +1052,7 @@ These are decisions, not gaps, and they are not going to change.
   such condition, which is why they are here instead.
 - **No loudness normalisation.** Normalising is peak based: a -1 dB ceiling means the loudest
   sample lands at -1 dBFS. Nothing here measures LUFS.
-- **No 32-bit build.** Sixty-four bit only.
+- **No 32-bit build.** 64-bit only.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
