@@ -90,6 +90,12 @@ class App {
 	var followingShown:Bool = true;
 
 	/**
+		Whether the transport was playing when the window was last told, so a song that reaches
+		its end and stops, with nothing pressed, still has everything that shows it drawn again.
+	**/
+	var playingShown:Bool = false;
+
+	/**
 		The faces a language needs that may not be installed, and the download of one.
 	**/
 	var faces:Null<Faces> = null;
@@ -1052,6 +1058,7 @@ class App {
 	function changed():Void {
 		if (panels == null || panels.budget == null || session == null) return;
 
+		stage.root.soil();
 		panels.budget.overSong(session.song);
 
 		if (panels.centre != null) panels.centre.roll.invalidate();
@@ -2335,7 +2342,7 @@ class App {
 				stage.root.soil();
 			}
 			folded();
-			if (rendered(since) || pulling(since) || facing(since)) stage.root.soil();
+			if (rendered(since) || pulling(since) || facing(since)) stage.root.refresh();
 			if (files != null && files.tick(since)) stage.root.soil();
 			if (watched() || faced()) stage.root.soil();
 			watch();
@@ -2344,8 +2351,8 @@ class App {
 			presence.busy = showing.running() ? stage.root.translate(showing.label) : "";
 			presence.tick(since);
 
-			if (shared()) stage.root.soil();
-			if (costed()) stage.root.soil();
+			shared();
+			costed();
 			if (received()) stage.root.soil();
 
 			final aside = styleWindow;
@@ -2523,6 +2530,15 @@ class App {
 
 		centre.playhead(session.transport.tick());
 
+		final playing = session.transport.playing;
+
+		if (playing != playingShown) {
+			playingShown = playing;
+			stage.root.soil();
+		}
+
+		if (playing && panels.bar != null) panels.bar.invalidateOverlay();
+
 		if (sound.render == null) return;
 
 		var moved = false;
@@ -2538,7 +2554,7 @@ class App {
 		}
 
 		if (moved) {
-			rack.invalidate();
+			rack.invalidateOverlay();
 			if (panels.rail != null) panels.rail.hardware.invalidate();
 		}
 
@@ -2584,41 +2600,35 @@ class App {
 		their own: reading them only when the song changed left them standing at
 		whatever they were at the last edit, and never moving at all while a piece
 		played. `measured` works them out twice a second and hands back the same
-		line in between, so this costs a comparison on the frames between.
-
-		@return Whether the line changed and the bar has to be drawn again.
+		line in between, so this costs a comparison on the frames between. Only the
+		bar is drawn again when the line changes.
 	**/
-	function costed():Bool {
-		if (panels == null || panels.status == null) return false;
+	function costed():Void {
+		if (panels == null || panels.status == null) return;
 
 		final held = measured();
-		if (held == panels.status.usage) return false;
+		if (held == panels.status.usage) return;
 
 		panels.status.usage = held;
 		panels.status.invalidate();
-		return true;
 	}
 
 	/**
 		Keeps the line the preferences sheet shows for Discord presence in step with what the
 		presence is doing, while that sheet is up.
-
-		@return Whether the line changed, so the frame needs drawing again.
 	**/
-	function shared():Bool {
-		if (panels == null || panels.preferences == null) return false;
-		if (stage.root.sheet != panels.preferences) return false;
+	function shared():Void {
+		if (panels == null || panels.preferences == null) return;
+		if (stage.root.sheet != panels.preferences) return;
 
 		final held = !presence.possible() ? stage.root.translate(Locale.PRESENCE_NONE)
 			: (presence.live() ? presence.said()
 				: stage.root.translate(Locale.PRESENCE_WAITING));
 
-		if (held == panels.preferences.presenceSaid) return false;
+		if (held == panels.preferences.presenceSaid) return;
 
 		panels.preferences.presenceSaid = held;
 		panels.preferences.invalidate();
-
-		return true;
 	}
 
 	/**
