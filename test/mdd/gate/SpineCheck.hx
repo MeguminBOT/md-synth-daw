@@ -3942,6 +3942,37 @@ class SpineCheck {
 			"the readout beside the clock goes " + shown);
 	}
 
+	/**
+		The pitch bend range is a MIDI preference, offered in semitones either way.
+
+		@param held The preferences sheet.
+	**/
+	static function bendable(held:mdd.view.overlay.Preferences):Void {
+		var told = -1;
+		final was = held.holding(mdd.view.overlay.Preferences.BEND_RANGE);
+
+		held.onBendRange = function(semitones:Int):Void told = semitones;
+		held.shows(mdd.view.overlay.Preferences.MIDI);
+
+		final listed = held.rowsIn().indexOf(mdd.view.overlay.Preferences.BEND_RANGE) >= 0;
+		final twelve = mdd.view.overlay.Preferences.bending(12);
+
+		held.chose(mdd.view.overlay.Preferences.BEND_RANGE, twelve);
+
+		final took = held.semitones();
+		final heard = told;
+		final spelt = held.said(mdd.view.overlay.Preferences.BEND_RANGE, twelve);
+
+		held.chose(mdd.view.overlay.Preferences.BEND_RANGE, was);
+		held.onBendRange = null;
+
+		says("the bend range is a preference", listed && took == 12 && heard == 12
+			&& spelt == "\u00B1" + "12"
+			&& mdd.view.overlay.Preferences.bending(13) == mdd.view.overlay.Preferences.bending(2),
+			"the MIDI group offers it, twelve semitones reads " + spelt + " and set the keyboard to "
+			+ took + ", and a range it does not offer falls back to two");
+	}
+
 	static function picked(tree:Root, session:mdd.app.Session, bar:TransportBar):Void {
 		final song = session.song;
 		final had = song.patterns.length;
@@ -4119,6 +4150,7 @@ class SpineCheck {
 
 		rebound(tree, held);
 		mapped(tree, held);
+		bendable(held);
 
 		held.shows(mdd.view.overlay.Preferences.LOOK);
 		tree.pressed(held.x - 20, held.y - 20, mdd.ui.Pointer.Left, mdd.ui.Mod.None);

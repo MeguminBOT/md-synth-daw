@@ -63,10 +63,27 @@ final class Keyboard {
 	public static inline final MIDDLE = 8192;
 
 	/**
-		How far the pitch wheel bends at either end, in cents: two semitones, which is where general
-		MIDI starts a device.
+		How far the pitch wheel bends at either end to start with, in cents: two semitones, which is
+		where general MIDI starts a device.
 	**/
 	public static inline final BEND_RANGE = 200;
+
+	/**
+		Controller: data entry, which sets the registered parameter chosen, whole units.
+	**/
+	public static inline final DATA = 6;
+
+	/**
+		Controller: data entry, hundredths.
+	**/
+	public static inline final DATA_FINE = 38;
+
+	/**
+		Controller: which registered parameter data entry sets, the low half and the high half.
+		Both at nought is the pitch bend range; both at 127 is none.
+	**/
+	public static inline final PARAMETER_LOW = 100;
+	public static inline final PARAMETER_HIGH = 101;
 
 	/**
 		Which channel to listen on, or `ANY`.
@@ -94,9 +111,18 @@ final class Keyboard {
 	public var bend:Float = 0;
 
 	/**
+		How far the pitch wheel bends at either end, in cents. The MIDI preferences set it, and a
+		keyboard that sends its own range takes over until they set it again.
+	**/
+	public var bendRange:Int = BEND_RANGE;
+
+	/**
 		Where the modulation wheel is, 0 to 1.
 	**/
 	public var wheel:Float = 0;
+
+	var parameterLow:Int = 127;
+	var parameterHigh:Int = 127;
 
 	/**
 		Whether the sustain pedal is down.
@@ -162,6 +188,11 @@ final class Keyboard {
 		Called when the modulation wheel moves.
 	**/
 	public var onWheel:Null<Float -> Void> = null;
+
+	/**
+		Called with the new range, in cents, when the keyboard sends its pitch bend range.
+	**/
+	public var onRange:Null<Int -> Void> = null;
 
 	/**
 		Called with a controller and a value for anything else.
@@ -286,6 +317,14 @@ final class Keyboard {
 					pedals(two >= 64);
 				} else if (one == NOTES_OFF || one == SOUND_OFF) {
 					lets();
+				} else if (one == PARAMETER_LOW || one == PARAMETER_HIGH) {
+					if (one == PARAMETER_LOW) parameterLow = two;
+					else parameterHigh = two;
+
+					return true;
+				} else if ((one == DATA || one == DATA_FINE) && (parameterLow != 127 || parameterHigh != 127)) {
+					if (parameterLow == 0 && parameterHigh == 0) ranged(one == DATA, two);
+					return true;
 				}
 
 				if (onControl != null) onControl(one, two);
@@ -354,6 +393,21 @@ final class Keyboard {
 			sustained[pitch] = false;
 			if (onRelease != null) onRelease(pitch);
 		}
+	}
+
+	/**
+		Takes the pitch bend range the keyboard sent: whole semitones, which clear the hundredths,
+		or hundredths on top of the semitones already there.
+
+		@param whole Whether the value is semitones rather than hundredths.
+		@param value The value, 0 to 127.
+	**/
+	function ranged(whole:Bool, value:Int):Void {
+		final semitones = whole ? value : Std.int(bendRange / 100);
+		final cents = whole ? 0 : (value > 99 ? 99 : value);
+
+		bendRange = semitones * 100 + cents;
+		if (onRange != null) onRange(bendRange);
 	}
 
 	static function spelt(kind:Int, one:Int, two:Int):String {

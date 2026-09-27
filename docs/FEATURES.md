@@ -620,11 +620,12 @@ faster or slower, or moves the grid under it instead.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
   curve. A channel sounds one note at a time, the way the chip does, so the key you pressed last is
   the one you hear, and letting it go falls back to a key you are still holding. The sustain pedal
-  holds keys until it lifts, the pitch wheel bends what is sounding by up to two semitones either
-  way, and a keyboard's all notes off lets everything go. A keyboard that is unplugged reconnects on
-  its own when it comes back. On Linux the devices listed are the keyboards and interfaces the
-  kernel offers, read directly, so a port that only a program running on the ALSA sequencer makes is
-  not among them.
+  holds keys until it lifts, the pitch wheel bends what is sounding, and a keyboard's all notes off
+  lets everything go. The wheel reaches two semitones either way to start with. The MIDI preferences
+  set another range, and a keyboard that sends its own range takes over from them. A keyboard that
+  is unplugged reconnects on its own when it comes back. On Linux the devices listed are the
+  keyboards and interfaces the kernel offers, read directly, so a port that only a program running
+  on the ALSA sequencer makes is not among them.
 - **Knobs on a MIDI keyboard turn FM parameters.** The MIDI preferences have eight slots, each
   pointed at one of the FM dials or at one field of one operator. Click a slot and move a knob to
   wire it, and right click the slot to clear it. They start wired to the controllers most keyboards
@@ -984,7 +985,7 @@ you accept the sheet.
   double click on a project file opens it here.
 - **Updates**: whether to look for a newer version at launch. Nothing is downloaded without asking.
 - **MIDI**: the keyboard, the channel it is listened to on, whether notes play at the velocity you
-  play or always at full, and the eight controller slots.
+  play or always at full, the pitch bend range, and the eight controller slots.
 - **Sound**: the audio device, the output stage and declick.
 - **Keyboard**: every shortcut. Click one and press the new keys, or right click to put back the
   one it came with.

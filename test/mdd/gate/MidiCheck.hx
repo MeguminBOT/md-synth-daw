@@ -27,6 +27,7 @@ class MidiCheck {
 		sustained();
 		prioritised();
 		silenced();
+		ranged();
 		aimed();
 		guarded();
 		surveyed();
@@ -292,6 +293,40 @@ class MidiCheck {
 		says("all notes off lets go of everything", all && heard.length == 0 && !keys.pedal,
 			"a key down and a key under the pedal were both let go with nothing left sounding,"
 			+ " and letting go of the key afterwards called nothing");
+	}
+
+	static function ranged():Void {
+		final keys = held();
+		var told = -1;
+		var turned = 0;
+
+		keys.onRange = function(cents:Int):Void told = cents;
+		keys.onControl = function(control:Int, value:Int):Void turned++;
+
+		final start = keys.bendRange;
+
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.PARAMETER_HIGH, 0));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.PARAMETER_LOW, 0));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.DATA, 12));
+		final whole = keys.bendRange;
+
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.DATA_FINE, 50));
+		final fine = keys.bendRange;
+
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.PARAMETER_LOW, 1));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.DATA, 3));
+		final other = keys.bendRange;
+
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.PARAMETER_HIGH, 127));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.PARAMETER_LOW, 127));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.DATA, 3));
+		final closed = keys.bendRange;
+
+		says("a keyboard sets its bend range", start == Keyboard.BEND_RANGE && whole == 1200
+			&& fine == 1250 && other == 1250 && closed == 1250 && told == 1250 && turned == 1,
+			"it starts at " + start + " cents, twelve semitones and fifty hundredths make " + fine
+			+ ", another parameter leaves it, and data entry once closed reaches the mapping as a"
+			+ " control");
 	}
 
 	static function guarded():Void {

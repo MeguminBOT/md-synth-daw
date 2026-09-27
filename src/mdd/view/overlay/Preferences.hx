@@ -91,7 +91,12 @@ final class Preferences extends Widget {
 	**/
 	public static inline final DECLICK = 28;
 
-	public static inline final ROWS = 29;
+	/**
+		Row: how far the pitch wheel bends.
+	**/
+	public static inline final BEND_RANGE = 29;
+
+	public static inline final ROWS = 30;
 
 	/**
 		What each choice of the text size row multiplies the faces by.
@@ -147,7 +152,7 @@ final class Preferences extends Widget {
 		[KEEPING, BACKUPS, BACKUP_AGE, PROJECTS, PRESETS, ASSOCIATE],
 		#end
 		[UPDATES],
-		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY],
+		[MIDI_DEVICE, MIDI_CHANNEL, MIDI_VELOCITY, BEND_RANGE],
 		[AUDIO_DEVICE, CONSOLE, DECLICK],
 		[],
 		[PRESENCE]
@@ -180,7 +185,7 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_RENDERER, Locale.PREFERENCE_AUDIO_DEVICE,
 		Locale.PREFERENCE_ACCIDENTALS, Locale.PREFERENCE_NOTE_NAMES, Locale.PREFERENCE_TEXT_SIZE,
 		Locale.PREFERENCE_PART_COLOURS, Locale.PREFERENCE_HOST_MONITOR,
-		Locale.PREFERENCE_RIGHT_CLICK, Locale.PREFERENCE_DECLICK];
+		Locale.PREFERENCE_RIGHT_CLICK, Locale.PREFERENCE_DECLICK, Locale.PREFERENCE_BEND_RANGE];
 
 	static final TIPS:Array<Locale> = [Locale.PREFERENCE_TIP_THEME, Locale.PREFERENCE_TIP_TYPEFACE,
 		Locale.PREFERENCE_TIP_MOTION, Locale.PREFERENCE_TIP_LANGUAGE, Locale.PREFERENCE_TIP_DENSITY,
@@ -195,7 +200,8 @@ final class Preferences extends Widget {
 		Locale.PREFERENCE_TIP_AUDIO_DEVICE, Locale.PREFERENCE_TIP_ACCIDENTALS,
 		Locale.PREFERENCE_TIP_NOTE_NAMES, Locale.PREFERENCE_TIP_TEXT_SIZE,
 		Locale.PREFERENCE_TIP_PART_COLOURS, Locale.PREFERENCE_TIP_HOST_MONITOR,
-		Locale.PREFERENCE_TIP_RIGHT_CLICK, Locale.PREFERENCE_TIP_DECLICK];
+		Locale.PREFERENCE_TIP_RIGHT_CLICK, Locale.PREFERENCE_TIP_DECLICK,
+		Locale.PREFERENCE_TIP_BEND_RANGE];
 
 	static final PRESENCES:Array<Locale> = [Locale.PRESENCE_OFF, Locale.PRESENCE_PLAIN,
 		Locale.PRESENCE_FULL];
@@ -220,6 +226,13 @@ final class Preferences extends Widget {
 	static final DECLICKS:Array<Locale> = [Locale.DECLICK_OFF, Locale.DECLICK_ON];
 
 	static final VELOCITIES:Array<Locale> = [Locale.MIDI_TAKEN, Locale.MIDI_FORCED];
+
+	/**
+		The pitch bend ranges offered, in semitones either way.
+	**/
+	static final SEMITONES:Array<Int> = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 24];
+
+	static final BENDS:Array<String> = [for (semitones in SEMITONES) "\u00B1" + semitones];
 
 	static final AUTOMATINGS:Array<Locale> = [Locale.AUTOMATING_LANES,
 		Locale.AUTOMATING_CLIPS];
@@ -381,6 +394,11 @@ final class Preferences extends Widget {
 	public var keyboardVelocity(default, null):Int = 0;
 
 	/**
+		Which pitch bend range is chosen, as a place in the list offered.
+	**/
+	public var bendRange(default, null):Int = 1;
+
+	/**
 		Which output stage is monitored.
 	**/
 	public var console(default, null):Int = mdd.play.Render.MODEL_ONE;
@@ -480,6 +498,11 @@ final class Preferences extends Widget {
 		Called when the velocity handling changes.
 	**/
 	public var onKeyboardVelocity:Null<Int -> Void> = null;
+
+	/**
+		Called with the pitch bend range, in semitones, when it changes.
+	**/
+	public var onBendRange:Null<Int -> Void> = null;
 
 	/**
 		Called when the monitored output stage changes.
@@ -1036,6 +1059,23 @@ final class Preferences extends Widget {
 		invalidate();
 	}
 
+	/**
+		@param semitones A pitch bend range.
+		@return Where it sits among the ranges offered, or where two semitones does if it is none of
+			them.
+	**/
+	public static function bending(semitones:Int):Int {
+		final at = SEMITONES.indexOf(semitones);
+		return at < 0 ? 1 : at;
+	}
+
+	/**
+		@return The pitch bend range chosen, in semitones.
+	**/
+	public function semitones():Int {
+		return SEMITONES[bendRange];
+	}
+
 	function channels():Array<String> {
 		final out = [translate(Locale.MIDI_ANY)];
 		for (index in 1...17) out.push(Std.string(index));
@@ -1086,6 +1126,7 @@ final class Preferences extends Widget {
 			case PROJECTS, PRESETS: NOTHING;
 			case MIDI_DEVICE: keyboards;
 			case MIDI_CHANNEL: channels();
+			case BEND_RANGE: BENDS;
 			case THEME, MOTION, DENSITY, KEEPING, BACKUP_AGE, UPDATES, AUTOMATING, TAIL,
 				MIDI_VELOCITY, CONSOLE, DECLICK, TEMPO, PRESENCE, ASSOCIATE, ACCIDENTALS,
 				NOTE_LETTERS, PART_COLOURS, RIGHT_CLICK: NOTHING;
@@ -1189,6 +1230,7 @@ final class Preferences extends Widget {
 			case MIDI_DEVICE: keyboardAt;
 			case MIDI_CHANNEL: keyboardChannel;
 			case MIDI_VELOCITY: keyboardVelocity;
+			case BEND_RANGE: bendRange;
 			case CONSOLE: console;
 			case DECLICK: declick ? 1 : 0;
 			case TEMPO: tempo;
@@ -1274,6 +1316,10 @@ final class Preferences extends Widget {
 			case MIDI_VELOCITY:
 				keyboardVelocity = which;
 				if (onKeyboardVelocity != null) onKeyboardVelocity(which);
+
+			case BEND_RANGE:
+				bendRange = which < 0 ? 0 : (which >= SEMITONES.length ? SEMITONES.length - 1 : which);
+				if (onBendRange != null) onBendRange(SEMITONES[bendRange]);
 
 			case CONSOLE:
 				console = which;

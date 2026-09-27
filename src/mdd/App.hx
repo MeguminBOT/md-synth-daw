@@ -650,6 +650,11 @@ class App {
 			keyboard.forces = which != 0;
 			keeps();
 		};
+
+		panels.preferences.onBendRange = function(semitones:Int):Void {
+			keyboard.bendRange = semitones * 100;
+			keeps();
+		};
 		panels.preferences.onShut = function():Void stage.root.lower();
 		panels.preferences.bindings = bindings;
 		panels.preferences.mapping = mapping;
@@ -2003,7 +2008,14 @@ class App {
 		};
 
 		keyboard.onBend = function(bend:Float):Void {
-			if (session != null) session.transport.bends(Math.round(bend * Keyboard.BEND_RANGE));
+			if (session != null) session.transport.bends(Math.round(bend * keyboard.bendRange));
+		};
+
+		keyboard.onRange = function(cents:Int):Void {
+			if (session == null) return;
+
+			session.transport.bends(Math.round(keyboard.bend * cents));
+			session.says(Locale.SAID_BEND_RANGE, Std.string(cents / 100));
 		};
 
 		keyboard.onControl = function(control:Int, value:Int):Void turned(control, value);
@@ -2057,6 +2069,8 @@ class App {
 			settings.asWhole("console", mdd.play.Render.MODEL_ONE));
 
 		panels.preferences.chose(Preferences.DECLICK, settings.asFlag("declick", true) ? 1 : 0);
+		panels.preferences.chose(Preferences.BEND_RANGE,
+			Preferences.bending(settings.asWhole("bendRange", 2)));
 
 		panels.preferences.chose(Preferences.TEMPO, settings.asWhole("tempo", 0));
 
@@ -2136,6 +2150,7 @@ class App {
 		settings.put("output", outputSaid);
 		settings.whole("midiChannel", panels.preferences.keyboardChannel);
 		settings.whole("midiVelocity", panels.preferences.keyboardVelocity);
+		settings.whole("bendRange", panels.preferences.semitones());
 		settings.whole("console", panels.preferences.console);
 		settings.flag("declick", panels.preferences.declick);
 		settings.whole("tempo", panels.preferences.tempo);
@@ -2617,6 +2632,10 @@ class App {
 	function listens(want:String):Bool {
 		mdd.host.Midi.close();
 		keyboard.lets();
+
+		if (panels != null && panels.preferences != null) {
+			keyboard.bendRange = panels.preferences.semitones() * 100;
+		}
 
 		midiAt = -1;
 		midiSaid = want;
