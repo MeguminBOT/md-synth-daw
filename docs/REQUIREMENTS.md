@@ -129,7 +129,7 @@ The renderer can be changed in the preferences or with `--renderer=`:
 
 | backend | wants |
 | --- | --- |
-| `direct3d11` | Direct3D 11, feature level 10_0. Windows uses this unless told otherwise |
+| `direct3d11` | Direct3D 11, feature level 10_0. Windows uses this unless told otherwise, and where it falls short it starts on OpenGL instead, or on Direct3D 9 where OpenGL falls short too, and keeps that as the choice |
 | `opengl` | OpenGL 2.0. Linux and macOS use this |
 | `direct3d` | Direct3D 9 with Shader Model 2.0 |
 | `direct3d12` | Direct3D 12 |

@@ -18,4 +18,17 @@ extern class Requirements {
 	**/
 	@:native("mdd_requirements_write")
 	public static function write(path:cpp.ConstCharStar):Int;
+
+	/**
+		Asks a renderer just made what level it reached: the feature level of a Direct3D 11
+		device, the version of an OpenGL or OpenGL ES context, or the pixel shader model of a
+		Direct3D 9 device. That costs nothing, where asking the driver first costs as much as
+		loading it.
+
+		@param renderer The renderer, asked before anything else is made current.
+		@return The level as `major << 8 | minor`, `0x0A00` for feature level 10_0 and `0x0200`
+			for OpenGL 2.0, or nought where the renderer has no level to read.
+	**/
+	@:native("mdd_requirements_reached")
+	public static function reached(renderer:cpp.Star<Canvas>):Int;
 }

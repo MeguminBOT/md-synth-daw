@@ -256,6 +256,53 @@ namespace {
 #endif
 }
 
+extern "C" int mdd_requirements_reached(SDL_Renderer *renderer) {
+	if (renderer == nullptr) return 0;
+
+	const char *name = SDL_GetRendererName(renderer);
+	if (name == nullptr) return 0;
+
+	if (SDL_strcmp(name, "opengl") == 0 || SDL_strcmp(name, "opengles2") == 0) {
+		const GetString asked = (GetString)SDL_GL_GetProcAddress("glGetString");
+		char version[32];
+
+		versioned(asked == nullptr ? nullptr : (const char *)asked(GL_VERSION_NAME), version,
+			sizeof(version));
+
+		int major = 0;
+		int minor = 0;
+
+		return SDL_sscanf(version, "%d.%d", &major, &minor) == 2 ? (major << 8) | minor : 0;
+	}
+
+#ifdef _WIN32
+	const SDL_PropertiesID held = SDL_GetRendererProperties(renderer);
+
+	if (SDL_strcmp(name, "direct3d11") == 0) {
+		ID3D11Device *device = (ID3D11Device *)SDL_GetPointerProperty(held,
+			SDL_PROP_RENDERER_D3D11_DEVICE_POINTER, nullptr);
+		if (device == nullptr) return 0;
+
+		const unsigned int level = (unsigned int)device->GetFeatureLevel();
+		return (int)((((level >> 12) & 0xF) << 8) | ((level >> 8) & 0xF));
+	}
+
+	if (SDL_strcmp(name, "direct3d") == 0) {
+		IDirect3DDevice9 *device = (IDirect3DDevice9 *)SDL_GetPointerProperty(held,
+			SDL_PROP_RENDERER_D3D9_DEVICE_POINTER, nullptr);
+		if (device == nullptr) return 0;
+
+		D3DCAPS9 caps;
+		if (FAILED(device->GetDeviceCaps(&caps))) return 0;
+
+		return (int)((D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion) << 8)
+			| D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion));
+	}
+#endif
+
+	return 0;
+}
+
 extern "C" int mdd_requirements_write(const char *path) {
 	out = SDL_IOFromFile(path, "w");
 	if (out == nullptr) return 1;

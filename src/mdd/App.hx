@@ -337,6 +337,13 @@ class App {
 	}
 
 	/**
+		What the window starts on instead, in order, where the renderer it starts on unless told
+		otherwise falls short of what the interface needs. Direct3D 12 is left out: it runs, with
+		faults, and is offered only to try.
+	**/
+	static final FALLBACKS:Array<String> = ["opengl", "direct3d"];
+
+	/**
 		Opens the window, the sound and the session, and reads the settings back.
 
 		@return False where any of that would not work.
@@ -357,9 +364,16 @@ class App {
 		final held = asked != "" ? asked : settings.of("renderer", "");
 
 		stage.driver = held != "" && offered().indexOf(held) >= 0 ? held : PINNED;
+		stage.fallbacks = held == "" && PINNED != ""
+			? [for (name in FALLBACKS) if (offered().indexOf(name) >= 0) name] : [];
 		stage.always = args.indexOf("--redraw") >= 0;
 
 		if (!stage.open()) return false;
+
+		if (stage.fellBack) {
+			settings.put("renderer", stage.driver);
+			stores();
+		}
 
 		stage.onDrop = function(where:String):Void opens(where);
 		stage.onFocus = function():Void rereads();

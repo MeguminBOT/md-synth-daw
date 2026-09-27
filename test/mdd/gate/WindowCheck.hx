@@ -56,9 +56,14 @@ class WindowCheck {
 		}
 
 		final spent = Sdl.ticks() - began;
+		final named = (Sdl.rendererName(renderer) : String);
+		final reached = mdd.host.Requirements.reached(renderer);
 
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);
+
+		final fell = fallsBack();
+
 		Sdl.quit();
 
 		Sys.println("    frames        " + drawn);
@@ -70,10 +75,65 @@ class WindowCheck {
 			return 1;
 		}
 
+		Sys.println("    renderer      " + named + (reached > 0
+			? ", feature level " + (reached >> 8) + "_" + (reached & 0xFF) : ""));
+
+		if (named == "direct3d11" && reached == 0) {
+			Sys.println("    direct3d11 answered no feature level, so a machine short of one"
+				+ " would never fall back");
+			return 1;
+		}
+
+		#if windows
+		if (!fell) {
+			Sys.println("    a renderer the window falls back to did not say what level it reached");
+			return 1;
+		}
+		#end
+
 		if (!required()) return 1;
 
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		Makes Direct3D 11 on a window, gives it back, and makes each renderer the application
+		falls back to on the same window in turn, the way a machine short of the feature level
+		does. Each one made has to say what level it reached, or the window could not tell whether
+		it falls short as well. One this machine cannot make is only reported, since that says
+		what the machine has rather than whether the fallback works.
+
+		@return Whether every one made said what it reached.
+	**/
+	static function fallsBack():Bool {
+		final window = Sdl.createWindow("mdd gate fallback", 320, 200, 0, 0);
+		if (window == null) return true;
+
+		final first = Sdl.createRenderer(window, 1, "direct3d11");
+		if (first != null) Sdl.destroyRenderer(first);
+
+		var told = true;
+
+		for (name in @:privateAccess mdd.App.FALLBACKS) {
+			final made = Sdl.createRenderer(window, 1, name);
+			final got = made == null ? "" : (Sdl.rendererName(made) : String);
+			final level = got == name ? mdd.host.Requirements.reached(made) : 0;
+
+			if (got == name) {
+				Sdl.renderClear(made, 0, 0, 0, 1);
+				Sdl.renderPresent(made);
+			}
+
+			Sys.println("    falls back    to " + name + (got != name ? ", which is not made here"
+				: " at " + (level >> 8) + "." + (level & 0xFF)));
+
+			if (got == name && level == 0) told = false;
+			if (made != null) Sdl.destroyRenderer(made);
+		}
+
+		Sdl.destroyWindow(window);
+		return told;
 	}
 
 	/**

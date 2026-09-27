@@ -139,6 +139,19 @@ final class Stage {
 	public var driver:String = "";
 
 	/**
+		The renderers to start on instead, in order, where `driver` makes one short of the level
+		the interface needs, or cannot be made and leaves SDL to pick another: the first that
+		reaches its own level is kept. Left empty, whatever `driver` makes is kept, which is what
+		the application does where a renderer was chosen.
+	**/
+	public var fallbacks:Array<String> = [];
+
+	/**
+		Whether the window started on one of `fallbacks`, which `driver` then names.
+	**/
+	public var fellBack(default, null):Bool = false;
+
+	/**
 		Whether every frame is drawn and presented, rather than only the ones where
 		something changed.
 
@@ -206,6 +219,9 @@ final class Stage {
 		windowID = Sdl.windowID(window);
 
 		renderer = Sdl.createRenderer(window, vsync ? 1 : 0, driver);
+
+		if (fallbacks.length > 0 && !reaches(driver)) fallsBack(vsync);
+
 		if (renderer == null) {
 			Sdl.destroyWindow(window);
 
@@ -227,6 +243,54 @@ final class Stage {
 		drawn();
 
 		return true;
+	}
+
+	/**
+		@param name A renderer.
+		@return The level the interface needs it to reach, as `Requirements.reached` numbers it:
+			feature level 10_0 for Direct3D 11, version 2.0 for OpenGL and OpenGL ES, and shader
+			model 2.0 for Direct3D 9. Nought for one with no level to reach.
+	**/
+	static function needs(name:String):Int {
+		return switch (name) {
+			case "direct3d11": 0x0A00;
+			case "opengl" | "opengles2" | "direct3d": 0x0200;
+			case _: 0;
+		}
+	}
+
+	/**
+		@param wanted A renderer.
+		@return Whether the renderer just made is that one and reaches the level the interface
+			needs from it, where the level can be read at all.
+	**/
+	function reaches(wanted:String):Bool {
+		if (renderer == null || (Sdl.rendererName(renderer) : String) != wanted) return false;
+
+		final level = mdd.host.Requirements.reached(renderer);
+		return level == 0 || level >= needs(wanted);
+	}
+
+	/**
+		Makes each of `fallbacks` on the window in turn and keeps the first that reaches its
+		level, or makes `driver` again where none does.
+
+		@param vsync Whether presenting waits for the screen.
+	**/
+	function fallsBack(vsync:Bool):Void {
+		for (name in fallbacks) {
+			if (renderer != null) Sdl.destroyRenderer(renderer);
+			renderer = Sdl.createRenderer(window, vsync ? 1 : 0, name);
+
+			if (reaches(name)) {
+				driver = name;
+				fellBack = true;
+				return;
+			}
+		}
+
+		if (renderer != null) Sdl.destroyRenderer(renderer);
+		renderer = Sdl.createRenderer(window, vsync ? 1 : 0, driver);
 	}
 
 	/**

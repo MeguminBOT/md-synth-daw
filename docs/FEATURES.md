@@ -772,6 +772,10 @@ importing one reads those back.
   and lets you install anyway, and where Direct3D 11 falls short it says whether OpenGL works
   instead. It finds out by starting MD Synth DAW itself with `--requirements`, which tries every
   renderer the way the application would.
+- **OpenGL where Direct3D 11 falls short.** On a graphics card whose Direct3D 11 does not reach
+  feature level 10_0, MD Synth DAW starts on OpenGL instead, or on Direct3D 9 where OpenGL falls
+  short too, and keeps that as your renderer, unless you have picked one yourself. Direct3D 12 is
+  never picked for you: it is there as an experimental option.
 - **An installer that knows what is already there.** Running it over an existing copy says which
   version is installed and which one it carries, and asks before replacing it, whether that is an
   update, the same version again, or a downgrade.
