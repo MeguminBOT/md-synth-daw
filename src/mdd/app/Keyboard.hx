@@ -43,6 +43,16 @@ final class Keyboard {
 	public static inline final SUSTAIN = 64;
 
 	/**
+		Controller: every sound stops at once.
+	**/
+	public static inline final SOUND_OFF = 120;
+
+	/**
+		Controller: every key is let go.
+	**/
+	public static inline final NOTES_OFF = 123;
+
+	/**
 		Listen on every channel.
 	**/
 	public static inline final ANY = -1;
@@ -51,6 +61,12 @@ final class Keyboard {
 		Where the pitch wheel rests.
 	**/
 	public static inline final MIDDLE = 8192;
+
+	/**
+		How far the pitch wheel bends at either end, in cents: two semitones, which is where general
+		MIDI starts a device.
+	**/
+	public static inline final BEND_RANGE = 200;
 
 	/**
 		Which channel to listen on, or `ANY`.
@@ -88,6 +104,35 @@ final class Keyboard {
 	public var pedal:Bool = false;
 
 	/**
+		The key a part with one voice should sound: the latest one still down or held by the pedal,
+		or -1 when there is none.
+	**/
+	public var latest(default, null):Int = -1;
+
+	/**
+		The keys let go while the pedal was down, which it holds until it comes up.
+	**/
+	final sustained:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(128);
+
+	/**
+		The keys down or held by the pedal, oldest first, `depth` of them.
+	**/
+	final order:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(128);
+
+	var depth:Int = 0;
+
+	/**
+		The velocity each key went down at.
+	**/
+	final velocities:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(128);
+
+	/**
+		The pitch each note number went down as, or -1 while it is up, so a key let go after the
+		transpose changed lets go of what it sounded.
+	**/
+	final struck:haxe.ds.Vector<Int> = new haxe.ds.Vector<Int>(128);
+
+	/**
 		The last message, for the status line.
 	**/
 	public var said:String = "";
@@ -103,7 +148,8 @@ final class Keyboard {
 	public var onNote:Null<Int -> Int -> Void> = null;
 
 	/**
-		Called with a note when it is let go, or when the pedal is.
+		Called with a note when it is let go. A key let go while the sustain pedal is down is held
+		until the pedal comes up, and called then.
 	**/
 	public var onRelease:Null<Int -> Void> = null;
 
@@ -125,7 +171,43 @@ final class Keyboard {
 	/**
 		Builds a keyboard listening on every channel.
 	**/
-	public function new() {}
+	public function new() {
+		for (index in 0...128) {
+			sustained[index] = false;
+			velocities[index] = 0;
+			struck[index] = -1;
+		}
+	}
+
+	/**
+		@param pitch A pitch that is down or held by the pedal.
+		@return The velocity it went down at.
+	**/
+	public inline function velocityOf(pitch:Int):Int {
+		return velocities[pitch & 127];
+	}
+
+	/**
+		Lets go of every key, whether it is down or held by the pedal, and lifts the pedal. For a
+		device that stops being listened to with keys still down, and for a keyboard's own all
+		notes off. `latest` is -1 before the first key is let go.
+	**/
+	public function lets():Void {
+		final count = depth;
+
+		pedal = false;
+		depth = 0;
+		latest = -1;
+
+		for (index in 0...128) struck[index] = -1;
+
+		for (index in 0...count) {
+			final pitch = order[index];
+
+			sustained[pitch] = false;
+			if (onRelease != null) onRelease(pitch);
+		}
+	}
 
 	/**
 		Takes every message waiting on the open port. Call once a frame.
@@ -179,7 +261,15 @@ final class Keyboard {
 				final pitch = one + transpose;
 
 				if (pitch < 0 || pitch > 127) return false;
-				if (onNote != null) onNote(pitch, velocity < 1 ? 1 : velocity);
+
+				struck[one] = pitch;
+				sustained[pitch] = false;
+				velocities[pitch] = velocity < 1 ? 1 : velocity;
+				leaves(pitch);
+				order[depth++] = pitch;
+				latest = pitch;
+
+				if (onNote != null) onNote(pitch, velocities[pitch]);
 
 			case NOTE_OFF:
 				released(one);
@@ -193,7 +283,9 @@ final class Keyboard {
 					wheel = two / 127.0;
 					if (onWheel != null) onWheel(wheel);
 				} else if (one == SUSTAIN) {
-					pedal = two >= 64;
+					pedals(two >= 64);
+				} else if (one == NOTES_OFF || one == SOUND_OFF) {
+					lets();
 				}
 
 				if (onControl != null) onControl(one, two);
@@ -210,10 +302,58 @@ final class Keyboard {
 		@param note The MIDI note number.
 	**/
 	function released(note:Int):Void {
-		final pitch = note + transpose;
+		final pitch = struck[note];
+		if (pitch < 0) return;
 
-		if (pitch < 0 || pitch > 127) return;
+		struck[note] = -1;
+
+		if (pedal) {
+			sustained[pitch] = true;
+			return;
+		}
+
+		leaves(pitch);
 		if (onRelease != null) onRelease(pitch);
+	}
+
+	/**
+		Takes a key out of the order and points `latest` at whatever is left on top.
+
+		@param pitch The key.
+	**/
+	function leaves(pitch:Int):Void {
+		var at = 0;
+		while (at < depth && order[at] != pitch) at++;
+
+		if (at < depth) {
+			depth--;
+			for (index in at...depth) order[index] = order[index + 1];
+		}
+
+		latest = depth > 0 ? order[depth - 1] : -1;
+	}
+
+	/**
+		Puts the sustain pedal down or lets it up, and lets go of every key it was holding when it
+		comes up. All of them leave the order before the first is let go, so a part with one voice
+		falls back only to a key that is still down.
+
+		@param down Whether it is down now.
+	**/
+	function pedals(down:Bool):Void {
+		final lifted = pedal && !down;
+		pedal = down;
+
+		if (!lifted) return;
+
+		for (pitch in 0...128) if (sustained[pitch]) leaves(pitch);
+
+		for (pitch in 0...128) {
+			if (!sustained[pitch]) continue;
+
+			sustained[pitch] = false;
+			if (onRelease != null) onRelease(pitch);
+		}
 	}
 
 	static function spelt(kind:Int, one:Int, two:Int):String {

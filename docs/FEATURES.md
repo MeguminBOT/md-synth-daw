@@ -614,8 +614,12 @@ faster or slower, or moves the grid under it instead.
   can still be listened to at the top of the scale. It is heard and never written: what
   makes an exported file loud is the normalising in the export panel.
 - A MIDI keyboard plays the channel you have selected, on a chosen device, channel and velocity
-  curve. On Linux the devices listed are the keyboards and interfaces the kernel offers, read
-  directly, so a port that only a program running on the ALSA sequencer makes is not among them.
+  curve. A channel sounds one note at a time, the way the chip does, so the key you pressed last is
+  the one you hear, and letting it go falls back to a key you are still holding. The sustain pedal
+  holds keys until it lifts, the pitch wheel bends what is sounding by up to two semitones either
+  way, and a keyboard's all notes off lets everything go. On Linux the devices listed are the
+  keyboards and interfaces the kernel offers, read directly, so a port that only a program running
+  on the ALSA sequencer makes is not among them.
 - **Knobs on a MIDI keyboard turn FM parameters.** The MIDI preferences have eight slots, each
   pointed at one of the FM dials or at one field of one operator. Click a slot and move a knob to
   wire it, and right click the slot to clear it. They start wired to the controllers most keyboards
@@ -624,12 +628,12 @@ faster or slower, or moves the grid under it instead.
   and first decay. A knob turns the chosen channel's preset, and the status bar says the value.
 - **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, and every key
   you play becomes a note on the chosen channel, in the pattern under the playhead, starting on the
-  nearest grid line. While the song plays, a note lasts as long as you held the key and keeps how
-  hard you played it. While it is stopped, each key writes a note one grid step long and moves the
-  playhead on by a step, so you can enter a line one note at a time, and keys held together land as
-  a chord. With the grid off, a step is a beat. Clicking a key on the piano roll's keyboard records
-  the same way. A key played where the chosen pattern is not playing is heard but not written, and
-  each note is one step to undo.
+  nearest grid line. While the song plays, a note lasts as long as you held the key, or until the
+  sustain pedal lifts, and keeps how hard you played it. While it is stopped, each key writes a note
+  one grid step long and moves the playhead on by a step, so you can enter a line one note at a
+  time, and keys held together land as a chord. With the grid off, a step is a beat. Clicking a key
+  on the piano roll's keyboard records the same way. A key played where the chosen pattern is not
+  playing is heard but not written, and each note is one step to undo.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.

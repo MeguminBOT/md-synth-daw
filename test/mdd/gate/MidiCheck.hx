@@ -24,6 +24,9 @@ class MidiCheck {
 		filtered();
 		shifted();
 		bent();
+		sustained();
+		prioritised();
+		silenced();
 		aimed();
 		guarded();
 		surveyed();
@@ -101,6 +104,7 @@ class MidiCheck {
 		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
 		final off = lastRelease == 60;
 
+		keys.takes(packed(Keyboard.NOTE_ON, 64, 90));
 		lastRelease = -1;
 		keys.takes(packed(Keyboard.NOTE_ON, 64, 0));
 
@@ -193,6 +197,101 @@ class MidiCheck {
 
 		says("the bend wheel spans its range", down == -1.0 && middle == 0.0 && up > 0.99,
 			"the ends read " + down + " and " + round(up) + ", and the centre reads " + middle);
+	}
+
+	static function sustained():Void {
+		final keys = held();
+
+		keys.takes(packed(Keyboard.NOTE_ON, 60, 100));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.SUSTAIN, 127));
+		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
+
+		final kept = lastRelease == -1;
+
+		keys.takes(packed(Keyboard.NOTE_ON, 60, 80));
+		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.SUSTAIN, 0));
+
+		final let = lastRelease == 60 && lastVelocity == 80;
+
+		lastRelease = -1;
+		keys.takes(packed(Keyboard.NOTE_ON, 62, 100));
+		keys.takes(packed(Keyboard.NOTE_OFF, 62, 0));
+
+		says("the pedal holds a key until it lifts", kept && let && lastRelease == 62,
+			"a key let go under the pedal sounded on, was struck again, and let go when the pedal"
+			+ " lifted, and with the pedal up a key lets go at once");
+	}
+
+	static function prioritised():Void {
+		final keys = held();
+		final heard:Array<Int> = [];
+
+		keys.onRelease = function(pitch:Int):Void heard.push(keys.latest);
+
+		keys.takes(packed(Keyboard.NOTE_ON, 60, 100));
+		keys.takes(packed(Keyboard.NOTE_ON, 64, 90));
+		keys.takes(packed(Keyboard.NOTE_ON, 67, 80));
+		keys.takes(packed(Keyboard.NOTE_OFF, 64, 0));
+		keys.takes(packed(Keyboard.NOTE_OFF, 67, 0));
+		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
+
+		says("one voice falls back to a held key", heard.join(" ") == "67 60 -1"
+			&& keys.velocityOf(60) == 100,
+			"three keys down, the middle one let go leaves " + heard[0] + " sounding, the top one"
+			+ " falls back to " + heard[1] + ", and the last leaves " + heard[2]);
+
+		heard.resize(0);
+
+		keys.takes(packed(Keyboard.NOTE_ON, 60, 100));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.SUSTAIN, 127));
+		keys.takes(packed(Keyboard.NOTE_ON, 64, 100));
+		keys.takes(packed(Keyboard.NOTE_OFF, 64, 0));
+		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
+
+		final top = keys.latest;
+
+		keys.takes(packed(Keyboard.NOTE_ON, 72, 100));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.SUSTAIN, 0));
+
+		says("and lifting the pedal keeps held keys", top == 64 && heard.join(" ") == "72 72"
+			&& keys.latest == 72,
+			"two keys held by the pedal leave " + top + " on top, and lifting it with 72 still down"
+			+ " falls back to " + keys.latest + " rather than through the held keys");
+
+		keys.onRelease = function(pitch:Int):Void lastRelease = pitch;
+		keys.transpose = 0;
+		keys.takes(packed(Keyboard.NOTE_OFF, 72, 0));
+		keys.takes(packed(Keyboard.NOTE_ON, 50, 100));
+		keys.transpose = 12;
+		lastRelease = -1;
+		keys.takes(packed(Keyboard.NOTE_OFF, 50, 0));
+
+		says("a key lets go of the pitch it struck", lastRelease == 50 && keys.latest == -1,
+			"struck at 50 and let go after an octave's transpose, it let go of " + lastRelease);
+	}
+
+	static function silenced():Void {
+		final keys = held();
+		final heard:Array<Int> = [];
+
+		keys.onRelease = function(pitch:Int):Void heard.push(pitch * 1000 + keys.latest);
+
+		keys.takes(packed(Keyboard.NOTE_ON, 60, 100));
+		keys.takes(packed(Keyboard.NOTE_ON, 64, 100));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.SUSTAIN, 127));
+		keys.takes(packed(Keyboard.NOTE_OFF, 64, 0));
+		keys.takes(packed(Keyboard.CONTROL, Keyboard.NOTES_OFF, 0));
+
+		final all = heard.length == 2 && heard.indexOf(60 * 1000 - 1) >= 0
+			&& heard.indexOf(64 * 1000 - 1) >= 0;
+
+		heard.resize(0);
+		keys.takes(packed(Keyboard.NOTE_OFF, 60, 0));
+
+		says("all notes off lets go of everything", all && heard.length == 0 && !keys.pedal,
+			"a key down and a key under the pedal were both let go with nothing left sounding,"
+			+ " and letting go of the key afterwards called nothing");
 	}
 
 	static function guarded():Void {

@@ -639,6 +639,7 @@ class App {
 		};
 
 		panels.preferences.onKeyboardChannel = function(which:Int):Void {
+			keyboard.lets();
 			keyboard.channel = which <= 0 ? Keyboard.ANY : which - 1;
 			keeps();
 		};
@@ -1043,6 +1044,7 @@ class App {
 
 		session = new Session(song);
 		session.library = library;
+		voiced = -1;
 		presence.follows(session);
 		session.onChange = function(held:Session):Void changed();
 		session.onReveal = function(found:mdd.check.Diagnostic):Void revealed(found);
@@ -1971,15 +1973,29 @@ class App {
 		keyboard.onNote = function(pitch:Int, velocity:Int):Void {
 			if (session == null) return;
 
-			session.transport.auditions(session.part, pitch, velocity, true);
+			voices(pitch, velocity);
 			session.recording.pressed(pitch, velocity);
 		};
 
 		keyboard.onRelease = function(pitch:Int):Void {
 			if (session == null) return;
 
-			session.transport.releases(session.part);
+			if (pitch == voiced) {
+				final back = keyboard.latest;
+
+				if (back < 0) {
+					session.transport.releases(voicedOn);
+					voiced = -1;
+				} else {
+					voices(back, keyboard.velocityOf(back));
+				}
+			}
+
 			session.recording.released(pitch);
+		};
+
+		keyboard.onBend = function(bend:Float):Void {
+			if (session != null) session.transport.bends(Math.round(bend * Keyboard.BEND_RANGE));
 		};
 
 		keyboard.onControl = function(control:Int, value:Int):Void turned(control, value);
@@ -2494,6 +2510,19 @@ class App {
 	}
 
 	/**
+		Sounds a key from the MIDI keyboard on the chosen channel. A channel sounds one key at a
+		time, so this takes over from whichever key was sounding.
+
+		@param pitch The key.
+		@param velocity How hard it was played.
+	**/
+	function voices(pitch:Int, velocity:Int):Void {
+		voiced = pitch;
+		voicedOn = session.part;
+		session.transport.auditions(session.part, pitch, velocity, true);
+	}
+
+	/**
 		Takes whatever the MIDI keyboard has played.
 
 		@return Whether anything arrived.
@@ -2511,6 +2540,7 @@ class App {
 	**/
 	function listens(want:String):Bool {
 		mdd.host.Midi.close();
+		keyboard.lets();
 
 		midiAt = -1;
 		midiSaid = want;
@@ -2540,6 +2570,13 @@ class App {
 
 	var midiAt:Int = -1;
 	var midiSaid:String = "";
+
+	/**
+		The key from the MIDI keyboard that is sounding, or -1, and the part it sounds on.
+	**/
+	var voiced:Int = -1;
+
+	var voicedOn:Part = 0;
 
 	/**
 		The playback device the sound goes to, by name, or an empty string for the system default.

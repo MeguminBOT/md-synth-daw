@@ -238,8 +238,8 @@ application does, and an honest list of what it does not do and why.
 
 ### Other
 
-- **Plug in a MIDI keyboard** and it plays the channel you have selected, or records into it with
-  record turned on.
+- **Plug in a MIDI keyboard** and it plays the channel you have selected, with the sustain pedal
+  and the pitch wheel, or records into it with record turned on.
 - **It saves on its own** every five minutes by default, and only once something has changed.
 - **Portable mode.** Drop a `portable.txt` beside the executable and it keeps its settings there
   instead of in your account directory.
