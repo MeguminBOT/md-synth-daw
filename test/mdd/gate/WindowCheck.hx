@@ -70,8 +70,64 @@ class WindowCheck {
 			return 1;
 		}
 
+		if (!required()) return 1;
+
 		Sys.println("    passed");
 		return 0;
+	}
+
+	/**
+		What `--requirements` writes for the installer has a line for every renderer the
+		application offers, each saying `0`, `1` or a version, and on Windows the graphics memory
+		as well. It is read for its shape rather than its values, which are this machine's.
+
+		@return Whether it is all there.
+	**/
+	static function required():Bool {
+		final written = Gate.root + "/export/requirements.txt";
+		final wrote = mdd.host.Requirements.write(written);
+		final lines = wrote == 0 && sys.FileSystem.exists(written)
+			? sys.io.File.getContent(written).split("\n") : [];
+
+		final offered = mdd.App.offered();
+		final shaped = ~/^(0|1|[0-9]+\.[0-9]+)$/;
+		var found = 0;
+		var made = 0;
+		var graphics = -1;
+
+		for (line in lines) {
+			final split = line.indexOf(" ");
+			if (split < 0) continue;
+
+			final name = line.substr(0, split);
+			final value = StringTools.trim(line.substr(split + 1));
+
+			if (name == "graphics") {
+				final parsed = Std.parseInt(value);
+				graphics = parsed == null ? -1 : parsed;
+			}
+			if (offered.indexOf(name) < 0 || !shaped.match(value)) continue;
+
+			found++;
+			if (value != "0") made++;
+		}
+
+		Sys.println("    requirements  " + found + " of " + offered.length + " renderers written, "
+			+ made + " made, " + graphics + " MB of graphics memory");
+
+		#if windows
+		if (graphics < 0) {
+			Sys.println("    requirements left out the graphics memory");
+			return false;
+		}
+		#end
+
+		if (found != offered.length) {
+			Sys.println("    requirements left out " + (offered.length - found) + " renderers");
+			return false;
+		}
+
+		return true;
 	}
 
 	static function round(value:Float):Float {

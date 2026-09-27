@@ -156,6 +156,14 @@ class App {
 
 	public static function main():Void {
 		Native.ready();
+
+		final asked = mdd.host.Arguments.all();
+		final writing = asked.indexOf("--requirements");
+
+		if (writing >= 0 && writing + 1 < asked.length) {
+			Sys.exit(mdd.host.Requirements.write(asked[writing + 1]));
+		}
+
 		Usage.start();
 
 		if (Sdl.init() == 0) {

@@ -144,6 +144,7 @@
 		<file name="instance.cpp" />
 		<file name="crash.cpp" />
 		<file name="usage.cpp" />
+		<file name="requirements.cpp" />
 		<file name="midi.cpp" />
 		<file name="discord.cpp" />
 		<file name="encode.cpp" />
