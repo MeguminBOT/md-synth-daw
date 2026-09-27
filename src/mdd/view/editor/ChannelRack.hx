@@ -75,6 +75,7 @@ final class ChannelRack extends Widget {
 
 		focusable = true;
 		opaque = true;
+		cache = new mdd.ui.Cache();
 
 		for (i in 0...Part.COUNT) levels[i] = 0;
 	}
@@ -481,7 +482,7 @@ final class ChannelRack extends Widget {
 			mark(paint, theme, metrics, slotAt(metrics, SOLO), row, tall,
 				session.song.soloed[index]);
 
-			meter(paint, theme, metrics, slotAt(metrics, METER), row, tall, index,
+			fader(paint, theme, metrics, slotAt(metrics, METER), row, tall, index,
 				theme.part(index));
 		}
 
@@ -521,6 +522,31 @@ final class ChannelRack extends Widget {
 			paint.text(part.name(), x + metrics.inset + swatch + metrics.gap,
 				row + (tall - font.height) * 0.5 + font.ascent,
 				quiet ? theme.dim : theme.ink, quiet ? 0.5 : 1);
+		}
+
+		paint.popClip();
+	}
+
+	/**
+		Draws every channel's meter and the grip over it: the meters move every frame of a song
+		playing and nothing else here does. Nothing else in a row reaches the fader.
+
+		@param paint What to draw with.
+	**/
+	override function overlay(paint:Paint):Void {
+		final root = root();
+		if (root == null || root.metrics.body == null) return;
+
+		final theme = root.theme;
+		final metrics = root.metrics;
+		final tall = rowHeight();
+		final top = header();
+
+		paint.pushClip(x, y + top, width, height - top);
+
+		for (index in 0...Part.COUNT) {
+			meter(paint, theme, metrics, slotAt(metrics, METER), atRow(index), tall, index,
+				theme.part(index));
 		}
 
 		paint.popClip();
@@ -643,7 +669,19 @@ final class ChannelRack extends Widget {
 		} else paint.roundedRect(at, top, size, size, metrics.radiusSmall, theme.raise1);
 	}
 
-	function meter(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
+	/**
+		Draws a channel's fader as far as the volume, which is what lies under its meter.
+
+		@param paint What to draw with.
+		@param theme The colours.
+		@param metrics The sizes.
+		@param at Where the fader starts, across.
+		@param row Where the row starts, down.
+		@param tall How tall the row is.
+		@param index Which channel.
+		@param colour The channel's colour.
+	**/
+	function fader(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
 			index:Int, colour:Colour):Void {
 		final wide = faderWide(metrics);
 		final high = metrics.whole(10);
@@ -655,7 +693,26 @@ final class ChannelRack extends Widget {
 
 		paint.roundedRect(at, top, wide, high, high * 0.5, colour,
 			session.song.audible(index) ? 0.4 : 0.15, want);
+	}
 
+	/**
+		Draws a channel's level over its fader, and the fader's grip over that.
+
+		@param paint What to draw with.
+		@param theme The colours.
+		@param metrics The sizes.
+		@param at Where the fader starts, across.
+		@param row Where the row starts, down.
+		@param tall How tall the row is.
+		@param index Which channel.
+		@param colour The channel's colour.
+	**/
+	function meter(paint:Paint, theme:Theme, metrics:Metrics, at:Float, row:Float, tall:Float,
+			index:Int, colour:Colour):Void {
+		final wide = faderWide(metrics);
+		final high = metrics.whole(10);
+		final top = row + (tall - high) * 0.5;
+		final want = session.song.volume[index] / Song.LOUDEST;
 		final level = levels[index];
 		final inset = metrics.whole(3);
 
