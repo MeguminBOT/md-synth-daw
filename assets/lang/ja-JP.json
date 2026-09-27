@@ -44,6 +44,7 @@
   "bind.play": "再生",
   "bind.preferences": "環境設定",
   "bind.quieter": "ベロシティを下げる",
+  "bind.record": "録音",
   "bind.redo": "やり直し",
   "bind.save": "保存",
   "bind.select": "選択ツール",

@@ -626,14 +626,14 @@ faster or slower, or moves the grid under it instead.
   send: the modulation wheel to vibrato depth, controllers 7 and 74 to the total level of operators
   4 and 1, 71 to feedback, 70 to the algorithm, and 73, 72 and 75 to operator 4's attack, release
   and first decay. A knob turns the chosen channel's preset, and the status bar says the value.
-- **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, and every key
-  you play becomes a note on the chosen channel, in the pattern under the playhead, starting on the
-  nearest grid line. While the song plays, a note lasts as long as you held the key, or until the
-  sustain pedal lifts, and keeps how hard you played it. While it is stopped, each key writes a note
-  one grid step long and moves the playhead on by a step, so you can enter a line one note at a
-  time, and keys held together land as a chord. With the grid off, a step is a beat. Clicking a key
-  on the piano roll's keyboard records the same way. A key played where the chosen pattern is not
-  playing is heard but not written, and each note is one step to undo.
+- **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, or press `R`,
+  and every key you play becomes a note on the chosen channel, in the pattern under the playhead,
+  starting on the nearest grid line. While the song plays, a note lasts as long as you held the key,
+  or until the sustain pedal lifts, and keeps how hard you played it. While it is stopped, each key
+  writes a note one grid step long and moves the playhead on by a step, so you can enter a line one
+  note at a time, and keys held together land as a chord. With the grid off, a step is a beat.
+  Clicking a key on the piano roll's keyboard records the same way. A key played where the chosen
+  pattern is not playing is heard but not written, and each note is one step to undo.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.
@@ -991,6 +991,7 @@ you accept the sheet.
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
 | `Ctrl+L` | loop on or off |
+| `R` | record on or off |
 | `Ctrl+Z`, `Ctrl+Y` | undo, redo |
 | `Ctrl+N` | new project |
 | `Ctrl+S`, `Ctrl+O` | save, open |

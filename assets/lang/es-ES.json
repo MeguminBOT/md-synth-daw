@@ -44,6 +44,7 @@
   "bind.play": "Reproducir",
   "bind.preferences": "Preferencias",
   "bind.quieter": "Bajar la velocidad",
+  "bind.record": "Grabar",
   "bind.redo": "Rehacer",
   "bind.save": "Guardar",
   "bind.select": "Herramienta de selección",

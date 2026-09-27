@@ -2230,6 +2230,7 @@ class App {
 			case Bindings.PLAY: panels.bar.press(TransportBar.PLAY);
 			case Bindings.STOP: panels.bar.press(TransportBar.STOP);
 			case Bindings.LOOP: panels.bar.press(TransportBar.LOOP);
+			case Bindings.RECORD: panels.bar.press(TransportBar.RECORD);
 			case Bindings.WRITE_VGM: files.ask(stage.window, Files.VGM);
 			case Bindings.WRITE_AUDIO: panels.sounded();
 			case Bindings.EARLIER: nudged(-1);

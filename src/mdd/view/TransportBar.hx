@@ -33,7 +33,7 @@ final class TransportBar extends Widget {
 		Button: stop and rewind.
 	**/
 	public static inline final STOP = 1;
-	static inline final RECORD = 2;
+	public static inline final RECORD = 2;
 	static inline final REWIND = 3;
 
 	/**

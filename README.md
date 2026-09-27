@@ -294,6 +294,7 @@ which of the two the one you pick is.
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
 | `Ctrl+L` | loop the pattern |
+| `R` | record |
 | `Ctrl+Z`, `Ctrl+Y` | undo, redo |
 | `Ctrl+S`, `Ctrl+O` | save, open |
 | `Ctrl+E` | export a VGM |

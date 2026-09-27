@@ -44,6 +44,7 @@
   "bind.play": "재생",
   "bind.preferences": "환경설정",
   "bind.quieter": "벨로시티 내리기",
+  "bind.record": "녹음",
   "bind.redo": "다시 실행",
   "bind.save": "저장",
   "bind.select": "선택 도구",
