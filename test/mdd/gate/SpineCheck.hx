@@ -5342,6 +5342,112 @@ class SpineCheck {
 		roll.shows(0);
 	}
 
+	/**
+		A frame of a song playing lays down what the panels keep and draws only what moves over
+		it, and a frame drawn that way after a channel is chosen with the pointer matches one
+		drawn with nothing kept, which is what a panel missing a change would fail.
+	**/
+	static function kept(tree:Root, session:Session, centre:Centre, rack:ChannelRack,
+			bar:TransportBar, paint:Paint, renderer:cpp.Star<Canvas>):Void {
+		final following = session.following;
+		final part = session.part;
+		final playlist = centre.playlist;
+
+		centre.show(Centre.PLAYLIST);
+		session.following = false;
+		session.transport.play();
+
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Sdl.renderPresent(renderer);
+
+		final before = (@:privateAccess playlist.cache).baked + (@:privateAccess rack.cache).baked
+			+ (@:privateAccess bar.cache).baked;
+
+		var calls = 0;
+		var vertices = 0;
+
+		for (frame in 0...120) {
+			centre.playhead(frame * 24);
+
+			for (index in 0...Part.COUNT) {
+				rack.levels[index] = 0.3 + 0.3 * Math.sin(frame * 0.2 + index);
+			}
+
+			rack.invalidateOverlay();
+			bar.metered(0.5 + 0.4 * Math.sin(frame * 0.3));
+			bar.invalidateOverlay();
+
+			Draw.resetCalls();
+			Sdl.renderClear(renderer, 0, 0, 0, 1);
+			tree.frame(paint);
+			Sdl.renderPresent(renderer);
+
+			if (Draw.calls() > calls) calls = Draw.calls();
+			if (Draw.vertices() > vertices) vertices = Draw.vertices();
+		}
+
+		final redrawn = (@:privateAccess playlist.cache).baked + (@:privateAccess rack.cache).baked
+			+ (@:privateAccess bar.cache).baked - before;
+
+		session.transport.stop();
+		session.following = following;
+
+		says("a playing frame draws what moves", redrawn == 0 && calls <= 50 && vertices <= 5000,
+			"120 frames of a song playing drew what is kept " + redrawn + " times, at most "
+			+ calls + " draw calls and " + vertices + " vertices a frame");
+
+		final wide = Std.int(tree.width);
+		final tall = Std.int(tree.height);
+		final target = Draw.createTarget(renderer, wide, tall);
+		final laid = new Vector<cpp.UInt8>(wide * tall * 4);
+		final drawn = new Vector<cpp.UInt8>(wide * tall * 4);
+		final row = rack.atRow(Part.Fm4.index()) + 4;
+
+		tree.pressed(rack.x + 20, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.released(rack.x + 20, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		Draw.setTarget(renderer, target);
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(laid.toData(), 0).raw);
+
+		tree.caching = false;
+		tree.soil();
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		tree.frame(paint);
+		Draw.readPixels(renderer, 0, 0, wide, tall, cpp.Pointer.arrayElem(drawn.toData(), 0).raw);
+		tree.caching = true;
+
+		Draw.setTarget(renderer, null);
+		Draw.destroyTexture(target);
+
+		var apart = 0;
+		var most = 0;
+
+		for (pixel in 0...wide * tall) {
+			var far = 0;
+
+			for (channel in 0...3) {
+				final one:Int = laid[pixel * 4 + channel];
+				final other:Int = drawn[pixel * 4 + channel];
+				final gap = one > other ? one - other : other - one;
+				if (gap > far) far = gap;
+			}
+
+			if (far > 2) apart++;
+			if (far > most) most = far;
+		}
+
+		says("a kept frame matches a drawn one", session.part == Part.Fm4
+			&& apart * 10000 <= wide * tall,
+			"after choosing a channel in the rack, " + apart + " of " + wide * tall
+			+ " pixels more than 2 of 255 apart from drawing it all directly, the most " + most);
+
+		session.choose(part);
+		tree.soil();
+	}
+
 	static function drawn(root:String):Void {
 		Native.ready();
 
@@ -5488,6 +5594,8 @@ class SpineCheck {
 		says("the spine draws", drawnNotes > 0 && calls > 0,
 			placed + " notes on six channels, " + drawnNotes + " of them on screen, "
 			+ calls + " draw calls a frame");
+
+		kept(tree, session, centre, rack, bar, paint, renderer);
 
 		centre.show(Centre.SCOPE);
 
