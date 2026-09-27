@@ -625,7 +625,8 @@ faster or slower, or moves the grid under it instead.
   wire it, and right click the slot to clear it. They start wired to the controllers most keyboards
   send: the modulation wheel to vibrato depth, controllers 7 and 74 to the total level of operators
   4 and 1, 71 to feedback, 70 to the algorithm, and 73, 72 and 75 to operator 4's attack, release
-  and first decay. A knob turns the chosen channel's preset, and the status bar says the value.
+  and first decay. A knob turns the chosen channel's preset, and the status bar says the value. Once
+  a knob rests for half a second, everything it did since it started moving is one step to undo.
 - **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, or press `R`,
   and every key you play becomes a note on the chosen channel, in the pattern under the playhead,
   starting on the nearest grid line. While the song plays, a note lasts as long as you held the key,
@@ -633,7 +634,9 @@ faster or slower, or moves the grid under it instead.
   writes a note one grid step long and moves the playhead on by a step, so you can enter a line one
   note at a time, and keys held together land as a chord. With the grid off, a step is a beat.
   Clicking a key on the piano roll's keyboard records the same way. A key played where the chosen
-  pattern is not playing is heard but not written, and each note is one step to undo.
+  pattern is not playing is heard but not written. Everything recorded between starting the song and
+  stopping it is one step to undo, knob turns included, and so is each step you enter while it is
+  stopped.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.

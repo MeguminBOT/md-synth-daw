@@ -5,6 +5,7 @@ import mdd.song.Clip;
 import mdd.song.Note;
 import mdd.song.Part;
 import mdd.song.edit.AddNote;
+import mdd.song.edit.Command;
 
 @:unreflective
 
@@ -19,8 +20,10 @@ import mdd.song.edit.AddNote;
 
 	A note goes on the channel chosen when its key went down, into the pattern chosen then, and
 	only where that pattern is under the playhead: a key pressed while the song plays something
-	else is heard and not written. Each note is written when its key is let go, as one step on the
-	undo stack.
+	else is heard and not written. Each note is written when its key is let go. A take, from the
+	first note written while the song plays to the song stopping or recording being disarmed, is
+	one step to undo with every edit made during it, and so is each step entered while it is
+	stopped.
 
 	The session owns it, so a song opened in place of another records into the new one.
 **/
@@ -68,6 +71,12 @@ final class Recording {
 	**/
 	final origins:Vector<Int> = new Vector<Int>(128);
 
+	/**
+		The first note written since the take or the step began, which undoes as one step with
+		everything after it, or null.
+	**/
+	var take:Null<Command> = null;
+
 	var held:Int = 0;
 	var lastTick:Int = 0;
 
@@ -90,6 +99,7 @@ final class Recording {
 	public function pressed(pitch:Int, velocity:Int):Void {
 		if (pitch < 0 || pitch > 127 || !session.arming) return;
 		if (pressedAt[pitch] != UP) released(pitch);
+		if (held == 0 && !session.transport.playing) gathered();
 
 		final tick = session.transport.tick();
 		final origin = placed(session.pattern, tick);
@@ -127,7 +137,10 @@ final class Recording {
 
 		finishes(pitch, from + step());
 
-		if (held > 0 || session.transport.playing || pattern == null) return;
+		if (held > 0 || session.transport.playing) return;
+
+		gathered();
+		if (pattern == null) return;
 
 		final wraps = session.alone && next - origin >= pattern.length;
 		session.transport.seek(session.song.tempo.samplesAt(wraps ? origin : next));
@@ -145,22 +158,35 @@ final class Recording {
 	}
 
 	/**
-		Called once a frame. Keeps where the playhead is while the song plays, and ends every key
-		still held once recording is disarmed or the song stops under a key pressed while it
-		played.
+		Called once a frame. Keeps where the playhead is while the song plays, ends every key still
+		held once recording is disarmed or the song stops under a key pressed while it played, and
+		makes the take one step to undo once it has ended.
 	**/
 	public function follows():Void {
 		final going = session.transport.playing;
 		if (going && session.arming) lastTick = session.transport.tick();
 
-		if (held == 0) return;
+		if (held > 0) {
+			for (pitch in 0...128) {
+				if (pressedAt[pitch] == UP) continue;
 
-		for (pitch in 0...128) {
-			if (pressedAt[pitch] == UP) continue;
-
-			if (playing[pitch] && (!going || !session.arming)) finishes(pitch, lastTick);
-			else if (!playing[pitch] && !session.arming) finishes(pitch, pressedAt[pitch] + step());
+				if (playing[pitch] && (!going || !session.arming)) finishes(pitch, lastTick);
+				else if (!playing[pitch] && !session.arming) finishes(pitch, pressedAt[pitch] + step());
+			}
 		}
+
+		if (held == 0 && (!going || !session.arming)) gathered();
+	}
+
+	/**
+		Makes the notes of the take or the step that has just ended one step to undo.
+	**/
+	function gathered():Void {
+		final first = take;
+		if (first == null) return;
+
+		take = null;
+		session.history.gathers(first, "record notes");
 	}
 
 	/**
@@ -237,6 +263,9 @@ final class Recording {
 		final note = new Note(at, length, pitch, velocity);
 		if (kind.sampled() && session.song.drums) note.instrument = session.song.drumAt(pitch);
 
-		session.does(new AddNote(index, kind, note));
+		final command = new AddNote(index, kind, note);
+
+		session.does(command);
+		if (take == null) take = command;
 	}
 }

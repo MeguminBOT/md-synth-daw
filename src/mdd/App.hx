@@ -2380,6 +2380,7 @@ class App {
 			if (since > 0.100) since = 0.100;
 
 			if (keyed()) stage.root.soil();
+			rested(now);
 
 			stage.root.advance(since);
 			if (files != null && files.poll()) {
@@ -2498,7 +2499,11 @@ class App {
 		final patch = session.song.patchOf(session.part);
 		if (patch == null) return;
 
+		final dial = mapping.kindOf(slot) == Mapping.DIAL ? mapping.rowOf(slot) : -1;
+		session.turning(patch, dial, mapping.operatorOf(slot), mapping.rowOf(slot));
+
 		final want = mapping.turns(patch, slot, value);
+		knobAt = Sdl.ticks();
 
 		final key = mapping.named(slot);
 		final held = mapping.operated(slot);
@@ -2531,6 +2536,18 @@ class App {
 	function keyed():Bool {
 		if (!mdd.host.Midi.holding()) return false;
 		return keyboard.drains() > 0;
+	}
+
+	/**
+		Puts a run of knob turns on the undo stack once the knob has rested for `KNOB_REST`.
+
+		@param now The time, in seconds.
+	**/
+	function rested(now:Float):Void {
+		if (knobAt < 0 || now - knobAt < KNOB_REST) return;
+
+		knobAt = -1;
+		if (session != null) session.settles();
 	}
 
 	/**
@@ -2571,6 +2588,16 @@ class App {
 
 	var midiAt:Int = -1;
 	var midiSaid:String = "";
+
+	/**
+		How long a knob rests before its turns become one step to undo, in seconds.
+	**/
+	static inline final KNOB_REST = 0.5;
+
+	/**
+		When a knob last turned, or -1 when none has since its turns were put on the undo stack.
+	**/
+	var knobAt:Float = -1;
 
 	/**
 		The key from the MIDI keyboard that is sounding, or -1, and the part it sounds on.

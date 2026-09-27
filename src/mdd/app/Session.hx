@@ -6,6 +6,7 @@ import mdd.play.Transport;
 import mdd.song.edit.Command;
 import mdd.song.edit.History;
 import mdd.song.Part;
+import mdd.song.Patch;
 import mdd.song.Pattern;
 import mdd.song.Song;
 
@@ -127,6 +128,16 @@ final class Session {
 		roll's keyboard writes a note at the playhead. `recording` writes them.
 	**/
 	public var arming:Bool = false;
+
+	/**
+		The patch a knob is turning live, waiting to be put on the undo stack, and which field of it.
+	**/
+	var turnedPatch:Null<Patch> = null;
+
+	var turnedDial:Int = -1;
+	var turnedSlot:Int = 0;
+	var turnedRow:Int = 0;
+	var turnedWas:Int = 0;
 
 	/**
 		What writes the notes played while recording is armed.
@@ -644,6 +655,8 @@ final class Session {
 		@param command The edit.
 	**/
 	public function does(command:Command):Void {
+		settles();
+
 		transport.holds();
 		history.does(song, command);
 		transport.frees();
@@ -652,11 +665,63 @@ final class Session {
 	}
 
 	/**
+		Marks one field of a patch as being turned live, by a knob that writes it as it moves so
+		the chip follows. The whole run of turns is one step to undo, put on the stack by
+		`settles`, or by the next edit, undo or redo, whichever comes first. Turning another
+		field, or the same field of another patch, settles the run before it.
+
+		@param patch The patch.
+		@param dial Which dial, or -1 for a field of an operator.
+		@param slot Which operator, where `dial` is -1.
+		@param row Which field of it.
+	**/
+	public function turning(patch:Patch, dial:Int, slot:Int, row:Int):Void {
+		if (turnedPatch == patch && turnedDial == dial
+			&& (dial >= 0 || (turnedSlot == slot && turnedRow == row))) return;
+
+		settles();
+
+		turnedPatch = patch;
+		turnedDial = dial;
+		turnedSlot = slot;
+		turnedRow = row;
+		turnedWas = dial >= 0 ? patch.dial(dial) : patch.reads(slot, row);
+	}
+
+	/**
+		Puts a run of live turns on the undo stack as one step, if one is waiting and it moved the
+		field anywhere.
+	**/
+	public function settles():Void {
+		final patch = turnedPatch;
+		if (patch == null) return;
+
+		turnedPatch = null;
+
+		if (turnedDial >= 0) {
+			final now = patch.dial(turnedDial);
+			if (now == turnedWas) return;
+
+			patch.turns(turnedDial, turnedWas);
+			does(new mdd.song.edit.SetDial(patch, turnedDial, now));
+			return;
+		}
+
+		final now = patch.reads(turnedSlot, turnedRow);
+		if (now == turnedWas) return;
+
+		patch.writes(turnedSlot, turnedRow, turnedWas);
+		does(new mdd.song.edit.SetOperator(patch, turnedSlot, turnedRow, now));
+	}
+
+	/**
 		Takes the last edit back.
 
 		@return False where there was nothing to undo.
 	**/
 	public function undo():Bool {
+		settles();
+
 		transport.holds();
 		final done = history.undo(song);
 		transport.frees();
@@ -671,6 +736,8 @@ final class Session {
 		@return False where there was nothing to redo.
 	**/
 	public function redo():Bool {
+		settles();
+
 		transport.holds();
 		final done = history.redo(song);
 		transport.frees();

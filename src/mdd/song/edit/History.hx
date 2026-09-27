@@ -43,6 +43,29 @@ final class History {
 	}
 
 	/**
+		Folds a command and everything done after it into one step without doing any of it again,
+		for edits made one at a time that read as one, such as a take recorded from a keyboard.
+
+		@param first The oldest command to fold.
+		@param said What the step is called.
+		@return Whether anything was folded: false where the command is no longer on the stack,
+			or is the last one done.
+	**/
+	public function gathers(first:Command, said:String):Bool {
+		var from = done.length - 1;
+		while (from >= 0 && done[from] != first) from--;
+
+		if (from < 0 || from == done.length - 1) return false;
+
+		final together = new Together(said);
+		for (index in from...done.length) together.also(done[index]);
+
+		done.resize(from);
+		done.push(together);
+		return true;
+	}
+
+	/**
 		Reverts the last command.
 
 		@param song The song to act on.

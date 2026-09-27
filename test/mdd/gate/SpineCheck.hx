@@ -162,7 +162,7 @@ class SpineCheck {
 		final landed = session.transport.tick();
 
 		says("and a run of keys steps along", starts.join(" ") == "60@3 62@8 64@9 65@10 67@10"
-			&& session.snapped(landed - placed) == step * 11 && session.history.depth() == 5,
+			&& session.snapped(landed - placed) == step * 11 && session.history.depth() == 4,
 			"stopped, three keys and a chord of two land at sixteenths " + starts.join(" ")
 			+ ", the playhead ends " + Std.int(session.snapped(landed - placed) / step)
 			+ " sixteenths in, and "
@@ -176,7 +176,59 @@ class SpineCheck {
 			"a key pressed past the clip playing the pattern leaves " + lane.notes.length
 			+ " notes");
 
+		final patch = song.patchOf(Part.Fm2);
+		final feedback = patch.dial(mdd.song.Patch.FEEDBACK);
+
+		session.history.clear();
+		session.transport.play();
+
+		for (key in 0...3) {
+			session.transport.seek(tempo.samplesAt(placed + step * (12 + key)));
+			recording.pressed(72 + key, 100);
+
+			if (key == 1) {
+				session.turning(patch, mdd.song.Patch.FEEDBACK, 0, 0);
+				patch.turns(mdd.song.Patch.FEEDBACK, (feedback + 3) & 7);
+			}
+
+			session.transport.seek(tempo.samplesAt(placed + step * (13 + key)));
+			recording.released(72 + key);
+		}
+
+		session.transport.stop();
+		recording.follows();
+
+		final taken = lane.notes.length;
+		final steps = session.history.depth();
+
+		session.undo();
+
+		says("and a take undoes as one step", taken == 8 && steps == 1 && lane.notes.length == 5
+			&& patch.dial(mdd.song.Patch.FEEDBACK) == feedback,
+			"three keys and a knob turned while the song played are " + steps + " step, and"
+			+ " undoing it leaves " + lane.notes.length + " notes and the feedback at "
+			+ patch.dial(mdd.song.Patch.FEEDBACK));
+
 		session.arming = false;
+		session.history.clear();
+
+		final level = patch.reads(3, 0);
+
+		for (turn in 1...20) {
+			session.turning(patch, -1, 3, 0);
+			patch.writes(3, 0, (level + turn) & 127);
+		}
+
+		final moved = patch.reads(3, 0);
+		session.settles();
+
+		final knobbed = session.history.depth();
+		session.undo();
+
+		says("and a knob's turns are one step", knobbed == 1 && moved != level
+			&& patch.reads(3, 0) == level,
+			"nineteen turns of operator 4's total level to " + moved + " are " + knobbed
+			+ " step, and undoing it puts back " + patch.reads(3, 0));
 	}
 
 	static function restarted(tree:Root, session:Session,
