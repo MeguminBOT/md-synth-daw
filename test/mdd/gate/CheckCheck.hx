@@ -29,6 +29,7 @@ class CheckCheck {
 		overlaps();
 		converter();
 		sampled();
+		peaks();
 		swapped();
 		ranges();
 		registers();
@@ -205,6 +206,77 @@ class CheckCheck {
 				&& Profile.masterSystem().sampleBytes == 0,
 			Profile.ROM + " bytes, a quarter of a one megabyte cartridge, which an author"
 				+ " sets against their own rather than a limit of the machine");
+	}
+
+	/**
+		The hardware meter's song figures are the most sounding at once: a part used in eight
+		patterns played one after another is one channel, two patterns placed over each other add
+		up, and a pattern played on its own counts too.
+	**/
+	static function peaks():Void {
+		final song = bare("peaks");
+		final budget = new Budget(Profile.megaDrive());
+		final track = song.tracks[0];
+
+		song.patterns[0].lane(Part.Fm1).add(new Note(0, 96, 60));
+
+		for (index in 1...8) {
+			song.add(new Pattern("again", 384)).lane(Part.Fm1).add(new Note(0, 96, 60));
+			track.add(new Clip(index, index * 384, 384));
+		}
+
+		final each = sounded(song, Part.Fm1);
+
+		budget.overSong(song);
+
+		says("a part played again is counted once",
+			budget.operators == each && budget.fmChannels == 1 && each > 0,
+			budget.operators + " operators on " + budget.fmChannels + " channel for FM1 in"
+				+ " eight patterns one after another, whose preset sounds " + each);
+
+		final over = song.add(new Pattern("over", 384));
+		over.lane(Part.Fm2).add(new Note(48, 96, 64));
+		over.lane(Part.Psg1).add(new Note(48, 96, 64));
+		over.lane(Part.Noise).add(new Note(48, 96, 64));
+
+		song.track(new Track("two")).add(new Clip(song.patterns.length - 1, 384, 384));
+
+		budget.overSong(song);
+
+		final both = each + sounded(song, Part.Fm2);
+
+		says("and parts placed over each other add up",
+			budget.operators == both && budget.fmChannels == 2 && budget.psgChannels == 2,
+			budget.operators + " operators on " + budget.fmChannels + " FM and "
+				+ budget.psgChannels + " square and noise channels where two clips overlap");
+
+		final alone = song.add(new Pattern("alone", 384));
+		for (index in 0...5) alone.lane(index).add(new Note(0, 48, 60 + index));
+
+		budget.overSong(song);
+
+		var chord = 0;
+		for (index in 0...5) chord += sounded(song, index);
+
+		says("and a pattern played alone counts",
+			budget.fmChannels == 5 && budget.operators == (chord > both ? chord : both),
+			budget.fmChannels + " FM channels and " + budget.operators + " operators for a"
+				+ " chord on five parts in a pattern on no clip");
+	}
+
+	/**
+		@param song A song.
+		@param part An FM part.
+		@return How many operators the part's rack preset does not silence.
+	**/
+	static function sounded(song:Song, part:Part):Int {
+		final instrument = song.instrumentAt(song.rack[part.index()]);
+		if (instrument == null || instrument.patch == null) return 0;
+
+		var many = 0;
+		for (slot in 0...4) if (instrument.patch.totalLevel[slot] < 127) many++;
+
+		return many;
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

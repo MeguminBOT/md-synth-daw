@@ -468,7 +468,10 @@ left exactly as it was written, because it already carries the level it was play
   sample in four, one in two or every sample the chips make. A trace with more samples than its
   lane has pixels is drawn with every peak in it rather than only its first samples. Both
   settings are kept between sessions.
-- **A hardware meter** for what the song is asking of the parts.
+- **A hardware meter** for what the song is asking of the parts: FM channels, FM operators,
+  squares and noise, and sample memory. While the song plays it shows what is sounding now, and
+  otherwise the most sounding at once anywhere in the arrangement or in any pattern played on its
+  own. Sample memory is a total, because that is what a cartridge carries.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note. Among
   them are the two ways a piece is left sounding with nothing playing it: a note whose patch has a
   release rate of nought or one on a carrier, which is slower than anything a piece waits for, so

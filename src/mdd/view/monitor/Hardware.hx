@@ -10,12 +10,15 @@ import mdd.ui.Widget;
 @:unreflective
 
 /**
-	The hardware meter: how much of each part the piece is asking for, against what the
-	machine actually has.
+	The hardware meter: how much of the machine the piece asks for at once, against what the
+	machine has. While a song plays it is what is sounding now, and otherwise the most sounding
+	at once anywhere in the piece. The samples are a total, since they are what a cartridge
+	carries.
 **/
 final class Hardware extends Widget {
 	/**
-		How many rows the parts are grouped into: FM, squares, noise and samples.
+		How many rows the meter has: FM channels, FM operators, square and noise channels, and
+		sample memory.
 	**/
 	public static inline final ROWS = 4;
 
@@ -133,9 +136,9 @@ final class Hardware extends Widget {
 		}
 
 		return switch (row) {
-			case 0: sounding(0, 6);
+			case 0: budget.fmChannels;
 			case 1: budget.operators;
-			case 2: sounding(6, 10);
+			case 2: budget.psgChannels;
 			case _: budget.sampleBytes;
 		}
 	}
@@ -149,15 +152,6 @@ final class Hardware extends Widget {
 			case 2: 4;
 			case _: profile == null ? mdd.check.Profile.ROM : profile.sampleBytes;
 		}
-	}
-
-	function sounding(from:Int, to:Int):Int {
-		if (budget == null) return 0;
-
-		var many = 0;
-		for (index in from...to) if (budget.busy[index] > 0) many++;
-
-		return many;
 	}
 
 	function named(row:Int):String {

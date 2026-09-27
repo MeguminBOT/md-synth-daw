@@ -3,8 +3,12 @@ package mdd.check;
 import haxe.ds.Vector;
 import mdd.app.Locale;
 import mdd.play.Stream;
+import mdd.song.Automation;
+import mdd.song.Clip;
+import mdd.song.Lane;
 import mdd.song.Note;
 import mdd.song.Part;
+import mdd.song.Pattern;
 import mdd.song.Song;
 
 @:unreflective
@@ -36,14 +40,20 @@ final class Budget {
 	public static inline final FRAMES = 60;
 
 	/**
-		How much of each part is in use, 0 to 100, which is what the hardware meter draws.
-	**/
-	public final busy:Vector<Int> = new Vector<Int>(Part.COUNT);
-
-	/**
-		How many FM operators are sounding at the busiest moment.
+		The most FM operators sounding at once, counting an operator its instrument does not
+		silence with its total level, over the arrangement and every pattern played on its own.
 	**/
 	public var operators(default, null):Int = 0;
+
+	/**
+		The most FM channels sounding at once, the same way. The converter is not among them.
+	**/
+	public var fmChannels(default, null):Int = 0;
+
+	/**
+		The most square and noise channels sounding at once, the same way.
+	**/
+	public var psgChannels(default, null):Int = 0;
 
 	/**
 		How many bytes of samples the music reaches for. A bank sitting in the library
@@ -57,13 +67,34 @@ final class Budget {
 	public var faults(default, null):Int = 0;
 
 	/**
+		Where every note starts and ends, one number each, laid out as `SPREAD` says: the tick,
+		then whether it starts, which part, and how many operators it sounds.
+	**/
+	final moments:Array<Float> = [];
+
+	/**
+		How many notes each part is sounding at the moment being swept.
+	**/
+	final holding:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		How many operators each part is sounding at the moment being swept.
+	**/
+	final holdingOperators:Vector<Int> = new Vector<Int>(Part.COUNT);
+
+	/**
+		What a tick is multiplied by in `moments`, leaving room under it for whether the note
+		starts, which part it is on and how many operators it sounds.
+	**/
+	static inline final SPREAD = 256.0;
+
+	/**
 		Builds a budget against one machine.
 
 		@param profile The machine to check against.
 	**/
 	public function new(profile:Profile) {
 		this.profile = profile;
-		for (i in 0...Part.COUNT) busy[i] = 0;
 	}
 
 	/**
@@ -73,10 +104,10 @@ final class Budget {
 		found.resize(0);
 		troubles.resize(0);
 		operators = 0;
+		fmChannels = 0;
+		psgChannels = 0;
 		sampleBytes = 0;
 		faults = 0;
-
-		for (i in 0...Part.COUNT) busy[i] = 0;
 	}
 
 	/**
@@ -131,6 +162,7 @@ final class Budget {
 		for (index in 0...song.patterns.length) overPattern(song, index);
 
 		sampled(song);
+		peaked(song);
 
 		if (profile.sampleBytes > 0 && sampleBytes > profile.sampleBytes) {
 			raise(Diagnostic.WARNING, Part.Dac, 0, Locale.WARN_SAMPLES_OVER,
@@ -185,6 +217,161 @@ final class Budget {
 	}
 
 	/**
+		Finds the busiest moments of the arrangement and of every pattern played on its own, since
+		either can be played: the most FM operators, FM channels and square and noise channels
+		sounding at once. A note sounds from where it starts until it or its clip ends, which is
+		where the sequencer keys it on and off, and a part is one channel however many of its
+		notes overlap. Every clip on the playlist is counted whether or not its track is muted,
+		because muting is how a piece is listened to rather than what it asks of the machine.
+
+		@param song The song to read.
+	**/
+	function peaked(song:Song):Void {
+		moments.resize(0);
+
+		for (track in song.tracks) {
+			for (clip in track.clips) {
+				if (clip.kind != Clip.PATTERN) continue;
+
+				final pattern = song.patternAt(clip.pattern);
+				if (pattern != null) placed(song, pattern, clip.origin(), clip.at, clip.ends());
+			}
+		}
+
+		swept();
+
+		for (pattern in song.patterns) {
+			moments.resize(0);
+			placed(song, pattern, 0, 0, pattern.length);
+			swept();
+		}
+	}
+
+	/**
+		Adds where every note of a pattern starts and ends, placed on the playlist, to `moments`.
+
+		@param song The song, for the instruments the notes play.
+		@param pattern The pattern.
+		@param origin Where the pattern's own start lands.
+		@param from The first tick it plays, where a note starting earlier is not keyed.
+		@param until One past the last, where a note still sounding is cut.
+	**/
+	function placed(song:Song, pattern:Pattern, origin:Int, from:Int, until:Int):Void {
+		for (which in 0...Part.COUNT) {
+			final part:Part = which;
+			if (part.sampled()) continue;
+
+			final lane = pattern.lane(part);
+
+			for (note in lane.notes) {
+				final start = origin + note.at;
+				if (start < from || start >= until) continue;
+
+				final ends = origin + note.ends() < until ? origin + note.ends() : until;
+				if (ends <= start) continue;
+
+				final sounded = part.fm() ? audible(song, lane, part, note) : 0;
+
+				moments.push(start * SPREAD + 128 + which * 8 + sounded);
+				moments.push(ends * SPREAD + which * 8);
+			}
+		}
+	}
+
+	/**
+		Walks `moments` in order and keeps the most of each that sounded at once. A note ending
+		on a tick is let go before one starting on it, so two notes back to back on one part are
+		one channel.
+	**/
+	function swept():Void {
+		if (moments.length == 0) return;
+
+		moments.sort(function(first:Float, second:Float):Int {
+			return first < second ? -1 : (first > second ? 1 : 0);
+		});
+
+		for (which in 0...Part.COUNT) {
+			holding[which] = 0;
+			holdingOperators[which] = 0;
+		}
+
+		var index = 0;
+
+		while (index < moments.length) {
+			final tick = Math.ffloor(moments[index] / SPREAD);
+
+			while (index < moments.length && Math.ffloor(moments[index] / SPREAD) == tick) {
+				final rest = Std.int(moments[index] - tick * SPREAD);
+				final which = (rest & 127) >> 3;
+
+				if (rest >= 128) {
+					holding[which]++;
+					if ((rest & 7) > holdingOperators[which]) holdingOperators[which] = rest & 7;
+				} else if (--holding[which] <= 0) {
+					holding[which] = 0;
+					holdingOperators[which] = 0;
+				}
+
+				index++;
+			}
+
+			var fm = 0;
+			var psg = 0;
+			var sounding = 0;
+
+			for (which in 0...Part.COUNT) {
+				final part:Part = which;
+				if (holding[which] == 0) continue;
+
+				if (part.fm()) {
+					fm++;
+					sounding += holdingOperators[which];
+				} else if (!part.sampled()) {
+					psg++;
+				}
+			}
+
+			if (fm > fmChannels) fmChannels = fm;
+			if (psg > psgChannels) psgChannels = psg;
+			if (sounding > operators) operators = sounding;
+		}
+	}
+
+	/**
+		How many operators a note on an FM part sounds: those its instrument does not silence with
+		a total level of 127. The instrument is chosen the way the sequencer chooses it, the
+		lane's preset automation from its first point on, then the note's own, then the rack's.
+
+		@param song The song.
+		@param lane The lane the note is in.
+		@param part Which part the lane is.
+		@param note The note.
+		@return How many operators it sounds, nought where there is no patch to read.
+	**/
+	static function audible(song:Song, lane:Lane, part:Part, note:Note):Int {
+		var named = note.instrument;
+
+		for (line in lane.automation) {
+			if (line.target != Automation.INSTRUMENT) continue;
+
+			if (line.points.length > 0 && line.points[0].at <= note.at) {
+				final want = line.heldAt(note.at);
+				if (song.instrumentAt(want) != null) named = want;
+			}
+
+			break;
+		}
+
+		final instrument = song.instrumentAt(named >= 0 ? named : song.rack[part.index()]);
+		if (instrument == null || instrument.patch == null) return 0;
+
+		var many = 0;
+		for (slot in 0...4) if (instrument.patch.totalLevel[slot] < 127) many++;
+
+		return many;
+	}
+
+	/**
 		Checks one pattern.
 
 		@param song The song it belongs to.
@@ -197,8 +384,6 @@ final class Budget {
 			final part:Part = which;
 			final lane = pattern.lane(part);
 			if (lane.notes.length == 0) continue;
-
-			busy[which] += lane.notes.length;
 
 			if (!profile.carries(part)) {
 				raise(Diagnostic.FAULT, part, lane.notes[0].at, Locale.WARN_PART_ABSENT,
@@ -228,16 +413,6 @@ final class Budget {
 					break;
 				}
 			}
-		}
-
-		for (which in 0...6) {
-			final part:Part = which;
-			if (!pattern.used(part)) continue;
-
-			final instrument = song.instrumentAt(song.rack[which]);
-			if (instrument == null || instrument.patch == null) continue;
-
-			for (slot in 0...4) if (instrument.patch.totalLevel[slot] < 127) operators++;
 		}
 	}
 
