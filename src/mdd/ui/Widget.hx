@@ -69,9 +69,10 @@ class Widget {
 	public var detailKey:Int = -1;
 
 	/**
-		Whether it is drawn and hit at all.
+		Whether it is drawn and hit at all. Changing it asks for the frame to be drawn again,
+		since what held the widget now looks different.
 	**/
-	public var visible:Bool = true;
+	public var visible(default, set):Bool = true;
 
 	/**
 		Whether it can be used.
@@ -138,8 +139,6 @@ class Widget {
 	**/
 	public final children:Array<Widget> = [];
 
-	var dirty(default, null):Bool = true;
-
 	var owner:Null<Root> = null;
 
 	/**
@@ -203,11 +202,30 @@ class Widget {
 	}
 
 	/**
-		Says the appearance changed, so the next frame draws it again.
+		Says the appearance changed, so the next frame draws it again. A widget that is hidden,
+		or held by one that is, asks for nothing: it is not drawn, and showing it again asks for
+		the frame through `visible`.
 	**/
 	public function invalidate():Void {
-		dirty = true;
+		var at:Null<Widget> = this;
+
+		while (at != null) {
+			if (!at.visible) return;
+			at = at.parent;
+		}
+
 		if (owner != null) owner.soil();
+	}
+
+	function set_visible(value:Bool):Bool {
+		if (value == visible) return value;
+
+		visible = value;
+
+		if (parent != null) parent.invalidate();
+		else if (owner != null) owner.soil();
+
+		return value;
 	}
 
 	/**
@@ -216,15 +234,6 @@ class Widget {
 	public function relayout():Void {
 		if (owner != null) owner.reshape();
 		invalidate();
-	}
-
-	/**
-		Lays this widget out now rather than next frame, which a caller needs when it is
-		about to measure what it just built.
-	**/
-	public function settle():Void {
-		dirty = false;
-		for (child in children) child.settle();
 	}
 
 	/**

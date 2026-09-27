@@ -821,11 +821,6 @@ final class Root {
 
 		paint.flush();
 
-		top.settle();
-		if (sheet != null) sheet.settle();
-		for (menu in popups) menu.settle();
-		tooltip.settle();
-
 		soiled = false;
 		painted++;
 		return true;
