@@ -1104,7 +1104,7 @@ final class TransportBar extends Widget {
 		final barAt = clockAt + font.measure("00:00.000") + metrics.inset;
 
 		paint.text(clocked(transport.seconds()), clockAt, line, theme.ink);
-		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
+		paint.text(readout(), barAt, line, transport.counting > 0 ? theme.over : theme.dim, 0.9);
 
 		paint.reface(face);
 	}
@@ -1368,9 +1368,33 @@ final class TransportBar extends Widget {
 	public function bar(tick:Int):String {
 		final beat = session.song.beatOf(null);
 		final span = session.song.bar();
-		final which = Std.int(tick / span) + 1;
-		final within = Std.int((tick % span) / beat) + 1;
 
+		return barred(Std.int(tick / span) + 1, Std.int((tick % span) / beat) + 1);
+	}
+
+	/**
+		@return What the readout beside the clock says: the bar and beat the playhead is in, or
+			while a count in runs, the bar and beat of the count in, which are the bars before
+			bar one.
+	**/
+	public function readout():String {
+		final transport = session.transport;
+		final at = transport.countBeat();
+
+		if (at < 0) return bar(transport.tick());
+
+		final every = transport.countBar < 1 ? 1 : transport.countBar;
+		final bars = Std.int(transport.countBeats / every);
+
+		return barred(Std.int(at / every) - bars, at % every + 1);
+	}
+
+	/**
+		@param which A bar.
+		@param within A beat of it.
+		@return Both as the readout shows them, built again only when either has changed.
+	**/
+	function barred(which:Int, within:Int):String {
 		if (which != barWhich || within != barWithin) {
 			barWhich = which;
 			barWithin = within;

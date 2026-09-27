@@ -147,8 +147,17 @@ final class Transport {
 	public var counting(default, null):Int = 0;
 
 	var countLength:Int = 0;
-	var countBeats:Int = 0;
-	var countBar:Int = 1;
+
+	/**
+		How many beats the count in lasts.
+	**/
+	public var countBeats(default, null):Int = 0;
+
+	/**
+		How many of them make a bar.
+	**/
+	public var countBar(default, null):Int = 1;
+
 	var countNext:Int = 0;
 
 	var carried:Int = 0;
@@ -361,6 +370,20 @@ final class Transport {
 		}
 
 		return from - lead;
+	}
+
+	/**
+		@return Which beat of the count in the transport has reached, counted from nought, or -1
+			where no count in is running.
+	**/
+	public function countBeat():Int {
+		final left = counting;
+		final length = countLength;
+
+		if (left <= 0 || length <= 0 || countBeats <= 0) return -1;
+
+		final at = Std.int((length - left) / (length / countBeats));
+		return at >= countBeats ? countBeats - 1 : at;
 	}
 
 	/**

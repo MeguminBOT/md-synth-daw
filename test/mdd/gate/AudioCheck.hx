@@ -865,6 +865,21 @@ class AudioCheck {
 			"the first note keys on at frame " + keyed + ", where the bar after the count in"
 			+ " begins at 96000");
 
+		final stepped = new mdd.play.Transport(beating(), 1 << 16);
+		final beats:Array<Int> = [];
+
+		stepped.play(1);
+
+		for (block in 0...800) {
+			stepped.advance(Render.BLOCK, RATE);
+
+			final beat = stepped.countBeat();
+			if (beats.length == 0 || beats[beats.length - 1] != beat) beats.push(beat);
+		}
+
+		says("and says where it is", beats.join(" ") == "0 1 2 3 -1",
+			"the beat of the count in read after every block goes " + beats.join(", "));
+
 		final quiet = new mdd.play.Transport(beating(), 1 << 16);
 		final none:Array<String> = [];
 

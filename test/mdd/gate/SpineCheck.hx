@@ -3911,6 +3911,37 @@ class SpineCheck {
 			+ wanted + " names " + play);
 	}
 
+	/**
+		A count in shows in the readout beside the clock as the bar before bar one.
+	**/
+	static function countsIn(session:mdd.app.Session, bar:TransportBar):Void {
+		final transport = session.transport;
+		final meter = session.song.meterOf(session.alone ? session.current() : null);
+		final wants:Array<String> = [for (beat in 0...meter.beats) "bar -1." + (beat + 1)];
+		final seen:Array<String> = [];
+
+		wants.push("bar 1.1");
+		transport.stop();
+		transport.seek(0);
+		transport.play(1);
+
+		for (block in 0...4000) {
+			transport.advance(mdd.play.Render.BLOCK, 48000);
+
+			final said = bar.readout();
+			if (seen.length == 0 || seen[seen.length - 1] != said) seen.push(said);
+			if (seen.length > wants.length) break;
+		}
+
+		transport.stop();
+		transport.seek(0);
+
+		final shown = seen.slice(0, wants.length).join(", ");
+
+		says("and the count in shows", shown == wants.join(", "),
+			"the readout beside the clock goes " + shown);
+	}
+
 	static function picked(tree:Root, session:mdd.app.Session, bar:TransportBar):Void {
 		final song = session.song;
 		final had = song.patterns.length;
@@ -6150,6 +6181,7 @@ class SpineCheck {
 		picked(tree, session, bar);
 		metered(session, bar);
 		hinted(tree, session, bar);
+		countsIn(session, bar);
 		synthed(tree, session, editor);
 		sought(tree, session, editor);
 		anchored(tree, session, editor);

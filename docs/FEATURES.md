@@ -635,14 +635,15 @@ faster or slower, or moves the grid under it instead.
 - **Recording from a MIDI keyboard.** Turn on the record button on the transport bar, or press `R`,
   and every key you play becomes a note on the chosen channel, in the pattern under the playhead,
   starting on the nearest grid line. Pressing play with record on counts in first, a bar of clicks
-  to start with, while the playhead waits. The metronome's right click menu sets it to two bars or
-  none. While the song plays, a note lasts as long as you held the key, or until the sustain pedal
-  lifts, and keeps how hard you played it. While it is stopped, each key writes a note one grid step
-  long and moves the playhead on by a step, so you can enter a line one note at a time, and keys
-  held together land as a chord. With the grid off, a step is a beat. Clicking a key on the piano
-  roll's keyboard records the same way. A key played where the chosen pattern is not playing is
-  heard but not written. Everything recorded between starting the song and stopping it is one step
-  to undo, knob turns included, and so is each step you enter while it is stopped.
+  to start with, while the playhead waits and the readout beside the clock counts through the bar
+  before bar one. The metronome's right click menu sets it to two bars or none. While the song
+  plays, a note lasts as long as you held the key, or until the sustain pedal lifts, and keeps how
+  hard you played it. While it is stopped, each key writes a note one grid step long and moves the
+  playhead on by a step, so you can enter a line one note at a time, and keys held together land as
+  a chord. With the grid off, a step is a beat. Clicking a key on the piano roll's keyboard records
+  the same way. A key played where the chosen pattern is not playing is heard but not written.
+  Everything recorded between starting the song and stopping it is one step to undo, knob turns
+  included, and so is each step you enter while it is stopped.
 - **Audio device** in the Sound preferences sends the sound to any playback device the system
   has, or to the system default. The choice is kept by name, and a device that has gone falls back
   to the default.
