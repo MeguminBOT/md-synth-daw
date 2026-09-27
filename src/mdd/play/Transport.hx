@@ -104,6 +104,9 @@ final class Transport {
 	var heardVelocity:Int = AUDITION_VELOCITY;
 	var heardCarry:Float = 0;
 	var heardIndex:Int = 0;
+	var heardCents:Int = 0;
+	var heardBent:Bool = false;
+	var heardBefore:Int = -1;
 	var priming:Bool = false;
 	final sounded:haxe.ds.Vector<Bool> = new haxe.ds.Vector<Bool>(Part.COUNT);
 
@@ -216,6 +219,7 @@ final class Transport {
 
 		if (hushing.exchange(0) == 1) {
 			heardPart = -1;
+			heardBefore = -1;
 			stream.reset(position);
 			sequencer.quiets();
 			priming = true;
@@ -304,12 +308,30 @@ final class Transport {
 			held:Bool = false):Void {
 		gate.acquire();
 
+		if (heardPart >= 0 && heardPart != part.index()) heardBefore = heardPart;
+
 		heardPart = part.index();
 		heardNote = note;
 		heardLeft = AUDITION_BLOCKS;
 		heardFresh = true;
 		heardHeld = held;
 		heardVelocity = velocity < 1 ? 1 : (velocity > 127 ? 127 : velocity);
+
+		gate.release();
+	}
+
+	/**
+		Bends whatever is being auditioned, and every audition after it until it is bent back.
+
+		@param cents How far, in hundredths of a semitone.
+	**/
+	public function bends(cents:Int):Void {
+		gate.acquire();
+
+		if (heardCents != cents) {
+			heardCents = cents;
+			heardBent = true;
+		}
 
 		gate.release();
 	}
@@ -363,6 +385,11 @@ final class Transport {
 		@param span How many samples it covers.
 	**/
 	function auditioned(at:Int, span:Int):Void {
+		if (heardBefore >= 0) {
+			stream.silence(at, heardBefore);
+			heardBefore = -1;
+		}
+
 		if (heardPart < 0) return;
 
 		final part:Part = heardPart;
@@ -385,10 +412,10 @@ final class Transport {
 						| ((instrument.patch.ams & 3) << 4) | (instrument.patch.pms & 7));
 				}
 
-				stream.tune(at, part, heardNote);
+				stream.frequency(at, part, Stream.wordAt(part, heardNote, heardCents));
 				stream.keyOn(at, part);
 			} else if (part.square()) {
-				stream.square(at, part, heardNote);
+				stream.period(at, part, Stream.wordAt(part, heardNote, heardCents));
 				stream.loudness(at, part, instrument == null ? null : instrument.envelope,
 					velocity, 0);
 			} else if (part.noise()) {
@@ -399,6 +426,13 @@ final class Transport {
 				stream.loudness(at, part, instrument == null ? null : instrument.envelope,
 					velocity, 0);
 			}
+
+			heardBent = false;
+		} else if (heardBent) {
+			heardBent = false;
+
+			if (part.fm()) stream.frequency(at, part, Stream.wordAt(part, heardNote, heardCents));
+			if (part.square()) stream.period(at, part, Stream.wordAt(part, heardNote, heardCents));
 		}
 
 		if (heardHeld) return;

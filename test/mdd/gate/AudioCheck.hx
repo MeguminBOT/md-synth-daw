@@ -44,6 +44,7 @@ class AudioCheck {
 		pitch();
 		shape();
 		auditioned();
+		wheeled();
 		keyed();
 		velocities();
 		device(Math.isNaN(live) ? LIVE : live);
@@ -609,6 +610,129 @@ class AudioCheck {
 		}
 
 		return held.join(" ");
+	}
+
+	/**
+		Holds a key on the first FM channel and on the first square, bends each, and reads back
+		the frequency the stream wrote once the bend arrived.
+	**/
+	static function wheeled():Void {
+		final song = new mdd.song.Song("bend", 96, 120);
+
+		for (index in 0...mdd.song.Part.COUNT) {
+			final part:mdd.song.Part = index;
+			song.instrument(new mdd.song.Instrument(part.name().toLowerCase(), part));
+			song.rack[index] = index;
+		}
+
+		final transport = new mdd.play.Transport(song, 1 << 16);
+
+		transport.auditions(mdd.song.Part.Fm1, 60, 100, true);
+		transport.advance(Render.BLOCK, RATE);
+		final struck = frequencyIn(transport.stream);
+
+		transport.bends(100);
+		transport.advance(Render.BLOCK, RATE);
+		final up = frequencyIn(transport.stream);
+
+		transport.bends(0);
+		transport.advance(Render.BLOCK, RATE);
+		final back = frequencyIn(transport.stream);
+
+		transport.advance(Render.BLOCK, RATE);
+		final still = frequencyIn(transport.stream);
+
+		says("a wheel bends a key", struck == mdd.play.Stream.wordOf(60)
+			&& up == mdd.play.Stream.wordOf(61) && back == struck && still == -1,
+			"a semitone up wrote $" + StringTools.hex(up, 4) + " where note 61 is $"
+			+ StringTools.hex(mdd.play.Stream.wordOf(61), 4) + ", and centring it wrote $"
+			+ StringTools.hex(back, 4) + " again and then nothing");
+
+		transport.bends(-200);
+		transport.auditions(mdd.song.Part.Psg1, 60, 100, true);
+		transport.advance(Render.BLOCK, RATE);
+		final low = periodIn(transport.stream);
+		final cut = keyedOff(transport.stream, 0);
+
+		says("and a new key is bent", low == mdd.play.Stream.periodOf(58) && cut,
+			"a square struck two semitones down wrote period " + low + " where note 58 is "
+			+ mdd.play.Stream.periodOf(58) + ", and moving to it let go of the FM key");
+
+		transport.bends(0);
+	}
+
+	/**
+		@param stream A span's writes.
+		@return The block and frequency written to the first FM channel, or -1 where none was.
+	**/
+	static function frequencyIn(stream:mdd.play.Stream):Int {
+		var address = -1;
+		var high = -1;
+		var low = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			if (stream.portAt(index) == 0) {
+				address = stream.valueAt(index);
+				continue;
+			}
+
+			if (stream.portAt(index) != 1) continue;
+			if (address == 0xA4) high = stream.valueAt(index);
+			if (address == 0xA0) low = stream.valueAt(index);
+		}
+
+		return high < 0 || low < 0 ? -1 : ((high & 0x3F) << 8) | low;
+	}
+
+	/**
+		@param stream A span's writes.
+		@return The period written to the first square, or -1 where none was.
+	**/
+	static function periodIn(stream:mdd.play.Stream):Int {
+		var low = -1;
+		var found = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+
+			if ((value & 0xF0) == 0x80) {
+				low = value & 0x0F;
+				continue;
+			}
+
+			if ((value & 0x80) == 0 && low >= 0) found = low | ((value & 0x3F) << 4);
+			low = -1;
+		}
+
+		return found;
+	}
+
+	/**
+		@param stream A span's writes.
+		@param select Which FM channel, as register `$28` selects it.
+		@return Whether that channel was keyed off.
+	**/
+	static function keyedOff(stream:mdd.play.Stream, select:Int):Bool {
+		var address = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			if (stream.portAt(index) == 0) {
+				address = stream.valueAt(index);
+				continue;
+			}
+
+			if (stream.portAt(index) == 1 && address == 0x28 && stream.valueAt(index) == select) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	static function auditioned():Void {

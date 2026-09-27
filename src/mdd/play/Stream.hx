@@ -150,6 +150,33 @@ final class Stream {
 	}
 
 	/**
+		@param part Which part.
+		@param note A MIDI note number.
+		@param cents How far from it, in hundredths of a semitone.
+		@return The FM block and frequency word, or the square period, of the note that far away,
+			laid out the way the note table lays a note out so a key scale and a detune read the
+			same as they do on a note.
+	**/
+	public static function wordAt(part:Part, note:Int, cents:Int):Int {
+		if (cents == 0) return part.fm() ? wordOf(note) : periodOf(note);
+
+		var whole = note * 100 + cents;
+		if (whole < 0) whole = 0;
+		if (whole > 12700) whole = 12700;
+
+		final base = Std.int(whole / 100);
+		final left = whole - base * 100;
+
+		if (!part.fm()) {
+			final period = Math.round(periodOf(base) * Math.pow(2, -left / 1200.0));
+			return period < 1 ? 1 : (period > 0x3FF ? 0x3FF : period);
+		}
+
+		final found = Math.round(frequencyOf(base) * Math.pow(2, left / 1200.0));
+		return ((blockOf(base) & 7) << 11) | (found > 0x7FF ? 0x7FF : found);
+	}
+
+	/**
 		How many writes this stream can hold before it starts dropping them.
 	**/
 	public var capacity(default, null):Int;

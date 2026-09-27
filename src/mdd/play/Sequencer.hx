@@ -1311,30 +1311,13 @@ final class Sequencer {
 		@param cents How far from the note, in hundredths of a semitone.
 		@param pitch The note, before the transpose.
 		@param transpose Semitones to shift every note by.
-		@return What a preset's pitch lane writes: the FM block and frequency word, or the square
-			period, of the note that far away, laid out the way the note table lays a note out so a
-			key scale and a detune read the same as they do on a note. -1 for no note.
+		@return What a preset's pitch lane writes, as `Stream.wordAt` lays it out, or -1 for no
+			note.
 	**/
 	function pitchWord(part:Part, cents:Int, pitch:Int, transpose:Int):Int {
 		if (pitch < 0) return -1;
 
-		final note = pitched(pitch, transpose);
-		if (cents == 0) return part.fm() ? Stream.wordOf(note) : Stream.periodOf(note);
-
-		var whole = note * 100 + cents;
-		if (whole < 0) whole = 0;
-		if (whole > 12700) whole = 12700;
-
-		final base = Std.int(whole / 100);
-		final left = whole - base * 100;
-
-		if (!part.fm()) {
-			final period = Math.round(Stream.periodOf(base) * Math.pow(2, -left / 1200.0));
-			return period < 1 ? 1 : (period > 0x3FF ? 0x3FF : period);
-		}
-
-		final found = Math.round(Stream.frequencyOf(base) * Math.pow(2, left / 1200.0));
-		return ((Stream.blockOf(base) & 7) << 11) | (found > 0x7FF ? 0x7FF : found);
+		return Stream.wordAt(part, pitched(pitch, transpose), cents);
 	}
 
 	/**
