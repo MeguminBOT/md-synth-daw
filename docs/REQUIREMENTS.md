@@ -132,15 +132,13 @@ The renderer can be changed in the preferences or with `--renderer=`:
 | `direct3d11` | Direct3D 11, feature level 10_0. Windows uses this unless told otherwise, and where it falls short it starts on OpenGL instead, or on Direct3D 9 where OpenGL falls short too, and keeps that as the choice |
 | `opengl` | OpenGL 2.0. Linux and macOS use this |
 | `direct3d` | Direct3D 9 with Shader Model 2.0 |
-| `direct3d12` | Direct3D 12 |
+| `direct3d12` | Direct3D 12, as an experimental option: it runs, with faults |
 | `opengles2` | OpenGL ES 2.0 |
 | `vulkan` | Vulkan 1.0 |
 | `software` | nothing at all, and it draws on the processor |
 
-Only Direct3D 11 and OpenGL are vetted with playback running. A backend that paints a still
-interface correctly can still go wrong once the playhead, the scope and the meters are redrawing
-every frame, which is how two of the others were caught. The rest are offered because the plumbing
-is right, not because they are recommended.
+Every renderer is tested with a song playing. Direct3D 12 runs, but with faults, so it is there as
+an experimental option and nothing falls back to it.
 
 ## Storage
 
