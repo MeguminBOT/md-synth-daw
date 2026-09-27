@@ -59,7 +59,7 @@ final class Rail extends Widget {
 		@param paint What to draw with.
 	**/
 	override function paint(paint:Paint):Void {
-		rack.paint(paint);
-		hardware.paint(paint);
+		rack.draw(paint);
+		hardware.draw(paint);
 	}
 }

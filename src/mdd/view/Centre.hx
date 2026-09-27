@@ -323,15 +323,15 @@ final class Centre extends Widget {
 	override function paint(paint:Paint):Void {
 		named();
 
-		tabs.paint(paint);
-		if (tools.visible) tools.paint(paint);
+		tabs.draw(paint);
+		if (tools.visible) tools.draw(paint);
 
-		if (roll.visible) roll.paint(paint);
-		if (scope.visible) scope.paint(paint);
-		if (tracker.visible) tracker.paint(paint);
-		if (playlist.visible) playlist.paint(paint);
-		if (registers.visible) registers.paint(paint);
-		if (automation.visible) automation.paint(paint);
-		if (warnings.visible) warnings.paint(paint);
+		if (roll.visible) roll.draw(paint);
+		if (scope.visible) scope.draw(paint);
+		if (tracker.visible) tracker.draw(paint);
+		if (playlist.visible) playlist.draw(paint);
+		if (registers.visible) registers.draw(paint);
+		if (automation.visible) automation.draw(paint);
+		if (warnings.visible) warnings.draw(paint);
 	}
 }

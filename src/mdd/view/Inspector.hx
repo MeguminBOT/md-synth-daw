@@ -168,11 +168,11 @@ final class Inspector extends Widget {
 	override function paint(paint:Paint):Void {
 		named();
 
-		tabs.paint(paint);
+		tabs.draw(paint);
 
-		if (fm.visible) fm.paint(paint);
-		if (psg.visible) psg.paint(paint);
-		if (samples.visible) samples.paint(paint);
-		if (presets.visible) presets.paint(paint);
+		if (fm.visible) fm.draw(paint);
+		if (psg.visible) psg.draw(paint);
+		if (samples.visible) samples.draw(paint);
+		if (presets.visible) presets.draw(paint);
 	}
 }

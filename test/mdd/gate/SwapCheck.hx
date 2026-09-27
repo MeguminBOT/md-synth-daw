@@ -148,7 +148,7 @@ class SwapCheck {
 		final paint = Paint.on(renderer, font);
 		final white = new Colour(0xFFFFFF);
 		final event = new mdd.host.Event();
-		final sheet = paint.sheet(WIDE, Std.int(TALL * 0.5));
+		final sheet = Draw.createTarget(renderer, WIDE, Std.int(TALL * 0.5));
 
 		if (sheet == null) {
 			font.shut();
@@ -412,7 +412,7 @@ class SwapCheck {
 	/**
 		Whether what a frame has already drawn survives a turn through a texture.
 
-		A sheet bakes itself into a texture of its own part way through the frame and
+		The video preview draws into textures of its own part way through a frame and
 		then goes back to the window. Backends that record a render pass have to end
 		one and begin another to do it, and what the frame had already put in the
 		window is lost where the second pass does not load it back.

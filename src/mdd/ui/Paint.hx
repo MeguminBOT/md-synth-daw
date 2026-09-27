@@ -104,14 +104,99 @@ final class Paint {
 	var aimed:cpp.Star<Texture> = null;
 
 	/**
-		Makes a texture that can be drawn into.
+		Makes a texture a widget keeps its drawing in.
 
 		@param width How wide.
 		@param height How tall.
 		@return The texture, or null.
 	**/
-	public function sheet(width:Int, height:Int):cpp.Star<Texture> {
-		return Draw.createTarget(renderer, width, height);
+	public function keeps(width:Int, height:Int):cpp.Star<Texture> {
+		return Draw.createKept(renderer, width, height);
+	}
+
+	/**
+		Draws into a texture a widget keeps its drawing in, from here until `restores`, with the
+		widget's top left corner at the texture's. The texture is cleared to nothing first, and the
+		clip, the transform and the opacity in force are put aside: what is kept is the widget as
+		it draws anywhere, and whatever is in force applies when the texture is laid down.
+
+		@param texture The texture.
+		@param x Where the widget's left edge is, in its own units.
+		@param y Where its top edge is.
+		@param width How much of the texture it covers, across.
+		@param height How much, down.
+		@return False where a stack is too deep to put anything aside or the transform scales, in
+			which case nothing changed and the widget has to be drawn directly.
+	**/
+	public function diverts(texture:cpp.Star<Texture>, x:Float, y:Float, width:Int,
+			height:Int):Bool {
+		if (clipped >= DEPTH || deep >= DEPTH || veiled >= DEPTH) return false;
+		if (scaleX != 1 || scaleY != 1) return false;
+
+		target(texture);
+		Sdl.renderClear(renderer, 0, 0, 0, 0);
+
+		stackX[deep] = offsetX;
+		stackY[deep] = offsetY;
+		stackSx[deep] = scaleX;
+		stackSy[deep] = scaleY;
+		deep++;
+
+		offsetX = -x;
+		offsetY = -y;
+
+		opacities[veiled] = opacity;
+		veiled++;
+		opacity = 1;
+
+		clipX[clipped] = 0;
+		clipY[clipped] = 0;
+		clipW[clipped] = width;
+		clipH[clipped] = height;
+		clipped++;
+
+		Sdl.setClip(renderer, 0, 0, width, height);
+		return true;
+	}
+
+	/**
+		Goes back to drawing where `diverts` was called, with what it put aside. The window keeps
+		its own clip while a texture is drawn into, so nothing has to be set again on it.
+
+		@param was What was being drawn into before.
+	**/
+	public function restores(was:cpp.Star<Texture>):Void {
+		flush();
+
+		clipped--;
+
+		veiled--;
+		opacity = opacities[veiled];
+
+		deep--;
+		offsetX = stackX[deep];
+		offsetY = stackY[deep];
+		scaleX = stackSx[deep];
+		scaleY = stackSy[deep];
+
+		target(was);
+	}
+
+	/**
+		Lays down what a widget kept in a texture, where the widget is, at the opacity in force.
+		This flushes, because it is not a triangle batch.
+
+		@param texture The texture.
+		@param x Where the widget's left edge is, in its own units.
+		@param y Where its top edge is.
+		@param width How much of the texture it covers, across.
+		@param height How much, down.
+	**/
+	public function kept(texture:cpp.Star<Texture>, x:Float, y:Float, width:Int,
+			height:Int):Void {
+		flush();
+		Draw.part(renderer, texture, width, height, Math.round(at(x)), Math.round(down(y)),
+			opacity);
 	}
 
 	/**

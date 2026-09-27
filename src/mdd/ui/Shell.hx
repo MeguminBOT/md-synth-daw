@@ -477,12 +477,12 @@ final class Shell extends Widget {
 			if (showing <= 0.004) continue;
 
 			if (showing >= 1) {
-				zone.paint(paint);
+				zone.draw(paint);
 				continue;
 			}
 
 			paint.pushOpacity(showing);
-			zone.paint(paint);
+			zone.draw(paint);
 			paint.popOpacity();
 		}
 	}

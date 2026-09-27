@@ -606,7 +606,7 @@ final class Stage {
 				if (event.windowID == windowID) rescaled();
 
 			case Sdl.EVENT_WINDOW_EXPOSED:
-				root.soil();
+				root.refresh();
 
 			case Sdl.EVENT_WINDOW_FOCUS_GAINED:
 				final held = onFocus;
@@ -664,6 +664,7 @@ final class Stage {
 		}
 
 		final ground = root.theme.ground;
+		root.prepares(paint);
 		Sdl.renderClear(renderer, ground.red / 255, ground.green / 255, ground.blue / 255, 1);
 		root.frame(paint);
 		Sdl.renderPresent(renderer);
@@ -672,13 +673,15 @@ final class Stage {
 	}
 
 	/**
-		Gives the faces, the icons, the renderer and the window back, in that order.
+		Gives the faces, the icons, the textures widgets keep their drawing in, the renderer and
+		the window back, in that order.
 	**/
 	public function shut():Void {
 		if (icons != null) icons.shut();
 
 		spare.shut();
 		shed();
+		if (root != null) root.forgets();
 		if (!aside) Sdl.freeCursors();
 		Sdl.destroyRenderer(renderer);
 		Sdl.destroyWindow(window);

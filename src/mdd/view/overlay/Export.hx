@@ -1352,9 +1352,9 @@ final class Export extends Widget {
 			top += fieldTall();
 		}
 
-		for (index in 0...coded.length) if (entered.indexOf(index) >= 0) coded[index].paint(paint);
-		for (held in timers) held.paint(paint);
-		for (held in fields) held.paint(paint);
+		for (index in 0...coded.length) if (entered.indexOf(index) >= 0) coded[index].draw(paint);
+		for (held in timers) held.draw(paint);
+		for (held in fields) held.draw(paint);
 
 		paint.popClip();
 		reined(paint, theme, metrics, alpha);
@@ -1362,8 +1362,8 @@ final class Export extends Widget {
 		go.label = translate(Locale.EXPORT_GO);
 		stop.label = translate(Locale.EXPORT_CANCEL);
 
-		stop.paint(paint);
-		go.paint(paint);
+		stop.draw(paint);
+		go.draw(paint);
 
 		paint.popTransform();
 	}

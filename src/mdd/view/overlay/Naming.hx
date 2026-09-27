@@ -126,6 +126,6 @@ final class Naming extends Widget {
 		paint.text(translate(Locale.NAMING_HINT), x + metrics.inset,
 			y + metrics.whole(38) + small.ascent, theme.dim, 0.8);
 
-		field.paint(paint);
+		field.draw(paint);
 	}
 }

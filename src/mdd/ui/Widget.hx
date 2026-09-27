@@ -142,6 +142,14 @@ class Widget {
 	var owner:Null<Root> = null;
 
 	/**
+		The texture this widget keeps its drawing in, or null where it is drawn afresh every
+		frame. A widget that keeps one makes it in its constructor and draws in `overlay`
+		whatever changes on its own from frame to frame, since `paint` is then only called when
+		something it draws has changed.
+	**/
+	var cache:Null<Cache> = null;
+
+	/**
 		Builds an empty widget at nought by nought.
 	**/
 	public function new() {}
@@ -202,19 +210,49 @@ class Widget {
 	}
 
 	/**
-		Says the appearance changed, so the next frame draws it again. A widget that is hidden,
-		or held by one that is, asks for nothing: it is not drawn, and showing it again asks for
-		the frame through `visible`.
+		Says the appearance changed, so the next frame draws it again, along with whatever keeps
+		it in a texture. A widget that is hidden, or held by one that is, asks for no frame: it is
+		not drawn, and showing it again asks for one through `visible`.
+
+		Only this widget and what holds it are drawn again. A change that reaches further, to
+		the song or to something another panel shows, goes through `Root.soil`, as everything
+		the pointer and the keyboard do already does.
 	**/
 	public function invalidate():Void {
-		var at:Null<Widget> = this;
+		stales(this);
+	}
+
+	/**
+		Says only what `overlay` draws changed, so the next frame draws that again and lays down
+		what this widget keeps as it was.
+	**/
+	public function invalidateOverlay():Void {
+		stales(parent);
+	}
+
+	/**
+		Makes stale every texture kept from one widget up to the root, and asks for a frame where
+		this widget and everything holding it are shown.
+
+		@param from The first widget whose texture goes stale, or null for none.
+	**/
+	function stales(from:Null<Widget>):Void {
+		var at:Null<Widget> = from;
+
+		while (at != null) {
+			final held = at.cache;
+			if (held != null) held.stale();
+			at = at.parent;
+		}
+
+		at = this;
 
 		while (at != null) {
 			if (!at.visible) return;
 			at = at.parent;
 		}
 
-		if (owner != null) owner.soil();
+		if (owner != null) owner.refresh();
 	}
 
 	function set_visible(value:Bool):Bool {
@@ -223,7 +261,7 @@ class Widget {
 		visible = value;
 
 		if (parent != null) parent.invalidate();
-		else if (owner != null) owner.soil();
+		else if (owner != null) owner.refresh();
 
 		return value;
 	}
@@ -331,15 +369,56 @@ class Widget {
 	}
 
 	/**
-		Draws this widget and everything in it. Override this.
+		Draws this widget: from the texture it keeps where it keeps one, drawing into that first
+		where it is stale, and then whatever it draws over that. What holds a widget calls this
+		rather than `paint`.
+
+		@param paint What to draw with.
+	**/
+	public final function draw(paint:Paint):Void {
+		final held = cache;
+		if (held == null || !held.draws(this, paint)) this.paint(paint);
+		overlay(paint);
+	}
+
+	/**
+		Draws into the texture this widget keeps, or those the widgets in it keep, wherever one
+		shown is stale. `Root.prepares` calls it before the window is drawn into.
+
+		@param paint What to draw with.
+	**/
+	public function bakes(paint:Paint):Void {
+		if (!visible) return;
+
+		final held = cache;
+
+		if (held != null) {
+			held.bakes(this, paint);
+			return;
+		}
+
+		for (child in children) child.bakes(paint);
+	}
+
+	/**
+		Draws this widget and everything in it, except what `over` draws. Override this.
 
 		@param paint What to draw with.
 	**/
 	public function paint(paint:Paint):Void {
 		for (child in children) {
-			if (child.visible) child.paint(paint);
+			if (child.visible) child.draw(paint);
 		}
 	}
+
+	/**
+		Draws what changes on its own from frame to frame, such as a playhead or a meter, over
+		what `paint` drew. It is never kept in a texture, so `invalidateOverlay` draws it again
+		without drawing the rest. Override this.
+
+		@param paint What to draw with.
+	**/
+	public function overlay(paint:Paint):Void {}
 
 	/**
 		Handles one event. Override this.

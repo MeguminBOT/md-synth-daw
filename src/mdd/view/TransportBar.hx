@@ -978,7 +978,7 @@ final class TransportBar extends Widget {
 		paint.text(clocked(transport.seconds()), clockAt, line, theme.ink);
 		paint.text(bar(transport.tick()), barAt, line, theme.dim, 0.9);
 
-		for (field in held) if (field.visible) field.paint(paint);
+		for (field in held) if (field.visible) field.draw(paint);
 	}
 
 	function mode(paint:Paint, theme:Theme, metrics:Metrics, top:Float, button:Float):Void {

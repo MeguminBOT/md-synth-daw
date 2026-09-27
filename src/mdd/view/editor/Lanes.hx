@@ -2253,7 +2253,7 @@ final class Lanes extends Widget {
 		paint.popClip();
 
 		if (holding == null) {
-			for (field in fields) if (field.visible) field.paint(paint);
+			for (field in fields) if (field.visible) field.draw(paint);
 		}
 
 		gripped(paint, theme, metrics);

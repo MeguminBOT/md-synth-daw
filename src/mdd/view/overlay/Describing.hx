@@ -192,12 +192,12 @@ final class Describing extends Widget {
 				y + head() + which * tall + (tall - small.height) * 0.5 + small.ascent, theme.dim, 0.9);
 		}
 
-		for (field in fields) field.paint(paint);
+		for (field in fields) field.draw(paint);
 
 		keep.label = translate(Locale.INFO_KEEP);
 		cancel.label = translate(Locale.EXPORT_CANCEL);
 
-		cancel.paint(paint);
-		keep.paint(paint);
+		cancel.draw(paint);
+		keep.draw(paint);
 	}
 }

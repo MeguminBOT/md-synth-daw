@@ -382,7 +382,7 @@ final class Importing extends Widget {
 			+ small.ascent + metrics.gap, theme.dim, alpha * 0.8);
 
 		for (child in children) {
-			if (child.visible) child.paint(paint);
+			if (child.visible) child.draw(paint);
 		}
 
 		paint.popTransform();

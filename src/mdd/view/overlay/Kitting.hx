@@ -574,7 +574,7 @@ final class Kitting extends Widget {
 		room(paint, theme, metrics, alpha, small);
 
 		for (child in children) {
-			if (child.visible) child.paint(paint);
+			if (child.visible) child.draw(paint);
 		}
 
 		paint.popTransform();

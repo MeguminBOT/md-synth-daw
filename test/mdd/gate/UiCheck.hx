@@ -30,7 +30,7 @@ import mdd.ui.Theme;
 import mdd.ui.control.Knob;
 import mdd.ui.Range;
 import mdd.ui.Scroll;
-import mdd.ui.Sheet;
+import mdd.ui.Cache;
 import mdd.ui.control.Slider;
 import mdd.ui.control.Table;
 import mdd.ui.control.Tabs;
@@ -73,6 +73,53 @@ class Marquee extends Widget {
 			caught++;
 		}
 		return caught;
+	}
+}
+
+@:unreflective
+
+/**
+	A ground for `Kept` to be laid over, so a translucent edge in it has something to be blended
+	with.
+**/
+class Backed extends Widget {
+	override public function paint(paint:Paint):Void {
+		paint.rect(x, y, width, height, root().theme.panel);
+		super.paint(paint);
+	}
+}
+
+@:unreflective
+
+/**
+	A widget that keeps its drawing in a texture: translucent shapes and text, with a line drawn
+	over them that is never kept.
+**/
+class Kept extends Widget {
+	public var across:Float = 20;
+	public var overlaid:Int = 0;
+
+	public function new() {
+		super();
+		cache = new Cache();
+	}
+
+	public function kept():Cache {
+		return cache;
+	}
+
+	override public function paint(paint:Paint):Void {
+		final theme = root().theme;
+
+		paint.roundedRect(x + 8, y + 8, width - 16, height - 16, 9, theme.accent, 0.55);
+		paint.circle(x + 40, y + 60, 22.5, theme.warn, 0.7);
+		paint.text("Kept 0.5", x + 70, y + 64, theme.ink);
+		paint.line(x + 10, y + 100, x + 190, y + 90, 1.5, theme.ink, 0.8);
+	}
+
+	override public function overlay(paint:Paint):Void {
+		overlaid++;
+		paint.rect(x + across, y, 2, height, root().theme.warn, 0.9);
 	}
 }
 
@@ -143,7 +190,7 @@ class UiCheck {
 		shells(renderer, face, monoFace);
 		collapse();
 		quiet(renderer, target, face, monoFace);
-		sheets(renderer, target, face, monoFace);
+		caches(renderer, target, face);
 		chooses();
 		crowded(renderer, face, monoFace);
 		envelopes();
@@ -1035,44 +1082,91 @@ class UiCheck {
 			"a hairline nobody can hit answers to three pixels either side of itself");
 	}
 
-	static function sheets(renderer:cpp.Star<Canvas>, target:cpp.Star<Texture>, face:String,
-			monoFace:String):Void {
+	/**
+		A widget that keeps its drawing in a texture draws it again only when it changes, draws
+		what lies over it every frame, gives the texture back when it is hidden, and lays down
+		what drawing it directly would have, translucent edges included.
+	**/
+	static function caches(renderer:cpp.Star<Canvas>, target:cpp.Star<Texture>,
+			face:String):Void {
 		final body = Font.bake(renderer, face, 13);
 		if (body == null) {
-			says("sheet caching", false, "the font would not bake");
+			says("a kept widget", false, "the font would not bake");
 			return;
 		}
 
 		final metrics = new Metrics(1);
 		metrics.dress(body, body, body, body, body);
 
-		final sheet = new Sheet();
-		final root = new Root(sheet, metrics, new Theme());
+		final backed = new Backed();
+		final kept = new Kept();
+		backed.add(kept);
+
+		final root = new Root(backed, metrics, new Theme());
 		root.resize(200, 120);
 
 		final paint = Paint.on(renderer, body);
+		final cache = kept.kept();
 
 		Draw.setTarget(renderer, target);
 		Sdl.renderClear(renderer, 0, 0, 0, 1);
 
 		root.frame(paint);
-		final firstBaked = sheet.baked;
+		final first = cache.baked;
 
-		sheet.invalidate();
+		kept.across = 60;
+		kept.invalidateOverlay();
 		root.frame(paint);
-		final twiceBaked = sheet.baked;
+		final overlaid = cache.baked;
+
+		kept.invalidate();
+		root.frame(paint);
+		final changed = cache.baked;
 
 		root.soil();
 		root.frame(paint);
-		final stillTwice = sheet.baked;
-		final blits = sheet.blitted;
+		final everything = cache.baked;
+
+		says("a kept widget draws once",
+			first == 1 && overlaid == 1 && changed == 2 && everything == 3 && kept.overlaid == 4,
+			"drawn " + everything + " times and overlaid " + kept.overlaid + " across four frames");
+
+		final pixels = new Vector<cpp.UInt8>(200 * 120 * 4);
+		final direct = new Vector<cpp.UInt8>(200 * 120 * 4);
+
+		Draw.readPixels(renderer, 0, 0, 200, 120, cpp.Pointer.arrayElem(pixels.toData(), 0).raw);
+
+		root.caching = false;
+		root.soil();
+		Sdl.renderClear(renderer, 0, 0, 0, 1);
+		root.frame(paint);
+		Draw.readPixels(renderer, 0, 0, 200, 120, cpp.Pointer.arrayElem(direct.toData(), 0).raw);
+		root.caching = true;
+
+		var most = 0;
+		for (index in 0...pixels.length) {
+			final apart = pixels[index] > direct[index] ? pixels[index] - direct[index]
+				: direct[index] - pixels[index];
+			if (apart > most) most = apart;
+		}
+
+		says("and lays down what it drew", most <= 1,
+			most + " of 255 apart from drawing it directly");
+
+		kept.visible = false;
+		root.frame(paint);
+		final hidden = cache.holds();
+
+		kept.visible = true;
+		root.frame(paint);
 
 		Draw.setTarget(renderer, null);
 
-		says("sheet caching", firstBaked == 1 && twiceBaked == 2 && stillTwice == 2 && blits == 3,
-			"baked " + stillTwice + " times across " + blits + " frames");
+		says("and a hidden one holds nothing", !hidden && cache.holds() && cache.baked == 4,
+			(hidden ? "held" : "gave back") + " its texture while hidden, drawn "
+			+ cache.baked + " times");
 
-		sheet.shut();
+		root.forgets();
 		body.shut();
 	}
 

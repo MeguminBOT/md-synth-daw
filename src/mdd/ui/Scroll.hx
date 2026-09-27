@@ -203,7 +203,7 @@ class Scroll extends Widget {
 		paint.pushTransform(0, -offsetY);
 
 		for (child in children) {
-			if (child.visible) child.paint(paint);
+			if (child.visible) child.draw(paint);
 		}
 
 		paint.popTransform();

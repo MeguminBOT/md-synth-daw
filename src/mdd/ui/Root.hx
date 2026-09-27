@@ -115,6 +115,12 @@ final class Root {
 	public var painted(default, null):Int = 0;
 
 	/**
+		Whether widgets that keep their drawing in a texture use it. A check turns it off to draw
+		the same frame without any, and compare the two.
+	**/
+	public var caching:Bool = true;
+
+	/**
 		The menus that are open, innermost last.
 	**/
 	public final popups:Array<Menu> = [];
@@ -184,6 +190,7 @@ final class Root {
 	final event:Input = new Input();
 	final order:Array<Widget> = [];
 	final running:Array<Motion> = [];
+	final caches:Array<Cache> = [];
 
 	/**
 		Builds a root over a widget tree.
@@ -203,9 +210,22 @@ final class Root {
 	}
 
 	/**
-		Says the next frame has to be drawn.
+		Says the next frame has to be drawn, and that anything may have changed, so every
+		texture a widget keeps its drawing in is drawn again. A widget that knows only its own
+		look changed calls `Widget.invalidate` instead. A press, a release, a drag, a wheel
+		turn, a key and typed text all call it, since any of them may have changed something
+		another panel shows.
 	**/
 	public function soil():Void {
+		soiled = true;
+		for (held in caches) held.stale();
+	}
+
+	/**
+		Says the next frame has to be drawn, where nothing a widget keeps in a texture changed:
+		the tooltip, a menu, the scrim, or something drawn over what a widget keeps.
+	**/
+	public function refresh():Void {
 		soiled = true;
 	}
 
@@ -214,7 +234,26 @@ final class Root {
 	**/
 	public function reshape():Void {
 		reshaped = true;
-		soiled = true;
+		soil();
+	}
+
+	/**
+		Counts a texture a widget keeps its drawing in, so a change that reaches everything
+		makes it stale and a frame it is not drawn in gives it back.
+
+		@param cache The widget's cache, which has just made its texture.
+	**/
+	public function keeps(cache:Cache):Void {
+		if (caches.indexOf(cache) < 0) caches.push(cache);
+	}
+
+	/**
+		Gives back every texture a widget keeps its drawing in, which has to happen before the
+		renderer they belong to goes.
+	**/
+	public function forgets():Void {
+		for (held in caches) held.shut();
+		caches.resize(0);
 	}
 
 	/**
@@ -265,7 +304,7 @@ final class Root {
 	**/
 	public function start(motion:Motion, to:Float, duration:Float):Void {
 		if (motion.run(to, duration, flow) && running.indexOf(motion) < 0) running.push(motion);
-		soil();
+		refresh();
 	}
 
 	/**
@@ -303,7 +342,7 @@ final class Root {
 
 			running.resize(kept);
 			moved = true;
-			soil();
+			refresh();
 		}
 
 		sweep();
@@ -351,7 +390,7 @@ final class Root {
 			}
 
 			placeTip();
-			soil();
+			refresh();
 			return true;
 		}
 
@@ -376,7 +415,7 @@ final class Root {
 	function readOut(held:Widget):Bool {
 		if (!tipUp || tooltip.subject != held) {
 			showTip(held);
-			soil();
+			refresh();
 			return true;
 		}
 
@@ -388,7 +427,7 @@ final class Root {
 		tipDetail = held.detail;
 
 		placeTip();
-		soil();
+		refresh();
 		return true;
 	}
 
@@ -577,7 +616,7 @@ final class Root {
 
 		hideTip();
 		focusOn(menu);
-		soil();
+		refresh();
 	}
 
 	/**
@@ -636,7 +675,7 @@ final class Root {
 
 		menu.leaving();
 		start(menu.fade, 0, Motion.leaving(Motion.ENTER));
-		soil();
+		refresh();
 	}
 
 	/**
@@ -779,15 +818,15 @@ final class Root {
 	}
 
 	/**
-		Lays out where it has to and draws one frame: the tree, the scrim, the sheet,
-		the menus, the tooltip, then the band.
+		Lays out where it has to, and draws into every texture a widget shown keeps where it is
+		stale. A caller that clears the window first calls this before the clear, so the frame
+		turns to its textures and back before the window is touched; `frame` calls it anyway, and
+		a second call in one frame finds nothing to do.
 
 		@param paint What to draw with.
-		@return False where nothing had changed and nothing was drawn, in which case the caller must
-			not present either.
 	**/
-	public function frame(paint:Paint):Bool {
-		if (!soiled) return false;
+	public function prepares(paint:Paint):Void {
+		if (!soiled) return;
 
 		if (reshaped) {
 			top.measure(width, height);
@@ -802,24 +841,60 @@ final class Root {
 			reshaped = false;
 		}
 
+		if (!caching) return;
+
 		paint.reset();
-		top.paint(paint);
+		top.bakes(paint);
+		if (sheet != null) sheet.bakes(paint);
+		if (band != null) band.bakes(paint);
+	}
+
+	/**
+		Lays out where it has to and draws one frame: the tree, the scrim, the sheet,
+		the menus, the tooltip, then the band.
+
+		@param paint What to draw with.
+		@return False where nothing had changed and nothing was drawn, in which case the caller must
+			not present either.
+	**/
+	public function frame(paint:Paint):Bool {
+		if (!soiled) return false;
+
+		prepares(paint);
+
+		paint.reset();
+		top.draw(paint);
 
 		if (scrim.value > 0.004) {
 			paint.rect(0, 0, width, height, theme.shade, scrim.value);
 		}
 
-		if (sheet != null) sheet.paint(paint);
+		if (sheet != null) sheet.draw(paint);
 
-		for (menu in popups) menu.paint(paint);
-		if (tooltip.fade.value > 0) tooltip.paint(paint);
+		for (menu in popups) menu.draw(paint);
+		if (tooltip.fade.value > 0) tooltip.draw(paint);
 
 		if (band != null) {
 			paint.rect(0, 0, width, height, theme.shade, 0.68);
-			band.paint(paint);
+			band.draw(paint);
 		}
 
 		paint.flush();
+
+		var at = 0;
+
+		while (at < caches.length) {
+			final held = caches[at];
+
+			if (held.shown == painted) {
+				at++;
+				continue;
+			}
+
+			held.shut();
+			caches[at] = caches[caches.length - 1];
+			caches.pop();
+		}
 
 		soiled = false;
 		painted++;
@@ -872,6 +947,7 @@ final class Root {
 		this.mods = mods;
 
 		if (capture != null) {
+			soil();
 			event.pointer(Kind.PointerMove, atX, atY, Pointer.Left, mods);
 			send(capture, event);
 			shapes(atX, atY);
@@ -944,7 +1020,7 @@ final class Root {
 		if (over != null && over.tip != "") {
 			tooltip.describe(over);
 			placeTip();
-			soil();
+			refresh();
 		} else {
 			hideTip();
 		}
@@ -961,6 +1037,8 @@ final class Root {
 		@param clicks How many clicks in quick succession.
 	**/
 	public function pressed(x:Float, y:Float, button:Pointer, mods:Mod, clicks:Int = 1):Void {
+		soil();
+
 		pointerX = x;
 		pointerY = y;
 		realX = x;
@@ -1008,6 +1086,8 @@ final class Root {
 		@param mods Which modifier keys are held.
 	**/
 	public function released(x:Float, y:Float, button:Pointer, mods:Mod):Void {
+		soil();
+
 		pointerX = x;
 		pointerY = y;
 		this.mods = mods;
@@ -1045,6 +1125,8 @@ final class Root {
 		@param mods Which modifier keys are held.
 	**/
 	public function turned(dx:Float, dy:Float, mods:Mod):Void {
+		soil();
+
 		this.mods = mods;
 
 		final under = capture != null ? capture : pick(pointerX, pointerY);
@@ -1066,6 +1148,8 @@ final class Root {
 		@return Whether anything took it.
 	**/
 	public function key(down:Bool, code:Key, mods:Mod, repeat:Bool = false):Bool {
+		soil();
+
 		this.mods = mods;
 
 		if (down) {
@@ -1130,6 +1214,8 @@ final class Root {
 		@return Whether anything took it.
 	**/
 	public function edits(what:Int):Bool {
+		soil();
+
 		if (typed()) return false;
 
 		var at = acting();
@@ -1150,6 +1236,8 @@ final class Root {
 		@return Whether it was taken.
 	**/
 	public function said(text:String, mods:Mod):Bool {
+		soil();
+
 		if (focus == null) return false;
 
 		event.typed(text, mods);
@@ -1184,7 +1272,7 @@ final class Root {
 		focus = next != null && next.focusable && next.enabled ? next : null;
 		if (focus != null) focus.focused(true);
 
-		soil();
+		refresh();
 	}
 
 	/**

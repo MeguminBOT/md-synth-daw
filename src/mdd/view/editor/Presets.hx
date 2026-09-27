@@ -2578,7 +2578,7 @@ final class Presets extends Widget {
 			x, y, width, top);
 
 		search.hint = translate(Locale.PRESET_SEARCH);
-		search.paint(paint);
+		search.draw(paint);
 
 		paint.reface(font);
 		if (listed != countedListed || banks != countedBanks) {
@@ -2601,6 +2601,6 @@ final class Presets extends Widget {
 			return;
 		}
 
-		tree.paint(paint);
+		tree.draw(paint);
 	}
 }
