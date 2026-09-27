@@ -25,14 +25,14 @@ image. `mdd gate weigh` is the program behind the first set, and you can run it 
 | **GPU** | 256 MB, and integrated graphics is fine |
 | **Storage** | 500 MB |
 
-**The Windows installer checks the machine against this before it installs anything.** It stops
-only where the application cannot run at all: a Windows older than 10, or a processor without
-SSE2, which every 64-bit processor has. Fewer than two cores, less than 1 GB of memory, less than
-256 MB of graphics memory, or Direct3D 11 short of feature level 10_0 it lists, and asks whether to
-install anyway, since the application may still run. Where Direct3D 11 falls short it says whether
-OpenGL can draw the window instead. For the graphics it starts the application itself with
-`--requirements`, which makes every renderer the way the application would, so what it reports is
-what you will get. An update the application installs for you is not checked again.
+**The Windows installer holds the machine to this before it installs anything.** It will not
+install on a Windows older than 10, fewer than two cores, less than 1 GB of memory, less than
+256 MB of graphics memory, or a processor without SSE2, which every 64-bit processor has, and an
+update is held to the same. For the graphics it starts the application itself with
+`--requirements`, which makes every renderer the way the application would and asks the card how
+much memory it can use, counting the system memory integrated graphics shares. Where none of
+Direct3D 11, OpenGL and Direct3D 9 reaches its level in the table below, it says which of the
+other renderers would draw the window, and asks whether to install anyway.
 
 ## Operating system
 

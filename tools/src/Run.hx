@@ -40,18 +40,20 @@ class Run {
 	static inline final GRAPHICS = 256;
 
 	/**
-		The renderers the installer asks the application about, the one Windows starts on first:
-		the name SDL has for each, what it has to reach as `--requirements` writes it, what it is
-		called, what its level is called, and whether it is tested with a song playing, which is
-		what decides whether the installer suggests it in place of the first.
+		The renderers the installer asks the application about: the name SDL has for each, what it
+		has to reach as `--requirements` writes it, what it is called, what its level is called,
+		and whether the application falls back to it, it is offered to pick, or it is
+		experimental. The installer warns only where none the application falls back to reaches
+		its level, and names the others that would draw. An experimental one runs with faults and
+		is never suggested.
 	**/
 	static final RENDERERS:Array<Array<String>> = [
-		["direct3d11", "10.0", "Direct3D 11", "feature level ", "tested"],
-		["opengl", "2.0", "OpenGL", "OpenGL ", "tested"],
-		["vulkan", "1", "Vulkan", "", ""],
-		["direct3d12", "1", "Direct3D 12", "", ""],
-		["direct3d", "2.0", "Direct3D 9", "shader model ", ""],
-		["opengles2", "2.0", "OpenGL ES", "OpenGL ES ", ""]
+		["direct3d11", "10.0", "Direct3D 11", "feature level ", "fallback"],
+		["opengl", "2.0", "OpenGL", "version ", "fallback"],
+		["direct3d", "2.0", "Direct3D 9", "shader model ", "fallback"],
+		["vulkan", "1", "Vulkan", "", "offered"],
+		["opengles2", "2.0", "OpenGL ES", "version ", "offered"],
+		["direct3d12", "1", "Direct3D 12", "", "experimental"]
 	];
 
 
@@ -1999,6 +2001,13 @@ class Run {
 		out.add("    Exit;\n");
 		out.add("  end;\n\n");
 		out.add("  if not Alone() then Exit;\n\n");
+		out.add("  Said := Blocked();\n\n");
+		out.add("  if Said <> '' then\n");
+		out.add("  begin\n");
+		out.add("    SuppressibleMsgBox('" + title + " cannot be installed on this computer:' + #13#10"
+			+ " + Said, mbCriticalError, MB_OK, IDOK);\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
 		out.add("  if not WizardSilent() then\n");
 		out.add("  begin\n");
 		out.add("    Said := Short();\n\n");
@@ -2142,8 +2151,11 @@ class Run {
 		the code section ahead of `InitializeSetup`, which it needs `Ranks` for: the processor
 		cores and the installed memory read from Windows, and the graphics read by running the
 		application itself with `--requirements`, which makes every renderer the way it would and
-		asks the card how much memory it can use. A figure that cannot be read is let through,
-		since a check that fails is not a machine that does.
+		asks the card how much memory it can use. Too few cores, too little memory or too little
+		graphics memory stops the install, on an update too. The renderers are only warned about,
+		and only where none the application falls back to reaches its level, since it moves on to
+		OpenGL or Direct3D 9 by itself where Direct3D 11 falls short. A figure that cannot be read is let
+		through, since a check that fails is not a machine that does.
 
 		@param out The script being written.
 		@param into The staged folder.
@@ -2237,71 +2249,88 @@ class Run {
 		out.add("  Result := (Held <> '') and (Held <> '0') and (Ranks(Held, Wanted) >= 0);\n");
 		out.add("end;\n\n");
 
-		final first = RENDERERS[0];
-
-		out.add("function Drawn(): String;\n");
-		out.add("var Held, Others, Rest: String;\n");
-		out.add("begin\n");
-		out.add("  Result := '';\n");
-		out.add("  if Reaches('" + first[0] + "', '" + first[1] + "') then Exit;\n\n");
-		out.add("  Held := Fact('" + first[0] + "');\n\n");
-		out.add("  if (Held = '') or (Held = '0') then\n");
-		out.add("    Result := '" + first[2] + " will not start here.'\n");
-		out.add("  else\n");
-		out.add("  begin\n");
-		out.add("    StringChange(Held, '.', '_');\n");
-		out.add("    Result := '" + first[2] + " reaches " + first[3] + "' + Held + ' here, and "
-			+ title + " needs " + StringTools.replace(first[1], ".", "_") + ".';\n");
-		out.add("  end;\n\n");
-		out.add("  Others := '';\n");
-		out.add("  Rest := '';\n");
-
-		for (at in 1...RENDERERS.length) {
-			final one = RENDERERS[at];
-			out.add("  if Reaches('" + one[0] + "', '" + one[1] + "') then "
-				+ (one[4] != "" ? "Others := Others" : "Rest := Rest") + " + ', " + one[2] + "';\n");
-		}
-
-		final tested = [for (one in RENDERERS) if (one[4] != "") one[2]].join(" and ");
-
-		out.add("\n  if Others <> '' then\n");
-		out.add("    Result := Result + ' ' + Copy(Others, 3, Length(Others)) + ' can draw it instead,"
-			+ " picked under Preferences once it is installed.'\n");
-		out.add("  else if Rest <> '' then\n");
-		out.add("    Result := Result + ' ' + Copy(Rest, 3, Length(Rest)) + ' can draw it instead,"
-			+ " though only " + tested + " are tested with a song playing.'\n");
-		out.add("  else\n");
-		out.add("    Result := Result + ' Nothing else here draws its window either.';\n");
-		out.add("end;\n\n");
-
-		out.add("function Short(): String;\n");
-		out.add("var Held: Integer; Said: String;\n");
+		out.add("function Blocked(): String;\n");
+		out.add("var Held: Integer;\n");
 		out.add("begin\n");
 		out.add("  Result := '';\n\n");
 		out.add("  Held := Cores();\n\n");
 		out.add("  if (Held > 0) and (Held < NeedCores) then\n");
 		out.add("    Result := Result + #13#10 + '- The processor has ' + IntToStr(Held) + ' core, and "
 			+ title + " needs ' +\n");
-		out.add("      IntToStr(NeedCores) + ': the sound takes one and the interface another,"
-			+ " so on one the interface stutters while anything plays.';\n\n");
+		out.add("      IntToStr(NeedCores) + ': the sound takes one and the interface another.';\n\n");
 		out.add("  Held := Memory();\n\n");
 		out.add("  if (Held > 0) and (Held < NeedMemory) then\n");
 		out.add("    Result := Result + #13#10 + '- There is ' + IntToStr(Held) + ' MB of memory, and "
 			+ title + " needs ' +\n");
 		out.add("      IntToStr(NeedMemory) + ' MB.';\n\n");
-		out.add("  if not Probed() then\n");
-		out.add("  begin\n");
-		out.add("    Result := Result + #13#10 + '- " + title + " would not start here to check the"
-			+ " graphics, so it may not start once it is installed either.';\n");
-		out.add("    Exit;\n");
-		out.add("  end;\n\n");
+		out.add("  if not Probed() then Exit;\n\n");
 		out.add("  Held := StrToIntDef(Fact('graphics'), 0);\n\n");
 		out.add("  if (Held > 0) and (Held < NeedGraphics) then\n");
 		out.add("    Result := Result + #13#10 + '- The graphics can use ' + IntToStr(Held) + ' MB of"
 			+ " memory, and " + title + " needs ' +\n");
-		out.add("      IntToStr(NeedGraphics) + ' MB.';\n\n");
-		out.add("  Said := Drawn();\n");
-		out.add("  if Said <> '' then Result := Result + #13#10 + '- ' + Said;\n");
+		out.add("      IntToStr(NeedGraphics) + ' MB.';\n");
+		out.add("end;\n\n");
+
+		final fallen = [for (one in RENDERERS) if (one[4] == "fallback") one];
+		final offered = [for (one in RENDERERS) if (one[4] == "offered") one];
+
+		out.add("function Listed(Said: String): String;\n");
+		out.add("var At: Integer;\n");
+		out.add("begin\n");
+		out.add("  Result := Said;\n\n");
+		out.add("  for At := Length(Said) - 1 downto 1 do\n");
+		out.add("  begin\n");
+		out.add("    if Copy(Said, At, 2) = ', ' then\n");
+		out.add("    begin\n");
+		out.add("      Result := Copy(Said, 1, At - 1) + ' and ' + Copy(Said, At + 2, Length(Said));\n");
+		out.add("      Exit;\n");
+		out.add("    end;\n");
+		out.add("  end;\n");
+		out.add("end;\n\n");
+
+		out.add("function Short(): String;\n");
+		out.add("var Held, Said, Rest: String;\n");
+		out.add("begin\n");
+		out.add("  Result := '';\n\n");
+		out.add("  if GetArrayLength(Facts) = 0 then\n");
+		out.add("  begin\n");
+		out.add("    Result := #13#10 + '- " + title + " would not start here to check the graphics,"
+			+ " so it may not start once it is installed either.';\n");
+		out.add("    Exit;\n");
+		out.add("  end;\n\n");
+
+		for (one in fallen) out.add("  if Reaches('" + one[0] + "', '" + one[1] + "') then Exit;\n");
+
+		out.add("\n  Said := '';\n");
+
+		for (one in fallen) {
+			final wanted = one[3] == "feature level " ? StringTools.replace(one[1], ".", "_") : one[1];
+
+			out.add("  Held := Fact('" + one[0] + "');\n\n");
+			out.add("  if (Held = '') or (Held = '0') then\n");
+			out.add("    Said := Said + '; ' + '" + one[2] + " will not start'\n");
+			out.add("  else\n");
+			out.add("  begin\n");
+			if (one[3] == "feature level ") out.add("    StringChange(Held, '.', '_');\n");
+			out.add("    Said := Said + '; ' + '" + one[2] + " reaches " + one[3] + "' + Held + ' where "
+				+ one[3] + wanted + " is needed';\n");
+			out.add("  end;\n\n");
+		}
+
+		out.add("  Rest := '';\n");
+
+		for (one in offered) {
+			out.add("  if Reaches('" + one[0] + "', '" + one[1] + "') then Rest := Rest + ', " + one[2]
+				+ "';\n");
+		}
+
+
+		out.add("\n  Result := #13#10 + '- ' + Copy(Said, 3, Length(Said)) + '.';\n\n");
+		out.add("  if Rest <> '' then\n");
+		out.add("    Result := Result + ' ' + Listed(Copy(Rest, 3, Length(Rest))) + ' can draw it instead,"
+			+ " picked under Preferences once it is installed.'\n");
+		out.add("  else\n");
+		out.add("    Result := Result + ' Nothing else here draws its window either.';\n");
 		out.add("end;\n\n");
 	}
 
