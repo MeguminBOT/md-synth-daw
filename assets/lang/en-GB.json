@@ -938,7 +938,7 @@
   "transport.grid": "What the editors snap to",
   "transport.lfo": "The chip's LFO",
   "transport.lfoDetail": "Off, or one of its eight rates. A preset only sets how deeply its channel follows it",
-  "transport.loop": "Loop the song",
+  "transport.loop": "Loop",
   "transport.looping": "looping",
   "transport.meter": "Time signature",
   "transport.meterDetail": "How many beats a bar holds and what note a beat is, which the grid, the ruler and the bar count follow. A pattern can have its own from the Pattern menu",

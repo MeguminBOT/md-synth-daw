@@ -938,7 +938,7 @@
   "transport.grid": "Vad redigerarna fäster mot",
   "transport.lfo": "Kretsens LFO",
   "transport.lfoDetail": "Av, eller en av dess åtta hastigheter. En förinställning anger bara hur djupt dess kanal följer den",
-  "transport.loop": "Loopa låten",
+  "transport.loop": "Loop",
   "transport.looping": "loopar",
   "transport.meter": "Taktart",
   "transport.meterDetail": "Hur många slag en takt har och vilket notvärde ett slag är, som rutnätet, linjalen och taktnumren följer. Ett mönster kan få en egen i menyn Mönster",

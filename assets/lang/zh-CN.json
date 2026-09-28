@@ -938,7 +938,7 @@
   "transport.grid": "编辑器吸附的单位",
   "transport.lfo": "芯片的 LFO",
   "transport.lfoDetail": "关闭，或八种速率之一。预设只决定其通道跟随它的深度",
-  "transport.loop": "循环播放乐曲",
+  "transport.loop": "循环播放",
   "transport.looping": "循环中",
   "transport.meter": "拍号",
   "transport.meterDetail": "一小节有几拍、以什么音符为一拍，网格、标尺和小节计数都按它来。每个样式可以在样式菜单里设自己的拍号",

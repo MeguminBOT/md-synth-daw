@@ -938,7 +938,7 @@
   "transport.grid": "A qué se ajustan los editores",
   "transport.lfo": "El LFO del chip",
   "transport.lfoDetail": "Apagado, o una de sus ocho velocidades. Un preset solo indica cuánto lo sigue su canal",
-  "transport.loop": "Repetir la canción",
+  "transport.loop": "Bucle",
   "transport.looping": "en bucle",
   "transport.meter": "Compás",
   "transport.meterDetail": "Cuántos tiempos tiene un compás y qué figura es un tiempo; la cuadrícula, la regla y la cuenta de compases lo siguen. Un patrón puede tener el suyo desde el menú Patrón",

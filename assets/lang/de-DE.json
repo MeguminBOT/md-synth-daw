@@ -938,7 +938,7 @@
   "transport.grid": "Woran die Editoren einrasten",
   "transport.lfo": "Der LFO des Chips",
   "transport.lfoDetail": "Aus oder eine seiner acht Raten. Ein Preset legt nur fest, wie stark sein Kanal ihm folgt",
-  "transport.loop": "Den Song loopen",
+  "transport.loop": "Loop",
   "transport.looping": "loopt",
   "transport.meter": "Taktart",
   "transport.meterDetail": "Wie viele Schläge ein Takt hat und welcher Notenwert ein Schlag ist; danach richten sich Raster, Lineal und Taktzählung. Ein Pattern kann im Menü Pattern eine eigene bekommen",

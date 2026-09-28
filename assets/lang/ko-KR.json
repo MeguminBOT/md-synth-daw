@@ -938,7 +938,7 @@
   "transport.grid": "편집기가 스냅하는 단위",
   "transport.lfo": "칩의 LFO",
   "transport.lfoDetail": "끄거나 여덟 가지 속도 중 하나를 고릅니다. 프리셋은 채널이 LFO를 얼마나 깊게 따를지만 정합니다",
-  "transport.loop": "곡을 루프 재생",
+  "transport.loop": "루프 재생",
   "transport.looping": "루프 중",
   "transport.meter": "박자표",
   "transport.meterDetail": "한 마디의 박 수와 한 박의 음표 길이로, 그리드와 눈금자, 마디 수가 이를 따릅니다. 패턴 메뉴에서 패턴마다 따로 정할 수 있습니다",

@@ -938,7 +938,7 @@
   "transport.grid": "Do czego przyciągają edytory",
   "transport.lfo": "LFO układu",
   "transport.lfoDetail": "Wyłączony albo jedna z ośmiu szybkości. Preset określa tylko, jak mocno podąża za nim jego kanał",
-  "transport.loop": "Zapętl utwór",
+  "transport.loop": "Pętla",
   "transport.looping": "w pętli",
   "transport.meter": "Metrum",
   "transport.meterDetail": "Ile miar ma takt i jaka nuta jest miarą; według tego rysowane są siatka, linijka i numeracja taktów. Pattern może mieć własne metrum w menu Pattern",

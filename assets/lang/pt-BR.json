@@ -938,7 +938,7 @@
   "transport.grid": "Ao que os editores se ajustam",
   "transport.lfo": "O LFO do chip",
   "transport.lfoDetail": "Desligado, ou uma das suas oito velocidades. Um preset só define o quanto o canal o segue",
-  "transport.loop": "Repetir a música",
+  "transport.loop": "Loop",
   "transport.looping": "em loop",
   "transport.meter": "Fórmula de compasso",
   "transport.meterDetail": "Quantos tempos tem um compasso e que figura é um tempo; a grade, a régua e a contagem de compassos seguem isso. Um pattern pode ter a sua pelo menu Pattern",
