@@ -545,7 +545,8 @@ one Wave point at the bottom of the swing and one point after it at the top.
 
 ![The point inspector under the lane](images/manual/tricks/automation-basics/05-point-inspector.png)
 
-**AT** is in bars, beats and ticks. A beat is 96 ticks and a bar is 384.
+**AT** is in bars, beats and ticks. At the 96 PPQN a new project starts with, a beat is 96 ticks and
+a bar of 4/4 is 384.
 
 ### A lane holds its value
 
@@ -637,7 +638,7 @@ changes until you save.
 | Group | What it holds |
 | --- | --- |
 | Look | theme, part colours, typeface, motion, density, text size, language, graphics backend, system monitor |
-| Editing | silence before looping, right clicking a clip, changing the tempo, note names |
+| Editing | silence before looping, right clicking a clip, changing the tempo, sharps or flats, note names |
 | Files | autosave, backups, projects folder, presets folder, project files |
 | Updates | whether to look for a newer version at launch |
 | MIDI | keyboard, channel, velocity, pitch bend range, eight controller slots |

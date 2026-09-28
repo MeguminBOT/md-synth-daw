@@ -234,7 +234,7 @@ register timeline.
 ### The channel rack
 
 Each part has a row in the channel rack, with its colour, its name, the preset it plays, the
-speakers it reaches on an FM channel, mute and solo buttons, and a volume fader with its level
+outputs it reaches on an FM channel, mute and solo buttons, and a volume fader with its level
 meter inside. Click a row to choose that channel. Drag the fader to set the volume, and double click
 it to put it back to full. `Alt` and a click on a solo button solos that channel alone.
 

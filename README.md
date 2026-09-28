@@ -72,10 +72,11 @@ hardware in front of you the whole time.
 
 Draw a note the chip cannot sound and it is hatched in the piano roll straight away, with a warning
 that clicks through to the note that caused it. Hover any FM parameter and it tells you the register
-it writes, the raw value, and what that value means:
+it writes and the raw value, and for a level or a multiple, what that value means:
 
 ```
-Total level   OP4   register $4C   value 12   -9 dB
+Total level   OP4
+register $4C, value 12   -9 dB
 ```
 
 And what you hear is what you get. One producer makes every register write in the program, and
@@ -100,7 +101,7 @@ That is because almost none of it is somebody else's code:
   same audio, and the reference decoder verifies its files rather than warning about them.
 - **The chip cores are written here**, from the part documentation and from measurement.
 
-89,000 lines of Haxe and 10,400 of C++, all told. Most of what a packaged copy weighs is the bundled
+91,000 lines of Haxe and 11,500 of C++, all told. Most of what a packaged copy weighs is the bundled
 typefaces rather than the program: the three CJK faces alone are 36 MB of the download, and they are
 there so the interface has something to fall back to in any language. The installer lets you leave
 them out, and the application downloads one again if you pick its language later.
@@ -220,11 +221,11 @@ application does, and an honest list of what it does not do and why.
 
 | Format | What comes across |
 | --- | --- |
-| **VGM** | Notes, patches, square envelopes and samples, with the timing, vibrato and slides kept as the file wrote them |
+| **VGM** | Notes, presets, square envelopes and samples, with the timing, vibrato and slides kept as the file wrote them |
 | **XGM** | Patterns and samples |
 | **MIDI** | Notes and tempo |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
-| **TFI** | A single patch |
+| **TFI** | A single FM preset |
 
 ### Exporting
 
@@ -295,7 +296,7 @@ which of the two the one you pick is.
 | `Space` | play or pause |
 | `Ctrl+Space` | stop and rewind |
 | `Home` | back to the start |
-| `Ctrl+L` | loop the pattern |
+| `Ctrl+L` | loop on or off |
 | `R` | record |
 | `Ctrl+M` | metronome |
 | `Ctrl+Z`, `Ctrl+Y` | undo, redo |
@@ -308,8 +309,9 @@ In the piano roll, click to write a note, drag to move it, right click for what 
 middle drag to pan, and `Ctrl` with the wheel to zoom. Hold alt to drop the grid mid drag. Right
 click the background for the scale and key, the snap, and zoom to fit.
 
-Right click a channel in the rack to mute, solo, copy or paste its patch, or clear it. Right click a
-track header to rename it, recolour it, give it an icon, clone it, reset it, or merge its clips.
+Right click a channel in the rack to mute or solo it, copy, paste or reset its preset, or clear it.
+Right click a track header to rename it, recolour it, give it an icon, clone it, reset it, or merge
+its clips.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -405,14 +407,14 @@ has no reason to carry, `wave-saw` and `wave-noise`, are drawn in this repositor
 
 ### The shipped preset banks
 
-67 of the **Default** bank's FM patches are by **[ulalume][ulalume-url]**, from
+67 of the **Default** bank's FM presets are by **[ulalume][ulalume-url]**, from
 [ym2612-patches][ym2612-patches-url], released under CC0 1.0 and included here with thanks. Pianos,
 guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads, each kept
 under the name and the family its author gave it. CC0 asks for nothing in return, so this credit is
 given rather than owed.
 
-The other bundled FM patches were read out of VGM recordings of the soundtracks of Sonic the
-Hedgehog, Sonic the Hedgehog 2, Sonic the Hedgehog 3 and Mickey Mania. A patch here is the value of a register
+The other bundled FM presets were read out of VGM recordings of the soundtracks of Sonic the
+Hedgehog, Sonic the Hedgehog 2, Sonic the Hedgehog 3 and Mickey Mania. A preset here is the value of a register
 at a key on: an algorithm, a feedback, and ten numbers for each of four operators, so forty two bytes
 of parameters that a chip is set to. They were read from recordings of the hardware rather than
 copied from anybody's source. This repository records where they came from and claims nothing beyond
