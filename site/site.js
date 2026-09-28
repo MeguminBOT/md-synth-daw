@@ -2,6 +2,23 @@
 
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+const loudness = { level: 0.5, muted: false };
+
+try {
+	const kept = parseFloat(localStorage.getItem("mdd-volume"));
+	if (kept >= 0 && kept <= 1) loudness.level = kept;
+} catch (error) {}
+
+function heard() {
+	return loudness.muted ? 0 : loudness.level;
+}
+
+function keepLoudness() {
+	try {
+		localStorage.setItem("mdd-volume", String(loudness.level));
+	} catch (error) {}
+}
+
 function reveal() {
 	const pending = document.querySelectorAll(".reveal");
 	if (!pending.length) return;
@@ -49,10 +66,13 @@ function player() {
 	const seek = bar.querySelector(".player-seek");
 	const close = bar.querySelector(".player-close");
 	const scope = bar.querySelector(".player-scope");
+	const mute = bar.querySelector(".player-mute");
+	const level = bar.querySelector(".player-level");
 	const pen = scope.getContext("2d");
 
 	let source = "";
 	let analyser = null;
+	let gain = null;
 	let samples = null;
 	let context = null;
 	let drawing = 0;
@@ -80,12 +100,29 @@ function player() {
 			analyser = context.createAnalyser();
 			analyser.fftSize = 1024;
 			samples = new Float32Array(analyser.fftSize);
+			gain = context.createGain();
 			input.connect(analyser);
-			analyser.connect(context.destination);
+			analyser.connect(gain);
+			gain.connect(context.destination);
 		} catch (error) {
 			analyser = null;
+			gain = null;
 		}
 		bar.classList.toggle("scoped", analyser !== null);
+		loud();
+	}
+
+	function loud() {
+		if (gain) {
+			gain.gain.value = heard();
+			audio.volume = 1;
+		} else {
+			audio.volume = heard();
+		}
+		level.value = Math.round(loudness.level * 100);
+		level.style.setProperty("--done", loudness.level * 100 + "%");
+		bar.classList.toggle("muted", heard() === 0);
+		mute.setAttribute("aria-label", loudness.muted ? "Unmute" : "Mute");
 	}
 
 	function sized() {
@@ -187,6 +224,21 @@ function player() {
 	});
 
 	close.addEventListener("click", stop);
+
+	level.addEventListener("input", () => {
+		loudness.level = level.value / 100;
+		loudness.muted = false;
+		loud();
+	});
+
+	level.addEventListener("change", keepLoudness);
+
+	mute.addEventListener("click", () => {
+		loudness.muted = !loudness.muted;
+		loud();
+	});
+
+	loud();
 
 	seek.addEventListener("input", () => {
 		dragging = true;
@@ -489,27 +541,88 @@ function toTop() {
 	check();
 }
 
+let youtubeReady = null;
+
+function youtube() {
+	if (!youtubeReady) {
+		youtubeReady = new Promise((resolve, reject) => {
+			if (window.YT && window.YT.Player) {
+				resolve(window.YT);
+				return;
+			}
+			const previous = window.onYouTubeIframeAPIReady;
+			window.onYouTubeIframeAPIReady = () => {
+				if (previous) previous();
+				resolve(window.YT);
+			};
+			const script = document.createElement("script");
+			script.src = "https://www.youtube.com/iframe_api";
+			script.onerror = () => {
+				youtubeReady = null;
+				reject(new Error("the YouTube player did not load"));
+			};
+			document.head.appendChild(script);
+		});
+	}
+	return youtubeReady;
+}
+
 function videos() {
 	document.querySelectorAll(".playlist").forEach((holder) => {
 		const list = holder.dataset.list;
 		const songs = holder.querySelectorAll(".song");
 		let stage = holder.querySelector(".video");
+		let video = null;
 
-		function start(id, title) {
-			const frame = document.createElement("iframe");
-			frame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(id)
-				+ "?autoplay=1&rel=0&list=" + encodeURIComponent(list);
-			frame.title = title;
-			frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-			frame.allowFullscreen = true;
+		if (location.protocol === "file:") {
+			holder.querySelectorAll("a").forEach((link) => {
+				link.target = "_blank";
+				link.rel = "noopener";
+			});
+			return;
+		}
+
+		function current(id) {
+			songs.forEach((song) => song.toggleAttribute("aria-current", song.dataset.youtube === id));
+		}
+
+		async function start(id, address) {
+			current(id);
+			if (video) {
+				video.destroy();
+				video = null;
+			}
 
 			const box = document.createElement("div");
 			box.className = "video started";
-			box.appendChild(frame);
+			const mount = document.createElement("div");
+			box.appendChild(mount);
 			stage.replaceWith(box);
 			stage = box;
 
-			songs.forEach((song) => song.toggleAttribute("aria-current", song.dataset.youtube === id));
+			let api = null;
+			try {
+				api = await youtube();
+			} catch (error) {
+				location.href = address;
+				return;
+			}
+
+			video = new api.Player(mount, {
+				host: "https://www.youtube-nocookie.com",
+				videoId: id,
+				playerVars: { list: list, listType: "playlist", rel: 0, playsinline: 1, origin: location.origin },
+				events: {
+					onReady: (event) => {
+						event.target.setVolume(Math.round(heard() * 100));
+						event.target.playVideo();
+					},
+					onStateChange: (event) => {
+						const data = event.target.getVideoData ? event.target.getVideoData() : null;
+						if (data && data.video_id) current(data.video_id);
+					}
+				}
+			});
 		}
 
 		function wanted(event) {
@@ -519,14 +632,14 @@ function videos() {
 		stage.addEventListener("click", (event) => {
 			if (!wanted(event)) return;
 			event.preventDefault();
-			start(stage.dataset.youtube, stage.dataset.title);
+			start(stage.dataset.youtube, stage.href);
 		});
 
 		songs.forEach((song) => {
 			song.addEventListener("click", (event) => {
 				if (!wanted(event)) return;
 				event.preventDefault();
-				start(song.dataset.youtube, song.dataset.title);
+				start(song.dataset.youtube, song.href);
 			});
 		});
 	});

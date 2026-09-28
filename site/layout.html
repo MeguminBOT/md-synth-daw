@@ -71,6 +71,12 @@ if (!("onpagereveal" in window)) document.documentElement.classList.add("enter")
 	<canvas class="player-scope" width="320" height="64" aria-hidden="true"></canvas>
 	<div class="player-clock"><span class="player-now">0:00</span><span class="player-length">0:00</span></div>
 	<input class="player-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Position">
+	<div class="player-volume">
+		<button class="player-mute" type="button" aria-label="Mute">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="icon-waves" d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/><path class="icon-muted" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+		</button>
+		<input class="player-level" type="range" min="0" max="100" value="50" step="1" aria-label="Volume">
+	</div>
 	<button class="player-close" type="button" aria-label="Stop">
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
 	</button>

@@ -1726,10 +1726,8 @@ h3:hover .anchor,
 	color: var(--faint);
 }
 
-.player-seek {
-	grid-column: 2 / 5;
-	grid-row: 2;
-	width: 100%;
+.player-seek,
+.player-level {
 	height: 18px;
 	margin: 6px 0 0;
 	background: transparent;
@@ -1739,19 +1737,28 @@ h3:hover .anchor,
 	--done: 0%;
 }
 
-.player-seek::-webkit-slider-runnable-track {
+.player-seek {
+	grid-column: 2 / 4;
+	grid-row: 2;
+	width: 100%;
+}
+
+.player-seek::-webkit-slider-runnable-track,
+.player-level::-webkit-slider-runnable-track {
 	height: 4px;
 	border-radius: 4px;
 	background: linear-gradient(90deg, var(--part, var(--accent)) var(--done), var(--raise-3) var(--done));
 }
 
-.player-seek::-moz-range-track {
+.player-seek::-moz-range-track,
+.player-level::-moz-range-track {
 	height: 4px;
 	border-radius: 4px;
 	background: linear-gradient(90deg, var(--part, var(--accent)) var(--done), var(--raise-3) var(--done));
 }
 
-.player-seek::-webkit-slider-thumb {
+.player-seek::-webkit-slider-thumb,
+.player-level::-webkit-slider-thumb {
 	width: 12px;
 	height: 12px;
 	margin-top: -4px;
@@ -1762,12 +1769,60 @@ h3:hover .anchor,
 	appearance: none;
 }
 
-.player-seek::-moz-range-thumb {
+.player-seek::-moz-range-thumb,
+.player-level::-moz-range-thumb {
 	width: 12px;
 	height: 12px;
 	border: 0;
 	border-radius: 50%;
 	background: var(--ink);
+}
+
+.player-volume {
+	grid-column: 4;
+	grid-row: 2;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.player-level {
+	width: 84px;
+	--part: var(--dim);
+}
+
+.player-mute {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	margin-top: 6px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--dim);
+	cursor: pointer;
+	transition: background-color 0.15s, color 0.15s;
+}
+
+.player-mute:hover {
+	background: var(--raise-2);
+	color: var(--ink);
+}
+
+.player-mute svg {
+	width: 18px;
+	height: 18px;
+}
+
+.icon-muted,
+.player.muted .icon-waves {
+	display: none;
+}
+
+.player.muted .icon-muted {
+	display: inline;
 }
 
 .player-close {
@@ -2242,7 +2297,15 @@ main {
 	}
 
 	.player-seek {
-		grid-column: 2 / 4;
+		grid-column: 2 / 3;
+	}
+
+	.player-volume {
+		grid-column: 3;
+	}
+
+	.player-level {
+		width: 64px;
 	}
 
 	.player-close {
