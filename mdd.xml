@@ -20,11 +20,11 @@
 
 	<!-- ==== APPLICATION ==== -->
 
-	<meta title="MD Synth DAW" short="mdd" version="0.9.0"
-	      company="md-synth-daw"
+	<meta title="MD Synth DAW" short="mdd" version="1.0.0"
+	      company="Victor L. Roxbage"
 	      description="A hardware-aware DAW for the Sega Mega Drive" />
 
-	<window width="1440" height="900" least-width="960" least-height="600"
+	<window width="1366" height="768" least-width="960" least-height="600"
 	        vsync="true" resizable="true" high-dpi="true" />
 
 	<format suffix="mdsyn" name="MD Synth Project File" mime="application/x-mdsyn"
