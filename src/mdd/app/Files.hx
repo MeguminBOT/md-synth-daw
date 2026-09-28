@@ -1891,7 +1891,8 @@ final class Files {
 
 	/**
 		@param said A name.
-		@return It with anything a file name cannot carry taken out.
+		@return It with anything a file name cannot carry taken out, or `preset` where nothing is
+			left.
 	**/
 	public static function safely(said:String):String {
 		var out = "";
@@ -1907,7 +1908,7 @@ final class Files {
 		}
 
 		final held = StringTools.trim(out);
-		return held == "" ? "patch" : held;
+		return held == "" ? "preset" : held;
 	}
 
 	/**

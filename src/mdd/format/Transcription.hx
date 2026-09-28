@@ -1636,7 +1636,7 @@ final class Transcription {
 			if (same(instrument.patch, patch)) return index;
 		}
 
-		final instrument = new Instrument("patch " + song.instruments.length, kind);
+		final instrument = new Instrument("preset " + song.instruments.length, kind);
 		instrument.patch = patch;
 		song.instrument(instrument);
 

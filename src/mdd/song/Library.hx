@@ -239,7 +239,7 @@ final class Library {
 		if (patch == null && pcm == "" && beats == 0) return null;
 
 		final where = beats > 0 ? Part.Noise : (patch == null ? Part.Dac : Part.Fm1);
-		final instrument = new Instrument(one.get("name").saying("patch"), where);
+		final instrument = new Instrument(one.get("name").saying("preset"), where);
 
 		if (patch != null) instrument.patch = patch;
 
