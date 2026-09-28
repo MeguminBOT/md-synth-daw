@@ -237,8 +237,8 @@ meter inside. Click a row to choose that channel. Drag the fader to set the volu
 it to put it back to full. `Alt` and a click on a solo button solos that channel alone.
 
 Right click a row to mute or solo it, solo it alone, copy, paste or reset its preset, or clear it.
-On the sample channel the same menu turns it into a drum kit and back, and on FM3 it switches the
-channel between one note at a time and four at once.
+On the sample channel the same menu switches it between **Sample mode** and **Drum kit mode**, and
+on FM3 it switches the channel between one note at a time and four at once.
 
 **FM3 can play four notes at once.** Right click FM3 and choose **Play four notes at once**. Channel
 three's separate mode gives each of its four operators a pitch of its own, so notes that overlap on

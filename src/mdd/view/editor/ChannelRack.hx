@@ -332,16 +332,6 @@ final class ChannelRack extends Widget {
 				part.name());
 		});
 
-		if (part.sampled()) {
-			final kit = menu.offer(new Choice(translate(song.drums
-				? Locale.RACK_DRUMS_OFF : Locale.RACK_DRUMS)));
-
-			fires(kit, function():Void {
-				session.does(new mdd.song.edit.KitDrums(!song.drums));
-				session.says(song.drums ? Locale.SAID_KIT_ON : Locale.SAID_KIT_OFF);
-			});
-		}
-
 		if (part == Part.Fm3) {
 			final four = menu.offer(new Choice(translate(song.separated()
 				? Locale.RACK_ONE_NOTE : Locale.RACK_FOUR_NOTES)));
@@ -356,6 +346,31 @@ final class ChannelRack extends Widget {
 
 		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void
 			solosAlone(at));
+
+		if (part.sampled()) {
+			menu.ticking = true;
+			menu.divide();
+
+			final sampling = menu.offer(new Choice(translate(Locale.RACK_SAMPLE_MODE)));
+			final drumming = menu.offer(new Choice(translate(Locale.RACK_DRUM_MODE)));
+
+			sampling.ticked = !song.drums;
+			drumming.ticked = song.drums;
+
+			fires(sampling, function():Void {
+				if (!song.drums) return;
+
+				session.does(new mdd.song.edit.KitDrums(false));
+				session.says(Locale.SAID_KIT_OFF);
+			});
+
+			fires(drumming, function():Void {
+				if (song.drums) return;
+
+				session.does(new mdd.song.edit.KitDrums(true));
+				session.says(Locale.SAID_KIT_ON);
+			});
+		}
 
 		menu.divide();
 
