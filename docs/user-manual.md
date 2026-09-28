@@ -266,14 +266,12 @@ you'll quickly get the hang of it, as most of its inspiration comes from there.
 
 ## 9. The first start
 
-![The welcome sheet: language, and how to write automation](images/manual/basics/getting-started/01-welcome.png)
+![The welcome sheet](images/manual/basics/getting-started/01-welcome.png)
 
-The first time MD Synth DAW starts, it asks two things. **Choose a language**: thirteen ship, and
-the sheet says whether the one you pick was written by a person or translated by a machine. English
-(UK and US) is written by people, and the rest are machine translated. Then **how would you like to
-write automation**: **Lanes under the editor** puts it under the piano roll, and **Clips on the
-playlist** puts it on the playlist as clips of its own. Press **Start**. The language can be changed
-later in **Preferences**, **Look**, and the automation choice in **Preferences**, **Editing**.
+The first time MD Synth DAW starts, it asks you to **choose a language**. Thirteen ship, and the
+sheet says whether the one you pick was written by a person or translated by a machine. English (UK
+and US) is written by people, and the rest are machine translated. Press **Start**. The language can
+be changed later in **Preferences**, **Look**.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -742,7 +740,7 @@ changes until you save.
 | Group | What it holds |
 | --- | --- |
 | Look | theme, part colours, typeface, motion, density, text size, language, graphics backend, system monitor |
-| Editing | lanes or clips for automation, silence before looping, right clicking a clip, changing the tempo, note names |
+| Editing | silence before looping, right clicking a clip, changing the tempo, note names |
 | Files | autosave, backups, projects folder, presets folder, project files |
 | Updates | whether to look for a newer version at launch |
 | MIDI | keyboard, channel, velocity, pitch bend range, eight controller slots |
@@ -804,9 +802,6 @@ every note the preset plays, the way a synthesizer's envelopes and LFOs do.
 | Written | once a frame, where the value changes | every millisecond, where the value changes |
 | Pitch | `FREQ`, in F number steps | `PITCH`, in cents |
 | Both on one register | this one plays | this one is left out |
-
-A lane's menu also offers **Move to the playlist**, which turns it into an automation clip you can
-place and reuse on the playlist.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
