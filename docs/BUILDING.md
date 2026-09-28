@@ -64,6 +64,7 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ./mdd package            # a portable archive and an installer for this platform
 ./mdd package portable   # just the archive
 ./mdd notes v0.1.0       # the release notes for a tag, into export/NOTES.md
+./mdd site               # the website, into export/site
 ./mdd display            # write the editor's completion files again
 ./mdd clean              # delete export/
 ```
@@ -156,12 +157,13 @@ That one was a fault, and the macOS jobs now aim at the version their libraries 
 
 ## Continuous integration
 
-Two workflows under `.github/workflows`, both started by hand from the Actions tab.
+Three workflows under `.github/workflows`, all started by hand from the Actions tab.
 
 | Workflow | What it does |
 | --- | --- |
 | `build.yml` | Builds all five targets, optionally runs the gate and builds with debug information, and keeps each package as an artifact for a fortnight |
 | `release.yml` | The same five, then publishes a GitHub release from the results. It refuses to run for anybody but the repository owner, and it refuses a tag that is not the version in `mdd.xml` |
+| `pages.yml` | Writes the website with `./mdd site` and publishes it to GitHub Pages. Like `release.yml`, it refuses to run for anybody but the repository owner |
 
 `release.yml` does not run the gate. A release build is the same source `build.yml` gates on
 demand, and running twenty eight checks on five runners again buys nothing that the test workflow has
@@ -238,6 +240,18 @@ macOS 11.0 and carries an SDL3 built for 26.0, which will not load on anything o
 x86-64 one says 10.9 and carries an SDL3 built for 14.0. The macOS jobs therefore read the runner's
 version and aim at it, so the binary says what it can actually do. Both macOS jobs run on macOS 26,
 which for Intel is the last release there is.
+
+The website's pages are in `site/`. `layout.html` wraps every one of them, and a page asks for what
+it shows from the document that describes it: `{{manual}}` and `{{contents}}` for the user manual,
+`{{examples}}` for the example cards, read from the manual's table of them,
+`{{readme:system-requirements}}` for the README section under that heading, and `{{playlist:<id>}}`
+for a YouTube playlist, read from its public feed as the site is written, so a song added to it is
+on the page the next time the site is published. The website never holds a second copy of any of
+them, so it cannot drift from them. The pictures and the example audio are copied from `docs/`.
+`./mdd site` run locally writes the same site the workflow publishes, and it opens straight from
+disk. Served from a local web server it behaves exactly as it does on Pages, with the transitions
+between pages and the player's scope, which a page opened from disk goes without. For the workflow's
+result to land, the repository's Pages source has to be set to GitHub Actions.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

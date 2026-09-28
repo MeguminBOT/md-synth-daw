@@ -3,7 +3,7 @@ import sys.io.File;
 
 /**
 	The one command this repository is driven by: setup, check, build, run, gate,
-	package, notes, display and clean.
+	package, notes, site, display and clean.
 
 	It reads the build file, fetches what the vendor folder is missing, generates the
 	configuration, the native build file and the editor completion files, and drives
@@ -81,6 +81,7 @@ class Run {
 			case "gate": gate(root, project, args.slice(1));
 			case "package": packaged(root, project, args.slice(1));
 			case "notes": if (!Notes.write(root, project, args.slice(1))) Sys.exit(1);
+			case "site": if (!Site.write(root, project)) Sys.exit(1);
 			case "clean": clean(root, project);
 			case "help", "--help", "-h": usage(project);
 			case unknown:
@@ -220,6 +221,7 @@ class Run {
 		Sys.println("  mdd gate [name]       every check, in order, or one by name");
 		Sys.println("  mdd package [kind]    portable, installer, or both");
 		Sys.println("  mdd notes [tag]       write the release notes for a tag into export/");
+		Sys.println("  mdd site              write the website into export/site/");
 		Sys.println("  mdd display           write the editor's completion files again");
 		Sys.println("  mdd clean             delete the output directory");
 		Sys.println("");

@@ -1,0 +1,64 @@
+# Publishes the website to GitHub Pages: the pages in site/, the user manual,
+# the example audio, the README sections and the playlist the pages show, as
+# mdd site writes them. Only the repository owner can run it, by hand from the
+# Actions tab. The repository's Pages source has to be set to GitHub Actions
+# for it to land.
+
+name: Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Nothing else runs until this passes, so a stranger with write access
+  # cannot publish the website even if they can reach the Actions tab.
+  owner:
+    name: Check who asked
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse anybody but the owner
+        run: |
+          if [ "${{ github.actor }}" != "${{ github.repository_owner }}" ]; then
+            echo "${{ github.actor }} is not ${{ github.repository_owner }}."
+            echo "Only the repository owner publishes the website."
+            exit 1
+          fi
+          echo "Running as ${{ github.repository_owner }}."
+
+  build:
+    name: Write the website
+    needs: owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: krdlab/setup-haxe@v2.1.1
+        with:
+          haxe-version: 4.3.7
+
+      - name: Write it
+        run: ./mdd site
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: export/site
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1
