@@ -405,7 +405,7 @@
   "languageName.koKR": "Coréen",
   "languageName.zhCN": "Chinois (simplifié)",
   "limits.chordBody": "Une voie joue une note à la fois, donc un accord demande une voie par note.",
-  "limits.chordFix": "Jouez l'accord en arpège rapide sur une voie, le son qui a fait la réputation de l'époque, ou choisissez le mode arpège et laissez une partie parcourir ses notes.",
+  "limits.chordFix": "Jouez l'accord en arpège rapide sur une voie, le son qui a fait la réputation de l'époque.",
   "limits.chordTitle": "Chaque note demande une voie",
   "limits.fmBody": "Quand la voie d'échantillons est active, elle prend la voie FM six, donc un morceau avec des échantillons de batterie garde cinq voies FM. Green Hill Zone fait exactement cela : sa batterie est faite d'échantillons à environ 15,4 kHz, et la mélodie, la basse et les accords se partagent les cinq autres.",
   "limits.fmFix": "Écrivez l'arrangement pour cinq voies FM dès qu'il contient des échantillons, et confiez la batterie à la voie d'échantillons.",

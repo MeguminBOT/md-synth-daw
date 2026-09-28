@@ -629,9 +629,6 @@ faster or slower, or moves the grid under it instead.
   writes, so at 60 Hz only about 178 register writes fit into each frame. Anything that does not fit
   is carried into the next frame, so a part asking for too much is heard arriving late, in playback
   and in every export alike. It is saved with the project and can be undone.
-- Three polyphony behaviours for a part asked to play more notes than it has channels. **Strict**
-  drops the note, **stealing** gives the oldest voice away, and **arpeggio** cycles the extra notes
-  through the channel.
 - Velocity mapping and tuning per part.
 - A monitoring fader with 20 dB of make up above unity, so a piece sitting in its headroom
   can still be listened to at the top of the scale. It is heard and never written: what

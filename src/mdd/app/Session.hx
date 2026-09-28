@@ -1,7 +1,6 @@
 package mdd.app;
 
 import mdd.check.Diagnostic;
-import mdd.play.Polyphony;
 import mdd.play.Transport;
 import mdd.song.edit.Command;
 import mdd.song.edit.History;
@@ -1032,16 +1031,6 @@ final class Session {
 	**/
 	public function current():Null<Pattern> {
 		return song.patternAt(pattern);
-	}
-
-	/**
-		Changes what happens when more notes are wanted than a part has channels.
-
-		@param policy The behaviour to use.
-	**/
-	public function policy(policy:Polyphony):Void {
-		transport.sequencer.voices.policy = policy;
-		changed();
 	}
 
 	/**

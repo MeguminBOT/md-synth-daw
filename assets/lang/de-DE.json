@@ -405,7 +405,7 @@
   "languageName.koKR": "Koreanisch",
   "languageName.zhCN": "Chinesisch (vereinfacht)",
   "limits.chordBody": "Ein Kanal spielt einen Ton zur Zeit, also braucht ein Akkord einen Kanal für jeden seiner Töne.",
-  "limits.chordFix": "Spiel den Akkord als schnelles Arpeggio auf einem Kanal, der Klang, für den die Ära bekannt ist, oder wähl das Arpeggio-Verhalten und lass eine Stimme ihre Töne durchlaufen.",
+  "limits.chordFix": "Spiel den Akkord als schnelles Arpeggio auf einem Kanal, der Klang, für den die Ära bekannt ist.",
   "limits.chordTitle": "Jeder Ton braucht einen Kanal",
   "limits.fmBody": "Ist der Samplekanal an, belegt er FM-Kanal sechs, sodass ein Stück mit Drum-Samples fünf FM-Kanäle übrig hat. Green Hill Zone macht genau das: Die Drums sind Samples mit etwa 15,4 kHz, und Melodie, Bass und Akkorde teilen sich die anderen fünf.",
   "limits.fmFix": "Schreib das Arrangement für fünf FM-Kanäle, sobald Samples darin sind, und gib die Drums dem Samplekanal.",

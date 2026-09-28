@@ -1178,7 +1178,6 @@ final class Sequencer {
 		var head = tempo.tickAt(back) - 1 - origin;
 		if (head < from - origin) head = from - origin;
 
-		reaching.policy = voices.policy;
 		reaching.resolve(lane, head, tempo.tickAt(toSample) + 2 - origin);
 
 		final driven = (drivenParts & (1 << part.index())) != 0;

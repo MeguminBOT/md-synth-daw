@@ -405,7 +405,7 @@
   "languageName.koKR": "Koreański",
   "languageName.zhCN": "Chiński (uproszczony)",
   "limits.chordBody": "Kanał gra jeden dźwięk naraz, więc akord potrzebuje kanału na każdy swój dźwięk.",
-  "limits.chordFix": "Zagraj akord jako szybkie arpeggio na jednym kanale, brzmienie, z którego znana jest ta epoka, albo wybierz tryb arpeggio i pozwól partii przechodzić przez swoje dźwięki.",
+  "limits.chordFix": "Zagraj akord jako szybkie arpeggio na jednym kanale, brzmienie, z którego znana jest ta epoka.",
   "limits.chordTitle": "Każdy dźwięk potrzebuje kanału",
   "limits.fmBody": "Gdy kanał sampli jest włączony, zajmuje szósty kanał FM, więc utwór z samplami perkusji ma pięć kanałów FM. Green Hill Zone robi dokładnie to: perkusja to sample zapisane z częstotliwością około 15,4 kHz, a melodia, bas i akordy dzielą pozostałe pięć.",
   "limits.fmFix": "Gdy tylko pojawią się sample, pisz aranżację na pięć kanałów FM, a perkusję oddaj kanałowi sampli.",

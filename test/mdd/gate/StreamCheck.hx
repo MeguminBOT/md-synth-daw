@@ -3,7 +3,6 @@ package mdd.gate;
 import haxe.ds.Vector;
 import mdd.format.Chunks;
 import mdd.format.Project;
-import mdd.play.Polyphony;
 import mdd.play.Sequencer;
 import mdd.play.Stream;
 import mdd.play.Voices;
@@ -34,7 +33,7 @@ class StreamCheck {
 		Sys.println("  stream");
 
 		timing();
-		polyphony();
+		overlapping();
 		moded();
 		quartered();
 		lent();
@@ -949,7 +948,7 @@ class StreamCheck {
 			"pressing 50 on NOISE writes PSG3 period " + period + " and silences it");
 	}
 
-	static function polyphony():Void {
+	static function overlapping():Void {
 		final pattern = new Pattern("overlap", 384);
 		final lane = pattern.lane(Part.Fm1);
 
@@ -958,35 +957,11 @@ class StreamCheck {
 		lane.add(new Note(192, 48, 67, 100));
 
 		final voices = new Voices();
-
-		voices.policy = Polyphony.Strict;
 		voices.resolve(lane);
-		final strict = voices.count;
-		final refused = voices.refused;
 
-		voices.policy = Polyphony.Stealing;
-		voices.resolve(lane);
-		final stealing = voices.count;
-		final cut = voices.count > 0 ? voices.endAt(0) : -1;
-
-		voices.policy = Polyphony.Arpeggio;
-		voices.arpeggio = 6;
-		voices.resolve(lane);
-		final arpeggio = voices.count;
-
-		var overlapping = false;
-		for (i in 1...voices.count) {
-			if (voices.startAt(i) < voices.endAt(i - 1)) overlapping = true;
-		}
-
-		says("strict refuses", strict == 2 && refused == 1,
-			strict + " of 3 notes sound, " + refused + " refused for overlapping");
-
-		says("stealing cuts", stealing == 3 && cut == 48,
-			"all 3 sound and the first is cut at " + cut + " where the second starts");
-
-		says("arpeggio alternates", arpeggio > 3 && !overlapping,
-			arpeggio + " slices, none overlapping");
+		says("an overlapping note is refused", voices.count == 2 && voices.refused == 1
+			&& voices.startAt(1) == 192, voices.count + " of 3 notes sound, " + voices.refused
+			+ " refused for overlapping, and the second voice starts at " + voices.startAt(1));
 	}
 
 	static function poured(song:Song, span:Int, block:Int, into:Stream):Void {

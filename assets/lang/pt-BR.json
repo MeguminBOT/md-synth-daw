@@ -405,7 +405,7 @@
   "languageName.koKR": "Coreano",
   "languageName.zhCN": "Chinês (simplificado)",
   "limits.chordBody": "Um canal toca uma nota por vez, então um acorde precisa de um canal para cada nota.",
-  "limits.chordFix": "Toque o acorde como um arpejo rápido em um canal, o som pelo qual a época é conhecida, ou escolha o modo arpejo e deixe uma parte percorrer suas notas.",
+  "limits.chordFix": "Toque o acorde como um arpejo rápido em um canal, o som pelo qual a época é conhecida.",
   "limits.chordTitle": "Cada nota precisa de um canal",
   "limits.fmBody": "Quando o canal de samples está ligado, ele ocupa o canal FM seis, então uma música com samples de bateria fica com cinco canais FM. Green Hill Zone faz exatamente isso: a bateria são samples gravados a cerca de 15,4 kHz, e a melodia, o baixo e os acordes dividem os outros cinco.",
   "limits.fmFix": "Escreva o arranjo para cinco canais FM assim que houver samples, e deixe a bateria com o canal de samples.",

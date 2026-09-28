@@ -405,7 +405,7 @@
   "languageName.koKR": "Koreanska",
   "languageName.zhCN": "Kinesiska (förenklad)",
   "limits.chordBody": "En kanal spelar en ton i taget, så ett ackord behöver en kanal för varje ton.",
-  "limits.chordFix": "Spela ackordet som ett snabbt arpeggio på en kanal, ljudet eran är känd för, eller välj arpeggio-läget och låt en stämma gå igenom sina toner.",
+  "limits.chordFix": "Spela ackordet som ett snabbt arpeggio på en kanal, ljudet eran är känd för.",
   "limits.chordTitle": "Varje ton behöver en kanal",
   "limits.fmBody": "När samplingskanalen är på tar den FM-kanal sex, så en låt med trumsamplingar har fem FM-kanaler kvar. Green Hill Zone gör precis så: trummorna är samplingar skrivna i ungefär 15,4 kHz, och melodi, bas och ackord delar på de andra fem.",
   "limits.fmFix": "Skriv arrangemanget för fem FM-kanaler så fort det finns samplingar, och ge trummorna till samplingskanalen.",

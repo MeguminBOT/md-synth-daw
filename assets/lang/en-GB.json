@@ -405,7 +405,7 @@
   "languageName.koKR": "Korean",
   "languageName.zhCN": "Chinese (Simplified)",
   "limits.chordBody": "A channel sounds one note at a time, so a chord needs a channel for each of its notes.",
-  "limits.chordFix": "Play the chord as a fast arpeggio on one channel, the sound the era is known for, or choose the arpeggio behaviour and let a part cycle through its notes.",
+  "limits.chordFix": "Play the chord as a fast arpeggio on one channel, the sound the era is known for.",
   "limits.chordTitle": "Every note needs a channel",
   "limits.fmBody": "When the sample channel is on it takes FM channel six, so a song with drum samples has five FM channels left. Green Hill Zone does exactly that: its drums are samples written at about 15.4 kHz, and the melody, bass and chords share the other five.",
   "limits.fmFix": "Write the arrangement for five FM channels as soon as there are samples in it, and give the drums to the sample channel.",
