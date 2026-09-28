@@ -1527,24 +1527,26 @@ final class Playlist extends Widget {
 		});
 
 		if (held != null) {
-			final drives = new Menu();
+			if (Session.CLIPS_OFFERED) {
+				final drives = new Menu();
 
-			for (one in mdd.view.Parameter.of(session.part)) {
-				if (one.target == mdd.song.Automation.INSTRUMENT) continue;
+				for (one in mdd.view.Parameter.of(session.part)) {
+					if (one.target == mdd.song.Automation.INSTRUMENT) continue;
 
-				if (!one.operators) {
-					driven(drives, held, one, one.target, 0, px);
-					continue;
+					if (!one.operators) {
+						driven(drives, held, one, one.target, 0, px);
+						continue;
+					}
+
+					final slots = new Menu();
+					for (slot in 0...4) driven(slots, held, one, one.target, slot, px);
+
+					drives.offer(new Choice(one.name)).submenu = slots;
 				}
 
-				final slots = new Menu();
-				for (slot in 0...4) driven(slots, held, one, one.target, slot, px);
-
-				drives.offer(new Choice(one.name)).submenu = slots;
+				menu.offer(new Choice(translate(Locale.TRACK_AUTOMATE)
+					+ "  " + session.part.name())).submenu = drives;
 			}
-
-			menu.offer(new Choice(translate(Locale.TRACK_AUTOMATE)
-				+ "  " + session.part.name())).submenu = drives;
 
 			menu.divide();
 

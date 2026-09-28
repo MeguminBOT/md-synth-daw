@@ -85,9 +85,11 @@ cut, paste, delete, or move it an octave. A new pattern is called Pattern and a 
 pattern has, and auto naming a track's clips calls its patterns after the track, numbered in the
 order they first play.
 
-A track can also drive one automation lane of a channel it does not otherwise own. A note that starts
-under that clip starts on what the clip holds, the same as under a lane in its own pattern, so a
-clip panning a channel keeps it panned from note to note.
+A track can also drive one automation lane of a channel it does not otherwise own, through an
+automation clip. New automation is written in lanes under the editor, and a project that holds
+automation clips plays them. A note that starts under such a clip starts on what the clip holds, the
+same as under a lane in its own pattern, so a clip panning a channel keeps it panned from note to
+note.
 
 ### The piano roll
 
@@ -889,9 +891,7 @@ importing one reads those back.
   that ship beside the program, and nothing else, 9 MB zipped. It leaves out the Japanese, Chinese and Korean fonts, which would be 36 MB of
   it on their own, and the program downloads the one a language needs when that language is
   picked, pinned to the same file the installer ships.
-- **The first run asks two things**: which language to speak, and whether you would rather write
-  automation as lanes under the editor or as clips on the playlist. Both can be changed later in
-  the preferences.
+- **The first run asks which language to speak**, and the preferences can change it later.
 - **A start that fails says why.** A window that will not open, drawing that will not start, and
   fonts that are missing or will not read each raise a box saying what went wrong and what to do,
   rather than the program closing with nothing on screen.
@@ -996,8 +996,7 @@ you accept the sheet.
   density, the text size, the language, the graphics backend, and the **system monitor**, which
   puts the processor, memory and sound figures on the status bar, those and the graphics too, or
   nothing.
-- **Editing**: whether new automation goes into lanes under the editor or into clips on the
-  playlist, how much silence plays past the end of the song before it loops or stops, whether a
+- **Editing**: how much silence plays past the end of the song before it loops or stops, whether a
   right click on a clip removes it or opens its menu, whether a new tempo speeds the music up or
   moves the grid under it, and how notes are named.
 - **Files**: how often it saves on its own, how much disk space the backups may take and how long

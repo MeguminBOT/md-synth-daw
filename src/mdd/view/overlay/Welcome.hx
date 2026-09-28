@@ -141,8 +141,8 @@ final class Welcome extends Widget {
 		if (metrics != null) words(metrics, wantWidth);
 
 		wantHeight = metrics == null ? 380
-			: head() + languages.length * rowTall() + noteTall() + asking()
-			+ WAYS * wayTall() + metrics.whole(60);
+			: head() + languages.length * rowTall() + noteTall()
+			+ (Session.CLIPS_OFFERED ? asking() + WAYS * wayTall() : 0) + metrics.whole(60);
 	}
 
 	/**
@@ -254,9 +254,12 @@ final class Welcome extends Widget {
 	/**
 		@param px A point, across.
 		@param py A point, down.
-		@return Which way of writing automation is there, or -1.
+		@return Which way of writing automation is there, or -1, which it always is while
+			`Session.CLIPS_OFFERED` is false.
 	**/
 	function wayAt(px:Float, py:Float):Int {
+		if (!Session.CLIPS_OFFERED) return -1;
+
 		final top = waysTop();
 		if (py < top || !across(px)) return -1;
 
@@ -512,7 +515,7 @@ final class Welcome extends Widget {
 		paint.textCentred(translate(Locale.WELCOME_START), left + wide * 0.5,
 			top + (button - font.height) * 0.5 + font.ascent, theme.ink, alpha);
 
-		ways(paint, theme, metrics, alpha);
+		if (Session.CLIPS_OFFERED) ways(paint, theme, metrics, alpha);
 
 		paint.popTransform();
 	}

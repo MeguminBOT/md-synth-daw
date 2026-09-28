@@ -297,6 +297,14 @@ final class Session {
 	public static inline final CLIPS = 1;
 
 	/**
+		Whether writing automation as clips on the playlist is offered. While it is not, the first
+		run, the Editing preferences, a lane's menu and a track's menu offer no way to write a clip,
+		`automating` is always `LANES`, and a project that already holds automation clips still plays
+		them and opens them in the automation editor.
+	**/
+	public static inline final CLIPS_OFFERED = false;
+
+	/**
 		Which of those two.
 	**/
 	public var automating:Int = LANES;

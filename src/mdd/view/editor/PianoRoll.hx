@@ -307,7 +307,7 @@ final class PianoRoll extends Widget {
 			});
 		}
 
-		if (showing > 0) {
+		if (showing > 0 && Session.CLIPS_OFFERED) {
 			menu.divide();
 
 			final lift = menu.offer(new Choice(translate(Locale.LANE_LIFT)));

@@ -2033,7 +2033,8 @@ class App {
 		session.master = Session.UNITY;
 
 		sound.monitors(Session.gainOf(session.master));
-		session.automating = automating == Session.CLIPS ? Session.CLIPS : Session.LANES;
+		session.automating = Session.CLIPS_OFFERED && automating == Session.CLIPS
+			? Session.CLIPS : Session.LANES;
 		session.rightClick = settings.asWhole("rightClick", Session.DELETES) == Session.OPENS
 			? Session.OPENS : Session.DELETES;
 		session.snapping = snapping < 0 ? Session.SIXTEENTH : snapping;
