@@ -381,12 +381,13 @@ final class PianoRoll extends Widget {
 	}
 
 	/**
-		Reads the kit again, which changing the bank needs.
+		Reads the kit again, which changing the bank needs. The converter reads it in either
+		mode, so the keys holding a sample are named in sample mode as well.
 	**/
 	public function kitted():Void {
 		for (pitch in 0...kit.length) kit[pitch] = -1;
 
-		if (!kitting()) return;
+		if (!session.part.sampled()) return;
 
 		final song = session.song;
 		final at = song.bankOf(song.rack[session.part.index()]);
@@ -421,11 +422,11 @@ final class PianoRoll extends Widget {
 
 	/**
 		@param pitch A key.
-		@return Which instrument is rooted there, or -1 where the part is not a kit or
+		@return Which instrument is rooted there, or -1 where the part is not the converter or
 			the kit has nothing on that key.
 	**/
 	public function drumAt(pitch:Int):Int {
-		if (!kitting() || pitch < 0 || pitch >= kit.length) return -1;
+		if (!session.part.sampled() || pitch < 0 || pitch >= kit.length) return -1;
 		return kit[pitch];
 	}
 
@@ -544,7 +545,7 @@ final class PianoRoll extends Widget {
 
 	function seated(note:Note, seat:Int):Void {
 		note.pitch = seat;
-		if (kitting()) note.instrument = drumAt(seat);
+		if (session.part.sampled()) note.instrument = drumAt(seat);
 	}
 
 	/**
@@ -1732,7 +1733,7 @@ final class PianoRoll extends Widget {
 					final pitch = pitchAt(event.y);
 					final which = drumAt(pitch);
 
-					if (which >= 0) {
+					if (which >= 0 && kitting()) {
 						session.holds();
 						session.song.rack[session.part.index()] = which;
 						session.frees();
@@ -3227,7 +3228,7 @@ final class PianoRoll extends Widget {
 		final wide = gutter();
 		final font = metrics.small == null ? metrics.body : metrics.small;
 		final drums = kitting();
-		final seated = drums && drumAt(pitch) >= 0;
+		final seated = drumAt(pitch) >= 0;
 		final black = BLACK[pitch % 12];
 
 		if (lit) {

@@ -1388,7 +1388,7 @@ final class Sequencer {
 		Resolves one lane into voices and collects a key on, a tune and a key off for
 		each of them.
 
-		Where the converter is a kit, a note on a key the kit has nothing rooted at is
+		Where the converter is in drum kit mode, a note on a key the kit has nothing rooted at is
 		passed over whole rather than sounded on whatever the rack holds. It reaches
 		the chip with nothing at all, not even the write that returns the converter to
 		the middle, so an imported drum track keeps the keys the file wrote and the
@@ -2255,9 +2255,8 @@ final class Sequencer {
 	**/
 	function sampled(onSample:Int, offSample:Int, named:Int, pitch:Int, struck:Bool,
 			fromSample:Int, toSample:Int):Int {
-		final kit = song.drums ? song.drumAt(pitch) : -1;
-		final instrument = kit >= 0 ? song.instrumentAt(kit)
-			: instrumentOf(named, Part.Dac);
+		final hit = song.hitAt(pitch, named);
+		final instrument = song.instrumentAt(hit);
 		if (instrument == null) return offSample;
 
 		final sample = song.sampleAt(instrument.sample);
@@ -2268,7 +2267,7 @@ final class Sequencer {
 		if (held != null && onSample >= fromSample && onSample < toSample) {
 			held.push(onSample);
 			held.push(offSample);
-			held.push(kit >= 0 ? kit : (named >= 0 ? named : song.rack[Part.Dac.index()]));
+			held.push(hit);
 		}
 
 		final rate = sample.rate < 1 ? 1 : sample.rate;
@@ -2494,7 +2493,7 @@ final class Sequencer {
 		The lane wins over the note from its first point on, because loading a preset into a
 		part and writing a note in the tracker both name an instrument on every note, and a
 		lane that gave way to them would never be heard. The converter is left to its notes,
-		because a kit picks its hit by the instrument each note names.
+		because it picks its hit by the key each note is on.
 
 		@param lane The lane the note is in, or null where there is none.
 		@param part Which part the note plays on.

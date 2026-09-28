@@ -1537,8 +1537,9 @@ class MixCheck {
 		for (which in 0...kinds.length) {
 			final sample = new mdd.song.Sample(kinds[which], 8000, roots[which]);
 
-			final bytes = new Vector<Int>(8);
-			for (at in 0...8) bytes[at] = at * 32;
+			final many = 8 * (which + 1);
+			final bytes = new Vector<Int>(many);
+			for (at in 0...many) bytes[at] = (at % 8) * 32;
 
 			sample.hold(bytes);
 
@@ -1586,6 +1587,39 @@ class MixCheck {
 			heard + " converter writes with the notes on the key the kick is rooted at, "
 			+ mute + " with them on a key the kit has nothing on, and " + none
 			+ " with no notes at all");
+
+		drummed.drums = false;
+
+		for (note in pitches) note.pitch = 36;
+		final kicked = converted(drummed);
+
+		for (note in pitches) note.pitch = 38;
+		final snared = converted(drummed);
+
+		final dac = mdd.song.Part.Dac.index();
+		final holding = drummed.rack[dac];
+
+		final named = [for (note in pitches) note.instrument];
+
+		drummed.rack[dac] = kick;
+
+		for (note in pitches) {
+			note.pitch = 99;
+			note.instrument = -1;
+		}
+
+		final held = converted(drummed);
+
+		drummed.rack[dac] = holding;
+		for (index in 0...pitches.length) pitches[index].instrument = named[index];
+
+		for (index in 0...pitches.length) pitches[index].pitch = were[index];
+		drummed.drums = true;
+
+		says("and sample mode plays the sample on each key",
+			kicked == heard && snared > kicked && held == kicked,
+			kicked + " converter writes on the kick's key, " + snared + " on the longer snare's, and "
+			+ held + " on a key with nothing rooted while the channel holds the kick");
 
 		final packed = into + "/round." + mdd.Config.SUFFIX;
 		mdd.format.Project.save(song, packed);

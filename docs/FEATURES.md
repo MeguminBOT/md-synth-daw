@@ -300,17 +300,19 @@ cuts into stays silent until PSG3's next note, and the warnings point it out.
 
 ### Samples
 
-The converter plays one sample at a time like every other part. Switched to a drum kit from
-its row in the channel rack, it reads the note instead: the pitch picks which sample sounds,
-from the pitch each sample sits at.
+The converter plays one sample at a time like every other part, and the key a note is on picks
+which: each sample sits on a key of its own. Its row in the channel rack switches between **Sample
+mode** and **Drum kit mode**, and the two differ only on a key with no sample. Sample mode plays
+what the channel holds there, so a piece written for one sample is unchanged, and drum kit mode
+plays nothing, the way a general MIDI drum kit leaves its empty keys silent.
 
-The piano roll is the same keyboard either way. The keys the kit sits on are named for the drum
-on them and the rest are drawn faint: a key with no sample still takes a note and still shows
-it, and makes no sound. Turning the kit on can quieten notes written against whatever the
-channel held on its own, which is what the row in the channel rack is for.
+The piano roll is the same keyboard either way, and the keys holding a sample are named for it. In
+drum kit mode the rest are drawn faint: a key with no sample still takes a note and still shows it,
+and makes no sound. Drum kit mode can therefore quieten notes written against whatever the channel
+held on its own, which is what the row in the channel rack is for.
 
 That is what lets a general MIDI drum pattern arrive intact. Channel ten of an imported file
-goes to the converter with the kit already on, and the shipped samples sit at their General
+goes to the converter already in drum kit mode, and the shipped samples sit at their General
 MIDI drum notes, so a kick lands on the kick and every note stays on the key the file wrote it
 on.
 

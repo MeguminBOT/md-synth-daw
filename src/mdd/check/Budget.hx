@@ -180,7 +180,7 @@ final class Budget {
 		nought however many banks ship: every other counter here reads what is played
 		rather than what is to hand, and a cartridge carries the samples the music
 		reaches for. Which instrument a note reaches is worked out the way the
-		sequencer works it out, so a key the kit has nothing rooted at costs nothing
+		sequencer works it out, so a key drum kit mode leaves silent costs nothing
 		either.
 
 		@param song The song to read.
@@ -194,13 +194,7 @@ final class Budget {
 				if (!part.sampled()) continue;
 
 				for (note in pattern.lane(part).notes) {
-					final kit = song.drums ? song.drumAt(note.pitch) : -1;
-					if (song.drums && kit < 0) continue;
-
-					final which = kit >= 0 ? kit
-						: (note.instrument >= 0 ? note.instrument : song.rack[part.index()]);
-
-					final instrument = song.instrumentAt(which);
+					final instrument = song.instrumentAt(song.hitAt(note.pitch, note.instrument));
 					if (instrument == null) continue;
 
 					final at = instrument.sample;

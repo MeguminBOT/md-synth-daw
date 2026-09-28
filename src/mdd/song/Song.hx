@@ -177,14 +177,13 @@ final class Song {
 	public var stallAt:Int = -1;
 
 	/**
-		Whether the converter is played as a drum kit.
+		Whether the converter is in drum kit mode rather than sample mode.
 
-		The converter holds one sample at a time like every other part, and a note
-		on it plays whatever the channel holds. A kit reads the note instead: the
-		pitch picks which sample sounds, from the sample roots, so a drum pattern
-		written across a row for each drum plays as it was written. A note whose
-		pitch matches no sample falls back to what the channel holds, so turning
-		this on never silences a piece that was written without it.
+		In both, a note plays the sample rooted at its key in the converter's kit, as
+		`hitAt` says. They differ only where no sample is rooted at the key: sample mode
+		plays what the channel holds there, so a piece written for one sample is
+		unchanged, and drum kit mode plays nothing, because a general MIDI drum kit
+		leaves the keys it has no drum on silent.
 	**/
 	public var drums:Bool = false;
 
@@ -513,6 +512,24 @@ final class Song {
 		}
 
 		return -1;
+	}
+
+	/**
+		Which instrument a note on the converter plays. Allocates nothing, so the render
+		thread reads it.
+
+		@param pitch The note's key.
+		@param named The instrument the note names, or -1 for what the channel holds.
+		@return The instrument whose sample is rooted at the key where the kit has one. Otherwise
+			the one the note names or the channel holds in sample mode, and -1 in drum kit mode,
+			where that key is silent.
+	**/
+	public function hitAt(pitch:Int, named:Int):Int {
+		final rooted = drumAt(pitch);
+		if (rooted >= 0) return rooted;
+		if (drums) return -1;
+
+		return named >= 0 ? named : rack[Part.Dac.index()];
 	}
 
 	/**
