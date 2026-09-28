@@ -64,6 +64,13 @@ class ShotCheck {
 		var reveal = -1;
 		var said = "";
 		var ui = 100;
+		var chosen = -1;
+		final gestures:Array<String> = [];
+		var all = false;
+		var pick = "";
+		var tool = -1;
+		var bounce = "";
+		var console = mdd.play.Render.MODEL_ONE;
 
 		var at = 0;
 
@@ -110,6 +117,15 @@ class ShotCheck {
 				case "--reveal": reveal = whole(held, reveal); at++;
 				case "--said": said = held; at++;
 				case "--ui": ui = whole(held, ui); at++;
+				case "--pattern": chosen = whole(held, chosen); at++;
+				case "--click": gestures.push("left " + held); at++;
+				case "--right": gestures.push("right " + held); at++;
+				case "--drag": gestures.push("drag " + held); at++;
+				case "--tool": tool = whole(held, tool); at++;
+				case "--all": all = true;
+				case "--pick": pick = held; at++;
+				case "--bounce": bounce = held; at++;
+				case "--console": console = whole(held, console); at++;
 				case _:
 			}
 
@@ -167,6 +183,16 @@ class ShotCheck {
 			: (vgm == "" ? Session.started(Gate.library()) : imported(root, vgm));
 
 		if (demo != "") staged(session, demo);
+
+		if (bounce != "") {
+			final written = bounced(session, bounce, console);
+
+			Sdl.destroyRenderer(renderer);
+			Sdl.destroyWindow(window);
+			Sdl.quit();
+
+			return written;
+		}
 
 		if (drums) {
 			final song = session.song;
@@ -271,7 +297,9 @@ class ShotCheck {
 		menus.trailing.push("Preferences");
 		shell.zone(Shell.MENU).add(menus);
 
+		if (chosen >= 0) session.chooses(chosen);
 		session.choose(part);
+		if (tool >= 0) session.uses(tool);
 		if (scale >= 0) session.scale.kind = scale;
 
 		if (meter.indexOf("/") > 0) {
@@ -466,13 +494,60 @@ class ShotCheck {
 			}
 		}
 
-		if (reveal >= 0 || rackMenu >= 0 || hover != "") {
+		if (reveal >= 0 || rackMenu >= 0 || hover != "" || gestures.length > 0 || all
+				|| pick != "") {
 			tree.reshape();
 			tree.top.measure(tree.width, tree.height);
 			tree.top.arrange(0, 0, tree.width, tree.height);
 		}
 
 		if (reveal >= 0) centre.roll.reveal(0, reveal);
+
+		if (all) centre.roll.picksAll();
+
+		if (pick.indexOf(",") > 0) {
+			final bits = pick.split(",");
+			final row = whole(bits[0], 0);
+			final line = centre.roll.stack.lineOf(row);
+			final which = whole(bits[1], 0);
+
+			if (line != null && which < line.points.length) centre.roll.stack.picks(line.points[which], row);
+		}
+
+		for (gesture in gestures) {
+			final bits = gesture.split(" ");
+			final spot = bits[1].split(",");
+			final px = whole(spot[0], 0);
+			final py = whole(spot[1], 0);
+			final button = bits[0] == "right" ? mdd.ui.Pointer.Right : mdd.ui.Pointer.Left;
+
+			tree.advance(0.05);
+			tree.frame(paint);
+			tree.moved(px, py, mdd.ui.Mod.None);
+			tree.pressed(px, py, button, mdd.ui.Mod.None);
+
+			if (bits[0] == "drag" && spot.length >= 4) {
+				final tx = whole(spot[2], px);
+				final ty = whole(spot[3], py);
+
+				for (step in 1...9) {
+					tree.moved(px + (tx - px) * step / 8, py + (ty - py) * step / 8, mdd.ui.Mod.None);
+				}
+
+				tree.released(tx, ty, button, mdd.ui.Mod.None);
+			} else {
+				tree.released(px, py, button, mdd.ui.Mod.None);
+			}
+
+			tree.reshape();
+			tree.top.measure(tree.width, tree.height);
+			tree.top.arrange(0, 0, tree.width, tree.height);
+
+			for (step in 0...12) {
+				tree.advance(0.05);
+				tree.frame(paint);
+			}
+		}
 
 		if (rackMenu >= 0) {
 			final rack = rail.rack;
@@ -571,8 +646,9 @@ class ShotCheck {
 	/**
 		Puts an example into the song for a shot that shows a feature at work: `four` is a run of
 		four note chords on FM3 with its separate mode on and a preset that hears every operator,
-		`four-off` the same with the mode off, and `noise` is a line on the noise channel with its preset on the rate that follows the
-		third square, and one PSG3 note under it.
+		`four-off` the same with the mode off, `noise` is a line on the noise channel with its preset on the rate that follows the
+		third square, and one PSG3 note under it, and `moving` is a bass line on FM4 played by the shipped
+		preset whose own lanes move on every note.
 
 		@param session The session to stage it in.
 		@param demo Which example.
@@ -631,7 +707,64 @@ class ShotCheck {
 			}
 
 			pattern.lane(mdd.song.Part.Psg3).add(new mdd.song.Note(beat, beat * 2, 67, 100));
+		} else if (demo == "moving") {
+			for (bank in Gate.library().instruments) {
+				for (preset in bank) {
+					if (preset.name == "Talking growl") song.rack[mdd.song.Part.Fm4.index()] = song.adopts(preset, null);
+				}
+			}
+
+			final lane = pattern.lane(mdd.song.Part.Fm4);
+			final line = [36, 36, 39, 34];
+
+			for (index in 0...line.length) lane.add(new mdd.song.Note(index * bar, bar - beat, line[index], 110));
 		}
+	}
+
+	/**
+		Writes the song through the export's own render as a WAV, with a stem beside it for every
+		channel the arrangement sounds, instead of taking a picture. The stems take the mix's gain,
+		so they sum back to it.
+
+		@param session The session holding the song.
+		@param into The WAV to write. The stems go in a folder beside it.
+		@param console The output stage to render through, one of `Render`'s consoles.
+		@return Nought once both are written, one where the export failed or ran out of time.
+	**/
+	static function bounced(session:Session, into:String, console:Int):Int {
+		final files = new mdd.app.Files(session);
+		final mixing = new mdd.play.Mixing();
+
+		mixing.kind = mdd.play.Mixing.WAV;
+		mixing.rate = 44100;
+		mixing.padStart = 0;
+		mixing.padEnd = 0;
+		mixing.normalise = true;
+		mixing.console = console;
+		mixing.stems = mdd.play.Mixing.CHANNEL_STEMS;
+
+		files.mixing = mixing;
+		files.renders(into);
+
+		final began = Sdl.ticks();
+
+		while (!files.wroteYet()) {
+			if (Sdl.ticks() - began > 900) {
+				Sys.println("  shot          the bounce ran out of time");
+				return 1;
+			}
+
+			cpp.vm.Gc.safePoint();
+			Sdl.sleep(0.002);
+		}
+
+		if (files.wroteWrong != "") {
+			Sys.println("  shot          the bounce failed: " + files.wroteWrong);
+			return 1;
+		}
+
+		Sys.println("  shot          bounced in " + Math.round(Sdl.ticks() - began) + " s");
+		return 0;
 	}
 
 	/**
