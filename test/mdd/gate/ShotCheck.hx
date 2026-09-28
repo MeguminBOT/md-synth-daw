@@ -70,6 +70,7 @@ class ShotCheck {
 		var pick = "";
 		var tool = -1;
 		var bounce = "";
+		var played = 0.0;
 		var console = mdd.play.Render.MODEL_ONE;
 
 		var at = 0;
@@ -125,6 +126,7 @@ class ShotCheck {
 				case "--all": all = true;
 				case "--pick": pick = held; at++;
 				case "--bounce": bounce = held; at++;
+				case "--played": played = Std.parseFloat(held); at++;
 				case "--console": console = whole(held, console); at++;
 				case _:
 			}
@@ -181,6 +183,8 @@ class ShotCheck {
 
 		final session = project != "" ? new Session(mdd.format.Project.open(project))
 			: (vgm == "" ? Session.started(Gate.library()) : imported(root, vgm));
+
+		if (session.library == null) session.library = Gate.library();
 
 		if (demo != "") staged(session, demo);
 
@@ -341,6 +345,8 @@ class ShotCheck {
 
 			held.keyboards.push("None");
 			held.keyboards.push("Microsoft GS Wavetable Synth");
+			held.outputs.push(tree.translate(mdd.app.Locale.AUDIO_DEFAULT));
+			held.sounds(0);
 			held.bindings = new mdd.app.Bindings();
 
 			final controls = new mdd.app.Mapping();
@@ -383,9 +389,9 @@ class ShotCheck {
 				held.mixing.rate = 48000;
 			}
 
-			session.song.author = "MeguminBOT";
-			session.song.album = "Mega Drive";
-			session.song.year = "2026";
+			if (session.song.author == "") session.song.author = "MeguminBOT";
+			if (session.song.album == "") session.song.album = "Mega Drive";
+			if (session.song.year == "") session.song.year = "2026";
 
 			tree.raise(held);
 			held.ask();
@@ -395,7 +401,7 @@ class ShotCheck {
 			final held = new mdd.view.overlay.Working();
 			final task = new mdd.app.Task();
 
-			task.begins(mdd.app.Locale.WORKING_RENDERING, "green hill zone.wav", true);
+			task.begins(mdd.app.Locale.WORKING_RENDERING, session.song.name + ".wav", true);
 			if (sheet == "working-bar") task.holds(0.42);
 
 			tree.raise(held);
@@ -429,6 +435,13 @@ class ShotCheck {
 
 			held.ask();
 			tree.raise(held);
+		} else if (sheet == "importing") {
+			final held = new mdd.view.overlay.Importing();
+
+			tree.raise(held);
+			held.ask(session.song.name + ".mid", mdd.format.Midi.survey(mdd.format.Midi.write(session.song)));
+			held.rise.hold(1);
+			held.fade.hold(1);
 		}
 
 		final texture = Draw.createTarget(renderer, wide, tall);
@@ -443,6 +456,8 @@ class ShotCheck {
 				tree.frame(paint);
 			}
 		}
+
+		if (played > 0) playedTo(session, centre, played);
 
 		if (traced && centreTab == Centre.SCOPE) {
 			for (index in 0...6) {
@@ -494,14 +509,22 @@ class ShotCheck {
 			}
 		}
 
+		final following = played > 0 && centreTab == Centre.TRACKER;
+
 		if (reveal >= 0 || rackMenu >= 0 || hover != "" || gestures.length > 0 || all
-				|| pick != "") {
+				|| pick != "" || following) {
 			tree.reshape();
 			tree.top.measure(tree.width, tree.height);
 			tree.top.arrange(0, 0, tree.width, tree.height);
 		}
 
 		if (reveal >= 0) centre.roll.reveal(0, reveal);
+
+		if (following) {
+			final tracker = centre.tracker;
+			final row = session.song.tempo.tickAt(session.transport.position) / tracker.step();
+			tracker.scrollTo(0, row * tracker.rowTall());
+		}
 
 		if (all) centre.roll.picksAll();
 
@@ -731,6 +754,51 @@ class ShotCheck {
 		@param console The output stage to render through, one of `Render`'s consoles.
 		@return Nought once both are written, one where the export failed or ran out of time.
 	**/
+	/**
+		Plays the song offline up to a moment, the way the video export does, so the scope holds what
+		the chips put out there, the register log holds the writes that led up to it, and the
+		playhead stands on it.
+
+		@param session The session whose song plays.
+		@param centre The editors, whose scope and register log are fed.
+		@param seconds How far into the song to play.
+	**/
+	static function playedTo(session:Session, centre:Centre, seconds:Float):Void {
+		final song = session.song;
+		final rate = mdd.song.Tempo.TICKS;
+		final ends = song.tempo.samplesAt(song.ends());
+		var until = Math.round(seconds * rate);
+		if (until > ends) until = ends;
+
+		final stream = mdd.play.Stream.reserved(until);
+		new mdd.play.Sequencer(song).spanned(stream, 0, until);
+
+		final render = new mdd.play.Render(rate, mdd.play.Render.BLOCK);
+		var taken = render.tapped;
+		var fed = 0;
+
+		while (fed < until) {
+			final count = until - fed < mdd.play.Render.BLOCK ? until - fed : mdd.play.Render.BLOCK;
+			final took = render.serve(stream, fed, count, 0);
+			if (took <= 0) break;
+
+			while (taken < render.tapped) {
+				final slot = taken % mdd.play.Render.TAPS;
+
+				for (part in 0...mdd.song.Part.COUNT) {
+					centre.scope.feed(part, render.taps[part * mdd.play.Render.TAPS + slot]);
+				}
+
+				taken++;
+			}
+
+			fed += took;
+		}
+
+		centre.registers.take(stream, 0);
+		session.transport.seek(until);
+	}
+
 	static function bounced(session:Session, into:String, console:Int):Int {
 		final files = new mdd.app.Files(session);
 		final mixing = new mdd.play.Mixing();
