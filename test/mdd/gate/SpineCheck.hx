@@ -3369,7 +3369,7 @@ class SpineCheck {
 		final snapped = session.snapping;
 		final depth = session.history.depth();
 
-		bar.beats.set(3);
+		bar.meter.sets(3, 4);
 
 		final measured = song.bar();
 		final three = song.meter.spelt() == "3/4" && measured == ppqn * 3
@@ -3405,7 +3405,7 @@ class SpineCheck {
 	}
 
 	/**
-		Any signature the two transport fields can say is one the piece takes, however odd, and a
+		Any signature the transport field can say is one the piece takes, however odd, and a
 		signature typed for a pattern is read the way a score writes it or refused whole.
 
 		@param session The piece.
@@ -3417,14 +3417,12 @@ class SpineCheck {
 		final was = song.meter.spelt();
 		final depth = session.history.depth();
 
-		bar.unit.set(mdd.song.Meter.UNITS.indexOf(32));
-		bar.beats.set(11);
+		bar.meter.sets(11, 32);
 
 		final taken = song.meter.spelt();
 		final measured = song.bar();
 		final steps = session.history.depth() - depth;
 
-		session.undo();
 		session.undo();
 
 		final back = song.meter.spelt() == was;
@@ -3433,9 +3431,9 @@ class SpineCheck {
 			if (mdd.song.Meter.read(said) == null) said].length;
 
 		says("and so does an odd one", taken == "11/32" && measured == Math.round(ppqn * 4 * 11 / 32)
-			&& steps == 2 && back && read != null && read.spelt() == "11/32" && refused == 6,
-			"the fields made " + taken + ", a bar of " + measured + " ticks in " + steps
-			+ " undo steps, undo put " + was + " back, and a typed signature read " + (read == null
+			&& steps == 1 && back && read != null && read.spelt() == "11/32" && refused == 6,
+			"the field made " + taken + ", a bar of " + measured + " ticks in " + steps
+			+ " undo step, undo put " + was + " back, and a typed signature read " + (read == null
 			? "nothing" : read.spelt()) + " and refused " + refused + " of 6 it cannot be");
 	}
 

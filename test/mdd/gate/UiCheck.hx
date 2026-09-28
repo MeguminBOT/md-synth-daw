@@ -162,6 +162,7 @@ class UiCheck {
 		editing();
 		numbers();
 		gestures();
+		fractions();
 		united();
 		slotted();
 		ranges();
@@ -803,6 +804,51 @@ class UiCheck {
 		field.arrange(0, 100, 100, 30);
 		root.pressed(20, 110, Pointer.Left, Mod.None, 2);
 		says("double click", field.selected() == "word", "selects all of \"" + field.selected() + "\"");
+	}
+
+	/**
+		A fraction moves the half under the pointer: the wheel over the upper number counts it by
+		one, over the lower number steps through the values it may take, and a double click types
+		both at once, refusing a lower number it does not hold.
+	**/
+	static function fractions():Void {
+		final root = shaped();
+		final fraction = new mdd.ui.control.Fraction("", 4, 4, 1, 32, [1, 2, 4, 8, 16, 32]);
+		root.top.add(fraction);
+		root.resize(400, 300);
+		root.top.arrange(0, 0, 400, 300);
+		fraction.arrange(0, 0, 120, 40);
+
+		var changes = 0;
+		fraction.onChange = function(from:mdd.ui.control.Fraction):Void changes++;
+
+		root.moved(10, 20, Mod.None);
+		root.turned(0, 1, Mod.None);
+		final upper = fraction.upper;
+
+		root.moved(115, 20, Mod.None);
+		root.turned(0, 1, Mod.None);
+		root.turned(0, 1, Mod.None);
+		final lower = fraction.lower;
+
+		says("a fraction's wheel moves the half under it", upper == 5 && lower == 16 && changes == 3,
+			"the upper number went 4 to " + upper + " and the lower 4 to " + lower + ", in " + changes
+			+ " changes");
+
+		root.pressed(60, 20, Pointer.Left, Mod.None, 2);
+		root.released(60, 20, Pointer.Left, Mod.None);
+		root.said("11/32", Mod.None);
+		root.key(true, Key.Return, Mod.None);
+		final typed = fraction.upper + "/" + fraction.lower;
+
+		root.pressed(60, 20, Pointer.Left, Mod.None, 2);
+		root.released(60, 20, Pointer.Left, Mod.None);
+		root.said("7/6", Mod.None);
+		root.key(true, Key.Return, Mod.None);
+		final refused = fraction.upper + "/" + fraction.lower;
+
+		says("and a double click types both", typed == "11/32" && refused == "11/32",
+			"typing 11/32 gave " + typed + ", and typing 7/6 left " + refused);
 	}
 
 	static function ranges():Void {
