@@ -342,6 +342,18 @@ final class ChannelRack extends Widget {
 			});
 		}
 
+		if (part == Part.Fm3) {
+			final four = menu.offer(new Choice(translate(song.separated()
+				? Locale.RACK_ONE_NOTE : Locale.RACK_FOUR_NOTES)));
+
+			fires(four, function():Void {
+				final kept = song.mode & 0x3F;
+
+				session.does(new mdd.song.edit.SetMode(song.separated() ? kept : kept | 0x40));
+				session.says(song.separated() ? Locale.SAID_FOUR_NOTES : Locale.SAID_ONE_NOTE);
+			});
+		}
+
 		fires(menu.offer(new Choice(translate(Locale.RACK_SOLO_ONLY))), function():Void
 			solosAlone(at));
 

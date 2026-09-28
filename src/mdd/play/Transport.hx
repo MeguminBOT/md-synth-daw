@@ -575,7 +575,7 @@ final class Transport {
 						| ((instrument.patch.ams & 3) << 4) | (instrument.patch.pms & 7));
 				}
 
-				stream.frequency(at, part, Stream.wordAt(part, heardNote, heardCents));
+				tunes(at, part, Stream.wordAt(part, heardNote, heardCents));
 				stream.keyOn(at, part);
 			} else if (part.square()) {
 				stream.period(at, part, Stream.wordAt(part, heardNote, heardCents));
@@ -594,7 +594,7 @@ final class Transport {
 		} else if (heardBent) {
 			heardBent = false;
 
-			if (part.fm()) stream.frequency(at, part, Stream.wordAt(part, heardNote, heardCents));
+			if (part.fm()) tunes(at, part, Stream.wordAt(part, heardNote, heardCents));
 			if (part.square()) stream.period(at, part, Stream.wordAt(part, heardNote, heardCents));
 		}
 
@@ -605,6 +605,22 @@ final class Transport {
 
 		stream.silence(at, part);
 		heardPart = -1;
+	}
+
+	/**
+		Tunes an FM channel for an audition. Channel three playing a note on each operator has every
+		operator tuned to the note, so it sounds as one note does anywhere else.
+
+		@param at When the writes happen.
+		@param part Which channel.
+		@param word Block and frequency packed as `Stream.wordOf` packs them.
+	**/
+	function tunes(at:Int, part:Part, word:Int):Void {
+		stream.frequency(at, part, word);
+
+		if (part != Part.Fm3 || !song.separated()) return;
+
+		for (slot in 0...3) stream.operatorWord(at, slot, word);
 	}
 
 	/**

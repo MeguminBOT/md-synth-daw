@@ -237,7 +237,17 @@ meter inside. Click a row to choose that channel. Drag the fader to set the volu
 it to put it back to full. `Alt` and a click on a solo button solos that channel alone.
 
 Right click a row to mute or solo it, solo it alone, copy, paste or reset its preset, or clear it.
-On the sample channel the same menu turns it into a drum kit and back.
+On the sample channel the same menu turns it into a drum kit and back, and on FM3 it switches the
+channel between one note at a time and four at once.
+
+**FM3 can play four notes at once.** Right click FM3 and choose **Play four notes at once**. Channel
+three's separate mode gives each of its four operators a pitch of its own, so notes that overlap on
+FM3 take an operator each, up to four, and a fifth at once is not played. Each note keys its own
+operator and sets that operator's level from its velocity, and the note that starts a chord loads
+the preset for all of them. With algorithm 7, where every operator is heard, that is four notes of
+one sound. With another algorithm, a note on a modulator changes how the others sound rather than
+being heard itself. The switch is saved with the project and can be undone, and an imported VGM that
+uses the mode plays it.
 
 The **Channels** menu unmutes or unsolos every channel, mutes every channel but the chosen one, or
 clears the chosen one. The **Instrument** menu copies, pastes or resets the chosen channel's preset,

@@ -35,6 +35,8 @@ class StreamCheck {
 
 		timing();
 		polyphony();
+		moded();
+		quartered();
 		identical();
 		commands();
 		faces();
@@ -728,6 +730,121 @@ class StreamCheck {
 		}
 
 		says("time only moves on", rising, "no tick maps behind the one before it");
+	}
+
+	/**
+		A chord on channel three: three notes at the start of a pattern, a fourth joining a beat in,
+		and a fifth that has no operator left.
+
+		@return The song, with its one pattern placed at the start.
+	**/
+	static function chorded():Song {
+		final song = new Song("four notes", 96, 120);
+		final beat = song.tempo.ppqn;
+		final pattern = song.add(new Pattern("four", beat * 4));
+		final lane = pattern.lane(Part.Fm3);
+
+		song.instrument(new Instrument("four", Part.Fm3));
+		song.rack[Part.Fm3.index()] = song.instruments.length - 1;
+
+		lane.add(new Note(0, beat * 2, 60, 100));
+		lane.add(new Note(0, beat * 2, 64, 100));
+		lane.add(new Note(0, beat * 2, 67, 100));
+		lane.add(new Note(beat, beat, 71, 100));
+		lane.add(new Note(beat, beat, 74, 100));
+
+		song.track(new Track("four")).add(new Clip(song.patterns.length - 1, 0, pattern.length));
+
+		return song;
+	}
+
+	/**
+		@param stream A render's writes.
+		@param address A register in the first half.
+		@return Every value written to it, in order.
+	**/
+	static function writtenTo(stream:Stream, address:Int):Array<Int> {
+		final out:Array<Int> = [];
+		var at = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != Stream.YM) continue;
+
+			if (stream.portAt(index) == 0) {
+				at = stream.valueAt(index);
+				continue;
+			}
+
+			if (stream.portAt(index) == 1 && at == address) out.push(stream.valueAt(index));
+		}
+
+		return out;
+	}
+
+	/**
+		Register `$27` reaches the chip where a song has channel three's separate mode on, is
+		written again when it changes, and is never written for a song that does not use it.
+	**/
+	static function moded():Void {
+		final song = chorded();
+		final span = song.tempo.samplesAt(song.bar());
+
+		final plain = new Stream(1 << 16);
+		new Sequencer(song).spanned(plain, 0, span);
+
+		song.mode = 0x15;
+		final timed = new Stream(1 << 16);
+		new Sequencer(song).spanned(timed, 0, span);
+
+		song.mode = 0x40;
+		final on = new Stream(1 << 16);
+		final sequencer = new Sequencer(song);
+		sequencer.emit(on, 0, 1000);
+
+		song.mode = 0;
+		sequencer.edited = true;
+
+		final off = new Stream(1 << 16);
+		sequencer.emit(off, 1000, 2000);
+
+		final none = writtenTo(plain, 0x27).length + writtenTo(timed, 0x27).length;
+		final wrote = [for (value in writtenTo(on, 0x27)) "$" + StringTools.hex(value, 2)].join(" ");
+		final back = [for (value in writtenTo(off, 0x27)) "$" + StringTools.hex(value, 2)].join(" ");
+
+		says("channel three's mode is written", none == 0 && wrote == "$40" && back == "$00",
+			"a song using it writes $27 = " + wrote + ", switching it off writes " + back
+			+ ", and a song without it, or with only timer bits, writes it " + none + " times");
+	}
+
+	/**
+		Channel three playing a note on each operator: a chord of three and a fourth note joining
+		it take one operator each, each on its own measured frequency register and its own key bit,
+		and a fifth note at once is not sounded.
+	**/
+	static function quartered():Void {
+		final song = chorded();
+		song.mode = 0x40;
+
+		final stream = new Stream(1 << 16);
+		new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(song.bar()));
+
+		final keys:Array<String> = [];
+		for (value in writtenTo(stream, 0x28)) if ((value & 7) == 2) keys.push(StringTools.hex(value, 2));
+
+		inline function word(high:Int, low:Int):Int {
+			final highs = writtenTo(stream, high);
+			final lows = writtenTo(stream, low);
+			return highs.length == 0 || lows.length == 0 ? -1
+				: ((highs[highs.length - 1] & 0x3F) << 8) | lows[lows.length - 1];
+		}
+
+		final words = [word(0xAD, 0xA9), word(0xAE, 0xAA), word(0xAC, 0xA8), word(0xA6, 0xA2)];
+		final wanted = [Stream.wordOf(60), Stream.wordOf(64), Stream.wordOf(67), Stream.wordOf(71)];
+
+		says("FM3 plays one note per operator",
+			keys.join(" ") == "12 32 72 F2 E2 C2 82 02" && words.join(" ") == wanted.join(" "),
+			"key writes " + keys.join(" ") + ", and operators one to four tuned to "
+			+ words.join(", ") + " for C4, E4, G4 and B4, with the fifth note left out");
 	}
 
 	static function polyphony():Void {

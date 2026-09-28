@@ -55,6 +55,21 @@ final class Sequencer {
 	static inline final SETUP = 6;
 
 	/**
+		Event: key one of channel three's operators on or off, while it plays a note on each.
+	**/
+	static inline final KEYS = 7;
+
+	/**
+		A `SETUP` event carrying register `$27`.
+	**/
+	static inline final MODE = 1;
+
+	/**
+		A `TUNE` event tuning one of channel three's operators on its own.
+	**/
+	static inline final OPERATOR = 6;
+
+	/**
 		A `DATA` event carrying a sample byte.
 	**/
 	static inline final DAC_BYTE = 0;
@@ -318,6 +333,17 @@ final class Sequencer {
 	final owed:Vector<Int> = new Vector<Int>(Part.COUNT);
 
 	/**
+		Register `$27` as this sequencer last wrote it, which the chip starts at nought.
+	**/
+	var modeSet:Int = 0;
+
+	/**
+		Until which tick each of channel three's operators is holding a note, while it plays one on
+		each.
+	**/
+	final busy:Vector<Int> = new Vector<Int>(4);
+
+	/**
 		Whether the song may have changed since the last span, which is when every sounding note is
 		looked for again to see that it is still there.
 	**/
@@ -418,6 +444,11 @@ final class Sequencer {
 		if (fromSample <= 0) {
 			lfoSet = lfoOf(song);
 			push(0, Part.Fm1, SETUP, lfoSet, 0);
+
+			if (modeOf(song) != 0 || modeSet != 0) {
+				modeSet = modeOf(song);
+				push(0, Part.Fm1, SETUP, modeSet, MODE);
+			}
 		}
 
 		tracked();
@@ -497,6 +528,15 @@ final class Sequencer {
 	}
 
 	/**
+		@param song A song.
+		@return Register `$27` as playback writes it: channel three's separate mode where the song
+			has it on, and nought otherwise, since the timers are not used and CSM is not played.
+	**/
+	static inline function modeOf(song:Song):Int {
+		return song.separated() ? 0x40 : 0;
+	}
+
+	/**
 		Keys off every part owed a key off that is not coming: one due before this span, and, where
 		the song may have changed, one whose note is no longer there to end it.
 
@@ -509,6 +549,11 @@ final class Sequencer {
 		if (checking && lfoSet >= 0 && lfoOf(song) != lfoSet) {
 			lfoSet = lfoOf(song);
 			push(fromSample, Part.Fm1, SETUP, lfoSet, 0);
+		}
+
+		if (checking && modeOf(song) != modeSet) {
+			modeSet = modeOf(song);
+			push(fromSample, Part.Fm1, SETUP, modeSet, MODE);
 		}
 
 		final tick = checking ? song.tempo.tickAt(fromSample) : 0;
@@ -1080,10 +1125,17 @@ final class Sequencer {
 			var head = low - origin;
 			if (head < least) head = least;
 
-			voices.resolve(lane, head, high - origin + 1);
-			sound(lane, origin, from, until, transpose, part, fromSample, toSample);
+			final four = part == Part.Fm3 && song.separated();
+
+			if (four) {
+				if (!fading) quartet(lane, origin, from, until, transpose, fromSample, toSample);
+			} else {
+				voices.resolve(lane, head, high - origin + 1);
+				sound(lane, origin, from, until, transpose, part, fromSample, toSample);
+			}
+
 			if (!fading) tweaked(lane, origin, part, head, high - origin + 1, transpose, fromSample, toSample);
-			if (moving && !fading) moved(lane, origin, from, until, transpose, part, fromSample, toSample);
+			if (moving && !fading && !four) moved(lane, origin, from, until, transpose, part, fromSample, toSample);
 		}
 	}
 
@@ -1497,6 +1549,97 @@ final class Sequencer {
 	}
 
 	/**
+		Collects channel three's notes while it plays one on each operator: up to four at once,
+		each keyed, tuned and levelled on an operator of its own. A note takes the lowest operator
+		free where it starts, counted from the lane's first note so a span of any length finds the
+		same operator for the same note, and a fifth note at once is not sounded. A note starting
+		with every operator free loads its preset whole; a note joining others plays through that
+		preset, with only its own operator's level set by its velocity.
+
+		@param lane The lane to read.
+		@param origin Where the pattern starts on the playlist, in ticks.
+		@param from The first tick of the pattern to read.
+		@param until One past the last.
+		@param transpose Semitones to shift every note by.
+		@param fromSample The first sample of the span.
+		@param toSample One past the last sample of the span.
+	**/
+	function quartet(lane:mdd.song.Lane, origin:Int, from:Int, until:Int, transpose:Int,
+			fromSample:Int, toSample:Int):Void {
+		final notes = lane.notes;
+		if (notes.length == 0) return;
+
+		final part = Part.Fm3;
+		final tempo = song.tempo;
+		final last = until - origin;
+
+		var sided:Null<mdd.song.Automation> = null;
+
+		for (line in lane.automation) {
+			if (line.target == mdd.song.Automation.SIDES && sided == null) sided = line;
+		}
+
+		for (slot in 0...4) busy[slot] = -0x7FFFFFFF;
+
+		var named = -1;
+
+		for (note in notes) {
+			if (note.at >= last) break;
+
+			var fresh = true;
+			var slot = -1;
+
+			for (which in 0...4) {
+				if (busy[which] > note.at) fresh = false;
+				else if (slot < 0) slot = which;
+			}
+
+			if (slot < 0) continue;
+
+			busy[slot] = note.ends();
+			if (fresh) named = chosen(lane, part, note.instrument, note.at);
+
+			var start = origin + note.at;
+			var ends = origin + note.ends();
+
+			if (start < from) start = from;
+			if (ends > until) ends = until;
+			if (ends <= start) continue;
+
+			final onSample = tempo.samplesAt(start);
+			final ending = tempo.samplesAt(ends);
+			final offSample = ending - onSample > GUARD * 2 ? ending - GUARD : ending;
+			final velocity = louder(part, note.velocity);
+
+			if (onSample >= fromSample && onSample < toSample) {
+				if (fresh) {
+					push(onSample, part, PATCH, named, velocity);
+					push(onSample, part, TWEAK, spread(part, sided, note.at, named), 1);
+				} else {
+					final instrument = instrumentOf(named, part);
+
+					if (instrument != null && instrument.patch != null) {
+						push(onSample, part, TWEAK,
+							(slot << 8) | Stream.levelOf(instrument.patch, slot, velocity), 0);
+					}
+				}
+
+				final pitch = note.pitch + transpose;
+				final held = pitch < 0 ? 0 : (pitch > 127 ? 127 : pitch);
+
+				push(onSample, part, TUNE, (slot << 14) | Stream.wordOf(held), OPERATOR);
+				push(onSample, part, KEYS, slot, 1);
+
+				if (offSample + 1 > owed[part.index()] && owed[part.index()] != HELD) {
+					owed[part.index()] = offSample + 1;
+				}
+			}
+
+			if (offSample >= fromSample && offSample < toSample) push(offSample, part, KEYS, slot, 0);
+		}
+	}
+
+	/**
 		@param part Which part.
 		@param line The automation lane being read.
 		@return True where that lane is one the part can actually take.
@@ -1830,6 +1973,11 @@ final class Sequencer {
 
 		lfoSet = lfoOf(song);
 		push(fromSample, Part.Fm1, SETUP, lfoSet, 0);
+
+		if (modeOf(song) != 0 || modeSet != 0) {
+			modeSet = modeOf(song);
+			push(fromSample, Part.Fm1, SETUP, modeSet, MODE);
+		}
 
 		final tick = song.tempo.tickAt(fromSample);
 
@@ -2486,7 +2634,8 @@ final class Sequencer {
 					}
 
 				case TUNE:
-					if (second == 5) stream.sampling(tick, first != 0);
+					if (second == OPERATOR) stream.operatorWord(tick, (first >> 14) & 3, first & 0x3FFF);
+					else if (second == 5) stream.sampling(tick, first != 0);
 					else if (second == 4) stream.noise(tick, first & 0x0F);
 					else if (second == 3) {
 						stream.operatorFrequency(tick, (first >> 14) & 3, first & 0x3FFF);
@@ -2516,7 +2665,16 @@ final class Sequencer {
 					} else stream.sides(tick, part, first);
 
 				case SETUP:
-					stream.lfo(tick, (first & 8) != 0, first & 7);
+					if (second == MODE) stream.mode(tick, first);
+					else stream.lfo(tick, (first & 8) != 0, first & 7);
+
+				case KEYS:
+					stream.keyOperator(tick, first, second != 0);
+
+					if (second == 0) {
+						final due = owed[part.index()];
+						if (due != HELD && tick + 1 >= due) owed[part.index()] = 0;
+					}
 
 				case _:
 			}

@@ -226,6 +226,12 @@ final class Stream {
 		last `forget`.
 	**/
 	final keyed:Vector<Int> = new Vector<Int>(6);
+
+	/**
+		Which of channel three's operators are keyed, operator one in bit nought, for while it plays
+		a note on each.
+	**/
+	var threeKeys:Int = 0;
 	final words:Vector<Int> = new Vector<Int>(10);
 	final whens:Vector<Int> = new Vector<Int>(10);
 
@@ -321,6 +327,7 @@ final class Stream {
 	**/
 	public function forget():Void {
 		noised = -1;
+		threeKeys = 0;
 		for (index in 0...settled.length) settled[index] = -1;
 		for (index in 0...keyed.length) keyed[index] = -1;
 		for (index in 0...words.length) words[index] = -1;
@@ -615,7 +622,43 @@ final class Stream {
 	public function keyOn(tick:Int, part:Part):Void {
 		if (!part.fm()) return;
 		keyed[part.index()] = 1;
+		if (part == Part.Fm3) threeKeys = 15;
 		ym(tick, 0, 0x28, 0xF0 | select(part));
+	}
+
+	/**
+		Keys one of channel three's operators on or off and leaves the other three as they are,
+		which is how it plays a note on each operator. The key register's bits run in operator
+		order.
+
+		@param tick When the write happens, in output samples from the start of the span.
+		@param slot Which operator, 0 to 3.
+		@param on Whether it is keyed on.
+	**/
+	public function keyOperator(tick:Int, slot:Int, on:Bool):Void {
+		final bit = 1 << (slot & 3);
+
+		threeKeys = on ? threeKeys | bit : threeKeys & ~bit;
+		keyed[2] = threeKeys != 0 ? 1 : 0;
+		ym(tick, 0, 0x28, (threeKeys << 4) | select(Part.Fm3));
+	}
+
+	/**
+		Tunes one of channel three's operators while its separate mode gives each a pitch of its
+		own. Operators one to three have registers of their own, measured as `$A9`, `$AA` and
+		`$A8` in that order; operator four takes the channel's.
+
+		@param tick When the write happens, in output samples from the start of the span.
+		@param slot Which operator, 0 to 3.
+		@param word Block and frequency packed as `wordOf` packs them.
+	**/
+	public function operatorWord(tick:Int, slot:Int, word:Int):Void {
+		switch (slot & 3) {
+			case 0: operatorFrequency(tick, 2, word);
+			case 1: operatorFrequency(tick, 3, word);
+			case 2: operatorFrequency(tick, 1, word);
+			case _: frequency(tick, Part.Fm3, word);
+		}
 	}
 
 	/**
@@ -627,6 +670,7 @@ final class Stream {
 	public function keyOff(tick:Int, part:Part):Void {
 		if (!part.fm()) return;
 		keyed[part.index()] = 0;
+		if (part == Part.Fm3) threeKeys = 0;
 		ym(tick, 0, 0x28, select(part));
 	}
 

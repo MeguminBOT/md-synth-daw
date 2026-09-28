@@ -393,7 +393,8 @@ final class Budget {
 				continue;
 			}
 
-			overlapping(index, part, lane.notes);
+			if (part == Part.Fm3 && song.separated()) quartet(index, lane.notes);
+			else overlapping(index, part, lane.notes);
 			ranged(index, part, lane.notes);
 			sounding(song, index, part, lane);
 			droning(index, part, lane, pattern.length);
@@ -413,6 +414,30 @@ final class Budget {
 					break;
 				}
 			}
+		}
+	}
+
+	/**
+		Finds where more than four notes overlap on channel three while it plays one on each
+		operator, taking operators the way playback does: the lowest free where a note starts.
+
+		@param pattern Which pattern.
+		@param notes Its notes, in tick order.
+	**/
+	function quartet(pattern:Int, notes:Array<Note>):Void {
+		final busy = [-0x7FFFFFFF, -0x7FFFFFFF, -0x7FFFFFFF, -0x7FFFFFFF];
+
+		for (note in notes) {
+			var slot = 0;
+			while (slot < 4 && busy[slot] > note.at) slot++;
+
+			if (slot == 4) {
+				raise(Diagnostic.WARNING, Part.Fm3, note.at, Locale.WARN_ONE_VOICE,
+					Locale.WARN_FOUR_VOICES_WHY, Locale.WARN_ONE_VOICE_FIX, [], pattern, note);
+				continue;
+			}
+
+			busy[slot] = note.ends();
 		}
 	}
 

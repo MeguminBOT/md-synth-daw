@@ -19,9 +19,39 @@ class CheckCheck {
 	static var failed:Int = 0;
 	static var ran:Int = 0;
 
+	/**
+		Channel three playing a note on each operator holds four overlapping notes without a
+		warning, and a fifth is the one that cannot sound.
+	**/
+	static function fourVoiced():Void {
+		final song = new mdd.song.Song("four", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("four", 384));
+		final lane = pattern.lane(Part.Fm3);
+
+		for (index in 0...5) lane.add(new Note(index * 4, 96, 60 + index * 3));
+
+		final budget = new Budget(Profile.megaDrive());
+
+		budget.overSong(song);
+		final one = [for (found in budget.found) if (found.part == Part.Fm3) found].length;
+
+		song.mode = 0x40;
+		budget.overSong(song);
+
+		final held = [for (found in budget.found) if (found.part == Part.Fm3) found];
+		final warned = held.length == 1 ? held[0].note : null;
+
+		says("FM3 holds four notes on its operators", one == 4 && warned == lane.notes[4]
+			&& held[0].reason == mdd.app.Locale.WARN_FOUR_VOICES_WHY,
+			"five overlapping notes warn " + one + " times on one voice, and once, on the fifth,"
+			+ " with the separate mode on");
+	}
+
 	public static function run(args:Array<String>):Int {
 		failed = 0;
 		ran = 0;
+
+		fourVoiced();
 
 		Sys.println("  check");
 

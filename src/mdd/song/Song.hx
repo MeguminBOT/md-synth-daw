@@ -151,9 +151,19 @@ final class Song {
 	public var lfoRate:Int = 0;
 
 	/**
-		Channel three mode: normal, separate, or CSM.
+		Register `$27` as the song holds it: channel three mode in the top two bits, normal,
+		separate or CSM, and the timer controls an import brings with it below them.
 	**/
 	public var mode:Int = 0;
+
+	/**
+		@return Whether channel three plays a note on each of its four operators rather than one on
+			all four. CSM, the other setting that separates them, is kept for an import and not
+			played.
+	**/
+	public inline function separated():Bool {
+		return ((mode >> 6) & 3) == 1;
+	}
 
 	/**
 		Whether an export is paced the way a real sound driver would pace it.
