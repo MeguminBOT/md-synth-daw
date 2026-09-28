@@ -182,7 +182,7 @@ A **preset lane** lets one channel play several instruments in turn. Right-click
 choose to switch the channel at the playhead: from that point on, every note loads the whole preset
 at its key on, including a note that names an instrument of its own. That is how a driver changes
 voice, so what reaches the chip, and what an export carries, is the ordinary register writes of a
-patch. Before the lane's first point the channel plays what it did before. A point names a preset
+preset. Before the lane's first point the channel plays what it did before. A point names a preset
 the song itself carries, and a saved project carries every one of them in order, so a project
 opens with the same switches on a machine with a different set of presets installed. The sample
 channel has no preset lane, because a kit picks each hit by the note.
@@ -278,7 +278,7 @@ modulates which is visible instead of implied. Envelopes are drawn per operator.
 
 Every parameter is a bar you drag across, and it follows the pointer: the bar goes where you
 take it rather than counting how far you moved. A click on one selects it without changing
-it, a double click puts it back where a fresh patch has it, and the wheel steps a value four
+it, a double click puts it back where a fresh preset has it, and the wheel steps a value four
 at a time, or one with `Ctrl` held. The dials above the operators work the same way.
 
 Hover any parameter and a tooltip names the register it writes, the raw value, and what the value
@@ -369,7 +369,7 @@ A VGM this application wrote therefore imports with its drums where they were.
   whatever you pick, and the Default bank is always the first group in them.
 - **Sort** puts them in order by name, by date added, by how alike they are to what the chosen
   channel plays, or as their bank lists them, and **Reverse** runs it the other way. A number in
-  a name is read as a number, so `Patch 2` comes before `Patch 10`.
+  a name is read as a number, so `Preset 2` comes before `Preset 10`.
 - **Filter** shows or hides each source, keeps only your favourites or what the open piece uses,
   shows a sound that sits in several banks only once, and keeps only the presets carrying the tags
   you tick. **Hide bank**, on a bank's right-click menu, takes a bank out of the list until you
@@ -384,8 +384,8 @@ A VGM this application wrote therefore imports with its drums where they were.
   selected.
 - **Switch at playhead**, on a preset's right-click menu, puts it in the channel's preset lane
   where the playhead is, so one channel can change instrument part way through a pattern.
-- Any patch in a song can be lifted into the library.
-- Patches import from TFI files and export back to them, and one preset writes out as a TFI from
+- Any preset in a song can be lifted into the library.
+- FM presets import from TFI files and export back to them, and one preset writes out as a TFI from
   its right-click menu. A TFI is forty two bytes of registers and nothing else, so a name, tags,
   the two LFO depths and whatever the preset moves on each note stay behind. Everything the format
   carries comes back exactly.
@@ -394,9 +394,9 @@ A VGM this application wrote therefore imports with its drums where they were.
   field goes back to what it held when you loaded it, in one undo step. Right-click a single dial
   in the synthesizer, or a step of a square or noise envelope, to put that one parameter back and
   leave the rest as you have it.
-- **A preset is what it sounds like.** What makes one preset that preset is its patch, its
-  envelope or its recording, and what it moves on each note, and nothing else: not its name, its
-  tags, its icon or the folder it sits in. A patch that moves is another preset from the same patch
+- **A preset is what it sounds like.** What makes one preset that preset is its register values,
+  its envelope or its recording, and what it moves on each note, and nothing else: not its name, its
+  tags, its icon or the folder it sits in. A preset that moves is another preset from the same sound
   standing still. Rename one, retag it or move it to another folder and it is still the same preset,
   and the same sound saved twice under two names is one preset. That identity is an MD5 over the
   sound laid out byte by byte in `docs/notes/presets.md`, so anything that writes the same bytes
@@ -411,16 +411,16 @@ A VGM this application wrote therefore imports with its drums where they were.
   you can rename, change or delete any of it. A bank you delete stays deleted. When a newer version
   ships a bank that changed, it replaces your copy only where you left that copy exactly as it
   was written.
-- **67 of the Default bank's FM patches are by ulalume**, under CC0 and credited in the README:
+- **67 of the Default bank's FM presets are by ulalume**, under CC0 and credited in the README:
   pianos, guitars, basses, brass, strings, organs, pipes, tuned percussion, synth leads and pads,
   each tagged with the family it belongs to.
 - Four banks ship, read out of VGM recordings of the Sonic the Hedgehog 1, 2 and 3 soundtracks
-  and Mickey Mania, 374 patches in all. A patch is the value of a register at a key on, so
+  and Mickey Mania, 374 presets in all. An FM preset is the value of its registers at a key on, so
   forty two bytes of parameters the chip was set to, and what is in a bank is exactly what the
   chip was set to rather than an approximation of it. Every preset is tagged with the tracks it
   came out of, so you can search for the sound you remember by where you heard it.
 - **The bank every piece opens with is Default**, 140 presets: ulalume's 67 and 64 lifted out of
-  the finished pieces this program was written alongside, 35 FM patches, 14 square envelopes and
+  the finished pieces this program was written alongside, 35 FM presets, 14 square envelopes and
   15 noise ones. The FM channels get leads, basses, pads, plucks, bells, organs, guitars, brass and
   strings, and the square and noise channels get hats, crashes, rides, sweeps and shakers. Each is
   named for what it is for and tagged with what it is good for, such as `Bass`, `Pad`, `Bright` or
@@ -442,7 +442,7 @@ A VGM this application wrote therefore imports with its drums where they were.
   Every parameter counts once and each is worth how far apart the two are over how far apart
   they could be, so a total level four steps away costs almost nothing and another algorithm
   costs a whole field. Half a range apart on average reads as nothing in common, because two
-  patches picked at random sit a third of a range apart and would otherwise all read as two thirds
+  presets picked at random sit a third of a range apart and would otherwise all read as two thirds
   alike.
 - **A kit is a bank, and that is why each one is separate.** A drum note picks its hit by note out
   of the bank the sample channel's own preset sits in, so two kicks on the same key cannot share a
@@ -458,7 +458,7 @@ A VGM this application wrote therefore imports with its drums where they were.
   which is a convention rather than a limit of the machine, and you can set it to your own.
 - **A saved preset reaches every project.** Saving a channel as a preset writes it into your
   presets folder as a file of its own, and the browser offers it in every project from then on,
-  including projects made before it. It keeps everything the channel has: the whole patch with its
+  including projects made before it. It keeps everything the channel has: every FM register with its
   LFO depths, a square or noise envelope, or a sample with its loop. Saving again under the same
   name replaces it.
 - **Open folder**, on the preset browser's toolbar, opens the presets folder in your file
@@ -467,11 +467,11 @@ A VGM this application wrote therefore imports with its drums where they were.
   themselves: a preset sitting loose in one is a saved preset, while a subfolder you make inside
   one is a category of its own, named for the folder, and shows in the browser even while it is
   empty. A preset moved from one folder to another moves to that category as soon as you come back
-  to the window. Patch files and bank documents work in any folder, and a folder filled before
+  to the window. Preset files and bank documents work in any folder, and a folder filled before
   this layout is sorted into it once, the first time you open the program after the change.
 - **Organise it from the browser.** A preset in your folder can be renamed, retagged, given an
   icon, moved or copied into another category, or deleted from its right-click menu, and every
-  change is made to its file, so the folder and the browser always agree. A patch file given a
+  change is made to its file, so the folder and the browser always agree. A TFI file given a
   name or tags it has no room for becomes a preset file. **Copy to** also works on a preset that
   ships, which is how you get a copy of one to change. **New category**, on a family's right-click
   menu, makes a folder for one, and a category's own menu renames it, tags it or deletes it.
@@ -510,7 +510,7 @@ A VGM this application wrote therefore imports with its drums where they were.
   An older project opens as it was and sheds what it does not play the first time you save it.
   One piece here went from 289 presets and 52 recordings to 31 and 10, and the example project
   that ships from 67 to 41, sounding register for register the same.
-- **The folder is read once and remembered.** A folder of hundreds of patch files is hundreds of
+- **The folder is read once and remembered.** A folder of hundreds of preset files is hundreds of
   opens at every start, so what was read is kept beside your settings as one file and read back
   from there: 369 presets read in 0.9 ms rather than 27.6. Add, remove or change anything in the
   folder and it is read properly again, so nothing you do in the file manager is missed.
@@ -529,7 +529,7 @@ channel volume apart from the voice and adds it in at every key on. Loading one 
 sets its carriers to the level a driver rests at, which is 22, so that a velocity has
 somewhere to go and six channels together leave room above them. Measured across 112 register
 logs and 120300 key ons, a carrier stands at 22 when the note arrives, and only 18 of those
-key ons were at the top of the range. A patch read out of a recording or out of a TFI file is
+key ons were at the top of the range. A preset read out of a recording or out of a TFI file is
 left exactly as it was written, because it already carries the level it was played at.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -550,7 +550,7 @@ left exactly as it was written, because it already carries the level it was play
   own. Sample memory is a total, because that is what a cartridge carries.
 - **Warnings that link to their cause.** Click one and it selects the channel and the note. Among
   them are the two ways a piece is left sounding with nothing playing it. The first is a note whose
-  patch has a release rate of nought or one on a carrier, which is slower than anything a piece
+  preset has a release rate of nought or one on a carrier, which is slower than anything a piece
   waits for, so its key off is never heard. The second is a square or the noise channel held past
   its last note by a level lane, over the silence that note ended on. A driver hides the first by
   always keying on again in time, and a piece that stops does not.
@@ -610,7 +610,7 @@ faster or slower, or moves the grid under it instead.
   chips would otherwise click on. A sample that stops away from the middle, cut by its note or
   ending there, returns to the middle over 1.5 ms instead of stepping there. An FM channel still
   sounding is let go at its quickest 4 ms before its next note keys it on, so the phase that key
-  on resets starts about 50 dB down. A patch whose carriers attack slowly is left alone, because
+  on resets starts about 50 dB down. A preset whose carriers attack slowly is left alone, because
   it swells legato from wherever the last note left it. Every write this adds is one a driver on
   the machine could make, so an export carries it too. Both start on, and what an export writes
   follows what you are listening to until you set the export's own row, the same way the output
@@ -618,10 +618,10 @@ faster or slower, or moves the grid under it instead.
   read back register by register. The squares and the noise channel are left as they are: a
   square's output is a run of hard edges already, and a note starting or stopping adds no more to
   it than one of those edges does.
-- **Stop stuck notes**, in the export options, ends what nothing is playing: a note whose patch
+- **Stop stuck notes**, in the export options, ends what nothing is playing: a note whose preset
   cannot release is let go at the part's quickest rate where it ends, and the squares and the
   noise channel are written silent where the piece ends, which is what a level lane holding one
-  past its last note would otherwise leave sounding. It is off to start with, because what a patch
+  past its last note would otherwise leave sounding. It is off to start with, because what a preset
   does is what the part does, and a piece whose notes all let go renders the same either way. The
   warnings say when a piece needs it.
 - **Play through a driver**, in the View menu, holds a piece to what a sound driver on the console
@@ -678,11 +678,11 @@ faster or slower, or moves the grid under it instead.
 
 | Format | What comes across |
 | --- | --- |
-| **VGM** and **VGZ** | The register stream becomes notes, patches, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at. The exact frequency word is recorded at every key on, so vibrato and slides survive rather than being rounded to the nearest semitone |
+| **VGM** and **VGZ** | The register stream becomes notes, presets, square envelopes and samples. Timing is kept as the file wrote it rather than a tempo being guessed at. The exact frequency word is recorded at every key on, so vibrato and slides survive rather than being rounded to the nearest semitone |
 | **XGM** | Patterns and samples |
 | **MIDI** | Notes and tempo. A file is looked through before any of it arrives, so you pick which of its tracks and channels to take and which part each one plays, and take it either as a piece of its own or as one more track in the piece you have open |
 | **WAV** | Samples for the sample channel, resampled to the rate you ask for |
-| **TFI** | A single FM patch |
+| **TFI** | A single FM preset |
 | **MD Synth Preset File** and **MD Synth Preset Bank** | One preset or a whole bank, with every recording they play. They are added to your presets, and the piece you have open is left as it is |
 
 The VGM importer also analyses what it read: how many writes of each class the file makes, which
@@ -843,7 +843,7 @@ has no timeline: what you set applies to the whole video.
   sample sounds. Timing is rounded to the driver's frame, a sixtieth of a second, or a fiftieth
   for a piece at 50 Hz.
 - **MIDI**, which reads back as the notes it was written from.
-- **TFI**, one patch at a time.
+- **TFI**, one FM preset at a time.
 - **`.mdpreset`** and **`.mdbank`**, one preset or a whole bank of them, with the recordings.
 
 ### The project
