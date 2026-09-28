@@ -278,7 +278,7 @@ is always installed.
 | 简体中文 | `zh-CN` | machine translated |
 | 한국어 | `ko-KR` | machine translated |
 
-**Ten of these were translated by an AI and have not been read by a native speaker.** They
+**Eleven of these were translated by an AI and have not been read by a native speaker.** They
 were written to the terms each language's own music software uses rather than word by word
 from the English, and the wording is checked for nothing worse than that. Expect some of it to
 read oddly, and a few terms to be wrong outright. If one of them is your language, corrections
