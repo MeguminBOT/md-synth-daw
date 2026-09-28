@@ -295,7 +295,8 @@ final class Menus {
 
 	/**
 		@return The menu of time signatures for the chosen pattern, which fills itself as it opens:
-			the piece's, then the common ones, with the one the pattern follows ticked.
+			the piece's, then the common ones, then any other typed, with the one the pattern follows
+			ticked.
 	**/
 	function metered():Menu {
 		final out = new Menu();
@@ -327,15 +328,28 @@ final class Menus {
 
 		out.divide();
 
+		var listed = false;
+
 		for (index in 0...mdd.song.Meter.COMMON_BEATS.length) {
 			final beats = mdd.song.Meter.COMMON_BEATS[index];
 			final unit = mdd.song.Meter.COMMON_UNITS[index];
 			final choice = out.offer(new Choice(beats + "/" + unit));
 
 			choice.ticked = own != null && own.beats == beats && own.unit == unit;
+			if (choice.ticked) listed = true;
+
 			choice.onFire = function(from:Choice):Void
 				session.does(new mdd.song.edit.SetMeter(at, beats, unit));
 		}
+
+		out.divide();
+
+		final other = own != null && !listed;
+		final custom = out.offer(new Choice(said(Locale.PATTERN_METER_CUSTOM)
+			+ (other ? "  " + own.spelt() : "")));
+
+		custom.ticked = other;
+		custom.onFire = function(from:Choice):Void panels.meteredPattern(at);
 	}
 
 	/**

@@ -3368,9 +3368,8 @@ class SpineCheck {
 		final was = song.meter.spelt();
 		final snapped = session.snapping;
 		final depth = session.history.depth();
-		final pick = bar.listed()[0];
 
-		pick.set(1);
+		bar.beats.set(3);
 
 		final measured = song.bar();
 		final three = song.meter.spelt() == "3/4" && measured == ppqn * 3
@@ -3401,6 +3400,43 @@ class SpineCheck {
 			"3/4 made a bar " + measured + " ticks and read the fourth beat as " + readout
 			+ ", snapped a whole bar to " + whole + " and a twelfth to " + triplet + ", a pattern in"
 			+ " 7/8 kept its own bar beside the piece's, and undo put " + was + " back");
+
+		odd(session, bar);
+	}
+
+	/**
+		Any signature the two transport fields can say is one the piece takes, however odd, and a
+		signature typed for a pattern is read the way a score writes it or refused whole.
+
+		@param session The piece.
+		@param bar The transport bar.
+	**/
+	static function odd(session:Session, bar:TransportBar):Void {
+		final song = session.song;
+		final ppqn = song.tempo.ppqn;
+		final was = song.meter.spelt();
+		final depth = session.history.depth();
+
+		bar.unit.set(mdd.song.Meter.UNITS.indexOf(32));
+		bar.beats.set(11);
+
+		final taken = song.meter.spelt();
+		final measured = song.bar();
+		final steps = session.history.depth() - depth;
+
+		session.undo();
+		session.undo();
+
+		final back = song.meter.spelt() == was;
+		final read = mdd.song.Meter.read(" 11 / 32 ");
+		final refused = [for (said in ["33/8", "7/6", "0/4", "11/64", "7-8", "seven/8"])
+			if (mdd.song.Meter.read(said) == null) said].length;
+
+		says("and so does an odd one", taken == "11/32" && measured == Math.round(ppqn * 4 * 11 / 32)
+			&& steps == 2 && back && read != null && read.spelt() == "11/32" && refused == 6,
+			"the fields made " + taken + ", a bar of " + measured + " ticks in " + steps
+			+ " undo steps, undo put " + was + " back, and a typed signature read " + (read == null
+			? "nothing" : read.spelt()) + " and refused " + refused + " of 6 it cannot be");
 	}
 
 	static function laid(tree:Root):Void {

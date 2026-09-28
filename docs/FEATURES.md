@@ -56,7 +56,8 @@ steps through them. The **Pattern** menu has the rest:
 - **Delete** takes it out of the song along with every clip that played it. A song always keeps at
   least one pattern.
 - **Play it on** moves a pattern that holds one channel's notes onto another channel.
-- **Time signature** gives the pattern one of its own, or has it follow the piece.
+- **Time signature** gives the pattern one of its own, a common one in a click or any other typed
+  as a score writes it, such as 11/32, or has it follow the piece.
 - **Clear every channel** empties it.
 
 ### The playlist
@@ -108,9 +109,10 @@ note.
   time signature says. The roll and the transport bar offer the same divisions, and the one you
   pick is kept between sessions. A note you place lands on the step you pointed at, and one you
   drag goes to the nearest line.
-- A time signature for the piece, chosen on the transport bar from 2/4 to 7/4 and 3/8 to 12/8,
-  and one of its own for any pattern from the Pattern menu. It decides where bars fall in the
-  grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.
+- A time signature for the piece, set on the transport bar as its two numbers: 1 to 32 beats a bar,
+  dragged, scrolled or typed, over a whole note down to a thirty second, so 11/32 is as easy to set
+  as 3/4. Any pattern can have one of its own from the Pattern menu. It decides where bars fall in
+  the grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.
   Every other bar is shaded a little lighter, so where one ends can be seen at any zoom. A MIDI
   file's time signature is read when it is imported and written when one is exported.
 - `Ctrl` and the wheel to zoom, as far out as a bar four pixels wide and as far in as one

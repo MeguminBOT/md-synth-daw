@@ -452,6 +452,33 @@ final class Panels {
 	}
 
 	/**
+		Asks for a time signature for a pattern, typed the way a score writes it, and gives the
+		pattern that one. What cannot be a signature is refused with a word on the status bar.
+
+		@param which Which pattern, by index.
+	**/
+	public function meteredPattern(which:Int):Void {
+		final held = session.song.patternAt(which);
+		if (held == null || naming == null) return;
+
+		final now = held.meter == null ? session.song.meter : held.meter;
+
+		naming.ask(stage.root.translate(Locale.PATTERN_METER), now.spelt());
+		naming.onName = function(said:String):Void {
+			final meter = mdd.song.Meter.read(said);
+
+			if (meter == null) {
+				session.says(Locale.SAID_METER_WRONG);
+				return;
+			}
+
+			session.does(new mdd.song.edit.SetMeter(which, meter.beats, meter.unit));
+		};
+
+		stage.root.raise(naming);
+	}
+
+	/**
 		Asks for the tags of a preset and applies them.
 
 		@param which Which preset, by index.

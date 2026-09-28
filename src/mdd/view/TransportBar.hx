@@ -104,10 +104,16 @@ final class TransportBar extends Widget {
 	final video:Dropdown;
 
 	/**
-		The piece's time signature: one of those commonly used, or, last, whatever else the piece
-		carries.
+		How many beats a bar of the piece holds, the upper number of its time signature, typed or
+		dragged.
 	**/
-	final meter:Dropdown;
+	public final beats:Number;
+
+	/**
+		What note a beat of the piece is, the lower number of its time signature, as a place in
+		`Meter.UNITS`.
+	**/
+	public final unit:Dropdown;
 
 	/**
 		The chip's LFO: nought is off, and one to eight are its eight rates. The part has one LFO for
@@ -148,8 +154,6 @@ final class TransportBar extends Widget {
 	var menu:Null<Menu> = null;
 	var settling:Bool = false;
 	var namedRate:Int = 0;
-	var namedBeats:Int = 0;
-	var namedUnit:Int = 0;
 
 	final triangle:haxe.ds.Vector<Float> = new haxe.ds.Vector<Float>(6);
 
@@ -178,23 +182,20 @@ final class TransportBar extends Widget {
 		final song = session.song;
 
 		tempo = new Number("", Math.round(song.tempo.beatsAt(0)), 20, 400);
-		meter = new Dropdown("", 0, Meter.COMMON_BEATS.length);
+		beats = new Number("", song.meter.beats, 1, Meter.MOST_BEATS);
+		unit = new Dropdown("/", unitIndex(song.meter.unit), Meter.UNITS.length);
 		resolution = new Number("", song.tempo.ppqn, 24, 48000);
 		video = new Dropdown("", song.tempo.rate == 50 ? 0 : 1, 2);
 		lfo = new Dropdown("", lfoIndex(song), 9);
 		snap = new Dropdown("", snapIndex(), SNAPS.length);
 		offset = new Number("", song.offset, -960, 960);
 
-		held = [tempo, meter, resolution, video, lfo, snap, offset];
-		numbers = [tempo, resolution, offset];
-		dropdowns = [meter, video, lfo, snap];
+		held = [tempo, beats, unit, resolution, video, lfo, snap, offset];
+		numbers = [tempo, beats, resolution, offset];
+		dropdowns = [unit, video, lfo, snap];
 
-		signed();
-
-		meter.named = function(value:Int):String
-			return value < Meter.COMMON_BEATS.length
-				? Meter.COMMON_BEATS[value] + "/" + Meter.COMMON_UNITS[value]
-				: session.song.meter.spelt();
+		unit.named = function(value:Int):String
+			return value >= 0 && value < Meter.UNITS.length ? Std.string(Meter.UNITS[value]) : "4";
 
 		video.named = function(value:Int):String return value == 0 ? "50 Hz" : "60 Hz";
 		lfo.named = function(value:Int):String
@@ -210,8 +211,10 @@ final class TransportBar extends Widget {
 		offset.label = "SHIFT";
 
 		tempo.tipKey = Locale.TRANSPORT_TEMPO;
-		meter.tipKey = Locale.TRANSPORT_METER;
-		meter.detailKey = Locale.TRANSPORT_METER_DETAIL;
+		beats.tipKey = Locale.TRANSPORT_METER;
+		beats.detailKey = Locale.TRANSPORT_METER_BEATS;
+		unit.tipKey = Locale.TRANSPORT_METER;
+		unit.detailKey = Locale.TRANSPORT_METER_UNIT;
 		resolution.tipKey = Locale.TRANSPORT_TICKS;
 		resolution.detailKey = Locale.TRANSPORT_TICKS_DETAIL;
 		video.tipKey = Locale.TRANSPORT_FRAMES;
@@ -225,7 +228,8 @@ final class TransportBar extends Widget {
 		for (field in held) add(field);
 
 		tempo.onChange = function(from:Number):Void tempoChanged(from);
-		meter.onChange = function(from:Dropdown):Void meterChanged(from);
+		beats.onChange = function(from:Number):Void meterChanged();
+		unit.onChange = function(from:Dropdown):Void meterChanged();
 		resolution.onChange = function(from:Number):Void resolutionChanged(from);
 		video.onChange = function(from:Dropdown):Void videoChanged(from);
 		lfo.onChange = function(from:Dropdown):Void lfoChanged(from);
@@ -334,35 +338,31 @@ final class TransportBar extends Widget {
 	}
 
 	/**
-		Puts the piece's time signature on its field: its place among the common ones, or an entry
-		of its own after them where it is none of those.
+		Puts the piece's time signature on its two fields.
 	**/
 	function signed():Void {
-		final at = session.song.meter.common();
-		final many = Meter.COMMON_BEATS.length;
-
-		meter.counts(at < 0 ? many + 1 : many);
-		meter.set(at < 0 ? many : at);
-
-		final held = session.song.meter;
-
-		if (held.beats != namedBeats || held.unit != namedUnit) {
-			namedBeats = held.beats;
-			namedUnit = held.unit;
-			meter.renamed();
-		}
+		beats.set(session.song.meter.beats);
+		unit.set(unitIndex(session.song.meter.unit));
 	}
 
 	/**
-		Changes the piece's time signature, as one step on the undo stack.
-
-		@param from The field that changed.
+		@param unit A lower number of a time signature.
+		@return Its place in `Meter.UNITS`, or the quarter's where it is none of them.
 	**/
-	function meterChanged(from:Dropdown):Void {
-		if (settling || from.value >= Meter.COMMON_BEATS.length) return;
+	static function unitIndex(unit:Int):Int {
+		final at = Meter.UNITS.indexOf(unit);
+		return at < 0 ? Meter.UNITS.indexOf(4) : at;
+	}
 
-		final beats = Meter.COMMON_BEATS[from.value];
-		final unit = Meter.COMMON_UNITS[from.value];
+	/**
+		Changes the piece's time signature to what the two fields say, as one step on the undo
+		stack.
+	**/
+	function meterChanged():Void {
+		if (settling) return;
+
+		final beats = this.beats.value;
+		final unit = Meter.UNITS[this.unit.value];
 		final held = session.song.meter;
 
 		if (held.beats == beats && held.unit == unit) return;

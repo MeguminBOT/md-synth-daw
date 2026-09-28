@@ -264,8 +264,10 @@ changes what you hear, never what is exported.
 
 ![The right half of the transport bar](images/manual/basics/getting-started/04-transport-right.png)
 
-The tempo is in **BPM**, and **PPQN** is the number of ticks in a quarter note. **SHIFT** moves every
-note, clip and automation point by a number of ticks.
+The tempo is in **BPM**. The time signature is two fields: drag, scroll or type the upper number,
+from 1 to 32 beats, and pick the lower one, from a whole note down to a thirty second, so 11/32 is as
+easy as 4/4. **PPQN** is the number of ticks in a quarter note. **SHIFT** moves every note, clip and
+automation point by a number of ticks.
 
 ![A row of the channel rack](images/manual/basics/getting-started/05-channel-rack.png)
 
@@ -371,7 +373,7 @@ commands, and a few more:
 | Add to the playlist | put a clip of it after the last clip on the first track |
 | Delete | take it out, with every clip that plays it |
 | Play it on | move a pattern that holds one channel's notes onto another channel |
-| Time signature | give the pattern one of its own, or follow the song |
+| Time signature | give the pattern one of its own, a common one or any typed under **Custom**, or follow the song |
 | Clear every channel | empty it |
 
 ![A clip's corner menu](images/manual/basics/patterns-playlist/04-a-clips-menu.png)
