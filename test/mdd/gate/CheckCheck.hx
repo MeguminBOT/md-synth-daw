@@ -20,6 +20,39 @@ class CheckCheck {
 	static var ran:Int = 0;
 
 	/**
+		A note on the third square under a tuned noise note is the one that cannot sound; a note
+		after it, or under a noise on another rate, can.
+	**/
+	static function lentThird():Void {
+		final song = new mdd.song.Song("lent", 96, 120);
+		final pattern = song.add(new mdd.song.Pattern("lent", 384));
+		final tuned = song.instrument(new Instrument("tuned", Part.Noise));
+
+		tuned.envelope.steps.push(0);
+		tuned.envelope.noise = 7;
+		song.rack[Part.Noise.index()] = song.instruments.length - 1;
+
+		pattern.lane(Part.Noise).add(new Note(0, 96, 48));
+		pattern.lane(Part.Psg3).add(new Note(48, 96, 60));
+		pattern.lane(Part.Psg3).add(new Note(192, 96, 62));
+
+		final budget = new Budget(Profile.megaDrive());
+		budget.overSong(song);
+
+		final held = [for (found in budget.found) if (found.saying == mdd.app.Locale.WARN_NOISE_HOLDS_THREE) found];
+
+		tuned.envelope.noise = 6;
+		budget.overSong(song);
+
+		final plain = [for (found in budget.found) if (found.saying == mdd.app.Locale.WARN_NOISE_HOLDS_THREE) found];
+
+		says("a tuned noise holds PSG3", held.length == 1 && held[0].note == pattern.lane(Part.Psg3).notes[0]
+			&& plain.length == 0,
+			"one PSG3 note under a noise on the square's rate is flagged, and none once the noise"
+			+ " takes a rate of its own");
+	}
+
+	/**
 		Channel three playing a note on each operator holds four overlapping notes without a
 		warning, and a fifth is the one that cannot sound.
 	**/
@@ -52,6 +85,7 @@ class CheckCheck {
 		ran = 0;
 
 		fourVoiced();
+		lentThird();
 
 		Sys.println("  check");
 

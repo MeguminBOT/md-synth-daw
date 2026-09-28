@@ -29,6 +29,7 @@ class PsgCheck {
 		noise();
 		periodic();
 		rates();
+		tuned();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -196,6 +197,38 @@ class PsgCheck {
 		}
 
 		same("periodic noise", high, 64, "high one shift in sixteen across 1024");
+	}
+
+	/**
+		Periodic noise clocked from the third square repeats once every sixteen shifts, and shifts
+		each time the square flips, so it sounds three octaves below the square: its period is
+		eight of the square's.
+	**/
+	static function tuned():Void {
+		final psg = silent();
+
+		psg.write(LATCH | VOLUME3 | 0x00);
+		psg.write(LATCH | TONE2 | 0x00);
+		psg.write(0x04);
+		psg.write(LATCH | NOISE | 0x03);
+
+		final rises:Array<Int> = [];
+		var was = 0;
+
+		for (step in 0...(0x40 * 2 * 8 * 6)) {
+			psg.sample();
+
+			final now = psg.voice(3) > 0 ? 1 : 0;
+			if (now == 1 && was == 0) rises.push(step);
+			was = now;
+		}
+
+		final period = rises.length < 2 ? 0 : rises[rises.length - 1] - rises[rises.length - 2];
+		final square = 0x40 * 2;
+
+		says("tuned noise is 3 octaves down", period == square * 8,
+			"periodic noise off a third square of period 64 repeats every " + period
+			+ " steps, " + (square == 0 ? 0 : Std.int(period / square)) + " times the square's " + square);
 	}
 
 	static function rates():Void {

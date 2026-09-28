@@ -37,6 +37,7 @@ class StreamCheck {
 		polyphony();
 		moded();
 		quartered();
+		lent();
 		identical();
 		commands();
 		faces();
@@ -845,6 +846,107 @@ class StreamCheck {
 			keys.join(" ") == "12 32 72 F2 E2 C2 82 02" && words.join(" ") == wanted.join(" "),
 			"key writes " + keys.join(" ") + ", and operators one to four tuned to "
 			+ words.join(", ") + " for C4, E4, G4 and B4, with the fifth note left out");
+	}
+
+	/**
+		A note on the noise channel with its preset on the rate that follows the third square: the
+		square is tuned to put the noise on the note and silenced, its own note under the noise is
+		not heard again, and its next note plays as written. An audition does the same.
+	**/
+	static function lent():Void {
+		final song = new Song("tuned noise", 96, 120);
+		final beat = song.tempo.ppqn;
+		final pattern = song.add(new Pattern("noise", beat * 4));
+
+		final snare = song.instrument(new Instrument("tuned", Part.Noise));
+		snare.envelope.steps.push(0);
+		snare.envelope.noise = 3;
+		song.rack[Part.Noise.index()] = song.instruments.length - 1;
+
+		final square = song.instrument(new Instrument("square", Part.Psg3));
+		for (step in 0...12) square.envelope.steps.push(step);
+		square.envelope.speed = 2;
+		song.rack[Part.Psg3.index()] = song.instruments.length - 1;
+
+		pattern.lane(Part.Noise).add(new Note(0, beat, 48, 100));
+		pattern.lane(Part.Psg3).add(new Note(0, beat * 3, 60, 100));
+		pattern.lane(Part.Psg3).add(new Note(beat * 3, beat, 62, 100));
+		song.track(new Track("noise")).add(new Clip(song.patterns.length - 1, 0, pattern.length));
+
+		final stream = new Stream(1 << 16);
+		new Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(pattern.length));
+
+		final tones:Array<String> = [];
+		var quietAt = -1;
+		var heardInside = 0;
+		var low = -1;
+		var latch = -1;
+		var tick = 0;
+
+		final third = song.tempo.samplesAt(beat * 3);
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != Stream.PSG) continue;
+
+			final value = stream.valueAt(index);
+
+			if ((value & 0x80) != 0) {
+				latch = value;
+				tick = stream.tickAt(index);
+
+				if ((value & 0xF0) == 0xC0) low = value & 0x0F;
+
+				if ((value & 0xF0) == 0xD0) {
+					if ((value & 0x0F) == 15 && quietAt < 0) quietAt = tick;
+					else if ((value & 0x0F) < 15 && quietAt >= 0 && tick < third) heardInside++;
+				}
+
+				continue;
+			}
+
+			if ((latch & 0xF0) == 0xC0 && low >= 0) {
+				tones.push(Std.string(low | ((value & 0x3F) << 4)) + (tick == 0 ? "" : "@3"));
+				low = -1;
+			}
+		}
+
+		final wanted = [Stream.periodOf(60), Stream.periodOf(48 + Stream.NOISE_BELOW),
+			Stream.periodOf(62)].join(" ");
+		final got = tones.join(" ").split("@3").join("");
+
+		says("a tuned noise takes PSG3's pitch", got == wanted && quietAt == 0 && heardInside == 0,
+			"PSG3 periods " + tones.join(" ") + " where " + wanted + " are its note, the noise's"
+			+ " and its next, silenced at the noise's start and never heard again before its next note");
+
+		final transport = new mdd.play.Transport(song, 1 << 16);
+
+		transport.auditions(Part.Noise, 50);
+		transport.advance(128, 48000);
+
+		final heard = transport.stream;
+		var period = -1;
+		var quiet = false;
+
+		latch = -1;
+		low = -1;
+
+		for (index in 0...heard.count) {
+			if (heard.kindAt(index) != Stream.PSG) continue;
+
+			final value = heard.valueAt(index);
+
+			if ((value & 0x80) != 0) {
+				latch = value;
+				if ((value & 0xF0) == 0xC0) low = value & 0x0F;
+				if (value == 0xDF) quiet = true;
+				continue;
+			}
+
+			if ((latch & 0xF0) == 0xC0 && low >= 0) period = low | ((value & 0x3F) << 4);
+		}
+
+		says("and so does an audition", period == Stream.periodOf(50 + Stream.NOISE_BELOW) && quiet,
+			"pressing 50 on NOISE writes PSG3 period " + period + " and silences it");
 	}
 
 	static function polyphony():Void {

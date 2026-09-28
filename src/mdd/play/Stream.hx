@@ -227,7 +227,10 @@ final class Stream {
 	**/
 	var packed:Vector<Int>;
 
-	var noised:Int = -1;
+	/**
+		The noise control byte last written, or -1 where it is not known.
+	**/
+	public var noised(default, null):Int = -1;
 	final settled:Vector<Int> = new Vector<Int>(512);
 
 	/**
@@ -803,6 +806,33 @@ final class Stream {
 
 		noised = byte;
 		psg(tick, byte);
+	}
+
+	/**
+		How far below the third square's pitch a noise it clocks sounds, in semitones. The noise
+		shifts each time the square flips, and periodic noise repeats every sixteen shifts, which is
+		three octaves.
+	**/
+	public static inline final NOISE_BELOW = 36;
+
+	/**
+		@return Whether the noise channel takes its rate from the third square, so a note on it
+			has a pitch.
+	**/
+	public inline function tunedNoise():Bool {
+		return noised >= 0 && (noised & 3) == 3;
+	}
+
+	/**
+		Gives a note on the noise channel its pitch through the third square: the square is tuned
+		`NOISE_BELOW` above the note, which is where the noise sounds it, and silenced.
+
+		@param tick When the writes happen, in output samples from the start of the span.
+		@param pitch The note the noise plays.
+	**/
+	public function lends(tick:Int, pitch:Int):Void {
+		square(tick, Part.Psg3, pitch + NOISE_BELOW);
+		attenuate(tick, Part.Psg3, 15);
 	}
 
 	/**

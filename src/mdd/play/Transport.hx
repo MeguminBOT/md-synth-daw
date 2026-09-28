@@ -586,6 +586,8 @@ final class Transport {
 					stream.noise(at, instrument.envelope.noise, false);
 				}
 
+				if (stream.tunedNoise()) stream.lends(at, heardNote);
+
 				stream.loudness(at, part, instrument == null ? null : instrument.envelope,
 					velocity, 0);
 			}

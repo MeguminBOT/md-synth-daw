@@ -338,6 +338,17 @@ final class Sequencer {
 	var modeSet:Int = 0;
 
 	/**
+		What holds the third square: nothing, a note on the noise channel that has taken its pitch,
+		or nothing yet since one did. The square stays silent until its own next note starts, so a
+		note of its own that the noise cut into does not come back at the noise's pitch.
+	**/
+	var third:Int = THIRD_FREE;
+
+	static inline final THIRD_FREE = 0;
+	static inline final THIRD_LENT = 1;
+	static inline final THIRD_WAITING = 2;
+
+	/**
 		Until which tick each of channel three's operators is holding a note, while it plays one on
 		each.
 	**/
@@ -517,6 +528,7 @@ final class Sequencer {
 	**/
 	public function quiets():Void {
 		for (index in 0...Part.COUNT) owed[index] = 0;
+		third = THIRD_FREE;
 	}
 
 	/**
@@ -1968,6 +1980,7 @@ final class Sequencer {
 
 		for (index in 0...Part.COUNT) keyedAt[index] = -1;
 		reached = fromSample;
+		third = THIRD_FREE;
 
 		tracked();
 
@@ -2609,9 +2622,15 @@ final class Sequencer {
 			final origin = origins[at];
 
 			if (origin >= 0 && origin < keyedAt[part.index()]) continue;
+			if (part == Part.Psg3 && third != THIRD_FREE) {
+				if (third == THIRD_WAITING && kinds[at] == PATCH) third = THIRD_FREE;
+				else continue;
+			}
 
 			switch (kinds[at]) {
 				case OFF:
+					if (part.noise() && third == THIRD_LENT) third = THIRD_WAITING;
+
 					if (second == FADE) stream.fades(tick, part);
 					else {
 						if (second == HUSH) stream.fades(tick, part);
@@ -2643,6 +2662,10 @@ final class Sequencer {
 					else if (second == 1) stream.frequency(tick, part, first);
 					else if (part.fm()) stream.tune(tick, part, first);
 					else if (part.square()) stream.square(tick, part, first);
+					else if (part.noise() && stream.tunedNoise()) {
+						stream.lends(tick, first);
+						third = THIRD_LENT;
+					}
 
 				case ON:
 					if (part.fm()) stream.keyOn(tick, part);

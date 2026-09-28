@@ -12,6 +12,7 @@ says so.
 - [Attenuation is two decibels a step](#attenuation-is-two-decibels-a-step)
 - [A period of zero holds the output high](#a-period-of-zero-holds-the-output-high)
 - [The noise register is sixteen bits and does not repeat where anyone expects](#the-noise-register-is-sixteen-bits-and-does-not-repeat-where-anyone-expects)
+- [Noise clocked by the third square sounds 3 octaves below it](#noise-clocked-by-the-third-square-sounds-3-octaves-below-it)
 - [A note's edge is one more edge](#a-notes-edge-is-one-more-edge)
 - [What this does not cover](#what-this-does-not-cover)
 
@@ -85,6 +86,20 @@ model to it exactly rather than to a threshold.
 
 The shift rate is the low two bits of the noise control register: once every 10h, 20h or 40h counts,
 or the third channel's own period.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Noise clocked by the third square sounds 3 octaves below it
+
+With the rate bits at 3, the noise register shifts each time the third channel's counter runs out,
+which is each time that square flips: twice a cycle. Periodic noise is one pulse in every 16 shifts,
+so it repeats once every 8 of the square's cycles and sounds 3 octaves below it.
+
+Measured on the part as modelled: a third channel at period 64 flips every 64 counts, a cycle of
+128, and periodic noise clocked from it repeats every 1024 counts. `PsgCheck` holds that ratio
+exactly. A note on the noise channel on this rate tunes the third square 36 semitones above the note
+for that reason, which puts periodic noise on the note written, and silences the square. White noise
+has no period to land on, so the same tuning only sets how bright it is.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

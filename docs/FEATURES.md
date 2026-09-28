@@ -289,8 +289,14 @@ Total level   OP4   register $4C   value 12   -9 dB
 ### Squares and noise
 
 Attenuation, tone period and the noise mode, with a shaped envelope per channel. The noise channel
-can take its period from the third square, which is one of the four rates the part's noise register
-offers.
+can take its rate from the third square, which is the last of the four rates the part's noise
+register offers: **3** on the Noise dial for periodic noise, and **7** for white.
+
+**A noise on that rate plays every note at its own pitch.** Write notes on NOISE with such a preset
+and each one tunes the third square, which is what clocks the noise, and keeps PSG3 silent while it
+sounds, the way the sample channel takes FM6. Periodic noise sounds 3 octaves below the square
+that clocks it, and that is allowed for, so a note sounds where it is written. A PSG3 note the noise
+cuts into stays silent until PSG3's next note, and the warnings point it out.
 
 ### Samples
 

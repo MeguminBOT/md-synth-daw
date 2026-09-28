@@ -400,6 +400,8 @@ final class Budget {
 			droning(index, part, lane, pattern.length);
 		}
 
+		lends(song, index, pattern);
+
 		final dac = pattern.lane(Part.Dac);
 		final sixth = pattern.lane(Part.Fm6);
 
@@ -438,6 +440,36 @@ final class Budget {
 			}
 
 			busy[slot] = note.ends();
+		}
+	}
+
+	/**
+		Finds notes on the third square that a note on the noise channel silences by taking its
+		pitch, which a noise preset on the rate that follows the third square does.
+
+		@param song The song, for the preset each noise note plays.
+		@param index Which pattern.
+		@param pattern The pattern.
+	**/
+	function lends(song:Song, index:Int, pattern:mdd.song.Pattern):Void {
+		final noise = pattern.lane(Part.Noise);
+		final third = pattern.lane(Part.Psg3);
+		if (noise.notes.length == 0 || third.notes.length == 0) return;
+
+		for (note in third.notes) {
+			for (tuned in noise.notes) {
+				if (note.at >= tuned.ends() || tuned.at >= note.ends()) continue;
+
+				final named = tuned.instrument >= 0 ? tuned.instrument : song.rack[Part.Noise.index()];
+				final instrument = song.instrumentAt(named);
+				final envelope = instrument == null ? null : instrument.envelope;
+				if (envelope == null || (envelope.noise & 3) != 3) continue;
+
+				raise(Diagnostic.FAULT, Part.Psg3, note.at, Locale.WARN_NOISE_HOLDS_THREE,
+					Locale.WARN_NOISE_HOLDS_THREE_WHY, Locale.WARN_NOISE_HOLDS_THREE_FIX, [], index,
+					note);
+				break;
+			}
 		}
 	}
 
