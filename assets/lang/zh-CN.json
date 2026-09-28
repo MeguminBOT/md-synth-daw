@@ -481,6 +481,7 @@
   "param.level": "该算子的音量，跟随音符自身的力度",
   "param.loop": "算子的 SSG 包络模式",
   "param.noise": "该通道发出哪种噪声，以及快慢",
+  "param.operatorPitch": "FM3 某个算子的音高，在 FM3 同时演奏四个音时可以听到",
   "param.packed": "这个寄存器承载不止一项设置，因此一个点会保持其取值直到下一个点",
   "param.period": "音高相对音符偏离多少，以周期为单位",
   "param.pitch": "音高偏离音符的程度，以音分计，1200 为一个八度",

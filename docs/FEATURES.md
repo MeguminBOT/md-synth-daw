@@ -246,8 +246,10 @@ FM3 take an operator each, up to four, and a fifth at once is not played. Each n
 operator and sets that operator's level from its velocity, and the note that starts a chord loads
 the preset for all of them. With algorithm 7, where every operator is heard, that is four notes of
 one sound. With another algorithm, a note on a modulator changes how the others sound rather than
-being heard itself. The switch is saved with the project and can be undone, and an imported VGM that
-uses the mode plays it.
+being heard itself. FM3 also has a pitch lane for each of its first three operators, **OP1 FREQ** to
+**OP3 FREQ**, which read as notes and set that operator's pitch exactly, the way an imported VGM
+does. The switch is saved with the project and can be undone, and an imported VGM that uses the mode
+plays it.
 
 The **Channels** menu unmutes or unsolos every channel, mutes every channel but the chosen one, or
 clears the chosen one. The **Instrument** menu copies, pastes or resets the chosen channel's preset,

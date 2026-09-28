@@ -481,6 +481,7 @@
   "param.level": "Wie laut der Operator ist, mitlaufend zur Anschlagstärke der Note",
   "param.loop": "Der SSG-Hüllkurvenmodus des Operators",
   "param.noise": "Welches Rauschen der Kanal macht, und wie schnell",
+  "param.operatorPitch": "Die Tonhöhe eines Operators von FM3, zu hören, während FM3 vier Noten gleichzeitig spielt",
   "param.packed": "Dieses Register trägt mehr als eine Einstellung, ein Punkt hält seinen Wert also bis zum nächsten",
   "param.period": "Wie weit die Tonhöhe von der Note abweicht, in Perioden-Schritten",
   "param.pitch": "Wie weit die Tonhöhe von der Note abweicht, in Cent, wobei 1200 eine Oktave ist",

@@ -481,6 +481,7 @@
   "param.level": "Cuánto suena el operador, siguiendo la velocidad de la propia nota",
   "param.loop": "El modo de envolvente SSG del operador",
   "param.noise": "Qué ruido hace el canal, y a qué velocidad",
+  "param.operatorPitch": "La altura de uno de los operadores de FM3, que se oye mientras FM3 toca cuatro notas a la vez",
   "param.packed": "Este registro lleva más de un ajuste, así que un punto mantiene su valor hasta el siguiente",
   "param.period": "Cuánto se aparta el tono de la nota, en pasos de periodo",
   "param.pitch": "Cuánto se aleja la altura de la nota, en cents, donde 1200 es una octava",

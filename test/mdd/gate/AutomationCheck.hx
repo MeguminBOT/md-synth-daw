@@ -18,12 +18,59 @@ class AutomationCheck {
 	static var failed:Int = 0;
 	static var ran:Int = 0;
 
+	/**
+		FM3 has a pitch lane for each of its first three operators, whose values read as notes, and
+		a point on one reaches that operator's own frequency register.
+	**/
+	static function operated():Void {
+		final listed = [for (held in mdd.view.Parameter.of(Part.Fm3)) if (held.worded) held.name + " " + held.slot];
+		final others = [for (held in mdd.view.Parameter.of(Part.Fm1)) if (held.worded) held].length;
+		final first = mdd.view.Parameter.found(Part.Fm3, Automation.TUNE, 2);
+		final shown = first == null ? "" : first.said(mdd.play.Stream.wordOf(69));
+
+		final song = new Song("lanes", 96, 120);
+		final pattern = song.add(new Pattern("lanes", 384));
+		final line = new Automation(Automation.TUNE, 2);
+
+		song.mode = 0x40;
+		line.add(new Point(0, mdd.play.Stream.wordOf(72)));
+		pattern.lane(Part.Fm3).automation.push(line);
+		song.track(new mdd.song.Track("lanes")).add(new mdd.song.Clip(song.patterns.length - 1, 0, 384));
+
+		final stream = new mdd.play.Stream(1 << 16);
+		new mdd.play.Sequencer(song).spanned(stream, 0, song.tempo.samplesAt(96));
+
+		var address = -1;
+		var high = -1;
+		var low = -1;
+
+		for (index in 0...stream.count) {
+			if (stream.kindAt(index) != mdd.play.Stream.YM) continue;
+
+			if (stream.portAt(index) == 0) {
+				address = stream.valueAt(index);
+				continue;
+			}
+
+			if (address == 0xAD) high = stream.valueAt(index);
+			if (address == 0xA9) low = stream.valueAt(index);
+		}
+
+		final word = high < 0 || low < 0 ? -1 : ((high & 0x3F) << 8) | low;
+
+		says("FM3 has a pitch lane per operator", listed.join(", ") == "OP1 FREQ 2, OP2 FREQ 3, OP3 FREQ 1"
+			&& others == 0 && shown == "A4" && word == mdd.play.Stream.wordOf(72),
+			listed.join(", ") + " on FM3 and none on FM1, note 69's word reads " + shown
+			+ ", and a point of C5 on OP1's lane writes " + word + " to $A9");
+	}
+
 	public static function run(args:Array<String>):Int {
 		failed = 0;
 		ran = 0;
 
 		Sys.println("  automation");
 
+		operated();
 		ends();
 		middles();
 		bent();
@@ -1476,6 +1523,7 @@ class AutomationCheck {
 		}
 
 		final fm = mdd.view.Parameter.of(Part.Fm1).length;
+		final three = mdd.view.Parameter.of(Part.Fm3).length;
 		final square = mdd.view.Parameter.of(Part.Psg1).length;
 		final noise = mdd.view.Parameter.of(Part.Noise).length;
 		final sampled = mdd.view.Parameter.of(Part.Dac).length;
@@ -1498,11 +1546,11 @@ class AutomationCheck {
 			+ mdd.play.Driver.PER_FRAME + " a driver has");
 
 		says("every part says what can be automated on it",
-			fm == 11 && square == 3 && noise == 3 && sampled == 1 && packed == 44,
-			many + " parameters over the eleven parts: " + fm + " on an fm channel, "
-			+ square + " on a square, " + noise + " on the noise and " + sampled
+			fm == 11 && three == 14 && square == 3 && noise == 3 && sampled == 1 && packed == 47,
+			many + " parameters over the eleven parts: " + fm + " on an fm channel and " + three
+			+ " on FM3, " + square + " on a square, " + noise + " on the noise and " + sampled
 			+ " on the converter. " + packed + " of them are registers carrying more than"
-			+ " one setting, where a ramp would run one field into another, so they step");
+			+ " one setting, or a pitch word whose ramp would cross octaves, so they step");
 
 		final where = Gate.root + "/vendor/vgm";
 		if (!sys.FileSystem.isDirectory(where)) return;

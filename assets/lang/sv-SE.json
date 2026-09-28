@@ -481,6 +481,7 @@
   "param.level": "Hur stark operatorn är, ovanpå tonens egen anslagsstyrka",
   "param.loop": "Operatorns SSG-envelopläge",
   "param.noise": "Vilket brus kanalen gör, och hur snabbt",
+  "param.operatorPitch": "Tonhöjden för en av FM3:s operatorer, hörs medan FM3 spelar fyra toner samtidigt",
   "param.packed": "Det här registret bär mer än en inställning, så en punkt håller sitt värde till nästa",
   "param.period": "Hur långt tonhöjden ligger från tonen, i periodsteg",
   "param.pitch": "Hur långt tonhöjden ligger från tonen, i cent, där 1200 är en oktav",

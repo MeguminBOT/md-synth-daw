@@ -67,6 +67,11 @@ final class Parameter {
 	**/
 	public var decibels(default, null):Float;
 
+	/**
+		Whether a value is a block and frequency word, which is shown as the note it sounds.
+	**/
+	public var worded(default, null):Bool;
+
 	var titles:Array<String> = [];
 
 	/**
@@ -91,6 +96,7 @@ final class Parameter {
 		smooth = false;
 		operators = false;
 		decibels = 0;
+		worded = false;
 	}
 
 	static function made(target:Int, slot:Int, low:Int, high:Int, name:String,
@@ -121,6 +127,14 @@ final class Parameter {
 	function slotted():Parameter {
 		operators = true;
 		titles = [for (index in 0...4) name + " " + (index + 1)];
+		return this;
+	}
+
+	/**
+		@return The same parameter, marked as holding block and frequency words.
+	**/
+	function words():Parameter {
+		worded = true;
 		return this;
 	}
 
@@ -164,9 +178,26 @@ final class Parameter {
 			has them.
 	**/
 	public function said(value:Int):String {
+		if (worded) return pitchOf(value);
 		if (decibels == 0) return (offset && value > 0 ? "+" : "") + value;
 
 		return (offset && value > 0 ? "+" : "") + value + "  " + Decibels.spelt(-value * decibels, 1);
+	}
+
+	/**
+		@param word A block and frequency word.
+		@return The note it sounds and how far from it, in cents, or the raw word where it sounds
+			nothing.
+	**/
+	static function pitchOf(word:Int):String {
+		final hertz = mdd.play.Stream.hertzOf(word);
+		if (hertz <= 0) return "" + word;
+
+		final exact = 69 + 12 * Math.log(hertz / 440) / Math.log(2);
+		final nearest = Math.round(exact);
+		final cents = Math.round((exact - nearest) * 100);
+
+		return mdd.song.Notation.spelt(nearest, 0) + (cents == 0 ? "" : (cents > 0 ? "  +" : "  ") + cents);
 	}
 
 	/**
@@ -175,6 +206,7 @@ final class Parameter {
 	static inline final PRESETS = 1023;
 
 	static final FM:Array<Parameter> = fm();
+	static final FM_THREE:Array<Parameter> = fmThree();
 	static final SQUARE:Array<Parameter> = square();
 	static final NOISE:Array<Parameter> = noise();
 	static final SAMPLED:Array<Parameter> = sampled();
@@ -236,6 +268,7 @@ final class Parameter {
 		@return Every parameter that part has, built once per call.
 	**/
 	public static function of(part:Part):Array<Parameter> {
+		if (part == Part.Fm3) return FM_THREE;
 		if (part.fm()) return FM;
 		if (part.square()) return SQUARE;
 		if (part.noise()) return NOISE;
@@ -277,6 +310,25 @@ final class Parameter {
 			made(Automation.WIRING, 0, 0, 63, "FB ALG", Locale.PARAM_WIRING),
 			made(Automation.INSTRUMENT, 0, 0, PRESETS, "PRESET", Locale.PARAM_PRESET)
 		];
+	}
+
+	/**
+		@return Channel three's parameters: every FM channel's, and the pitch each of its first three
+			operators plays while it plays a note on each. The lanes keep the register order an
+			import writes them in, `$A8` to `$AA`, which drive operators three, one and two.
+	**/
+	static function fmThree():Array<Parameter> {
+		final out = fm();
+		var at = 0;
+
+		while (at < out.length && out[at].target != Automation.TUNE) at++;
+		at++;
+
+		out.insert(at, made(Automation.TUNE, 1, 0, 0x3FFF, "OP3 FREQ", Locale.PARAM_OPERATOR_PITCH).words());
+		out.insert(at, made(Automation.TUNE, 3, 0, 0x3FFF, "OP2 FREQ", Locale.PARAM_OPERATOR_PITCH).words());
+		out.insert(at, made(Automation.TUNE, 2, 0, 0x3FFF, "OP1 FREQ", Locale.PARAM_OPERATOR_PITCH).words());
+
+		return out;
 	}
 
 	static function square():Array<Parameter> {

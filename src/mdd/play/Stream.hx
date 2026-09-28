@@ -125,6 +125,15 @@ final class Stream {
 	}
 
 	/**
+		@param word A block and frequency word, packed as `wordOf` packs them.
+		@return The pitch it sounds, in hertz, on an NTSC console.
+	**/
+	public static function hertzOf(word:Int):Float {
+		final rate = Ym2612.CLOCK / Ym2612.PER_SAMPLE;
+		return (word & 0x7FF) * rate * Math.pow(2, ((word >> 11) & 7) - 1) / 1048576.0;
+	}
+
+	/**
 		@param note A MIDI note number.
 		@return The block it falls in, clamped to the eight the part has.
 	**/

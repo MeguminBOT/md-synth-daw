@@ -481,6 +481,7 @@
   "param.level": "How loud the operator is, riding the note's own velocity",
   "param.loop": "The operator's SSG envelope mode",
   "param.noise": "Which noise the channel makes, and how fast",
+  "param.operatorPitch": "The pitch of one of FM3's operators, heard while FM3 plays four notes at once",
   "param.packed": "This register carries more than one setting, so a point holds its value until the next one",
   "param.period": "How far the pitch sits from the note, in period steps",
   "param.pitch": "How far the pitch sits from the note, in cents, where 1200 is an octave",

@@ -481,6 +481,7 @@
   "param.level": "Jak głośny jest operator, podążając za velocity samej nuty",
   "param.loop": "Tryb obwiedni SSG operatora",
   "param.noise": "Jaki szum tworzy kanał i jak szybki",
+  "param.operatorPitch": "Wysokość jednego z operatorów FM3, słyszalna, gdy FM3 gra cztery nuty naraz",
   "param.packed": "Ten rejestr niesie więcej niż jedno ustawienie, więc punkt trzyma swoją wartość aż do następnego",
   "param.period": "Jak daleko wysokość odbiega od nuty, w krokach okresu",
   "param.pitch": "Jak daleko wysokość jest od nuty, w centach, gdzie 1200 to oktawa",
