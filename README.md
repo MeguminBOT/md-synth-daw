@@ -266,7 +266,7 @@ is always installed.
 | --- | --- | --- |
 | English (United Kingdom) | `en-GB` | written here, and the language every other one is measured against |
 | English (United States) | `en-US` | written here |
-| Svenska | `sv-SE` | mostly machine translated |
+| Svenska | `sv-SE` | machine translated |
 | Deutsch | `de-DE` | machine translated |
 | Español | `es-ES` | machine translated |
 | Français | `fr-FR` | machine translated |
