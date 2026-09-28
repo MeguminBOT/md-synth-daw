@@ -58,6 +58,12 @@ class ShotCheck {
 		var side = 0;
 		var scale = -1;
 		var meter = "";
+		var demo = "";
+		var rackMenu = -1;
+		var hover = "";
+		var reveal = -1;
+		var said = "";
+		var ui = 100;
 
 		var at = 0;
 
@@ -98,6 +104,12 @@ class ShotCheck {
 				case "--side": side = whole(held, side); at++;
 				case "--scale": scale = whole(held, scale); at++;
 				case "--meter": meter = held; at++;
+				case "--demo": demo = held; at++;
+				case "--rack": rackMenu = whole(held, rackMenu); at++;
+				case "--hover": hover = held; at++;
+				case "--reveal": reveal = whole(held, reveal); at++;
+				case "--said": said = held; at++;
+				case "--ui": ui = whole(held, ui); at++;
 				case _:
 			}
 
@@ -124,12 +136,13 @@ class ShotCheck {
 			}
 		}
 
-		final body = Font.bake(renderer, face, 15);
-		final small = Font.bake(renderer, face, 13);
-		final mono = Font.bake(renderer, monoFace, 14);
+		final grown = ui / 100.0;
+		final body = Font.bake(renderer, face, Math.round(15 * grown));
+		final small = Font.bake(renderer, face, Math.round(13 * grown));
+		final mono = Font.bake(renderer, monoFace, Math.round(14 * grown));
 
 		final condensed = mdd.Typeface.CONDENSED == "" ? null
-			: Font.bake(renderer, root + "/vendor/fonts/" + mdd.Typeface.CONDENSED, 13);
+			: Font.bake(renderer, root + "/vendor/fonts/" + mdd.Typeface.CONDENSED, Math.round(13 * grown));
 
 		if (body == null || small == null || mono == null) {
 			Sys.println("  shot          the fonts would not bake");
@@ -139,7 +152,7 @@ class ShotCheck {
 			return 1;
 		}
 
-		final metrics = new Metrics(1);
+		final metrics = new Metrics(grown);
 		final spare = new mdd.ui.Fallback();
 		for (name in mdd.Typeface.FALLBACK) spare.adds(root + "/vendor/fonts/" + name);
 
@@ -152,6 +165,8 @@ class ShotCheck {
 
 		final session = project != "" ? new Session(mdd.format.Project.open(project))
 			: (vgm == "" ? Session.started(Gate.library()) : imported(root, vgm));
+
+		if (demo != "") staged(session, demo);
 
 		if (drums) {
 			final song = session.song;
@@ -284,7 +299,7 @@ class ShotCheck {
 		if (side > 0) sided(tree, shell, side);
 
 		if (dockTab > 0) centre.show(mdd.view.Centre.WARNINGS);
-		dock.said = "ready";
+		dock.said = said == "" ? "ready" : said;
 		dock.usage = "cpu 4%   ram 182 MB   gpu 2%   ring 69 ms";
 
 		for (index in 0...mdd.song.Part.COUNT) {
@@ -451,6 +466,38 @@ class ShotCheck {
 			}
 		}
 
+		if (reveal >= 0 || rackMenu >= 0 || hover != "") {
+			tree.reshape();
+			tree.top.measure(tree.width, tree.height);
+			tree.top.arrange(0, 0, tree.width, tree.height);
+		}
+
+		if (reveal >= 0) centre.roll.reveal(0, reveal);
+
+		if (rackMenu >= 0) {
+			final rack = rail.rack;
+			final row = rack.atRow(rackMenu) + 10;
+
+			tree.pressed(rack.x + 60, row, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+			tree.released(rack.x + 60, row, mdd.ui.Pointer.Right, mdd.ui.Mod.None);
+
+			for (step in 0...12) {
+				tree.advance(0.05);
+				tree.frame(paint);
+			}
+		}
+
+		if (hover.indexOf(",") > 0) {
+			final spot = hover.split(",");
+
+			tree.moved(whole(spot[0], 0), whole(spot[1], 0), mdd.ui.Mod.None);
+
+			for (step in 0...40) {
+				tree.advance(0.05);
+				tree.frame(paint);
+			}
+		}
+
 		final film = sheet == "film" || sheet == "film-spectrum" ? filmed(tree, session, wide, tall)
 			: null;
 
@@ -519,6 +566,72 @@ class ShotCheck {
 		Sdl.quit();
 
 		return 0;
+	}
+
+	/**
+		Puts an example into the song for a shot that shows a feature at work: `four` is a run of
+		four note chords on FM3 with its separate mode on and a preset that hears every operator,
+		`four-off` the same with the mode off, and `noise` is a line on the noise channel with its preset on the rate that follows the
+		third square, and one PSG3 note under it.
+
+		@param session The session to stage it in.
+		@param demo Which example.
+	**/
+	static function staged(session:Session, demo:String):Void {
+		final song = session.song;
+		final pattern = session.current();
+		if (pattern == null) return;
+
+		final beat = song.tempo.ppqn;
+		final bar = song.bar();
+
+		if (pattern.length < bar * 4) pattern.length = bar * 4;
+
+		if (demo == "four" || demo == "four-off") {
+			final organ = song.instrument(new mdd.song.Instrument("Four voice organ", mdd.song.Part.Fm3));
+			final patch = organ.patch;
+
+			patch.algorithm = 7;
+			patch.feedback = 0;
+
+			for (slot in 0...4) {
+				patch.multiple[slot] = slot == 3 ? 2 : 1;
+				patch.totalLevel[slot] = 24;
+				patch.attack[slot] = 31;
+				patch.decay[slot] = 6;
+				patch.sustain[slot] = 2;
+				patch.sustainLevel[slot] = 3;
+				patch.release[slot] = 7;
+			}
+
+			song.rack[mdd.song.Part.Fm3.index()] = song.instruments.length - 1;
+			song.mode = demo == "four" ? 0x40 : 0;
+
+			final lane = pattern.lane(mdd.song.Part.Fm3);
+			final chords = [[60, 64, 67, 71], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65]];
+
+			for (index in 0...chords.length) {
+				for (pitch in chords[index]) lane.add(new mdd.song.Note(index * bar, bar - Std.int(beat / 4), pitch, 100));
+			}
+		} else if (demo == "noise") {
+			final tuned = song.instrument(new mdd.song.Instrument("Tuned noise", mdd.song.Part.Noise));
+			final envelope = tuned.envelope;
+
+			for (step in [0, 1, 2, 3, 5, 7, 9, 12]) envelope.steps.push(step);
+			envelope.speed = 2;
+			envelope.noise = 3;
+
+			song.rack[mdd.song.Part.Noise.index()] = song.instruments.length - 1;
+
+			final lane = pattern.lane(mdd.song.Part.Noise);
+			final line = [48, 48, 51, 53, 55, 58, 55, 53, 48, 48, 51, 53, 55, 60, 58, 55];
+
+			for (index in 0...line.length) {
+				lane.add(new mdd.song.Note(index * Std.int(beat / 2) * 2, beat, line[index], 110));
+			}
+
+			pattern.lane(mdd.song.Part.Psg3).add(new mdd.song.Note(beat, beat * 2, 67, 100));
+		}
 	}
 
 	/**
