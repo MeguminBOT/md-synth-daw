@@ -1528,7 +1528,9 @@ class Run {
 	}
 
 	/**
-		Gathers everything a package holds into one folder.
+		Gathers everything a package holds into one folder. A copy is written as a new file, which
+		keeps none of the mode it came with, so the program is made runnable again here: without it
+		every Linux archive and the macOS bundle carried a program nothing would start.
 
 		@param root The repository.
 		@param project What the build file declares.
@@ -1550,6 +1552,8 @@ class Run {
 
 			copyFile(from, into + "/" + entry);
 		}
+
+		runnable(into + "/" + project.targets[0].id);
 
 
 		final atlases = bin + "/icons";
@@ -2578,6 +2582,9 @@ class Run {
 		out3.add("echo \"removed from $PREFIX\"\n");
 
 		File.saveContent(into + "/uninstall.sh", out3.toString());
+
+		runnable(into + "/install.sh");
+		runnable(into + "/uninstall.sh");
 
 		final archive = into + ".tar.gz";
 		if (FileSystem.exists(archive)) FileSystem.deleteFile(archive);
