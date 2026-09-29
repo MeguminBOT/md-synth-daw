@@ -51,6 +51,7 @@ class AudioCheck {
 		ticked();
 		keyed();
 		velocities();
+		primed();
 		device(Math.isNaN(live) ? LIVE : live);
 		played(8, Gate.root);
 
@@ -1498,6 +1499,24 @@ class AudioCheck {
 			swept + " collections forced while it played, worst "
 			+ round(worstSweep * 1000, 1) + " ms, and the device took every frame it asked"
 			+ " for");
+	}
+
+	/**
+		The ring a device is fed through holds 16384 frames and the priming aims at a tenth of a
+		second, which is more than the ring holds above 163840 Hz. A device at 192 kHz left the main
+		thread waiting for room that never came.
+	**/
+	static function primed():Void {
+		final ring = 16384;
+		final most = ring - Render.BLOCK;
+
+		final usual = Render.aimFor(48000, 1056, 480, ring, Render.BLOCK);
+		final fast = Render.aimFor(192000, 0, 1920, ring, Render.BLOCK);
+		final wide = Render.aimFor(48000, 32768, 480, ring, Render.BLOCK);
+
+		says("priming fits the ring", usual == 4800 && fast <= most && wide <= most,
+			"a tenth of a second at 48 kHz is " + usual + " frames, and at 192 kHz " + fast
+			+ " and behind a 32768 frame buffer " + wide + " in a ring of " + ring);
 	}
 
 	static function device(seconds:Float):Void {

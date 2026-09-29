@@ -781,10 +781,8 @@ final class Render {
 		blocks = 0;
 		worstHeld = 0;
 
-		final buffer = Audio.buffer(device);
-		final least = buffer > 0 ? buffer : Audio.period(device) * 2;
-		final primed = Std.int(rate * PRIMED);
-		final aim = primed > least ? primed : least;
+		final aim = aimFor(rate, Audio.buffer(device), Audio.period(device), Audio.capacity(device),
+			frames);
 
 		cushion = aim;
 		dropped = 0;
@@ -805,6 +803,28 @@ final class Render {
 			feed();
 		});
 		return true;
+	}
+
+	/**
+		How many frames to keep in the device's ring: the larger of the device's own buffer and
+		`PRIMED` seconds, held to what the ring can take with a block still to come. Past that the
+		priming would wait for room that never appears, and the render thread would go on serving
+		blocks the ring refuses.
+
+		@param rate The output rate in hertz.
+		@param buffer The device's buffer in frames, or nought where it reports none.
+		@param period The device's period in frames.
+		@param capacity How many frames the ring holds in all.
+		@param frames Frames per block.
+		@return The frames to keep in hand.
+	**/
+	public static function aimFor(rate:Int, buffer:Int, period:Int, capacity:Int, frames:Int):Int {
+		final least = buffer > 0 ? buffer : period * 2;
+		final primed = Std.int(rate * PRIMED);
+		final aim = primed > least ? primed : least;
+		final most = capacity - frames;
+
+		return aim > most ? most : aim;
 	}
 
 	/**
