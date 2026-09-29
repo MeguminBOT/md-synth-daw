@@ -21,12 +21,33 @@ namespace {
 		return mods;
 	}
 
+	/**
+	 * Cuts text that was cut at the room it had back to the last whole character, so a long
+	 * paste or a long dropped path never ends half way through one and reaches the other side as
+	 * text that is not UTF-8.
+	 *
+	 * @param text Text that was copied in and filled the room.
+	 */
+	void whole(char *text) {
+		const size_t end = strlen(text);
+		size_t at = end;
+
+		while (at > 0 && (static_cast<unsigned char>(text[at - 1]) & 0xC0) == 0x80) at--;
+		if (at == 0) return;
+
+		const unsigned char lead = static_cast<unsigned char>(text[at - 1]);
+		const size_t wants = lead >= 0xF0 ? 4 : (lead >= 0xE0 ? 3 : (lead >= 0xC0 ? 2 : 1));
+
+		if (end - (at - 1) < wants) text[at - 1] = '\0';
+	}
+
 	void carry(MddEvent *out, const char *text) {
 		if (text == nullptr) {
 			out->text[0] = '\0';
 			return;
 		}
-		SDL_strlcpy(out->text, text, MDD_EVENT_TEXT_BYTES);
+
+		if (SDL_strlcpy(out->text, text, MDD_EVENT_TEXT_BYTES) >= MDD_EVENT_TEXT_BYTES) whole(out->text);
 	}
 
 	void blank(MddEvent *out) {
@@ -171,7 +192,7 @@ extern "C" const char *mdd_clipboard_get(void) {
 		return clipboard;
 	}
 
-	SDL_strlcpy(clipboard, held, MDD_EVENT_TEXT_BYTES);
+	if (SDL_strlcpy(clipboard, held, MDD_EVENT_TEXT_BYTES) >= MDD_EVENT_TEXT_BYTES) whole(clipboard);
 	SDL_free(held);
 	return clipboard;
 }
