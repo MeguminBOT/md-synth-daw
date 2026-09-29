@@ -10,11 +10,15 @@ import mdd.host.Sdl;
 class FaultCheck {
 	public static function run(args:Array<String>):Int {
 		final kind = args.length > 0 && !StringTools.startsWith(args[0], "-") ? args[0] : "read";
-		final where = Gate.root + "/export/fault.txt";
+		final outside = args.indexOf("--outside") >= 0;
+		final where = outside ? Gate.root + "/export/fält ä 字/fault.txt" : Gate.root + "/export/fault.txt";
 
 		final told = args.indexOf("--tell") >= 0 || args.indexOf("--window") >= 0;
 
-		if (told) Crash.watch(where, "The gate", true);
+		if (outside) {
+			mdd.host.Paths.make(haxe.io.Path.directory(where));
+			Crash.watch(where, "The gate", told);
+		} else if (told) Crash.watch(where, "The gate", true);
 
 		Sys.println("  fault");
 		Sys.println("    stopping on purpose: " + kind);

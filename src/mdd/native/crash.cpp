@@ -209,6 +209,18 @@ static int mdd_crash_alone(void) {
 	return InterlockedCompareExchange(&mdd_crash_inside, 1, 0) == 0;
 }
 
+/**
+ * @param path A path in UTF-8.
+ * @return It opened for writing, or NULL. The narrow `fopen` reads a path in the system code page,
+ *     so a settings folder under an account name outside it was never written a report.
+ */
+static FILE *mdd_crash_opened(const char *path) {
+	static wchar_t wide[1024];
+
+	if (MultiByteToWideChar(CP_UTF8, 0, path, -1, wide, 1024) <= 0) return NULL;
+	return _wfopen(wide, L"w");
+}
+
 static const char *mdd_crash_cause(unsigned long code, const ULONG_PTR *held) {
 	switch (code) {
 		case EXCEPTION_ACCESS_VIOLATION:
@@ -974,7 +986,7 @@ static LONG WINAPI mdd_crash_caught(EXCEPTION_POINTERS *held) {
 	const ULONG_PTR *what = held->ExceptionRecord->ExceptionInformation;
 	const char *cause = mdd_crash_cause(code, what);
 
-	FILE *into = fopen(mdd_crash_path, "w");
+	FILE *into = mdd_crash_opened(mdd_crash_path);
 
 	if (into != NULL) {
 		time_t when = time(NULL);
