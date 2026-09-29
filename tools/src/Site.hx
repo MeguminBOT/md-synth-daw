@@ -160,8 +160,6 @@ class Site {
 			body = ~/\{\{#apt\}\}([\s\S]*?)\{\{\/apt\}\}/g.map(body, function(found:EReg):String {
 				return apt ? found.matched(1) : "";
 			});
-			body = StringTools.replace(body, "{{package}}", project.debianPackage);
-			body = StringTools.replace(body, "{{suite}}", Apt.SUITE);
 
 			final titled = said.exists("title") && tab.page != "index"
 				? said.get("title") + " · " + project.title : project.title;

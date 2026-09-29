@@ -86,18 +86,7 @@ description: Download MD Synth DAW for Windows, macOS or Linux, as an installer 
 		{{#apt}}
 		<section class="reveal">
 			<h2>Installing with apt</h2>
-			<div class="prose">
-				<p>On Debian 13, Ubuntu 25.04 and the distributions built on them, MD Synth DAW installs from this
-				site's own apt repository, and apt keeps it up to date along with the rest of the system:</p>
-				<pre><code>sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL {{site}}apt/{{package}}.gpg | sudo tee /etc/apt/keyrings/{{package}}.gpg &gt;/dev/null
-echo "deb [signed-by=/etc/apt/keyrings/{{package}}.gpg] {{site}}apt {{suite}} main" | sudo tee /etc/apt/sources.list.d/{{package}}.list
-sudo apt update
-sudo apt install {{package}}</code></pre>
-				<p>A copy installed this way is updated by apt, so the application never offers an update of its own.
-				The Japanese, Chinese and Korean fonts are left out of the package, and the application downloads
-				the one a language needs when you pick it.</p>
-			</div>
+			<div class="prose">{{readme:install-with-apt}}</div>
 		</section>
 		{{/apt}}
 		<section class="reveal">
