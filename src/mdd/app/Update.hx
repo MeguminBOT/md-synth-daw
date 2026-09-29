@@ -610,7 +610,7 @@ final class Update {
 		wrong = "";
 		verified = "";
 
-		answered = Sys.command("curl", [
+		answered = mdd.host.Command.runs("curl", [
 			"-sL", "--fail", "--proto", schemes, "--proto-redir", schemes,
 			"--connect-timeout", "15", "--max-filesize", "" + (weighs > 0 ? weighs : HEAVIEST),
 			"-o", into, saidAt
@@ -1033,12 +1033,12 @@ final class Update {
 	**/
 	function opened(archive:String, into:String):Bool {
 		if (platform == "windows" && StringTools.endsWith(archive.toLowerCase(), ".zip")) {
-			return Sys.command("powershell", ["-NoProfile", "-NonInteractive", "-Command",
+			return mdd.host.Command.runs("powershell", ["-NoProfile", "-NonInteractive", "-Command",
 				"Expand-Archive -LiteralPath " + singled(archive) + " -DestinationPath "
 				+ singled(into) + " -Force"]) == 0;
 		}
 
-		return Sys.command("tar", ["-xf", archive, "-C", into]) == 0;
+		return mdd.host.Command.runs("tar", ["-xf", archive, "-C", into]) == 0;
 	}
 
 	/**

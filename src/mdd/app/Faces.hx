@@ -200,7 +200,7 @@ final class Faces {
 		Paths.make(haxe.io.Path.directory(where));
 		Paths.clear(part);
 
-		final answered = Sys.command("curl", ["-sL", "--fail", "--connect-timeout", "20",
+		final answered = mdd.host.Command.runs("curl", ["-sL", "--fail", "--connect-timeout", "20",
 			"-y", "30", "-Y", "1024", "-o", part, from]);
 
 		if (answered != 0 || !FileSystem.exists(part)) {
