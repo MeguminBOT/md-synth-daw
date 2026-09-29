@@ -11,6 +11,14 @@ class MangleCheck {
 	static var failed:Int = 0;
 	static var ran:Int = 0;
 
+	/**
+		Feeds every reader corrupted and crafted files and counts what faulted.
+
+		@param args `--rounds` and a count of corruptions per reader, `--seed` and the number the
+			corruptions are drawn from, and `--only` with a comma separated list of sections to run
+			alone: vgm, xgm, midi, project, packed, kept, wav, tfi, shaped, crafted and swapped.
+		@return Nought where every check passed.
+	**/
 	public static function run(args:Array<String>):Int {
 		failed = 0;
 		ran = 0;
@@ -25,17 +33,20 @@ class MangleCheck {
 		final held = sown >= 0 && sown + 1 < args.length ? Std.parseInt(args[sown + 1]) : 20260906;
 		final seed = held == null ? 20260906 : held;
 
-		vgms(rounds, seed);
-		xgms(rounds, seed);
-		midis(rounds, seed);
-		projects(rounds, seed);
-		packed(rounds, seed);
-		kept();
-		waves(rounds, seed);
-		patches(rounds, seed);
-		shaped();
-		crafted();
-		swapped();
+		final picked = args.indexOf("--only");
+		final only = picked >= 0 && picked + 1 < args.length ? args[picked + 1].split(",") : [];
+
+		if (only.length == 0 || only.indexOf("vgm") >= 0) vgms(rounds, seed);
+		if (only.length == 0 || only.indexOf("xgm") >= 0) xgms(rounds, seed);
+		if (only.length == 0 || only.indexOf("midi") >= 0) midis(rounds, seed);
+		if (only.length == 0 || only.indexOf("project") >= 0) projects(rounds, seed);
+		if (only.length == 0 || only.indexOf("packed") >= 0) packed(rounds, seed);
+		if (only.length == 0 || only.indexOf("kept") >= 0) kept();
+		if (only.length == 0 || only.indexOf("wav") >= 0) waves(rounds, seed);
+		if (only.length == 0 || only.indexOf("tfi") >= 0) patches(rounds, seed);
+		if (only.length == 0 || only.indexOf("shaped") >= 0) shaped();
+		if (only.length == 0 || only.indexOf("crafted") >= 0) crafted();
+		if (only.length == 0 || only.indexOf("swapped") >= 0) swapped();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
