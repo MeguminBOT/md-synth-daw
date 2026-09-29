@@ -34,6 +34,13 @@ final class Midi {
 	public static inline final DRUMS = 9;
 
 	/**
+		The furthest a track is read, in ticks. A delta time is four bytes at most, so a file of a few
+		events can otherwise count past what an `Int` holds, and nothing a sequencer writes comes near
+		this at any resolution.
+	**/
+	static inline final LONGEST = 1 << 30;
+
+	/**
 		Writes a song as a type one file: a tempo track, then one track per part.
 
 		@param song The song to write.
@@ -247,7 +254,7 @@ final class Midi {
 		if (bytes.length < 14) throw "not a midi: the header chunk is not there";
 
 		final division = wide(bytes, 12);
-		return (division & 0x8000) != 0 ? PPQN : division;
+		return (division & 0x8000) != 0 || division < 1 ? PPQN : division;
 	}
 
 	/**
@@ -488,11 +495,11 @@ final class Midi {
 				delta = (delta << 7) | (byte & 0x7F);
 				shift++;
 
-				if ((byte & 0x80) == 0 || shift > 4) break;
+				if ((byte & 0x80) == 0 || shift >= 4) break;
 			}
 
 			tick += delta;
-			if (at >= to) break;
+			if (at >= to || tick > LONGEST) break;
 
 			var status = bytes.get(at);
 
@@ -518,7 +525,7 @@ final class Midi {
 					at++;
 					length = (length << 7) | (byte & 0x7F);
 					wide++;
-					if ((byte & 0x80) == 0 || wide > 4) break;
+					if ((byte & 0x80) == 0 || wide >= 4) break;
 				}
 
 				if (length < 0 || length > to - at) length = to - at;
