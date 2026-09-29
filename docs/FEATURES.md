@@ -902,13 +902,14 @@ importing one reads those back.
   says which version you have and which is offered, and gives you download, not now, or stop
   asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
-  the new copy. It only downloads over https, and only files the release itself carries in this
-  project's repository on GitHub, and a release that publishes no `SHA256SUMS` is not offered at
-  all. What it downloads has to be the size the release lists and match its `SHA256SUMS` before
-  anything is unpacked, and it is checked again just before anything is replaced. A file that does
-  not match is deleted rather than run. That says the download is the file the release carries, not
-  that the release is genuine: the Sigstore signature beside each file is what answers that, and
-  checking one of those is still something you do yourself.
+  the new copy. An installed copy runs the installer without its pages, into the folder it is
+  already in and for the same accounts as before. It only downloads over https, and only files the
+  release itself carries in this project's repository on GitHub, and a release that publishes no
+  `SHA256SUMS` is not offered at all. What it downloads has to be the size the release lists and
+  match its `SHA256SUMS` before anything is unpacked, and it is checked again just before anything
+  is replaced. A file that does not match is deleted rather than run. That says the download is the
+  file the release carries, not that the release is genuine: the Sigstore signature beside each
+  file is what answers that, and checking one of those is still something you do yourself.
 - **An installer that checks the machine first.** It will not install on fewer than two cores,
   less than 1 GB of memory, less than 256 MB of graphics memory, or a processor without SSE2. It
   finds out by starting MD Synth DAW itself with `--requirements`, which tries every renderer the
@@ -925,10 +926,10 @@ importing one reads those back.
   first, and installs nothing until you accept them. They say plainly that MD Synth DAW is free, so
   anyone who charged for a copy scammed you, where the official downloads are, and what the
   application connects to.
-- **You choose where it goes.** The installer always shows the folder page, on an update too,
-  with the last folder already filled in and how much disk space the install takes. Uninstalling
-  removes the whole install folder, so if you pick a folder that already has other files in it,
-  the installer makes a folder of its own inside it and tells you.
+- **You choose where it goes.** Run by hand, the installer always shows the folder page, on an
+  update too, with the last folder already filled in and how much disk space the install takes.
+  Uninstalling removes the whole install folder, so if you pick a folder that already has other
+  files in it, the installer makes a folder of its own inside it and tells you.
 - **You choose which fonts it installs.** Japanese, Simplified Chinese and Korean each need a font
   of their own, 36 MB together, so the installer lists them as options, all three ticked. Clear one
   and its font is left out, and running the installer again without it deletes the font an earlier

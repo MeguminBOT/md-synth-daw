@@ -828,6 +828,10 @@ final class Update {
 		Applies an installed update, which means running whatever the platform installs
 		with rather than copying files.
 
+		On Windows the installer runs silently, for the same account or for every account as
+		the running copy was installed, and the script waits for it to finish before starting
+		the program again: the installer starts nothing itself when it runs silently.
+
 		@param where The folder the running copy sits in.
 		@param restart Whether the new copy should be started once the swap is done.
 		@param guarded Whether the script should wait for this process to close first.
@@ -836,7 +840,11 @@ final class Update {
 		final beside = haxe.io.Path.directory(into);
 
 		if (platform == "windows") {
-			handover = writes(beside, "", "", "", guarded, quoted(into) + " /SILENT /NORESTART");
+			final scope = shared(where) ? "/ALLUSERS" : "/CURRENTUSER";
+			final after = restart ? where + "/" + mdd.Config.SHORT + ending() : "";
+
+			handover = writes(beside, "", "", after, guarded, "start \"\" /wait " + backslashed(into)
+				+ " /SILENT /SUPPRESSMSGBOXES /NORESTART " + scope);
 			return;
 		}
 
@@ -870,6 +878,26 @@ final class Update {
 
 		handover = writes(beside, "", "", after, guarded,
 			"PREFIX=" + quoted(prefix) + " sh " + quoted(script));
+	}
+
+	/**
+		@param where Where the running copy sits.
+		@return Whether it was installed for every account, which on Windows is under one of the
+			program files folders. The installer asks for elevation to update one of those, and
+			an update run for the current account alone would install a second copy beside it.
+	**/
+	static function shared(where:String):Bool {
+		final held = StringTools.replace(where, "\\", "/").toLowerCase();
+
+		for (name in ["ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"]) {
+			final folder = Sys.getEnv(name);
+			if (folder == null || folder == "") continue;
+
+			final root = StringTools.replace(folder, "\\", "/").toLowerCase();
+			if (StringTools.startsWith(held, root + "/")) return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -979,13 +1007,18 @@ final class Update {
 		Launches the handover script, detached, and returns at once. The caller should
 		close the application immediately after.
 
+		On Windows the script is started with none of this process's handles and no window. One
+		started through `start` inherited the lock it waits on and held it open itself, so it
+		waited forever and nothing was ever replaced.
+
 		@return False where nothing is ready to hand over to.
 	**/
 	public function hands():Bool {
 		if (held.load() != APPLIED || handover == "") return false;
 
 		if (platform == "windows") {
-			return Sys.command("cmd", ["/c", "start", "", "/min", handover]) == 0;
+			final line = "cmd.exe /d /s /c \"" + backslashed(handover) + "\"";
+			return mdd.host.Launcher.detached(line) != 0;
 		}
 
 		return Sys.command("sh", ["-c", "sh " + quoted(handover) + " >/dev/null 2>&1 &"]) == 0;

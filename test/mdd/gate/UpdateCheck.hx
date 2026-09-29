@@ -8,6 +8,7 @@ import sys.net.Host;
 import sys.net.Socket;
 
 @:unreflective
+@:access(mdd.app.Update)
 class UpdateCheck {
 	static inline final FIRST_PORT = 8760;
 	static inline final LAST_PORT = 8790;
@@ -60,6 +61,7 @@ class UpdateCheck {
 		papers = release(port, archive);
 
 		carried(where, port, archive);
+		handed(where, port, archive);
 		installed(where, port);
 		bare();
 		tentative();
@@ -256,7 +258,8 @@ class UpdateCheck {
 			+ Paths.machine() + (Paths.platform() == "windows" ? "-setup.exe"
 				: (Paths.platform() == "mac" ? ".dmg" : "-installer.tar.gz"));
 
-		sums(archive, leaf);
+		File.saveBytes(lot + "/" + other, File.getBytes(archive));
+		sums(archive, [leaf, other]);
 
 		return "{\"tag_name\":\"v" + OFFERED + "\","
 			+ "\"html_url\":\"http://127.0.0.1:" + port + "/release\","
@@ -271,14 +274,16 @@ class UpdateCheck {
 	}
 
 	/**
-		Writes the hash file the release publishes, the way sha256sum writes one.
+		Writes the hash file the release publishes, the way sha256sum writes one. The installer
+		the release offers is the same bytes as the archive under another name, so one hash
+		serves every name.
 
 		@param archive The file to list.
-		@param leaf What the release calls it.
+		@param leaves What the release calls it, once for each name it carries it under.
 	**/
-	static function sums(archive:String, leaf:String):Void {
+	static function sums(archive:String, leaves:Array<String>):Void {
 		final hash = haxe.crypto.Sha256.make(File.getBytes(archive)).toHex().toLowerCase();
-		wrote(lot + "/" + Update.SUMS, hash + "  " + leaf + "\n");
+		wrote(lot + "/" + Update.SUMS, [for (leaf in leaves) hash + "  " + leaf + "\n"].join(""));
 	}
 
 	/**
@@ -753,6 +758,94 @@ class UpdateCheck {
 					? "nothing left behind" : ""));
 	}
 
+	/**
+		The handover the application launches waits for the application to close and then swaps the
+		new copy in by itself. It is started through `hands`, as the application starts it, with
+		the lock held the way the application holds it, and letting go of that lock stands in for
+		the application closing.
+
+		A handover that inherited the lock held it open itself, so it waited forever and nothing
+		was ever replaced, and running the script by hand, as the check above does, could not
+		show that.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+	**/
+	static function handed(where:String, port:Int, archive:String):Void {
+		final install = where + "/handed";
+		final program = install + "/" + mdd.Config.SHORT + ending();
+
+		wrote(program, "the old program, 0.1.0\n");
+		wrote(install + "/portable.txt", "portable\n");
+
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		pointed(update, port);
+
+		update.look();
+
+		if (!settles(update, Update.WAITING)) {
+			says("the handover waits for the program to close", false, "the api would not answer");
+			return;
+		}
+
+		final into = where + "/handing/" + update.named();
+		Paths.make(where + "/handing");
+
+		update.take(into);
+
+		if (!settles(update, Update.FETCHED)) {
+			says("the handover waits for the program to close", false, "the download did not arrive");
+			return;
+		}
+
+		update.applies(install, false, true);
+
+		if (!settles(update, Update.APPLIED)) {
+			says("the handover waits for the program to close", false,
+				"state " + update.state() + ", " + update.wrong);
+			return;
+		}
+
+		final launched = update.hands();
+
+		Sys.sleep(1.5);
+		final early = saying(program).indexOf(OFFERED) >= 0;
+
+		if (update.lock != null) {
+			update.lock.close();
+			update.lock = null;
+		}
+
+		final until = Sys.time() + PATIENCE;
+		var swapped = false;
+
+		while (Sys.time() < until && !swapped) {
+			swapped = saying(program).indexOf(OFFERED) >= 0;
+			if (!swapped) Sys.sleep(0.1);
+		}
+
+		says("the handover waits for the program to close", launched && !early,
+			!launched ? "it would not start" : (early ? "it replaced the program while it still ran"
+				: "nothing was replaced while the lock was held"));
+
+		says("and then swaps the new one in by itself", swapped,
+			swapped ? "the program says " + OFFERED + " once the lock was let go"
+				: "the old program is still there " + PATIENCE + " s after the lock was let go");
+	}
+
+	/**
+		@param path A file.
+		@return What it says, or nothing where it cannot be read, as while it is being copied over.
+	**/
+	static function saying(path:String):String {
+		try {
+			return FileSystem.exists(path) ? File.getContent(path) : "";
+		} catch (e:Dynamic) {
+			return "";
+		}
+	}
+
 	static function installed(where:String, port:Int):Void {
 		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), false);
 		pointed(update, port);
@@ -770,5 +863,42 @@ class UpdateCheck {
 		says("an installed copy is offered the installer",
 			StringTools.endsWith(update.named(), wanted),
 			update.named() == "" ? "nothing chosen" : update.named());
+
+		if (Paths.platform() != "windows") return;
+
+		final into = where + "/installing/" + update.named();
+		final install = where + "/installed";
+		Paths.make(where + "/installing");
+		Paths.make(install);
+
+		update.take(into);
+
+		if (!settles(update, Update.FETCHED)) {
+			says("the installer is run as cmd reads a path", false, "the installer did not arrive");
+			return;
+		}
+
+		update.applies(install, true, false);
+
+		if (!settles(update, Update.APPLIED)) {
+			says("the installer is run as cmd reads a path", false,
+				"state " + update.state() + ", " + update.wrong);
+			return;
+		}
+
+		final script = saying(update.handover);
+		final setup = "\"" + StringTools.replace(into, "/", "\\") + "\"";
+		final again = "\"" + StringTools.replace(install + "/" + mdd.Config.SHORT + ending(), "/", "\\") + "\"";
+		final waited = script.indexOf("start \"\" /wait " + setup + " /SILENT") >= 0;
+		final scoped = script.indexOf("/CURRENTUSER") >= 0;
+		final restarted = script.indexOf("start \"\" " + again) > script.indexOf(setup);
+
+		says("the installer is run as cmd reads a path", waited && scoped,
+			waited ? "waited on, quoted in double quotes, for the current account"
+				: "the script runs " + script.split("\r\n").filter(function(line:String):Bool
+					return line.indexOf("SILENT") >= 0).join(" "));
+
+		says("and the program starts again after it", restarted,
+			restarted ? "the installed program is started after the installer" : "nothing is started after it");
 	}
 }

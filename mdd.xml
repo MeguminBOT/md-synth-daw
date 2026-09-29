@@ -151,6 +151,7 @@
 		<file name="video.cpp" />
 		<file name="vpx/vpx_config.c" />
 		<file name="shell.cpp" />
+		<file name="launcher.cpp" />
 
 		<flag value="-DOPUS_BUILD" />
 		<flag value="-DUSE_ALLOCA" />
