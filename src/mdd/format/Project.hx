@@ -1013,13 +1013,20 @@ class Project {
 
 	/**
 		Puts a file written beside its name in place of it, which is what makes a save
-		either whole or not there at all.
+		either whole or not there at all. The build reads this class on the interpreter to write
+		the shipped banks, where nothing in `mdd.host` can be reached, so there the old file is
+		deleted and the new one renamed.
 
 		@param aside The file that was just written.
 		@param onto What it replaces.
 	**/
 	static function swaps(aside:String, onto:String):Void {
+		#if cpp
 		mdd.host.Paths.replaces(aside, onto);
+		#else
+		if (FileSystem.exists(onto)) FileSystem.deleteFile(onto);
+		FileSystem.rename(aside, onto);
+		#end
 	}
 
 	/**
