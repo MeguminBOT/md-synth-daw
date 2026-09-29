@@ -43,6 +43,8 @@ class TypeCheck {
 
 		for (name in named) measured(where + "/" + name, name);
 
+		outside(where);
+
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
 		if (failed > 0) {
@@ -63,6 +65,28 @@ class TypeCheck {
 		}
 
 		return "";
+	}
+
+	/**
+		A face read from a folder named with letters outside ASCII, which is where a copy lands when
+		it is installed for an account named that way. On Windows the narrow `fopen` read the path in
+		the system code page, so no face loaded and the application would not start.
+
+		@param where Where the faces are.
+	**/
+	static function outside(where:String):Void {
+		final folder = Gate.root + "/export/gate/fönts ä 字";
+		final path = folder + "/" + Typeface.SANS[0];
+
+		mdd.host.Paths.make(folder);
+		sys.io.File.copy(where + "/" + Typeface.SANS[0], path);
+
+		final face = Text.load(path);
+		if (face >= 0) Text.free(face);
+
+		mdd.host.Paths.clear(folder);
+
+		says("a face under é, ä or 字", face >= 0, face >= 0 ? "loads" : "would not load");
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {

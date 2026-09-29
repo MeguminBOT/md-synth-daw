@@ -17,6 +17,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 namespace {
 	constexpr int SLOTS = 32;
 
@@ -30,6 +36,29 @@ namespace {
 	Face faces[SLOTS];
 }
 
+/**
+ * @param path A path in UTF-8.
+ * @return The file opened for reading, or null. On Windows the narrow `fopen` reads a path in the
+ *     system code page, so a font in a folder named outside it never opened, and a copy installed
+ *     under such an account name did not start at all.
+ */
+static FILE *mdd_font_opened(const char *path) {
+#if defined(_WIN32)
+	const int room = MultiByteToWideChar(CP_UTF8, 0, path, -1, nullptr, 0);
+	if (room <= 0) return nullptr;
+
+	wchar_t *wide = static_cast<wchar_t *>(malloc(sizeof(wchar_t) * static_cast<size_t>(room)));
+	if (wide == nullptr) return nullptr;
+
+	FILE *out = MultiByteToWideChar(CP_UTF8, 0, path, -1, wide, room) > 0 ? _wfopen(wide, L"rb") : nullptr;
+	free(wide);
+
+	return out;
+#else
+	return fopen(path, "rb");
+#endif
+}
+
 extern "C" int mdd_font_load(const char *path) {
 	if (path == nullptr) return -1;
 
@@ -39,7 +68,7 @@ extern "C" int mdd_font_load(const char *path) {
 	}
 	if (slot < 0) return -1;
 
-	FILE *file = fopen(path, "rb");
+	FILE *file = mdd_font_opened(path);
 	if (file == nullptr) return -1;
 
 	fseek(file, 0, SEEK_END);
