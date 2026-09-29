@@ -976,6 +976,10 @@ importing one reads those back.
   click or from a terminal, and that copy comes to the front and opens it, asking first about
   unsaved work the way any open does. Starting a second copy with nothing to open brings the first
   one forward. A path with letters outside ASCII in it opens the same way.
+- **No console window on Windows.** The application opens its own window and nothing beside it.
+  Started from Command Prompt or PowerShell, it writes what it has to say into that terminal, which
+  gives you its prompt back straight away as it does for any windowed program. Started with
+  `-console` from a shortcut or anywhere else without a terminal, it opens a console of its own.
 - **Discord presence**, on by default and showing the piece and what the transport is doing,
   speaking Discord's local IPC directly rather than through an SDK. Preferences can cut it down to
   the application's name alone or turn it off.

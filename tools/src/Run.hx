@@ -942,6 +942,11 @@ class Run {
 			args.push(define);
 		}
 
+		for (define in one.defines) {
+			args.push("-D");
+			args.push(define);
+		}
+
 		for (named in project.paths) {
 			args.push("-D");
 			args.push(named.name + "=" + native(root + "/" + named.value));

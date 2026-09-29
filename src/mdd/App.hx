@@ -158,6 +158,8 @@ class App {
 		Native.ready();
 
 		final asked = mdd.host.Arguments.all();
+		mdd.host.Console.attach(asked.indexOf("-console") >= 0 || asked.indexOf("--console") >= 0 ? 1 : 0);
+
 		final writing = asked.indexOf("--requirements");
 
 		if (writing >= 0 && writing + 1 < asked.length) {

@@ -1,13 +1,14 @@
 import sys.io.File;
 
 /**
-	One thing that can be built: its identifier, its entry point, and any source paths
-	it adds beyond the shared ones.
+	One thing that can be built: its identifier, its entry point, and any source paths and
+	defines it adds beyond the shared ones.
 **/
 typedef Target = {
 	final id:String;
 	final main:String;
 	final sources:Array<String>;
+	final defines:Array<String>;
 }
 
 /**
@@ -397,10 +398,15 @@ class Project {
 
 			case "target":
 				final own:Array<String> = [];
+				final named:Array<String> = [];
 				for (child in node.elements()) {
-					if (child.nodeName == "source" && allowed(child)) own.push(child.get("path"));
+					if (!allowed(child)) continue;
+
+					if (child.nodeName == "source") own.push(child.get("path"));
+					else if (child.nodeName == "define") named.push(has(child, "value")
+						? child.get("name") + "=" + child.get("value") : child.get("name"));
 				}
-				targets.push({ id: node.get("id"), main: node.get("main"), sources: own });
+				targets.push({ id: node.get("id"), main: node.get("main"), sources: own, defines: named });
 
 			case "library":
 				libraries.push(node.get("name"));

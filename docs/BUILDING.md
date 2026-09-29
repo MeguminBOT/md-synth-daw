@@ -265,6 +265,12 @@ The build generates `mdd.Config` from the window and meta attributes, the hxcpp 
 native, include and link elements, and the editor's completion files, one per target. None of those
 is tracked and none is written by hand.
 
+A `<target>` can hold `<define>` elements of its own, which reach that binary and no other. The
+application's target defines `no_console` on a Windows release build, which makes it a windowed
+program: it opens no console beside its window, joins the terminal it was started from if there is
+one, and opens a console of its own when it is started with `-console`. A debug build and the gate
+stay console programs, because both are read from a terminal.
+
 Two elements put a shared library beside the binary, and which one applies depends on where the
 library came from. `<ship>` copies a file the repository already has, which is how Windows gets the
 vendored `SDL3.dll`. `<carry>` names a library linked from the system, and the build finds the copy
