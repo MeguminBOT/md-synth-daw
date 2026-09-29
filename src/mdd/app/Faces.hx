@@ -216,8 +216,7 @@ final class Faces {
 		}
 
 		try {
-			Paths.clear(where);
-			FileSystem.rename(part, where);
+			Paths.replaces(part, where);
 		} catch (e:Dynamic) {
 			Paths.clear(part);
 			return UNREACHABLE;

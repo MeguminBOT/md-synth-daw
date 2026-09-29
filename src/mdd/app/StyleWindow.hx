@@ -224,7 +224,7 @@ final class StyleWindow {
 
 	function saves(name:String):Void {
 		try {
-			sys.io.File.saveContent(fileOf(name), studio.style.spelt());
+			mdd.host.Paths.saves(fileOf(name), haxe.io.Bytes.ofString(studio.style.spelt()));
 		} catch (e:Dynamic) {}
 	}
 

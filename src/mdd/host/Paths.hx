@@ -223,6 +223,37 @@ class Paths {
 	}
 
 	/**
+		Puts a file just written in place of another in one step, so the name holds the old file or
+		the new one and never neither.
+
+		@param aside The file just written.
+		@param onto The name it takes. Whatever was there is replaced.
+	**/
+	public static function replaces(aside:String, onto:String):Void {
+		if (Disk.replace(aside, onto) == 0) throw "could not put " + aside + " in place of " + onto;
+	}
+
+	/**
+		Writes a file beside its name and then puts it in place, so a write that stops part way, on
+		a full disk or when the power goes, leaves the old file as it was rather than a truncated
+		one. Throws where either step fails, having taken away what it wrote beside.
+
+		@param where The file.
+		@param bytes What it holds.
+	**/
+	public static function saves(where:String, bytes:haxe.io.Bytes):Void {
+		final aside = where + ".part";
+
+		try {
+			sys.io.File.saveBytes(aside, bytes);
+			replaces(aside, where);
+		} catch (e:haxe.Exception) {
+			clear(aside);
+			throw e;
+		}
+	}
+
+	/**
 		Removes a file, or a folder and everything under it.
 
 		@param where What to remove. Nothing happens where it does not exist.

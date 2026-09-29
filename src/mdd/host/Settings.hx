@@ -218,7 +218,7 @@ final class Settings {
 
 		try {
 			tree(haxe.io.Path.directory(path));
-			File.saveContent(path, out.toString());
+			Paths.saves(path, haxe.io.Bytes.ofString(out.toString()));
 		} catch (e:Dynamic) {
 			return false;
 		}

@@ -1019,8 +1019,7 @@ class Project {
 		@param onto What it replaces.
 	**/
 	static function swaps(aside:String, onto:String):Void {
-		if (FileSystem.exists(onto)) FileSystem.deleteFile(onto);
-		FileSystem.rename(aside, onto);
+		mdd.host.Paths.replaces(aside, onto);
 	}
 
 	/**

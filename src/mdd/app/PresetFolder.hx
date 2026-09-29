@@ -419,18 +419,10 @@ final class PresetFolder {
 		if (to != path && FileSystem.exists(to)) to = free(folder, stem, records ? suffix(path) : end);
 
 		final bytes = Preset.write(held.name, held.presets, held.samples, held.tags);
-		final aside = to + ".part";
 
 		try {
-			sys.io.File.saveBytes(aside, bytes);
-
-			if (FileSystem.exists(to)) FileSystem.deleteFile(to);
-			FileSystem.rename(aside, to);
+			mdd.host.Paths.saves(to, bytes);
 		} catch (e:Dynamic) {
-			try {
-				if (FileSystem.exists(aside)) FileSystem.deleteFile(aside);
-			} catch (e:Dynamic) {}
-
 			return "";
 		}
 

@@ -35,6 +35,7 @@ class MangleCheck {
 		patches(rounds, seed);
 		shaped();
 		crafted();
+		swapped();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -590,6 +591,38 @@ class MangleCheck {
 
 		says("a number past any Int is held to one", most == 2147483647 && least == -2147483647 - 1
 			&& real == 7, "whole " + most + " and " + least + ", real falls back to " + real);
+	}
+
+	/**
+		A save writes beside the file and then swaps it in, so what the name holds is the old file or
+		the new one, whole. Windows refuses a rename onto a name that is taken, which is why a save
+		used to delete the old file first and leave a moment with neither.
+	**/
+	static function swapped():Void {
+		final where = Gate.root + "/export/swapped.txt";
+
+		sys.io.File.saveContent(where, "the old file");
+		mdd.host.Paths.saves(where, Bytes.ofString("the new file"));
+
+		final over = sys.io.File.getContent(where);
+		final left = sys.FileSystem.exists(where + ".part");
+
+		mdd.host.Paths.clear(where);
+
+		var refused = false;
+
+		try {
+			mdd.host.Paths.saves(Gate.root + "/export/nowhere/swapped.txt", Bytes.ofString("lost"));
+		} catch (e:Dynamic) {
+			refused = true;
+		}
+
+		final stray = sys.FileSystem.exists(Gate.root + "/export/nowhere");
+
+		says("a save swaps the whole file in", over == "the new file" && !left && refused && !stray,
+			"over an old one it reads \"" + over + "\"" + (left ? " with a part left beside it" : "")
+			+ ", and into a folder that is not there it " + (refused ? "throws" : "claims to work")
+			+ (stray ? " and leaves the folder" : " leaving nothing"));
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
