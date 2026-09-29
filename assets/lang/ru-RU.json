@@ -216,6 +216,7 @@
   "file.noUpdate": "в mdd.xml не указан репозиторий",
   "file.open": "Открыть",
   "file.openRecent": "Открыть недавние",
+  "file.packaged": "эту копию обновляет менеджер пакетов системы",
   "file.preferences": "Настройки",
   "file.quit": "Выход",
   "file.readMidi": "Импортировать файл MIDI",

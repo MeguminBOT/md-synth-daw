@@ -216,6 +216,7 @@
   "file.noUpdate": "mdd.xmlにリポジトリが設定されていません",
   "file.open": "開く",
   "file.openRecent": "最近使ったファイル",
+  "file.packaged": "このコピーはシステムのパッケージマネージャーが更新します",
   "file.preferences": "環境設定",
   "file.quit": "終了",
   "file.readMidi": "MIDIファイルを読み込む",

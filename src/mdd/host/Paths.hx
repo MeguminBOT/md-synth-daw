@@ -94,6 +94,15 @@ class Paths {
 	}
 
 	/**
+		@return Whether a package manager installed this copy and keeps it up to date, which the
+			package says with a `packaged.txt` beside the executable. The application's own
+			updater leaves such a copy alone: the files belong to the package manager.
+	**/
+	public static function packaged():Bool {
+		return sys.FileSystem.exists(beside() + "/packaged.txt");
+	}
+
+	/**
 		@param where A directory this would keep things in.
 		@return Whether it is there, or can be made.
 

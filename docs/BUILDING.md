@@ -61,7 +61,7 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ./mdd gate               # every check, in order. Nonzero on any failure
 ./mdd gate --list        # the program names it answers to
 ./mdd gate window        # one check on its own
-./mdd package            # a portable archive and an installer for this platform
+./mdd package            # a portable archive and an installer for this platform, and on Linux a Debian package
 ./mdd package portable   # just the archive
 ./mdd notes v0.1.0       # the release notes for a tag, into export/NOTES.md
 ./mdd site               # the website, into export/site
@@ -252,6 +252,15 @@ them, so it cannot drift from them. The pictures and the example audio are copie
 disk. Served from a local web server it behaves exactly as it does on Pages, with the transitions
 between pages and the player's scope, which a page opened from disk goes without. For the workflow's
 result to land, the repository's Pages source has to be set to GitHub Actions.
+
+**The Linux jobs pack a Debian package as well**, `md-synth-daw_<version>_<architecture>.deb`,
+because the container installs `dpkg-dev` for them. It puts the program under `/usr/lib/mdd` and the
+command under `/usr/bin`, depends on the system's own SDL3 rather than carrying one, which is the
+copy apt keeps patched, and leaves out the three fonts a language downloads on demand, as the
+portable archive does. A `packaged.txt` beside the program tells the application that apt updates
+it, so its own updater never looks. What the package is called and who maintains it are the
+`<debian>` element in `mdd.xml`. A `./mdd package` on a machine without `dpkg-dev` makes everything
+else and says the package was left out.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

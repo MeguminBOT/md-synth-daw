@@ -140,7 +140,8 @@ jobs:
 
     steps:
       # Debian carries Haxe and SDL3 for both architectures, which is why the
-      # Linux jobs run in a container rather than on the runner image.
+      # Linux jobs run in a container rather than on the runner image. dpkg-dev
+      # is what mdd package builds the Debian package with.
       - name: Prepare the container
         if: matrix.haxe == 'apt'
         run: |
@@ -148,7 +149,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             ca-certificates curl git unzip xz-utils \
             clang lld llvm g++ make \
-            libsdl3-dev haxe neko
+            libsdl3-dev haxe neko dpkg-dev
 
       - uses: actions/checkout@v7.0.1
 
@@ -258,6 +259,7 @@ jobs:
           path: |
             export/package/*-setup.exe
             export/package/*-installer.tar.gz
+            export/package/*.deb
             export/package/*.dmg
           if-no-files-found: error
 
@@ -302,6 +304,7 @@ jobs:
           subject-path: |
             packages/*.zip
             packages/*.tar.gz
+            packages/*.deb
             packages/*.dmg
             packages/*setup.exe
 

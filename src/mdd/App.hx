@@ -423,7 +423,7 @@ class App {
 	**/
 	function looked():Void {
 		if (settings == null || update == null) return;
-		if (!settings.asFlag("update", true) || !update.possible()) return;
+		if (!settings.asFlag("update", true) || !update.possible() || update.packaged) return;
 
 		update.look();
 	}
@@ -2381,8 +2381,8 @@ class App {
 			+ (settings.portable ? "beside the program" : "the settings directory"));
 		Sys.println("  saving        " + (files.every <= 0 ? "only when asked"
 			: "on its own every " + Std.int(files.every / 60) + " minutes"));
-		Sys.println("  updates       " + (update.possible()
-			? "github " + update.repository : "no repository configured, never looks"));
+		Sys.println("  updates       " + (update.packaged ? "left to the package manager"
+			: (update.possible() ? "github " + update.repository : "no repository configured, never looks")));
 		Sys.println("  language      " + stage.root.translation.language + ", "
 			+ stage.root.translation.count() + " strings of " + Languages.shipped().length
 			+ " shipped languages");

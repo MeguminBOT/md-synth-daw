@@ -216,6 +216,7 @@
   "file.noUpdate": "mdd.xml 中没有配置仓库地址",
   "file.open": "打开",
   "file.openRecent": "打开最近的文件",
+  "file.packaged": "此副本由系统的软件包管理器更新",
   "file.preferences": "首选项",
   "file.quit": "退出",
   "file.readMidi": "导入 MIDI 文件",

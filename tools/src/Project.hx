@@ -222,6 +222,23 @@ class Project {
 	**/
 	public var carry(default, null):String = "";
 
+	/**
+		What the Debian package of a Linux build is called, or an empty string for no package.
+	**/
+	public var debianPackage(default, null):String = "";
+
+	/**
+		Who apt names as answering for the package, and the address that goes with the name.
+	**/
+	public var debianMaintainer(default, null):String = "";
+
+	public var debianEmail(default, null):String = "";
+
+	/**
+		The archive section the package is filed under.
+	**/
+	public var debianSection(default, null):String = "";
+
 	public var nativePath(default, null):String = "native";
 	public var nativeFiles(default, null):Array<String> = [];
 
@@ -468,6 +485,12 @@ class Project {
 
 			case "carry":
 				carry = node.get("value");
+
+			case "debian":
+				debianPackage = has(node, "package") ? node.get("package") : debianPackage;
+				debianMaintainer = has(node, "maintainer") ? node.get("maintainer") : debianMaintainer;
+				debianEmail = has(node, "email") ? node.get("email") : debianEmail;
+				debianSection = has(node, "section") ? node.get("section") : debianSection;
 
 			case "native":
 				nativePath = has(node, "path") ? node.get("path") : nativePath;

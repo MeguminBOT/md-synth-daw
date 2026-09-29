@@ -161,6 +161,12 @@ final class Update {
 	public var portable(default, null):Bool;
 
 	/**
+		Whether a package manager installed this copy and keeps it up to date, in which case this
+		updater never looks: the files are the package manager's to replace.
+	**/
+	public var packaged(default, null):Bool;
+
+	/**
 		Which version was found.
 	**/
 	public var offered(default, null):String = "";
@@ -268,6 +274,7 @@ final class Update {
 		this.platform = platform == "" ? Paths.platform() : platform;
 		this.machine = machine == "" ? Paths.machine() : machine;
 		this.portable = portable == null ? Paths.portable() : portable;
+		this.packaged = Paths.packaged();
 	}
 
 	/**
@@ -313,7 +320,7 @@ final class Update {
 		@return False where there is no repository or something is already happening.
 	**/
 	public function look():Bool {
-		if (!possible() || held.load() != IDLE) return false;
+		if (!possible() || packaged || held.load() != IDLE) return false;
 
 		held.store(LOOKING);
 		sys.thread.Thread.create(function():Void {
@@ -559,6 +566,7 @@ final class Update {
 
 		if (platform != "windows" && StringTools.endsWith(name, ".exe")) return 0;
 		if (platform != "mac" && StringTools.endsWith(name, ".dmg")) return 0;
+		if (StringTools.endsWith(name, ".deb")) return 0;
 
 		return score;
 	}

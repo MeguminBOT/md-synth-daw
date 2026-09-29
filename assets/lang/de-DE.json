@@ -216,6 +216,7 @@
   "file.noUpdate": "in mdd.xml ist kein Repository eingetragen",
   "file.open": "Öffnen",
   "file.openRecent": "Zuletzt geöffnet",
+  "file.packaged": "diese Kopie wird von der Paketverwaltung des Systems aktualisiert",
   "file.preferences": "Einstellungen",
   "file.quit": "Beenden",
   "file.readMidi": "Eine MIDI-Datei importieren",

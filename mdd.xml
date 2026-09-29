@@ -39,6 +39,11 @@
 
 	<update github="MeguminBOT/md-synth-daw" />
 
+	<!-- the Debian package a Linux build is also packed as, which the apt repository on the
+	     website serves. The maintainer is who apt names as answering for it -->
+	<debian package="md-synth-daw" maintainer="Victor L. Roxbåge"
+	        email="25033383+MeguminBOT@users.noreply.github.com" section="sound" />
+
 	<presence discord="1546264890317086730"
 	          cover="cover" playing="playing" stopped="stopped" working="working" />
 

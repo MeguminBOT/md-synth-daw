@@ -216,6 +216,7 @@
   "file.noUpdate": "inget arkiv är angivet i mdd.xml",
   "file.open": "Öppna",
   "file.openRecent": "Öppna senaste",
+  "file.packaged": "den här kopian uppdateras av systemets pakethanterare",
   "file.preferences": "Inställningar",
   "file.quit": "Avsluta",
   "file.readMidi": "Importera en MIDI-fil",

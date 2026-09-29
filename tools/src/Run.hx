@@ -2596,6 +2596,153 @@ class Run {
 		Sys.println("  " + pad("installer") + (made == 0
 			? archive.substr(root.length + 1) + " with install.sh and a desktop entry"
 			: "tar would not archive " + into));
+
+		debian(root, project, into);
+	}
+
+	/**
+		Packs the Linux build as a Debian package beside the archives, where `dpkg-deb` and
+		`dpkg-shlibdeps` are there to do it. The program goes under `/usr/lib`, and the command,
+		the desktop entry, the icons and the file type under `/usr/share` where the desktop looks.
+		A `packaged.txt` beside the program tells the updater that apt keeps this copy up to date.
+		The staging is cleared with `rm`, because the command's link dangles once the program's
+		folder is gone and a dangling link does not exist as far as `FileSystem` can tell.
+
+		The library the build carries is left out: the package depends on the system's own, which
+		apt keeps patched, and `dpkg-shlibdeps` names it along with everything else the program
+		links. The faces the application fetches for itself are left out too, as the portable
+		archive leaves them, which keeps each package small enough for the website to serve.
+
+		@param root The repository root.
+		@param project What the build file declares.
+		@param installer The staged installer, which carries the desktop entry, the file type and
+			the icons.
+	**/
+	static function debian(root:String, project:Project, installer:String):Void {
+		if (project.debianPackage == "") return;
+
+		final missing = ["dpkg-deb", "dpkg-shlibdeps"].filter(function(tool:String):Bool
+			return Sys.command("sh", ["-c", "command -v " + tool + " >/dev/null 2>&1"]) != 0);
+
+		if (missing.length > 0) {
+			Sys.println("  " + pad("debian") + "not built: " + missing.join(" and ")
+				+ " not installed, which dpkg-dev provides");
+			return;
+		}
+
+		final architecture = machine() == "arm64" ? "arm64" : "amd64";
+		final name = project.debianPackage + "_" + project.version + "_" + architecture;
+		final base = root + "/" + project.output + "/package";
+		final into = base + "/" + name;
+		final lib = into + "/usr/lib/" + project.short;
+		final share = into + "/usr/share";
+
+		Sys.command("rm", ["-rf", into]);
+
+		staged(root, project, lib, false);
+
+		if (project.carry != "") {
+			for (entry in FileSystem.readDirectory(lib)) {
+				if (StringTools.startsWith(entry, project.carry)) FileSystem.deleteFile(lib + "/" + entry);
+			}
+		}
+
+		File.saveContent(lib + "/packaged.txt", "apt\n");
+
+		tree(into + "/usr/bin");
+		Sys.command("ln", ["-s", "../lib/" + project.short + "/" + project.short,
+			into + "/usr/bin/" + project.short]);
+
+		tree(share + "/applications");
+		copyFile(installer + "/" + project.short + ".desktop", share + "/applications/" + project.short + ".desktop");
+
+		tree(share + "/mime/packages");
+		copyFile(installer + "/" + project.short + ".xml", share + "/mime/packages/" + project.short + ".xml");
+
+		for (size in THEMED) {
+			final icon = installer + "/appicon/" + project.short + "-" + size + ".png";
+			if (!FileSystem.exists(icon)) continue;
+
+			final where = share + "/icons/hicolor/" + size + "x" + size + "/apps";
+			tree(where);
+			copyFile(icon, where + "/" + project.short + ".png");
+		}
+
+		tree(share + "/doc/" + project.debianPackage);
+		copyFile(root + "/LICENSE", share + "/doc/" + project.debianPackage + "/copyright");
+
+		final needs = linked(base, project, lib);
+
+		if (needs == "") {
+			Sys.command("rm", ["-rf", into]);
+			Sys.println("  " + pad("debian") + "not built: dpkg-shlibdeps could not say what it needs");
+			return;
+		}
+
+		final weighs = new sys.io.Process("du", ["-sk", into + "/usr"]);
+		final size = Std.parseInt(StringTools.trim(weighs.stdout.readAll().toString()).split("\t")[0]);
+		weighs.close();
+
+		final control = new StringBuf();
+		control.add("Package: " + project.debianPackage + "\n");
+		control.add("Version: " + project.version + "\n");
+		control.add("Architecture: " + architecture + "\n");
+		control.add("Maintainer: " + project.debianMaintainer + " <" + project.debianEmail + ">\n");
+		control.add("Installed-Size: " + (size == null ? 0 : size) + "\n");
+		control.add("Depends: " + needs + "\n");
+		control.add("Section: " + project.debianSection + "\n");
+		control.add("Priority: optional\n");
+		control.add("Homepage: " + Site.published(project.github) + "\n");
+		control.add("Description: " + project.description + "\n");
+
+		tree(into + "/DEBIAN");
+		File.saveContent(into + "/DEBIAN/control", control.toString());
+
+		final made = base + "/" + name + ".deb";
+		if (FileSystem.exists(made)) FileSystem.deleteFile(made);
+
+		final code = Sys.command("dpkg-deb", ["--root-owner-group", "-Zxz", "--build", into, made]);
+		Sys.command("rm", ["-rf", into]);
+
+		Sys.println("  " + pad("debian") + (code == 0 && FileSystem.exists(made)
+			? made.substr(root.length + 1) + ", needing " + needs
+			: "dpkg-deb would not build " + name));
+	}
+
+	/**
+		@param base Where the scratch folder `dpkg-shlibdeps` needs can go.
+		@param project What the build file declares.
+		@param lib The packaged program's folder.
+		@return The packages the program and the libraries beside it link against, as a Depends
+			line, or an empty string where `dpkg-shlibdeps` would not say.
+	**/
+	static function linked(base:String, project:Project, lib:String):String {
+		final scratch = base + "/.shlibdeps";
+
+		if (FileSystem.exists(scratch)) remove(scratch);
+		tree(scratch + "/debian");
+		File.saveContent(scratch + "/debian/control", "Source: " + project.debianPackage + "\n\nPackage: "
+			+ project.debianPackage + "\nArchitecture: any\n");
+
+		final linking = [lib + "/" + project.short];
+
+		for (entry in FileSystem.readDirectory(lib)) {
+			if (entry.indexOf(".so") > 0) linking.push(lib + "/" + entry);
+		}
+
+		final run = new sys.io.Process("sh", ["-c",
+			"cd \"$0\" && private=\"$1\" && shift && dpkg-shlibdeps -O -l\"$private\" \"$@\" 2>/dev/null",
+			scratch, lib].concat(linking));
+		final said = run.stdout.readAll().toString();
+		run.close();
+
+		remove(scratch);
+
+		for (line in said.split("\n")) {
+			if (StringTools.startsWith(line, "shlibs:Depends=")) return StringTools.trim(line.substr(15));
+		}
+
+		return "";
 	}
 
 	static function clean(root:String, project:Project):Void {

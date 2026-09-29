@@ -184,7 +184,10 @@ final class Menus {
 
 		final looking = file.offer(new Choice(said(Locale.FILE_UPDATE)));
 
-		if (update.possible()) fired(looking, function():Void looks());
+		if (update.packaged) {
+			looking.enabled = false;
+			looking.reason = said(Locale.FILE_PACKAGED);
+		} else if (update.possible()) fired(looking, function():Void looks());
 		else {
 			looking.enabled = false;
 			looking.reason = said(Locale.FILE_NO_UPDATE);
