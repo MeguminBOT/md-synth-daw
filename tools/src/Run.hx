@@ -2381,8 +2381,7 @@ class Run {
 		out.add("<plist version=\"1.0\">\n<dict>\n");
 		out.add("\t<key>CFBundleName</key><string>" + project.title + "</string>\n");
 		out.add("\t<key>CFBundleExecutable</key><string>" + project.short + "</string>\n");
-		out.add("\t<key>CFBundleIdentifier</key><string>com." + project.company + "."
-			+ project.short + "</string>\n");
+		out.add("\t<key>CFBundleIdentifier</key><string>" + project.identifier + "</string>\n");
 		out.add("\t<key>CFBundleShortVersionString</key><string>" + project.version
 			+ "</string>\n");
 		out.add("\t<key>CFBundleIconFile</key><string>" + project.short + "</string>\n");
@@ -2405,8 +2404,8 @@ class Run {
 			out.add("\t\t\t<key>LSHandlerRank</key><string>Owner</string>\n");
 			out.add("\t\t\t<key>CFBundleTypeIconFile</key><string>" + project.short
 				+ "</string>\n");
-			out.add("\t\t\t<key>LSItemContentTypes</key>\n\t\t\t<array><string>com."
-				+ project.company + "." + project.short + "." + suffixes[at] + "</string></array>\n");
+			out.add("\t\t\t<key>LSItemContentTypes</key>\n\t\t\t<array><string>"
+				+ project.identifier + "." + suffixes[at] + "</string></array>\n");
 			out.add("\t\t</dict>\n");
 		}
 
@@ -2417,8 +2416,8 @@ class Run {
 			if (suffixes[at] == "") continue;
 
 			out.add("\t\t<dict>\n");
-			out.add("\t\t\t<key>UTTypeIdentifier</key><string>com." + project.company + "."
-				+ project.short + "." + suffixes[at] + "</string>\n");
+			out.add("\t\t\t<key>UTTypeIdentifier</key><string>" + project.identifier + "."
+				+ suffixes[at] + "</string>\n");
 			out.add("\t\t\t<key>UTTypeDescription</key><string>" + names[at] + "</string>\n");
 			out.add("\t\t\t<key>UTTypeConformsTo</key>\n\t\t\t<array><string>public.data</string>"
 				+ (at == 0 ? "<string>public.zip-archive</string>" : "") + "</array>\n");

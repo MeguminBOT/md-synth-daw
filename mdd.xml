@@ -20,8 +20,12 @@
 
 	<!-- ==== APPLICATION ==== -->
 
+	<!-- company is the name the installer and the executable show as the publisher. It also seeds
+	     the installer's identity, so changing it makes the next installer a different application
+	     to Windows. identifier is the name a platform asks for where spaces and letters outside
+	     ASCII cannot go: the macOS bundle and its document types, and the Android application ID -->
 	<meta title="MD Synth DAW" short="mdd" version="1.0.1"
-	      company="Victor L. Roxbage"
+	      company="Victor L. Roxbage" identifier="com.victorLR.mdd"
 	      description="A hardware-aware DAW for the Sega Mega Drive" />
 
 	<window width="1366" height="768" least-width="960" least-height="600"

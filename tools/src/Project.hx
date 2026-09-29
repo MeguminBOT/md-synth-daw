@@ -94,7 +94,20 @@ class Project {
 		What the command, the executable and the settings folder are called.
 	**/
 	public var short(default, null):String = "mdd";
+
+	/**
+		The name the installer and the executable show as the publisher. It also seeds the
+		installer's identity, so the next installer is a different application to Windows if
+		it changes.
+	**/
 	public var company(default, null):String = "";
+
+	/**
+		The reverse domain name the application goes by where a platform asks for one, and a
+		name with spaces or letters outside ASCII cannot go: the macOS bundle and its document
+		types, and the Android application ID.
+	**/
+	public var identifier(default, null):String = "";
 	public var github(default, null):String = "";
 	public var discord(default, null):String = "";
 	public var discordCover(default, null):String = "";
@@ -279,6 +292,7 @@ class Project {
 				title = has(node, "title") ? node.get("title") : title;
 				short = has(node, "short") ? node.get("short") : short;
 				company = has(node, "company") ? node.get("company") : company;
+				identifier = has(node, "identifier") ? node.get("identifier") : identifier;
 				version = has(node, "version") ? node.get("version") : version;
 				description = has(node, "description") ? node.get("description") : description;
 
