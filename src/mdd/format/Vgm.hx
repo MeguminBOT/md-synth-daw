@@ -106,6 +106,13 @@ final class Vgm {
 	public static inline final NOISE_WIDTH = 16;
 
 	/**
+		The furthest a file is read, in samples: about six and three quarter hours. A wait carries up
+		to 65535 samples in three bytes, so a hundred kilobytes of waits would otherwise count past
+		what an `Int` holds, and every position after that would be negative.
+	**/
+	static inline final LONGEST = 1 << 30;
+
+	/**
 		The version the header declares.
 	**/
 	public var version(default, null):Int = 0x150;
@@ -248,7 +255,7 @@ final class Vgm {
 		@param at Where the block starts.
 	**/
 	function tags(bytes:Bytes, at:Int):Void {
-		if (at < 0 || at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
+		if (at < 0 || at > bytes.length - 12 || bytes.getString(at, 4) != "Gd3 ") return;
 
 		var pen = at + 12;
 		final held:Array<String> = [];
@@ -286,6 +293,7 @@ final class Vgm {
 		var tick = 0;
 
 		while (at < bytes.length) {
+			if (tick > LONGEST) return;
 			if (loopAt >= 0 && at >= loopAt && loopWrite < 0) loopWrite = into.count;
 
 			final began = at;
@@ -343,7 +351,7 @@ final class Vgm {
 					final length = bytes.getInt32(at);
 					at += 4;
 
-					if (length < 0 || at + length > bytes.length) return;
+					if (length < 0 || length > bytes.length - at) return;
 
 					blocks++;
 					blockBytes += length;
