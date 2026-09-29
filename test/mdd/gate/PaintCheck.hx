@@ -80,6 +80,7 @@ class PaintCheck {
 		caching(paint, font);
 		borrowed(paint, font, root);
 		scales(root);
+		oversized(root);
 		clipping(paint);
 		opacities(paint);
 		speckled(paint);
@@ -644,6 +645,24 @@ class PaintCheck {
 		says("and nothing to say takes no lines at all",
 			font.wrapped("", room).length == 0 && font.wrapped(said, 0).length == 0,
 			"an empty line and no room both come back with none");
+	}
+
+	/**
+		A face baked taller than the atlas can hold. The side the atlas starts at was worked out in
+		whole numbers, and from about 1476 pixels to 2087 its square wrapped round to nought and the
+		doubling never ended. A text layer on a picture reaches that at one and a half times the
+		height of a 1080 line export.
+	**/
+	static function oversized(root:String):Void {
+		final face = root + "/vendor/fonts/Go-Regular.ttf";
+		final began = haxe.Timer.stamp();
+		final font = Font.bake(renderer, face, 1620);
+		final took = haxe.Timer.stamp() - began;
+
+		if (font != null) font.shut();
+
+		says("a face too tall for the atlas comes back", true,
+			"1620 pixels " + (font == null ? "refused" : "baked") + " in " + round(took * 1000) + " ms");
 	}
 
 	static function scales(root:String):Void {

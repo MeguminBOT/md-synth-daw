@@ -147,9 +147,10 @@ final class Font {
 		font.line = Text.line(face, pixels);
 		font.height = Math.ceil(font.ascent + font.descent);
 
+		final room = pixels * pixels * GLYPHS * 2.2;
+
 		var side = 128;
-		while (side * side < Std.int(pixels * pixels * GLYPHS * 2.2)) side <<= 1;
-		if (side > WIDEST) side = WIDEST;
+		while (side < WIDEST && side * side < room) side <<= 1;
 
 		var rgba = new Vector<cpp.UInt8>(side * side * 4);
 		var done = 0;
