@@ -199,16 +199,21 @@ jobs:
           haxe --version
           haxelib version
 
-      # Get latest hxcpp from its newest tag.
-      # A checkout carries run.n, which only launches the build tool hxcpp.n, and
-      # hxcpp.n is compiled from tools/hxcpp rather than committed. Without it
-      # hxcpp stops to ask on the terminal whether to build it, and a runner has
-      # nobody to answer, so the build fails after thirty seconds of waiting.
-      - name: Install hxcpp from its newest tag
+      # hxcpp comes from the tag mdd.xml names, and from its newest tag where
+      # mdd.xml names none. A checkout carries run.n, which only launches the build
+      # tool hxcpp.n, and hxcpp.n is compiled from tools/hxcpp rather than
+      # committed. Without it hxcpp stops to ask on the terminal whether to build
+      # it, and a runner has nobody to answer, so the build fails after thirty
+      # seconds of waiting.
+      - name: Install hxcpp at the tag mdd.xml names
         run: |
           url=https://github.com/HaxeFoundation/hxcpp.git
-          tag=$(git ls-remote --tags --refs --sort=-v:refname "$url" | sed -n 1p)
-          tag=${tag##*refs/tags/}
+          tag=$(sed -n 's/.*<hxcpp tag="\([^"]*\)".*/\1/p' mdd.xml | sed -n 1p)
+
+          if [ -z "$tag" ]; then
+            tag=$(git ls-remote --tags --refs --sort=-v:refname "$url" | sed -n 1p)
+            tag=${tag##*refs/tags/}
+          fi
 
           test -n "$tag"
           echo "hxcpp $tag"

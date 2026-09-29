@@ -239,6 +239,11 @@ class Project {
 	**/
 	public var debianSection(default, null):String = "";
 
+	/**
+		The hxcpp tag the workflows install, or an empty string where they take the newest.
+	**/
+	public var hxcppTag(default, null):String = "";
+
 	public var nativePath(default, null):String = "native";
 	public var nativeFiles(default, null):Array<String> = [];
 
@@ -491,6 +496,9 @@ class Project {
 				debianMaintainer = has(node, "maintainer") ? node.get("maintainer") : debianMaintainer;
 				debianEmail = has(node, "email") ? node.get("email") : debianEmail;
 				debianSection = has(node, "section") ? node.get("section") : debianSection;
+
+			case "hxcpp":
+				hxcppTag = has(node, "tag") ? node.get("tag") : hxcppTag;
 
 			case "native":
 				nativePath = has(node, "path") ? node.get("path") : nativePath;

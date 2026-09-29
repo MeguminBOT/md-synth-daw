@@ -66,6 +66,11 @@
 		           about="GCC" />
 	</toolchains>
 
+	<!-- the hxcpp the workflows install, and they take the newest tag without it. From v4.3.158 to
+	     v4.3.160 the collector frees a large object held only from the stack, and from v4.3.161 a
+	     spin lock lets two marking threads into its list of work at once. mdd build refuses both -->
+	<hxcpp tag="v4.3.157" />
+
 	<source    path="src" />
 	<generated path="export/haxe" />
 	<output    path="export" />

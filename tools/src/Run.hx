@@ -387,10 +387,17 @@ class Run {
 		Sys.println("    " + (tool("curl", ["--version"]) ? "[x] " : "[ ] ") + pad("curl")
 			+ "what setup fetches with");
 
-		final hxcpp = hxcppAt();
-		Sys.println("    " + (hxcpp == "" ? "[ ] " : "[x] ") + pad("hxcpp")
+		final installed = hxcppRoot();
+		final hxcpp = hxcppAt(installed, project.hxcppTag);
+		final fault = collectorFault(installed);
+		final tagged = project.hxcppTag == "" ? "" : " " + project.hxcppTag;
+
+		Sys.println("    " + (hxcpp == "" ? "[ ] " : (fault != "" ? "[!] " : "[x] ")) + pad("hxcpp")
 			+ (hxcpp == "" ? "not installed. Ask with: haxelib git hxcpp "
-				+ "https://github.com/HaxeFoundation/hxcpp.git" : hxcpp));
+				+ "https://github.com/HaxeFoundation/hxcpp.git" + tagged : hxcpp));
+
+		if (fault != "") Sys.println("        " + pad("") + fault + ", and a build refuses it");
+		if (tagged != "") Sys.println("        " + pad("") + "the workflows build with" + tagged);
 
 		if (project.toolchains.length > 0) {
 			Sys.println("");
@@ -582,20 +589,27 @@ class Run {
 
 		The version haxelib reports is the one in `haxelib.json`, which a git checkout leaves
 		at whatever the last release said, so it tells a reader nothing about how new the
-		checkout is. The tag the checkout sits on is what does, and it is asked of git.
+		checkout is. The tag the checkout sits on is what does, and it is asked of git. Where
+		two tags name the same commit, the one the workflows build with is the one given.
 
+		@param where Where hxcpp is, as `hxcppRoot` finds it.
+		@param wanted The tag the workflows build with, or an empty string.
 		@return A description, or an empty string where hxcpp is not installed.
 	**/
-	static function hxcppAt():String {
-		final where = StringTools.trim(reads("haxelib", ["path", "hxcpp"]).split("\n")[0]);
-		if (where == "" || !FileSystem.exists(where)) return "";
+	static function hxcppAt(where:String, wanted:String):String {
+		if (where == "") return "";
 
 		final here = Sys.getCwd();
 		var said = "";
 
 		try {
 			Sys.setCwd(where);
-			said = StringTools.trim(reads("git", ["describe", "--tags", "--always"]));
+
+			final tags = [for (tag in reads("git", ["tag", "--points-at", "HEAD"]).split("\n"))
+				StringTools.trim(tag)];
+
+			said = wanted != "" && tags.indexOf(wanted) >= 0 ? wanted
+				: StringTools.trim(reads("git", ["describe", "--tags", "--always"]));
 		} catch (e:Dynamic) {
 			said = "";
 		}
@@ -604,6 +618,52 @@ class Run {
 
 		if (said != "") return said + ", from git";
 		return "from haxelib, which trails the tags. See docs/BUILDING.md";
+	}
+
+	/**
+		@return Where haxelib keeps hxcpp, or an empty string where it is not installed.
+	**/
+	static function hxcppRoot():String {
+		final where = StringTools.trim(reads("haxelib", ["path", "hxcpp"]).split("\n")[0]);
+		return where != "" && FileSystem.exists(where) ? where : "";
+	}
+
+	/**
+		Reads an installed hxcpp's collector for the two faults its tags from v4.3.158 onwards
+		carry. The source is read rather than the tag, because a checkout can sit on any commit.
+
+		@param where Where hxcpp is, as `hxcppRoot` finds it.
+		@return What is wrong with it, or an empty string where neither fault is there.
+	**/
+	static function collectorFault(where:String):String {
+		final path = where + "/src/hx/gc/Immix.cpp";
+		if (where == "" || !FileSystem.exists(path)) return "";
+
+		var text = "";
+
+		try {
+			text = File.getContent(path);
+		} catch (e:Dynamic) {
+			return "";
+		}
+
+		if (text.indexOf("int mark{ rMark };") >= 0) {
+			return "its collector frees a large object held only from the stack";
+		}
+
+		for (lock in ["processListPopLock", "freeListPopLock"]) {
+			final at = text.indexOf("while(false == " + lock + ".compare_exchange_strong(expected, 1))");
+			if (at < 0) continue;
+
+			final open = text.indexOf("{", at);
+			final shut = open < 0 ? -1 : text.indexOf("}", open);
+
+			if (shut > open && text.substring(open, shut).indexOf("expected") < 0) {
+				return "a spin lock in its collector lets two marking threads in at once";
+			}
+		}
+
+		return "";
 	}
 
 	static function nativeXml(root:String, project:Project):String {
@@ -1112,6 +1172,14 @@ class Run {
 		if (windows() && !FileSystem.exists(root + "/" + project.pathOf("SDL3PATH")
 				+ "/lib/SDL3.lib")) {
 			Sys.println("mdd: SDL3 is missing from vendor/. Run: mdd setup");
+			Sys.exit(1);
+		}
+
+		final fault = collectorFault(hxcppRoot());
+
+		if (fault != "") {
+			Sys.println("mdd: the hxcpp installed is not one to build with: " + fault
+				+ ". docs/BUILDING.md names the tag to install");
 			Sys.exit(1);
 		}
 

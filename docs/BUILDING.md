@@ -23,8 +23,12 @@ haxelib to install and nothing is put on your system: the command runs `tools/sr
 - [Haxe](https://haxe.org) 4.3 or newer
 - [hxcpp](https://github.com/HaxeFoundation/hxcpp), do NOT use the old 4.3.2 version.
   ```sh
-  haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git v4.3.168
+  haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git v4.3.157
   ```
+
+  That is the tag the `hxcpp` element in `mdd.xml` names, and the one the workflows build with. The
+  tags after it carry faults in the garbage collector, and `mdd build` refuses an hxcpp that has
+  one, so a newer tag stops the build rather than making a program that crashes.
 
   Then build its command-line tool once, by running `haxe compile.hxml` inside `tools/hxcpp` in the
   checkout. A git checkout does not include that tool, and hxcpp stops to ask for it the first time a
@@ -205,13 +209,18 @@ is the reason those jobs use a container at all rather than the runner image. ma
 A package manager does not arrange `haxelib` the way the action does, so those jobs run
 `haxelib setup` themselves.
 
-hxcpp comes from git rather than from haxelib, at whatever the newest tag is when the job runs:
-`git ls-remote --sort=-v:refname` picks it and `haxelib git` installs it. A checkout carries
-`run.n`, which only launches the build tool `hxcpp.n`, and `hxcpp.n` is compiled from `tools/hxcpp`
-rather than committed, so the job builds it with `haxe compile.hxml`. Left out, hxcpp stops to ask on
-the terminal whether to build it, and a runner has nobody to answer. The tag is not pinned: a pin
-goes stale silently, and what it would guard against is a compiler warning rather than a broken
-build.
+hxcpp comes from git rather than from haxelib, at the tag the `hxcpp` element in `mdd.xml` names,
+and `haxelib git` installs it. Without the element the job takes the newest tag, which
+`git ls-remote --sort=-v:refname` picks. A checkout carries `run.n`, which only launches the build
+tool `hxcpp.n`, and `hxcpp.n` is compiled from `tools/hxcpp` rather than committed, so the job builds
+it with `haxe compile.hxml`. Left out, hxcpp stops to ask on the terminal whether to build it, and a
+runner has nobody to answer.
+
+The tag is held because the ones after it are not safe to build with. From v4.3.158 to v4.3.160 the
+garbage collector frees a large object that only the stack holds, and from v4.3.161 a lock in the
+collector lets two of its marking threads take the same piece of work, which crashes a collection
+now and then. `mdd build` reads the collector of whichever hxcpp is installed and refuses either
+fault, so moving the tag forward is safe to try: a tag that still carries one stops the build.
 
 Two things a runner does not give you, both found by running the Linux job in a Debian container
 rather than by reading the workflow:
