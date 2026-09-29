@@ -424,7 +424,8 @@ that.
 
 ## Licence
 
-MIT. See [`LICENSE`](LICENSE).
+MIT, copyright Victor L. Roxbåge (MeguminBOT) and the md-synth-daw contributors. See
+[`LICENSE`](LICENSE).
 
 Vendored sources are fetched by `mdd setup` and are not part of this repository. Their licences are
 listed under [References And Credits](#references-and-credits).
