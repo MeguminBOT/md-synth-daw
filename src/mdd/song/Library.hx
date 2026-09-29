@@ -246,7 +246,7 @@ final class Library {
 		final envelope = instrument.envelope;
 
 		if (beats > 0 && envelope != null) {
-			for (step in 0...beats) envelope.steps.push(drawn.at(step).whole(15));
+			for (step in 0...beats) Envelope.stepped(envelope, drawn.at(step).whole(15));
 
 			envelope.turns(Envelope.NOISE, noise.get("mode").whole(7));
 			envelope.turns(Envelope.SPEED, noise.get("speed").whole(1));

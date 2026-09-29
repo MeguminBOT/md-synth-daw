@@ -169,8 +169,8 @@ final class Preset {
 		final many = from.readByte();
 
 		for (index in 0...many) {
-			final target = from.readByte();
-			final slot = from.readByte();
+			final target = Project.within(from.readByte(), mdd.song.Automation.BASES.length);
+			final slot = Project.within(from.readByte(), mdd.song.Automation.SLOTS);
 			final line = new mdd.song.Automation(target, slot);
 
 			line.synced = from.readByte() != 0;
@@ -301,7 +301,10 @@ final class Preset {
 			final many = from.readUInt16();
 
 			for (index in 0...many) {
-				final kind:Part = from.readByte();
+				final family = from.readByte();
+				if (family >= Part.COUNT) return null;
+
+				final kind:Part = family;
 				final icon = from.readUInt16() - 1;
 				final made = new Instrument(spoken(from), kind);
 
@@ -336,11 +339,11 @@ final class Preset {
 						final shape = made.envelope == null ? new Envelope() : made.envelope;
 
 						shape.steps.resize(0);
-						for (at in 0...steps) shape.steps.push(from.readByte());
+						for (at in 0...steps) Envelope.stepped(shape, from.readByte());
 
-						shape.loop = from.readUInt16() - 1;
-						shape.speed = from.readByte();
-						shape.noise = from.readByte();
+						shape.turns(Envelope.LOOP, from.readUInt16() - 1);
+						shape.turns(Envelope.SPEED, from.readByte());
+						shape.turns(Envelope.NOISE, from.readByte());
 
 						made.envelope = shape;
 
