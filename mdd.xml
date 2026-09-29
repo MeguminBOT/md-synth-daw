@@ -20,10 +20,9 @@
 
 	<!-- ==== APPLICATION ==== -->
 
-	<!-- company is the name the installer and the executable show as the publisher. It also seeds
-	     the installer's identity, so changing it makes the next installer a different application
-	     to Windows. identifier is the name a platform asks for where spaces and letters outside
-	     ASCII cannot go: the macOS bundle and its document types, and the Android application ID -->
+	<!-- company is the name the installer and the executable show as the publisher. identifier is
+	     the name a platform asks for where spaces and letters outside ASCII cannot go: the macOS
+	     bundle and its document types, and the Android application ID -->
 	<meta title="MD Synth DAW" short="mdd" version="1.0.1"
 	      company="Victor L. Roxbage" identifier="com.victorLR.mdd"
 	      description="A hardware-aware DAW for the Sega Mega Drive" />
@@ -38,6 +37,11 @@
 	        bankMime="application/x-mdbank" />
 
 	<update github="MeguminBOT/md-synth-daw" />
+
+	<!-- the Windows installer's identity, which is how Windows knows an installed copy. Keep it as
+	     it is: another one makes the next installer a different application, which installs beside
+	     the old copy rather than over it, and the updater no longer finds the old copy's entry -->
+	<installer id="55EE0528-49BB-487B-A55E-E052849BB87B" />
 
 	<!-- the Debian package a Linux build is also packed as, which the apt repository on the
 	     website serves. The maintainer is who apt names as answering for it -->

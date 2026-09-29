@@ -2436,7 +2436,26 @@ class Run {
 		out.add("end;\n\n");
 	}
 
+	/**
+		The Windows installer's identity: the one the `installer` element in `mdd.xml` names, or one
+		worked out from the publisher and the short name where it names none. Stops the build where
+		the one named is not a GUID, since the installer and the updater would both take it as given.
+
+		@param project The build file.
+		@return The identity, without braces.
+	**/
 	static function identity(project:Project):String {
+		final named = project.installerId;
+
+		if (named != "") {
+			if (!~/^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/.match(named)) {
+				Sys.println("mdd: the installer id in mdd.xml is not a GUID: " + named);
+				Sys.exit(1);
+			}
+
+			return named.toUpperCase();
+		}
+
 		final said = project.company + "." + project.short + ".mdd";
 		var held = 0x811C9DC5;
 

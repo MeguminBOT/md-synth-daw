@@ -96,11 +96,15 @@ class Project {
 	public var short(default, null):String = "mdd";
 
 	/**
-		The name the installer and the executable show as the publisher. It also seeds the
-		installer's identity, so the next installer is a different application to Windows if
-		it changes.
+		The name the installer and the executable show as the publisher.
 	**/
 	public var company(default, null):String = "";
+
+	/**
+		The Windows installer's identity, a GUID, or an empty string where `mdd.xml` names none and
+		one is worked out from the publisher. Windows knows an installed copy by it.
+	**/
+	public var installerId(default, null):String = "";
 
 	/**
 		The reverse domain name the application goes by where a platform asks for one, and a
@@ -499,6 +503,9 @@ class Project {
 
 			case "hxcpp":
 				hxcppTag = has(node, "tag") ? node.get("tag") : hxcppTag;
+
+			case "installer":
+				installerId = has(node, "id") ? StringTools.trim(node.get("id")) : installerId;
 
 			case "native":
 				nativePath = has(node, "path") ? node.get("path") : nativePath;
