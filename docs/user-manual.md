@@ -264,9 +264,9 @@ changes what you hear, never what is exported.
 
 ![The right half of the transport bar](images/manual/basics/getting-started/04-transport-right.png)
 
-The tempo is in **BPM**. The time signature is two fields: drag, scroll or type the upper number,
-from 1 to 32 beats, and pick the lower one, from a whole note down to a thirty second, so 11/32 is as
-easy as 4/4. **PPQN** is the number of ticks in a quarter note. **SHIFT** moves every note, clip and
+The tempo is in **BPM**. The time signature is one field: drag or scroll the upper number, from 1
+to 32 beats, or the lower one, from a whole note down to a thirty second, or double click it and
+type one, so 11/32 is as easy as 4/4. **PPQN** is the number of ticks in a quarter note. **SHIFT** moves every note, clip and
 automation point by a number of ticks.
 
 ![A row of the channel rack](images/manual/basics/getting-started/05-channel-rack.png)

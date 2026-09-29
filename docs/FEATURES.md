@@ -109,12 +109,13 @@ note.
   time signature says. The roll and the transport bar offer the same divisions, and the one you
   pick is kept between sessions. A note you place lands on the step you pointed at, and one you
   drag goes to the nearest line.
-- A time signature for the piece, set on the transport bar as its two numbers: 1 to 32 beats a bar,
-  dragged, scrolled or typed, over a whole note down to a thirty second, so 11/32 is as easy to set
-  as 3/4. Any pattern can have one of its own from the Pattern menu. It decides where bars fall in
-  the grid, the ruler and the bar count, and how far a pattern grows when a note runs past its end.
-  Every other bar is shaded a little lighter, so where one ends can be seen at any zoom. A MIDI
-  file's time signature is read when it is imported and written when one is exported.
+- A time signature for the piece, set on the transport bar in one field: 1 to 32 beats a bar over a
+  whole note down to a thirty second, either number dragged or scrolled where it sits, or the whole
+  typed after a double click, so 11/32 is as easy to set as 3/4. Any pattern can have one of its own
+  from the Pattern menu. It decides where bars fall in the grid, the ruler and the bar count, and
+  how far a pattern grows when a note runs past its end. Every other bar is shaded a little lighter,
+  so where one ends can be seen at any zoom. A MIDI file's time signature is read when it is
+  imported and written when one is exported.
 - `Ctrl` and the wheel to zoom, as far out as a bar four pixels wide and as far in as one
   two thousand wide, wherever the pattern happens to end. `Ctrl` and the wheel over the
   keyboard, or with `Shift` held anywhere, makes the rows taller or shorter instead. Middle
