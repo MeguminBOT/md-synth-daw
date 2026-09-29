@@ -57,6 +57,19 @@ final class Envelope {
 	public function new() {}
 
 	/**
+		Adds a step read out of a file, held to what an attenuation is, and nothing past the most an
+		envelope holds.
+
+		@param into The envelope.
+		@param value The attenuation.
+	**/
+	public static function stepped(into:Envelope, value:Int):Void {
+		if (into.steps.length >= LENGTH) return;
+
+		into.steps.push(value < 0 ? 0 : (value > 15 ? 15 : value));
+	}
+
+	/**
 		@param which Which dial.
 		@return The largest value it takes.
 	**/

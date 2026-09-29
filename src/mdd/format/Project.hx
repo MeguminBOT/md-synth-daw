@@ -83,7 +83,7 @@ class Project {
 		@param fallback What to use instead where it is out of range.
 		@return A value that is safe to index with.
 	**/
-	static inline function within(value:Int, most:Int, fallback:Int = 0):Int {
+	public static inline function within(value:Int, most:Int, fallback:Int = 0):Int {
 		return value < 0 || value >= most ? fallback : value;
 	}
 
@@ -574,7 +574,7 @@ class Project {
 
 		final tempo = node.get("tempo");
 		song.tempo.resolve(tempo.get("ppqn").whole(96));
-		song.tempo.rate = tempo.get("rate").whole(60);
+		song.tempo.rate = tempo.get("rate").whole(60) == 50 ? 50 : 60;
 
 		final meter = tempo.get("meter");
 		if (meter.length() == 2) song.meter.sets(meter.at(0).whole(4), meter.at(1).whole(4));
@@ -594,7 +594,8 @@ class Project {
 			song.rack[i] = rack.at(i).whole(-1);
 			song.muted[i] = muted.at(i).truth(false);
 			song.soloed[i] = soloed.at(i).truth(false);
-			song.volume[i] = volume.at(i).whole(Song.LOUDEST);
+			final loud = volume.at(i).whole(Song.LOUDEST);
+			song.volume[i] = loud < 0 ? 0 : (loud > Song.LOUDEST ? Song.LOUDEST : loud);
 		}
 
 		final instruments = node.get("instruments");
@@ -721,25 +722,25 @@ class Project {
 			final held = node.get("patch");
 			final patch = instrument.patch == null ? new Patch() : instrument.patch;
 
-			patch.algorithm = held.get("algorithm").whole(0);
-			patch.feedback = held.get("feedback").whole(0);
-			patch.ams = held.get("ams").whole(0);
-			patch.pms = held.get("pms").whole(0);
+			patch.turns(Patch.ALGORITHM, held.get("algorithm").whole(0));
+			patch.turns(Patch.FEEDBACK, held.get("feedback").whole(0));
+			patch.turns(Patch.AMS, held.get("ams").whole(0));
+			patch.turns(Patch.PMS, held.get("pms").whole(0));
 
 			final slots = held.get("slots");
 
 			for (slot in 0...Patch.SLOTS) {
 				final one = slots.at(slot);
-				patch.detune[slot] = one.get("detune").whole(0);
-				patch.multiple[slot] = one.get("multiple").whole(1);
-				patch.totalLevel[slot] = one.get("totalLevel").whole(127);
-				patch.keyScale[slot] = one.get("keyScale").whole(0);
-				patch.attack[slot] = one.get("attack").whole(31);
-				patch.decay[slot] = one.get("decay").whole(0);
-				patch.sustain[slot] = one.get("sustain").whole(0);
-				patch.sustainLevel[slot] = one.get("sustainLevel").whole(0);
+				patch.writes(slot, 7, one.get("detune").whole(0));
+				patch.writes(slot, 6, one.get("multiple").whole(1));
+				patch.writes(slot, 0, one.get("totalLevel").whole(127));
+				patch.writes(slot, 8, one.get("keyScale").whole(0));
+				patch.writes(slot, 1, one.get("attack").whole(31));
+				patch.writes(slot, 2, one.get("decay").whole(0));
+				patch.writes(slot, 4, one.get("sustain").whole(0));
+				patch.writes(slot, 3, one.get("sustainLevel").whole(0));
 				patch.writes(slot, 5, one.get("release").whole(15));
-				patch.ssg[slot] = one.get("ssg").whole(0);
+				patch.writes(slot, 9, one.get("ssg").whole(0));
 				patch.tremolo[slot] = one.get("tremolo").truth(false);
 			}
 
@@ -753,11 +754,11 @@ class Project {
 			final envelope = new Envelope();
 
 			final steps = held.get("steps");
-			for (i in 0...steps.length()) envelope.steps.push(steps.at(i).whole(0));
+			for (i in 0...steps.length()) Envelope.stepped(envelope, steps.at(i).whole(0));
 
-			envelope.loop = held.get("loop").whole(-1);
-			envelope.speed = held.get("speed").whole(1);
-			envelope.noise = held.get("noise").whole(4);
+			envelope.turns(Envelope.LOOP, held.get("loop").whole(-1));
+			envelope.turns(Envelope.SPEED, held.get("speed").whole(1));
+			envelope.turns(Envelope.NOISE, held.get("noise").whole(4));
 
 			instrument.envelope = envelope;
 		} else {
@@ -1268,7 +1269,7 @@ class Project {
 		final out:Array<haxe.zip.Entry> = [];
 
 		for (index in 0...many) {
-			if (header < 0 || header + 46 > length || bytes.getInt32(header) != 0x02014B50) {
+			if (header < 0 || header > length - 46 || bytes.getInt32(header) != 0x02014B50) {
 				throw "not a project: a damaged zip directory";
 			}
 
@@ -1286,13 +1287,13 @@ class Project {
 			final name = bytes.getString(header + 46, named);
 
 			if (method != 0 && method != 8) throw "not a project this reads: " + name + " is packed another way";
-			if (local < 0 || local + 30 > length || bytes.getInt32(local) != 0x04034B50) {
+			if (local < 0 || local > length - 30 || bytes.getInt32(local) != 0x04034B50) {
 				throw "not a project: " + name + " is damaged";
 			}
 
 			final data = local + 30 + bytes.getUInt16(local + 26) + bytes.getUInt16(local + 28);
 
-			if (packed < 0 || size < 0 || data < 0 || data + packed > length) {
+			if (packed < 0 || size < 0 || data < 0 || packed > length - data) {
 				throw "not a project: " + name + " is damaged";
 			}
 

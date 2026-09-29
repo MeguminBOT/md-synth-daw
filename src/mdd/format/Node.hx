@@ -170,7 +170,9 @@ final class Node {
 		@return The value as a whole number.
 	**/
 	public function whole(fallback:Int = 0):Int {
-		return shape == NUMBER || shape == FLAG ? Std.int(number) : fallback;
+		if (shape != NUMBER && shape != FLAG) return fallback;
+
+		return number >= 2147483647.0 ? 2147483647 : (number <= -2147483648.0 ? -2147483647 - 1 : Std.int(number));
 	}
 
 	/**
@@ -178,7 +180,7 @@ final class Node {
 		@return The value as a number.
 	**/
 	public function real(fallback:Float = 0):Float {
-		return shape == NUMBER || shape == FLAG ? number : fallback;
+		return (shape == NUMBER || shape == FLAG) && Math.isFinite(number) ? number : fallback;
 	}
 
 	/**

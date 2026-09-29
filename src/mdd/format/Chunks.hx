@@ -68,7 +68,7 @@ class Chunks {
 			final tag = input.readString(4);
 			final length = input.readInt32();
 
-			if (length < 0 || input.position + length > bytes.length) break;
+			if (length < 0 || length > bytes.length - input.position) break;
 
 			found.push({ tag: tag, body: input.read(length) });
 			if ((length & 1) != 0 && input.position < bytes.length) input.readByte();
