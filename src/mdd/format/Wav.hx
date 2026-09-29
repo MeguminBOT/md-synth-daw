@@ -101,7 +101,7 @@ final class Wav {
 			final size = bytes.getInt32(at + 4);
 			at += 8;
 
-			if (size < 0 || at + size > bytes.length) break;
+			if (size < 0 || size > bytes.length - at) break;
 
 			if (tag == "fmt " && size >= 16) {
 				format = bytes.getUInt16(at);
