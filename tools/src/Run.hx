@@ -1625,7 +1625,9 @@ class Run {
 
 		The page they are shown on wraps text to its own width, so a paragraph wrapped in the
 		template is joined back into one line here, and a line starting with a dash stays a
-		line of its own.
+		line of its own. The file starts with a byte order mark, which every Inno Setup reads as
+		UTF-8: one older than 6.3 reads a file without it in the system code page, and every
+		letter outside ASCII, the licence holder's name among them, comes out as two wrong ones.
 
 		@param root The repository root.
 		@param project What the build file declares.
@@ -1641,13 +1643,14 @@ class Run {
 		var said = File.getContent(from);
 		said = StringTools.replace(said, "{title}", project.title);
 		said = StringTools.replace(said, "{releases}", page + "/releases");
+		said = StringTools.replace(said, "{site}", Site.published(project.github));
 		said = StringTools.replace(said, "{source}", page);
 
 		final licence = root + "/LICENSE";
 		if (FileSystem.exists(licence)) said += "\n" + File.getContent(licence);
 
 		final into = root + "/" + project.output + "/package/terms.txt";
-		File.saveContent(into, unwrapped(said));
+		File.saveContent(into, "\u{FEFF}" + unwrapped(said));
 
 		return into;
 	}

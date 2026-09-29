@@ -8,15 +8,17 @@ IF YOU PAID FOR THIS SOFTWARE, YOU'VE BEEN SCAMMED
 author, and there is no paid edition, licence key or subscription. If someone charged you for it,
 ask for your money back and report the seller wherever you paid.
 
-ONLY INSTALL A COPY FROM THE OFFICIAL PAGE
+ONLY INSTALL A COPY FROM AN OFFICIAL PAGE
 
-The official place to download {title} is:
-{releases}
+{title} is published in these three places, and nowhere else:
+- {releases}
+- {site}
+- https://sourceforge.net/projects/md-synth-daw/
 
 If you're not sure where this installer came from, or whether it can be trusted, don't run it.
-Close it and download {title} again from the page above. A copy from anywhere else may have been
-changed, and a changed copy can do things the real one never does. Every official release lists a
-SHA-256 checksum for each file, so you can check that your download is the file that was published.
+Close it and download {title} again from one of the pages above. A copy from anywhere else may have
+been changed, and a changed copy can do things the real one never does. Every official release lists
+a SHA-256 checksum for each file, so you can check that your download is the file that was published.
 
 FREE AND OPEN SOURCE
 

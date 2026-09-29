@@ -593,7 +593,7 @@ class Site {
 
 		@param github The repository as owner and name.
 	**/
-	static function published(github:String):String {
+	public static function published(github:String):String {
 		final slash = github.indexOf("/");
 		return "https://" + github.substr(0, slash).toLowerCase() + ".github.io/" + github.substr(slash + 1) + "/";
 	}
