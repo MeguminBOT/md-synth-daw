@@ -78,7 +78,8 @@ you already have, and then none of this applies.
 
 **SDL does not need installing.** The Linux and macOS packages ship their own copy of SDL3 beside
 the binary and find it there, which matters because SDL3 is new enough that a good many current
-distributions do not package it yet.
+distributions do not package it yet. The Debian package is the exception: it uses the system's own
+`libsdl3-0`, which apt installs along with it.
 
 **Older than any of the above isn't supported.** It may well run, and you are welcome to try, but a
 problem on it isn't one we can look into. That covers a custom build aimed at an older Unix just as

@@ -39,6 +39,7 @@
 - [System Requirements](#system-requirements)
 - [Getting Started](#getting-started)
   - [Install](#install)
+  - [Install with apt](#install-with-apt)
   - [Verifying a download](#verifying-a-download)
   - [Build from source](#build-from-source)
 - [What It Supports](#what-it-supports)
@@ -152,6 +153,30 @@ account directory, so it will happily live on a USB stick with your preferences 
 folder whole: the program reads its fonts and icons from the folders beside it, and says so in a box
 if they are missing rather than failing to open. It leaves out the Japanese, Chinese and Korean
 fonts, which are most of the size, and downloads the one a language needs when you pick it.
+
+### Install with apt
+
+On Debian 13, Ubuntu 25.04 and the distributions built on them, MD Synth DAW also installs from the
+website's own apt repository, and apt then keeps it up to date along with the rest of the system:
+
+```sh
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://meguminbot.github.io/md-synth-daw/apt/md-synth-daw.gpg | sudo tee /etc/apt/keyrings/md-synth-daw.gpg >/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/md-synth-daw.gpg] https://meguminbot.github.io/md-synth-daw/apt stable main" | sudo tee /etc/apt/sources.list.d/md-synth-daw.list
+sudo apt update
+sudo apt install md-synth-daw
+```
+
+The repository is signed, and the second line fetches the key apt checks it against, so apt refuses
+a package list that was not signed with this project's key. A copy installed this way is updated by
+apt, so the application never offers an update of its own. The Japanese, Chinese and Korean fonts
+are left out of the package, and the application downloads the one a language needs when you pick
+it.
+
+Every release also carries the packages themselves, `md-synth-daw_<version>_amd64.deb` and
+`md-synth-daw_<version>_arm64.deb`, for a machine that should not follow the repository. Install
+one with `sudo apt install ./md-synth-daw_<version>_amd64.deb`. With no repository behind it, a
+newer version is another download.
 
 ### Verifying a download
 
