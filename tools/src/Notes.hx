@@ -262,6 +262,17 @@ class Notes {
 			+ " behind. An installed copy keeps them under your documents. Both are the same"
 			+ " application, and the updater offers whichever kind you already have."));
 		out.add("\n");
+
+		if (project.debianPackage == "") return;
+
+		final named = project.debianPackage + "_" + project.version;
+
+		out.add(wrapped("On Debian 13, Ubuntu 25.04 and the systems built on them there are also `"
+			+ named + "_amd64.deb` and `" + named + "_arm64.deb`, and the website's apt repository,"
+			+ " which keeps an installed copy up to date along with the rest of the system. The"
+			+ " commands are under [Install with apt](https://github.com/" + project.github
+			+ "#install-with-apt) in the README."));
+		out.add("\n");
 	}
 
 	static function checking(out:StringBuf, project:Project):Void {
