@@ -1200,7 +1200,7 @@ class App {
 		stage.root.soil();
 		stage.draw();
 
-		if (!update.hands()) {
+		if (!update.hands(function():Void mdd.host.Sdl.pumpEvents())) {
 			update.forget();
 			settled();
 			session.say(stage.root.translate(update.declined ? Locale.UPDATE_DECLINED : Locale.UPDATE_BROKEN));

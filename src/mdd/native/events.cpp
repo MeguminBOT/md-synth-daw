@@ -41,6 +41,10 @@ namespace {
 	}
 }
 
+extern "C" void mdd_pump_events(void) {
+	SDL_PumpEvents();
+}
+
 extern "C" int mdd_poll_event(MddEvent *out) {
 	if (out == nullptr) return 0;
 

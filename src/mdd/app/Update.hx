@@ -112,6 +112,30 @@ final class Update {
 	static inline final LONGEST = 1800;
 
 	/**
+		What an elevated handover away from Windows leaves as soon as it runs, which is how the
+		application knows the password was given and it may close.
+	**/
+	static inline final STARTED = "handover.started";
+
+	/**
+		What the command around an elevated handover away from Windows writes when pkexec ends
+		before the handover ran: 126 where the password was refused, 127 where it could not be
+		asked for, and `none` where there is no pkexec.
+	**/
+	static inline final ANSWER = "handover.answer";
+
+	/**
+		How long a handover away from Windows waits for this process to close, in tenths of a
+		second, before it goes ahead regardless.
+	**/
+	static inline final CLOSING = 600;
+
+	/**
+		How long the application waits for the password to be given or refused, in seconds.
+	**/
+	static inline final ASKING = 600.0;
+
+	/**
 		Which repository to look at, or an empty string to never look.
 	**/
 	public var repository(default, null):String;
@@ -185,9 +209,9 @@ final class Update {
 	public var handover(default, null):String = "";
 
 	/**
-		Whether the handover has to run as an administrator, which Windows asks to be allowed before
-		this process closes: a copy installed for every account, or one in a folder this account
-		cannot write to.
+		Whether the handover has to run as an administrator, which is asked for before this process
+		closes: through Windows' own prompt, or through pkexec's password on Linux. It does for a
+		copy installed for every account, and for one in a folder this account cannot write to.
 	**/
 	public var elevates(default, null):Bool = false;
 
@@ -816,7 +840,7 @@ final class Update {
 				wrong = "the download changed after it was checked";
 				discards();
 			} else {
-				elevates = platform == "windows" && raised(where);
+				elevates = raised(where);
 
 				if (portable) carried(where, restart, guarded);
 				else installs(where, restart, guarded);
@@ -920,10 +944,15 @@ final class Update {
 	/**
 		@param where The folder the running copy sits in.
 		@return Whether replacing it needs an administrator: a copy the installer put there for every
-			account, or a folder this account cannot write to.
+			account, or a folder this account cannot write to. On Linux an installed copy also needs
+			its prefix, where `install.sh` links the command and the desktop entry. On macOS the
+			disk image is opened for the reader to drag across, so it never does.
 	**/
 	function raised(where:String):Bool {
-		return (!portable && everyone(where)) || !writable(where);
+		if (platform == "mac") return false;
+		if (platform == "windows") return (!portable && everyone(where)) || !writable(where);
+
+		return !writable(where) || (!portable && !writable(beneath(where)));
 	}
 
 	/**
@@ -1038,9 +1067,24 @@ final class Update {
 
 			out.add("exit /b 0\r\n");
 		} else {
+			final guard = beside + "/" + LOCK;
+
 			out.add("#!/usr/bin/env sh\n");
 
-			if (guarded) out.add("sleep 3\n");
+			if (elevates) out.add("touch " + quoted(beside + "/" + STARTED) + "\n");
+
+			if (guarded) {
+				locks();
+
+				out.add("held=$(cat " + quoted(guard) + " 2>/dev/null)\n");
+				out.add("waited=0\n");
+				out.add("while [ -n \"$held\" ] && kill -0 \"$held\" 2>/dev/null && [ \"$waited\" -lt "
+					+ CLOSING + " ]; do\n");
+				out.add("\tsleep 0.1\n");
+				out.add("\twaited=$((waited + 1))\n");
+				out.add("done\n");
+				out.add("rm -f " + quoted(guard) + "\n");
+			}
 
 			if (instead != "") out.add(instead + " || exit 1\n");
 			else {
@@ -1052,8 +1096,13 @@ final class Update {
 			if (from != "") out.add("rm -rf " + quoted(from) + "\n");
 			out.add("rm -f " + quoted(into) + "\n");
 
-			if (after != "") out.add("chmod +x " + quoted(after) + " 2>/dev/null\n");
-			if (after != "") out.add(quoted(after) + " >/dev/null 2>&1 &\n");
+			if (after != "" && elevates) {
+				out.add("touch " + quoted(beside + "/" + DONE) + "\n");
+				restarts = waits(beside, after);
+			} else if (after != "") {
+				out.add("chmod +x " + quoted(after) + " 2>/dev/null\n");
+				out.add(quoted(after) + " >/dev/null 2>&1 &\n");
+			}
 
 			out.add("exit 0\n");
 		}
@@ -1072,11 +1121,31 @@ final class Update {
 		@return Where the script was written.
 	**/
 	function waits(beside:String, after:String):String {
+		Paths.clear(beside + "/" + DONE);
+
+		if (platform != "windows") {
+			final path = beside + "/restart.sh";
+			final marker = quoted(beside + "/" + DONE);
+			final out = new StringBuf();
+
+			out.add("#!/usr/bin/env sh\n");
+			out.add("waited=0\n");
+			out.add("while [ ! -f " + marker + " ] && [ \"$waited\" -lt " + LONGEST + " ]; do\n");
+			out.add("\tsleep 1\n");
+			out.add("\twaited=$((waited + 1))\n");
+			out.add("done\n");
+			out.add("[ -f " + marker + " ] || exit 1\n");
+			out.add("rm -f " + marker + "\n");
+			out.add(quoted(after) + " >/dev/null 2>&1 &\n");
+			out.add("exit 0\n");
+
+			File.saveContent(path, out.toString());
+			return path;
+		}
+
 		final path = beside + "/restart.cmd";
 		final marker = backslashed(beside + "/" + DONE);
 		final out = new StringBuf();
-
-		Paths.clear(beside + "/" + DONE);
 
 		out.add("@echo off\r\n");
 		out.add("setlocal\r\n");
@@ -1098,14 +1167,16 @@ final class Update {
 
 	/**
 		Opens a file and keeps it open, so the handover script can tell when this process
-		has closed by waiting for the file to become deletable.
+		has closed. On Windows it waits for the file to become deletable; elsewhere a file that is
+		open can always be deleted, so the file holds this process's identifier instead, and the
+		script waits for that process to be gone.
 	**/
 	function locks():Void {
 		if (lock != null) return;
 
 		try {
 			lock = File.write(haxe.io.Path.directory(into) + "/" + LOCK, true);
-			lock.writeString(running);
+			lock.writeString(platform == "windows" ? running : "" + mdd.host.Launcher.process());
 			lock.flush();
 		} catch (e:Dynamic) {
 			lock = null;
@@ -1120,14 +1191,16 @@ final class Update {
 		started through `start` inherited the lock it waits on and held it open itself, so it
 		waited forever and nothing was ever replaced.
 
-		Where the handover `elevates`, Windows asks for it to be allowed here, while the window is
-		still in front: asked by the handover itself once this process had closed, the question
-		only flashed on the taskbar and the update looked as though it had done nothing. This
-		blocks until it is answered, and `declined` says whether it was turned down.
+		Where the handover `elevates`, it is asked for here, while the window is still in front:
+		asked by the handover itself once this process had closed, Windows only flashed the
+		question on the taskbar, and the update looked as though it had done nothing. This blocks
+		until it is answered, and `declined` says whether it was turned down.
 
+		@param meanwhile Called over and over while Linux waits for the password, which is how the
+			window keeps answering the desktop. Windows blocks inside its own prompt instead.
 		@return False where nothing is ready to hand over to, or it was not allowed to run.
 	**/
-	public function hands():Bool {
+	public function hands(?meanwhile:() -> Void):Bool {
 		if (held.load() != APPLIED || handover == "") return false;
 
 		if (platform == "windows") {
@@ -1144,7 +1217,55 @@ final class Update {
 			return true;
 		}
 
+		if (elevates) return authorises(meanwhile);
+
 		return Sys.command("sh", ["-c", "sh " + quoted(handover) + " >/dev/null 2>&1 &"]) == 0;
+	}
+
+	/**
+		Starts the handover through pkexec, which asks for an administrator's password, and waits
+		for the answer. The handover says it is running by leaving `STARTED` as its first act, and
+		a refusal ends pkexec before that, with a code the command around it writes to `ANSWER`.
+		The restart is started here, as this account, once the handover runs.
+
+		@param meanwhile Called over and over while the password is asked for.
+		@return Whether the handover is running.
+	**/
+	function authorises(meanwhile:Null<() -> Void>):Bool {
+		final beside = haxe.io.Path.directory(handover);
+		final started = beside + "/" + STARTED;
+		final answer = beside + "/" + ANSWER;
+
+		Paths.clear(started);
+		Paths.clear(answer);
+
+		final asked = "if command -v pkexec >/dev/null 2>&1; then pkexec /bin/sh " + quoted(handover)
+			+ "; echo $? > " + quoted(answer) + "; else echo none > " + quoted(answer) + "; fi";
+
+		if (Sys.command("sh", ["-c", "(" + asked + ") >/dev/null 2>&1 &"]) != 0) return false;
+
+		final until = Sys.time() + ASKING;
+
+		while (Sys.time() < until) {
+			if (FileSystem.exists(started)) {
+				if (restarts != "") Sys.command("sh", ["-c", "sh " + quoted(restarts) + " >/dev/null 2>&1 &"]);
+				return true;
+			}
+
+			if (FileSystem.exists(answer)) {
+				final said = StringTools.trim(File.getContent(answer));
+				declined = said == "126" || said == "127";
+				wrong = said == "none" ? "there is no pkexec to ask for an administrator's password"
+					: "pkexec ended with " + said;
+				return false;
+			}
+
+			if (meanwhile != null) meanwhile();
+			Sys.sleep(0.05);
+		}
+
+		wrong = "nobody answered the password prompt";
+		return false;
 	}
 
 	/**

@@ -35,6 +35,12 @@ int mdd_launcher_detached(const char *command);
  */
 int mdd_launcher_elevated(const char *program, const char *parameters);
 
+/**
+ * @return This process's own identifier, which a handover away from Windows waits on to see this
+ *     process close.
+ */
+int mdd_launcher_process(void);
+
 #ifdef __cplusplus
 }
 #endif

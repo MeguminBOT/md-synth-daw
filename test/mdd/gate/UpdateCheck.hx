@@ -63,6 +63,8 @@ class UpdateCheck {
 		carried(where, port, archive);
 		handed(where, port, archive);
 		elevated(where, port, archive);
+		authorised(where, port, archive, true);
+		authorised(where, port, archive, false);
 		installed(where, port);
 		bare();
 		tentative();
@@ -213,9 +215,20 @@ class UpdateCheck {
 		lot = where + "/lot";
 		Paths.make(lot);
 
-		wrote(inside + "/" + mdd.Config.SHORT + ending(), "the new program, " + OFFERED + "\n");
+		wrote(inside + "/" + mdd.Config.SHORT + ending(), Paths.platform() == "windows"
+			? "the new program, " + OFFERED + "\n"
+			: "#!/bin/sh\n# the new program, " + OFFERED + "\ntouch \"$0.started\"\n");
 		wrote(inside + "/assets/note.txt", "new asset\n");
 		wrote(inside + "/portable.txt", "portable\n");
+
+		if (Paths.platform() == "linux") {
+			wrote(inside + "/install.sh", "#!/bin/sh\nset -e\nHERE=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n"
+				+ "mkdir -p \"$PREFIX/lib/" + mdd.Config.SHORT + "\" \"$PREFIX/bin\"\n"
+				+ "rm -f \"$PREFIX/lib/" + mdd.Config.SHORT + "/" + mdd.Config.SHORT + "\"\n"
+				+ "cp -r \"$HERE\"/* \"$PREFIX/lib/" + mdd.Config.SHORT + "/\"\n"
+				+ "ln -sf \"$PREFIX/lib/" + mdd.Config.SHORT + "/" + mdd.Config.SHORT + "\" \"$PREFIX/bin/"
+				+ mdd.Config.SHORT + "\"\n");
+		}
 		wrote(inside + "/userdata/settings/.keep", "");
 
 		final zipped = Paths.platform() == "windows";
@@ -766,9 +779,10 @@ class UpdateCheck {
 
 	/**
 		The handover the application launches waits for the application to close and then swaps the
-		new copy in by itself. It is started through `hands`, as the application starts it, with
-		the lock held the way the application holds it, and letting go of that lock stands in for
-		the application closing.
+		new copy in by itself. It is started through `hands`, as the application starts it. On
+		Windows the lock is held the way the application holds it, and letting go of it stands in
+		for the application closing. Elsewhere the handover waits for the process the lock names,
+		so a `sleep` stands in for the application, and ending it is the application closing.
 
 		A handover that inherited the lock held it open itself, so it waited forever and nothing
 		was ever replaced, and running the script by hand, as the check above does, could not
@@ -813,6 +827,17 @@ class UpdateCheck {
 			return;
 		}
 
+		final standing = Paths.platform() == "windows" ? null : new sys.io.Process("sleep", ["60"]);
+
+		if (standing != null) {
+			if (update.lock != null) {
+				update.lock.close();
+				update.lock = null;
+			}
+
+			File.saveContent(haxe.io.Path.directory(into) + "/" + Update.LOCK, "" + standing.getPid());
+		}
+
 		final launched = update.hands();
 
 		Sys.sleep(1.5);
@@ -821,6 +846,12 @@ class UpdateCheck {
 		if (update.lock != null) {
 			update.lock.close();
 			update.lock = null;
+		}
+
+		if (standing != null) {
+			standing.kill();
+			standing.exitCode();
+			standing.close();
 		}
 
 		final until = Sys.time() + PATIENCE;
@@ -853,7 +884,7 @@ class UpdateCheck {
 		@param archive The file the server hands out.
 	**/
 	static function elevated(where:String, port:Int, archive:String):Void {
-		if (Paths.platform() != "windows") return;
+		if (Paths.platform() == "mac") return;
 
 		final named = "an unwritable copy is replaced elevated";
 		final install = where + "/elevated";
@@ -885,6 +916,12 @@ class UpdateCheck {
 
 		final refused = denies(install, true);
 
+		if (refused && Update.writable(install)) {
+			denies(install, false);
+			Sys.println("    not run: this account writes into a folder refused to it, as root does");
+			return;
+		}
+
 		update.applies(install, true, false);
 
 		final ready = settles(update, Update.APPLIED);
@@ -902,21 +939,29 @@ class UpdateCheck {
 		}
 
 		final beside = haxe.io.Path.directory(into);
-		final marker = "\"" + StringTools.replace(beside + "/" + Update.DONE, "/", "\\") + "\"";
-		final again = "start \"\" \"" + StringTools.replace(program, "/", "\\") + "\"";
+		final windows = Paths.platform() == "windows";
+		final marker = windows ? "\"" + StringTools.replace(beside + "/" + Update.DONE, "/", "\\") + "\""
+			: "'" + beside + "/" + Update.DONE + "'";
+		final again = windows ? "start \"\" \"" + StringTools.replace(program, "/", "\\") + "\""
+			: "'" + program + "' >/dev/null 2>&1 &";
 		final script = saying(update.handover);
 		final restart = saying(update.restarts);
 
-		final handsOver = script.indexOf("echo done> " + marker) >= 0 && script.indexOf(again) < 0;
-		final waitsFor = restart.indexOf("if exist " + marker + " goto done") >= 0
-			&& restart.indexOf(again) > restart.indexOf(":done");
+		final handsOver = script.indexOf(windows ? "echo done> " + marker : "touch " + marker) >= 0
+			&& script.indexOf(again) < 0;
+		final waitsFor = windows ? restart.indexOf("if exist " + marker + " goto done") >= 0
+			&& restart.indexOf(again) > restart.indexOf(":done")
+			: restart.indexOf("while [ ! -f " + marker + " ]") >= 0
+			&& restart.indexOf(again) > restart.indexOf("rm -f " + marker);
 
 		says("and restarts as this account after it", handsOver && waitsFor,
 			!handsOver ? "the elevated handover starts the program itself, as an administrator"
-				: (waitsFor ? "restart.cmd waits for " + Update.DONE + " and then starts the program"
-					: "restart.cmd does not wait for the handover"));
+				: (waitsFor ? haxe.io.Path.withoutDirectory(update.restarts) + " waits for " + Update.DONE
+					+ " and then starts the program"
+					: haxe.io.Path.withoutDirectory(update.restarts) + " does not wait for the handover"));
 
-		final code = mdd.host.Command.runs("cmd", ["/d", "/c", StringTools.replace(update.handover, "/", "\\")]);
+		final code = windows ? mdd.host.Command.runs("cmd", ["/d", "/c", StringTools.replace(update.handover, "/", "\\")])
+			: mdd.host.Command.runs("sh", [update.handover]);
 		final swapped = saying(program).indexOf(OFFERED) >= 0;
 		final done = FileSystem.exists(beside + "/" + Update.DONE);
 
@@ -933,6 +978,8 @@ class UpdateCheck {
 		@return Whether icacls did it.
 	**/
 	static function denies(folder:String, refused:Bool):Bool {
+		if (Paths.platform() != "windows") return mdd.host.Command.runs("chmod", [refused ? "a-w" : "u+w", folder]) == 0;
+
 		final user = Sys.getEnv("USERNAME");
 		final path = StringTools.replace(folder, "/", "\\");
 
@@ -940,6 +987,178 @@ class UpdateCheck {
 
 		return mdd.host.Command.runs("icacls", refused ? [path, "/deny", user + ":(W)"]
 			: [path, "/remove:d", user]) == 0;
+	}
+
+	/**
+		On Linux an elevated handover is started through pkexec, which asks for a password, and
+		the application closes once the handover says it is running, or stays open where the
+		password was refused. A `pkexec` of the check's own on the path stands in for the real one,
+		running the handover as this account or refusing with 126 the way pkexec does when the
+		prompt is dismissed, because nothing here can type a password into a real one.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+		@param given Whether the password is given.
+	**/
+	static function authorised(where:String, port:Int, archive:String, given:Bool):Void {
+		if (Paths.platform() == "windows" || Paths.platform() == "mac") return;
+
+		final named = given ? "the password lets the handover run" : "a refused password keeps it open";
+		final install = where + (given ? "/authorised" : "/refused");
+		final program = install + "/" + mdd.Config.SHORT;
+		final shims = where + "/shims" + (given ? "-given" : "-refused");
+
+		wrote(program, "the old program, 0.1.0\n");
+		wrote(install + "/portable.txt", "portable\n");
+		wrote(shims + "/pkexec", given ? "#!/bin/sh\nexec \"$@\"\n" : "#!/bin/sh\nexit 126\n");
+		mdd.host.Command.runs("chmod", ["+x", shims + "/pkexec"]);
+
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		pointed(update, port);
+
+		update.look();
+
+		if (!settles(update, Update.WAITING)) {
+			says(named, false, "the api would not answer");
+			return;
+		}
+
+		final into = where + (given ? "/authorising/" : "/refusing/") + update.named();
+		Paths.make(haxe.io.Path.directory(into));
+
+		update.take(into);
+
+		if (!settles(update, Update.FETCHED)) {
+			says(named, false, "the download did not arrive");
+			return;
+		}
+
+		final refused = denies(install, true);
+
+		if (refused && Update.writable(install)) {
+			denies(install, false);
+			Sys.println("    not run: this account writes into a folder refused to it, as root does");
+			return;
+		}
+
+		update.applies(install, true, false);
+
+		final ready = settles(update, Update.APPLIED);
+		denies(install, false);
+
+		if (!ready || !update.elevates) {
+			says(named, false, !ready ? "state " + update.state() + ", " + update.wrong
+				: "the handover would run as this account");
+			return;
+		}
+
+		final path = Sys.getEnv("PATH");
+		Sys.putEnv("PATH", shims + ":" + path);
+
+		var asked = 0;
+		final handed = update.hands(function():Void asked++);
+
+		Sys.putEnv("PATH", path);
+
+		final until = Sys.time() + PATIENCE;
+		var swapped = false;
+		var restarted = false;
+
+		while (given && Sys.time() < until && !(swapped && restarted)) {
+			swapped = saying(program).indexOf(OFFERED) >= 0;
+			restarted = FileSystem.exists(program + ".started");
+			if (!(swapped && restarted)) Sys.sleep(0.1);
+		}
+
+		if (given) {
+			says(named, handed && swapped && restarted,
+				!handed ? "hands answered false, " + update.wrong
+					: (!swapped ? "the program was not replaced"
+						: (restarted ? "swapped, and restart.sh started the new one as this account"
+							: "swapped, but nothing restarted it")));
+			return;
+		}
+
+		final kept = saying(program).indexOf("0.1.0") >= 0;
+
+		says(named, !handed && update.declined && kept,
+			handed ? "hands answered true though the password was refused"
+				: (update.declined ? "declined, the program untouched, the window kept waiting "
+					+ asked + " times" : "not taken as declined: " + update.wrong));
+	}
+
+	/**
+		A copy installed on Linux sits in `lib/mdd` under a prefix, and it is updated by the new
+		release's `install.sh` run with that prefix, which also links the command in `bin`. The
+		handover runs the script and starts the new copy through the command, so both have to land
+		where the old copy was. A prefix this account cannot write to needs an administrator even
+		where the program's own folder does not, because that is where the script links the command.
+
+		@param where The working folder.
+		@param port The port the server is on.
+	**/
+	static function prefixed(where:String, port:Int):Void {
+		final named = "a Linux install updates under its prefix";
+		final prefix = where + "/prefix";
+		final lib = prefix + "/lib/" + mdd.Config.SHORT;
+		final command = prefix + "/bin/" + mdd.Config.SHORT;
+
+		wrote(lib + "/" + mdd.Config.SHORT, "the old program, 0.1.0\n");
+
+		final probe = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), false);
+		final refused = denies(prefix, true);
+		final asks = probe.raised(lib);
+		final root = refused && Update.writable(prefix);
+		denies(prefix, false);
+
+		if (root) Sys.println("    not run: this account writes into a folder refused to it, as root does");
+		else says("and one it cannot write to asks first", refused && asks && !probe.raised(lib),
+			asks ? "an unwritable prefix needs an administrator, a writable one does not"
+				: "an unwritable prefix would run as this account");
+
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), false);
+		pointed(update, port);
+
+		update.look();
+
+		if (!settles(update, Update.WAITING)) {
+			says(named, false, "the api would not answer");
+			return;
+		}
+
+		final into = where + "/prefixing/" + update.named();
+		Paths.make(haxe.io.Path.directory(into));
+
+		update.take(into);
+
+		if (!settles(update, Update.FETCHED)) {
+			says(named, false, "the installer did not arrive");
+			return;
+		}
+
+		update.applies(lib, true, false);
+
+		if (!settles(update, Update.APPLIED)) {
+			says(named, false, "state " + update.state() + ", " + update.wrong);
+			return;
+		}
+
+		final code = mdd.host.Command.runs("sh", [update.handover]);
+		final until = Sys.time() + PATIENCE;
+		var restarted = false;
+
+		while (Sys.time() < until && !restarted) {
+			restarted = FileSystem.exists(command + ".started");
+			if (!restarted) Sys.sleep(0.1);
+		}
+
+		final swapped = saying(lib + "/" + mdd.Config.SHORT).indexOf(OFFERED) >= 0;
+
+		says(named, code == 0 && swapped && restarted,
+			!swapped ? "exit " + code + ", the old program is still in lib"
+				: (restarted ? "install.sh ran with the prefix, and the command started the new copy"
+					: "installed, but nothing started the command"));
 	}
 
 	/**
@@ -971,6 +1190,11 @@ class UpdateCheck {
 		says("an installed copy is offered the installer",
 			StringTools.endsWith(update.named(), wanted),
 			update.named() == "" ? "nothing chosen" : update.named());
+
+		if (Paths.platform() == "linux") {
+			prefixed(where, port);
+			return;
+		}
 
 		if (Paths.platform() != "windows") return;
 

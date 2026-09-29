@@ -69,6 +69,13 @@ typedef struct {
 int mdd_poll_event(MddEvent *out);
 
 /**
+ * Lets SDL read what the desktop sent without handing any of it on, which is what answers a
+ * compositor asking whether the window is still alive. Events wait in SDL's queue until the next
+ * mdd_poll_event.
+ */
+void mdd_pump_events(void);
+
+/**
  * @param event A typing event.
  * @return The text it carried.
  */

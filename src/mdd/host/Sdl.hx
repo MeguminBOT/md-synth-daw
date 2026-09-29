@@ -331,6 +331,14 @@ extern class Sdl {
 	public static function pollEvent(out:cpp.RawPointer<Event>):Int;
 
 	/**
+		Lets SDL read what the desktop sent without handing any of it on, which keeps the window
+		answering the compositor while the main thread waits on something else. Nothing is lost:
+		the events wait for the next `pollEvent`.
+	**/
+	@:native("mdd_pump_events")
+	public static function pumpEvents():Void;
+
+	/**
 		The text a typing event carried.
 	**/
 	@:native("mdd_event_text")

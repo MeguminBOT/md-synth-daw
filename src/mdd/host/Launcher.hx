@@ -34,4 +34,11 @@ extern class Launcher {
 	**/
 	@:native("mdd_launcher_elevated")
 	public static function elevated(program:cpp.ConstCharStar, parameters:cpp.ConstCharStar):Int;
+
+	/**
+		@return This process's own identifier, which a handover away from Windows waits on to see
+			this process close.
+	**/
+	@:native("mdd_launcher_process")
+	public static function process():Int;
 }

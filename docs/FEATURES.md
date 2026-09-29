@@ -900,19 +900,20 @@ importing one reads those back.
   goes to a recovery file rather than nowhere.
 - **Backups**, kept for as long as you set.
 - **An updater that asks first.** It checks the releases page, and when there is something newer it
-  says which version you have and which is offered, and gives you download, not now, or stop
-  asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
+  says which version you have and which is offered, and gives you download, not now, or stop asking.
+  Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
   the new copy. An installed copy runs the installer without its pages, into the folder it is
   already in and for the same accounts as before. A copy installed for every account, or one in a
-  folder your account cannot write to, asks Windows for an administrator's permission before it
-  closes, and stays open if that is not given. It only downloads over https, and only files the
-  release itself carries in this project's repository on GitHub, and a release that publishes no
-  `SHA256SUMS` is not offered at all. What it downloads has to be the size the release lists and
-  match its `SHA256SUMS` before anything is unpacked, and it is checked again just before anything
-  is replaced. A file that does not match is deleted rather than run. That says the download is the
-  file the release carries, not that the release is genuine: the Sigstore signature beside each
-  file is what answers that, and checking one of those is still something you do yourself.
+  folder your account cannot write to, asks for an administrator's permission before it closes,
+  through Windows' own prompt or, on Linux, the password pkexec asks for, and stays open if that is
+  not given. It only downloads over https, and only files the release itself carries in this
+  project's repository on GitHub, and a release that publishes no `SHA256SUMS` is not offered at
+  all. What it downloads has to be the size the release lists and match its `SHA256SUMS` before
+  anything is unpacked, and it is checked again just before anything is replaced. A file that does
+  not match is deleted rather than run. That says the download is the file the release carries, not
+  that the release is genuine: the Sigstore signature beside each file is what answers that, and
+  checking one of those is still something you do yourself.
 - **An installer that checks the machine first.** It will not install on fewer than two cores,
   less than 1 GB of memory, less than 256 MB of graphics memory, or a processor without SSE2. It
   finds out by starting MD Synth DAW itself with `--requirements`, which tries every renderer the

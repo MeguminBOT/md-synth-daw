@@ -95,7 +95,13 @@ int mdd_launcher_elevated(const char *program, const char *parameters) {
 	return fault == ERROR_CANCELLED ? 0 : -1;
 }
 
+int mdd_launcher_process(void) {
+	return (int)GetCurrentProcessId();
+}
+
 #else
+
+#include <unistd.h>
 
 int mdd_launcher_detached(const char *command) {
 	(void)command;
@@ -106,6 +112,10 @@ int mdd_launcher_elevated(const char *program, const char *parameters) {
 	(void)program;
 	(void)parameters;
 	return -1;
+}
+
+int mdd_launcher_process(void) {
+	return (int)getpid();
 }
 
 #endif

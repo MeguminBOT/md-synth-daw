@@ -2541,6 +2541,7 @@ class Run {
 		out2.add("PREFIX=\"${PREFIX:-$HOME/.local}\"\n");
 		out2.add("mkdir -p \"$PREFIX/lib/" + project.short + "\" \"$PREFIX/bin\" "
 			+ "\"$PREFIX/share/applications\"\n");
+		out2.add("rm -f \"$PREFIX/lib/" + project.short + "/" + project.short + "\"\n");
 		out2.add("cp -r \"$HERE\"/* \"$PREFIX/lib/" + project.short + "/\"\n");
 		out2.add("ln -sf \"$PREFIX/lib/" + project.short + "/" + project.short
 			+ "\" \"$PREFIX/bin/" + project.short + "\"\n");
