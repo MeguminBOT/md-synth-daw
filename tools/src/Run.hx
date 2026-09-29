@@ -81,7 +81,7 @@ class Run {
 			case "gate": gate(root, project, args.slice(1));
 			case "package": packaged(root, project, args.slice(1));
 			case "notes": if (!Notes.write(root, project, args.slice(1))) Sys.exit(1);
-			case "site": if (!Site.write(root, project)) Sys.exit(1);
+			case "site": if (!Site.write(root, project, args.slice(1))) Sys.exit(1);
 			case "clean": clean(root, project);
 			case "help", "--help", "-h": usage(project);
 			case unknown:

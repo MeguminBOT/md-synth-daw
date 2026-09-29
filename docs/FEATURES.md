@@ -940,6 +940,11 @@ importing one reads those back.
   and its font is left out, and running the installer again without it deletes the font an earlier
   install left, along with any copy MD Synth DAW downloaded for that language since. English and
   every other language need no extra font and are always installed.
+- **A Debian package on Linux**, for Debian 13, Ubuntu 25.04 and the systems built on them, beside
+  the archives in every release and in the website's own apt repository, which is signed so apt can
+  tell it is genuine. Installed that way, MD Synth DAW is updated along with the rest of the system,
+  and it uses the system's own SDL3. It leaves out the Japanese, Chinese and Korean fonts, as the
+  portable archive does, and downloads the one a language needs when you pick it.
 - **A language whose font is missing still shows up.** The first run sheet and the preferences list
   it with the size of its font. Picking it downloads the font from the commit the build pins,
   checks the SHA-256 before the file is used, and switches language once it lands. A download that

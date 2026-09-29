@@ -82,13 +82,16 @@ class Site {
 	static final DOWNLOADED:Array<String> = ["mdsyn", "zip", "vgm", "mid", "wav", "tfi", "xgm"];
 
 	/**
-		Writes every page and copies everything they show.
+		Writes every page and copies everything they show. Given `--apt` and a folder of Debian
+		packages, it writes the apt repository beside the pages as well, and a page keeps what it
+		holds between `{{#apt}}` and `{{/apt}}` only where the repository was written.
 
 		@param root The repository root.
 		@param project What the build file declares.
+		@param args What followed the command.
 		@return False where `site/` has no layout to wrap the pages in.
 	**/
-	public static function write(root:String, project:Project):Bool {
+	public static function write(root:String, project:Project, args:Array<String>):Bool {
 		final from = root + "/" + SOURCE;
 
 		if (!FileSystem.exists(from + "/layout.html")) {
@@ -108,6 +111,10 @@ class Site {
 			if (FileSystem.isDirectory(from + "/" + entry)) Run.copyTree(from + "/" + entry, to + "/" + entry);
 			else Run.copyFile(from + "/" + entry, to + "/" + entry);
 		}
+
+		final given = args.indexOf("--apt");
+		final apt = Apt.write(root, project, given >= 0 && given + 1 < args.length ? args[given + 1] : "",
+			to + "/apt");
 
 		final repository = "https://github.com/" + project.github;
 		final layout = File.getContent(from + "/layout.html");
@@ -149,6 +156,12 @@ class Site {
 			body = ~/\{\{playlist:([A-Za-z0-9_-]+)\}\}/g.map(body, function(found:EReg):String {
 				return playlist(found.matched(1), project.title);
 			});
+
+			body = ~/\{\{#apt\}\}([\s\S]*?)\{\{\/apt\}\}/g.map(body, function(found:EReg):String {
+				return apt ? found.matched(1) : "";
+			});
+			body = StringTools.replace(body, "{{package}}", project.debianPackage);
+			body = StringTools.replace(body, "{{suite}}", Apt.SUITE);
 
 			final titled = said.exists("title") && tab.page != "index"
 				? said.get("title") + " · " + project.title : project.title;

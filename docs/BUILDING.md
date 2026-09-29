@@ -65,6 +65,7 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ./mdd package portable   # just the archive
 ./mdd notes v0.1.0       # the release notes for a tag, into export/NOTES.md
 ./mdd site               # the website, into export/site
+./mdd site --apt debs    # and the apt repository, from the Debian packages in debs/
 ./mdd display            # write the editor's completion files again
 ./mdd clean              # delete export/
 ```
@@ -163,7 +164,7 @@ Three workflows under `.github/workflows`, all started by hand from the Actions 
 | --- | --- |
 | `build.yml` | Builds all five targets, optionally runs the gate and builds with debug information, and keeps each package as an artifact for a fortnight |
 | `release.yml` | The same five, then publishes a GitHub release from the results. It refuses to run for anybody but the repository owner, and it refuses a tag that is not the version in `mdd.xml` |
-| `pages.yml` | Writes the website with `./mdd site` and publishes it to GitHub Pages. Like `release.yml`, it refuses to run for anybody but the repository owner |
+| `pages.yml` | Writes the website with `./mdd site`, with an apt repository for the latest release's Debian packages, and publishes it to GitHub Pages. Like `release.yml`, it refuses to run for anybody but the repository owner |
 
 `release.yml` does not run the gate. A release build is the same source `build.yml` gates on
 demand, and running twenty eight checks on five runners again buys nothing that the test workflow has
@@ -261,6 +262,26 @@ portable archive does. A `packaged.txt` beside the program tells the application
 it, so its own updater never looks. What the package is called and who maintains it are the
 `<debian>` element in `mdd.xml`. A `./mdd package` on a machine without `dpkg-dev` makes everything
 else and says the package was left out.
+
+The website serves those packages as an apt repository. `pages.yml` downloads the latest release's
+`.deb` files and writes it with `./mdd site --apt debs`: the packages in a pool, a list for each
+architecture written by `apt-ftparchive`, and a release file naming the lists by their hashes,
+signed with the key in the `APT_SIGNING_KEY` secret. apt refuses a repository nobody signed, so
+without the secret the website goes out without one, and the download page shows the apt
+instructions only on a website that has it. The public half of the key is published beside the
+repository as `md-synth-daw.gpg`, which is what a machine using the repository trusts.
+
+The key is made once, without a passphrase, because the secret is what protects it:
+
+```sh
+gpg --batch --passphrase '' --quick-generate-key "MD Synth DAW apt repository" ed25519 sign never
+gpg --armor --export-secret-keys "MD Synth DAW apt repository" | gh secret set APT_SIGNING_KEY
+```
+
+Keep a copy of it somewhere other than the secret. A lost key cannot be recovered from GitHub, and a
+new one means every machine that added the repository has to fetch the new public key before `apt
+update` trusts it again. Run locally, `./mdd site --apt debs` signs with the first secret key in the
+keyring, or the one `MDD_APT_KEY` names.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

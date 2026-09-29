@@ -58,12 +58,18 @@ description: Download MD Synth DAW for Windows, macOS or Linux, as an installer 
 				<li><a class="file" data-asset="-linux-x86_64-portable.tar.gz" href="{{releases}}">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
 					<span><b>Portable, x86-64</b><small>.tar.gz</small></span></a></li>
+				{{#apt}}<li><a class="file" data-asset="_amd64.deb" href="{{releases}}">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+					<span><b>Debian package, x86-64</b><small>.deb</small></span></a></li>{{/apt}}
 				<li><a class="file" data-asset="-linux-arm64-installer.tar.gz" href="{{releases}}">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
 					<span><b>Installer, Arm64</b><small>.tar.gz</small></span></a></li>
 				<li><a class="file" data-asset="-linux-arm64-portable.tar.gz" href="{{releases}}">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
 					<span><b>Portable, Arm64</b><small>.tar.gz</small></span></a></li>
+				{{#apt}}<li><a class="file" data-asset="_arm64.deb" href="{{releases}}">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+					<span><b>Debian package, Arm64</b><small>.deb</small></span></a></li>{{/apt}}
 			</ul>
 		</article>
 	</section>
@@ -77,6 +83,23 @@ description: Download MD Synth DAW for Windows, macOS or Linux, as an installer 
 			<h2>Installing</h2>
 			<div class="prose">{{readme:install}}</div>
 		</section>
+		{{#apt}}
+		<section class="reveal">
+			<h2>Installing with apt</h2>
+			<div class="prose">
+				<p>On Debian 13, Ubuntu 25.04 and the distributions built on them, MD Synth DAW installs from this
+				site's own apt repository, and apt keeps it up to date along with the rest of the system:</p>
+				<pre><code>sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL {{site}}apt/{{package}}.gpg | sudo tee /etc/apt/keyrings/{{package}}.gpg &gt;/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/{{package}}.gpg] {{site}}apt {{suite}} main" | sudo tee /etc/apt/sources.list.d/{{package}}.list
+sudo apt update
+sudo apt install {{package}}</code></pre>
+				<p>A copy installed this way is updated by apt, so the application never offers an update of its own.
+				The Japanese, Chinese and Korean fonts are left out of the package, and the application downloads
+				the one a language needs when you pick it.</p>
+			</div>
+		</section>
+		{{/apt}}
 		<section class="reveal">
 			<h2>Checking a download</h2>
 			<div class="prose">{{readme:verifying-a-download}}</div>
