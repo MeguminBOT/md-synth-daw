@@ -134,9 +134,12 @@ final class Sfnt {
 
 			if (code >= 0xD800 && code < 0xDC00 && at + 1 < offset + length) {
 				final low = (table.get(at) << 8) | table.get(at + 1);
-				at += 2;
-				code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
-			}
+
+				if (low >= 0xDC00 && low < 0xE000) {
+					at += 2;
+					code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
+				} else code = 0;
+			} else if (code >= 0xD800 && code < 0xE000) code = 0;
 
 			if (code > 0) out.addChar(code);
 		}
