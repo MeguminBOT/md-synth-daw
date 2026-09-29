@@ -339,7 +339,7 @@ final class Xgm {
 		@param at Where the block starts.
 	**/
 	function tags(bytes:Bytes, at:Int):Void {
-		if (at < 0 || at + 12 > bytes.length || bytes.getString(at, 4) != "Gd3 ") return;
+		if (at < 0 || at > bytes.length - 12 || bytes.getString(at, 4) != "Gd3 ") return;
 
 		var pen = at + 12;
 		final held:Array<String> = [];
@@ -375,7 +375,7 @@ final class Xgm {
 	**/
 	function walk(bytes:Bytes, from:Int, many:Int, into:Stream):Void {
 		final step = Tempo.TICKS / rate;
-		final ends = from + many > bytes.length ? bytes.length : from + many;
+		final ends = many > bytes.length - from ? bytes.length : from + many;
 
 		var at = from;
 		var tick = 0.0;
