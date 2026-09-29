@@ -34,6 +34,7 @@ class MangleCheck {
 		waves(rounds, seed);
 		patches(rounds, seed);
 		shaped();
+		crafted();
 
 		Sys.println("    " + (ran - failed) + " of " + ran + " checks");
 
@@ -448,6 +449,147 @@ class MangleCheck {
 
 		says("a sample cannot declare a huge block", held >= 0 && held <= 1 << 22,
 			asked.length + " bytes declaring 2000000000 samples reserved " + held);
+	}
+
+	/**
+		Files built to hit one number each: a length or an offset near the top of an `Int`, where
+		`at + length > file` wraps round to a negative and passes, and a value the model has no room
+		for. Random corruption almost never lands on one of those, so each is written out here with
+		what the reader must do with it.
+	**/
+	static function crafted():Void {
+		final vgm = Bytes.alloc(0x40 + 8);
+		vgm.blit(0, Bytes.ofString("Vgm "), 0, 4);
+		vgm.setInt32(0x08, 0x150);
+		vgm.setInt32(0x34, 0x0C);
+		vgm.set(0x40, 0x67);
+		vgm.set(0x41, 0x66);
+		vgm.set(0x42, 0x00);
+		vgm.setInt32(0x43, 0x7FFFFFF0);
+		vgm.set(0x47, 0x66);
+
+		final began = haxe.Timer.stamp();
+		var blocked = "";
+
+		try {
+			mdd.format.Vgm.read(vgm, new Stream(1 << 10));
+		} catch (e:Dynamic) {
+			blocked = Std.string(e);
+		}
+
+		final took = haxe.Timer.stamp() - began;
+
+		says("a vgm block claiming 2 GB is not read", took < 1 && blocked == "",
+			"read in " + round(took * 1000, 1) + " ms" + (blocked == "" ? "" : ", but " + blocked));
+
+		final tagged = Bytes.alloc(0x40 + 1);
+		tagged.blit(0, Bytes.ofString("Vgm "), 0, 4);
+		tagged.setInt32(0x08, 0x150);
+		tagged.setInt32(0x14, 0x7FFFFFE0);
+		tagged.setInt32(0x34, 0x0C);
+		tagged.set(0x40, 0x66);
+
+		var untagged = "";
+
+		try {
+			mdd.format.Vgm.read(tagged, new Stream(1 << 10));
+		} catch (e:Dynamic) {
+			untagged = Std.string(e);
+		}
+
+		says("and a tag offset past the end is passed by", untagged == "",
+			untagged == "" ? "read with no tags" : "refused: " + untagged);
+
+		final xgm = Bytes.alloc(0x108 + 4);
+		xgm.blit(0, Bytes.ofString("XGM "), 0, 4);
+		for (slot in 0...mdd.format.Xgm.SLOTS) xgm.setUInt16(4 + slot * 4, 0xFFFF);
+		xgm.set(0x102, 1);
+		xgm.setInt32(0x104, 0x7FFFFFF0);
+		xgm.set(0x108, 0x00);
+		xgm.set(0x109, 0x00);
+		xgm.set(0x10A, 0x7F);
+
+		var walked = -1;
+
+		try {
+			walked = mdd.format.Xgm.read(xgm, new Stream(1 << 10)).frames;
+		} catch (e:Dynamic) {}
+
+		says("an xgm claiming 2 GB reads what is there", walked == 2,
+			walked < 0 ? "refused" : walked + " frames read of the 2 there");
+
+		final midi = Bytes.alloc(14);
+		midi.blit(0, Bytes.ofString("MThd"), 0, 4);
+		midi.set(7, 6);
+		midi.set(9, 1);
+		midi.set(11, 0);
+
+		final ppqn = mdd.format.Midi.resolution(midi);
+
+		says("a midi counting nought ticks a beat", ppqn == mdd.format.Midi.PPQN,
+			"reads as " + ppqn + " ticks a quarter note");
+
+		final zip = Bytes.alloc(22);
+		zip.setInt32(0, 0x06054B50);
+		zip.setUInt16(8, 1);
+		zip.setUInt16(10, 1);
+		zip.setInt32(16, 0x7FFFFFF0);
+
+		final where = Gate.root + "/export/crafted." + mdd.Config.SUFFIX;
+		sys.io.File.saveBytes(where, zip);
+
+		var refused = "";
+
+		try {
+			mdd.format.Project.openPacked(where);
+		} catch (e:Dynamic) {
+			refused = Std.string(e);
+		}
+
+		mdd.host.Paths.clear(where);
+
+		says("a zip directory near 2 GB in is refused", refused.indexOf("damaged zip directory") >= 0,
+			refused == "" ? "opened" : refused);
+
+		final chunks = Bytes.alloc(4 + 8);
+		chunks.blit(0, Bytes.ofString(mdd.format.Chunks.MARK), 0, 4);
+		chunks.blit(4, Bytes.ofString("SMPL"), 0, 4);
+		chunks.setInt32(8, 0x7FFFFFF0);
+
+		final found = mdd.format.Chunks.read(chunks);
+
+		says("a chunk claiming 2 GB is not allocated", found.length == 0,
+			found.length + " chunks read out of a file of 12 bytes");
+
+		final preset = new haxe.io.BytesBuffer();
+		preset.addString(mdd.format.Preset.MAGIC);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(1);
+		preset.addByte(0);
+		preset.addByte(200);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(0);
+		preset.addByte(0);
+		for (field in 0...mdd.song.Patch.DIALS + mdd.song.Patch.SLOTS * (mdd.song.Patch.ROWS + 1)) preset.addByte(0);
+		preset.addByte(0);
+
+		final banked = mdd.format.Preset.read(preset.getBytes());
+
+		says("a preset for a part there is not is refused", banked == null,
+			banked == null ? "not read" : "read, with a part the song has no room for");
+
+		final number = mdd.format.Json.parse("[1e400, -1e400, 1e400]");
+		final most = number.at(0).whole(0);
+		final least = number.at(1).whole(0);
+		final real = number.at(2).real(7);
+
+		says("a number past any Int is held to one", most == 2147483647 && least == -2147483647 - 1
+			&& real == 7, "whole " + most + " and " + least + ", real falls back to " + real);
 	}
 
 	static function says(name:String, ok:Bool, said:String):Void {
