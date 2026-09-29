@@ -136,7 +136,9 @@ machines get no support, and how to measure the lot on your own machine.
 
 ### Install
 
-Download the latest build from the [Releases page][releases-url], then either
+MD Synth DAW is published in three places, and nowhere else: its [releases on GitHub][releases-url],
+[the website][site-url] and [SourceForge][sourceforge-url]. A copy from anywhere else may have been
+changed, so download the latest build from one of those, then either
 
 - run the **installer**, which asks where to install and lets you leave out the Japanese, Chinese
   and Korean fonts, or
@@ -455,6 +457,8 @@ rather than in a public issue. Everyone taking part is asked to follow the
 [arm64-shield]: https://img.shields.io/badge/arm64-builds-2A6DB0?style=for-the-badge
 [toolchains-shield]: https://img.shields.io/badge/MSVC%20%7C%20clang--cl%20%7C%20MinGW--w64%20%7C%20Clang%20%7C%20GCC-5C2D91?style=for-the-badge
 [releases-url]: https://github.com/MeguminBOT/md-synth-daw/releases
+[site-url]: https://meguminbot.github.io/md-synth-daw/
+[sourceforge-url]: https://sourceforge.net/projects/md-synth-daw/
 [sigstore-url]: https://www.sigstore.dev
 [nuked-url]: https://github.com/nukeykt/Nuked-OPN2
 [sgdk-url]: https://github.com/Stephane-D/SGDK
