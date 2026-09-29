@@ -90,15 +90,16 @@ SDL_Texture *mdd_get_target(SDL_Renderer *renderer);
 /**
  * Reads pixels back out of the target. A target cleared opaque has alpha 255
  * everywhere, so a check looking for what was drawn has to test the colour
- * channels rather than the alpha.
+ * channels rather than the alpha. SDL clips the rectangle to the viewport, and
+ * only what it hands back is written, from the top left of `rgba`.
  *
  * @param renderer The renderer.
  * @param x Where to read from, across.
  * @param y Where to read from, down.
  * @param width How wide.
  * @param height How tall.
- * @param rgba Filled in with the pixels.
- * @return Nonzero where they were read.
+ * @param rgba Filled in with the pixels, `width` by `height` of them.
+ * @return Nonzero where the whole rectangle was read.
  */
 int mdd_read_pixels(SDL_Renderer *renderer, int x, int y, int width, int height,
 	unsigned char *rgba);

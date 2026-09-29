@@ -82,6 +82,7 @@ class PaintCheck {
 		scales(root);
 		oversized(root);
 		clipping(paint);
+		overread(paint);
 		opacities(paint);
 		speckled(paint);
 		joined(paint);
@@ -663,6 +664,29 @@ class PaintCheck {
 
 		says("a face too tall for the atlas comes back", true,
 			"1620 pixels " + (font == null ? "refused" : "baked") + " in " + round(took * 1000) + " ms");
+	}
+
+	/**
+		A read back of more than the target holds. SDL clips the rectangle to the viewport and hands
+		back a smaller surface, and every row asked for was copied out of it regardless, reading far
+		past its end.
+	**/
+	static function overread(paint:Paint):Void {
+		final wide = SIDE * 3;
+		final held = new Vector<cpp.UInt8>(wide * wide * 4);
+
+		begin();
+		paint.rect(0, 0, 16, 16, 0xFF0000);
+		paint.flush();
+
+		final whole = Draw.readPixels(renderer, 0, 0, wide, wide,
+			cpp.Pointer.arrayElem(held.toData(), 0).raw);
+
+		Draw.setTarget(renderer, null);
+
+		says("a read back past the target is clipped", whole == 0 && held[0] > 200
+			&& held[2] < 40, "a " + wide + " square asked of a " + SIDE + " target came back "
+			+ (whole == 0 ? "clipped" : "whole") + ", its corner red at " + held[0]);
 	}
 
 	static function scales(root:String):Void {

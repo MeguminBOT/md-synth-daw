@@ -105,15 +105,20 @@ extern "C" int mdd_read_pixels(SDL_Renderer *renderer, int x, int y, int width, 
 		return 0;
 	}
 
-	for (int row = 0; row < height; row++) {
+	const int rows = shaped->h < height ? shaped->h : height;
+	const int columns = shaped->w < width ? shaped->w : width;
+
+	for (int row = 0; row < rows; row++) {
 		SDL_memcpy(rgba + static_cast<size_t>(row) * width * 4,
 			static_cast<const unsigned char *>(shaped->pixels) + static_cast<size_t>(row) * shaped->pitch,
-			static_cast<size_t>(width) * 4);
+			static_cast<size_t>(columns) * 4);
 	}
+
+	const int whole = rows == height && columns == width;
 
 	if (shaped != taken) SDL_DestroySurface(shaped);
 	SDL_DestroySurface(taken);
-	return 1;
+	return whole;
 }
 
 extern "C" void mdd_render_geometry(SDL_Renderer *renderer, SDL_Texture *texture,
