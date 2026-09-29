@@ -1046,7 +1046,7 @@ final class Update {
 		if (platform == "windows") {
 			final guard = beside + "/" + LOCK;
 
-			out.add("@echo off\r\n");
+			utf8(out);
 			out.add("setlocal\r\n");
 
 			if (guarded) {
@@ -1155,7 +1155,7 @@ final class Update {
 		final marker = backslashed(beside + "/" + DONE);
 		final out = new StringBuf();
 
-		out.add("@echo off\r\n");
+		utf8(out);
 		out.add("setlocal\r\n");
 		out.add("set waited=0\r\n");
 		out.add(":wait\r\n");
@@ -1171,6 +1171,22 @@ final class Update {
 
 		File.saveContent(path, out.toString());
 		return path;
+	}
+
+	/**
+		Opens a Windows script so that cmd reads the rest of it as UTF-8, which is what it is
+		written in. cmd reads a batch file in the console's code page, so a copy in a folder named
+		with letters outside that page handed over paths that did not exist and was never
+		replaced. Changing the page is not enough on its own, because the lines after it are
+		already read: the jump makes cmd read them again.
+
+		@param out The script.
+	**/
+	static function utf8(out:StringBuf):Void {
+		out.add("@echo off\r\n");
+		out.add("chcp 65001 >nul\r\n");
+		out.add("goto begun\r\n");
+		out.add(":begun\r\n");
 	}
 
 	/**

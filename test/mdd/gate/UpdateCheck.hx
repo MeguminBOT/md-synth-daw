@@ -793,7 +793,7 @@ class UpdateCheck {
 		@param archive The file the server hands out.
 	**/
 	static function handed(where:String, port:Int, archive:String):Void {
-		final install = where + "/handed";
+		final install = where + "/handed ä 字";
 		final program = install + "/" + mdd.Config.SHORT + ending();
 
 		wrote(program, "the old program, 0.1.0\n");
