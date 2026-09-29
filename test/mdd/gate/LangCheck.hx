@@ -137,6 +137,14 @@ class LangCheck {
 	}
 
 	/**
+		@param path An absolute path, with a drive letter on Windows and a leading slash elsewhere.
+		@return The `file://` address curl reads it at.
+	**/
+	static function located(path:String):String {
+		return "file://" + (StringTools.startsWith(path, "/") ? "" : "/") + path;
+	}
+
+	/**
 		A language whose face is missing is known to be, and a download only lands where it
 		is the file it should be.
 
@@ -145,7 +153,7 @@ class LangCheck {
 		the partial name, the hash, and what is left behind when either goes wrong.
 	**/
 	static function fetched():Void {
-		final into = "R:/tmp/mdd-gate-faces";
+		final into = sys.FileSystem.absolutePath(Gate.root + "/export/gate/faces");
 		final installed = into + "/installed";
 		final kept = into + "/kept";
 
@@ -176,7 +184,7 @@ class LangCheck {
 		sys.io.File.saveBytes(source, body);
 
 		final want = haxe.crypto.Sha256.make(body).toHex().toLowerCase();
-		final address = "file:///" + source;
+		final address = located(source);
 		final where = kept + "/" + name;
 
 		final landed = mdd.app.Faces.into(address, want, where);
@@ -195,7 +203,7 @@ class LangCheck {
 			&& !sys.FileSystem.exists(where + ".part"),
 			"settled at " + wrong + ", and neither the face nor the partial file is there");
 
-		final gone = mdd.app.Faces.into("file:///" + into + "/nowhere.bin", want, where);
+		final gone = mdd.app.Faces.into(located(into + "/nowhere.bin"), want, where);
 
 		says("and one that never arrives leaves nothing",
 			gone == mdd.app.Faces.UNREACHABLE && !sys.FileSystem.exists(where)
