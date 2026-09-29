@@ -974,6 +974,7 @@
   "update.broken": "nie udało się zainstalować aktualizacji",
   "update.consent": "Nic nie jest pobierane, dopóki tego nie zażądasz. Instalacja zamyka aplikację i uruchamia ją ponownie.",
   "update.current": "to jest najnowsza wersja",
+  "update.declined": "aktualizacja wymaga zgody administratora, a nie została udzielona",
   "update.found": "Jest nowsza wersja",
   "update.later": "Nie teraz",
   "update.looking": "sprawdzanie aktualizacji",

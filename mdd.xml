@@ -156,6 +156,7 @@
 		<file name="vpx/vpx_config.c" />
 		<file name="shell.cpp" />
 		<file name="launcher.cpp" />
+		<file name="installer.cpp" />
 		<file name="console.cpp" />
 
 		<flag value="-DOPUS_BUILD" />

@@ -451,6 +451,7 @@ class Run {
 		out.add("\tpublic static inline final TITLE = \"" + project.title + "\";\n");
 		out.add("\tpublic static inline final SHORT = \"" + project.short + "\";\n");
 		out.add("\tpublic static inline final COMPANY = \"" + project.company + "\";\n");
+		out.add("\tpublic static inline final IDENTITY = \"" + identity(project) + "\";\n");
 		out.add("\tpublic static inline final DESCRIPTION = \"" + project.description + "\";\n");
 		out.add("\tpublic static inline final GITHUB = \"" + project.github + "\";\n");
 		out.add("\tpublic static inline final DISCORD = \"" + project.discord + "\";\n");

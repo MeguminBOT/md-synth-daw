@@ -1203,7 +1203,7 @@ class App {
 		if (!update.hands()) {
 			update.forget();
 			settled();
-			session.say(stage.root.translate(Locale.UPDATE_BROKEN));
+			session.say(stage.root.translate(update.declined ? Locale.UPDATE_DECLINED : Locale.UPDATE_BROKEN));
 			session.changed();
 			return;
 		}

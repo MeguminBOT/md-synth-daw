@@ -62,6 +62,7 @@ class UpdateCheck {
 
 		carried(where, port, archive);
 		handed(where, port, archive);
+		elevated(where, port, archive);
 		installed(where, port);
 		bare();
 		tentative();
@@ -720,6 +721,11 @@ class UpdateCheck {
 			ready ? haxe.io.Path.withoutDirectory(script)
 				: "state " + update.state() + ", " + update.wrong);
 
+		says("a writable copy is replaced as this account",
+			!update.elevates && update.restarts == "",
+			update.elevates ? "the handover would ask to run as an administrator"
+				: "the handover runs as this account and starts the program itself");
+
 		says("the staged copy carries the program",
 			update.staged != ""
 				&& FileSystem.exists(update.staged + "/" + mdd.Config.SHORT + ending()),
@@ -832,6 +838,108 @@ class UpdateCheck {
 		says("and then swaps the new one in by itself", swapped,
 			swapped ? "the program says " + OFFERED + " once the lock was let go"
 				: "the old program is still there " + PATIENCE + " s after the lock was let go");
+	}
+
+	/**
+		A copy in a folder this account cannot write to is replaced by a handover that runs as an
+		administrator, which the application asks Windows to allow before it closes, and the new copy
+		is started by a second script that runs as this account. Nothing here can answer the question
+		Windows puts on the screen, so the check never asks it: it refuses itself writing into the
+		folder so the updater has to see it as one, reads both scripts, then writes again and runs
+		the handover by hand as the administrator would.
+
+		@param where The working folder.
+		@param port The port the server is on.
+		@param archive The file the server hands out.
+	**/
+	static function elevated(where:String, port:Int, archive:String):Void {
+		if (Paths.platform() != "windows") return;
+
+		final named = "an unwritable copy is replaced elevated";
+		final install = where + "/elevated";
+		final program = install + "/" + mdd.Config.SHORT + ending();
+
+		wrote(program, "the old program, 0.1.0\n");
+		wrote(install + "/portable.txt", "portable\n");
+		wrote(install + "/userdata/settings/kept.txt", "the reader's own settings\n");
+
+		final update = new Update("owner/name", "0.1.0", Paths.platform(), Paths.machine(), true);
+		pointed(update, port);
+
+		update.look();
+
+		if (!settles(update, Update.WAITING)) {
+			says(named, false, "the api would not answer");
+			return;
+		}
+
+		final into = where + "/elevating/" + update.named();
+		Paths.make(where + "/elevating");
+
+		update.take(into);
+
+		if (!settles(update, Update.FETCHED)) {
+			says(named, false, "the download did not arrive");
+			return;
+		}
+
+		final refused = denies(install, true);
+
+		update.applies(install, true, false);
+
+		final ready = settles(update, Update.APPLIED);
+		final allowed = denies(install, false);
+
+		says(named, refused && ready && update.elevates,
+			!refused ? "icacls would not refuse writing into the folder"
+				: (!ready ? "state " + update.state() + ", " + update.wrong
+					: (update.elevates ? "the handover asks to run as an administrator"
+						: "the handover would run as this account and fail")));
+
+		if (!ready || !allowed) {
+			if (!allowed) says("and writing is allowed again", false, "icacls would not take the refusal back");
+			return;
+		}
+
+		final beside = haxe.io.Path.directory(into);
+		final marker = "\"" + StringTools.replace(beside + "/" + Update.DONE, "/", "\\") + "\"";
+		final again = "start \"\" \"" + StringTools.replace(program, "/", "\\") + "\"";
+		final script = saying(update.handover);
+		final restart = saying(update.restarts);
+
+		final handsOver = script.indexOf("echo done> " + marker) >= 0 && script.indexOf(again) < 0;
+		final waitsFor = restart.indexOf("if exist " + marker + " goto done") >= 0
+			&& restart.indexOf(again) > restart.indexOf(":done");
+
+		says("and restarts as this account after it", handsOver && waitsFor,
+			!handsOver ? "the elevated handover starts the program itself, as an administrator"
+				: (waitsFor ? "restart.cmd waits for " + Update.DONE + " and then starts the program"
+					: "restart.cmd does not wait for the handover"));
+
+		final code = mdd.host.Command.runs("cmd", ["/d", "/c", StringTools.replace(update.handover, "/", "\\")]);
+		final swapped = saying(program).indexOf(OFFERED) >= 0;
+		final done = FileSystem.exists(beside + "/" + Update.DONE);
+
+		says("the elevated handover swaps it and says so",
+			code == 0 && swapped && done,
+			!swapped ? "exit " + code + ", the old program is still there"
+				: (done ? "the program says " + OFFERED + " and " + Update.DONE + " is there"
+					: "nothing was left for the restart to wait for"));
+	}
+
+	/**
+		@param folder A folder.
+		@param refused Whether this account is to be refused writing into it, or allowed again.
+		@return Whether icacls did it.
+	**/
+	static function denies(folder:String, refused:Bool):Bool {
+		final user = Sys.getEnv("USERNAME");
+		final path = StringTools.replace(folder, "/", "\\");
+
+		if (user == null || user == "") return false;
+
+		return mdd.host.Command.runs("icacls", refused ? [path, "/deny", user + ":(W)"]
+			: [path, "/remove:d", user]) == 0;
 	}
 
 	/**

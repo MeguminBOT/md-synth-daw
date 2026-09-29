@@ -974,6 +974,7 @@
   "update.broken": "não foi possível instalar a atualização",
   "update.consent": "Nada é baixado até ser pedido. Instalar fecha o aplicativo e abre de novo.",
   "update.current": "esta é a versão mais recente",
+  "update.declined": "a atualização precisa da permissão de um administrador, e ela não foi dada",
   "update.found": "Existe uma versão mais recente",
   "update.later": "Agora não",
   "update.looking": "verificando atualizações",

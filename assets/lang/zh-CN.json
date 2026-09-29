@@ -974,6 +974,7 @@
   "update.broken": "更新未能安装",
   "update.consent": "在你主动要求之前不会下载任何内容。安装会关闭应用并重新启动。",
   "update.current": "这已经是最新版本",
+  "update.declined": "更新需要管理员许可，但未获允许",
   "update.found": "有更新的版本",
   "update.later": "暂不更新",
   "update.looking": "正在检查更新",

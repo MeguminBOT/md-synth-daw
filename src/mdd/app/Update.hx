@@ -100,6 +100,18 @@ final class Update {
 	static inline final LOCK = "handover.lock";
 
 	/**
+		What an elevated handover leaves beside itself once it has finished, which is what the
+		restart waits for.
+	**/
+	static inline final DONE = "handover.done";
+
+	/**
+		How long the restart waits for an elevated handover to finish, in seconds, before it gives
+		up and starts nothing.
+	**/
+	static inline final LONGEST = 1800;
+
+	/**
 		Which repository to look at, or an empty string to never look.
 	**/
 	public var repository(default, null):String;
@@ -171,6 +183,25 @@ final class Update {
 		The script that does the swap once this process has closed.
 	**/
 	public var handover(default, null):String = "";
+
+	/**
+		Whether the handover has to run as an administrator, which Windows asks to be allowed before
+		this process closes: a copy installed for every account, or one in a folder this account
+		cannot write to.
+	**/
+	public var elevates(default, null):Bool = false;
+
+	/**
+		The script that starts the new copy after an elevated handover, or an empty string where the
+		handover starts it itself. It runs as this account, because anything the elevated handover
+		started would run as an administrator.
+	**/
+	public var restarts(default, null):String = "";
+
+	/**
+		Whether the last handover was not allowed to run as an administrator.
+	**/
+	public var declined(default, null):Bool = false;
 
 	/**
 		What went wrong, where anything did.
@@ -759,7 +790,9 @@ final class Update {
 
 		staged = "";
 		handover = "";
+		restarts = "";
 		wrong = "";
+		declined = false;
 
 		held.store(APPLYING);
 		sys.thread.Thread.create(function():Void {
@@ -782,8 +815,12 @@ final class Update {
 			if (verified == "" || hashed(into) != verified) {
 				wrong = "the download changed after it was checked";
 				discards();
-			} else if (portable) carried(where, restart, guarded);
-			else installs(where, restart, guarded);
+			} else {
+				elevates = platform == "windows" && raised(where);
+
+				if (portable) carried(where, restart, guarded);
+				else installs(where, restart, guarded);
+			}
 		} catch (e:Dynamic) {
 			wrong = Std.string(e);
 		}
@@ -840,7 +877,7 @@ final class Update {
 		final beside = haxe.io.Path.directory(into);
 
 		if (platform == "windows") {
-			final scope = shared(where) ? "/ALLUSERS" : "/CURRENTUSER";
+			final scope = everyone(where) ? "/ALLUSERS" : "/CURRENTUSER";
 			final after = restart ? where + "/" + mdd.Config.SHORT + ending() : "";
 
 			handover = writes(beside, "", "", after, guarded, "start \"\" /wait " + backslashed(into)
@@ -881,10 +918,45 @@ final class Update {
 	}
 
 	/**
+		@param where The folder the running copy sits in.
+		@return Whether replacing it needs an administrator: a copy the installer put there for every
+			account, or a folder this account cannot write to.
+	**/
+	function raised(where:String):Bool {
+		return (!portable && everyone(where)) || !writable(where);
+	}
+
+	/**
 		@param where Where the running copy sits.
-		@return Whether it was installed for every account, which on Windows is under one of the
-			program files folders. The installer asks for elevation to update one of those, and
-			an update run for the current account alone would install a second copy beside it.
+		@return Whether it was installed for every account. The installer's own entry says so
+			wherever the copy was put, and a copy under one of the program files folders with no
+			entry naming it is taken as one too. An update run for the current account alone would
+			install a second copy beside it and start the old one again.
+	**/
+	static function everyone(where:String):Bool {
+		return mdd.host.Installer.everyone(mdd.Config.IDENTITY, where) != 0 || shared(where);
+	}
+
+	/**
+		@param where A folder.
+		@return Whether this account can write into it, found by writing a file there and taking it
+			straight back out.
+	**/
+	static function writable(where:String):Bool {
+		final probe = where + "/" + mdd.Config.SHORT + ".writable";
+
+		try {
+			File.saveContent(probe, "");
+			FileSystem.deleteFile(probe);
+			return true;
+		} catch (e:haxe.Exception) {
+			return false;
+		}
+	}
+
+	/**
+		@param where Where the running copy sits.
+		@return Whether it sits under one of the program files folders.
 	**/
 	static function shared(where:String):Bool {
 		final held = StringTools.replace(where, "\\", "/").toLowerCase();
@@ -959,7 +1031,10 @@ final class Update {
 			if (from != "") out.add("rmdir /s /q " + backslashed(from) + " >nul 2>&1\r\n");
 			out.add("del /q " + backslashed(into) + " >nul 2>&1\r\n");
 
-			if (after != "") out.add("start \"\" " + backslashed(after) + "\r\n");
+			if (after != "" && elevates) {
+				out.add("echo done> " + backslashed(beside + "/" + DONE) + "\r\n");
+				restarts = waits(beside, after);
+			} else if (after != "") out.add("start \"\" " + backslashed(after) + "\r\n");
 
 			out.add("exit /b 0\r\n");
 		} else {
@@ -982,6 +1057,40 @@ final class Update {
 
 			out.add("exit 0\n");
 		}
+
+		File.saveContent(path, out.toString());
+		return path;
+	}
+
+	/**
+		Writes the script that starts the new copy once an elevated handover has finished, which it
+		waits for by the file the handover leaves behind. It gives up after `LONGEST` seconds, as it
+		does when the handover stops early because the copy could not be replaced.
+
+		@param beside The folder the scripts sit in.
+		@param after What to start.
+		@return Where the script was written.
+	**/
+	function waits(beside:String, after:String):String {
+		final path = beside + "/restart.cmd";
+		final marker = backslashed(beside + "/" + DONE);
+		final out = new StringBuf();
+
+		Paths.clear(beside + "/" + DONE);
+
+		out.add("@echo off\r\n");
+		out.add("setlocal\r\n");
+		out.add("set waited=0\r\n");
+		out.add(":wait\r\n");
+		out.add("if exist " + marker + " goto done\r\n");
+		out.add("ping -n 2 127.0.0.1 >nul\r\n");
+		out.add("set /a waited+=1\r\n");
+		out.add("if %waited% lss " + LONGEST + " goto wait\r\n");
+		out.add("exit /b 1\r\n");
+		out.add(":done\r\n");
+		out.add("del /q " + marker + " >nul 2>&1\r\n");
+		out.add("start \"\" " + backslashed(after) + "\r\n");
+		out.add("exit /b 0\r\n");
 
 		File.saveContent(path, out.toString());
 		return path;
@@ -1011,14 +1120,28 @@ final class Update {
 		started through `start` inherited the lock it waits on and held it open itself, so it
 		waited forever and nothing was ever replaced.
 
-		@return False where nothing is ready to hand over to.
+		Where the handover `elevates`, Windows asks for it to be allowed here, while the window is
+		still in front: asked by the handover itself once this process had closed, the question
+		only flashed on the taskbar and the update looked as though it had done nothing. This
+		blocks until it is answered, and `declined` says whether it was turned down.
+
+		@return False where nothing is ready to hand over to, or it was not allowed to run.
 	**/
 	public function hands():Bool {
 		if (held.load() != APPLIED || handover == "") return false;
 
 		if (platform == "windows") {
-			final line = "cmd.exe /d /s /c \"" + backslashed(handover) + "\"";
-			return mdd.host.Launcher.detached(line) != 0;
+			final line = "/d /s /c \"" + backslashed(handover) + "\"";
+
+			if (!elevates) return mdd.host.Launcher.detached("cmd.exe " + line) != 0;
+
+			final answered = mdd.host.Launcher.elevated("cmd.exe", line);
+			declined = answered == 0;
+
+			if (answered != 1) return false;
+			if (restarts != "") mdd.host.Launcher.detached("cmd.exe /d /s /c \"" + backslashed(restarts) + "\"");
+
+			return true;
 		}
 
 		return Sys.command("sh", ["-c", "sh " + quoted(handover) + " >/dev/null 2>&1 &"]) == 0;

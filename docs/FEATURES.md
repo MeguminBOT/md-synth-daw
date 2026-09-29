@@ -904,7 +904,9 @@ importing one reads those back.
   asking. Nothing reaches the network until you say so. It offers a portable copy an archive and an
   installed copy an installer, and for the right architecture, then replaces the files and starts
   the new copy. An installed copy runs the installer without its pages, into the folder it is
-  already in and for the same accounts as before. It only downloads over https, and only files the
+  already in and for the same accounts as before. A copy installed for every account, or one in a
+  folder your account cannot write to, asks Windows for an administrator's permission before it
+  closes, and stays open if that is not given. It only downloads over https, and only files the
   release itself carries in this project's repository on GitHub, and a release that publishes no
   `SHA256SUMS` is not offered at all. What it downloads has to be the size the release lists and
   match its `SHA256SUMS` before anything is unpacked, and it is checked again just before anything

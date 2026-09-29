@@ -974,6 +974,7 @@
   "update.broken": "업데이트를 설치하지 못했습니다",
   "update.consent": "요청하기 전에는 아무것도 내려받지 않습니다. 설치하면 앱을 닫고 다시 시작합니다.",
   "update.current": "이미 최신 버전입니다",
+  "update.declined": "업데이트에는 관리자 권한이 필요하지만 허용되지 않았습니다",
   "update.found": "더 새로운 버전이 있습니다",
   "update.later": "나중에",
   "update.looking": "업데이트를 확인하는 중",

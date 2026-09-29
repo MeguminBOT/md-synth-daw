@@ -974,6 +974,7 @@
   "update.broken": "uppdateringen kunde inte installeras",
   "update.consent": "Ingenting laddas ner utan att du ber om det. Installationen stänger programmet och startar det igen.",
   "update.current": "det här är den senaste versionen",
+  "update.declined": "uppdateringen behöver en administratörs tillåtelse och fick den inte",
   "update.found": "Det finns en nyare version",
   "update.later": "Inte nu",
   "update.looking": "söker efter uppdateringar",
