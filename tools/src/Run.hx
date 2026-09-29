@@ -272,6 +272,8 @@ class Run {
 
 		Sys.println("");
 
+		var failed = 0;
+
 		for (source in project.vendors) {
 			if (vendored(root, source)) {
 				Sys.println("  " + pad(source.name) + "present");
@@ -301,6 +303,7 @@ class Run {
 			}
 
 			if (!done || !vendored(root, source)) {
+				failed++;
 				Sys.println("  " + pad("") + "failed. " + source.about);
 				if (source.name == "SDL3" && !windows()) {
 					Sys.println("  " + pad("") + "install SDL3 from the system packages");
@@ -308,10 +311,15 @@ class Run {
 			}
 		}
 
-		if (FileSystem.exists(vendor + "/fonts")) pairings(root, project);
+		if (FileSystem.exists(vendor + "/fonts") && !pairings(root, project)) {
+			failed++;
+			Sys.println("  " + pad("fonts") + "failed. not every face arrived");
+		}
 
 		Sys.println("");
 		check(root, project);
+
+		if (failed > 0) Sys.exit(1);
 	}
 
 	static function presence(root:String, project:Project):Void {
@@ -1403,6 +1411,17 @@ class Run {
 		if (exeOf(root, project, project.targets[0].id) == "") {
 			Sys.println("mdd: build it first");
 			Sys.exit(1);
+		}
+
+		final fonts = root + "/" + project.output + "/bin/fonts";
+
+		if (project.typefaces.length > 0) {
+			for (face in [project.typefaces[0].sans, project.typefaces[0].mono]) {
+				if (FileSystem.exists(fonts + "/" + face)) continue;
+
+				Sys.println("mdd: the build has no " + face + ", which a copy needs to start at all. Run mdd setup");
+				Sys.exit(1);
+			}
 		}
 
 		Sys.println("");
@@ -2794,24 +2813,34 @@ class Run {
 		return true;
 	}
 
+	/**
+		Fetches the faces. The Go faces and their licence come from the Go project's own mirror of
+		`go.googlesource.com/image` on GitHub, where every other face already comes from:
+		googlesource answered 503 to a release runner often enough that 1.0.1 went out with one Go
+		face on Windows and neither on Linux, where the application will not start without them.
+
+		@param root The repository root.
+		@param project What the build file declares.
+		@return Whether every face arrived.
+	**/
 	static function fonts(root:String, project:Project):Bool {
 		final into = root + "/" + project.typefacePath;
 		tree(into);
 
-		final licence = into + "/.LICENSE.b64";
-
-		if (download("https://go.googlesource.com/image/+/master/LICENSE?format=TEXT", licence)) {
-			File.saveBytes(into + "/LICENSE", decode(licence));
-			FileSystem.deleteFile(licence);
-		}
+		download(GO + "LICENSE", into + "/LICENSE");
 
 		return pairings(root, project);
 	}
 
+	/**
+		Where the Go project's image repository is read from, file by file.
+	**/
+	static inline final GO = "https://raw.githubusercontent.com/golang/image/master/";
+
 	static function pairings(root:String, project:Project):Bool {
 		final into = root + "/" + project.typefacePath;
 		final ofl = "https://raw.githubusercontent.com/google/fonts/main/ofl/";
-		final go = "https://go.googlesource.com/image/+/master/font/gofont/ttfs/";
+		final go = GO + "font/gofont/ttfs/";
 
 		var every = true;
 
@@ -2826,15 +2855,7 @@ class Run {
 			final tail = face.from.substr(at + 1);
 
 			if (kind == "go") {
-				final coded = into + "/." + face.name + ".b64";
-
-				if (!download(go + tail + "?format=TEXT", coded)) {
-					every = false;
-					continue;
-				}
-
-				File.saveBytes(held, decode(coded));
-				FileSystem.deleteFile(coded);
+				if (!download(go + tail, held)) every = false;
 				continue;
 			}
 
@@ -2857,12 +2878,6 @@ class Run {
 
 	static function encoded(name:String):String {
 		return StringTools.replace(StringTools.replace(name, "[", "%5B"), "]", "%5D");
-	}
-
-	static function decode(path:String):haxe.io.Bytes {
-		final packed = StringTools.replace(
-			StringTools.replace(File.getContent(path), "\n", ""), "\r", "");
-		return haxe.crypto.Base64.decode(packed);
 	}
 
 	static function resolved(owner:String, repository:String, branch:String):String {

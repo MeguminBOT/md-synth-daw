@@ -99,7 +99,7 @@ place, as `<condensed>`.
 
 | face | licence | checked | fetched from |
 | --- | --- | --- | --- |
-| Go, Go Mono | BSD-3-Clause | 2026-09-01 | go.googlesource.com/image |
+| Go, Go Mono | BSD-3-Clause | 2026-09-29 | github.com/golang/image, the Go project's mirror of go.googlesource.com/image |
 | IBM Plex Sans | SIL OFL 1.1 | 2026-09-01 | github.com/google/fonts, `ofl/ibmplexsans` |
 | IBM Plex Mono | SIL OFL 1.1 | 2026-09-01 | github.com/google/fonts, `ofl/ibmplexmono` |
 | Inter | SIL OFL 1.1 | 2026-09-01 | github.com/google/fonts, `ofl/inter` |

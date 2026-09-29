@@ -396,7 +396,7 @@ Vorbis and Opus carry no such condition.
 
 | Faces | Licence | From |
 | --- | --- | --- |
-| [Go, Go Mono][gofonts-url] | BSD-3-Clause | go.googlesource.com/image |
+| [Go, Go Mono][gofonts-url] | BSD-3-Clause | [golang/image][goimage-url] |
 | IBM Plex Sans and Mono, Inter, JetBrains Mono, Barlow Semi Condensed, Source Sans 3, Source Code Pro, Noto Sans and Noto Sans Mono, Fira Sans, Fira Code, Work Sans, Roboto Mono, Open Sans | SIL OFL 1.1 | [google/fonts][googlefonts-url] |
 | Noto Sans JP, Noto Sans SC, Noto Sans KR | SIL OFL 1.1 | [google/fonts][googlefonts-url], for the CJK ranges the interface falls back to |
 
@@ -470,6 +470,7 @@ rather than in a public issue. Everyone taking part is asked to follow the
 [vpx-url]: https://github.com/webmproject/libvpx
 [webm-url]: https://github.com/webmproject/libwebm
 [gofonts-url]: https://go.dev/blog/go-fonts
+[goimage-url]: https://github.com/golang/image
 [googlefonts-url]: https://github.com/google/fonts
 [qlementine-url]: https://github.com/oclero/qlementine-icons
 [ulalume-url]: https://github.com/ulalume
