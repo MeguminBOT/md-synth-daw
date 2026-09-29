@@ -20,7 +20,7 @@
 
 	<!-- ==== APPLICATION ==== -->
 
-	<meta title="MD Synth DAW" short="mdd" version="1.0.0"
+	<meta title="MD Synth DAW" short="mdd" version="1.0.1"
 	      company="Victor L. Roxbage"
 	      description="A hardware-aware DAW for the Sega Mega Drive" />
 
