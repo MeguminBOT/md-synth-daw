@@ -310,7 +310,10 @@ static char mdd_instance_socket[sizeof(((struct sockaddr_un *)0)->sun_path)];
 static int mdd_instance_where(const char *name, const char *suffix, char *into, size_t room) {
 	const char *base = getenv("XDG_RUNTIME_DIR");
 
-	if (base == NULL || base[0] == 0) base = "/tmp";
+	if (base == NULL || base[0] == 0) {
+		return snprintf(into, room, "/tmp/%s-%u%s", name, (unsigned)getuid(), suffix) < (int)room ? 1 : 0;
+	}
+
 	return snprintf(into, room, "%s/%s%s", base, name, suffix) < (int)room ? 1 : 0;
 }
 
