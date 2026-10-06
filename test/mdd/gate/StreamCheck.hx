@@ -850,7 +850,8 @@ class StreamCheck {
 	/**
 		A note on the noise channel with its preset on the rate that follows the third square: the
 		square is tuned to put the noise on the note and silenced, its own note under the noise is
-		not heard again, and its next note plays as written. An audition does the same.
+		not heard again, and its next note plays as written. An audition does the same, up to the
+		top of the range, where the square's note runs past the last MIDI note.
 	**/
 	static function lent():Void {
 		final song = new Song("tuned noise", 96, 120);
@@ -909,25 +910,45 @@ class StreamCheck {
 			}
 		}
 
-		final wanted = [Stream.periodOf(60), Stream.periodOf(48 + Stream.NOISE_BELOW),
-			Stream.periodOf(62)].join(" ");
+		final wanted = [Stream.periodOf(60), Stream.NOISE_PERIODS[48], Stream.periodOf(62)].join(" ");
 		final got = tones.join(" ").split("@3").join("");
 
 		says("a tuned noise takes PSG3's pitch", got == wanted && quietAt == 0 && heardInside == 0,
 			"PSG3 periods " + tones.join(" ") + " where " + wanted + " are its note, the noise's"
 			+ " and its next, silenced at the noise's start and never heard again before its next note");
 
+		final middle = auditioned(song, 50);
+
+		says("and so does an audition", middle[0] == Stream.NOISE_PERIODS[50] && middle[1] == 1,
+			"pressing 50 on NOISE writes PSG3 period " + middle[0] + " and silences it");
+
+		final top = auditioned(song, 127);
+		final reached:Array<Int> = [];
+
+		for (note in 92...128) {
+			if (reached.indexOf(Stream.NOISE_PERIODS[note]) < 0) reached.push(Stream.NOISE_PERIODS[note]);
+		}
+
+		says("and the top of the range keeps a pitch", top[0] == 1 && reached.length == 8,
+			"pressing 127 writes PSG3 period " + top[0] + ", the brightest noise there is, and the 36 notes"
+			+ " above 91 reach " + reached.length + " periods rather than all stopping at the 9 of note 127");
+	}
+
+	/**
+		@return The PSG3 period an audition of `pitch` on NOISE writes, or -1 where it writes none,
+			and one where it silences PSG3 or nought where it does not.
+	**/
+	static function auditioned(song:Song, pitch:Int):Array<Int> {
 		final transport = new mdd.play.Transport(song, 1 << 16);
 
-		transport.auditions(Part.Noise, 50);
+		transport.auditions(Part.Noise, pitch);
 		transport.advance(128, 48000);
 
 		final heard = transport.stream;
 		var period = -1;
-		var quiet = false;
-
-		latch = -1;
-		low = -1;
+		var quiet = 0;
+		var latch = -1;
+		var low = -1;
 
 		for (index in 0...heard.count) {
 			if (heard.kindAt(index) != Stream.PSG) continue;
@@ -937,15 +958,14 @@ class StreamCheck {
 			if ((value & 0x80) != 0) {
 				latch = value;
 				if ((value & 0xF0) == 0xC0) low = value & 0x0F;
-				if (value == 0xDF) quiet = true;
+				if (value == 0xDF) quiet = 1;
 				continue;
 			}
 
 			if ((latch & 0xF0) == 0xC0 && low >= 0) period = low | ((value & 0x3F) << 4);
 		}
 
-		says("and so does an audition", period == Stream.periodOf(50 + Stream.NOISE_BELOW) && quiet,
-			"pressing 50 on NOISE writes PSG3 period " + period + " and silences it");
+		return [period, quiet];
 	}
 
 	static function overlapping():Void {

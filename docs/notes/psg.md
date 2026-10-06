@@ -101,6 +101,11 @@ exactly. A note on the noise channel on this rate tunes the third square 36 semi
 for that reason, which puts periodic noise on the note written, and silences the square. White noise
 has no period to land on, so the same tuning only sets how bright it is.
 
+The square's note runs past the last MIDI note for this. Held to note 127, every noise note above 91
+would stop at that note's period of 9 and the top of the range would have no pitch; let run, the 36
+notes above 91 reach 8 periods, from 8 down to 1. Period 1 is the brightest noise the part makes,
+and the noise's own counter takes a period of nought as one.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## A note's edge is one more edge

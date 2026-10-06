@@ -82,6 +82,14 @@ final class Stream {
 	public static final PSG_PERIODS:Vector<Int> = psgPeriods();
 
 	/**
+		The third square's period for each note on the noise channel, tuned `NOISE_BELOW` above
+		it, where the noise sounds the note. Unlike `PSG_PERIODS` the square's note runs past the
+		last MIDI note, so the top of the noise's range reaches the shortest periods the part has,
+		which is the brightest noise there is.
+	**/
+	public static final NOISE_PERIODS:Vector<Int> = noisePeriods();
+
+	/**
 		Builds `FM_NOTES` from the part's clock and equal temperament.
 
 		@return Twelve frequency words, one per semitone.
@@ -108,6 +116,24 @@ final class Stream {
 
 		for (note in 0...128) {
 			final hz = 440.0 * Math.pow(2, (note - 69) / 12.0);
+			final period = Math.round(Sn76489.CLOCK / (32.0 * hz));
+
+			out[note] = period < 1 ? 1 : (period > 1023 ? 1023 : period);
+		}
+
+		return out;
+	}
+
+	/**
+		Builds `NOISE_PERIODS` the same way, `NOISE_BELOW` higher.
+
+		@return One period per MIDI note, clamped to what the part can reach.
+	**/
+	static function noisePeriods():Vector<Int> {
+		final out = new Vector<Int>(128);
+
+		for (note in 0...128) {
+			final hz = 440.0 * Math.pow(2, (note + NOISE_BELOW - 69) / 12.0);
 			final period = Math.round(Sn76489.CLOCK / (32.0 * hz));
 
 			out[note] = period < 1 ? 1 : (period > 1023 ? 1023 : period);
@@ -824,14 +850,18 @@ final class Stream {
 	}
 
 	/**
-		Gives a note on the noise channel its pitch through the third square: the square is tuned
-		`NOISE_BELOW` above the note, which is where the noise sounds it, and silenced.
+		Gives a note on the noise channel its pitch through the third square: the square takes the
+		period `NOISE_PERIODS` holds for the note, which is where the noise sounds it, and is
+		silenced.
 
 		@param tick When the writes happen, in output samples from the start of the span.
 		@param pitch The note the noise plays.
 	**/
 	public function lends(tick:Int, pitch:Int):Void {
-		square(tick, Part.Psg3, pitch + NOISE_BELOW);
+		final period = NOISE_PERIODS[pitch < 0 ? 0 : (pitch > 127 ? 127 : pitch)];
+
+		psg(tick, 0x80 | (2 << 5) | (period & 0x0F));
+		psg(tick, (period >> 4) & 0x3F);
 		attenuate(tick, Part.Psg3, 15);
 	}
 
