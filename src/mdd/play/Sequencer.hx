@@ -70,6 +70,13 @@ final class Sequencer {
 	static inline final OPERATOR = 6;
 
 	/**
+		A `TUNE` event setting a square's period from its pitch lane while no note of its own
+		sounds. On the third square that is what clocks a noise holding it, so it is the one
+		write the square still takes while the noise does, and it is written then and only then.
+	**/
+	static inline final BARE_PERIOD = 7;
+
+	/**
 		A `DATA` event carrying a sample byte.
 	**/
 	static inline final DAC_BYTE = 0;
@@ -340,7 +347,9 @@ final class Sequencer {
 	/**
 		What holds the third square: nothing, a note on the noise channel that has taken its pitch,
 		or nothing yet since one did. The square stays silent until its own next note starts, so a
-		note of its own that the noise cut into does not come back at the noise's pitch.
+		note of its own that the noise cut into does not come back at the noise's pitch. A period
+		its pitch lane writes with no note of its own under it still reaches it, because that is
+		what clocks the noise, and it is how a driver sweeps or flutters a noise as it sounds.
 	**/
 	var third:Int = THIRD_FREE;
 
@@ -1070,7 +1079,7 @@ final class Sequencer {
 		final note = riding ? noteUnder(part, tick) : null;
 
 		if (note == null) {
-			if (riding) return;
+			if (riding && !clocks(part, line)) return;
 			lined(at, part, line, value, 0, -1, -1, -1);
 			return;
 		}
@@ -1720,10 +1729,22 @@ final class Sequencer {
 
 		if (part.sampled()) push(at, part, TUNE, value, 5);
 		else if (part.noise()) push(at, part, TUNE, value & 0x0F, 4);
-		else if (!part.fm()) push(at, part, TUNE, periodic(value, pitch, transpose), 2);
-		else if (line.slot > 0) {
+		else if (!part.fm()) {
+			push(at, part, TUNE, periodic(value, pitch, transpose), pitch < 0 ? BARE_PERIOD : 2);
+		} else if (line.slot > 0) {
 			push(at, part, TUNE, (line.slot << 14) | shifted(value, transpose), 3);
 		} else push(at, part, TUNE, worded(value, pitch, transpose), 1);
+	}
+
+	/**
+		@param part Which part a lane plays on.
+		@param line The lane.
+		@return Whether a point on it is written with no note of the part's own under it: the third
+			square's pitch lane, which sets the period that clocks a noise holding the square. Every
+			other lane that rides notes waits for one.
+	**/
+	static inline function clocks(part:Part, line:mdd.song.Automation):Bool {
+		return part == Part.Psg3 && line.target == mdd.song.Automation.TUNE;
 	}
 
 	/**
@@ -1834,7 +1855,7 @@ final class Sequencer {
 
 		if (riding) {
 			if (under >= 0 && !part.fm() && voices.endAt(under) <= tick) under = -1;
-			if (under < 0) return;
+			if (under < 0 && !clocks(part, line)) return;
 		}
 
 		if (under == wroteUnder && value == wroteValue) return;
@@ -2622,8 +2643,8 @@ final class Sequencer {
 			if (origin >= 0 && origin < keyedAt[part.index()]) continue;
 			if (part == Part.Psg3 && third != THIRD_FREE) {
 				if (third == THIRD_WAITING && kinds[at] == PATCH) third = THIRD_FREE;
-				else continue;
-			}
+				else if (kinds[at] != TUNE || second != BARE_PERIOD) continue;
+			} else if (kinds[at] == TUNE && second == BARE_PERIOD) continue;
 
 			switch (kinds[at]) {
 				case OFF:
@@ -2656,7 +2677,7 @@ final class Sequencer {
 					else if (second == 4) stream.noise(tick, first & 0x0F);
 					else if (second == 3) {
 						stream.operatorFrequency(tick, (first >> 14) & 3, first & 0x3FFF);
-					} else if (second == 2) stream.period(tick, part, first);
+					} else if (second == 2 || second == BARE_PERIOD) stream.period(tick, part, first);
 					else if (second == 1) stream.frequency(tick, part, first);
 					else if (part.fm()) stream.tune(tick, part, first);
 					else if (part.square()) stream.square(tick, part, first);

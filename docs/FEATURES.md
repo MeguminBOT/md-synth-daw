@@ -301,7 +301,9 @@ register offers: **3** on the Noise dial for periodic noise, and **7** for white
 and each one tunes the third square, which is what clocks the noise, and keeps PSG3 silent while it
 sounds, the way the sample channel takes FM6. Periodic noise sounds 3 octaves below the square
 that clocks it, and that is allowed for, so a note sounds where it is written. A PSG3 note the noise
-cuts into stays silent until PSG3's next note, and the warnings point it out.
+cuts into stays silent until PSG3's next note, and the warnings point it out. Where PSG3 has no note
+of its own, its pitch lane still moves the square, and the noise moves with it: that is how an
+imported game flutters or sweeps its noise as it sounds.
 
 ### Samples
 
