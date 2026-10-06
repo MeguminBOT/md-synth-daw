@@ -157,7 +157,8 @@ everything except MSVC, which does not know the name.
 **What is not ignorable** is a warning from the linker about versions. `ld: warning: building for
 macOS-11.0, but linking with dylib ... built for newer version 26.0` meant exactly what it said:
 the 0.3.0 macOS packages carried an SDL3 that would not load on the macOS they claimed to support.
-That one was a fault, and the macOS jobs now aim at the version their libraries were built for.
+That one was a fault, and the macOS build now links SDL's own release, which is built for no newer
+a macOS than the one the build aims at.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -204,8 +205,9 @@ Where Haxe comes from differs by target, and the reason is arm64. The official H
 x86-64 only, so `krdlab/setup-haxe` answers `arm64 not supported` on an arm64 runner and the job
 stops before it starts. Only Windows uses that action. The Linux jobs run inside `debian:trixie` and
 take `haxe`, `neko` and `libsdl3-dev` from apt, which Debian builds for both architectures, and that
-is the reason those jobs use a container at all rather than the runner image. macOS takes `haxe` and
-`sdl3` from Homebrew, which has arm64 bottles. Windows fetches SDL3 through `mdd setup`.
+is the reason those jobs use a container at all rather than the runner image. macOS takes `haxe`
+from Homebrew, which has arm64 bottles. Windows and macOS fetch SDL3 through `mdd setup`, from
+SDL's own release.
 
 A package manager does not arrange `haxelib` the way the action does, so those jobs run
 `haxelib setup` themselves.
@@ -244,21 +246,24 @@ silent.
 With those in place a Debian container runs the whole thing, `gate passed, vgm and xgm not run`,
 and packages the Linux portable archive.
 
-**What macOS a package reaches back to is set by Homebrew, not by the build.** hxcpp aims at macOS
-10.9 unless told otherwise, and clang raises that to 11.0 on arm64 because nothing older runs there,
-but `brew` builds its bottles for the runner's own macOS. The 0.3.0 arm64 package says it needs
-macOS 11.0 and carries an SDL3 built for 26.0, which will not load on anything older, and the
-x86-64 one says 10.9 and carries an SDL3 built for 14.0. The macOS jobs therefore read the runner's
-version and aim at it, so the binary says what it can actually do. Both macOS jobs run on macOS 26,
-which for Intel is the last release there is.
+**What macOS a package reaches back to is set in `mdd.xml`.** The `macos` element names the oldest
+release, 11.0 for both architectures, since that is the first one Apple silicon runs. `mdd build`
+passes it to hxcpp and clang as `MACOSX_DEPLOYMENT_TARGET`, without which hxcpp aims at 10.9, and
+the bundle's `Info.plist` names it too, so an older Mac says the application needs a newer macOS
+rather than failing to open it. A call into anything newer than that release stops the compile.
+SDL comes from SDL's own release rather than from Homebrew, because Homebrew builds each bottle for
+the macOS that built it, and an SDL built for macOS 26 does not load on anything older. SDL's
+framework is built for 10.13 on Intel and 11.0 on Apple silicon, so it never asks for more than the
+build does.
 
 **The macOS installer is a bundle in a disk image**, signed ad hoc as a whole once everything is in
-it. The program and the SDL it carries go in `Contents/MacOS`, and the fonts, the icon atlases, the
-banks and the icon from `assets/icon/mdd.icns` go in `Contents/Resources`, because a bundle's
-signature expects nothing but code in `Contents/MacOS`. The build stops if the signature does not
-verify. Signing the program on its own is not enough: 1.0.2 shipped a bundle nobody had signed
-around a program that was, and once downloaded, macOS called it damaged and would not open it.
-`tools/icon/icon.py` draws the icon at the sizes macOS asks for, inside the margin a Mac icon keeps.
+it. The program goes in `Contents/MacOS`, SDL's framework in `Contents/Frameworks`, and the fonts,
+the icon atlases, the banks and the icon from `assets/icon/mdd.icns` in `Contents/Resources`,
+because a bundle's signature expects nothing but code in the first two. The build stops if the
+signature does not verify. Signing the program on its own is not enough: 1.0.2 shipped a bundle
+nobody had signed around a program that was, and once downloaded, macOS called it damaged and would
+not open it. `tools/icon/icon.py` draws the icon at the sizes macOS asks for, inside the margin a
+Mac icon keeps.
 
 The website's pages are in `site/`. `layout.html` wraps every one of them, and a page asks for what
 it shows from the document that describes it: `{{manual}}` and `{{contents}}` for the user manual,
@@ -320,12 +325,16 @@ one, and opens a console of its own when it is started with `-console`. A debug 
 stay console programs, because both are read from a terminal.
 
 Two elements put a shared library beside the binary, and which one applies depends on where the
-library came from. `<ship>` copies a file the repository already has, which is how Windows gets the
-vendored `SDL3.dll`. `<carry>` names a library linked from the system, and the build finds the copy
-the binary actually links, puts it in `export/bin`, and points the binary at it: on macOS by
-rewriting the load command, and on Linux by the rpath of `$ORIGIN` in the build file. Without it a
-macOS build names `/opt/homebrew` or `/usr/local` and a Linux one names nothing at all, and the
-archive will not start anywhere the library is not already installed at that exact path.
+library came from. `<ship>` copies a file or a folder the repository already has, which is how
+Windows gets the vendored `SDL3.dll` and macOS gets SDL's framework. A folder is copied whole, links
+and all, because a framework is a folder of links into itself and one copied file by file no longer
+signs. The binary finds the framework through its own folder, which hxcpp gives every macOS program
+as an rpath and which is where the framework sits in `export/bin` and in the portable archive, and
+through the bundle's `Contents/Frameworks`, which the build file adds. `<carry>` names a library
+linked from the system, which only Linux does, and the build finds the copy the binary actually
+links and puts it in `export/bin`, where the rpath of `$ORIGIN` in the build file points the
+binary at it. Without it the binary names the library and nowhere to find it, and the archive will
+not start anywhere the library is not already installed.
 
 The build file is deliberately not called `project.xml`. A file at the repository root with that
 name, or `Project.xml`, `project.hxp` or `project.lime`, makes the Lime editor extension claim the

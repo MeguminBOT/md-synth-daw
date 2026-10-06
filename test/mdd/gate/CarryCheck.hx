@@ -7,12 +7,12 @@ import sys.FileSystem;
 /**
 	What the binary needs beside it, and whether it is there.
 
-	Windows links the vendored SDL3 and the build ships the DLL. macOS and Linux link
-	whatever the package manager installed, so the binary comes out naming an absolute
-	path: `/opt/homebrew` on an arm64 Mac, `/usr/local` on an Intel one, and the
-	distribution's own directory on Linux. Nothing at that path exists on the machine an
-	archive is unpacked on, and the loader stops rather than looking elsewhere, so a
-	release built that way cannot start at all.
+	Windows and macOS link SDL's own release, and the build ships it beside the binary: the DLL,
+	and the framework, which the loader finds through the rpath of `@executable_path`. Linux
+	links whatever the package manager installed, so the binary comes out loading the library
+	from the distribution's own directory. Nothing at that path exists on a machine without the
+	package, and the loader stops rather than looking elsewhere, so a release built that way
+	cannot start at all.
 
 	The binary read is this one, because the gate is shipped into `export/bin` by the same
 	step the application is and carries whatever the application carries. The application
@@ -67,9 +67,10 @@ class CarryCheck {
 
 		var found = "";
 		for (name in names) {
-			if (name.indexOf(LIBRARY) >= 0 && !FileSystem.isDirectory(beside + "/" + name)) {
-				found = name;
-			}
+			if (name.indexOf(LIBRARY) < 0) continue;
+
+			final path = beside + "/" + name;
+			if (!FileSystem.isDirectory(path) || FileSystem.exists(path + "/" + LIBRARY)) found = name;
 		}
 
 		says(said + " carries " + LIBRARY + " beside it", found != "",

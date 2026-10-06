@@ -107,9 +107,15 @@
 
 	<!-- ==== VENDORS ==== -->
 
-	<vendor name="SDL3"       present="SDL3/include/SDL3/SDL.h"            size="12 MB"
-	        system="/usr/include/SDL3/SDL.h,/opt/homebrew/include/SDL3/SDL.h,/usr/local/include/SDL3/SDL.h"
-	        about="the window and its events, called directly. A system package off Windows" />
+	<vendor name="SDL3"       present="SDL3/include/SDL3/SDL.h"            size="12 MB"   if="windows"
+	        about="the window and its events, called directly: SDL's own Windows release" />
+
+	<vendor name="SDL3"       present="SDL3/SDL3.framework/Versions/A/SDL3" size="29 MB" if="mac"
+	        about="the window and its events, called directly: SDL's own macOS framework, both architectures" />
+
+	<vendor name="SDL3"       present="SDL3/include/SDL3/SDL.h"            size="12 MB"   if="linux"
+	        system="/usr/include/SDL3/SDL.h,/usr/local/include/SDL3/SDL.h"
+	        about="the window and its events, called directly. A system package on Linux" />
 
 	<vendor name="miniaudio"  present="miniaudio/miniaudio.h"              size="1 MB"
 	        about="the audio device, called directly" />
@@ -228,13 +234,10 @@
 		<tree path="vendor/libwebm/mkvparser" suffix=".cc" />
 	</native>
 
-	<include value="${SDL3PATH}/include"    if="windows" />
-
-	<!-- homebrew is /opt/homebrew on apple silicon and /usr/local on intel, and
-	     clang searches neither by default. A path that is not there costs nothing.
-	     Linux needs none of this: apt puts SDL3 where the compiler already looks. -->
-	<include value="/opt/homebrew/include"  if="mac" />
-	<include value="/usr/local/include"     if="mac" />
+	<!-- Windows and macOS build against SDL's own release, which mdd setup fetches into vendor/ and
+	     lays out the same way on both. Linux needs none of this: apt puts SDL3 where the compiler
+	     already looks -->
+	<include value="${SDL3PATH}/include"    unless="linux" />
 
 	<include value="${MINIAUDIOPATH}" />
 	<include value="${STBPATH}" />
@@ -260,6 +263,13 @@
 
 	<compileflag value="-Wno-return-type-c-linkage" unless="msvc" />
 
+	<!-- the oldest macOS the packages run on. SDL's framework reaches back to 10.13 on Intel and
+	     to 11 on Apple silicon, the first macOS Apple silicon ran, so every object is built for
+	     11 and the bundle names it. A call into anything newer stops the compile rather than
+	     the program -->
+	<macos minimum="11.0" />
+	<compileflag value="-Werror=unguarded-availability-new" if="mac" />
+
 	<!-- /DEBUG turns REF off and the crash report wants the symbols, so the pass that drops
 	     what nothing calls is asked for again: it takes the binary from 8225280 bytes to
 	     5350912. ICF stays off. LTCG has already folded what it would fold, so it saves
@@ -267,8 +277,12 @@
 	     functions the linker happened to keep -->
 	<linkflag value="-OPT:REF"           if="windows" unless="mingw,debug" />
 
-	<!-- look beside the binary for the copy of SDL3 the packaging carries there -->
+	<!-- look beside the binary for the copy of SDL3 the packaging carries there. hxcpp already
+	     gives a macOS program an rpath of its own folder, which is where the framework sits in
+	     export/bin and in the portable archive, so macOS only adds the Frameworks folder a
+	     bundle keeps it in -->
 	<linkflag value="-Wl,-rpath,$ORIGIN" if="linux" />
+	<linkflag value="-Wl,-rpath,@executable_path/../Frameworks" if="mac" />
 
 	<!-- hxcpp compiles every Linux object with -flto when HXCPP_OPTIMIZE_LINK is defined, and
 	     links with the compiler and nothing more. A clang object is then LLVM bitcode, which the
@@ -289,9 +303,8 @@
 	<!-- the window's library, however each linker wants to be told about it -->
 	<link value="${SDL3PATH}/lib/SDL3.lib"  if="windows" unless="mingw" />
 	<link value="${SDL3PATH}/lib/SDL3.dll"  if="mingw" />
-	<link value="-L/opt/homebrew/lib"       if="mac" />
-	<link value="-L/usr/local/lib"          if="mac" />
-	<link value="-lSDL3"                                 unless="windows" />
+	<link value="${SDL3PATH}/SDL3.framework/Versions/A/SDL3" if="mac" />
+	<link value="-lSDL3"                    if="linux" />
 
 	<!-- what Windows itself supplies: the crash report reads dbghelp, the scheduler tick
 	     comes from winmm, and the usage readout from psapi and pdh. The Microsoft linker
@@ -326,12 +339,13 @@
 	<link value="-framework CoreMIDI"       if="mac" />
 	<link value="-framework IOKit"          if="mac" />
 
-	<!-- Windows links the vendored SDL3 and ships the DLL beside the binary. macOS and Linux
-	     link whatever the package manager installed, so the binary comes out naming an
-	     absolute path no other machine has, and the build carries that library into
-	     export/bin the same way -->
-	<ship  value="vendor/SDL3/lib/SDL3.dll" if="windows" />
-	<carry value="libSDL3"                  unless="windows" />
+	<!-- Windows and macOS link SDL's own release and ship it beside the binary: the DLL, and the
+	     framework, which a macOS bundle keeps in its Frameworks folder instead. Linux links what
+	     the package manager installed, so the binary comes out naming an absolute path no other
+	     machine has, and the build carries that library into export/bin -->
+	<ship  value="vendor/SDL3/lib/SDL3.dll"   if="windows" />
+	<ship  value="vendor/SDL3/SDL3.framework" if="mac" />
+	<carry value="libSDL3"                    if="linux" />
 
 
 	<!-- ==== ASSETS ==== -->

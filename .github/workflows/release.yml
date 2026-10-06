@@ -121,9 +121,9 @@ jobs:
             haxe: apt
             artifact: mdd-linux-arm64
 
-          # macOS 26 is the last release for Intel, and Homebrew builds its
-          # bottles for the runner's own macOS, so this is as far back as a
-          # package built here can reach.
+          # mdd setup fetches SDL's own macOS release and mdd build aims every
+          # object at the macOS mdd.xml names, so what a package reaches back to
+          # does not depend on the macOS the runner has.
           - name: macOS x86-64
             runs-on: macos-26-intel
             haxe: brew
@@ -153,36 +153,9 @@ jobs:
 
       - uses: actions/checkout@v7.0.1
 
-      - name: Install Haxe and SDL3
+      - name: Install Haxe
         if: matrix.haxe == 'brew'
-        run: brew install haxe sdl3
-
-      # If macOS breaks again, this is what the next round needs to know, so the
-      # log answers it rather than costing another run to find out.
-      - name: Say where SDL3 landed
-        if: matrix.haxe == 'brew'
-        run: |
-          echo "brew prefix: $(brew --prefix)"
-          echo "sdl3 prefix: $(brew --prefix sdl3 2>&1)"
-          echo "header:"
-          ls -l "$(brew --prefix)/include/SDL3/SDL.h" 2>&1 || true
-          ls -l "$(brew --prefix sdl3)/include/SDL3/SDL.h" 2>&1 || true
-          echo "library:"
-          ls -l "$(brew --prefix)/lib/libSDL3"* 2>&1 || true
-          echo "sdk: $(xcrun --show-sdk-path 2>&1), version $(xcrun --show-sdk-version 2>&1)"
-
-      # hxcpp aims at macOS 10.9 unless something else says otherwise, and clang
-      # raises that to 11.0 on arm64 because nothing older runs there. Homebrew's
-      # SDL3 is built for the runner's own macOS, so the binary shipped a minimum
-      # it could not honour: 0.3.0 says macOS 11.0 and carries an SDL3 built for
-      # 26.0, which will not load on anything older. hxcpp reads every
-      # environment variable as a define, so this is what it aims at instead.
-      - name: Aim at the macOS the libraries were built for
-        if: matrix.haxe == 'brew'
-        run: |
-          major="$(sw_vers -productVersion | cut -d. -f1)"
-          echo "MACOSX_DEPLOYMENT_TARGET=${major}.0" >> "$GITHUB_ENV"
-          echo "aiming at macOS ${major}.0"
+        run: brew install haxe
 
       - uses: krdlab/setup-haxe@v2.1.1
         if: matrix.haxe == 'action'

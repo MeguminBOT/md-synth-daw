@@ -305,7 +305,7 @@ class Run {
 			if (!done || !vendored(root, source)) {
 				failed++;
 				Sys.println("  " + pad("") + "failed. " + source.about);
-				if (source.name == "SDL3" && !windows()) {
+				if (source.name == "SDL3" && system() == "linux") {
 					Sys.println("  " + pad("") + "install SDL3 from the system packages");
 				}
 			}
@@ -1169,10 +1169,19 @@ class Run {
 	}
 
 	static function built(root:String, project:Project, target:String, debug:Bool):Void {
-		if (windows() && !FileSystem.exists(root + "/" + project.pathOf("SDL3PATH")
-				+ "/lib/SDL3.lib")) {
+		final linked = switch (system()) {
+			case "windows": project.pathOf("SDL3PATH") + "/lib/SDL3.lib";
+			case "mac": project.pathOf("SDL3PATH") + "/SDL3.framework/Versions/A/SDL3";
+			case _: "";
+		}
+
+		if (linked != "" && !FileSystem.exists(root + "/" + linked)) {
 			Sys.println("mdd: SDL3 is missing from vendor/. Run: mdd setup");
 			Sys.exit(1);
+		}
+
+		if (system() == "mac" && project.macosMinimum != "") {
+			Sys.putEnv("MACOSX_DEPLOYMENT_TARGET", project.macosMinimum);
 		}
 
 		final fault = collectorFault(hxcppRoot());
@@ -1246,30 +1255,20 @@ class Run {
 	}
 
 	/**
-		Puts the library the window is built on beside the binary, and points the binary at
-		that copy rather than at wherever the machine that built it kept the original.
-
-		Windows names its own copy in the build file and needs nothing more. macOS and Linux
-		link whatever the package manager installed, so the binary comes out holding an
-		absolute path: `/opt/homebrew` on an arm64 Mac, `/usr/local` on an Intel one, and the
-		distribution's own directory on Linux. None of those exist on the machine an archive is
-		unpacked on, and the loader stops rather than looking anywhere else.
-
-		macOS is repointed here because the path is written into the binary at link time from
-		the library's own install name. Linux is repointed at link time instead, by the rpath
-		of `$ORIGIN` the build file passes, so there is nothing left to do but carry the copy.
+		Puts the library the window is built on beside the binary, on Linux, where it is linked from
+		whatever the package manager installed. Windows and macOS link SDL's own release, which the
+		build file ships instead. The machine an archive is unpacked on need not have the package at
+		all, and the loader stops rather than looking anywhere else, so the copy the binary was
+		linked against goes beside it, where the rpath of `$ORIGIN` the build file passes finds it.
 
 		@param project The build file.
 		@param target Which target, for the line printed.
 		@param exe The binary, already beside what it ships with.
 	**/
 	static function carries(project:Project, target:String, exe:String):Void {
-		if (windows() || project.carry == "" || !FileSystem.exists(exe)) return;
+		if (system() != "linux" || project.carry == "" || !FileSystem.exists(exe)) return;
 
-		final apple = system() == "mac";
-		final reader = apple ? "otool" : "ldd";
-
-		final said = reads(reader, apple ? ["-L", native(exe)] : [native(exe)]);
+		final said = reads("ldd", [native(exe)]);
 		if (said == "") return;
 
 		var from = "";
@@ -1278,21 +1277,17 @@ class Run {
 			final held = StringTools.trim(line);
 			if (held.indexOf(project.carry) < 0) continue;
 
-			if (apple) from = held.split(" ")[0];
-			else if (held.indexOf("=> ") >= 0) {
+			if (held.indexOf("=> ") >= 0) {
 				from = StringTools.trim(held.split("=> ")[1]).split(" ")[0];
 			}
 
 			break;
 		}
 
-		if (from == "" || StringTools.startsWith(from, "@") || StringTools.startsWith(from, "$")) {
-			return;
-		}
+		if (from == "" || StringTools.startsWith(from, "$")) return;
 
 		if (!FileSystem.exists(from)) {
-			Sys.println("  " + pad(target) + reader + " names " + from
-				+ ", which is not there to carry");
+			Sys.println("  " + pad(target) + "ldd names " + from + ", which is not there to carry");
 			return;
 		}
 
@@ -1301,24 +1296,6 @@ class Run {
 
 		copyFile(from, beside);
 		runnable(beside);
-
-		if (!apple) {
-			Sys.println("  " + pad(target) + "carries " + name + " beside it");
-			return;
-		}
-
-		if (Sys.command("install_name_tool", ["-change", from, "@executable_path/" + name,
-				native(exe)]) != 0) {
-			Sys.println("  " + pad(target) + "install_name_tool would not repoint " + name
-				+ ", so the binary still wants " + from);
-			return;
-		}
-
-		if (Sys.command("codesign", ["--force", "--sign", "-", native(exe)]) != 0) {
-			Sys.println("  " + pad(target) + "codesign would not sign the binary again, and an"
-				+ " arm64 Mac refuses one whose signature install_name_tool broke");
-			return;
-		}
 
 		Sys.println("  " + pad(target) + "carries " + name + " beside it");
 	}
@@ -1382,9 +1359,12 @@ class Run {
 
 		for (one in project.ships) {
 			final from = root + "/" + one;
-			if (FileSystem.exists(from)) {
-				copyFile(from, into + "/" + haxe.io.Path.withoutDirectory(one));
-			}
+			if (!FileSystem.exists(from)) continue;
+
+			final to = into + "/" + haxe.io.Path.withoutDirectory(one);
+
+			if (FileSystem.isDirectory(from)) copyWhole(from, to);
+			else copyFile(from, to);
 		}
 
 		final atlases = root + "/" + project.output + "/icons";
@@ -1609,7 +1589,7 @@ class Run {
 		if (FileSystem.exists(into)) remove(into);
 		tree(into);
 
-		stagedCode(root, project, into);
+		stagedCode(root, project, into, into);
 		stagedData(root, project, into, whole);
 
 		return into;
@@ -1624,16 +1604,24 @@ class Run {
 		@param root The repository.
 		@param project What the build file declares.
 		@param into The folder.
+		@param frameworks Where a library that is a folder goes, which is a macOS framework: the
+			bundle's `Contents/Frameworks`, or the program's own folder anywhere else. It is made
+			where one is copied into it.
 	**/
-	static function stagedCode(root:String, project:Project, into:String):Void {
+	static function stagedCode(root:String, project:Project, into:String, frameworks:String):Void {
 		final bin = root + "/" + project.output + "/bin";
 
 		for (entry in FileSystem.readDirectory(bin)) {
-			final from = bin + "/" + entry;
-			if (FileSystem.isDirectory(from)) continue;
 			if (!packs(project, entry)) continue;
 
-			copyFile(from, into + "/" + entry);
+			final from = bin + "/" + entry;
+
+			if (FileSystem.isDirectory(from)) {
+				tree(frameworks);
+				copyWhole(from, frameworks + "/" + entry);
+			} else {
+				copyFile(from, into + "/" + entry);
+			}
 		}
 
 		runnable(into + "/" + project.targets[0].id);
@@ -2501,9 +2489,10 @@ class Run {
 	}
 
 	/**
-		Builds the macOS bundle and the disk image it is downloaded as. The program and the library
-		it loads go in `Contents/MacOS`, and everything else goes in `Contents/Resources` beside the
-		icon, since `Contents/MacOS` is where a bundle's signature expects code and nothing else.
+		Builds the macOS bundle and the disk image it is downloaded as. The program goes in
+		`Contents/MacOS`, SDL's framework in `Contents/Frameworks`, and everything else in
+		`Contents/Resources` beside the icon, since a bundle's signature expects code in the first
+		two and nothing else there.
 
 		@param root The repository.
 		@param project What the build file declares.
@@ -2517,7 +2506,7 @@ class Run {
 		tree(inside + "/MacOS");
 		tree(inside + "/Resources");
 
-		stagedCode(root, project, inside + "/MacOS");
+		stagedCode(root, project, inside + "/MacOS", inside + "/Frameworks");
 		stagedData(root, project, inside + "/Resources", true);
 
 		final icon = root + "/" + project.appIcon + "/" + project.short + ".icns";
@@ -2534,6 +2523,11 @@ class Run {
 		out.add("\t<key>CFBundleIconFile</key><string>" + project.short + "</string>\n");
 		out.add("\t<key>CFBundlePackageType</key><string>APPL</string>\n");
 		out.add("\t<key>NSHighResolutionCapable</key><true/>\n");
+
+		if (project.macosMinimum != "") {
+			out.add("\t<key>LSMinimumSystemVersion</key><string>" + project.macosMinimum
+				+ "</string>\n");
+		}
 
 		final suffixes = [project.formatSuffix, project.presetSuffix, project.bankSuffix];
 		final names = [project.formatName, project.presetName, project.bankName];
@@ -2603,11 +2597,12 @@ class Run {
 	}
 
 	/**
-		Signs a macOS bundle as a whole, ad hoc: each library beside the program first, then the
-		bundle, which signs the program again under the bundle's identifier, binds its `Info.plist`
-		and seals every other file in it. The program arrives signed on its own, which is all an
-		arm64 Mac needs to run it, but a downloaded bundle around a program signed that way is one
-		macOS calls damaged and will not open. Stops the build where the signature does not verify,
+		Signs a macOS bundle as a whole, ad hoc: anything beside the program first, then the bundle,
+		which signs the program again under the bundle's identifier, binds its `Info.plist` and seals
+		every other file in it. The program arrives signed on its own, which is all an arm64 Mac
+		needs to run it, but a downloaded bundle around a program signed that way is one macOS calls
+		damaged and will not open. SDL's framework keeps the signature it arrives with, so it ships
+		as SDL released it. Stops the build where the bundle or anything in it does not verify,
 		since the disk image made next is what a reader downloads.
 
 		@param root The repository, for the lines printed.
@@ -2917,15 +2912,17 @@ class Run {
 	}
 
 	static function sdl(vendor:String):Bool {
+		final base = "https://github.com/libsdl-org/SDL/releases/download/release-" + SDL_VERSION;
+
+		if (system() == "mac") return framework(vendor, base);
+
 		if (!windows()) {
-			for (where in ["/usr/include/SDL3/SDL.h", "/usr/local/include/SDL3/SDL.h",
-					"/opt/homebrew/include/SDL3/SDL.h"]) {
+			for (where in ["/usr/include/SDL3/SDL.h", "/usr/local/include/SDL3/SDL.h"]) {
 				if (FileSystem.exists(where)) return true;
 			}
 			return false;
 		}
 
-		final base = "https://github.com/libsdl-org/SDL/releases/download/release-" + SDL_VERSION;
 		final archive = vendor + "/.sdl3.zip";
 		final staging = vendor + "/.sdl3";
 
@@ -2950,6 +2947,54 @@ class Run {
 		FileSystem.deleteFile(archive);
 		remove(staging);
 		return true;
+	}
+
+	/**
+		Fetches SDL's own macOS release, the disk image every SDL release carries, and keeps its
+		framework whole: one binary for both architectures, built for macOS 10.13 on Intel and 11
+		on Apple silicon, with its links and its signature intact. Its headers are copied out as
+		well, into the same layout the Windows release has, so one include path serves both.
+
+		@param vendor The vendor folder.
+		@param base Where the release's files are.
+		@return Whether it arrived.
+	**/
+	static function framework(vendor:String, base:String):Bool {
+		final image = vendor + "/.sdl3.dmg";
+		final mounted = vendor + "/.sdl3";
+		final into = vendor + "/SDL3";
+
+		if (!download(base + "/SDL3-" + SDL_VERSION + ".dmg", image)) return false;
+
+		if (FileSystem.exists(mounted)) Sys.command("hdiutil", ["detach", mounted, "-quiet"]);
+		tree(mounted);
+
+		if (Sys.command("hdiutil", ["attach", "-nobrowse", "-readonly", "-quiet", "-mountpoint",
+				mounted, image]) != 0) {
+			FileSystem.deleteFile(image);
+			return false;
+		}
+
+		final from = mounted + "/SDL3.xcframework/macos-arm64_x86_64/SDL3.framework";
+		var arrived = FileSystem.exists(from);
+
+		if (arrived) {
+			remove(into);
+			tree(into + "/include");
+
+			arrived = Sys.command("ditto", [from, into + "/SDL3.framework"]) == 0
+				&& Sys.command("ditto", [from + "/Versions/A/Headers", into + "/include/SDL3"]) == 0;
+
+			if (FileSystem.exists(mounted + "/LICENSE.txt")) {
+				copyFile(mounted + "/LICENSE.txt", into + "/LICENSE.txt");
+			}
+		}
+
+		Sys.command("hdiutil", ["detach", mounted, "-quiet"]);
+		FileSystem.deleteFile(image);
+		if (FileSystem.exists(mounted)) Sys.command("rmdir", [mounted]);
+
+		return arrived;
 	}
 
 	/**
@@ -3260,6 +3305,25 @@ class Run {
 		}
 	}
 
+	/**
+		Copies a folder whole over whatever was at the other end, links kept as links. A file by
+		file copy follows them, and a framework copied that way still loads, but every link has
+		become a second copy of what it pointed at and codesign refuses a framework laid out so.
+
+		@param from The folder.
+		@param to Where it goes.
+	**/
+	static function copyWhole(from:String, to:String):Void {
+		remove(to);
+
+		if (windows()) {
+			copyTree(from, to);
+			return;
+		}
+
+		if (Sys.command("cp", ["-R", from, to]) != 0) throw "mdd: could not copy " + from;
+	}
+
 	static function alike(from:String, to:String):Bool {
 		if (!FileSystem.exists(to)) return false;
 
@@ -3303,8 +3367,21 @@ class Run {
 		if (code != 0) throw "mdd: could not copy " + from;
 	}
 
+	/**
+		Deletes a file, or a folder and everything in it. Off Windows the system's `rm` does it,
+		because nothing here can tell a link to a folder from the folder: a macOS framework is a
+		folder of links into itself, and walking one deletes what each link points at and then
+		fails on the link.
+
+		@param path The file or the folder.
+	**/
 	static function remove(path:String):Void {
 		if (!FileSystem.exists(path)) return;
+
+		if (!windows()) {
+			if (Sys.command("rm", ["-rf", path]) != 0) throw "mdd: could not remove " + path;
+			return;
+		}
 
 		if (!FileSystem.isDirectory(path)) {
 			FileSystem.deleteFile(path);

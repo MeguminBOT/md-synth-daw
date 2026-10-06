@@ -68,9 +68,11 @@ application is, not a build detail, and it has not been taken.
 | SDL3 | 3.4.14 | zlib | 2026-09-01 | libsdl.org |
 | Qlementine Icons | e7cf96d | MIT | 2026-09-03 | github.com/oclero/qlementine-icons |
 
-`SDL3.dll` is copied next to the program on Windows and linked from the system elsewhere. The zlib
-licence requires that the origin not be misrepresented and that altered versions be marked as
-such. This repository ships SDL unaltered.
+`SDL3.dll` is copied next to the program on Windows. On macOS SDL's own framework goes into the
+bundle, or next to the program in the portable archive, with the signature SDL gave it intact.
+Linux links the system's copy and puts that next to the program. The zlib licence requires that the
+origin not be misrepresented and that altered versions be marked as such. This repository ships SDL
+unaltered.
 
 **The interface icons.** `mdd setup` fetches the SVGs the icon manifest in `mdd.xml` names, at the
 commit recorded in `vendor/qlementine/COMMIT`, and the build rasterises them into the atlases under

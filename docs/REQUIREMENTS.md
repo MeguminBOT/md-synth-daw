@@ -21,7 +21,7 @@ image. `mdd gate weigh` is the program behind the first set, and you can run it 
 
 | | |
 | --- | --- |
-| **OS** | Windows 10 or higher, macOS 26 or higher, or Linux |
+| **OS** | Windows 10 or higher, macOS 11 or higher, or Linux |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
 | **GPU** | 256 MB, and integrated graphics is fine |
@@ -45,11 +45,9 @@ other renderers would draw the window, and asks whether to install anyway.
 **Windows 10 or higher.** Anything older isn't supported, and nothing older ships a Direct3D 11
 driver you would want.
 
-**macOS 26 or higher.** The reason is Homebrew rather than the code. The macOS packages take the
-SDL the build machine had, and Homebrew builds its bottles for the runner's own macOS, so that is
-as far back as a package built here reaches, on Apple silicon and on Intel alike. macOS 26 is also
-the last release Intel gets. Building from source on an older macOS aims at that one instead, and
-the application itself has no macOS 26 requirement in it.
+**macOS 11 or higher.** That is Big Sur, the first release that runs on Apple silicon, and the
+Intel package is built for it too. The SDL both packages ship is SDL's own release, which reaches
+back that far on both.
 
 **Linux, and the version matters more than the distribution.** The packages are built inside a
 Debian 13 container, whose C library is glibc 2.41, so that is the floor. Anything older refuses to
@@ -76,10 +74,10 @@ Pi itself, or wait for a Debian 13 image.
 If your distribution is older than that, build from source. It compiles against whatever C library
 you already have, and then none of this applies.
 
-**SDL does not need installing.** The Linux and macOS packages ship their own copy of SDL3 beside
-the binary and find it there, which matters because SDL3 is new enough that a good many current
-distributions do not package it yet. The Debian package is the exception: it uses the system's own
-`libsdl3-0`, which apt installs along with it.
+**SDL does not need installing.** The Linux and macOS packages ship their own copy of SDL3 and
+load that one, which matters because SDL3 is new enough that a good many current distributions do
+not package it yet. The Debian package is the exception: it uses the system's own `libsdl3-0`,
+which apt installs along with it.
 
 **Older than any of the above isn't supported.** It may well run, and you are welcome to try, but a
 problem on it isn't one we can look into. That covers a custom build aimed at an older Unix just as

@@ -120,7 +120,7 @@ frame limiter that quietly delivered 43 updates a second when asked for 60.
 
 | | |
 | --- | --- |
-| **OS** | Windows 10, macOS 26, or Linux: Ubuntu 25.04, Debian 13, Fedora 42. Each or newer |
+| **OS** | Windows 10, macOS 11, or Linux: Ubuntu 25.04, Debian 13, Fedora 42. Each or newer |
 | **CPU** | Any x86-64 or Arm64 processor, two cores or better |
 | **RAM** | 1 GB |
 | **GPU** | 256 MB, and integrated graphics is fine. Direct3D 11 on Windows, or OpenGL and then Direct3D 9 where it falls short, and OpenGL 2.0 elsewhere |

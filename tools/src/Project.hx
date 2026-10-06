@@ -227,6 +227,13 @@ class Project {
 	public var carry(default, null):String = "";
 
 	/**
+		The oldest macOS a macOS build runs on, or an empty string to leave it to hxcpp, which
+		aims at 10.9. The build passes it on as `MACOSX_DEPLOYMENT_TARGET`, which hxcpp reads as a
+		define and clang reads from the environment, and the bundle names it.
+	**/
+	public var macosMinimum(default, null):String = "";
+
+	/**
 		What the Debian package of a Linux build is called, or an empty string for no package.
 	**/
 	public var debianPackage(default, null):String = "";
@@ -494,6 +501,9 @@ class Project {
 
 			case "carry":
 				carry = node.get("value");
+
+			case "macos":
+				macosMinimum = node.get("minimum");
 
 			case "debian":
 				debianPackage = has(node, "package") ? node.get("package") : debianPackage;
