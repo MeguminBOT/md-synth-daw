@@ -107,7 +107,8 @@ class DeclickCheck {
 
 	/**
 		A hit cut by its note with nothing after it, and a hit that runs out away from the middle
-		inside a longer note.
+		inside a longer note. Each sample sits on a key of its own and its notes are written on
+		that key, because the key a note is on picks the sample it plays.
 	**/
 	static function converter():Void {
 		final song = made();
@@ -117,7 +118,7 @@ class DeclickCheck {
 		tone.hold(bytes);
 		song.sample(tone);
 
-		final short = new Sample("short", 16000, 60);
+		final short = new Sample("short", 16000, 62);
 		final ends = new Vector<Int>(1627);
 		for (index in 0...ends.length) ends[index] = 128 + Math.round(100 * Math.sin(2 * Math.PI * 150 * index / 16000));
 		short.hold(ends);
@@ -144,7 +145,7 @@ class DeclickCheck {
 		}
 
 		for (index in 4...8) {
-			pattern.lane(Part.Dac).add(new Note(index * 96, 48, 60, 127, running));
+			pattern.lane(Part.Dac).add(new Note(index * 96, 48, 62, 127, running));
 			outs.push(index * 96);
 		}
 
