@@ -287,6 +287,22 @@ class Paths {
 	}
 
 	/**
+		@return The folder the program's own files are read from: the fonts, the icon atlases and
+			the banks that ship with it. That is the folder the program sits in, except inside a
+			macOS bundle, which keeps them in `Contents/Resources` and leaves `Contents/MacOS` to
+			code alone, as the bundle's signature expects.
+	**/
+	public static function resources():String {
+		final held = beside();
+
+		#if mac
+		if (StringTools.endsWith(held, "/Contents/MacOS")) return haxe.io.Path.directory(held) + "/Resources";
+		#end
+
+		return held;
+	}
+
+	/**
 		@return What an executable is called on this platform, which is `.exe` on Windows and
 			nothing elsewhere.
 	**/

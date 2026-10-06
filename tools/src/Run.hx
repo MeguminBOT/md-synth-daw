@@ -1596,9 +1596,7 @@ class Run {
 	}
 
 	/**
-		Gathers everything a package holds into one folder. A copy is written as a new file, which
-		keeps none of the mode it came with, so the program is made runnable again here: without it
-		every Linux archive and the macOS bundle carried a program nothing would start.
+		Gathers everything a package holds into one folder.
 
 		@param root The repository.
 		@param project What the build file declares.
@@ -1611,6 +1609,23 @@ class Run {
 		if (FileSystem.exists(into)) remove(into);
 		tree(into);
 
+		stagedCode(root, project, into);
+		stagedData(root, project, into, whole);
+
+		return into;
+	}
+
+	/**
+		Copies the program and the libraries it loads into a folder that is already there. A copy is
+		written as a new file, which keeps none of the mode it came with, so the program is made
+		runnable again here: without it every Linux archive and the macOS bundle carried a program
+		nothing would start.
+
+		@param root The repository.
+		@param project What the build file declares.
+		@param into The folder.
+	**/
+	static function stagedCode(root:String, project:Project, into:String):Void {
 		final bin = root + "/" + project.output + "/bin";
 
 		for (entry in FileSystem.readDirectory(bin)) {
@@ -1622,8 +1637,20 @@ class Run {
 		}
 
 		runnable(into + "/" + project.targets[0].id);
+	}
 
+	/**
+		Copies everything a package holds that is not code into a folder that is already there: the
+		icon atlases, the banks, the fonts, and the licence and readme. A macOS bundle keeps them in
+		a folder of their own, and every other package puts them beside the program.
 
+		@param root The repository.
+		@param project What the build file declares.
+		@param into The folder.
+		@param whole Whether the faces the application can fetch for itself go in too.
+	**/
+	static function stagedData(root:String, project:Project, into:String, whole:Bool):Void {
+		final bin = root + "/" + project.output + "/bin";
 		final atlases = bin + "/icons";
 
 		if (FileSystem.exists(atlases)) {
@@ -1651,8 +1678,6 @@ class Run {
 		for (entry in ["LICENSE", "README.md"]) {
 			if (FileSystem.exists(root + "/" + entry)) copyFile(root + "/" + entry, into + "/" + entry);
 		}
-
-		return into;
 	}
 
 	static function archived(where:String, what:String, into:String):Int {
@@ -2475,6 +2500,14 @@ class Run {
 			+ left.substr(0, 3) + "-" + left.substr(3, 5) + right.substr(0, 7);
 	}
 
+	/**
+		Builds the macOS bundle and the disk image it is downloaded as. The program and the library
+		it loads go in `Contents/MacOS`, and everything else goes in `Contents/Resources` beside the
+		icon, since `Contents/MacOS` is where a bundle's signature expects code and nothing else.
+
+		@param root The repository.
+		@param project What the build file declares.
+	**/
 	static function bundle(root:String, project:Project):Void {
 		final app = root + "/" + project.output + "/package/" + project.title + ".app";
 		final inside = app + "/Contents";
@@ -2484,7 +2517,11 @@ class Run {
 		tree(inside + "/MacOS");
 		tree(inside + "/Resources");
 
-		staged(root, project, inside + "/MacOS", true);
+		stagedCode(root, project, inside + "/MacOS");
+		stagedData(root, project, inside + "/Resources", true);
+
+		final icon = root + "/" + project.appIcon + "/" + project.short + ".icns";
+		if (FileSystem.exists(icon)) copyFile(icon, inside + "/Resources/" + project.short + ".icns");
 
 		final out = new StringBuf();
 		out.add("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -2545,6 +2582,8 @@ class Run {
 
 		File.saveContent(inside + "/Info.plist", out.toString());
 
+		sealed(root, project, app);
+
 		final image = root + "/" + project.output + "/package/"
 			+ stamp(project) + ".dmg";
 
@@ -2561,6 +2600,43 @@ class Run {
 
 		Sys.println("  " + pad("installer") + (made == 0
 			? image.substr(root.length + 1) : "hdiutil would not make a dmg"));
+	}
+
+	/**
+		Signs a macOS bundle as a whole, ad hoc: each library beside the program first, then the
+		bundle, which signs the program again under the bundle's identifier, binds its `Info.plist`
+		and seals every other file in it. The program arrives signed on its own, which is all an
+		arm64 Mac needs to run it, but a downloaded bundle around a program signed that way is one
+		macOS calls damaged and will not open. Stops the build where the signature does not verify,
+		since the disk image made next is what a reader downloads.
+
+		@param root The repository, for the lines printed.
+		@param project What the build file declares.
+		@param app The bundle.
+	**/
+	static function sealed(root:String, project:Project, app:String):Void {
+		final code = app + "/Contents/MacOS";
+		final signed:Array<String> = [];
+
+		for (entry in FileSystem.readDirectory(code)) {
+			if (entry != project.short) signed.push(code + "/" + entry);
+		}
+
+		signed.push(app);
+
+		for (path in signed) {
+			if (Sys.command("codesign", ["--force", "--sign", "-", native(path)]) == 0) continue;
+
+			Sys.println("mdd: codesign would not sign " + path.substr(root.length + 1));
+			Sys.exit(1);
+		}
+
+		if (Sys.command("codesign", ["--verify", "--deep", "--strict", native(app)]) != 0) {
+			Sys.println("mdd: " + app.substr(root.length + 1) + " does not verify once signed");
+			Sys.exit(1);
+		}
+
+		Sys.println("  " + pad("installer") + "signed " + haxe.io.Path.withoutDirectory(app));
 	}
 
 	/**

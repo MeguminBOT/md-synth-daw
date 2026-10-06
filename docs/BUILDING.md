@@ -75,7 +75,8 @@ fetch fails, `mdd check` tells you what is present and what is missing.
 ```
 
 **`export/bin` is laid out the way a download is.** A build puts the fonts and the icon atlases
-beside the binary it makes, and the application reads them from beside itself and nowhere else. It
+beside the binary it makes, and the application reads them from beside itself and nowhere else,
+except inside a macOS bundle, where they sit in the bundle's `Contents/Resources`. It
 used to fall back to `vendor/fonts` and `export/icons` in this repository, which meant a copy with
 its fonts folder missing ran perfectly here and closed on a reader's machine without a word. The
 fonts beside the binary are the ones the portable archive holds, which leaves out the three a
@@ -250,6 +251,14 @@ macOS 11.0 and carries an SDL3 built for 26.0, which will not load on anything o
 x86-64 one says 10.9 and carries an SDL3 built for 14.0. The macOS jobs therefore read the runner's
 version and aim at it, so the binary says what it can actually do. Both macOS jobs run on macOS 26,
 which for Intel is the last release there is.
+
+**The macOS installer is a bundle in a disk image**, signed ad hoc as a whole once everything is in
+it. The program and the SDL it carries go in `Contents/MacOS`, and the fonts, the icon atlases, the
+banks and the icon from `assets/icon/mdd.icns` go in `Contents/Resources`, because a bundle's
+signature expects nothing but code in `Contents/MacOS`. The build stops if the signature does not
+verify. Signing the program on its own is not enough: 1.0.2 shipped a bundle nobody had signed
+around a program that was, and once downloaded, macOS called it damaged and would not open it.
+`tools/icon/icon.py` draws the icon at the sizes macOS asks for, inside the margin a Mac icon keeps.
 
 The website's pages are in `site/`. `layout.html` wraps every one of them, and a page asks for what
 it shows from the document that describes it: `{{manual}}` and `{{contents}}` for the user manual,

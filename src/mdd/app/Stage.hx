@@ -328,12 +328,12 @@ final class Stage {
 	}
 
 	/**
-		@return The folder the icon atlases are in, which is the one beside the program and no
-			other, or an empty string where there is none. A build puts the atlases beside the
+		@return The folder the icon atlases are in, which is the one in the program's resources and
+			no other, or an empty string where there is none. A build puts the atlases beside the
 			binary it makes, so a copy run from the repository looks where a reader's copy looks.
 	**/
 	function atlases():String {
-		final where = haxe.io.Path.normalize(Paths.beside() + "/icons");
+		final where = haxe.io.Path.normalize(Paths.resources() + "/icons");
 
 		return sys.FileSystem.exists(where) ? where : "";
 	}
@@ -421,13 +421,13 @@ final class Stage {
 	}
 
 	/**
-		@return The folder the faces are in, which is the one beside the program and no other, or
-			an empty string where it holds no face to start with. A build puts the same faces
-			beside the binary it makes, so a copy run from the repository looks where a reader's
-			copy looks, and a download missing its fonts cannot be covered by the ones here.
+		@return The folder the faces are in, which is the one in the program's resources and no
+			other, or an empty string where it holds no face to start with. A build puts the same
+			faces beside the binary it makes, so a copy run from the repository looks where a
+			reader's copy looks, and a download missing its fonts cannot be covered by the ones here.
 	**/
 	public function fonts():String {
-		final where = haxe.io.Path.normalize(Paths.beside() + "/fonts");
+		final where = haxe.io.Path.normalize(Paths.resources() + "/fonts");
 
 		return sys.FileSystem.exists(where + "/" + Typeface.SANS[0]) ? where : "";
 	}
@@ -467,7 +467,7 @@ final class Stage {
 			return failed(Config.TITLE + " could not find its fonts.\n\nIt reads them from"
 				+ " the fonts folder beside the program, so the folder it came in has to be kept"
 				+ " whole: extract everything from the download, not the program on its own.\n\nIt"
-				+ " looked in " + haxe.io.Path.normalize(Paths.beside() + "/fonts") + ".");
+				+ " looked in " + haxe.io.Path.normalize(Paths.resources() + "/fonts") + ".");
 		}
 
 		shed();

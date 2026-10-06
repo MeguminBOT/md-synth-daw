@@ -1794,7 +1794,7 @@ class App {
 		presetFolder.root = keeper.root;
 		presetFolder.bin = keeper.bin;
 
-		final record = mdd.app.ShippedBanks.plants(mdd.host.Paths.beside() + "/presets", keeper.root,
+		final record = mdd.app.ShippedBanks.plants(mdd.host.Paths.resources() + "/presets", keeper.root,
 			settings.of("presetsShipped", ""));
 
 		settings.put("presetsShipped", record);

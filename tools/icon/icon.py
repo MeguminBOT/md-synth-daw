@@ -21,6 +21,9 @@ PARTS = [
 
 OVER = 8
 
+MAC_SIZES = [32, 64, 128, 256, 512, 1024]
+MAC_ART = 824 / 1024.0
+
 
 def rounded(draw, box, radius, fill):
     draw.rounded_rectangle(box, radius=radius, fill=fill)
@@ -96,6 +99,13 @@ def draw_icon(size, plain):
     return image.resize((size, size), Image.LANCZOS)
 
 
+def draw_mac(size):
+    inner = int(round(size * MAC_ART))
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    image.paste(draw_icon(inner, inner <= 24), ((size - inner) // 2, (size - inner) // 2))
+    return image
+
+
 def main():
     if not os.path.isdir(INTO):
         os.makedirs(INTO)
@@ -119,6 +129,10 @@ def main():
                   sizes=[(s, s) for s in sizes if s <= 256],
                   append_images=[i for i in made if i.size[0] <= 256])
     print("        mdd.ico")
+
+    mac = [draw_mac(size) for size in MAC_SIZES]
+    mac[-1].save(os.path.join(INTO, "mdd.icns"), append_images=mac)
+    print("        mdd.icns")
 
     sheet = Image.new("RGBA", (16 + 20 + 24 + 32 + 48 + 64 + 128 + 256 + 8 * 8, 264),
                       (40, 40, 46, 255))
