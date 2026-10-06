@@ -265,6 +265,11 @@ nobody had signed around a program that was, and once downloaded, macOS called i
 not open it. `tools/icon/icon.py` draws the icon at the sizes macOS asks for, inside the margin a
 Mac icon keeps.
 
+**A Mac starts a program allowed 256 open files, and a build needs more.** clang holds more than
+that at once compiling hxcpp's own runtime, 310 in one compile as measured, and stops with
+`Too many open files`. `mdd build` raises the limit to 10240 for the compiler it starts on macOS,
+wherever it is lower, so nothing has to be set by hand.
+
 The website's pages are in `site/`. `layout.html` wraps every one of them, and a page asks for what
 it shows from the document that describes it: `{{manual}}` and `{{contents}}` for the user manual,
 `{{examples}}` for the example cards, read from the manual's table of them,

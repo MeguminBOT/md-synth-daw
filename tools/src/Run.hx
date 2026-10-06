@@ -40,6 +40,13 @@ class Run {
 	static inline final GRAPHICS = 256;
 
 	/**
+		The open files a macOS build raises its limit to before it starts the compiler. A Mac starts
+		a program allowed 256, and clang holds more than that at once compiling hxcpp's own runtime,
+		310 in one compile as measured, and stops with `Too many open files`.
+	**/
+	static inline final OPEN_FILES = 10240;
+
+	/**
 		The renderers the installer asks the application about: the name SDL has for each, what it
 		has to reach as `--requirements` writes it, what it is called, what its level is called,
 		and whether the application falls back to it, it is offered to pick, or it is
@@ -1214,10 +1221,21 @@ class Run {
 
 		final here = Sys.getCwd();
 		Sys.setCwd(root);
-		final code = Sys.command("haxe", args);
+		final code = system() == "mac" ? Sys.command("sh", ["-c", lifted(), "haxe"].concat(args))
+			: Sys.command("haxe", args);
 		Sys.setCwd(here);
 
 		if (code != 0) Sys.exit(code);
+	}
+
+	/**
+		@return The shell script a macOS build starts the compiler through, with the arguments the
+			shell is handed: it raises the limit on open files to `OPEN_FILES` where it is lower,
+			and a shell refused that starts the compiler with the limit it has.
+	**/
+	static function lifted():String {
+		return "held=$(ulimit -S -n); if [ \"$held\" != unlimited ] && [ \"$held\" -lt " + OPEN_FILES
+			+ " ]; then ulimit -S -n " + OPEN_FILES + " 2>/dev/null; fi; exec haxe \"$@\"";
 	}
 
 	static function release(target:String):Void {
