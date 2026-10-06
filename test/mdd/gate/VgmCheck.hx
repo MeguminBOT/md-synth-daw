@@ -601,17 +601,26 @@ class VgmCheck {
 		}
 
 		says("and the registers the chip sees agree", read > 0 && every < 1.2 && everyTune < 12
-			&& everySquare < 2.5 && everyKeys < 30 && everyStruck < 10,
+			&& everySquare < 2.5 && everyClock < CLOCK_CENTS && everyKeys < 30 && everyStruck < 10,
 			read + " files replayed as songs and read back off the register writes: "
 			+ said.toString() + "; worst class " + round(every, 2) + ", worst pitch "
 			+ round(everyTune, 1) + " cents, worst square " + round(everySquare, 2)
-			+ ", worst keyed time " + everyKeys + " per thousand and " + everyStruck
-			+ " strikes");
+			+ ", worst noise clock " + round(everyClock, 1) + " cents, worst keyed time "
+			+ everyKeys + " per thousand and " + everyStruck + " strikes");
 	}
+
+	/**
+		How far apart the noise's clock may be on average, in cents of the third square's period,
+		while the noise follows that square in the file and in the song. Every file replayed here
+		starts its noise on a period a note lands on and moves it only with writes the import keeps,
+		so anything but nought is an import gone wrong.
+	**/
+	static inline final CLOCK_CENTS = 1.0;
 
 	static var every:Float = 0;
 	static var everyTune:Float = 0;
 	static var everySquare:Float = 0;
+	static var everyClock:Float = 0;
 	static var everyKeys:Int = 0;
 	static var everyStruck:Int = 0;
 
@@ -679,6 +688,10 @@ class VgmCheck {
 		var tunes = 0;
 		var squares = 0.0;
 		var squared = 0;
+		var clocks = 0.0;
+		var clocked = 0;
+		var clockWorst = 0.0;
+		var clockWhere = "";
 		var extra = 0;
 		var missing = 0;
 
@@ -799,6 +812,23 @@ class VgmCheck {
 				squared++;
 			}
 
+			if (wanted[0x213] < 15 && (wanted[0x217] & 3) == 3 && held[0x213] < 15
+					&& (held[0x217] & 3) == 3) {
+				final one = wanted[0x216] < 1 ? 1 : wanted[0x216];
+				final two = held[0x216] < 1 ? 1 : held[0x216];
+				final away = 1200 * Math.log(one / two) / Math.log(2);
+				final much = away < 0 ? -away : away;
+
+				clocks += much;
+				clocked++;
+
+				if (much > clockWorst) {
+					clockWorst = much;
+					clockWhere = "at " + round(at / mdd.song.Tempo.TICKS, 2) + " s period "
+						+ wanted[0x216] + " against " + held[0x216];
+				}
+			}
+
 			at += 735;
 		}
 
@@ -825,10 +855,12 @@ class VgmCheck {
 
 		final tune = tunes == 0 ? 0.0 : tuned / tunes;
 		final square = squared == 0 ? 0.0 : squares / squared;
+		final clock = clocked == 0 ? 0.0 : clocks / clocked;
 
 		if (worstClass > every) every = worstClass;
 		if (tune > everyTune) everyTune = tune;
 		if (square > everySquare) everySquare = square;
+		if (clock > everyClock) everyClock = clock;
 		var struck = 0;
 
 		for (index in 0...6) {
@@ -839,8 +871,9 @@ class VgmCheck {
 		if (keysApart > everyKeys) everyKeys = keysApart;
 		if (struck > everyStruck) everyStruck = struck;
 
-		said.add(name.substr(0, 18) + " class " + round(worstClass, 2) + " pitch "
-			+ round(tune, 1) + " square " + round(square, 2));
+		said.add(Fixtures.titled(name) + " class " + round(worstClass, 2) + " pitch "
+			+ round(tune, 1) + " square " + round(square, 2) + " noise clock " + round(clock, 1)
+			+ " cents over " + clocked + " frames" + (clockWorst == 0 ? "" : ", worst " + clockWhere));
 
 
 		said.add(" strikes " + struck + " keyed " + keysApart + " per thousand"
@@ -938,12 +971,19 @@ class VgmCheck {
 			final value = stream.valueAt(index);
 
 			if (stream.kindAt(index) != mdd.play.Stream.YM) {
-				if ((value & 0x80) != 0) {
-					latched = (value >> 4) & 7;
+				if ((value & 0x80) != 0) latched = (value >> 4) & 7;
 
-					if ((latched & 1) != 0) shadow[0x210 + (latched >> 1)] = value & 0x0F;
-				} else if ((latched & 1) != 0) {
-					shadow[0x210 + (latched >> 1)] = value & 0x0F;
+				final channel = latched >> 1;
+				final period = 0x214 + channel;
+
+				if ((latched & 1) != 0) {
+					shadow[0x210 + channel] = value & 0x0F;
+				} else if (channel == 3) {
+					if ((value & 0x80) != 0) shadow[0x217] = value & 0x07;
+				} else if ((value & 0x80) != 0) {
+					shadow[period] = (shadow[period] & 0x3F0) | (value & 0x0F);
+				} else {
+					shadow[period] = (shadow[period] & 0x0F) | ((value & 0x3F) << 4);
 				}
 
 				index++;

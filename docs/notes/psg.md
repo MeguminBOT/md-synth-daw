@@ -106,6 +106,20 @@ would stop at that note's period of 9 and the top of the range would have no pit
 notes above 91 reach 8 periods, from 8 down to 1. Period 1 is the brightest noise the part makes,
 and the noise's own counter takes a period of nought as one.
 
+A driver moves the third square's period while its noise sounds as freely as before one starts.
+Green Hill holds its noise on period nought throughout, and the two player Emerald Hill flutters it
+between nought and 1023 every two frames. An import writes each noise note on the note whose period
+comes nearest the one the square holds as the noise starts, and every period the driver writes goes
+on PSG3's pitch lane, which a noise holding the square still takes where PSG3 has no note of its
+own. Four of the five files `mdd gate vgm` replays clock their noise this way, and on all four the
+noise's clock, the third square's period while the noise follows it, is zero cents apart from the
+file. Green Hill's third square and noise, rendered alone for thirty seconds, are byte for byte what
+the file renders.
+
+Read off the whole corpus, Sonic 2 and Sonic 3 only start a noise on periods a note lands on. Sonic 1
+also starts one on 23, 26, 29, 31 and 69, which no note lands on, so its note plays one or two
+periods away, at most 74 cents, until the driver next writes the period.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## A note's edge is one more edge

@@ -1446,7 +1446,7 @@ final class Transcription {
 
 		if (level < 15 && was >= 15) {
 			psgFrom[channel] = at;
-			psgNote[channel] = channel < 3 ? squareNote(psgPeriod[channel]) : 60;
+			psgNote[channel] = channel < 3 ? squareNote(psgPeriod[channel]) : noiseNote();
 			everSquared[channel] = true;
 
 			psgWhen[channel].resize(0);
@@ -1564,6 +1564,33 @@ final class Transcription {
 	function squareNote(period:Int):Int {
 		if (period < 1) return 60;
 		return nearest(Sn76489.CLOCK / (32.0 * period));
+	}
+
+	/**
+		Where the noise follows the third square, a note on it clocks the noise through that
+		square, so the note is the one whose period in `Stream.NOISE_PERIODS` comes nearest the
+		period the driver left there. The part counts a period of nought as one, the brightest.
+
+		@return The note a noise starting now is written on, or middle C where the noise runs at a
+			rate of its own and has no pitch.
+	**/
+	function noiseNote():Int {
+		if (noiseMode < 0 || (noiseMode & 3) != 3) return 60;
+
+		final period = psgPeriod[2] < 1 ? 1 : psgPeriod[2];
+		var best = 60;
+		var closest = Math.POSITIVE_INFINITY;
+
+		for (note in 0...128) {
+			final away = Math.abs(Math.log(mdd.play.Stream.NOISE_PERIODS[note] / period));
+
+			if (away < closest) {
+				closest = away;
+				best = note;
+			}
+		}
+
+		return best;
 	}
 
 	function nearest(hertz:Float):Int {
