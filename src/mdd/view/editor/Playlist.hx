@@ -116,6 +116,7 @@ final class Playlist extends Widget {
 	var hoverEdge:Int = -1;
 	var dragging:Null<Clip> = null;
 	var sizing:Bool = false;
+	var sizingStart:Bool = false;
 	var grabTick:Int = 0;
 	var grabWasAt:Int = 0;
 	var grabFresh:Bool = false;
@@ -138,6 +139,7 @@ final class Playlist extends Widget {
 	final movingRows:Array<Int> = [];
 	final wereAt:Array<Int> = [];
 	final wereLong:Array<Int> = [];
+	final wereOffset:Array<Int> = [];
 	var leastAt:Int = 0;
 	var leastRow:Int = 0;
 	var mostRow:Int = 0;
@@ -320,6 +322,27 @@ final class Playlist extends Widget {
 	}
 
 	/**
+		Whether a point is near where a clip begins, which drags its start rather than the whole
+		clip.
+
+		A clip narrower than three of these handles has none: the end is what a narrow clip
+		resizes from, and the rest of it has to stay somewhere the whole clip can be taken hold
+		of and moved.
+
+		@param clip A clip.
+		@param px A point, across.
+		@return Whether that point is on its start.
+	**/
+	public function onStart(clip:Clip, px:Float):Bool {
+		final reach = edge();
+		final left = atTick(clip.at);
+
+		if (atTick(clip.ends()) - left < reach * 3) return false;
+
+		return px >= left - reach && px <= left + reach;
+	}
+
+	/**
 		Changes how long a clip is.
 
 		@param clip The clip.
@@ -334,6 +357,38 @@ final class Playlist extends Widget {
 		if (want == clip.length) return;
 
 		clip.length = want;
+	}
+
+	/**
+		Drags where a clip begins, leaving where it ends alone, so the clip grows and shrinks from
+		its left while the music under it stays where it was: how far into its pattern the clip
+		starts moves with its start. It never passes its own end, and never reaches back past
+		where its pattern begins or the start of the song.
+
+		Only the clip under the pointer moves. A selection resizes from the end together, and
+		doing the same from the start would have to clamp each clip against its own end and its
+		own pattern, which is a different thing and is not done here.
+
+		@param clip The clip being dragged.
+		@param to Where its start is being taken, in ticks.
+		@param free Whether to ignore the snap, which holding alt does.
+	**/
+	public function restarted(clip:Clip, to:Int, free:Bool = false):Void {
+		final least = free || session.snap < 1 ? 1 : session.snap;
+		final ends = clip.ends();
+		final first = clip.origin() > 0 ? clip.origin() : 0;
+
+		var want = freely(to, free);
+
+		if (want > ends - least) want = ends - least;
+		if (want < first) want = first;
+		if (want == clip.at || want >= ends) return;
+
+		session.holds();
+		clip.offset += want - clip.at;
+		clip.at = want;
+		clip.length = ends - want;
+		session.frees();
 	}
 
 	/**
@@ -481,7 +536,9 @@ final class Playlist extends Widget {
 		if (sizing && dragging != null) return mdd.host.Sdl.CURSOR_ACROSS;
 
 		final under = clipAt(px, py);
-		if (under != null && onEdge(under, px)) return mdd.host.Sdl.CURSOR_ACROSS;
+		if (under != null && (onEdge(under, px) || onStart(under, px))) {
+			return mdd.host.Sdl.CURSOR_ACROSS;
+		}
 
 		return mdd.host.Sdl.CURSOR_ARROW;
 	}
@@ -597,8 +654,13 @@ final class Playlist extends Widget {
 				if (dragging == null) return false;
 
 				if (sizing) {
-					resized(dragging, tickAt(event.x), event.alt());
-					stretches(dragging, event.alt());
+					if (sizingStart) {
+						restarted(dragging, tickAt(event.x), event.alt());
+					} else {
+						resized(dragging, tickAt(event.x), event.alt());
+						stretches(dragging, event.alt());
+					}
+
 					invalidate();
 					return true;
 				}
@@ -769,7 +831,8 @@ final class Playlist extends Widget {
 			}
 
 			dragging = under;
-			sizing = onEdge(under, event.x);
+			sizingStart = !onEdge(under, event.x) && onStart(under, event.x);
+			sizing = sizingStart || onEdge(under, event.x);
 			grabTick = sizing ? 0 : tickAt(event.x) - under.at;
 			grabWasAt = under.at;
 			grabFresh = false;
@@ -1157,6 +1220,7 @@ final class Playlist extends Widget {
 		movingRows.resize(0);
 		wereAt.resize(0);
 		wereLong.resize(0);
+		wereOffset.resize(0);
 
 		if (picked.count > 1 && picked.holds(lead)) {
 			for (index in 0...picked.count) moving.push(picked.at(index));
@@ -1176,6 +1240,7 @@ final class Playlist extends Widget {
 			movingRows.push(row);
 			wereAt.push(clip.at);
 			wereLong.push(clip.length);
+			wereOffset.push(clip.offset);
 
 			if (clip.at < leastAt) leastAt = clip.at;
 			if (row < 0) continue;
@@ -1271,18 +1336,46 @@ final class Playlist extends Widget {
 
 		if (held == null || grabFresh) {
 			sizing = false;
+			sizingStart = false;
 			grabFresh = false;
 			haulRows = 0;
 			session.changed();
 			return;
 		}
 
-		if (sizing) sized();
-		else hauledDone();
+		if (sizing) {
+			if (sizingStart) startedDone(held);
+			else sized();
+		} else hauledDone();
 
 		sizing = false;
+		sizingStart = false;
 		haulRows = 0;
 		session.changed();
+	}
+
+	/**
+		Puts a start drag on the undo stack as one step. Where the clip begins, how long it is and
+		how far into its pattern it starts have all moved, and the one command puts all three back.
+
+		@param clip The clip that was dragged.
+	**/
+	function startedDone(clip:Clip):Void {
+		final index = moving.indexOf(clip);
+		if (index < 0) return;
+
+		final wantAt = clip.at;
+		final wantLong = clip.length;
+
+		if (wantAt == wereAt[index] && wantLong == wereLong[index]) return;
+
+		session.holds();
+		clip.at = wereAt[index];
+		clip.length = wereLong[index];
+		clip.offset = wereOffset[index];
+		session.frees();
+
+		session.does(new SizeClip(rowOf(index), clip, wantAt, wantLong));
 	}
 
 	function sized():Void {
@@ -1296,13 +1389,13 @@ final class Playlist extends Widget {
 		for (index in 0...moving.length) moving[index].length = wereLong[index];
 
 		if (moving.length == 1) {
-			session.does(new SizeClip(rowOf(0), moving[0], wants[0]));
+			session.does(new SizeClip(rowOf(0), moving[0], moving[0].at, wants[0]));
 			return;
 		}
 
 		final group = new mdd.song.edit.Together("resize " + counted(moving.length));
 		for (index in 0...moving.length) {
-			group.also(new SizeClip(rowOf(index), moving[index], wants[index]));
+			group.also(new SizeClip(rowOf(index), moving[index], moving[index].at, wants[index]));
 		}
 
 		session.does(group);

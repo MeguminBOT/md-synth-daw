@@ -359,8 +359,9 @@ one note a grid step long and moves the playhead on, so a line can be entered on
 ![The playlist](images/manual/basics/patterns-playlist/01-the-playlist.png)
 
 A **pattern** holds notes for any of the eleven channels, and the playlist's tracks are named. With
-**Draw**, four bars of clips is one stroke. Clips drag between tracks, resize, slice in two and move
-together as a group, and slicing one keeps the music where it was rather than restarting the pattern.
+**Draw**, four bars of clips is one stroke. Clips drag between tracks, resize from either end, slice
+in two and move together as a group, and slicing one or dragging its start keeps the music where it
+was rather than restarting the pattern.
 
 ![The pattern picker's list](images/manual/basics/patterns-playlist/02-the-pattern-picker.png)
 

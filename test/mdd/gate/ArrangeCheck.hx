@@ -780,7 +780,9 @@ class ArrangeCheck {
 		offer("MoveClip", function(song) return new mdd.song.edit.MoveClip(0,
 			song.tracks[0].clips[0], 576, 3));
 		offer("SizeClip", function(song) return new mdd.song.edit.SizeClip(0,
-			song.tracks[0].clips[0], 96));
+			song.tracks[0].clips[0], song.tracks[0].clips[0].at, 96));
+		offer("SizeClip from its start", function(song) return new mdd.song.edit.SizeClip(0,
+			song.tracks[0].clips[0], 48, 336));
 		offer("SliceClip", function(song) return new mdd.song.edit.SliceClip(0,
 			song.tracks[0].clips[0], 96));
 
@@ -872,7 +874,8 @@ class ArrangeCheck {
 		history.does(song, new RenamePattern(0, "the verse"));
 		history.does(song, new ResizePattern(1, 768));
 		history.does(song, new MoveClip(0, song.tracks[0].clips[2], 960, 2));
-		history.does(song, new mdd.song.edit.SizeClip(0, song.tracks[0].clips[2], 240));
+		history.does(song, new mdd.song.edit.SizeClip(0, song.tracks[0].clips[2],
+			song.tracks[0].clips[2].at, 240));
 
 		final after = mdd.format.Project.text(song);
 

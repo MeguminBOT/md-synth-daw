@@ -295,6 +295,91 @@ class SpineCheck {
 	}
 
 	/**
+		A clip resizes from its start as well as its end, and the music under it stays where it
+		was while it does: how far into its pattern it starts moves with its start, and it never
+		reaches back past where its pattern begins.
+	**/
+	static function clipTrimmed(tree:Root, session:Session, centre:Centre):Void {
+		final list = centre.playlist;
+		final tracks = session.song.tracks;
+		if (tracks.length < 2) return;
+
+		for (track in tracks) track.clips.resize(0);
+
+		final beat = session.song.tempo.ppqn;
+		final bar = beat * 4;
+
+		tracks[0].add(new mdd.song.Clip(session.pattern, bar * 2, bar * 4));
+
+		session.uses(Session.DRAW);
+		session.history.clear();
+		centre.show(Centre.PLAYLIST);
+		tree.reshape();
+		tree.top.measure(tree.width, tree.height);
+		tree.top.arrange(0, 0, tree.width, tree.height);
+
+		list.perTick = 0.25;
+		list.scrollTo(0);
+
+		final clip = tracks[0].clips[0];
+		final wasAt = clip.at;
+		final wasLong = clip.length;
+		final ends = clip.ends();
+		final origin = clip.origin();
+
+		final row = (list.atTrack(0) + list.atTrack(1)) * 0.5;
+		final start = list.atTick(wasAt);
+
+		says("a wide clip has a handle on its start",
+			list.onStart(clip, start) && !list.onStart(clip, list.atTick(ends)),
+			"its start answers and its end does not");
+
+		tree.pressed(start + 1, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(list.atTick(wasAt + beat), row, mdd.ui.Mod.None);
+		tree.released(list.atTick(wasAt + beat), row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		final steps = session.history.depth();
+
+		says("and dragging it moves the start and leaves the end and the music",
+			clip.at == wasAt + beat && clip.ends() == ends && clip.offset == beat
+			&& clip.origin() == origin,
+			"the clip begins at " + clip.at + " against " + wasAt + ", ends at " + clip.ends()
+			+ ", starts " + clip.offset + " ticks into its pattern and places it from "
+			+ clip.origin() + " against " + origin);
+
+		final trimmed = list.atTick(clip.at);
+
+		tree.pressed(trimmed + 1, row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+		tree.moved(list.atTick(wasAt - bar), row, mdd.ui.Mod.None);
+		tree.released(list.atTick(wasAt - bar), row, mdd.ui.Pointer.Left, mdd.ui.Mod.None);
+
+		says("and it reaches back no further than where its pattern begins",
+			clip.at == wasAt && clip.offset == 0 && clip.ends() == ends,
+			"dragged a bar past its pattern's start, it begins at " + clip.at
+			+ " with an offset of " + clip.offset);
+
+		session.undo();
+		session.undo();
+
+		says("and each drag undoes as one step",
+			steps == 1 && clip.at == wasAt && clip.length == wasLong && clip.offset == 0,
+			steps + " step for the first drag, and two undos took the clip back to " + clip.at
+			+ " for " + clip.length);
+
+		final narrow = Std.int(beat / 4);
+
+		tracks[0].clips.resize(0);
+		tracks[0].add(new mdd.song.Clip(session.pattern, 0, narrow));
+
+		says("and a narrow one has none, so it can still be moved",
+			!list.onStart(tracks[0].clips[0], list.atTick(0)),
+			"a clip of " + narrow + " ticks answers nothing on its start");
+
+		tracks[0].clips.resize(0);
+		session.history.clear();
+	}
+
+	/**
 		Every view that shows a playhead has to ask for a frame when it moves, or
 		the playhead only advances when something else happens to want one and it
 		is seen to stutter.
@@ -6265,6 +6350,7 @@ class SpineCheck {
 		budgeted(tree, session, budget, centre.roll);
 		chased(tree, session, centre, paint, renderer);
 		restarted(tree, session, centre.roll);
+		clipTrimmed(tree, session, centre);
 
 		tree.resize(900, 600);
 		shell.fit(metrics);
