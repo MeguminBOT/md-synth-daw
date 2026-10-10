@@ -38,12 +38,14 @@ extern class Event {
 	public var mods:Int;
 
 	/**
-		Where it happened, across.
+		Where it happened, across, in the window's render pixels, the units the interface lays out
+		in: a window on a Retina display has twice as many of those as it has window coordinates.
+		A wheel turn carries how far it turned here instead.
 	**/
 	public var x:Single;
 
 	/**
-		Where it happened, down.
+		Where it happened, down, in render pixels, or how far a wheel turned.
 	**/
 	public var y:Single;
 

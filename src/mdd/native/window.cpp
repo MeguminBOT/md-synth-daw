@@ -495,5 +495,10 @@ extern "C" void mdd_cursor_free(void) {
 }
 
 extern "C" void mdd_pointer_warp(SDL_Window *window, float x, float y) {
-	if (window != nullptr) SDL_WarpMouseInWindow(window, x, y);
+	if (window == nullptr) return;
+
+	const float density = SDL_GetWindowPixelDensity(window);
+	const float by = density > 0.0f ? density : 1.0f;
+
+	SDL_WarpMouseInWindow(window, x / by, y / by);
 }

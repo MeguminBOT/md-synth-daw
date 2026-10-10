@@ -425,8 +425,8 @@ extern class Sdl {
 		event at that point.
 
 		@param window The window.
-		@param x Where, across, in points.
-		@param y Where, down, in points.
+		@param x Where, across, in render pixels, the units every event position arrives in.
+		@param y Where, down, in render pixels.
 	**/
 	@:native("mdd_pointer_warp")
 	public static function warp(window:cpp.Star<Window>, x:Float, y:Float):Void;

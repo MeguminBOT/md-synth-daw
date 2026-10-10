@@ -50,6 +50,23 @@ namespace {
 		if (SDL_strlcpy(out->text, text, MDD_EVENT_TEXT_BYTES) >= MDD_EVENT_TEXT_BYTES) whole(out->text);
 	}
 
+	/**
+	 * How many render pixels one of a window's own coordinates spans: 2 for a window on a Retina
+	 * display, and 1 wherever the two are the same, as they always are on Windows. SDL reports the
+	 * pointer in the window's coordinates and the interface lays out and hit tests in render
+	 * pixels, so every position an event carries is multiplied by it on the way in.
+	 *
+	 * @param id The window the event belongs to.
+	 * @return The window's pixel density, or 1 for a window that is gone.
+	 */
+	float densityOf(SDL_WindowID id) {
+		SDL_Window *window = SDL_GetWindowFromID(id);
+		if (window == nullptr) return 1.0f;
+
+		const float density = SDL_GetWindowPixelDensity(window);
+		return density > 0.0f ? density : 1.0f;
+	}
+
 	void blank(MddEvent *out) {
 		out->type = MDD_EVENT_NONE;
 		out->windowID = 0;
@@ -92,8 +109,8 @@ extern "C" int mdd_poll_event(MddEvent *out) {
 				out->windowID = event.motion.windowID;
 				out->code = static_cast<int>(event.motion.state);
 				out->mods = foldMods(SDL_GetModState());
-				out->x = event.motion.x;
-				out->y = event.motion.y;
+				out->x = event.motion.x * densityOf(event.motion.windowID);
+				out->y = event.motion.y * densityOf(event.motion.windowID);
 				return 1;
 
 			case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -104,8 +121,8 @@ extern "C" int mdd_poll_event(MddEvent *out) {
 				out->code = event.button.button;
 				out->value = event.button.clicks;
 				out->mods = foldMods(SDL_GetModState());
-				out->x = event.button.x;
-				out->y = event.button.y;
+				out->x = event.button.x * densityOf(event.button.windowID);
+				out->y = event.button.y * densityOf(event.button.windowID);
 				return 1;
 
 			case SDL_EVENT_MOUSE_WHEEL:
@@ -159,8 +176,8 @@ extern "C" int mdd_poll_event(MddEvent *out) {
 			case SDL_EVENT_DROP_FILE:
 				out->type = MDD_EVENT_DROP_FILE;
 				out->windowID = event.drop.windowID;
-				out->x = event.drop.x;
-				out->y = event.drop.y;
+				out->x = event.drop.x * densityOf(event.drop.windowID);
+				out->y = event.drop.y * densityOf(event.drop.windowID);
 				carry(out, event.drop.data);
 				return 1;
 

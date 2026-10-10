@@ -331,11 +331,11 @@ void mdd_cursor_free(void);
 
 /**
  * Moves the pointer to a point in a window. SDL posts the move back as an ordinary motion
- * event at that point.
+ * event at that point, which arrives in the same render pixels the point was given in.
  *
  * @param window The window.
- * @param x Where, across, in points.
- * @param y Where, down, in points.
+ * @param x Where, across, in render pixels, the units every event position arrives in.
+ * @param y Where, down, in render pixels.
  */
 void mdd_pointer_warp(SDL_Window *window, float x, float y);
 
